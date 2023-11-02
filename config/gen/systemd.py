@@ -319,7 +319,8 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
     {'exe': 'jaiabot_as-ezo-ec.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
@@ -328,7 +329,8 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -396,7 +398,8 @@ if jaia_imu_type.value == 'bno085':
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service'},
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_imu)
 else:
@@ -415,7 +418,8 @@ else:
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service'},
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
