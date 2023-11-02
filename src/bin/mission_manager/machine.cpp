@@ -538,7 +538,9 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
 
     powered_descent_timeout_ = start_timeout + powered_descent_timeout_duration;
 
-    loop(EvLoop());
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDescent()
@@ -550,17 +552,6 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDe
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(const EvLoop&)
 {
-    protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
-
-    // If bot is diving then use PID
-    if (context<Dive>().is_bot_diving())
-    {
-        setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
-    }
-
-    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
-
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
     // Check when to stop logging
@@ -689,6 +680,19 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     }
 
     interprocess().publish<jaiabot::groups::mission_dive>(dive_pdescent_debug_);
+
+    // Send desired setpoint command
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+
+    // If bot is diving then use PID
+    if (context<Dive>().is_bot_diving())
+    {
+        setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    }
+
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
     glog.is_debug1() &&
         glog << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth: "
                 "\n"
@@ -706,6 +710,11 @@ jaiabot::statechart::inmission::underway::task::dive::Hold::Hold(typename StateB
 
     goby::time::SteadyClock::duration hold_duration = std::chrono::seconds(hold_seconds);
     hold_stop_ = hold_start + hold_duration;
+
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 jaiabot::statechart::inmission::underway::task::dive::Hold::~Hold()
@@ -744,10 +753,6 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
     glog.is_debug1() &&
         glog << "Entered jaiabot::statechart::inmission::underway::task::dive::Hold::loop: \n"
              << std::endl;
-    protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
-    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
-    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
 
@@ -816,6 +821,12 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::depth(const EvV
 
     dive_hold_debug_.set_current_depth(ev.depth.value());
     interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug_);
+
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
     glog.is_debug1() &&
         glog << "Exit jaiabot::statechart::inmission::underway::task::dive::Hold::depth: \n"
              << std::endl;
@@ -826,6 +837,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    loop(EvLoop());
 }
 
 jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~UnpoweredAscent()
@@ -929,6 +941,8 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAsce
     powered_ascent_motor_on_timeout_ = start_timeout + powered_ascent_motor_on_duration_;
 
     powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
+
+    loop(EvLoop());
 }
 
 // Task::Dive::PoweredAscent
