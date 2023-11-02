@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -19,6 +19,7 @@ import { Missions } from '../Missions';
 import { Slider } from '@mui/material';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
+import './RunItem.less'
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -203,24 +204,16 @@ export default class RunItem extends React.Component {
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
         let repeatsInput = (
-            <div>
-                Repeats: {repeats}
-                <Slider
-                    id="runRepeats"
-                    aria-label="Repeats"
-                    value={repeats}
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks
-                    min={1}
-                    max={10}
-                    onChange={(evt: Event, value: number, activeThumb: number) => {
+            <div className='repeats-input'>
+                <div>Repeats (1-100)</div>
+                <input type="number" className='NumberInput' id="repeats" name="repeats" min="1" max="100" value={repeats} onChange={
+                    (evt: ChangeEvent<HTMLInputElement>) => {
                         if (plan != null) {
-                            plan.repeats = value
+                            plan.repeats = evt.target.valueAsNumber
                             this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
                         }
-                    }}
-                />
+                    }
+                } />
             </div>
         )
 
