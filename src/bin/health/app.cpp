@@ -72,7 +72,7 @@ class Health : public ApplicationBase
         system("systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-    void reboot_bno085_imu() { system("jaiabot_bno085_reset_gpio_pin.py"); }
+    void reboot_bno085_imu() { system("systemctl restart bno085-reset-gpio-pin"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
   private:
