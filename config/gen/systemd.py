@@ -472,7 +472,16 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': Type.BOTH,
-     'runs_when': Mode.RUNTIME}
+     'runs_when': Mode.RUNTIME},
+     {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
+     'description': 'BNO085 script to reboot imu',
+     'template': 'bno085-reset-gpio-pin.service.in',
+     'subdir': 'adafruit_BNO085',
+     'args': '',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'imu_type': IMU_TYPE.BNO085,
+     'run_at_boot': False}
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
@@ -542,7 +551,11 @@ def is_firm_run(firm):
         
     if ('gps_type' in macros):
         if (macros['gps_type'] != jaia_gps_type):
-            return False    
+            return False
+        
+    if ('imu_type' in macros):
+        if (macros['imu_type'] != jaia_imu_type):
+            return False
 
     return True
 
@@ -574,12 +587,16 @@ for firmware in jaia_firmware:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if args.enable:
-            print('Enabling ' + service)
-            subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        if args.disable:
-            print('Disabling ' + service)
-            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
+        # Check to see if we should enable the service to run at boot
+        # If not then we should not try to enable or disable the service
+        if (not 'run_at_boot' in macros or macros['run_at_boot'] != False):
+            if args.enable:
+                print('Enabling ' + service)
+                subprocess.run('systemctl enable ' + service, check=True, shell=True)
+            if args.disable:
+                print('Disabling ' + service)
+                subprocess.run('systemctl disable ' + service, check=True, shell=True)
         
         
 if args.enable or args.disable:
