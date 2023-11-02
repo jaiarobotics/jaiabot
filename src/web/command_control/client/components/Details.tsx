@@ -529,6 +529,20 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
+function getBotRun(botId: number, runs: {[key: string]: RunInterface}) {
+    try {
+        for (const runId of Object.keys(runs)) {
+            if (runs[runId].assigned === botId) {
+                return runs[runId]
+            }
+        }
+    } catch(error) {
+        console.error('Cannot getBotRun:\n', error)
+        console.log('Cannot getBotRun:\n', error)
+    }
+    return null
+}
+
 export interface BotDetailsProps {
     bot: PortalBotStatus,
     hub: PortalHubStatus,
@@ -659,17 +673,13 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         botOffloadPercentage = ' ' + bot.data_offload_percentage + '%'
     }
 
-    let clickOnMap = (
-        <h3 className='name'>Click on the map to create waypoints</h3>
-    )
-
-    // Clear message for clicking on map if the bot has a run,
-    // but it is not in edit mode
+    // Change message for clicking on map if the bot has a run, but it is not in edit mode
+    let clickOnMap = <h3 className='name'>Click on the map to create waypoints</h3>
+    const botRun = getBotRun(bot.bot_id, mission.runs) ?? false
+    
     if (!disableClearRunButton(bot, mission).isDisabled
-            && !props?.mission?.runIdInEditMode[bot?.bot_id]) {
-        clickOnMap = (
-            <h3 className='name'>Click edit toggle to create waypoints</h3>
-        )
+        && (botRun && botRun.id !== mission.runIdInEditMode)) {
+        clickOnMap = <h3 className='name'>Click edit toggle to create waypoints</h3>
     }
 
     return (
@@ -706,6 +716,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             run={props.run}
                             label='Edit'
                             title='ToggleEditMode'
+                            isDisabled={getBotRun(bot.bot_id, mission.runs) ? false : true}
                         />
                     </div>
                 </div>

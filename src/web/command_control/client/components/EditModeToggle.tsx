@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 
 import { RunInterface } from "./CommandControl"
 
@@ -13,6 +13,7 @@ interface Props {
     run: RunInterface
     label: string,
     title: string
+    isDisabled?: boolean
 }
 
 // MUI Styling: mui.com/material-ui/react-switch
@@ -39,6 +40,7 @@ export default function EditModeToggle(props: Props) {
                     <AmberSwitch 
                         checked={props.runIdInEditMode === props.run?.id}
                         onChange={(evt: React.ChangeEvent) => props.onClick(evt, props.run)}
+                        disabled={props.isDisabled ?? false}
                     />
                 }
                 label={props.label} 
