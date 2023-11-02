@@ -44,7 +44,7 @@ export default class RunList extends React.Component<RunListProps, RunListState>
                 const element = document.getElementById(
                     `run-accordion-${this.props.runIdInEditMode.split('-')[1]}`
                 )
-                element?.scrollIntoView()
+                setTimeout(() => element?.scrollIntoView(), 30) // 30 seems to be sufficent time for dropdown to establish its height               
             }
         }
     }

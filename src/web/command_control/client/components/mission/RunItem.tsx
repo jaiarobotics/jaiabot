@@ -46,7 +46,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
     }
 
     componentDidMount() {
-        addDropdownListener('run-accordion', 'runList', 30)
+        addDropdownListener('run-accordion', 'runList', 30) // 30 seems to be sufficent time for dropdown to establish its height
     }
     
     handleBotSelectionChange(event: SelectChangeEvent) {
