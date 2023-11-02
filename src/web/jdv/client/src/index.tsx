@@ -79,7 +79,6 @@ class LogApp extends React.Component {
   state: State
   map: JaiaMap
   plot_div_element: any
-  busySemaphore: number = 0
 
   constructor(props: LogAppProps) {
     super(props)
@@ -115,7 +114,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="vertical-center"></img></div> : null
+    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
 
 
     return (
@@ -189,8 +188,6 @@ class LogApp extends React.Component {
 
         </div>
 
-        {this.loadingIndicatorIfNeeded()}
-
       </Router>
     )
   }
@@ -205,22 +202,6 @@ class LogApp extends React.Component {
     return <div id="logList" className="padded">
       {chosenLogsElements}
     </div>
-  }
-
-  loadingIndicatorIfNeeded(): React.JSX.Element {
-    if (this.busySemaphore > 0) {
-      return (
-        <div className='vertical flexbox maximized' style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#00000050'}}>
-          <img src = "/favicon.png" className='padded' style={{width: '50pt', height: '50pt'}} />
-          <div style={{textAlign: 'center'}}>
-            Loading
-          </div>
-        </div>
-      )
-    }
-    else {
-      return null
-    }
   }
 
   togglerLayerSwitcher() {
@@ -289,9 +270,13 @@ class LogApp extends React.Component {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
-        this.startBusyIndicator()
+        // Get the drift interpolations
+        const getDriftInterpolationsJob = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
+          this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
+        })
 
-        Promise.allSettled([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob]).finally(() => {
+        this.startBusyIndicator()
+        Promise.all([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob, getDriftInterpolationsJob]).finally(() => {
           this.stopBusyIndicator()
         })
 
