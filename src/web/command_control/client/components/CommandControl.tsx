@@ -59,7 +59,6 @@ import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
 
 
-
 // TurfJS
 import * as turf from '@turf/turf'
 
@@ -72,7 +71,6 @@ import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortaw
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
-import { collapseTextChangeRangesAcrossMultipleVersions } from 'typescript'
 
 
 // Utility
@@ -87,8 +85,10 @@ const viewportDefaultPadding = 100
 const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
-const POLLING_INTERVAL_MS = 500
-const POLLING_META_DATA_INTERVAL_MS = 10000
+const POD_STATUS_POLL_INTERVAL = 1000
+const POD_STATUS_ERROR_POLL_INTERVAL = 2500
+const METADATA_POLL_INTERVAL = 10_000
+const TASK_PACKET_POLL_INTERVAL = 5000
 const MAX_GOALS = 30
 
 interface Props {}
@@ -240,8 +240,9 @@ export default class CommandControl extends React.Component {
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
-	timerID: NodeJS.Timeout
-	metadataTimerID: NodeJS.Timeout
+	podStatusPollId: NodeJS.Timeout
+	podStatusErrorPollId: NodeJS.Timeout
+	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 
 	constructor(props: Props) {
@@ -409,6 +410,9 @@ export default class CommandControl extends React.Component {
 			this.setState({ surveyExclusionCoords })
 		})
 
+		this.podStatusPollId = null
+		this.podStatusErrorPollId = null
+		this.metadataPollId = null
 		this.taskPackets = []
 		this.taskPacketsCount = 0
 		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
@@ -439,9 +443,9 @@ export default class CommandControl extends React.Component {
 		map.setTarget(this.mapDivId)
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
-		this.timerID = setInterval(() => this.pollPodStatus(), 0)
-		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0)
-		setInterval(() => this.pollTaskPackets(), 5000)
+		this.pollPodStatus()
+		this.pollMetadata()
+		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
 		this.setupMapLayersPanel()
 
@@ -514,8 +518,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentWillUnmount() {
-		clearInterval(this.timerID)
-		clearInterval(this.metadataTimerID)
+		clearInterval(this.podStatusPollId)
+		clearInterval(this.metadataPollId)
 	}
 
 	/**
@@ -767,49 +771,34 @@ export default class CommandControl extends React.Component {
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
-	/**
-	 * Gets the current metadata
-	 */
 	pollMetadata() {
-		clearInterval(this.metadataTimerID)
-
 		this.api.getMetadata().then(
 			(result) => {
 				this.setState({metadata: result})
-				this.metadataTimerID = setInterval(() => this.pollMetadata(), POLLING_META_DATA_INTERVAL_MS);
 			},
 			(err) => {
-				console.log("Meta data error response")
+				console.log("Metadata polling error:\n", err)
 			}
 		)
+		if (!this.metadataPollId) {
+			this.metadataPollId = setInterval(() => this.pollMetadata(), METADATA_POLL_INTERVAL)
+		}
 	}
 
-	/**
-	 * Use the Jaia API to poll the pod status.  This method is run at a fixed interval on a timer.
-	 */
 	pollPodStatus() {
-		clearInterval(this.timerID);
-		const us = this
-
-		function hubConnectionError(errorMessage: String) {
-			us.setState({disconnectionMessage: "Connection Dropped To HUB"})
-			console.error(errorMessage)
-			us.timerID = setInterval(() => us.pollPodStatus(), 2500)
-		}
-
 		this.api.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
-					hubConnectionError(result.message)
+					this.hubConnectionError(result.message)
 					return
 				}
 
 				if (!("bots" in result)) {
-					hubConnectionError(String(result))
+					this.hubConnectionError(String(result))
 					return
 				}
 
-				this.oldPodStatus = this.getPodStatus()
+				this.oldPodStatus = {...this.getPodStatus()}
 				this.setPodStatus(result)
 
 				let messages = result.messages
@@ -824,19 +813,26 @@ export default class CommandControl extends React.Component {
 					}
 
 					if (messages.error) {
-						this.setState({disconnectionMessage: messages.error})
+						this.setState({ disconnectionMessage: messages.error })
 					} else {
-						this.setState({disconnectionMessage: null})
+						this.setState({ disconnectionMessage: null })
 					}
 				}
-
-				this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 			},
 			(err) => {
 				console.log("Error response")
-				hubConnectionError(err.message)
+				this.hubConnectionError(err.message)
 			}
 		)
+		// Handles inital poll and restart after error
+		if (!this.podStatusPollId && !this.state.disconnectionMessage) {
+			this.podStatusPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_POLL_INTERVAL)
+		}
+		// Clears poll used during error state
+		if (this.podStatusErrorPollId && !this.state.disconnectionMessage) {
+			clearInterval(this.podStatusErrorPollId)
+			this.podStatusErrorPollId = null
+		}
 	}
 
 	pollTaskPackets() {
@@ -865,6 +861,15 @@ export default class CommandControl extends React.Component {
 			console.log('Task Packets Polling Error', err)
 		})
 		taskData.setTaskPacketsTimeline(this.state.taskPacketsTimeline)
+	}
+
+	hubConnectionError(errMsg: String) {
+		this.setState({ disconnectionMessage: "Connection Dropped To HUB" })
+		console.error(errMsg)
+		clearInterval(this.podStatusPollId) // Clear regular poll from running alongside error poll
+		if (!this.podStatusErrorPollId) {
+			this.podStatusErrorPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_ERROR_POLL_INTERVAL)
+		}
 	}
 
 	getPodStatus() {
