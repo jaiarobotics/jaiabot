@@ -3,7 +3,6 @@ import React from 'react'
 import RunPanel from './RunPanel';
 import { JaiaAPI } from '../../../common/JaiaAPI'
 import { Missions } from '../Missions'
-import { PortalBotStatus } from '../shared/PortalStatus';
 import { MissionInterface, RunInterface } from '../CommandControl';
 
 import Icon from '@mdi/react'
@@ -12,7 +11,7 @@ import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave, mdiAutoFix } from '@
 
 type MissionControllerProps = {
     api: JaiaAPI
-    bots: {[key: number]: PortalBotStatus}
+    botIds: number[]
     mission: MissionInterface
     loadMissionClick: any
     saveMissionClick: any
@@ -27,7 +26,6 @@ type MissionControllerState = {}
 export default class MissionControllerPanel extends React.Component<MissionControllerProps, MissionControllerState> {
     render() {
         const emptyMission = Object.keys(this.props.mission.runs).length === 0
-
 		return (
 			<div id="missionPanel">
 				<div className="panel-heading">Mission Panel</div>
@@ -79,14 +77,14 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     </Button>
                 </div>
                 <RunPanel
-                    bots={this.props.bots} 
+                    botIds={this.props.botIds} 
                     mission={this.props.mission}
                     loadMissionClick={this.props.loadMissionClick}
                     saveMissionClick={this.props.saveMissionClick}
                     deleteAllRunsInMission={this.props.deleteAllRunsInMission}
                     autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
-                    toggleEditMode={this.props.toggleEditMode}
                     unSelectHubOrBot={this.props.unSelectHubOrBot}
+                    toggleEditMode={this.props.toggleEditMode}
 			    />
 			</div>
 		)

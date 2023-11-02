@@ -954,7 +954,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	getBotIdList() {
-		return Object.keys(this.getPodStatus().bots).map((value: string) => { return Number(value) })
+		return Object.keys(this.getPodStatus().bots).map((value: string) => Number(value))
 	}
 
 	trackBot(id: number | string) {
@@ -3026,7 +3026,7 @@ export default class CommandControl extends React.Component {
 				visiblePanelElement = (
 					<MissionControllerPanel 
 					api={this.api} 
-					bots={bots} 
+					botIds={this.getBotIdList()} 
 					mission={this.getRunList()} 
 					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}

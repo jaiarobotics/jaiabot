@@ -702,7 +702,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                         <EditModeToggle 
                             onClick={props.toggleEditMode}
-                            mission={props.mission}
+                            runIdInEditMode={props.mission.runIdInEditMode}
                             run={props.run}
                             label='Edit'
                             title='ToggleEditMode'
