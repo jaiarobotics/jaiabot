@@ -540,6 +540,12 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
 
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    // If bot is diving then use PID
+    // of if we are in sim
+    if (context<Dive>().is_bot_diving() || cfg().is_sim())
+    {
+        setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    }
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
@@ -686,7 +692,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
 
     // If bot is diving then use PID
-    if (context<Dive>().is_bot_diving())
+    // of if we are in sim
+    if (context<Dive>().is_bot_diving() || cfg().is_sim())
     {
         setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
     }
