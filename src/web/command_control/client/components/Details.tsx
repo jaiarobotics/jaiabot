@@ -21,6 +21,7 @@ import {
     mdiSkipNext,
     mdiDownload,
     mdiRestartAlert,
+    mdiRouterWireless,
     mdiDatabaseEyeOutline,
     mdiCheckboxMarkedCirclePlusOutline
 } from '@mdi/js'
@@ -1279,6 +1280,16 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         }  
                                 >
                                     <Icon path={mdiDatabaseEyeOutline} title='JDV'/>
+                                </Button>
+                                <Button className="button-jcc" onClick={() => {
+                                    const fleetId = getFleetId()
+
+                                    if (fleetId != undefined) {
+                                        const url = `http://10.23.${fleetId}.1`
+                                        window.open(url, '_blank')}}
+                                    }
+                                >
+                                    <Icon path={mdiRouterWireless} title="Router"></Icon>
                                 </Button>
                             </AccordionDetails>
                         </Accordion>
