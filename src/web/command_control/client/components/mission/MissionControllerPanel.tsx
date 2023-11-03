@@ -40,8 +40,7 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                                 const runListElement = document.getElementById('runList')
                                 const scrollAmount = runListElement.scrollHeight
                                 runListElement.scrollTo({
-                                    top: scrollAmount,
-                                    // behavior: 'smooth'
+                                    top: scrollAmount
                                 })
                             }, 30)
                         }}
@@ -87,6 +86,6 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     toggleEditMode={this.props.toggleEditMode}
                 />
             </div>
-		)
+        )
     }
 }
