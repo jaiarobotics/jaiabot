@@ -54,5 +54,6 @@ battery_percentage_low_level: 50 # (default = 50)
 battery_percentage_very_low_level: 20 # (default = 20)
 battery_percentage_critically_low_level: 10 # (default = 10)
 
-dive_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
-dive_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
+# Dive states to send node status based on published depth values
+diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
+diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD

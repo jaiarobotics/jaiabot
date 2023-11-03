@@ -96,5 +96,6 @@ message Fusion
     // detecting an imu issue
     optional double imu_detect_desired_heading_vs_current_max_diff = 48 [default = 45];
 
-    repeated jaiabot.protobuf.MissionState dive_states = 49;
+    // Dive states to send node status based on published depth values
+    repeated jaiabot.protobuf.MissionState diving_states = 49;
 }

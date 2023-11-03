@@ -85,7 +85,7 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
     std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
-    std::set<jaiabot::protobuf::MissionState> dive_states_;
+    std::set<jaiabot::protobuf::MissionState> diving_states_;
 
     // timeout in seconds
     int course_over_ground_timeout_{0};
@@ -201,7 +201,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     for (auto m : cfg().dive_states())
     {
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
-        dive_states_.insert(dsm);
+        diving_states_.insert(dsm);
     }
 
     watch_battery_percentage_ = cfg().watch_battery_percentage();
@@ -443,7 +443,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
                 // Check to see if we are in dive states so we publish node status at the
                 // same rate we are receiving depth values
-                if (dive_states_.count(latest_bot_status_.mission_state()))
+                if (diving_states_.count(latest_bot_status_.mission_state()))
                 {
                     // When initialized, always send node_status for pid app and frontseat app
                     if (latest_node_status_.IsInitialized())
@@ -785,7 +785,10 @@ void jaiabot::apps::Fusion::loop()
         }
     }
 
-    if (!dive_states_.count(latest_bot_status_.mission_state()))
+    // Check to if bot is diving because we are sending node status
+    // at the same rate as pressure_adjusted is being published.
+    // No need to send the node status during these states
+    if (!diving_states_.count(latest_bot_status_.mission_state()))
     {
         // When initialized, always send node_status for pid app and frontseat app
         if (latest_node_status_.IsInitialized())
