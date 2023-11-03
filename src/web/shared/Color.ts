@@ -29,3 +29,123 @@ export function colorNameToHex(colorName: string): string | undefined
 }
 
 
+export class Color {
+    r = 0
+    g = 0
+    b = 0
+    a = 0
+
+    constructor(r: number = 0, g: number = 0, b: number = 0, a: number = 1) {
+        this.r = r
+        this.g = g
+        this.b = b
+        this.a = a
+    }
+
+    static fromHexShort(hexRGB: string) {
+        const r = hexRGB.slice(1, 2)
+        const g = hexRGB.slice(2, 3)
+        const b = hexRGB.slice(3, 4)
+
+        const a = hexRGB.length == 5 ? hexRGB.slice(4, 5) : 'f'
+
+        return new Color(
+            parseInt(r + r, 16), 
+            parseInt(g + g, 16), 
+            parseInt(b + b, 16), 
+            parseInt(a + a, 16)
+        )
+    }
+
+    static fromHexLong(hexRGB: string) {
+        const r = hexRGB.slice(1, 3)
+        const g = hexRGB.slice(3, 5)
+        const b = hexRGB.slice(5, 7)
+
+        const a = hexRGB.length == 9 ? hexRGB.slice(7, 9) : 'ff'
+
+        return new Color(
+            parseInt(r, 16), 
+            parseInt(g, 16), 
+            parseInt(b, 16), 
+            parseInt(a, 16)
+        )
+    }
+
+    static fromHex(hexString: string) {
+        if (hexString.length == 4 || hexString.length == 5) {
+            return this.fromHexShort(hexString)
+        }
+
+        if (hexString.length == 7 || hexString.length == 9) {
+            return this.fromHexLong(hexString)
+        }
+
+        console.error('Cannot process hex string: ' + hexString)
+        return new Color()
+    }
+
+    static fromRGBA(r: string, g: string, b: string, a: string) {
+        function toByteValue(s: string) {
+            s = s.trim()
+            if (s.endsWith('%')) {
+                return Math.round(parseFloat(s.slice(0, s.length - 1)) * 255 / 100)
+            }
+            else {
+                return parseInt(s, 10)
+            }
+        }
+
+        return new Color(toByteValue(r), toByteValue(g), toByteValue(b), toByteValue(a))
+    }
+
+    
+    /**
+     * Returns a Color object from an input CSS string
+     * @date 11/3/2023 - 2:10:51 PM
+     *
+     * @static
+     * @param {string} cssString CSS string (supports color names, #RGBA, rgb() and rgba())
+     * @returns {Color} an instance of the Color class representing the same color as the cssString
+     */
+    static fromCSSString(cssString: string) {
+        // Hex RGB(A)        
+        if (cssString[0] == '#') {
+            return this.fromHex(cssString)
+        }
+
+        // named color
+        const hexString = colorNameToHex(cssString)
+        if (hexString != null) {
+            return this.fromHex(hexString)
+        }
+
+        // rgb
+        const rgbMatch = cssString.match(/rgb\((.+),(.+),(.+)\)/)
+        if (rgbMatch) {
+            return this.fromRGBA(rgbMatch[1], rgbMatch[2], rgbMatch[3], '255')
+        }
+
+        // rgba
+        const rgbaMatch = cssString.match(/rgba\((.+),(.+),(.+),(.+)\)/)
+        if (rgbaMatch) {
+            return this.fromRGBA(rgbaMatch[1], rgbaMatch[2], rgbaMatch[3], rgbaMatch[4])
+        }
+        
+        console.error(`Cannot convert CSS color string: ${cssString}`)
+        return new Color()
+    }
+
+    withAlpha(a: number) {
+        return new Color(this.r, this.g, this.b, a)
+    }
+
+    toHex() {
+        function fix(value: number) {
+            return value.toString(16).padStart(2, '0')
+        }
+
+        return `#${fix(this.r)}${fix(this.g)}${fix(this.b)}${fix(this.a)}`
+    }
+
+}

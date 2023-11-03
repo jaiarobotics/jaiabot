@@ -5,8 +5,9 @@ import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
-import { colorNameToHex } from './Color';
-import './MapColors.less'
+import { Color } from './Color';
+import * as css from './CSSStyles'
+
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -32,28 +33,6 @@ export const taskNone = require('./taskNone.svg') as string
 export const arrowHeadPng = require('./arrowHead.png') as string
 export const bottomStrikePng = require('./bottomStrike.png') as string
 
-
-function styleFromClass(className: string) {
-    const dummyElement = document.createElement('div')
-    document.body.appendChild(dummyElement)
-    dummyElement.className = className
-    const computedStyle = JSON.parse(JSON.stringify(getComputedStyle(dummyElement))) as CSSStyleDeclaration
-    document.body.removeChild(dummyElement)
-    return computedStyle
-}
-
-
-const selectedColor = styleFromClass('selected-bot').backgroundColor
-
-
-// Colors
-const defaultColor = 'white'
-const defaultPathColor = 'white'
-const activeGoalColor = 'chartreuse'
-const editColor = 'gold'
-const remoteControlledColor = 'mediumpurple'
-const driftArrowColor = 'darkorange'
-const disconnectedColor = 'gray'
 
 const DEG = Math.PI / 180
 const SELECTED_Z_INDEX = 990 // Needs to be larger than the number of runs created in a session (determines increment) otherwise unselected features would have a higher z-index than selected features
@@ -92,36 +71,35 @@ export function botMarker(feature: Feature): Style[] {
 
     const textOffsetRadius = 11
 
-    let color: string
+    var style = css.defaultBot
 
     if (botStatus?.isDisconnected ?? false) {
-        color = disconnectedColor
+        style = css.disconnectedBot
     } 
     else if (feature.get('rcMode')) {
-        color = remoteControlledColor
-    } else if (feature.get('selected')) {
-        color = selectedColor
-    } else {
-        color = defaultColor
+        style = css.rcBot
     }
-
+    else if (feature.get('selected')) {
+        style = css.selectedBot
+    }
+    
     const text = String(botStatus?.bot_id ?? "")
 
-    var style = [ 
+    var olStyle = [ 
         // Bot body marker
         new Style({
             image: new Icon({
                 src: botIcon,
-                color: color,
+                color: style.backgroundColor,
                 anchor: [0.5, 0.5],
                 rotation: heading,
                 rotateWithView: true
             }),
             text: new Text({
                 text: text,
-                font: 'bold 11pt sans-serif',
+                font: style.font,
                 fill: new Fill({
-                    color: 'black'
+                    color: style.color
                 }),
                 offsetX: -textOffsetRadius * headingDelta.x,
                 offsetY: -textOffsetRadius * headingDelta.y,
@@ -131,22 +109,17 @@ export function botMarker(feature: Feature): Style[] {
     ]
 
     if (botStatus?.mission_state?.includes('REACQUIRE_GPS')) {
-        style.push(getGpsStyle(heading))
+        olStyle.push(getGpsStyle(heading))
     }
 
-    return style
+    return olStyle
 }
 
 export function hubMarker(feature: Feature<Point>): Style[] {
     const hub = feature.get('hub') as HubStatus
 
     const textOffsetRadius = 11
-
-    var color = defaultColor
-
-    if (feature.get('selected')) {
-        color = selectedColor
-    }
+    const style = feature.get('selected') ? css.defaultBot : css.selectedBot
 
     const text = "HUB"
 
@@ -155,15 +128,15 @@ export function hubMarker(feature: Feature<Point>): Style[] {
         new Style({
             image: new Icon({
                 src: hubIcon,
-                color: color,
+                color: style.backgroundColor,
                 anchor: [0.5, 0.5],
                 rotateWithView: true
             }),
             text: new Text({
                 text: text,
-                font: 'bold 11pt sans-serif',
+                font: style.font,
                 fill: new Fill({
-                    color: 'black'
+                    color: style.color
                 }),
                 offsetX: 0,
                 offsetY: textOffsetRadius
@@ -216,8 +189,8 @@ export function hubCommsCircleStyle(feature: Feature<Point>) {
         })
     }
 
-    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
-    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
+    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, css.commsInnerCircle.color, 5)
+    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, css.commsOuterCircle.color, 5)
         
     return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
@@ -273,12 +246,12 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
     let nonActiveGoalColor: string
 
     if (canEdit) {
-        nonActiveGoalColor = isSelected ? editColor : defaultColor
+        nonActiveGoalColor = isSelected ? css.editMission.backgroundColor : css.defaultBot.backgroundColor
     } else {
-        nonActiveGoalColor = isSelected ? selectedColor : defaultColor
+        nonActiveGoalColor = isSelected ? css.selectedBot.backgroundColor : css.defaultBot.backgroundColor
     }
 
-    return isActiveGoal ? activeGoalColor : nonActiveGoalColor
+    return isActiveGoal ? css.activeGoal.backgroundColor : nonActiveGoalColor
 }
 
 export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
@@ -299,7 +272,7 @@ function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boole
 
     return new Icon({
         src: runFlag,
-        color: isSelected ? (canEdit ? editColor : selectedColor) : defaultColor,
+        color: isSelected ? (canEdit ? css.editMission.backgroundColor : css.selectedBot.backgroundColor) : css.defaultBot.backgroundColor,
         // Need a bigger flag for a 3-digit run number...this also causes new anchor values
         anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
         scale: runNumber > 99 ? 1.075 : 1.0
@@ -373,10 +346,12 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
     const centerCoordinate = feature.getGeometry().getCoordinates()
     const colorName = getGoalColor(isActive, isSelected, canEdit)
-    const colorMain = colorNameToHex(colorName) ?? colorName
-    const colorBorder = colorNameToHex('black')
+    const colorMain = colorName
+    const colorBorder = 'black'
 
-    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
+    function getCircleStyle(center: Coordinate, radius: number, colorString: string, lineWidth: number, addInnerGradientColor: boolean) {
+        const color = Color.fromCSSString(colorString)
+
         return new Style({
             geometry: new Circle(center, radius),
             renderer(coordinates: Coordinate[], state) {
@@ -393,9 +368,9 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
                     const outerRadius = radius * 1.4;
 
                     const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
-                    gradient.addColorStop(0,   `${color}00`);
-                    gradient.addColorStop(0.6, `${color}33`);
-                    gradient.addColorStop(1,   `${color}cc`);
+                    gradient.addColorStop(0,   color.withAlpha(0).toHex());
+                    gradient.addColorStop(0.6, color.withAlpha(0x33).toHex());
+                    gradient.addColorStop(1,   color.withAlpha(0xcc).toHex());
                     ctx.beginPath();
                     ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
                     ctx.fillStyle = gradient;
@@ -403,7 +378,7 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
                 }
                 
                 ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = color.toHex();
                 ctx.lineWidth = lineWidth;
                 ctx.stroke();
             }
@@ -441,7 +416,7 @@ function getGpsStyle(headingRadians: number) {
     return new Style({
         image: new Icon({
             src: satellite,
-            color: driftArrowColor,
+            color: css.gpsIcon.backgroundColor,
             anchor: [0.5, -1.25],
             scale: 1.25,
             rotation: headingRadians,
@@ -548,9 +523,9 @@ export function missionPath(feature: Feature) {
     let pathColor = ''
     
     if (canEdit) {
-        pathColor = isSelected ? editColor : defaultPathColor
+        pathColor = isSelected ? css.editMission.backgroundColor : css.defaultBot.backgroundColor
     } else {
-        pathColor = isSelected ? selectedColor : defaultPathColor
+        pathColor = isSelected ? css.selectedBot.backgroundColor : css.defaultBot.backgroundColor
     }
 
     const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
