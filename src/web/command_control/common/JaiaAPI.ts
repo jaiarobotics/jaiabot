@@ -123,7 +123,6 @@ export class JaiaAPI {
       return (
         this.get(`jaia/drift-map?startDate=${startDateStr}&endDate=${endDateStr}`).then((geoJSON) => {
           const features = new GeoJSON().readFeatures(geoJSON)
-          console.log('driftMapFeatures', )
           return features
         })
       )
