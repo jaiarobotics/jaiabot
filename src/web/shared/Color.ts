@@ -27,3 +27,5 @@ export function colorNameToHex(colorName: string): string | undefined
 
     return colors[colorName.toLowerCase()]
 }
+
+

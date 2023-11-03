@@ -5,7 +5,8 @@ import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
-import { colorNameToHex } from './Color'
+import { colorNameToHex } from './Color';
+import './MapColors.less'
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -31,11 +32,24 @@ export const taskNone = require('./taskNone.svg') as string
 export const arrowHeadPng = require('./arrowHead.png') as string
 export const bottomStrikePng = require('./bottomStrike.png') as string
 
+
+function styleFromClass(className: string) {
+    const dummyElement = document.createElement('div')
+    document.body.appendChild(dummyElement)
+    dummyElement.className = className
+    const computedStyle = JSON.parse(JSON.stringify(getComputedStyle(dummyElement))) as CSSStyleDeclaration
+    document.body.removeChild(dummyElement)
+    return computedStyle
+}
+
+
+const selectedColor = styleFromClass('selected-bot').backgroundColor
+
+
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
-const selectedColor = 'turquoise'
 const editColor = 'gold'
 const remoteControlledColor = 'mediumpurple'
 const driftArrowColor = 'darkorange'
