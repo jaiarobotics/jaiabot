@@ -51,16 +51,6 @@ export default class EngineeringPanel extends React.Component {
 						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
 							JaiaBot Engineer & Debug
 						</Button>
-						<Button className="button-jcc engineering-panel-btn" onClick={() => {
-							const fleetId = this.props.getFleetId()
-
-							if (fleetId != undefined) {
-								const url = `http://10.23.${fleetId}.1`
-								window.open(url, '_blank')}}
-							}
-						>
-							JaiaBot Router Page
-						</Button>
 					</div>
 
 					<MissionSpeedSettingsPanel />
