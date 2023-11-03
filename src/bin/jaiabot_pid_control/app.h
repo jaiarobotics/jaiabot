@@ -87,6 +87,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     jaiabot::protobuf::Bounds bounds_;
 
+    // Arduino Response for motor in percent
+    int arduino_motor_throttle_{0};
+
   private:
     void loop() override;
 
