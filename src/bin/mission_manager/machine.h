@@ -1550,10 +1550,15 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
         return current_depth_;
     }
 
+    void set_is_bot_diving(const bool& is_bot_diving) { is_bot_diving_ = is_bot_diving; }
+
+    const bool is_bot_diving() { return is_bot_diving_; }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
     boost::units::quantity<boost::units::si::length> current_depth_{0};
+    bool is_bot_diving_{false};
 };
 namespace dive
 {
@@ -1617,7 +1622,6 @@ struct PoweredDescent
     goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
     // determines when to safely timout of powered descent and transition into unpowered ascent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
-    bool bot_is_diving_{false};
 };
 
 struct Hold

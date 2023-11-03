@@ -334,6 +334,19 @@ div.popup > table > tbody > tr > th {
     font-weight: bold;
 }
 
+.ol-attribution {
+    display: block;
+    position: absolute;
+    left: 0pt;
+    bottom: 0pt;
+    width: 600pt;
+    padding: 0pt;
+    background-color: #ffffff70;
+}
+
+div.ol-attribution > button {
+    display: none;
+
 .busy-overlay {
     position:absolute;
     top: 0%;
@@ -352,4 +365,5 @@ div.popup > table > tbody > tr > th {
     top: 50%;
     -ms-transform: translateY(-50%);
     transform: translateY(-50%);
+
 }
