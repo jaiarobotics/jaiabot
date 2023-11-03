@@ -85,8 +85,8 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
                     unSelectHubOrBot={this.props.unSelectHubOrBot}
                     toggleEditMode={this.props.toggleEditMode}
-			    />
-			</div>
+                />
+            </div>
 		)
     }
 }
