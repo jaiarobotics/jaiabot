@@ -531,8 +531,8 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 function getRunAssignedToBot(botId: number, mission: MissionInterface) {
     const runKey = mission.botsAssignedToRuns[botId]
     if (runKey) {
-		return mission.runs[runKey]
-	}
+        return mission.runs[runKey]
+    }
     return null
 }
 
