@@ -148,7 +148,7 @@ function handleAccordionDropdownClick(event: Event, targetClassName: string, par
     }, dropdownTimeout)
 }
 
-function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
     const parentContainer = document.getElementById(parentContainerId)
     const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
     const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()

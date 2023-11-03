@@ -1,5 +1,6 @@
 import React from 'react';
 import RunItem from './RunItem';
+import { adjustAccordionScrollPosition } from '../../../../shared/Utilities'
 import { PortalBotStatus } from '../shared/PortalStatus';
 import { MissionInterface, RunInterface } from '../CommandControl';
 
@@ -40,11 +41,11 @@ export default class RunList extends React.Component {
                 runIdInEditMode: this.props.mission.runIdInEditMode 
             })
             if (this.props.mission.runIdInEditMode !== '') {
-                const element = document.getElementById(
+                const runItemElement = document.getElementById(
                     `run-accordion-${this.props.mission.runIdInEditMode.split('-')[1]}`
                 )
                 setTimeout(() => {
-                    element.scrollIntoView()
+                    adjustAccordionScrollPosition('runList', runItemElement)
                 }, 350)
             }
         }
