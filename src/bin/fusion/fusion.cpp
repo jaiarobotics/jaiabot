@@ -198,7 +198,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     // Create a set of states. when the bot is in
     // one of these states it is diving
-    for (auto m : cfg().dive_states())
+    for (auto m : cfg().diving_states())
     {
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
         diving_states_.insert(dsm);
