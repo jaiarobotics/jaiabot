@@ -73,6 +73,14 @@ export default class RunItem extends React.Component {
         this.props.setOpenRunPanels(this.props.openRunPanels)
     }
 
+    getTabTitle() {
+        let title = this.props.run.name
+        if (this.props.run.assigned !== -1) {
+            title += ` - Bot ${this.props.run.assigned}`
+        }
+        return title
+    }
+
     render() {
         let runAssignSelect = null
         let runDeleteButton = null
@@ -83,11 +91,6 @@ export default class RunItem extends React.Component {
         let assignedLabel = ""
         let assignedOption = null
         this.botsNotAssigned = []
-
-        let title = this.props.run.name
-        if (this.props.run.assigned != -1) {
-            title = title + ` - Bot ${this.props.run.assigned}`
-        }
 
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
@@ -241,7 +244,7 @@ export default class RunItem extends React.Component {
                     id="panel1a-header"
                 >
                     <Typography className="title">
-                        {title}
+                        {this.getTabTitle()}
                     </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
