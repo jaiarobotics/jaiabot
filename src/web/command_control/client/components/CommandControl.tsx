@@ -1236,10 +1236,16 @@ export default class CommandControl extends React.Component {
 	// Delete Mission (Start)
 	// 
 	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
-		const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
-		if (needConfirmation && !(await CustomAlert.confirmAsync(warningString, 'Delete All Runs'))) {
-			return false
+
+		if (needConfirmation) {
+			const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+			const confirmed = await CustomAlert.confirmAsync(warningString, 'Delete All Runs')
+
+			if (!confirmed) {
+				return false
+			}
 		}
+
 		const runs = mission.runs
 		for (const run of Object.values(runs)) {
 			const runNumber = Number(run.id.substring(4)) // run.id => run-x
@@ -1248,6 +1254,8 @@ export default class CommandControl extends React.Component {
 		}
 		mission.runIdIncrement = 1
 		mission.runIdInEditMode = ''
+
+		return true
 	}
 
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {
@@ -1283,7 +1291,7 @@ export default class CommandControl extends React.Component {
 
 	generateDeleteAllRunsWarnStr(rallyPointRun?: boolean) {
 			if (rallyPointRun) {
-				return 'Proceeding with this action will move all bots towards the selected rally point. Select "OK" to continue:' 
+				return 'Proceeding with this action will move all bots towards the selected rally point, deleting their current missions.' 
 			}
 			return 'Are you sure you want to delete all runs in this mission?'
 	}
