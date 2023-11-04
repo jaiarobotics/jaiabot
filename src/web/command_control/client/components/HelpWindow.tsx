@@ -155,11 +155,6 @@ export function HelpWindow(props: Props) {
                 </Button>
             </div>
             <table className='help-button-table'>
-                <thead>
-                    <th>Button</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                </thead>
                 <tbody>
                     {buttons.map(getButtonRow)}
                 </tbody>
