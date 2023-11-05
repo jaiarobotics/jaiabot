@@ -6,7 +6,16 @@ module.exports = {
   module : {
     rules :
     [
-      {test : /\.(js)$/, exclude : /node_modules/, use : [ 'babel-loader' ]},
+      {test : /\.(js)$/, exclude : /node_modules/, use : [ 'babel-loader' ]}, {
+        test : /\.less$/,
+        use :
+        [
+          'style-loader', 'css-loader', {
+            loader : 'less-loader',
+            options : {lessOptions : {javascriptEnabled : true}}
+          }
+        ]
+      },
       {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]}, {
         test : /\.(png|svg|jpg|jpeg|gif)$/,
         type : 'asset/resource',
