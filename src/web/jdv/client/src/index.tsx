@@ -28,7 +28,7 @@ import { Plot } from './Plot'
 import { Log } from './Log'
 import { Draw } from 'ol/interaction'
 
-import './styles/styles.css'
+import './styles/styles.less'
 
 var Plotly = require('plotly.js-dist')
 
