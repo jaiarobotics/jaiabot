@@ -31,6 +31,7 @@ div.title {
 div.text {
     padding: 10pt;
     text-align: center;
+    overflow-x: auto;
 }
 
 div.button-container {

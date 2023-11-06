@@ -105,5 +105,4 @@ export class CustomAlert extends React.Component {
             })
         })
     }
-
 }

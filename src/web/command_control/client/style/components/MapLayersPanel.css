@@ -1,0 +1,20 @@
+.map-layers-outer-container {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    min-width: 250px;
+    max-height: calc(95vh - 66px);
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #767d7d;
+  
+    z-index: 1;
+  }
+
+.map-layers-inner-container {
+    margin: 8pt;
+    font-size: 1.1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}

@@ -171,13 +171,11 @@ export class GoalSettingsPanel extends React.Component {
             return
         }
 
-        for (const run of Object.values(runs)) {
-            if (run.assigned === this.props.botId) {
-                const wpts = run.command.plan.goal
-                this.doneClicked()
-                wpts.splice(wptNum - 1, 1)
-            }
-        }
+        const runIndex = `run-${this.props.runNumber}`
+        const run = this.props.runList.runs[runIndex]
+        const wpts = run.command.plan?.goal
+        this.doneClicked()
+        wpts?.splice(wptNum - 1, 1)
     }
 
     render() {
