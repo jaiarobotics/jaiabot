@@ -66,6 +66,7 @@ class IMU:
         imu_data.gravity.y = reading.gravity.y
         imu_data.gravity.z = reading.gravity.z
 
+        # only send the mag cal
         imu_data.calibration_status = reading.calibration_status[3]
 
         return imu_data

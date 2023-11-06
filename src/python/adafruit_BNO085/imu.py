@@ -110,6 +110,9 @@ class Adafruit(IMU):
                 # Set the initial time for checking calibration
                 self.check_cal_time = time.time()
 
+                # Set the initial calibration status
+                self.calibration_status = None
+
             except (OSError) as e:
                 self.is_setup = False
                 log.warning("Tried connecting, OSError, retry setting up driver")
@@ -133,12 +136,15 @@ class Adafruit(IMU):
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
-            calibration_status = None
+            calibration_status = self.calibration_status
 
             if time.time() - self.check_cal_time >= self.wait_to_check_cal_duration:
                 logging.debug("Checking Calibration")
                 try:
                     calibration_status = self.sensor.calibration_status
+                    # Set the calibration status to save when we are not querying a 
+                    # new calibration status
+                    self.calibration_status = calibration_status
                 except (RuntimeError, IndexError, KeyError, AttributeError) as error:
                     log.warning("Error trying to get calibration status!")
                 self.check_cal_time = time.time()  # Reset the start time

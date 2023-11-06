@@ -1415,14 +1415,19 @@ export default class CommandControl extends React.Component {
 	 */
 	updateHubCommsCircles() {
 		const hubs = Object.values(this.state.podStatus.hubs)
-		const source = layers.hubCommsLimitCirclesLayer.getSource()
-		const features = hubs.map((hub) => {
-			const feature = new Feature(new Point(getMapCoordinate(hub.location, map)))
-			feature.set('hub', hub)
-			return feature
-		})
 
+		const source = layers.hubCommsLimitCirclesLayer.getSource()
+		let features = []
 		source.clear()
+
+		for (const hub of hubs) {
+			if (hub?.location) {
+				const feature = new Feature(new Point(getMapCoordinate(hub?.location, map)))
+				feature.set('hub', hub)
+				features.push(feature)
+			}
+		}
+
 		source.addFeatures(features)
 	}
 

@@ -37,6 +37,16 @@ else:
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
 
+if "jaia_imu_type" in os.environ:
+    jaia_imu_type = os.environ["jaia_imu_type"]
+
+if jaia_imu_type == "bno055":
+    imu_detection_solution='RESTART_IMU_PY'
+elif jaia_imu_type == 'bno085':
+    imu_detection_solution='REBOOT_BNO085_IMU'
+else:
+    imu_detection_solution='RESTART_IMU_PY'
+
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
@@ -208,7 +218,8 @@ elif common.app == 'jaiabot_fusion':
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      fusion_in_simulation=is_simulation(),
-                                     bot_status_period=bot_status_period))
+                                     bot_status_period=bot_status_period,
+                                     imu_detection_solution=imu_detection_solution))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
