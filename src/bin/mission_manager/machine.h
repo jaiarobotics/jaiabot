@@ -372,7 +372,10 @@ struct MissionManagerStateMachine
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
 
-    void set_current_pressure(double current_pressure) { current_pressure_ = current_pressure; }
+    void set_current_pressure(const double& current_pressure)
+    {
+        current_pressure_ = current_pressure;
+    }
     const double& current_pressure() { return current_pressure_; }
 
     void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
@@ -793,6 +796,13 @@ struct InMission
 
     void set_mission_complete() { mission_complete_ = true; }
 
+    void set_use_heading_constant_pid(const bool& use_heading_constant_pid)
+    {
+        use_heading_constant_pid_ = use_heading_constant_pid;
+    }
+
+    bool use_heading_constant_pid() const { return use_heading_constant_pid_; }
+
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
                          boost::statechart::transition<EvRecovered, PostDeployment>>;
@@ -801,6 +811,7 @@ struct InMission
     int goal_index_{0};
     int repeat_index_{0};
     bool mission_complete_{false};
+    bool use_heading_constant_pid_{false};
 };
 
 namespace inmission
@@ -1539,10 +1550,15 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
         return current_depth_;
     }
 
+    void set_is_bot_diving(const bool& is_bot_diving) { is_bot_diving_ = is_bot_diving; }
+
+    const bool is_bot_diving() { return is_bot_diving_; }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
     boost::units::quantity<boost::units::si::length> current_depth_{0};
+    bool is_bot_diving_{false};
 };
 namespace dive
 {
@@ -1606,7 +1622,6 @@ struct PoweredDescent
     goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
     // determines when to safely timout of powered descent and transition into unpowered ascent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
-    bool bot_is_diving_{false};
 };
 
 struct Hold

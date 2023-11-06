@@ -115,18 +115,11 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
 
     if (cfg().data_offload_only_task_packet_file())
     {
-        if (this->machine().create_task_packet_file())
-        {
-            this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
-                                                      this->machine().create_file_date_time() +
-                                                      ".taskpacket");
+        glog.is_debug1() && glog << "Create a task packet file and only offload that file"
+                                 << "to hub (ignore sending goby files)" << std::endl;
 
-            glog.is_debug1() && glog << "Create a task packet file and only offload that file"
-                                     << "to hub (ignore sending goby files)" << std::endl;
-
-            // Extra exclusions for rsync
-            this->machine().set_data_offload_exclude(" '*.goby'");
-        }
+        // Extra exclusions for rsync
+        this->machine().set_data_offload_exclude(" '*.goby'");
     }
 }
 
@@ -331,10 +324,6 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     {
         if (cfg().data_offload_only_task_packet_file())
         {
-            // Open task packet file
-            std::ofstream task_packet_file(
-                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
-
             // Convert to json string
             std::string json_string;
             google::protobuf::util::JsonPrintOptions json_options;
@@ -346,13 +335,21 @@ jaiabot::statechart::inmission::underway::Task::~Task()
             // Check if it is a new task packet file
             if (this->machine().create_task_packet_file())
             {
-                task_packet_file << json_string;
+                this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
+                                                          this->machine().create_file_date_time() +
+                                                          ".taskpacket");
                 this->machine().set_create_task_packet_file(false);
             }
             else
             {
-                task_packet_file << "\n" << json_string;
+                json_string = "\n" + json_string;
             }
+
+            // Open task packet file
+            std::ofstream task_packet_file(
+                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
+
+            task_packet_file << json_string;
 
             // Close the json file
             task_packet_file.close();
@@ -450,6 +447,10 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
 
     dive_prep_timeout_ = start_timeout + dive_prep_duration;
 
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
     loop(EvLoop());
 }
 
@@ -462,10 +463,6 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::~DivePrep()
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
-
-    // This makes sure we capture the pressure before the dive begins
-    // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const EvLoop&)
@@ -555,7 +552,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
-    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+
+    // If bot is diving then use PID
+    if (context<Dive>().is_bot_diving())
+    {
+        setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    }
+
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
@@ -611,7 +614,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
              << "\n cfg().dive_eps_to_determine_diving: " << cfg().dive_eps_to_determine_diving()
              << "\n Intial Timeout complete: "
              << (current_clock >= detect_bottom_logic_init_timeout_)
-             << "\n Is bot diving: " << bot_is_diving_
+             << "\n Is bot diving: " << context<Dive>().is_bot_diving()
              << "\n (now - last_depth_change_time_) >"
                 "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())"
              << ((now - last_depth_change_time_) >
@@ -630,17 +633,17 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     // if we've moved eps meters in depth, then we consider the bot to be diving
     // and check if we already determined the bot is diving
     if ((ev.depth - last_depth_) > cfg().dive_eps_to_determine_diving_with_units() &&
-        !bot_is_diving_)
+        !context<Dive>().is_bot_diving())
     {
         last_depth_change_time_ = now;
         last_depth_ = ev.depth;
         dive_pdescent_debug_.set_depth_changed(true);
-        bot_is_diving_ = true;
+        context<Dive>().set_is_bot_diving(true);
     }
 
     // Check if our initial timeout has been reached to detect bottom
     // or if the bot is diving.
-    if (current_clock >= detect_bottom_logic_init_timeout_ || bot_is_diving_)
+    if (current_clock >= detect_bottom_logic_init_timeout_ || context<Dive>().is_bot_diving())
     {
         // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
         if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
@@ -1133,6 +1136,9 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
     int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
     goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
     setpoint_stop_ = setpoint_start + setpoint_duration;
+
+    // Turn on pid for constant heading (different than the transit pid)
+    context<InMission>().set_use_heading_constant_pid(true);
 }
 
 jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeading()
@@ -1143,6 +1149,9 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeadin
     constantSpeedUpdate.mutable_constantspeed()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+    // Turn off pid for constant heading (different than the transit pid)
+    context<InMission>().set_use_heading_constant_pid(false);
 }
 
 void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const EvLoop&)

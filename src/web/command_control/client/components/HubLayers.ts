@@ -15,9 +15,11 @@ import { Layer } from "ol/layer"
 export class HubLayers {
     layers: {[key: number]: VectorLayer<VectorSource>} = {}
     map: Map
+    zIndex: number
 
     constructor(map: Map) {
         this.map = map
+        this.zIndex = 3000
     }
 
     getHubLayer(hub_id: number) {
@@ -31,7 +33,7 @@ export class HubLayers {
                     name: hub_id,
                     hub_id: hub_id,
                 },
-                zIndex: 100,
+                zIndex: this.zIndex,
                 source: new VectorSource({
                     wrapX: false,
                     features: new Collection([], { unique: true })
@@ -80,12 +82,7 @@ export class HubLayers {
     
             // ID
             const hub_id = hub.hub_id
-            // Geometry
-            const hubLatitude = hub.location?.lat
-            const hubLongitude = hub.location?.lon
-            // Properties
-            const hubHeading = 0
-    
+
             const hubLayer = this.getHubLayer(hub_id)
             const hubSource = hubLayer.getSource()
             const hubFeature = this.getHubFeature(hub, this.map, hubSource)

@@ -9,7 +9,7 @@ import {
   mdiRuler
 } from '@mdi/js'
 import Icon from '@mdi/react'
-import React from "react"
+import React, { ReactElement } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter as Router } from "react-router-dom"
 
@@ -49,7 +49,6 @@ interface LogAppProps {
 
 
 interface State {
-  logs: Log[]
   isSelectingLogs: boolean
   chosenLogs: string[]
   plots: Plot[]
@@ -69,6 +68,9 @@ interface State {
 
   // Plot sets
   isOpenPlotSetDisplayed: boolean
+
+  // Modal busy indicator
+  busyIndicator: boolean
 }
 
 
@@ -82,7 +84,6 @@ class LogApp extends React.Component {
     super(props)
 
     this.state = {
-      logs: [],
       isSelectingLogs: false,
       chosenLogs : [],
       plots : [],
@@ -102,6 +103,8 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
+
+      busyIndicator: false
     }
   }
 
@@ -109,10 +112,10 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+    const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
-    const openLogsListString = chosenLogsFilenames.join(', ')
+    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
+
 
     return (
       <Router>
@@ -126,7 +129,7 @@ class LogApp extends React.Component {
 
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-            <div id="logList" className="padded">{openLogsListString}</div>
+            { this.chosenLogsListElement() }
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -139,14 +142,14 @@ class LogApp extends React.Component {
               <div id="mapControls">
                 <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
-                <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                <button id="kmlExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
                 
-                <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                <button id="kmlImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
 
                 <button className="mapButton" onClick={() => {this.toggleMeasureResult()}}>
@@ -168,7 +171,9 @@ class LogApp extends React.Component {
 
             </div>
 
-            <TimeSlider 
+          </div>
+          
+          <TimeSlider 
               t={this.state.t} 
               tMin={this.state.tMin} 
               tMax={this.state.tMax} 
@@ -176,16 +181,27 @@ class LogApp extends React.Component {
                 this.map.updateToTimestamp(t)
                 this.setState({t: t })
               }}
-            ></TimeSlider>
+          ></TimeSlider>
 
-          </div>
-          
           { log_selector }
+          {busyOverlay}
 
         </div>
 
       </Router>
     )
+  }
+
+  chosenLogsListElement() {
+    const chosenLogsElements = this.state.chosenLogs.map(chosenLogPath => {
+      const chosenLogName = chosenLogPath.split('/').at(-1)
+      const href = `/h5?file=${chosenLogPath}`
+      return <a href={href} key={chosenLogName} style={{padding: '10pt'}}>{chosenLogName}</a>
+    })
+
+    return <div id="logList" className="padded">
+      {chosenLogsElements}
+    </div>
   }
 
   togglerLayerSwitcher() {
@@ -229,29 +245,39 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        LogApi.get_map(this.state.chosenLogs).then((seriesArray) => {
-          this.map.setSeriesArray(seriesArray)
+        const getMapJob = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+          this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsJob = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalsJob = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsJob = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursJob = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
+        })
+
+        // Get the drift interpolations
+        const getDriftInterpolationsJob = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
+          this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
+        })
+
+        this.startBusyIndicator()
+        Promise.all([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob, getDriftInterpolationsJob]).finally(() => {
+          this.stopBusyIndicator()
         })
 
       }
@@ -270,7 +296,6 @@ class LogApp extends React.Component {
   componentDidMount() {
     this.getElements()
     this.map = new JaiaMap('openlayers-map')
-    this.update_log_dropdown()
   }
 
   getElements() {
@@ -278,22 +303,48 @@ class LogApp extends React.Component {
     this.plot_div_element = document.getElementById('plot') as Plotly.PlotlyHTMLElement
   }
 
-  update_log_dropdown() {
-    LogApi.get_logs().then(logs => {
-      this.setState({logs})
-      // this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
-    })
-  }
+  didSelectLogs(logFilenames?: string[]) {
+    this.setState({isSelectingLogs: false})
+    if (logFilenames == null) return
+  
+    const self = this
 
-  didSelectLogs(logs?: Log[]) {
-    if (logs != null) {
-      this.setState({chosenLogs: logs, mapNeedsRefresh: true })
+    function openLogsWhenReady() {
+      self.startBusyIndicator()
+
+      LogApi.post_convert_if_needed(logFilenames).then((response) => {
+        if (response.done) {
+          self.stopBusyIndicator()
+          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
+        }
+        else {
+          console.log(`Waiting on conversion of ${logFilenames}`)
+          setTimeout(openLogsWhenReady, 1000)
+        }
+      }).catch((err) => {
+        alert(err)
+        self.stopBusyIndicator()
+      })
     }
 
-    this.setState({isSelectingLogs: false})
+    openLogsWhenReady()
+
+  }
+
+  startBusyIndicator() {
+    this.setState({busyIndicator: true})
+  }
+
+  stopBusyIndicator() {
+    this.setState({busyIndicator: false})
   }
 
   didSelectPaths(pathArray: string[]) {
+    console.debug(`Selected paths: ${pathArray}`)
+
+    this.setState({isPathSelectorDisplayed: false})
+    this.startBusyIndicator()
+
     LogApi.get_series(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
@@ -303,8 +354,9 @@ class LogApp extends React.Component {
           }
         })
         .catch(err => {alert(err)})
-
-    this.setState({isPathSelectorDisplayed: false})
+        .finally(() => {
+          this.stopBusyIndicator()
+        })
   }
 
   get_plot_range() {
@@ -421,8 +473,8 @@ class LogApp extends React.Component {
       var actionBar: JSX.Element | null
 
       if (this.state.chosenLogs.length > 0) {
-        actionBar = <div className = "plotButtonBar"><
-            button title = "Add Plot" className =
+        actionBar = <div className = "plotButtonBar">
+        <button title = "Add Plot" className =
                 "plotButton" onClick = {this.addPlotClicked.bind(this)}><
             Icon path = {mdiPlus} size = {1} style =
                 {{ verticalAlign: "middle" }}></Icon>
@@ -476,7 +528,15 @@ class LogApp extends React.Component {
 
       var openPlotSet: JSX.Element | null
       
-      openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet = {this.didOpenPlotSet.bind(this)} /> : null
+      openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet 
+        didSelectPlotSet = {
+          this.didOpenPlotSet.bind(this)
+        }
+        didClose= {
+          () => {
+            this.setState({isOpenPlotSetDisplayed: false})
+          }
+        } /> : null
 
     return (
       <div className="plotcontainer">
@@ -506,12 +566,16 @@ class LogApp extends React.Component {
     loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }
 
     didOpenPlotSet(plotSet: string[]) {
-      this.setState({isOpenPlotSetDisplayed : false}) 
       this.didSelectPaths(plotSet)
     }
 
     savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
+
+      if (plotSetName == null) {
+        // User clicked Cancel
+        return
+      }
 
       if (PlotProfiles.exists(plotSetName)) {
         if (!confirm(`Are you sure you want to overwrite plot set named \"${

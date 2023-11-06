@@ -167,7 +167,13 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   // Vcccurrent
   ack.vcccurrent = Vcccurrent_rolling_average();
   ack.has_vcccurrent = true;
+
+  // Arduino Version
   ack.version = arduino_version;
+
+  // Current motor value
+  ack.has_motor = true;
+  ack.motor = motor_actual;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;

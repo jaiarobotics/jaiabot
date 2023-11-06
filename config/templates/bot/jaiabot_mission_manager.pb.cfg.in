@@ -36,6 +36,8 @@ motor_on_time_max: 10 # (optional) (default=10) Seconds
 powered_ascent_throttle: 25 # (optional) (default=25) Percent
 powered_ascent_throttle_increment: 5 # (optional) (default=5) Percent
 powered_ascent_throttle_max: 60 # (optional) (default=60) Percent
+powered_ascent_motor_on_timeout: 5 # (optional) (default=5) Seconds
+powered_ascent_motor_off_timeout: 2 # (optional) (default=2) Seconds
 pitch_to_determine_powered_ascent_vertical: 30 # (optional) (default=30) Degrees
 pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
 pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
@@ -84,7 +86,7 @@ include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
 # Bottom depth safety behavior
-min_depth_safety: 0 # (default = 0)
+min_depth_safety: -1 # (default = -1)
 
 # IMU Restart State Timeout
 imu_restart_seconds: 10 # (default = 10)

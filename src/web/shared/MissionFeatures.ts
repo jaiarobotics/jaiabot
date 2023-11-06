@@ -1,12 +1,13 @@
 import * as Styles from "./Styles"
 import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
-import { LineString } from "ol/geom"
+import { LineString, Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import { createMarker, createFlagMarker, createGPSMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 import { PortalBotStatus } from "./PortalStatus"
+import { getMapCoordinate } from "./Utilities"
 
 export function createMissionFeatures(
     map: Map,
@@ -36,25 +37,25 @@ export function createMissionFeatures(
 
         // OpenLayers
         const activeRun = plan.hasOwnProperty('speeds')
-        const markerFeature = createMarker(
-            map, 
-            {
-                title: 'Goal ' + goalIndexStartAtOne, 
-                lon: location.lon, 
-                lat: location.lat,
-                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
-            }
-        )
+        const markerFeature = new Feature({
+            name: 'Goal ' + goalIndexStartAtOne,
+            geometry: new Point(getMapCoordinate(location, map)),
+        })
+
+        markerFeature.setStyle(Styles.getGoalStyle)
 
         markerFeature.setProperties({
             goal: goal, 
-            botId: bot?.bot_id, 
+            botId: bot?.bot_id,
+            runNumber: runNumber,
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,
             id: `wpt-${goalIndexStartAtOne}`,
             type: 'wpt',
-            isSelected: isSelected
+            isSelected: isSelected,
+            isActive: activeRun ? goalIndexStartAtOne == activeGoalIndex : false,
+            zIndex: zIndex
         })
 
         features.push(markerFeature)
@@ -94,8 +95,11 @@ export function createMissionFeatures(
 
             // Create and add the constant heading arrow feature (dotted line)
             let constantHeadingSegment = new Feature({ geometry: new LineString(coordinatesArray) })
-            constantHeadingSegment.set("isSelected", isSelected)
-            constantHeadingSegment.set("isConstantHeading", true)
+            constantHeadingSegment.setProperties({
+                isSelected: isSelected,
+                isConstantHeading: true,
+                canEdit: canEdit
+            })
             constantHeadingSegment.setStyle(Styles.missionPath)
             features.push(constantHeadingSegment)
 

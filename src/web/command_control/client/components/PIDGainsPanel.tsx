@@ -9,24 +9,20 @@ import Button from '@mui/material/Button';
 import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions, PIDSettings } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { getElementById } from './shared/Utilities';
+import { PortalBotStatus } from './shared/PortalStatus';
 
-let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
+let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth', 'heading_constant']
 let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']
-
-
-interface APIBotStatus extends BotStatus {
-	engineering: Engineering
-}
 
 
 interface Props {
     api: JaiaAPI
-	bots: {[key: number]: APIBotStatus}
+	bots: {[key: number]: PortalBotStatus}
 	control: () => boolean
 }
 
 interface State {
-	bots: {[key: number]: APIBotStatus}
+	bots: {[key: number]: PortalBotStatus}
 }
 
 

@@ -55,6 +55,8 @@ message PIDControl {
     optional PIDSettings depth = 12;
 
     optional bool led_switch_on = 13;
+
+    optional PIDSettings heading_constant = 14;
 }
 
 enum BotStatusRate
@@ -134,7 +136,7 @@ message BottomDepthSafetyParams
     ];
 
     optional double safety_depth = 4 [
-        default = 0,
+        default = -1,
         (dccl.field) = {
             min: -1,
             max: 60,
@@ -147,11 +149,11 @@ message BottomDepthSafetyParams
 message Engineering
 {
     /*
-    Actual maximum size of message: 98 bytes / 784 bits
+    Actual maximum size of message: 113 bytes / 904 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................723
-        padding to full byte...................5
+        body.................................889
+        padding to full byte...................7
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {

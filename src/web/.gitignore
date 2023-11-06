@@ -7,3 +7,4 @@ common/version.js
 __pycache__
 test.sh
 goby
+venv/

@@ -69,25 +69,27 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
-    int64_t lastAckTime;
+    int64_t lastAckTime_;
 
-    uint64_t _time_last_command_received = 0;
-    const uint64_t timeout = 5e6;
+    uint64_t _time_last_command_received_ = 0;
+    const uint64_t timeout_ = 5e6;
 
-    jaiabot::protobuf::Bounds bounds;
+    jaiabot::protobuf::Bounds bounds_;
 
     // Motor
-    int target_motor = 1500;
-    int max_reverse = 1320;
+    int target_motor_ = 1500;
+    int max_reverse_ = 1320;
 
     // Control surfaces
-    int rudder = 1500;
-    int port_elevator = 1500;
-    int stbd_elevator = 1500;
+    int rudder_ = 1500;
+    int port_elevator_ = 1500;
+    int stbd_elevator_ = 1500;
 
     // Timeout
-    int arduino_timeout = 5;
+    int arduino_timeout_ = 5;
 
     // LED
     bool led_switch_on = true;
@@ -149,15 +151,15 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                               << std::endl;
 
     // Setup our bounds configuration
-    bounds = cfg().bounds();
+    bounds_ = cfg().bounds();
 
-    if (bounds.motor().has_max_reverse())
+    if (bounds_.motor().has_max_reverse())
     {
-        max_reverse = bounds.motor().max_reverse();
+        max_reverse_ = bounds_.motor().max_reverse();
     }
 
     // Publish to meatadata group to record bounds file used
-    interprocess().publish<groups::metadata>(bounds);
+    interprocess().publish<groups::metadata>(bounds_);
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -176,6 +178,22 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
+
+            jaiabot::protobuf::ArduinoDebug arduino_debug;
+
+            if (arduino_response.status_code() == 0)
+            {
+                if (is_settings_ack_)
+                {
+                    // Reset to false because the arduino restarted
+                    // Ensures that we set our bounds
+                    is_settings_ack_ = false;
+
+                    arduino_debug.set_arduino_restarted(true);
+                    interprocess().publish<groups::arduino_debug>(arduino_debug);
+                }
+            }
+
             if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
             {
                 glog.is_debug1() && glog << group("arduino") << "ArduinoResponse: "
@@ -212,6 +230,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
+            last_arduino_report_time_ = goby::time::SteadyClock::now();
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -333,38 +352,38 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
 {
     if (control_surfaces.has_motor())
     {
-        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
+        target_motor_ = 1500 + (control_surfaces.motor() / 100.0) * 400;
 
         // Do not go lower than max_reverse
-        if (target_motor < max_reverse)
+        if (target_motor_ < max_reverse_)
         {
-            target_motor = max_reverse;
+            target_motor_ = max_reverse_;
         }
     }
 
     if (control_surfaces.has_rudder())
     {
-        rudder = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds.rudder().lower(),
-                                            bounds.rudder().center(), bounds.rudder().upper());
+        rudder_ = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds_.rudder().lower(),
+                                             bounds_.rudder().center(), bounds_.rudder().upper());
     }
 
     if (control_surfaces.has_stbd_elevator())
     {
-        stbd_elevator =
-            surfaceValueToMicroseconds(control_surfaces.stbd_elevator(), bounds.strb().lower(),
-                                       bounds.strb().center(), bounds.strb().upper());
+        stbd_elevator_ =
+            surfaceValueToMicroseconds(control_surfaces.stbd_elevator(), bounds_.strb().lower(),
+                                       bounds_.strb().center(), bounds_.strb().upper());
     }
 
     if (control_surfaces.has_port_elevator())
     {
-        port_elevator =
-            surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds.port().lower(),
-                                       bounds.port().center(), bounds.port().upper());
+        port_elevator_ =
+            surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds_.port().lower(),
+                                       bounds_.port().center(), bounds_.port().upper());
     }
 
     if (control_surfaces.has_timeout())
     {
-        arduino_timeout = control_surfaces.timeout();
+        arduino_timeout_ = control_surfaces.timeout();
     }
 
     //pulls the data from on message to another
@@ -373,7 +392,7 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
         led_switch_on = control_surfaces.led_switch_on();
     }
 
-    _time_last_command_received = now_microseconds();
+    _time_last_command_received_ = now_microseconds();
 }
 
 void jaiabot::apps::ArduinoDriver::loop()
@@ -384,22 +403,22 @@ void jaiabot::apps::ArduinoDriver::loop()
 
     if (!is_settings_ack_)
     {
-        arduino_settings.set_forward_start(bounds.motor().forwardstart());
-        arduino_settings.set_reverse_start(bounds.motor().reversestart());
+        arduino_settings.set_forward_start(bounds_.motor().forwardstart());
+        arduino_settings.set_reverse_start(bounds_.motor().reversestart());
         *arduino_cmd.mutable_settings() = arduino_settings;
     }
     else if (is_settings_ack_ && is_driver_compatible_)
     {
-        arduino_actuators.set_timeout(arduino_timeout);
+        arduino_actuators.set_timeout(arduino_timeout_);
 
         // If command is too old, then zero the Arduino
-        if (_time_last_command_received != 0 &&
-            now_microseconds() - _time_last_command_received > timeout)
+        if (_time_last_command_received_ != 0 &&
+            now_microseconds() - _time_last_command_received_ > timeout_)
         {
             arduino_actuators.set_motor(1500);
-            arduino_actuators.set_rudder(bounds.rudder().center());
-            arduino_actuators.set_stbd_elevator(bounds.strb().center());
-            arduino_actuators.set_port_elevator(bounds.port().center());
+            arduino_actuators.set_rudder(bounds_.rudder().center());
+            arduino_actuators.set_stbd_elevator(bounds_.strb().center());
+            arduino_actuators.set_port_elevator(bounds_.port().center());
             arduino_actuators.set_led_switch_on(false);
 
             *arduino_cmd.mutable_actuators() = arduino_actuators;
@@ -416,17 +435,17 @@ void jaiabot::apps::ArduinoDriver::loop()
         // Don't use motor values of less power than the start bounds
         int corrected_motor;
 
-        if (target_motor > 1500)
-            corrected_motor = max(target_motor, bounds.motor().forwardstart());
-        else if (target_motor == 1500)
-            corrected_motor = target_motor;
-        else if (target_motor < 1500)
-            corrected_motor = min(target_motor, bounds.motor().reversestart());
+        if (target_motor_ > 1500)
+            corrected_motor = max(target_motor_, bounds_.motor().forwardstart());
+        else if (target_motor_ == 1500)
+            corrected_motor = target_motor_;
+        else if (target_motor_ < 1500)
+            corrected_motor = min(target_motor_, bounds_.motor().reversestart());
 
         arduino_actuators.set_motor(corrected_motor);
-        arduino_actuators.set_rudder(rudder);
-        arduino_actuators.set_stbd_elevator(stbd_elevator);
-        arduino_actuators.set_port_elevator(port_elevator);
+        arduino_actuators.set_rudder(rudder_);
+        arduino_actuators.set_stbd_elevator(stbd_elevator_);
+        arduino_actuators.set_port_elevator(port_elevator_);
         arduino_actuators.set_led_switch_on(led_switch_on);
 
         *arduino_cmd.mutable_actuators() = arduino_actuators;
@@ -448,10 +467,7 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    if (!is_driver_compatible_)
-    {
-        check_last_report(health, health_state);
-    }
+    check_last_report(health, health_state);
 
     health.set_state(health_state);
 }
@@ -460,7 +476,24 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    health_state = goby::middleware::protobuf::HEALTH__FAILED;
-    health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-        ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+    if (!is_driver_compatible_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+    }
+
+    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+
+        jaiabot::protobuf::ArduinoDebug arduino_debug;
+        arduino_debug.set_arduino_not_responding(true);
+        interprocess().publish<groups::arduino_debug>(arduino_debug);
+
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
+    }
 }

@@ -47,3 +47,31 @@
 #measureResult.notVisible {
     display: none;
 }
+
+div.buttonSection {
+    display: flex;
+}
+
+div.spacer {
+    flex-grow: 1;
+}
+
+.danger {
+    color: red;
+}
+
+div.busy-overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    position: absolute;
+    top: 0pt;
+    right: 0pt;
+    bottom: 0pt;
+    left: 0pt;
+
+    background-color: #00000070;
+}
+

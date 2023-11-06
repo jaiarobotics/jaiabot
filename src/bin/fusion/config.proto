@@ -64,7 +64,7 @@ message Fusion
     optional int32 total_imu_issue_checks = 35 [default = 4];
 
     // When to start detecting imu issues again after detecting one
-    optional int32 imu_detect_timeout = 36 [default = 13]; 
+    optional int32 imu_detect_timeout = 36 [default = 14]; 
 
     // Rate in milliseconds
     optional int32 bot_status_period_ms = 37 [default = 1000]; 

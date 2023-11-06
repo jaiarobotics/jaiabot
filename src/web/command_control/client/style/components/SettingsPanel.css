@@ -1,0 +1,89 @@
+.settings-outer-container {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    min-width: 250px;
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #767d7d;
+  
+    z-index: 1;
+  }
+
+  .settings-inner-container {
+    margin: 8pt;
+    font-size: 1.1rem;
+
+    /* 66px equals max toolbar height */
+    max-height: calc(95vh - 66px);
+    overflow-y: auto;
+}
+
+.settings-accordion-inner-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.settings-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.settings-card-grid.hidden {
+    display: none;
+}
+
+.settings-card-grid.visible {
+    border: 1px solid #D1D5DB;
+    border-radius: 3px;
+    padding: 6px;
+}
+
+.settings-line-break {
+    height: 1px;
+    background-color: #D1D5DB;
+    margin: 12px 0;
+}
+
+.settings-label {
+    font-weight: bold;
+}
+
+.settings-card-grid .settings-label {
+    grid-column: 1 / 3;
+}
+
+.task-packet-button-container {
+    grid-column: 1 / 3;
+    display: flex;
+    justify-content: space-between;
+}
+
+.task-packet-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.settings-send-btn {
+    grid-column: 2 / 3;
+    justify-self: flex-end;
+    width: 36px;
+    height: auto;
+    cursor: pointer;
+}
+
+.settings-send-btn.disabled {
+    opacity: 0.3;
+    cursor: default;
+}

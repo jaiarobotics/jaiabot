@@ -46,8 +46,15 @@ message ArduinoResponse
     optional float vccvoltage = 3;
     optional float vcccurrent = 4;
     optional float vvcurrent = 5;
+    optional int32 motor = 6;
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;
     required uint32 version = 52 [default = 0];
+}
+
+message ArduinoDebug
+{
+    optional bool arduino_restarted = 1 [default = false];
+    optional bool arduino_not_responding = 2 [default = false];
 }

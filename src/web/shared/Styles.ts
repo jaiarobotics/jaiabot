@@ -1,13 +1,14 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
-import { LineString, Point } from 'ol/geom';
-import { Fill, Icon, Style, Text} from 'ol/style';
-import { Goal, DivePacket, TaskType } from './JAIAProtobuf'
-import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
+import { Goal, HubStatus, TaskType } from './JAIAProtobuf'
+import { LineString, Point, Circle } from 'ol/geom';
+import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
+import { Coordinate } from 'ol/coordinate';
+import { PortalBotStatus } from './PortalStatus';
+import { colorNameToHex } from './Color'
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
-const arrowHead = require('./arrowHead.svg') as string
-const bottomStrike = require('./bottomStrike.svg') as string
+const driftMapIcon = require('./driftMapIcon.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const start = require('./start.svg') as string
 const end = require('./end.svg') as string
@@ -21,7 +22,33 @@ const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const taskConstantHeading = require('./taskConstantHeading.svg') as string
+const arrowHead = require('./arrowHead.svg') as string
+const bottomStrike = require('./bottomStrike.svg') as string
 const satellite = require('./satellite.svg') as string
+// Drift Icons
+const driftArrow1 = require(`./drift-arrows/drift-arrow-1.svg`) as string
+const driftArrowAnimated1 = require(`./drift-arrows/drift-arrow-animated-1.svg`) as string
+const driftArrow2 = require(`./drift-arrows/drift-arrow-2.svg`) as string
+const driftArrowAnimated2 = require(`./drift-arrows/drift-arrow-animated-2.svg`) as string
+const driftArrow3 = require(`./drift-arrows/drift-arrow-3.svg`) as string
+const driftArrowAnimated3 = require(`./drift-arrows/drift-arrow-animated-3.svg`) as string
+const driftArrow4 = require(`./drift-arrows/drift-arrow-4.svg`) as string
+const driftArrowAnimated4 = require(`./drift-arrows/drift-arrow-animated-4.svg`) as string
+const driftArrow5 = require(`./drift-arrows/drift-arrow-5.svg`) as string
+const driftArrowAnimated5 = require(`./drift-arrows/drift-arrow-animated-5.svg`) as string
+const driftArrow6 = require(`./drift-arrows/drift-arrow-6.svg`) as string
+const driftArrowAnimated6 = require(`./drift-arrows/drift-arrow-animated-6.svg`) as string
+
+// Format: [default-color-icon, animated-color-icon]
+const driftIcons: {[iconKey: string]: string[]} = {
+    'driftIcon1': [driftArrow1, driftArrowAnimated1],
+    'driftIcon2': [driftArrow2, driftArrowAnimated2],
+    'driftIcon3': [driftArrow3, driftArrowAnimated3],
+    'driftIcon4': [driftArrow4, driftArrowAnimated4],
+    'driftIcon5': [driftArrow5, driftArrowAnimated5],
+    'driftIcon6': [driftArrow6, driftArrowAnimated6]
+}
+
 export const taskNone = require('./taskNone.svg') as string
 
 // Export the PNG data for use in KMZ files
@@ -38,6 +65,14 @@ const remoteControlledColor = 'mediumpurple'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 
+const DEG = Math.PI / 180
+const SELECTED_Z_INDEX = 990 // Needs to be larger than the number of runs created in a session (determines increment) otherwise unselected features would have a higher z-index than selected features
+
+interface XYCoordinate {
+    x: number
+    y: number
+}
+
 export const startMarker = new Style({
     image: new Icon({
         src: start,
@@ -52,13 +87,6 @@ export const endMarker = new Style({
     })
 })
 
-const DEG = Math.PI / 180
-
-interface XYCoordinate {
-    x: number
-    y: number
-}
-
 export function botMarker(feature: Feature): Style[] {
     const geometry = feature.getGeometry() as Point
     const centerPosition = geometry.getCoordinates()
@@ -68,16 +96,18 @@ export function botMarker(feature: Feature): Style[] {
     }
 
     const botStatus = feature.get('bot') as PortalBotStatus
-    const heading = (botStatus.attitude?.heading ?? 0.0) * DEG
+    const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG
+
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
 
     let color: string
 
-    if (botStatus.isDisconnected ?? false) {
+    if (botStatus?.isDisconnected ?? false) {
         color = disconnectedColor
-    } else if (isRemoteControlled(botStatus.mission_state)) {
+    } 
+    else if (feature.get('rcMode')) {
         color = remoteControlledColor
     } else if (feature.get('selected')) {
         color = selectedColor
@@ -85,7 +115,7 @@ export function botMarker(feature: Feature): Style[] {
         color = defaultColor
     }
 
-    const text = String(botStatus.bot_id ?? "")
+    const text = String(botStatus?.bot_id ?? "")
 
     var style = [ 
         // Bot body marker
@@ -110,11 +140,15 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
+    if (botStatus?.mission_state?.includes('REACQUIRE_GPS')) {
+        style.push(getGpsStyle(heading))
+    }
+
     return style
 }
 
-export function hubMarker(feature: Feature): Style[] {
-    const geometry = feature.getGeometry() as Point
+export function hubMarker(feature: Feature<Point>): Style[] {
+    const hub = feature.get('hub') as HubStatus
 
     const textOffsetRadius = 11
 
@@ -126,7 +160,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const text = "HUB"
 
-    var style = [ 
+    var markerStyle = 
         // Hub body marker
         new Style({
             image: new Icon({
@@ -145,9 +179,57 @@ export function hubMarker(feature: Feature): Style[] {
                 offsetY: textOffsetRadius
             })
         })
-    ]
 
-    return style
+    return [ markerStyle ]
+}
+
+
+
+/**
+ * The style for the circles showing the comms limit radii for hubs
+ * @date 10/27/2023 - 7:36:33 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature Point feature of a hub
+ */
+export function hubCommsCircleStyle(feature: Feature<Point>) {
+    const hub = feature.get('hub') as HubStatus
+    if (hub == null) {
+        console.warn("Feature doesn't have hub property")
+        return
+    }
+    const center = feature.getGeometry().getCoordinates()
+
+    // The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const commsInnerRadius = 250.0 / latitudeCoefficient
+    const commsOuterRadius = 500.0 / latitudeCoefficient
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+                const screenRadius = Math.sqrt(dx * dx + dy * dy)
+
+                const ctx = state.context
+
+                ctx.beginPath()
+                ctx.arc(x, y, screenRadius, 0, 2 * Math.PI, true)
+                ctx.strokeStyle = color
+                ctx.lineWidth = lineWidth
+                ctx.stroke()
+            }
+        })
+    }
+
+    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
+        
+    return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
@@ -165,8 +247,7 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
     })
 }
 
-export function desiredHeadingArrow(feature: Feature): Style {
-    const desiredHeading = feature.get('desiredHeading') * DEG
+export function headingArrow(heading: number): Style {
     const color = 'green'
 
     return new Style({
@@ -174,25 +255,15 @@ export function desiredHeadingArrow(feature: Feature): Style {
             src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: desiredHeading,
+            rotation: heading * DEG,
             rotateWithView: true
         })
     })
 }
 
-export function headingArrow(heading: number): Style {
-    const finalHeading = heading * DEG
-    const color = 'green'
-
-    return new Style({
-        image: new Icon({
-            src: botDesiredHeading,
-            color: color,
-            anchor: [0.5, 1.0],
-            rotation: finalHeading,
-            rotateWithView: true
-        })
-    })
+export function desiredHeadingArrow(feature: Feature): Style {
+    const desiredHeading = feature.get('desiredHeading') as number ?? 0.0
+    return headingArrow(desiredHeading)
 }
 
 // Markers for the mission goals
@@ -208,11 +279,7 @@ function getGoalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function createGoalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
-    if (!taskType) {
-        taskType === TaskType.NONE
-    }
-    const src = getGoalSrc(taskType)
+function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     let nonActiveGoalColor: string
 
     if (canEdit) {
@@ -221,15 +288,23 @@ export function createGoalIcon(taskType: TaskType | null, isActiveGoal: boolean,
         nonActiveGoalColor = isSelected ? selectedColor : defaultColor
     }
 
+    return isActiveGoal ? activeGoalColor : nonActiveGoalColor
+}
+
+export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    taskType = taskType ?? TaskType.NONE
+    const src = getGoalSrc(taskType)
+    const color = getGoalColor(isActiveGoal, isSelected, canEdit)
+
     return new Icon({
         src: src,
-        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
+        color: color,
         anchor: [0.5, 1],
     })
 }
 
 
-function createFlagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
+function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
@@ -241,15 +316,6 @@ function createFlagIcon(taskType: TaskType | null, isSelected: boolean, runNumbe
     })
 }
 
-function createGpsIcon() {
-    return new Icon({
-        src: satellite,
-        color: driftArrowColor,
-        anchor: [0.5, -1.25],
-        scale: 1.25
-    })
-}
-
 function createRallyIcon() {
     return new Icon({
         src: rallyPoint,
@@ -257,13 +323,29 @@ function createRallyIcon() {
     })
 }
 
-export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+
+/**
+ * Goal / Waypoint map style function
+ * @date 10/23/2023 - 8:58:49 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature
+ * @returns {{}} Style(s) for the feature
+ */
+export function getGoalStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+    const goalIndex = feature.get('goalIndex') as number
+    const zIndex = feature.get('zIndex') as number
+
     let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
-    return new Style({
+    const markerStyle = new Style({
         image: icon,
         stroke: new Stroke({
-            color: 'rgba(0, 0, 0, 0)',
+            color: 'black',
             width: 50
         }),
         text: new Text({
@@ -274,8 +356,75 @@ export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, i
             }),
             offsetY: -15
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
+
+    return markerStyle
+}
+
+
+
+/**
+ * Gets the style to apply to the waypoint circle layer
+ * @date 10/25/2023 - 12:29:46 PM
+ *
+ * @export
+ * @param {Feature<Point>} feature The waypoint circle feature
+ */
+export function getWaypointCircleStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+
+    //The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
+    const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
+    const centerCoordinate = feature.getGeometry().getCoordinates()
+    const colorName = getGoalColor(isActive, isSelected, canEdit)
+    const colorMain = colorNameToHex(colorName) ?? colorName
+    const colorBorder = colorNameToHex('black')
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+
+                const ctx = state.context;
+                const radius = Math.sqrt(dx * dx + dy * dy);
+                
+                if (addInnerGradientColor)
+                {
+                    const innerRadius = 0;
+                    const outerRadius = radius * 1.4;
+
+                    const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
+                    gradient.addColorStop(0,   `${color}00`);
+                    gradient.addColorStop(0.6, `${color}33`);
+                    gradient.addColorStop(1,   `${color}cc`);
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+                
+                ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        })
+    }
+
+    const mainRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorMain, 5, true)
+    const borderRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorBorder, 1, false)
+
+    return [ mainRadiusStyle, borderRadiusStyle ]
+
 }
 
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
@@ -294,13 +443,20 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
             offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
 }
 
-export function getGpsStyle() {
+function getGpsStyle(headingRadians: number) {
     return new Style({
-        image: createGpsIcon(),
+        image: new Icon({
+            src: satellite,
+            color: driftArrowColor,
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
+            rotateWithView: true
+        }),
         zIndex: 104 // One higher than the bot's zIndex to prevent to the bot from covering the icon
     })
 }
@@ -321,7 +477,7 @@ export function getRallyStyle(rallyFeatureCount: number) {
 }
 
 // Markers for dives
-export function divePacketIconStyle(feature: Feature, animationColor?: string) {
+export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     // Depth text
     let text = feature.get('depthAchieved') ? feature.get('depthAchieved').toFixed(1) : null
     if (text != null) {
@@ -331,12 +487,12 @@ export function divePacketIconStyle(feature: Feature, animationColor?: string) {
     }
 
     // Icon color
-    const color = 'white'
+    const color = animatedColor ? animatedColor : 'white'
 
     return new Style({
         image: new Icon({
             src: bottomStrike,
-            color: animationColor ? animationColor : color
+            color: color
         }),
         text: new Text({
             text: String(text),
@@ -353,45 +509,62 @@ export function divePacketIconStyle(feature: Feature, animationColor?: string) {
     })
 }
 
+export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
+    // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
+    // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const maxBins = 6
+    const binValueIncrement = 0.5
+    let binNumber = Math.floor(feature.get('speed') ?? 0 / binValueIncrement)
 
-interface EstimatedDrift {
-    speed: number
-    heading: number
+    // If binNumber > maxBins or binNumber === 0 then a file not found error will occur
+    if (binNumber > maxBins) {
+        binNumber = maxBins
+    }
+    else if (binNumber === 0) {
+        binNumber = 1
+    }
+
+    const defaultSrc = driftIcons[`driftIcon${binNumber}`][0]
+    const animatedSrc = driftIcons[`driftIcon${binNumber}`][1]
+    let src = animatedColor === 'black' ? animatedSrc : defaultSrc
+    
+    return new Style({
+        image: new Icon({
+            src: src,
+            rotation: feature.get('driftDirection') * DEG,
+            rotateWithView: true,
+            scale: 0.7
+        }),
+    })
 }
 
+export function driftMapStyle(feature: Feature) {
+    // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
+    // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const maxBins = 6
+    const heading = feature.get('heading') as number
+    const speed = feature.get('speed') as number
 
-interface DriftTask {
-    estimated_drift: EstimatedDrift
-}
+    const binValueIncrement = 0.5
+    let binNumber = Math.floor(speed / binValueIncrement)
 
+    // If binNumber > maxBins or binNumber === 0 then a file not found error will occur
+    if (binNumber > maxBins) {
+        binNumber = maxBins
+    }
+    else if (binNumber === 0) {
+        binNumber = 1
+    }
 
-
-interface EstimatedDrift {
-    speed: number
-    heading: number
-}
-
-
-interface DriftTask {
-    estimated_drift: EstimatedDrift
-}
-
-
-// Markers for surface drift tasks
-export function driftTask(drift: DriftTask) {
-
-    // Icon color
-    const color = '#D07103'
+    const src = driftIcons[`driftIcon${binNumber}`][0]
 
     return new Style({
         image: new Icon({
-            src: driftTaskPacket,
-            anchor: [0.5, 0.908],
-            color: color,
-            scale: [1.0, drift.estimated_drift.speed / 0.20],
+            src: src,
+            rotation: heading * DEG,
             rotateWithView: true,
-            rotation: drift.estimated_drift.heading * Math.PI / 180.0,
-        })
+            scale: 0.68
+        }),
     })
 }
 
@@ -436,7 +609,7 @@ export function missionPath(feature: Feature) {
         const midpoint = [start[0] + dx / 2, start[1] + dy / 2]
         const rotation = Math.atan2(dy, dx);
 
-        // arrows
+        // Arrows
         styles.push(
             new Style({
                 geometry: new Point(midpoint),
@@ -444,54 +617,10 @@ export function missionPath(feature: Feature) {
                     src: arrowHead,
                     anchor: [0.5, 0.5],
                     rotateWithView: true,
-                    rotation: -rotation,
+                    rotation: -rotation, // OpenLayers rotates clockwise, while atan2 calculates a counter-clockwise rotation (as is customary in trig)
                     color: pathColor,
                 }),
                 zIndex: zIndex
-            })
-        );
-    });
-
-    return styles
-}
-
-// Drift task linestring
-export function driftPacketIconStyle(feature: Feature, animationColor?: string) {
-    const color = driftArrowColor
-
-    const geometry = feature.getGeometry() as LineString
-    const styles = [
-        new Style({
-            stroke: new Stroke({
-                width: 6,
-                color: 'black'
-            })
-        }),
-        new Style({
-            stroke: new Stroke({
-                width: 4,
-                color: animationColor ? animationColor : color
-            })
-        })
-    ]
-
-    geometry.forEachSegment(function (start, end) {
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
-        const rotation = Math.atan2(dy, dx);
-
-        // arrows
-        styles.push(
-            new Style({
-                geometry: new Point(end),
-                image: new Icon({
-                    src: arrowHead,
-                    anchor: [0, 0.5],
-                    rotateWithView: true,
-                    rotation: -rotation,
-                    color: animationColor ? animationColor : color
-                }),
-                zIndex: 1
             })
         );
     });

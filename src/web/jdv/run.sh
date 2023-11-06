@@ -10,9 +10,15 @@ pushd ..
     ./install_dependencies.sh
 popd
 
+# Build messages and install pyjaia
+pushd ../../python/pyjaia
+    ./build_messages.sh
+    python3 -m pip install ./
+popd
+
 # Start server
 pushd server
-    ./jaiabot_data_vision.py -p 40011 &
+    ./jaiabot_data_vision.py -p 40011 -l INFO $@ &
 popd
 
 # Build client

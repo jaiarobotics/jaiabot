@@ -644,8 +644,17 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
 void jaiabot::apps::Fusion::init_node_status()
 {
-    // set empty pose field so NodeStatus gets generated even without pitch, heading, or roll data
+    // Set empty fields so NodeStatus gets published on startup
     latest_node_status_.mutable_pose();
+    latest_node_status_.mutable_global_fix();
+    latest_node_status_.mutable_global_fix()->set_lat(0);
+    latest_node_status_.mutable_global_fix()->set_lon(0);
+    latest_node_status_.mutable_speed();
+    latest_node_status_.mutable_speed()->set_over_ground(0);
+    latest_node_status_.set_time(0);
+    latest_node_status_.mutable_local_fix();
+    latest_node_status_.mutable_local_fix()->set_x(0);
+    latest_node_status_.mutable_local_fix()->set_y(0);
 }
 
 void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
@@ -910,6 +919,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     if (!is_bot_horizontal_)
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot is not horizontal" << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -918,6 +929,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot has a desired speed of zero"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -928,6 +941,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot does not have attitude data"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -943,6 +958,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
                                  << "heading diff is above the max"
                                  << " Desired: " << bot_desired_heading_ << ", heading: " << heading
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -959,6 +976,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         now)
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot's course is not updating" << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -973,6 +992,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot's previous course over ground is "
                                     "the same as the current course"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 

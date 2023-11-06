@@ -232,11 +232,6 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
     }
-
-    if (cfg().check_arduino_status())
-    {
-        launch_thread<ArduinoStatusThread>(cfg().arduino());
-    }
 }
 
 void jaiabot::apps::Health::process_coroner_report(
@@ -263,7 +258,9 @@ void jaiabot::apps::Health::process_coroner_report(
                 process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())
             {
-                glog.is_warn() && glog << "App: " << proc.main().name() << std::endl;
+                glog.is_warn() && glog << "App: " << proc.main().name()
+                                       << " is not reponding, Error Message: " << it->second
+                                       << std::endl;
                 last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                     ->add_error(it->second);
             }

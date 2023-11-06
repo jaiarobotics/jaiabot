@@ -164,6 +164,15 @@ jaiabot::apps::MissionManager::MissionManager()
                 *setpoint_msg.mutable_helm_course() = desired_setpoints;
                 glog.is_verbose() && glog << "Relaying desired_setpoints: "
                                           << setpoint_msg.ShortDebugString() << std::endl;
+
+                const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
+
+                if (in_mission)
+                {
+                    setpoint_msg.set_is_helm_constant_course(
+                        in_mission->use_heading_constant_pid());
+                }
+
                 interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
             }
         });
@@ -893,6 +902,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             {
                 *out_command.mutable_plan()->mutable_recovery() =
                     initial_fragment.plan().recovery();
+            }
+
+            if (initial_fragment.plan().has_speeds())
+            {
+                *out_command.mutable_plan()->mutable_speeds() = initial_fragment.plan().speeds();
             }
 
             if (initial_fragment.plan().has_repeats())

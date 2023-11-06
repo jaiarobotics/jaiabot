@@ -736,6 +736,7 @@ export enum Error {
     ERROR__VEHICLE__CRITICALLY_LOW_BATTERY = "ERROR__VEHICLE__CRITICALLY_LOW_BATTERY",
     ERROR__VEHICLE__MISSING_DATA_BATTERY = "ERROR__VEHICLE__MISSING_DATA_BATTERY",
     ERROR__VERSION__MISMATCH_ARDUINO = "ERROR__VERSION__MISMATCH_ARDUINO",
+    ERROR__MISSION_DATA__ARDUINO_REPORT = "ERROR__MISSION_DATA__ARDUINO_REPORT"
 }
 
 export interface ThreadHealth {
@@ -1149,6 +1150,7 @@ export interface PIDControl {
     roll?: PIDSettings
     pitch?: PIDSettings
     depth?: PIDSettings
+    heading_constant?: PIDSettings
     led_switch_on?: boolean
 }
 
