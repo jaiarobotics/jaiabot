@@ -91,7 +91,7 @@ class Fusion : public ApplicationBase
     double previous_course_over_ground_{0};
 
     // IMU Detection vars
-    bool imu_issue_{false};
+    bool imu_issue_detected_{false};
     int imu_issue_crs_hdg_incr_{0};
     double bot_desired_speed_{0};
     double bot_desired_heading_{0};
@@ -151,6 +151,8 @@ class Fusion : public ApplicationBase
     //    {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
     //const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
     //    {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
+
+    goby::time::SteadyClock::time_point init_data_health_timeout_{goby::time::SteadyClock::now()};
 
     WMM wmm;
 };
@@ -292,36 +294,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             last_data_time_[DataType::ROLL] = now;
         }
 
-        if (calibration_status.has_sys())
+        if (imu_data.has_calibration_status())
         {
-            latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
-
-            //last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
-            //last_data_time_[DataType::CALIBRATION_SYS] = now;
-        }
-
-        if (calibration_status.has_gyro())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
-
-            //last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
-            //last_data_time_[DataType::CALIBRATION_GYRO] = now;
-        }
-
-        if (calibration_status.has_accel())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
-
-            //last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
-            //last_data_time_[DataType::CALIBRATION_ACCEL] = now;
-        }
-
-        if (calibration_status.has_mag())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
-
-            //last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
-            //last_data_time_[DataType::CALIBRATION_MAG] = now;
+            latest_bot_status_.set_calibration_status(imu_data.calibration_status());
         }
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
@@ -680,7 +655,7 @@ void jaiabot::apps::Fusion::loop()
     else
     {
         // If the imu issue is currently not detected and we are not running a sim
-        if (!imu_issue_ && !cfg().is_sim())
+        if (!imu_issue_detected_ && !cfg().is_sim())
         {
             // Detect an imu issue on a certain period interval
             if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now)
@@ -694,7 +669,7 @@ void jaiabot::apps::Fusion::loop()
                  now)
         {
             // Reset imu issue vars
-            imu_issue_ = false;
+            imu_issue_detected_ = false;
         }
     }
 
@@ -780,98 +755,120 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
 
     // order matters - do warnings then errors so that the state ends up correct
     auto now = goby::time::SteadyClock::now();
-    for (const auto& wp : missing_data_warnings_)
-    {
-        if (!last_data_time_.count(wp.first) ||
-            (last_data_time_[wp.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
-        {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(wp.second);
-            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
-            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
-        }
-    }
-    /*for (const auto& ep : not_calibrated_warnings_)
-    {
-        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
-        {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(ep.second);
-            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
-            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
-        }
-    }*/
-    if (imu_issue_)
-    {
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__IMU_ISSUE);
-        health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
-        glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
-                               << std::endl;
-    }
 
-    if (watch_battery_percentage_)
+    // Delay publishing health errors at startup
+    if (init_data_health_timeout_ + std::chrono::seconds(cfg().init_data_health_timeout_seconds()) <
+        now)
     {
-        if (latest_bot_status_.battery_percent() < cfg().battery_percentage_critically_low_level())
+        for (const auto& wp : missing_data_warnings_)
+        {
+            if (!last_data_time_.count(wp.first) ||
+                (last_data_time_[wp.first] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+                 now))
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(wp.second);
+                health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+                glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
+            }
+        }
+        /*for (const auto& ep : not_calibrated_warnings_)
+        {
+            if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(ep.second);
+                health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+                glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
+            }
+        }*/
+        if (imu_issue_detected_)
         {
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
-            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
-                                          protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY)
+                ->add_warning(protobuf::WARNING__IMU_ISSUE);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
                                    << std::endl;
         }
-        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_very_low_level())
-        {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
-            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-            glog.is_warn() &&
-                glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY)
-                     << std::endl;
-        }
-        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_low_level())
-        {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
-            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
-            glog.is_warn() &&
-                glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__VEHICLE__LOW_BATTERY)
-                     << std::endl;
-        }
-    }
 
-    for (const auto& ep : missing_data_errors_)
-    {
-        // TODO: We should be able to easily configure different error timeouts
-        // Temp fix for now
-        if (ep.first == DataType::HEADING)
+        if (watch_battery_percentage_)
         {
-            if (!last_data_time_.count(ep.first) ||
-                (last_data_time_[ep.first] + std::chrono::seconds(cfg().heading_timeout_seconds()) <
-                 now))
+            if (latest_bot_status_.battery_percent() <
+                cfg().battery_percentage_critically_low_level())
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                    ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
+                health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
+                                              protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY)
+                                       << std::endl;
+            }
+            else if (latest_bot_status_.battery_percent() <
+                     cfg().battery_percentage_very_low_level())
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                    ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+                health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
+                                              protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY)
+                                       << std::endl;
+            }
+            else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_low_level())
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                    ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
+                health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+                glog.is_warn() &&
+                    glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__VEHICLE__LOW_BATTERY)
+                         << std::endl;
+            }
+        }
+
+        for (const auto& ep : missing_data_errors_)
+        {
+            // TODO: We should be able to easily configure different error timeouts
+            // Temp fix for now
+            if (ep.first == DataType::HEADING && !imu_issue_detected_)
+            {
+                if (!last_data_time_.count(ep.first) ||
+                    (last_data_time_[ep.first] +
+                         std::chrono::seconds(cfg().heading_timeout_seconds()) <
+                     now))
+                {
+                    jaiabot::protobuf::IMUIssue imu_issue;
+                    imu_issue.set_solution(cfg().imu_issue_solution());
+                    interprocess().publish<jaiabot::groups::imu>(imu_issue);
+                    imu_issue_detected_ = true;
+                    last_imu_issue_report_time_ = now;
+
+                    glog.is_debug2() &&
+                        glog << "detect_imu_issue() Post IMU Warning: No heading data "
+                                "indicates imu issue"
+                             << endl;
+                    health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                        ->add_error(ep.second);
+                    health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                    glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+                }
+            }
+            else if (!last_data_time_.count(ep.first) ||
+                     (last_data_time_[ep.first] +
+                          std::chrono::seconds(cfg().data_timeout_seconds()) <
+                      now))
             {
                 health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
                 health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
                 glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
             }
         }
-        else if (!last_data_time_.count(ep.first) ||
-                 (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) <
-                  now))
+        /*for (const auto& ep : not_calibrated_errors_)
         {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
-            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
-        }
+            if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+                health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+            }
+        }*/
     }
-    /*for (const auto& ep : not_calibrated_errors_)
-    {
-        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
-        {
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
-            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
-        }
-    }*/
 }
 
 /**
@@ -1022,7 +1019,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         else
         {
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
-            imu_issue_ = true;
+            imu_issue_detected_ = true;
             glog.is_debug2() && glog
                                     << "detect_imu_issue() Post IMU Warning: The diff between "
                                        "course over ground and magnetic heading indicates imu issue"
@@ -1035,18 +1032,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         imu_issue_crs_hdg_incr_ = 0;
     }
 
-    if ((last_data_time_[DataType::HEADING] +
-             std::chrono::seconds(cfg().heading_timeout_seconds()) <
-         now))
-    {
-        interprocess().publish<jaiabot::groups::imu>(imu_issue);
-        imu_issue_ = true;
-        glog.is_debug2() &&
-            glog << "detect_imu_issue() Post IMU Warning: No heading data indicates imu issue"
-                 << endl;
-    }
-
-    if (imu_issue_)
+    if (imu_issue_detected_)
     {
         glog.is_debug2() &&
             glog << "detect_imu_issue() Reported IMU issue so let's reset to detect another one"
