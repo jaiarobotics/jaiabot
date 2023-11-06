@@ -41,7 +41,6 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { CustomAlert, CustomAlertProps } from './shared/CustomAlert'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
@@ -428,7 +427,6 @@ export default class CommandControl extends React.Component {
 		this.flagNumber = 1
 
 		CustomAlert.setPresenter((props: CustomAlertProps) => {
-			console.log('PROPS', props)
 			if (props == null) {
 				this.setState({customAlert: null})
 				return
