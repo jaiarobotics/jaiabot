@@ -45,6 +45,8 @@ message Fusion
 
     optional int32 health_report_timeout_seconds = 11 [default = 20];
 
+    optional int32 init_data_health_timeout_seconds = 15 [default = 20];
+
     optional int32 data_timeout_seconds = 20 [default = 20];
 
     optional int32 heading_timeout_seconds = 21 [default = 3];

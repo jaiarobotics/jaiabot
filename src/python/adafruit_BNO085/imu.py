@@ -8,14 +8,17 @@ import datetime
 from math import *
 from jaiabot.messages.imu_pb2 import IMUData
 
+import adafruit_bno08x
+from adafruit_bno08x.uart import BNO08X_UART
+import serial
+import time
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
 
 
 try:
-    import adafruit_bno055
-    import board
+    uart = serial.Serial("/dev/ttyAMA0", 3000000)
     physical_device_available = True
 except ModuleNotFoundError:
     log.warning('ModuleNotFoundError, so physical device not available')
@@ -31,9 +34,8 @@ class IMUReading:
     linear_acceleration: Vector3
     linear_acceleration_world: Vector3
     gravity: Vector3
-    calibration_status: tuple
+    calibration_status: int
     quaternion: Quaternion
-
 
 class IMU:
     def setup(self):
@@ -48,6 +50,7 @@ class IMU:
         Returns:
             IMUData: the reading as an IMUData
         """
+        log.debug('About to take reading')
         reading = self.takeReading()
 
         if reading is None:
@@ -66,8 +69,8 @@ class IMU:
         imu_data.gravity.y = reading.gravity.y
         imu_data.gravity.z = reading.gravity.z
 
-        # only send the mag cal
-        imu_data.calibration_status = reading.calibration_status[3]
+        if reading.calibration_status is not None:
+            imu_data.calibration_status = reading.calibration_status
 
         return imu_data
 
@@ -85,31 +88,71 @@ class Adafruit(IMU):
 
     def setup(self):
         if not self.is_setup:
-            self.i2c = board.I2C()
-
             try:
-                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x28)
-            except ValueError: # From I2CDevice if not on 0x28: ValueError("No I2C device at address: 0x%x" % self.device_address)
-                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x29)
-            
-            self.sensor.mode = adafruit_bno055.NDOF_MODE
-            self.is_setup = True
+                log.warning('We are not setup')
 
-            # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
-            self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
+                self.sensor = BNO08X_UART(uart)
+
+                log.warning('Connected, now lets enable output')
+
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
+
+                self.is_setup = True
+
+                # Set the duration for checking calibration
+                self.wait_to_check_cal_duration = 1
+
+                # Set the initial time for checking calibration
+                self.check_cal_time = time.time()
+
+                # Set the initial calibration status
+                self.calibration_status = None
+
+            except (OSError) as e:
+                self.is_setup = False
+                log.warning("Tried connecting, OSError, retry setting up driver")
+                raise e
+
+            except (serial.serialutil.SerialException) as se:
+                self.is_setup = False
+                log.warning("Tried connecting, SerialException, retry setting up driver")
+                raise se
+
+            except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                log.warning("Error trying to setup driver!")
+            
 
     def takeReading(self):
         if not self.is_setup:
             self.setup()
 
         try:
-            quaternion = self.sensor.quaternion
-            euler = self.sensor.euler
+            quat_x, quat_y, quat_z, quat_w = self.sensor.quaternion
+            quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
-            calibration_status = self.sensor.calibration_status
-            
-            if None in quaternion or None in euler or None in linear_acceleration or None in gravity or None in calibration_status:
+            calibration_status = self.calibration_status
+
+            if time.time() - self.check_cal_time >= self.wait_to_check_cal_duration:
+                logging.debug("Checking Calibration")
+                try:
+                    calibration_status = self.sensor.calibration_status
+                    # Set the calibration status to save when we are not querying a 
+                    # new calibration status
+                    self.calibration_status = calibration_status
+                except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                    log.warning("Error trying to get calibration status!")
+                self.check_cal_time = time.time()  # Reset the start time
+            else:
+                logging.debug("Waiting To Check Calibration")
+           
+            if None in quaternion or None in linear_acceleration or None in gravity:
+                log.warning("We received None data in the takeReading function")
                 return None
 
             # This is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
@@ -136,9 +179,18 @@ class Adafruit(IMU):
                         calibration_status=calibration_status,
                         quaternion=quaternion)
 
-        except OSError as e:
+        except (OSError) as e:
             self.is_setup = False
+            log.warning("Tried getting data, OSError, retry setting up driver")
             raise e
+        
+        except (serial.serialutil.SerialException) as se:
+            self.is_setup = False
+            log.warning("Tried getting data, SerialException, retry setting up driver")
+            raise se
+        
+        except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                log.warning("Error trying to get data!")
     
 
 class Simulator(IMU):
