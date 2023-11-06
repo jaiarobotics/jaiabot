@@ -69,8 +69,6 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
-    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
-                           goby::middleware::protobuf::HealthState& health_state);
 
     int64_t lastAckTime_;
 
@@ -103,6 +101,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool is_settings_ack_{false};
     std::string app_version_{VERSION_STRING};
     std::string delimiter_{"+"};
+
+    // Used to check the time of the last arduino report
+    goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
 };
 
 } // namespace apps
@@ -181,7 +182,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             jaiabot::protobuf::ArduinoDebug arduino_debug;
 
-            if (arduino_response.status_code() == 0)
+            if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
             {
                 if (is_settings_ack_)
                 {
@@ -206,11 +207,11 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                     auto compatible_to =
                         arduino_version_compatibility_.at(arduino_response.version()).second;
 
-                    // If the compatible_from ersion is less than or equal to the
+                    // If the compatible_from version is less than or equal to the
                     // app_version_ and if the app_version_ is less
                     // than or equal to the compatible_to version
                     if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
-                        isVersionLessThanOrEqual(app_version_, compatible_to))
+                        isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
                     {
                         glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
                                                  << std::endl;
@@ -290,7 +291,7 @@ bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& v
     // versions
     if (version1 == "" || version2 == "")
     {
-        glog.is_debug3() && glog << group("main")
+        glog.is_debug2() && glog << group("main")
                                  << "isVersionLessThanOrEqual() Return true, empty string "
                                  << std::endl;
         return true;
@@ -305,7 +306,7 @@ bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& v
     {
         if (v1[i] < v2[i])
         {
-            glog.is_debug3() &&
+            glog.is_debug2() &&
                 glog << group("main")
                      << "isVersionLessThanOrEqual() Return true, because version is less or equal "
                      << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
@@ -313,7 +314,7 @@ bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& v
         }
         else if (v1[i] > v2[i])
         {
-            glog.is_debug3() &&
+            glog.is_debug2() &&
                 glog << group("main")
                      << "isVersionLessThanOrEqual() Return false, because version is greater "
                      << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
