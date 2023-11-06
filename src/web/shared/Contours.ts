@@ -25,3 +25,14 @@ export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojso
 
     return features
 }
+
+export function geoJSONToFeatures(projection: ProjectionLike, geojson: object) {
+    // Manually transform features from lon/lat to the view's projection.
+    var features = new GeoJSON().readFeatures(geojson)
+    features.forEach((feature) => {
+        // Transform to the map's projection
+        feature.getGeometry().transform(equirectangular, projection)
+    })
+
+    return features
+}

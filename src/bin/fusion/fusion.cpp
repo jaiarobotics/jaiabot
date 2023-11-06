@@ -816,7 +816,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
     {
         // TODO: We should be able to easily configure different error timeouts
         // Temp fix for now
-        if (ep.first == DataType::HEADING)
+        if (ep.first == DataType::HEADING && !imu_issue_detected_)
         {
             if (!last_data_time_.count(ep.first) ||
                 (last_data_time_[ep.first] + std::chrono::seconds(cfg().heading_timeout_seconds()) <
