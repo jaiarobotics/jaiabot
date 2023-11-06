@@ -107,7 +107,6 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
-
       isBusy: false,
       customAlert: null
     }
@@ -314,8 +313,6 @@ class LogApp extends React.Component {
   componentDidMount() {
     this.getElements()
     this.map = new JaiaMap('openlayers-map')
-
-    CustomAlert.presentAlert({text: 'Welcome to JDV!'})
   }
 
   getElements() {
@@ -342,7 +339,7 @@ class LogApp extends React.Component {
           setTimeout(openLogsWhenReady, 1000)
         }
       }).catch((err) => {
-        alert(err)
+        CustomAlert.presentAlert({text: err})
         self.stopBusyIndicator()
       })
     }
@@ -373,7 +370,6 @@ class LogApp extends React.Component {
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
-
         .catch(err => {CustomAlert.presentAlert({text: err})})
         .finally(() => {
           this.stopBusyIndicator()
@@ -590,7 +586,7 @@ class LogApp extends React.Component {
       this.didSelectPaths(plotSet)
     }
 
-    savePlotSetClicked() {
+    async savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
 
       if (plotSetName == null) {
@@ -599,8 +595,9 @@ class LogApp extends React.Component {
       }
 
       if (PlotProfiles.exists(plotSetName)) {
-        if (!confirm(`Are you sure you want to overwrite plot set named \"${
-                plotSetName}?`))
+
+        if (!(await CustomAlert.confirmAsync(`Are you sure you want to overwrite plot set named \"${
+                plotSetName}?`, 'Overwrite Plot Set')))
           return
       }
 

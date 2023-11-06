@@ -41,6 +41,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { CustomAlert, CustomAlertProps } from './shared/CustomAlert'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
@@ -1214,17 +1215,20 @@ export default class CommandControl extends React.Component {
 					}
 
 					if (addRuns) {
-						this.deleteAllRunsInMission(missions, true, true).finally(() => {
+						this.deleteAllRunsInMission(missions, true, true).then((confirmed: boolean) => {
+							if (!confirmed) return
+
 							Object.keys(addRuns).map(key => {
 								Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
 							});
 
 							doExecuteMission()	
 						})
-						return
+					}
+					else {
+						doExecuteMission()
 					}
 
-					doExecuteMission()
 				})
 			}
 		})
@@ -1238,7 +1242,6 @@ export default class CommandControl extends React.Component {
 	// Delete Mission (Start)
 	// 
 	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
-
 		return new Promise((resolve, reject) => {
 			const doDelete = () => {
 				const runs = mission.runs
@@ -1298,7 +1301,7 @@ export default class CommandControl extends React.Component {
 
 	generateDeleteAllRunsWarnStr(rallyPointRun?: boolean) {
 			if (rallyPointRun) {
-				return 'Proceeding with this action will move all bots towards the selected rally point. Select "OK" to continue:' 
+				return 'Proceeding with this action will move all bots towards the selected rally point, deleting their current missions.' 
 			}
 			return 'Are you sure you want to delete all runs in this mission?'
 	}
@@ -1312,14 +1315,16 @@ export default class CommandControl extends React.Component {
 	loadMissions(mission: MissionInterface) {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
-		this.deleteAllRunsInMission(runList, true).finally(() => {
-			console.log('MARKER')
+		this.deleteAllRunsInMission(runList, true).then((confirmed: boolean) => {
+			if (confirmed) {
+				console.log('MARKER')
 
-			for (let run in mission?.runs) {
-				Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
+				for (let run in mission?.runs) {
+					Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
+				}
+		
+				this.setRunList(runList)
 			}
-	
-			this.setRunList(runList)
 		})
 	}
 
@@ -2998,7 +3003,9 @@ export default class CommandControl extends React.Component {
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
 							const runList = this.pushRunListToUndoStack().getRunList()
-							this.deleteAllRunsInMission(runList, false).finally(() => {
+							this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
+								if (!confirmed) return
+
 								for (let id in this.missionPlans) {
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}

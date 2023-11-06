@@ -87,7 +87,7 @@ export class CustomAlert extends React.Component {
         })
     }
 
-    static async confirmAsync(text: string, actionTitle: string) {
+    static confirmAsync(text: string, actionTitle: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             presentAlert({
                 title: 'Confirm',

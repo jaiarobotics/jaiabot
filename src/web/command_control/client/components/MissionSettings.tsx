@@ -239,7 +239,7 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     async applyMissionClicked() {
-        if (!(await CustomAlert.confirmAsync('Adding this new mission will delete the current misison. Are you sure?', 'Replace Current Mission'))) {
+        if (!(await CustomAlert.confirmAsync('Adding this new mission will delete the current mission. Are you sure?', 'Replace Current Mission'))) {
             this.props.onClose()
             return
         }

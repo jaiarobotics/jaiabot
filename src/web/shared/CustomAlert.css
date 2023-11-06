@@ -8,7 +8,7 @@ div.fullscreen {
     right: 0pt;
     top: 0pt;
     bottom: 0pt;
-    z-index: 20;
+    z-index: 20000;
 }
 
 div.custom-alert {
