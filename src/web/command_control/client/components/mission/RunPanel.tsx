@@ -12,6 +12,7 @@ type RunPanelProps = {
     saveMissionClick: any
     deleteAllRunsInMission: any
     autoAssignBotsToRuns: any
+    deleteSingleRun: (runId: string) => void
     unSelectHubOrBot: () => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
@@ -21,16 +22,6 @@ type RunPanelState = {}
 export default class RunPanel extends React.Component<RunPanelProps, RunPanelState> {
     addDuplicateRun(goals: Goal[]) {
         Missions.addRunWithGoals(-1, goals, this.props.mission)
-    }
-
-    deleteRun(runId: string) {
-        const run = this.props.mission.runs[runId]
-        const warningString = `Are you sure you want to delete ${run.name}?`
-        if (confirm(warningString)) {
-            let mission = this.props.mission
-            delete mission.runs[run.id]
-            delete mission.botsAssignedToRuns[run.assigned]
-        }
     }
 
     handleBotAssignChange(prevBotId: number, newBotId: number, runId: string) {
@@ -67,7 +58,7 @@ export default class RunPanel extends React.Component<RunPanelProps, RunPanelSta
                 runIdInEditMode={this.props.mission.runIdInEditMode}
                 loadMissionClick={this.props.loadMissionClick}
                 saveMissionClick={this.props.saveMissionClick}
-                deleteSingleRun={this.deleteRun.bind(this)}
+                deleteSingleRun={this.props.deleteSingleRun}
                 deleteAllRunsInMission={this.props.deleteAllRunsInMission}
                 autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
                 handleBotAssignChange={this.handleBotAssignChange.bind(this)}
