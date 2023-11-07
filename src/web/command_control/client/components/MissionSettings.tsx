@@ -8,6 +8,7 @@ import { FormControl, MenuItem } from '@mui/material'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { Geometry } from 'ol/geom'
 import { Feature } from 'ol'
+import { CustomAlert } from './shared/CustomAlert'
 
 import '../style/components/MissionSettings.css'
 
@@ -237,8 +238,8 @@ export class MissionSettingsPanel extends React.Component {
         this.onClose?.()
     }
 
-    applyMissionClicked() {
-        if (!confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+    async applyMissionClicked() {
+        if (!(await CustomAlert.confirmAsync('Adding this new mission will delete the current mission. Are you sure?', 'Replace Current Mission'))) {
             this.props.onClose()
             return
         }
