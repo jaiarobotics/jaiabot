@@ -72,6 +72,7 @@ class Health : public ApplicationBase
         system("systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+    void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
   private:
@@ -187,9 +188,28 @@ jaiabot::apps::Health::Health()
 
             switch (imu_issue.solution())
             {
+                case protobuf::IMUIssue::STOP_BOT: break;
                 case protobuf::IMUIssue::RESTART_IMU_PY:
                     glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
                     restart_imu_py();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
+                    reboot_bno085_imu();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
+                                             << std::endl;
+                    reboot_bno085_imu();
+                    restart_imu_py();
+                    break;
+                default:
+                    //TODO Handle Default Case
                     break;
             }
         });

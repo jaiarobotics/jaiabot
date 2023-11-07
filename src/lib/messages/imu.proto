@@ -54,14 +54,7 @@ message IMUData
     optional Acceleration linear_acceleration = 2;
     optional Acceleration gravity = 3;
 
-    message CalibrationStatus {
-        optional int32 sys = 1 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 gyro = 2 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 accel = 3 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 mag = 4 [(dccl.field) = { min: 0 max: 3 }];
-    }
-
-    optional CalibrationStatus calibration_status = 4;
+    optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
 
     optional bool bot_rolled_over = 5 [default = false];
 
@@ -92,6 +85,8 @@ message IMUIssue
         REBOOT_BOT = 4;
         REPORT_IMU = 5;
         RESTART_IMU_PY = 6;
+        REBOOT_BNO085_IMU = 7;
+        REBOOT_BNO085_IMU_AND_RESTART_IMU_PY = 8;
     }
 
     required SolutionType solution = 1;
