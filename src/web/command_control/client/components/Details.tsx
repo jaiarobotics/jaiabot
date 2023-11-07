@@ -567,7 +567,7 @@ export interface BotDetailsProps {
     downloadQueue: PortalBotStatus[],
     closeWindow: () => void,
     takeControl: (onSuccess: () => void) => void,
-    deleteSingleMission: (runNumber?: number, disableMessage?: string) => void,
+    deleteSingleMission: (runId: string, disableMessage?: string) => void,
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
     setRcMode: (botId: number, rcMode: boolean) => void,
@@ -720,7 +720,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Button>
                         <Button 
                             className={ disableClearRunButton(bot, mission).isDisabled ? 'inactive button-jcc' : 'button-jcc' }
-                            onClick={() => { deleteSingleMission(undefined, disableClearRunButton(bot, mission).disableMessage) }}>
+                            onClick={() => { deleteSingleMission(props.run?.id, disableClearRunButton(bot, mission).disableMessage)}}>
                             <Icon path={mdiDelete} title='Clear Mission'/>
                         </Button>
 

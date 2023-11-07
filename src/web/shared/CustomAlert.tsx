@@ -70,7 +70,7 @@ export class CustomAlert extends React.Component {
         presentAlert({text})
     }
 
-    static confirm(text: string, actionTitle: string, action?: ()=>void, cancelAction?: () => void) {
+    static confirm(text: string, actionTitle: string, action?: () => void, cancelAction?: () => void) {
         presentAlert({
             title: 'Confirm',
             text: text,

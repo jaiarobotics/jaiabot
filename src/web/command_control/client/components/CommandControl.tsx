@@ -1267,37 +1267,34 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	deleteSingleRun(runNumber?: number, disableMessage?: string) {
+	deleteSingleRun(runId: string, disableMessage?: string) {
 		// Exit if we have a disableMessage
-		if (disableMessage !== "") {
+		if (disableMessage) {
 			CustomAlert.alert(disableMessage)
 			return
 		}
 
+		let runNumber = -1		
+		try {
+			runNumber = Number(runId.split('-')[1])
+		} catch(err) {
+			console.log('Invalid runId passed to deleteSingleRun\n', err)
+			console.error('Invalid runId passed to deleteSingleRun\n', err)
+		}
+		
 		const runList = this.pushRunListToUndoStack().getRunList()
-
 		const selectedBotId = this.selectedBotId()
-		let runId = ''
-		if (runNumber) {
-			runId = `run-${runNumber}`
-		} else if (runList.botsAssignedToRuns[selectedBotId]) {
-			runId = runList.botsAssignedToRuns[selectedBotId]
-		}
-
-		console.log('DELETE SINGLE RUN')
-
-		if (runId !== '') {
-			const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
-			CustomAlert.confirm(warningString, 'Delete Run', () => {
-				const run = runList.runs[runId]
-				delete runList?.runs[runId]
-				delete runList?.botsAssignedToRuns[run.assigned]
-				if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-					this.setVisiblePanel(PanelType.NONE)
-					this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
-				}
-			})
-		}
+		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
+	
+		CustomAlert.confirm(warningString, 'Delete Run', () => {
+			const run = runList.runs[runId]
+			delete runList?.runs[runId]
+			delete runList?.botsAssignedToRuns[run.assigned]
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
+		})
 	}
 
 	generateDeleteAllRunsWarnStr(rallyPointRun?: boolean) {
