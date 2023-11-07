@@ -37,6 +37,8 @@ else:
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
 
+jaia_imu_type = 'bno055'
+
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
 
