@@ -28,6 +28,7 @@ pitch_to_determine_dive_prep_vertical: 70 # (optional) (default=70) Degrees
 dive_eps_to_determine_diving: 0.3 # (optional) (default=0.3) Meters
 dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
 detect_bottom_logic_init_timeout: 15 # (optional) (default=15) Seconds
+detect_bottom_logic_after_hold_timeout # (optional) (default=5) Seconds
 bottoming_timeout: 3 # (optional) (default=3) Seconds
 powered_descent_timeout: 60 # (default=60) Seconds
 bot_not_rising_timeout: 6 # (optional) (default=6) Seconds
