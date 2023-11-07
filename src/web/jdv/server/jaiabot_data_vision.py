@@ -10,6 +10,7 @@ import math
 import jaialog_store
 import moos_messages
 import pyjaia.contours
+import pyjaia.drift_interpolation
 
 from pathlib import *
 
@@ -150,6 +151,18 @@ def getDepthContours():
 
     taskPackets = jaialogStore.getTaskPacketDicts(log_names)
     return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
+
+
+@app.route('/interpolated-drifts', methods=['GET'])
+def getInterpolatedDrifts():
+    '''Get a GeoJSON of interpolated drift icons'''
+    log_names = parseFilenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    taskPackets = jaialogStore.getTaskPacketDicts(log_names)
+    return Response(pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(taskPackets))
 
 
 @app.route('/h5', methods=['GET'])

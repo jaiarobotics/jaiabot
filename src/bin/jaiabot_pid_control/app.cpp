@@ -22,6 +22,7 @@
 
 #include "app.h"
 
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(1.0 / 10.0 * si::hertz)
 {
     auto app_config = cfg();
 
@@ -115,7 +116,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        throttle_depth_pid_ = new Pid(&actual_depth_, &throttle_, &target_depth_, 4, 1, 2);
+        throttle_depth_pid_ = new Pid(&actual_depth_, &throttle_, &target_depth_, 10, 1.6, 12.8);
     }
     throttle_depth_pid_->set_auto();
     throttle_depth_pid_->set_direction(E_PID_REVERSE);
@@ -240,9 +241,21 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " heading: " << actual_heading_
                                      << " depth: " << actual_depth_ << std::endl;
         });
+
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+            if (arduino_response.has_motor())
+            {
+                arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
+                glog.is_debug2() && glog << "Arduino Reported Throttle: " << arduino_motor_throttle_
+                                         << endl;
+            }
+        });
 }
 
-void jaiabot::apps::BotPidControl::loop()
+void jaiabot::apps::BotPidControl::loop() {}
+
+void jaiabot::apps::BotPidControl::publish_low_control()
 {
     glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
     glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
@@ -440,7 +453,14 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
             case MANUAL:
                 break;
             case PID_SPEED: throttle_speed_pid_->reset_iterm(); break;
-            case PID_DEPTH: throttle_depth_pid_->reset_iterm(); break;
+            case PID_DEPTH:
+                // Set the throttle to what the arduino is reporting
+                // based on its ramping. This way our PID is not skewed
+                // when switching from manual to dive.
+                throttle_ = arduino_motor_throttle_;
+                glog.is_debug2() && glog << "Init Depth PID Throttle: " << throttle_ << endl;
+                throttle_depth_pid_->reset_iterm();
+                break;
         }
     }
     _throttleMode_ = newThrottleMode;
@@ -618,6 +638,8 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
     {
         led_switch_on = command.led_switch_on();
     }
+
+    publish_low_control();
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -657,6 +679,8 @@ void jaiabot::apps::BotPidControl::handle_command(
         toggleRudderPid(false);
         rudder_ = 0;
     }
+
+    publish_low_control();
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
@@ -705,23 +729,22 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 void jaiabot::apps::BotPidControl::handle_dive_depth(
     const jaiabot::protobuf::DesiredSetpoints& command)
 {
-    // No dive PID for now... set to -60% throttle
-    /*setThrottleMode(MANUAL);
-
-    if (bounds.motor().has_throttle_dive())
-    {
-        throttle = bounds.motor().throttle_dive();
-    }
-    else
-    {
-        throttle = -35.0;
-    }*/
 
     // Depth PID for dive
     if (command.has_dive_depth())
     {
         setThrottleMode(PID_DEPTH);
         target_depth_ = command.dive_depth();
+    }
+    else if (bounds_.motor().has_throttle_dive())
+    {
+        setThrottleMode(MANUAL);
+        throttle_ = bounds_.motor().throttle_dive();
+    }
+    else
+    {
+        setThrottleMode(MANUAL);
+        throttle_ = -35.0;
     }
 
     // Set rudder to center

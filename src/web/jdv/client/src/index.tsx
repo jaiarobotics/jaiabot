@@ -29,6 +29,9 @@ import { Log } from './Log'
 import { Draw } from 'ol/interaction'
 
 import './styles/styles.css'
+import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
+
+import './index.css'
 
 var Plotly = require('plotly.js-dist')
 
@@ -43,9 +46,7 @@ function iso_date_to_micros(iso_date_string: string) {
 }
 
 
-interface LogAppProps {
-
-}
+interface LogAppProps {}
 
 
 interface State {
@@ -70,7 +71,10 @@ interface State {
   isOpenPlotSetDisplayed: boolean
 
   // Modal busy indicator
-  busyIndicator: boolean
+  isBusy: boolean
+
+  // Custom Alert shown, if any
+  customAlert?: React.JSX.Element
 }
 
 
@@ -79,7 +83,6 @@ class LogApp extends React.Component {
   state: State
   map: JaiaMap
   plot_div_element: any
-  busySemaphore: number = 0
 
   constructor(props: LogAppProps) {
     super(props)
@@ -104,9 +107,20 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
-
-      busyIndicator: false
+      isBusy: false,
+      customAlert: null
     }
+
+    CustomAlert.setPresenter((props: CustomAlertProps | null) => {
+      if (props == null) {
+        this.setState({customAlert: null})
+        return
+      }
+  
+      this.setState({
+        customAlert: <CustomAlert {...props} ></CustomAlert>
+      })
+    })
   }
 
   render() {
@@ -115,7 +129,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="vertical-center"></img></div> : null
+    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
 
 
     return (
@@ -187,9 +201,9 @@ class LogApp extends React.Component {
           { log_selector }
           {busyOverlay}
 
-        </div>
+          { this.state.customAlert }
 
-        {this.loadingIndicatorIfNeeded()}
+        </div>
 
       </Router>
     )
@@ -199,28 +213,12 @@ class LogApp extends React.Component {
     const chosenLogsElements = this.state.chosenLogs.map(chosenLogPath => {
       const chosenLogName = chosenLogPath.split('/').at(-1)
       const href = `/h5?file=${chosenLogPath}`
-      return <a key={chosenLogName} href={href} style={{padding: '10pt'}}>{chosenLogName}</a>
+      return <a href={href} key={chosenLogName} style={{padding: '10pt'}}>{chosenLogName}</a>
     })
 
     return <div id="logList" className="padded">
       {chosenLogsElements}
     </div>
-  }
-
-  loadingIndicatorIfNeeded(): React.JSX.Element {
-    if (this.busySemaphore > 0) {
-      return (
-        <div className='vertical flexbox maximized' style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#00000050'}}>
-          <img src = "/favicon.png" className='padded' style={{width: '50pt', height: '50pt'}} />
-          <div style={{textAlign: 'center'}}>
-            Loading
-          </div>
-        </div>
-      )
-    }
-    else {
-      return null
-    }
   }
 
   togglerLayerSwitcher() {
@@ -289,10 +287,14 @@ class LogApp extends React.Component {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
-        this.setState({busyIndicator: true})
+        // Get the drift interpolations
+        const getDriftInterpolationsJob = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
+          this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
+        })
 
-        Promise.allSettled([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob]).finally(() => {
-          this.setState({busyIndicator: false})
+        this.startBusyIndicator()
+        Promise.all([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob, getDriftInterpolationsJob]).finally(() => {
+          this.stopBusyIndicator()
         })
 
       }
@@ -325,19 +327,20 @@ class LogApp extends React.Component {
     const self = this
 
     function openLogsWhenReady() {
-      self.setState({busyIndicator: true})
+      self.startBusyIndicator()
 
       LogApi.post_convert_if_needed(logFilenames).then((response) => {
         if (response.done) {
-          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true, busyIndicator: false})
+          self.stopBusyIndicator()
+          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
         }
         else {
           console.log(`Waiting on conversion of ${logFilenames}`)
           setTimeout(openLogsWhenReady, 1000)
         }
       }).catch((err) => {
-        alert(err)
-        self.setState({busyIndicator: false})
+        CustomAlert.presentAlert({text: err})
+        self.stopBusyIndicator()
       })
     }
 
@@ -345,12 +348,19 @@ class LogApp extends React.Component {
 
   }
 
+  startBusyIndicator() {
+    this.setState({isBusy: true})
+  }
+
+  stopBusyIndicator() {
+    this.setState({isBusy: false})
+  }
+
   didSelectPaths(pathArray: string[]) {
+    console.debug(`Selected paths: ${pathArray}`)
+
     this.setState({isPathSelectorDisplayed: false})
-
-    if (pathArray == null) return
-
-    this.setState({busyIndicator: true})
+    this.startBusyIndicator()
 
     LogApi.get_series(this.state.chosenLogs, pathArray)
         .then((series) => {
@@ -360,11 +370,9 @@ class LogApp extends React.Component {
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
-        .catch(err => {
-          alert(err)
-        })
+        .catch(err => {CustomAlert.presentAlert({text: err})})
         .finally(() => {
-          this.setState({busyIndicator: false})
+          this.stopBusyIndicator()
         })
   }
 
@@ -537,7 +545,15 @@ class LogApp extends React.Component {
 
       var openPlotSet: JSX.Element | null
       
-      openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet = {this.didOpenPlotSet.bind(this)} /> : null
+      openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet 
+        didSelectPlotSet = {
+          this.didOpenPlotSet.bind(this)
+        }
+        didClose= {
+          () => {
+            this.setState({isOpenPlotSetDisplayed: false})
+          }
+        } /> : null
 
     return (
       <div className="plotcontainer">
@@ -567,11 +583,10 @@ class LogApp extends React.Component {
     loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }
 
     didOpenPlotSet(plotSet: string[]) {
-      this.setState({isOpenPlotSetDisplayed : false}) 
       this.didSelectPaths(plotSet)
     }
 
-    savePlotSetClicked() {
+    async savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
 
       if (plotSetName == null) {
@@ -580,8 +595,9 @@ class LogApp extends React.Component {
       }
 
       if (PlotProfiles.exists(plotSetName)) {
-        if (!confirm(`Are you sure you want to overwrite plot set named \"${
-                plotSetName}?`))
+
+        if (!(await CustomAlert.confirmAsync(`Are you sure you want to overwrite plot set named \"${
+                plotSetName}?`, 'Overwrite Plot Set')))
           return
       }
 

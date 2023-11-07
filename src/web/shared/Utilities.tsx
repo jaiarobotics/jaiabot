@@ -158,14 +158,12 @@ function adjustAccordionScrollPosition(parentContainerId: string, dropdownContai
         parentContainer.scrollBy({
             // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
         parentContainer.scrollBy({
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     }
 }
@@ -178,3 +176,33 @@ export function formatLength(line: Geometry, map: Map) {
     return {magnitude: `${Math.round(length * 100) / 100}`, unit: 'm'};
 }
 
+/**
+ * Returns a date string in the form yyyy-mm-dd
+ * @param date
+ * @returns {string} 
+ */
+export function getHTMLDateString(date: Date) {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : date.getMonth() + 1 // Zero-indexed (January == 0)
+    const day = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate()
+    return `${year}-${month}-${day}`
+}
+
+/**
+ * Returns a time string in the form hh:mm 
+ * @param date 
+ */
+export function getHTMLTimeString(date: Date) {
+    const hours = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours()
+    const mins = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
+    return `${hours}:${mins}`
+}
+
+/**
+ * @param strDate "yyyy-mm-dd hh:mm"
+ * @returns ISO str date in GMT
+ * Example return value: "2023-10-18 09:04:00"
+ */
+export function convertHTMLStrDateToISO(strDate: string) {
+    return new Date(strDate).toISOString().replace('T', ' ').split('.')[0]
+}
