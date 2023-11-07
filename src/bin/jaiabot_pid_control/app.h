@@ -101,6 +101,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     void handle_engineering_command(const jaiabot::protobuf::PIDControl& pid_control);
     void publish_engineering_status();
+    void publish_low_control();
 
     void all_stop();
 };
