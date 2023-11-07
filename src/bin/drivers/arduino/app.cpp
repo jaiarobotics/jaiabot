@@ -261,8 +261,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 /**
  * @brief Splits the version major, minor, and patch into a integer vector
  * 
- * @param version 
- * @return std::vector<int> 
+ * @param version - string used to store major, minor, patch (ex: 1.1.1)
+ * @return std::vector<int> - major, minor, patch created from the version string
  */
 std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& version)
 {
@@ -279,10 +279,10 @@ std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& v
  * @brief Check to see if a major, minor, patch version is less than or
  * equal to another version.
  * 
- * @param version1 
- * @param version2 
- * @return true 
- * @return false 
+ * @param version1 - string used to check against version 2 (ex: 1.1.1)
+ * @param version2 - string used to determine is version 1 is less than or equal (ex: 1.2.1)
+ * @return true - if the version 1 is less than or equal to version 2
+ * @return false - if the version 1 is greater than version 2
  */
 bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& version1,
                                                             const std::string& version2)

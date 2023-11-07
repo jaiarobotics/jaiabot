@@ -171,7 +171,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     init_node_status();
     init_bot_status();
 
-    // Create a set of states. when the bot is in
+    // Create a set of states. When the bot is in
     // one of these modes we should discard the
     // location status
     for (auto m : cfg().discard_location_states())
@@ -180,7 +180,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         discard_location_states_.insert(dsm);
     }
 
-    // Create a set of states. when the bot is in
+    // Create a set of states. When the bot is in
     // one of these modes we should include the
     // course status
     for (auto m : cfg().include_course_error_detection_states())
@@ -189,7 +189,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         include_course_error_detection_states_.insert(dsm);
     }
 
-    // Create a set of states. when the bot is in
+    // Create a set of states. When the bot is in
     // one of these modes we should detect
     // imu issue
     for (auto m : cfg().include_imu_detection_states())
@@ -198,7 +198,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         include_imu_detection_states_.insert(dsm);
     }
 
-    // Create a set of states. when the bot is in
+    // Create a set of states. When the bot is in
     // one of these states it is diving
     for (auto m : cfg().diving_states())
     {
@@ -420,7 +420,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 // same rate we are receiving depth values
                 if (diving_states_.count(latest_bot_status_.mission_state()))
                 {
-                    // When initialized, always send node_status for pid app and frontseat app
+                    // Check initialization, then send node_status for pid app and frontseat app
                     if (latest_node_status_.IsInitialized())
                     {
                         interprocess().publish<goby::middleware::frontseat::groups::node_status>(
@@ -765,7 +765,7 @@ void jaiabot::apps::Fusion::loop()
     // No need to send the node status during these states
     if (!diving_states_.count(latest_bot_status_.mission_state()))
     {
-        // When initialized, always send node_status for pid app and frontseat app
+        // Check initialization, then send node_status for pid app and frontseat app
         if (latest_node_status_.IsInitialized())
         {
             interprocess().publish<goby::middleware::frontseat::groups::node_status>(
