@@ -65,6 +65,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
@@ -73,6 +74,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int64_t lastAckTime_;
 
     uint64_t _time_last_command_received_ = 0;
+    bool last_command_acked_{true};
     const uint64_t timeout_ = 5e6;
 
     jaiabot::protobuf::Bounds bounds_;
@@ -118,7 +120,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(1.0 / 10.0 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -232,6 +234,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
             last_arduino_report_time_ = goby::time::SteadyClock::now();
+            last_command_acked_ = true;
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -258,8 +261,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 /**
  * @brief Splits the version major, minor, and patch into a integer vector
  * 
- * @param version 
- * @return std::vector<int> 
+ * @param version - string used to store major, minor, patch (ex: 1.1.1)
+ * @return std::vector<int> - major, minor, patch created from the version string
  */
 std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& version)
 {
@@ -276,10 +279,10 @@ std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& v
  * @brief Check to see if a major, minor, patch version is less than or
  * equal to another version.
  * 
- * @param version1 
- * @param version2 
- * @return true 
- * @return false 
+ * @param version1 - string used to check against version 2 (ex: 1.1.1)
+ * @param version2 - string used to determine is version 1 is less than or equal (ex: 1.2.1)
+ * @return true - if the version 1 is less than or equal to version 2
+ * @return false - if the version 1 is greater than version 2
  */
 bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& version1,
                                                             const std::string& version2)
@@ -394,9 +397,13 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     }
 
     _time_last_command_received_ = now_microseconds();
+
+    publish_arduino_commands();
 }
 
-void jaiabot::apps::ArduinoDriver::loop()
+void jaiabot::apps::ArduinoDriver::loop() {}
+
+void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
     jaiabot::protobuf::ArduinoActuators arduino_actuators;
@@ -460,6 +467,8 @@ void jaiabot::apps::ArduinoDriver::loop()
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
     interthread().publish<serial_out>(raw_output);
+
+    last_command_acked_ = false;
 }
 
 void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -485,13 +494,17 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+            goby::time::SteadyClock::now() &&
+        !last_command_acked_)
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
         jaiabot::protobuf::ArduinoDebug arduino_debug;
         arduino_debug.set_arduino_not_responding(true);
         interprocess().publish<groups::arduino_debug>(arduino_debug);
+
+        // Pulbish to arduino to attempt to get a response
+        publish_arduino_commands();
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)

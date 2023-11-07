@@ -1550,15 +1550,18 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
         return current_depth_;
     }
 
-    void set_is_bot_diving(const bool& is_bot_diving) { is_bot_diving_ = is_bot_diving; }
+    void set_bot_performed_a_hold(const bool& bot_performed_hold)
+    {
+        bot_performed_hold_ = bot_performed_hold;
+    }
 
-    const bool is_bot_diving() { return is_bot_diving_; }
+    const bool has_bot_performed_a_hold() { return bot_performed_hold_; }
 
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
     boost::units::quantity<boost::units::si::length> current_depth_{0};
-    bool is_bot_diving_{false};
+    bool bot_performed_hold_{false};
 };
 namespace dive
 {
@@ -1616,12 +1619,12 @@ struct PoweredDescent
     boost::units::quantity<boost::units::si::length> last_depth_{0};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    // keep track of dive information
-    jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug_;
     // determines when to start using powered descent logic
-    goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
+    goby::time::SteadyClock::time_point detect_bottom_logic_timeout_;
     // determines when to safely timout of powered descent and transition into unpowered ascent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
+    // determines when the bot is diving
+    bool is_bot_diving_{false};
 };
 
 struct Hold
@@ -1651,8 +1654,6 @@ struct Hold
     std::vector<boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperatures_;
     std::vector<double> salinities_;
-    //Keep track of dive information
-    jaiabot::protobuf::DiveHoldDebug dive_hold_debug_;
 };
 
 struct UnpoweredAscent
@@ -1679,8 +1680,6 @@ struct UnpoweredAscent
         goby::time::SystemClock::now<goby::time::MicroTime>()};
 
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
-    //Keep track of dive information
-    jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug_;
     // keep track of the depth changes so we can detect if we are stuck
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
@@ -1710,8 +1709,6 @@ struct PoweredAscent
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
-    // keep track of dive information
-    jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
     // determines when to turn on motor during powered ascent
     goby::time::SteadyClock::time_point powered_ascent_motor_on_timeout_;
     // determines when to turn off motor during powered ascent
