@@ -14,7 +14,7 @@ import { getElementById } from './shared/Utilities';
 
 interface Props {
     api: JaiaAPI
-	control: () => boolean
+	control: (onSuccess: () => void) => void
 }
 
 export default class QueryBotStatusPanel extends React.Component {
@@ -55,18 +55,18 @@ export default class QueryBotStatusPanel extends React.Component {
 
     submitQueryBotStatus()
     {
-        if (!this.props.control()) return;
+        this.props.control(() => {
+            let botId = Number(getElementById<HTMLInputElement>("query_bot_status_input").value)
+            info("Query Bot Status for botId: " + botId)
 
-        let botId = Number(getElementById<HTMLInputElement>("query_bot_status_input").value)
-        info("Query Bot Status for botId: " + botId)
+            let engineeringCommand: Engineering = {
+                bot_id: botId,
+                query_bot_status: true
+            }
 
-        let engineeringCommand: Engineering = {
-            bot_id: botId,
-            query_bot_status: true
-        }
+            debug(JSON.stringify(engineeringCommand))
 
-        debug(JSON.stringify(engineeringCommand))
-
-        this.props.api.postEngineeringPanel(engineeringCommand);
+            this.props.api.postEngineeringPanel(engineeringCommand);
+        })
     }
 }

@@ -1,6 +1,7 @@
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 import { deepcopy } from './shared/Utilities';
+import { CustomAlert } from './shared/CustomAlert';
 
 const MAX_RUNS: number = 99
 
@@ -100,7 +101,7 @@ export class Missions {
     static isValidRunNumber(mission: MissionInterface) {
         const isRunNumberLessThanMaxRuns = Object.keys(mission.runs).length < MAX_RUNS
         if (!isRunNumberLessThanMaxRuns) {
-            alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
+            CustomAlert.alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
         }
         return isRunNumberLessThanMaxRuns
     }

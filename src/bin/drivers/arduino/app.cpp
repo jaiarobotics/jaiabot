@@ -35,6 +35,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
@@ -62,14 +63,18 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
   private:
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
-    void handle_control_surfaces(const ControlSurfaces& control_surfaces);
-    int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void publish_arduino_commands();
+    void handle_control_surfaces(const ControlSurfaces& control_surfaces);
+    std::vector<int> splitVersion(const std::string& version);
+    bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
+    int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
 
     int64_t lastAckTime_;
 
     uint64_t _time_last_command_received_ = 0;
+    bool last_command_acked_{true};
     const uint64_t timeout_ = 5e6;
 
     jaiabot::protobuf::Bounds bounds_;
@@ -93,16 +98,11 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool bot_rolled_over_{false};
 
     // Version Table
-    std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
-    /**
-     * TODO: make this var false
-     * Then get the current version of the arduino driver
-     * Check to see if the arduino code is compatible
-     */
-    bool is_driver_compatible_{true};
+    std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
+    bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
-    //This needs to be grabbed at runtime
-    std::string app_version = "1.0.0~beta0+18+g2350a1a-0~ubuntu20.04.1";
+    std::string app_version_{VERSION_STRING};
+    std::string delimiter_{"+"};
 
     // Used to check the time of the last arduino report
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(1.0 / 10.0 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -129,29 +129,28 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
-    // Creating Version Table
+    // Creating Compatible Version Table
     for (auto row : cfg().arduino_version_table())
     {
         uint32_t arduino_version = row.arduino_version();
-        for (auto app_versions : row.app_versions())
-        { arduino_version_compatibility_table_[arduino_version].insert(app_versions); }
+        std::string compatible_from = row.app_versions_compatible_from();
+        std::string compatible_to = row.app_versions_compatible_to();
+
+        glog.is_verbose() && glog << group("arduino") << "arduino_version : " << arduino_version
+                                  << std::endl;
+        glog.is_verbose() && glog << group("arduino") << "compatible_from : " << compatible_from
+                                  << std::endl;
+        glog.is_verbose() && glog << group("arduino") << "compatible_to : " << compatible_to
+                                  << std::endl;
+        // Insert new arduino version
+        arduino_version_compatibility_.insert(
+            std::make_pair(arduino_version, std::make_pair(compatible_from, compatible_to)));
     }
 
-    for (auto row : arduino_version_compatibility_table_)
-    {
-        glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
+    // Let's just get the major, minor, and patch number without git hash
+    app_version_ = app_version_.substr(0, app_version_.find(delimiter_));
 
-        for (auto app_version : row.second)
-        {
-            glog.is_verbose() && glog << group("main") << "\tapp_version: " << app_version
-                                      << std::endl;
-        }
-    }
-
-    std::string delimiter = "+";
-    std::string version = app_version.substr(0, app_version.find(delimiter));
-
-    glog.is_verbose() && glog << group("main") << "\tjaiabot-embedded version: " << version
+    glog.is_verbose() && glog << group("main") << "\tarduino driver version: " << app_version_
                               << std::endl;
 
     // Setup our bounds configuration
@@ -185,7 +184,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             jaiabot::protobuf::ArduinoDebug arduino_debug;
 
-            if (arduino_response.status_code() == 0)
+            if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
             {
                 if (is_settings_ack_)
                 {
@@ -198,31 +197,32 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 }
             }
 
-            if (arduino_response.status_code() > 1)
+            if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
             {
-                glog.is_warn() && glog << group("arduino")
-                                       << "ArduinoResponse: " << arduino_response.ShortDebugString()
-                                       << std::endl;
+                glog.is_debug1() && glog << group("arduino") << "ArduinoResponse: "
+                                         << arduino_response.ShortDebugString() << std::endl;
 
-                // 9 is the settings status
-                // TODO investigate enums with arduino protos
-                // TODO remove this code block (Need version control working)
-                if (arduino_response.status_code() == 9)
+                if (arduino_version_compatibility_.count(arduino_response.version()))
                 {
-                    is_settings_ack_ = true;
-                }
+                    auto compatible_from =
+                        arduino_version_compatibility_.at(arduino_response.version()).first;
+                    auto compatible_to =
+                        arduino_version_compatibility_.at(arduino_response.version()).second;
 
-                if (arduino_version_compatibility_table_.count(arduino_response.version()))
-                {
-                    if (arduino_version_compatibility_table_.at(arduino_response.version())
-                            .count(app_version))
+                    // If the compatible_from version is less than or equal to the
+                    // app_version_ and if the app_version_ is less
+                    // than or equal to the compatible_to version
+                    if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
+                        isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
                     {
+                        glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
+                                                 << std::endl;
                         is_driver_compatible_ = true;
 
-                        // 9 is the settings status
-                        // TODO investigate enums with arduino protos
-                        if (arduino_response.status_code() == 9)
+                        if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
                         {
+                            glog.is_debug2() && glog << group("main")
+                                                     << "Settings were Ack by arduino" << std::endl;
                             is_settings_ack_ = true;
                         }
                     }
@@ -234,6 +234,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
             last_arduino_report_time_ = goby::time::SteadyClock::now();
+            last_command_acked_ = true;
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -255,6 +256,78 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
+}
+
+/**
+ * @brief Splits the version major, minor, and patch into a integer vector
+ * 
+ * @param version - string used to store major, minor, patch (ex: 1.1.1)
+ * @return std::vector<int> - major, minor, patch created from the version string
+ */
+std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& version)
+{
+    std::vector<int> components;
+    std::istringstream ss(version);
+    std::string component;
+
+    while (getline(ss, component, '.')) { components.push_back(std::stoi(component)); }
+
+    return components;
+}
+
+/**
+ * @brief Check to see if a major, minor, patch version is less than or
+ * equal to another version.
+ * 
+ * @param version1 - string used to check against version 2 (ex: 1.1.1)
+ * @param version2 - string used to determine is version 1 is less than or equal (ex: 1.2.1)
+ * @return true - if the version 1 is less than or equal to version 2
+ * @return false - if the version 1 is greater than version 2
+ */
+bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& version1,
+                                                            const std::string& version2)
+{
+    glog.is_debug2() && glog << group("main") << "isVersionLessThanOrEqual() Version1: " << version1
+                             << "\nVersion2: " << version2 << std::endl;
+    // If we receive a empty string then
+    // return true because we are accepting all
+    // versions
+    if (version1 == "" || version2 == "")
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "isVersionLessThanOrEqual() Return true, empty string "
+                                 << std::endl;
+        return true;
+    }
+
+    std::vector<int> v1 = splitVersion(version1);
+    std::vector<int> v2 = splitVersion(version2);
+
+    size_t minSize = std::min(v1.size(), v2.size());
+
+    for (size_t i = 0; i < minSize; ++i)
+    {
+        if (v1[i] < v2[i])
+        {
+            glog.is_debug2() &&
+                glog << group("main")
+                     << "isVersionLessThanOrEqual() Return true, because version is less or equal "
+                     << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
+            return true;
+        }
+        else if (v1[i] > v2[i])
+        {
+            glog.is_debug2() &&
+                glog << group("main")
+                     << "isVersionLessThanOrEqual() Return false, because version is greater "
+                     << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
+            return false;
+        }
+    }
+
+    // If all compared components are equal,
+    // Then the versions are the same
+    return v1.size() == v2.size();
 }
 
 int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lower, int center,
@@ -324,9 +397,13 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     }
 
     _time_last_command_received_ = now_microseconds();
+
+    publish_arduino_commands();
 }
 
-void jaiabot::apps::ArduinoDriver::loop()
+void jaiabot::apps::ArduinoDriver::loop() {}
+
+void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
     jaiabot::protobuf::ArduinoActuators arduino_actuators;
@@ -390,6 +467,8 @@ void jaiabot::apps::ArduinoDriver::loop()
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
     interthread().publish<serial_out>(raw_output);
+
+    last_command_acked_ = false;
 }
 
 void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -397,16 +476,6 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
-
-    if (!is_driver_compatible_)
-    {
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
-        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-        glog.is_warn() &&
-            glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VERSION__MISMATCH_ARDUINO)
-                 << std::endl;
-    }
 
     check_last_report(health, health_state);
 
@@ -417,16 +486,25 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+    if (!is_driver_compatible_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+    }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+            goby::time::SteadyClock::now() &&
+        !last_command_acked_)
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
         jaiabot::protobuf::ArduinoDebug arduino_debug;
         arduino_debug.set_arduino_not_responding(true);
         interprocess().publish<groups::arduino_debug>(arduino_debug);
+
+        // Pulbish to arduino to attempt to get a response
+        publish_arduino_commands();
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
