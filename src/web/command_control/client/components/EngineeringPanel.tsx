@@ -13,7 +13,7 @@ interface Props {
 	hubs: {[key: number]: PortalHubStatus}
 	getSelectedBotId: () => number
 	getFleetId: () => number
-	control: () => boolean
+	control: (onSuccess: () => void) => void
 }
 
 interface State {
@@ -50,16 +50,6 @@ export default class EngineeringPanel extends React.Component {
 					<div className="panel">
 						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
 							JaiaBot Engineer & Debug
-						</Button>
-						<Button className="button-jcc engineering-panel-btn" onClick={() => {
-							const fleetId = this.props.getFleetId()
-
-							if (fleetId != undefined) {
-								const url = `http://10.23.${fleetId}.1`
-								window.open(url, '_blank')}}
-							}
-						>
-							JaiaBot Router Page
 						</Button>
 					</div>
 

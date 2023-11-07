@@ -82,12 +82,7 @@ export class HubLayers {
     
             // ID
             const hub_id = hub.hub_id
-            // Geometry
-            const hubLatitude = hub.location?.lat
-            const hubLongitude = hub.location?.lon
-            // Properties
-            const hubHeading = 0
-    
+
             const hubLayer = this.getHubLayer(hub_id)
             const hubSource = hubLayer.getSource()
             const hubFeature = this.getHubFeature(hub, this.map, hubSource)

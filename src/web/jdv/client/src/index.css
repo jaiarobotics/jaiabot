@@ -346,6 +346,7 @@ div.popup > table > tbody > tr > th {
 
 div.ol-attribution > button {
     display: none;
+}
 
 .busy-overlay {
     position:absolute;

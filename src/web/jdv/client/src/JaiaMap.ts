@@ -17,7 +17,7 @@ import { Attribution, ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
-import { geoJSONToDepthContourFeatures } from './shared/Contours'
+import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from './shared/Contours'
 import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
@@ -39,6 +39,7 @@ import { Buffer } from 'buffer';
 import JSZip from 'jszip';
 
 import './styles/JaiaMap.css'
+import { CustomAlert } from './shared/CustomAlert';
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -124,7 +125,6 @@ function DownloadFile(name: string, data: BlobPart) {
 }
 
 
-
 export default class JaiaMap {
     botIdToMapSeries: {[key: string]: number[][]} = {}
     active_goal_dict: {[key: number]: ActiveGoal[]} = {}
@@ -158,6 +158,7 @@ export default class JaiaMap {
     botVectorSource = new VectorSource()
     missionVectorSource = new VectorSource()
     depthContourVectorSource = new VectorSource()
+    driftInterpolationVectorSource = new VectorSource()
     command_dict: {[key: number]: LogCommand[]}
     depthContourFeatures: Feature[]
 
@@ -186,6 +187,7 @@ export default class JaiaMap {
                 this.createMissionLayer(),
                 this.createTaskPacketLayer(),
                 this.createDepthContourLayer(),
+                this.createDriftInterpolationLayer(),
             ],
             view: view,
             controls: [
@@ -332,6 +334,20 @@ export default class JaiaMap {
         })
     }
 
+    createDriftInterpolationLayer() {
+        const layer = new VectorLayer({
+            properties: {
+                title: 'Drift Interpolation',
+            },
+            source: this.driftInterpolationVectorSource,
+            zIndex: 13,
+            style: Styles.driftMapStyle,
+            opacity: 0.6
+        })
+
+        return layer
+    }
+
     // Set the array of paths
     setMapDict(botIdToMapSeries: {[key: string]: number[][]}) {
         this.botIdToMapSeries = botIdToMapSeries
@@ -469,6 +485,12 @@ export default class JaiaMap {
     updateWithDepthContourGeoJSON(depthContourGeoJSON: object) {
         this.depthContourFeatures = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), depthContourGeoJSON)
         this.updateDepthContours()
+    }
+
+    updateWithDriftInterpolationGeoJSON(driftInterpolationGeoJSON: object) {
+        let driftInterpolationFeatures = geoJSONToFeatures(this.map.getView().getProjection(), driftInterpolationGeoJSON)
+        this.driftInterpolationVectorSource.clear()
+        this.driftInterpolationVectorSource.addFeatures(driftInterpolationFeatures)
     }
 
     clear() {
@@ -667,7 +689,7 @@ export default class JaiaMap {
             DownloadFile('map.kmz', kml)
         })
         .catch((reason) => {
-            alert(`Error: ${reason}`)
+            CustomAlert.presentAlert({text: `Error: ${reason}`})
         })
     }
 
@@ -692,7 +714,7 @@ export default class JaiaMap {
                     newLayer = await layerFromKmzString(await file.arrayBuffer())
                     break;
                 default:
-                    alert(`Unknown file extension: ${fileNameExtension}`)
+                    CustomAlert.presentAlert({text: `Unknown file extension: ${fileNameExtension}`})
                     continue;
             }
 

@@ -8,6 +8,7 @@ import { FormControl, MenuItem } from '@mui/material'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { Geometry } from 'ol/geom'
 import { Feature } from 'ol'
+import { CustomAlert } from './shared/CustomAlert'
 
 import '../style/components/MissionSettings.css'
 
@@ -87,6 +88,11 @@ export class MissionSettingsPanel extends React.Component {
         this.onChange?.()
     }
 
+    getSortedRallyFeatures() {
+        let rallyFeatures = [...this.props.rallyFeatures]
+        return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
+    }
+
     render() {
         const { map, centerLineString } = this.props
         const missionType = this.state.missionParams?.missionType
@@ -125,22 +131,24 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-label">Start Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
                         <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, true)} value={this.props.startRally?.get('num') ?? ''}>
-                            {this.props.rallyFeatures.map((rallyFeature) => {
+                            {this.getSortedRallyFeatures().map((rallyFeature) => {
                                 if (rallyFeature.get('num') !== this.props.endRally?.get('num')) {
                                     return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
+                            <MenuItem value={0}>{''}</MenuItem>
                         </Select>
                     </FormControl>
 
                     <div className="mission-settings-input-label">End Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
                         <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, false)}  value={this.props.endRally?.get('num') ?? ''}>
-                            {this.props.rallyFeatures.map((rallyFeature) => {
+                            {this.getSortedRallyFeatures().map((rallyFeature) => {
                                 if ((rallyFeature.get('num') !== this.props.startRally?.get('num'))) {
                                     return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
+                            <MenuItem value={0}>{''}</MenuItem>
                         </Select>
                     </FormControl>
                     
@@ -230,8 +238,8 @@ export class MissionSettingsPanel extends React.Component {
         this.onClose?.()
     }
 
-    applyMissionClicked() {
-        if (!confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+    async applyMissionClicked() {
+        if (!(await CustomAlert.confirmAsync('Adding this new mission will delete the current mission. Are you sure?', 'Replace Current Mission'))) {
             this.props.onClose()
             return
         }
