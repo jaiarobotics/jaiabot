@@ -69,13 +69,14 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
 
 // Utility
 import cloneDeep from 'lodash.clonedeep'
+import { HelpWindow } from './HelpWindow'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -200,6 +201,7 @@ interface State {
 	taskPacketIntervalId: NodeJS.Timeout,
 	taskPacketsTimeline: {[key: string]: string | boolean},
 	isClusterModeOn: boolean
+	isHelpWindowDisplayed: boolean
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -363,6 +365,7 @@ export default class CommandControl extends React.Component {
 				isEditing: false
 			},
 			isClusterModeOn: true,
+			isHelpWindowDisplayed: false,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -2541,9 +2544,6 @@ export default class CommandControl extends React.Component {
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
-				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
-					<Icon path={mdiFlagVariantPlus} title="Flag"/>
-				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
@@ -2559,6 +2559,9 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiCog} title="Settings"/>
 					</Button>
 				))}
+				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
+					<Icon path={mdiHelp} title="Help"></Icon>
+				</Button>
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -3210,7 +3213,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
 			</Button>
 		))
 
@@ -3401,6 +3404,8 @@ export default class CommandControl extends React.Component {
 
 				{this.disconnectionPanel()}
 
+				{this.state.isHelpWindowDisplayed ? <HelpWindow onClose={() => {this.setState({isHelpWindowDisplayed: false})}}></HelpWindow> : null}
+				
 				{this.state.customAlert}
 				
 			</div>
