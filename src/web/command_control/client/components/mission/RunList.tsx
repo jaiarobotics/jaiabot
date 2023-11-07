@@ -1,8 +1,7 @@
 import React from 'react';
 import RunItem from './RunItem';
 import { adjustAccordionScrollPosition } from '../../../../shared/Utilities'
-import { PortalBotStatus } from '../shared/PortalStatus';
-import { MissionInterface, RunInterface } from '../CommandControl';
+import { RunInterface } from '../CommandControl';
 import { Goal } from '../shared/JAIAProtobuf'
 
 type RunListProps = {
@@ -41,9 +40,9 @@ export default class RunList extends React.Component<RunListProps, RunListState>
                 openRunPanels, 
                 runIdInEditMode: this.props.runIdInEditMode 
             })
-            if (this.props.mission.runIdInEditMode !== '') {
+            if (this.props.runIdInEditMode !== '') {
                 const runItemElement = document.getElementById(
-                    `run-accordion-${this.props.mission.runIdInEditMode.split('-')[1]}`
+                    `run-accordion-${this.props.runIdInEditMode.split('-')[1]}`
                 )
                 setTimeout(() => {
                     adjustAccordionScrollPosition('runList', runItemElement)
