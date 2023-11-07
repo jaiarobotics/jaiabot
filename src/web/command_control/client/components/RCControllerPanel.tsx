@@ -14,6 +14,7 @@ import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystic
 import { TaskType, CommandType } from './shared/JAIAProtobuf'
 import { Joystick, JoystickShape } from 'react-joystick-component'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { CustomAlert } from './shared/CustomAlert';
 
 interface Props {
 	api: JaiaAPI,
@@ -280,7 +281,7 @@ export default class RCControllerPanel extends React.Component {
 		const diveParams = {...this.props.rcDiveParameters}
 
 		if (Number.isNaN(Number(input)) || Number(input) < 0) {
-			alert('Please enter only positive numbers for dive parameters')
+			CustomAlert.alert('Please enter only positive numbers for dive parameters')
 			return
 		}
 		

@@ -18,7 +18,7 @@ let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']
 interface Props {
     api: JaiaAPI
 	bots: {[key: number]: PortalBotStatus}
-	control: () => boolean
+	control: (onSuccess: () => void) => void
 }
 
 interface State {
@@ -463,125 +463,80 @@ export class PIDGainsPanel extends React.Component {
 
     queryEngineeringStatus() 
     {
-        if (!this.props.control()) return;
-
-        let bot_id = getValueOfInput("pid_gains_bot_selector")
-        info("Query Engineering Status for botId: " + bot_id)
-
-        let engineeringCommand = {
-            bot_id: bot_id,
-            query_engineering_status: true
-        }
-
-        debug(JSON.stringify(engineeringCommand))
-
-        this.props.api.postEngineeringPanel(engineeringCommand);
+        this.props.control(() => {
+            let bot_id = getValueOfInput("pid_gains_bot_selector")
+            info("Query Engineering Status for botId: " + bot_id)
+    
+            let engineeringCommand = {
+                bot_id: bot_id,
+                query_engineering_status: true
+            }
+    
+            debug(JSON.stringify(engineeringCommand))
+    
+            this.props.api.postEngineeringPanel(engineeringCommand);
+        })
     }
 
     queryAllEngineeringStatus() 
     {
-        if (!this.props.control()) return;
+        this.props.control(() => {
+            info("Query Engineering Status for All Bots")
 
-        info("Query Engineering Status for All Bots")
+            for(let bot_id in this.state.bots)
+            {
+                let engineeringCommand = {
+                    bot_id: Number(bot_id),
+                    query_engineering_status: true
+                }
 
-        for(let bot_id in this.state.bots)
-        {
-            let engineeringCommand = {
-                bot_id: Number(bot_id),
-                query_engineering_status: true
+                debug(JSON.stringify(engineeringCommand))
+
+                this.props.api.postEngineeringPanel(engineeringCommand);
+            }
+        })
+    }
+
+    submitGains() {
+        this.props.control(() => {
+            let botId = getValueOfInput("pid_gains_bot_selector")
+            info("Submit gains for botId: " + botId)
+
+            var pid_control: PIDControl = {}
+            for (let pidType of pidTypes) {
+                let pidSettings: PIDSettings = {}
+                for (let pidGain of pidGains) {
+                    pidSettings[pidGain] = getValueOfInput(pidType + "_" + pidGain)
+                }
+                (pid_control[pidType] as PIDSettings) = pidSettings
+            }
+
+            let engineeringCommand: Engineering = {
+                bot_id: botId,
+                pid_control: pid_control
             }
 
             debug(JSON.stringify(engineeringCommand))
 
             this.props.api.postEngineeringPanel(engineeringCommand);
-        }
-    }
-
-    submitGains() {
-        if (!this.props.control()) return;
-
-        let botId = getValueOfInput("pid_gains_bot_selector")
-        info("Submit gains for botId: " + botId)
-
-        var pid_control: PIDControl = {}
-        for (let pidType of pidTypes) {
-            let pidSettings: PIDSettings = {}
-            for (let pidGain of pidGains) {
-                pidSettings[pidGain] = getValueOfInput(pidType + "_" + pidGain)
-            }
-            (pid_control[pidType] as PIDSettings) = pidSettings
-        }
-
-        let engineeringCommand: Engineering = {
-            bot_id: botId,
-            pid_control: pid_control
-        }
-
-        debug(JSON.stringify(engineeringCommand))
-
-        this.props.api.postEngineeringPanel(engineeringCommand);
+        })
     }
 
     submitBotRequirements()
     {
-        if (!this.props.control()) return;
+        this.props.control(() => {
+            let botId = getValueOfInput("pid_gains_bot_selector")
+            info("Submit BotStatusRate for botId: " + botId)
 
-        let botId = getValueOfInput("pid_gains_bot_selector")
-        info("Submit BotStatusRate for botId: " + botId)
-
-        let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
-        
-        if(getValueOfInput("status_rate_input") != -1)
-        {
-            bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
-        }
-
-        let engineeringCommand: Engineering = {
-            bot_id: botId,
-            bot_status_rate: bot_status_rate_change,
-            gps_requirements: {
-                transit_hdop_req: getValueOfInput("transit_hdop_req_input"),
-                transit_pdop_req: getValueOfInput("transit_pdop_req_input"),
-                after_dive_hdop_req: getValueOfInput("after_dive_hdop_req_input"),
-                after_dive_pdop_req: getValueOfInput("after_dive_pdop_req_input"),
-                transit_gps_fix_checks: getValueOfInput("transit_gps_checks_input"),
-                transit_gps_degraded_fix_checks: getValueOfInput("transit_gps_degraded_checks_input"),
-                after_dive_gps_fix_checks: getValueOfInput("after_dive_gps_checks_input"), 
-            },
-            rf_disable_options: {
-                rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
-            },
-            bottom_depth_safety_params: {
-                constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                safety_depth: getValueOfInput("safety_depth_input")
+            let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
+            
+            if(getValueOfInput("status_rate_input") != -1)
+            {
+                bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
             }
-        }
 
-        debug(JSON.stringify(engineeringCommand))
-
-        this.props.api.postEngineeringPanel(engineeringCommand);
-    }
-
-    submitAllBotRequirements()
-    {
-        if (!this.props.control()) return;
-
-        let botId = getValueOfInput("pid_gains_bot_selector")
-        info("Submit BotStatusRate for All Bots: ")
-
-        let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
-        
-        if(getValueOfInput("status_rate_input") != -1)
-        {
-            bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
-        }
-
-        for(let bot in this.state.bots)
-        {
             let engineeringCommand: Engineering = {
-                bot_id: Number(bot),
+                bot_id: botId,
                 bot_status_rate: bot_status_rate_change,
                 gps_requirements: {
                     transit_hdop_req: getValueOfInput("transit_hdop_req_input"),
@@ -602,11 +557,56 @@ export class PIDGainsPanel extends React.Component {
                     safety_depth: getValueOfInput("safety_depth_input")
                 }
             }
-    
+
             debug(JSON.stringify(engineeringCommand))
 
             this.props.api.postEngineeringPanel(engineeringCommand);
-        }
+        })
+    }
+
+    submitAllBotRequirements()
+    {
+        this.props.control(() => {
+            let botId = getValueOfInput("pid_gains_bot_selector")
+            info("Submit BotStatusRate for All Bots: ")
+
+            let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
+            
+            if(getValueOfInput("status_rate_input") != -1)
+            {
+                bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
+            }
+
+            for(let bot in this.state.bots)
+            {
+                let engineeringCommand: Engineering = {
+                    bot_id: Number(bot),
+                    bot_status_rate: bot_status_rate_change,
+                    gps_requirements: {
+                        transit_hdop_req: getValueOfInput("transit_hdop_req_input"),
+                        transit_pdop_req: getValueOfInput("transit_pdop_req_input"),
+                        after_dive_hdop_req: getValueOfInput("after_dive_hdop_req_input"),
+                        after_dive_pdop_req: getValueOfInput("after_dive_pdop_req_input"),
+                        transit_gps_fix_checks: getValueOfInput("transit_gps_checks_input"),
+                        transit_gps_degraded_fix_checks: getValueOfInput("transit_gps_degraded_checks_input"),
+                        after_dive_gps_fix_checks: getValueOfInput("after_dive_gps_checks_input"), 
+                    },
+                    rf_disable_options: {
+                        rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
+                    },
+                    bottom_depth_safety_params: {
+                        constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
+                        constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
+                        constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
+                        safety_depth: getValueOfInput("safety_depth_input")
+                    }
+                }
+        
+                debug(JSON.stringify(engineeringCommand))
+
+                this.props.api.postEngineeringPanel(engineeringCommand);
+            }
+        })
     }
 
 }
