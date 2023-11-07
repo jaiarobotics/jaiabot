@@ -690,9 +690,11 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
 
     interprocess().publish<jaiabot::groups::mission_dive>(dive_pdescent_debug);
 
-    // If bot is diving then use PID
-    // of if we are in sim
-    if (is_bot_diving_ || cfg().is_sim())
+    // If bot is diving
+    // or if we are going back into powered descent after a hold at a depth
+    // or if we are in sim
+    // Then use PID
+    if (is_bot_diving_ || context<Dive>().has_bot_performed_a_hold() || cfg().is_sim())
     {
         setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
     }
