@@ -2,7 +2,7 @@ import React from 'react'
 import './HelpWindow.less'
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
-import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
+import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-common-types'
@@ -87,14 +87,9 @@ const buttons: ButtonDescriptor[] = [
         description: 'Undo the last mission editing action.'
     },
     {
-        iconPath: mdiFlagVariantPlus,
-        name: 'Flag',
-        description: 'Sends a command to the bots to add a numbered flag with a timestamp to the logs.  This can be used to easily locate events of interest during the post-mission analysis.'
-    },
-    {
         iconPath: mdiCog,
         name: 'Settings',
-        description: 'Open the global Settings panel for Jaia Command & Control'
+        description: 'Open the global Settings panel for Jaia Command & Control.'
     },
     {
         iconPath: mdiViewList,
@@ -109,7 +104,7 @@ const buttons: ButtonDescriptor[] = [
     {
         fontAwesomeIconDefinition: faEdit,
         name: 'Edit Optimized Mission Survey',
-        description: 'Open the Optimized Mission Survey, which can be used to configure a survey mission, where the pod of Jaiabots will coordinate to survey an areas of the map.  The tasks performed at each waypoint in the survey mission can be customized.'
+        description: 'Open the Optimized Mission Survey, which can be used to configure a survey mission, where the pod of Jaiabots will coordinate to survey an area of the map.  The tasks performed at each waypoint in the survey mission can be customized.'
     },
     {
         fontAwesomeIconDefinition: faMapMarkerAlt,

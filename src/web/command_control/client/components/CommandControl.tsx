@@ -68,7 +68,7 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -2174,9 +2174,6 @@ export default class CommandControl extends React.Component {
 				))}
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
-				</Button>
-				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
-					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
