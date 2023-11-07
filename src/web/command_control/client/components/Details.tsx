@@ -996,20 +996,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                                         <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td>Sys_Cal</td>
-                                                        <td>{bot.calibration_status?.sys.toFixed(0)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Gyro_Cal</td>
-                                                        <td>{bot.calibration_status?.gyro.toFixed(0)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Accel_Cal</td>
-                                                        <td>{bot.calibration_status?.accel.toFixed(0)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Mag_Cal</td>
-                                                        <td>{bot.calibration_status?.mag.toFixed(0)}</td>
+                                                        <td>IMU Cal</td>
+                                                        <td>{bot?.calibration_status}</td>
                                                     </tr>
                                                 </tbody>
                                             </table>              

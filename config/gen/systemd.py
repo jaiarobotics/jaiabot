@@ -54,8 +54,14 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 
 args=parser.parse_args()
+
+class IMU_TYPE(Enum):
+    BNO055 = 'bno055'
+    BNO085 = 'bno085'
+    NONE = 'none'
 
 class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
@@ -70,6 +76,14 @@ class ELECTRONICS_STACK(Enum):
     STACK_0 = '0'
     STACK_1 = '1'
     STACK_2 = '2'
+    STACK_3 = '2'
+
+if args.imu_type == 'bno055':
+    jaia_imu_type=IMU_TYPE.BNO055
+elif args.imu_type == 'bno085':
+    jaia_imu_type=IMU_TYPE.BNO085
+else:
+    jaia_imu_type=IMU_TYPE.NONE
 
 if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
@@ -130,6 +144,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
+               'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -283,12 +298,6 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_adafruit_BNO055_driver',
-     'description': 'JaiaBot IMU Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-     'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
@@ -302,15 +311,6 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ENGINEERING',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_imu.py',
-     'description': 'JaiaBot IMU Python Driver',
-     'template': 'py-app.service.in',
-     'subdir': 'adafruit_BNO055',
-     'args': '20000',
-     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
@@ -319,7 +319,8 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
     {'exe': 'jaiabot_as-ezo-ec.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
@@ -328,7 +329,8 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -377,8 +379,49 @@ jaiabot_apps=[
      'description': 'GPSD for simulator only',
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION}
+     'runs_when': Mode.SIMULATION},
 ]
+
+if jaia_imu_type.value == 'bno085':
+    jaiabot_apps_imu = [
+        {'exe': 'jaiabot_adafruit_BNO085_driver',
+        'description': 'JaiaBot BNO085 IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot BNO085 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'adafruit_BNO085',
+        'args': '20000',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_imu)
+else:
+    jaiabot_apps_imu = [
+        {'exe': 'jaiabot_adafruit_BNO055_driver',
+        'description': 'JaiaBot BNO055 IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot BNO055 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'adafruit_BNO055',
+        'args': '20000',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_imu)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
@@ -433,7 +476,16 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': Type.BOTH,
-     'runs_when': Mode.RUNTIME}
+     'runs_when': Mode.RUNTIME},
+     {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
+     'description': 'BNO085 script to reboot imu',
+     'template': 'bno085-reset-gpio-pin.service.in',
+     'subdir': 'adafruit_BNO085',
+     'args': '',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'imu_type': IMU_TYPE.BNO085,
+     'run_at_boot': False}
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
@@ -503,7 +555,11 @@ def is_firm_run(firm):
         
     if ('gps_type' in macros):
         if (macros['gps_type'] != jaia_gps_type):
-            return False    
+            return False
+        
+    if ('imu_type' in macros):
+        if (macros['imu_type'] != jaia_imu_type):
+            return False
 
     return True
 
@@ -535,12 +591,16 @@ for firmware in jaia_firmware:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if args.enable:
-            print('Enabling ' + service)
-            subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        if args.disable:
-            print('Disabling ' + service)
-            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
+        # Check to see if we should enable the service to run at boot
+        # If not then we should not try to enable or disable the service
+        if (not 'run_at_boot' in macros or macros['run_at_boot'] != False):
+            if args.enable:
+                print('Enabling ' + service)
+                subprocess.run('systemctl enable ' + service, check=True, shell=True)
+            if args.disable:
+                print('Disabling ' + service)
+                subprocess.run('systemctl disable ' + service, check=True, shell=True)
         
         
 if args.enable or args.disable:

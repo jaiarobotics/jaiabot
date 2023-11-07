@@ -5,6 +5,8 @@ bot_id: $bot_id
 
 is_sim: $fusion_in_simulation
 
+init_data_health_timeout_seconds: 20 # (default = 20)
+
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
@@ -34,7 +36,9 @@ imu_detect_horizontal_pitch: 45 # (default=45 degrees)
 # REBOOT_BOT
 # REPORT_IMU
 # RESTART_IMU_PY
-imu_issue_solution: RESTART_IMU_PY
+# REBOOT_BNO085_IMU
+# REBOOT_BNO085_IMU_AND_RESTART_IMU_PY
+imu_issue_solution: $imu_detection_solution
 
 # Set the period to send bot status in milliseconds
 bot_status_period_ms: $bot_status_period # default ((bot_index * 10) + 1000 milliseconds)
@@ -53,3 +57,7 @@ watch_battery_percentage: true # (default = true)
 battery_percentage_low_level: 50 # (default = 50)
 battery_percentage_very_low_level: 20 # (default = 20)
 battery_percentage_critically_low_level: 10 # (default = 10)
+
+# Dive states to send node status based on published depth values
+diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
+diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
