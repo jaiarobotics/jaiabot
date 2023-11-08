@@ -1,5 +1,4 @@
 import React from 'react'
-
 import RunPanel from './RunPanel';
 import { JaiaAPI } from '../../../common/JaiaAPI'
 import { Missions } from '../Missions'
@@ -17,6 +16,7 @@ type MissionControllerProps = {
     saveMissionClick: any
     deleteAllRunsInMission: any
     autoAssignBotsToRuns: any
+    deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
 }
@@ -82,6 +82,7 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     saveMissionClick={this.props.saveMissionClick}
                     deleteAllRunsInMission={this.props.deleteAllRunsInMission}
                     autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
+                    deleteSingleRun={this.props.deleteSingleRun}
                     unSelectHubOrBot={this.props.unSelectHubOrBot}
                     toggleEditMode={this.props.toggleEditMode}
                 />

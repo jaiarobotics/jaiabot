@@ -2,6 +2,7 @@ import React, { ReactElement } from "react"
 
 import {Log} from './Log'
 import { LogApi } from "./LogApi"
+import { CustomAlert } from "./shared/CustomAlert"
 
 function getNavigatorLanguage() {
     return navigator.languages?.[0] ?? navigator.language ?? 'en'
@@ -388,7 +389,7 @@ export default class LogSelector extends React.Component {
 
         const logNamesString = logNames.join('\n')
 
-        if (confirm(`Are you sure you want to DELETE the logs named:\n${logNamesString}`)) {
+        if (await CustomAlert.confirmAsync(`Are you sure you want to DELETE the logs named:\n${logNamesString}`, 'Delete Logs')) {
             logNames.forEach(logName => {
                 LogApi.delete_log(logName)
             })

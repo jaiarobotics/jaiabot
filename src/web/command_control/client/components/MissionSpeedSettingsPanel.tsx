@@ -3,6 +3,7 @@ import { GlobalSettings, Save } from './Settings'
 import Slider, { SliderClassKey } from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import {Speeds} from './shared/JAIAProtobuf'
+import { CustomAlert } from './shared/CustomAlert';
 
 
 interface Props {
@@ -66,7 +67,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     min={0.5}
                                     max={this.state.speed_max}
                                     onChange={
-                                        (evt) => 
+                                        async (evt) => 
                                         {
                                             let target = evt.target as any
                                             this.state.speeds.transit = target.value; 
@@ -74,7 +75,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(await CustomAlert.confirmAsync("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)", 'Run Above Safe Speed'))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);
@@ -116,14 +117,14 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     min={0.5}
                                     max={this.state.speed_max}
                                     onChange={
-                                        (evt) => 
+                                        async (evt) => 
                                         { 
                                             this.state.speeds.stationkeep_outer = (evt.target as any).value; 
 
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(await CustomAlert.confirmAsync("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)", 'Run Above Safe Speed'))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);

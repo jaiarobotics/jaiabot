@@ -14,9 +14,9 @@ import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 
 import RunAssignMenu from './RunAssignMenu';
 import EditModeToggle from '../EditModeToggle';
+import { Goal } from '../shared/JAIAProtobuf';
 import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
-import { Goal } from '../shared/JAIAProtobuf';
 
 type RunItemProps = {
     botIds: number[]
@@ -70,43 +70,9 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
     }
 
     render() {
-        let editModeButton = null
         let title = this.props.run.name
-
-        // Create Edit Mode Toggle
-        editModeButton = (
-            <EditModeToggle 
-                onClick={this.props.toggleEditMode}
-                runIdInEditMode={this.props.runIdInEditMode}
-                run={this.props.run}
-                label="Edit"
-                title="ToggleEditMode"
-            />
-        )
-
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
-        let repeatsInput = (
-            <div>
-                Repeats: {repeats}
-                <Slider
-                    id="runRepeats"
-                    aria-label="Repeats"
-                    value={repeats}
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks
-                    min={1}
-                    max={10}
-                    onChange={(evt: Event, value: number, activeThumb: number) => {
-                        if (plan != null) {
-                            plan.repeats = value
-                            this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
-                        }
-                    }}
-                />
-            </div>
-        )
 
         return (
             <ThemeProvider theme={this.makeAccordionTheme()}>
@@ -144,10 +110,32 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                             >
                                 <Icon path={mdiDelete} title="Delete Run"/>
                             </Button>
-                            {editModeButton}
+                            <EditModeToggle 
+                                onClick={this.props.toggleEditMode}
+                                runIdInEditMode={this.props.runIdInEditMode}
+                                run={this.props.run}
+                                label="Edit"
+                                title="ToggleEditMode"
+                            />
                         </span>
                         <div>
-                            {repeatsInput}
+                            Repeats: {repeats}
+                            <Slider
+                                id="runRepeats"
+                                aria-label="Repeats"
+                                value={repeats}
+                                valueLabelDisplay="auto"
+                                step={1}
+                                marks
+                                min={1}
+                                max={10}
+                                onChange={(evt: Event, value: number, activeThumb: number) => {
+                                    if (plan != null) {
+                                        plan.repeats = value
+                                        this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
+                                    }
+                                }}
+                            />
                         </div>
                     </AccordionDetails>
                 </Accordion>

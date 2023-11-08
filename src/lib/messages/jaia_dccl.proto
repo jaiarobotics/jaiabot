@@ -254,7 +254,7 @@ message BotStatus
         precision: 0
     }];
 
-    optional IMUData.CalibrationStatus calibration_status = 58;
+    optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
     optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
