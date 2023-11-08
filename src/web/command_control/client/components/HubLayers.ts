@@ -69,7 +69,10 @@ export class HubLayers {
 
         newFeature.setId(hub.hub_id)
         newFeature.setStyle(Styles.hubMarker)
-        newFeature.set('hub', hub)
+        newFeature.setProperties({
+            'type': 'hub',
+            'hub': hub
+        })
 
         source.addFeature(newFeature)
     
