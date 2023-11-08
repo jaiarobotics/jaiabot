@@ -45,6 +45,8 @@ message Fusion
 
     optional int32 health_report_timeout_seconds = 11 [default = 20];
 
+    optional int32 init_data_health_timeout_seconds = 15 [default = 20];
+
     optional int32 data_timeout_seconds = 20 [default = 20];
 
     optional int32 heading_timeout_seconds = 21 [default = 3];
@@ -95,4 +97,7 @@ message Fusion
     // The max diff between desired heading and current heading when
     // detecting an imu issue
     optional double imu_detect_desired_heading_vs_current_max_diff = 48 [default = 45];
+
+    // Dive states to send node status based on published depth values
+    repeated jaiabot.protobuf.MissionState diving_states = 49;
 }

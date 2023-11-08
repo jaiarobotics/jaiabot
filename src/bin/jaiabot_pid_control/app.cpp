@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(1.0 / 10.0 * si::hertz)
 {
     auto app_config = cfg();
 
@@ -253,7 +253,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 }
 
-void jaiabot::apps::BotPidControl::loop()
+void jaiabot::apps::BotPidControl::loop() {}
+
+void jaiabot::apps::BotPidControl::publish_low_control()
 {
     glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
     glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
@@ -636,6 +638,8 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
     {
         led_switch_on = command.led_switch_on();
     }
+
+    publish_low_control();
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -675,6 +679,8 @@ void jaiabot::apps::BotPidControl::handle_command(
         toggleRudderPid(false);
         rudder_ = 0;
     }
+
+    publish_low_control();
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
