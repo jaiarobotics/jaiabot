@@ -2260,6 +2260,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	setRcMode(botId: number, rcMode: boolean) {
+		// Clear interval before we set rc mode
+		this.clearRemoteControlInterval()
+
 		const rcModeStatus = this.state.rcModeStatus
 		rcModeStatus[botId] = rcMode
 		this.setState({ rcModeStatus })

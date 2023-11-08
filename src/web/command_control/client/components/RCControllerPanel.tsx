@@ -200,21 +200,35 @@ export default class RCControllerPanel extends React.Component {
 		let throttleBinNumber = 0
 		let rudderBinNumber = 0
 
+		console.log("Value: " + value + " | axisName: " + axisName)
+
 		if (axisName === (controlType === ControlTypes.MANUAL_SINGLE ? 'LeftStickX' : 'RightStickX')) {
 			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 			this.calcRudderBinNum((value * 100), bin)
-			this.props.remoteControlValues.pid_control.rudder = bin.binValue
 			// Added a deadzone
 			if (value > 10) {
 				rudderDirection = 'RIGHT'
+				this.props.remoteControlValues.pid_control.rudder = bin.binValue
+				rudderBinNumber = bin.binNumber
 			} else if (value < -10) {
 				rudderDirection = 'LEFT'
+				this.props.remoteControlValues.pid_control.rudder = bin.binValue
+				rudderBinNumber = bin.binNumber
 			} else if (value === 0) {
 				rudderDirection = ''
 				this.props.remoteControlValues.pid_control.rudder = 0
+				rudderBinNumber = 0
 			}
-			rudderBinNumber = bin.binNumber
-		} 
+		} else if (controlType !== ControlTypes.MANUAL_SINGLE && axisName === 'RightStickY') {
+			if(value === 0) {
+				rudderDirection = ''
+				this.props.remoteControlValues.pid_control.rudder = 0
+				rudderBinNumber = 0
+			} else {
+				rudderDirection = this.state.rudderDirection
+				rudderBinNumber = this.state.rudderBinNumber
+			}
+		}
 		
 		if (axisName === 'LeftStickY') {	
 			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
@@ -222,33 +236,34 @@ export default class RCControllerPanel extends React.Component {
 				throttleDirection = 'FORWARD'
 				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
 				this.props.remoteControlValues.pid_control.throttle = bin.binValue
+				throttleBinNumber = bin.binNumber
 			} else if (value < 0) {
 				throttleDirection = 'BACKWARD'
 				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
 				this.props.remoteControlValues.pid_control.throttle = bin.binValue
+				throttleBinNumber = bin.binNumber
 			} else if(value === 0) {
 				throttleDirection = ''
 				this.props.remoteControlValues.pid_control.throttle = 0
+				throttleBinNumber = 0
 			}
-			throttleBinNumber = bin.binNumber
+		} else if (controlType !== ControlTypes.MANUAL_SINGLE && axisName === 'LeftStickX') {
+			if(value === 0) {
+				throttleDirection = ''
+				this.props.remoteControlValues.pid_control.throttle = 0
+				throttleBinNumber = 0
+			} else {
+				throttleDirection = this.state.throttleDirection
+				throttleBinNumber = this.state.throttleBinNumber
+			}
 		}
 
-		if (throttleDirection) {
-			this.setState({ throttleDirection, throttleBinNumber })
-		}
-
-		if (rudderDirection) {
-			this.setState({ rudderDirection, rudderBinNumber })
-		}
-
-		if (!throttleDirection && !rudderDirection) {
-			this.setState({ 
-				throttleDirection, 
-				rudderDirection,
-				throttleBinNumber,
-				rudderBinNumber
-			})
-		}
+		this.setState({ 
+			throttleDirection, 
+			rudderDirection,
+			throttleBinNumber,
+			rudderBinNumber
+		})
 	}
 
 	controlChange(event: SelectChangeEvent) {
@@ -534,9 +549,10 @@ export default class RCControllerPanel extends React.Component {
 						deadZone={0.2}
 						onConnect={() => {
 							console.log('connected');
+							this.props.createInterval()
+							this.clearRemoteControlValues()
 						}}
 						onAxisChange={(axisName: string, value: number) => {
-							this.props.createInterval()
 							this.handleGamepadAxisChange(axisName, value)
 						}}
 					>
