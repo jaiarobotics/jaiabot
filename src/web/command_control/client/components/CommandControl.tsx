@@ -69,13 +69,14 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
 
 // Utility
 import cloneDeep from 'lodash.clonedeep'
+import { HelpWindow } from './HelpWindow'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -200,6 +201,7 @@ interface State {
 	taskPacketIntervalId: NodeJS.Timeout,
 	taskPacketsTimeline: {[key: string]: string | boolean},
 	isClusterModeOn: boolean
+	isHelpWindowDisplayed: boolean
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -363,6 +365,7 @@ export default class CommandControl extends React.Component {
 				isEditing: false
 			},
 			isClusterModeOn: true,
+			isHelpWindowDisplayed: false,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -1264,37 +1267,34 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	deleteSingleRun(runNumber?: number, disableMessage?: string) {
+	deleteSingleRun(runId: string, disableMessage?: string) {
 		// Exit if we have a disableMessage
-		if (disableMessage !== "") {
+		if (disableMessage) {
 			CustomAlert.alert(disableMessage)
 			return
 		}
 
+		let runNumber = -1		
+		try {
+			runNumber = Number(runId.split('-')[1])
+		} catch(err) {
+			console.log('Invalid runId passed to deleteSingleRun\n', err)
+			console.error('Invalid runId passed to deleteSingleRun\n', err)
+		}
+		
 		const runList = this.pushRunListToUndoStack().getRunList()
-
 		const selectedBotId = this.selectedBotId()
-		let runId = ''
-		if (runNumber) {
-			runId = `run-${runNumber}`
-		} else if (runList.botsAssignedToRuns[selectedBotId]) {
-			runId = runList.botsAssignedToRuns[selectedBotId]
-		}
-
-		console.log('DELETE SINGLE RUN')
-
-		if (runId !== '') {
-			const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
-			CustomAlert.confirm(warningString, 'Delete Run', () => {
-				const run = runList.runs[runId]
-				delete runList?.runs[runId]
-				delete runList?.botsAssignedToRuns[run.assigned]
-				if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-					this.setVisiblePanel(PanelType.NONE)
-					this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
-				}
-			})
-		}
+		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
+	
+		CustomAlert.confirm(warningString, 'Delete Run', () => {
+			const run = runList.runs[runId]
+			delete runList?.runs[runId]
+			delete runList?.botsAssignedToRuns[run.assigned]
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
+		})
 	}
 
 	generateDeleteAllRunsWarnStr(rallyPointRun?: boolean) {
@@ -1704,7 +1704,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt', 'line']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -2541,9 +2541,6 @@ export default class CommandControl extends React.Component {
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
-				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
-					<Icon path={mdiFlagVariantPlus} title="Flag"/>
-				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
@@ -2559,6 +2556,9 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiCog} title="Settings"/>
 					</Button>
 				))}
+				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
+					<Icon path={mdiHelp} title="Help"></Icon>
+				</Button>
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -3210,7 +3210,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
 			</Button>
 		))
 
@@ -3401,6 +3401,8 @@ export default class CommandControl extends React.Component {
 
 				{this.disconnectionPanel()}
 
+				{this.state.isHelpWindowDisplayed ? <HelpWindow onClose={() => {this.setState({isHelpWindowDisplayed: false})}}></HelpWindow> : null}
+				
 				{this.state.customAlert}
 				
 			</div>

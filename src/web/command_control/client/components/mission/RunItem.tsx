@@ -15,8 +15,6 @@ import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import RunAssignMenu from './RunAssignMenu';
 import EditModeToggle from '../EditModeToggle';
 import { Goal } from '../shared/JAIAProtobuf';
-import { jaiaAPI } from '../../../common/JaiaAPI';
-import { CustomAlert } from '../shared/CustomAlert';
 import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 
@@ -71,12 +69,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         this.props.addDuplicateRun(goals)
     }
 
-    handleDeleteRunClick() {
-        
-    }
-
     render() {
-        let editModeButton = null
         let title = this.props.run.name
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
