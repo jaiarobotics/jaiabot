@@ -148,8 +148,6 @@ export function botMarker(feature: Feature): Style[] {
 }
 
 export function hubMarker(feature: Feature<Point>): Style[] {
-    const hub = feature.get('hub') as HubStatus
-
     const textOffsetRadius = 11
 
     var color = defaultColor

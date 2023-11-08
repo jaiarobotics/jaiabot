@@ -1704,7 +1704,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt', 'line']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
