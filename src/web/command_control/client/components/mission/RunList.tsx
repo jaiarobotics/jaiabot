@@ -1,8 +1,8 @@
-import React from 'react'
-
-import RunItem from './RunItem'
+import React from 'react';
+import RunItem from './RunItem';
+import { adjustAccordionScrollPosition } from '../../../../shared/Utilities'
+import { RunInterface } from '../CommandControl';
 import { Goal } from '../shared/JAIAProtobuf'
-import { RunInterface } from '../CommandControl'
 
 type RunListProps = {
     botIds: number[]
@@ -40,11 +40,13 @@ export default class RunList extends React.Component<RunListProps, RunListState>
                 openRunPanels, 
                 runIdInEditMode: this.props.runIdInEditMode 
             })
-            if (this.props.runIdInEditMode) {
-                const element = document.getElementById(
+            if (this.props.runIdInEditMode !== '') {
+                const runItemElement = document.getElementById(
                     `run-accordion-${this.props.runIdInEditMode.split('-')[1]}`
                 )
-                setTimeout(() => element?.scrollIntoView(), 30) // 30 seems to be sufficent time for dropdown to establish its height               
+                setTimeout(() => {
+                    adjustAccordionScrollPosition('runList', runItemElement)
+                }, 30)
             }
         }
     }
