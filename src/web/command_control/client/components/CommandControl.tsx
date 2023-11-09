@@ -2129,6 +2129,8 @@ export default class CommandControl extends React.Component {
 			}).catch((err) => {
 				console.error('Task Packets Retrieval Error:', err)
 			})
+			// Set "Keep End Date Current" checkbox to checked
+			taskPacketsTimeline.keepEndDateCurrent = true
 		}
 
 		taskPacketsTimeline.isEditing = !this.state.taskPacketsTimeline.isEditing
