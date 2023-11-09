@@ -23,7 +23,6 @@ interface Props {
 	remoteControlValues: Engineering,
 	rcDiveParameters: { [diveParam: string]: string },
 	createInterval: () => void,
-	clearInterval: () => void,
 	weAreInControl: () => boolean,
 	weHaveInterval: () => boolean,
 	setRCDiveParameters: (diveParams: {[param: string]: string} ) => void,
