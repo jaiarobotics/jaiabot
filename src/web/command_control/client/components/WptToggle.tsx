@@ -1,8 +1,8 @@
 import React from "react"
-import Switch from '@mui/material/Switch';
-import { FormGroup, FormControlLabel } from '@mui/material';
-import { amber } from '@mui/material/colors';
-import { alpha, styled } from '@mui/material/styles';
+import Switch from '@mui/material/Switch'
+import { FormGroup, FormControlLabel } from '@mui/material'
+import { amber } from '@mui/material/colors'
+import { alpha, styled } from '@mui/material/styles'
 
 interface Props {
     checked: () => boolean,
@@ -26,7 +26,7 @@ const AmberSwitch = styled(Switch)(({ theme }) => ({
     '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
         color: amber[300],
     }        
-}));
+}))
 
 export default function WptToggle(props: Props) {
     return (
