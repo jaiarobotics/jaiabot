@@ -15,7 +15,6 @@ export interface CustomAlertProps {
     buttons?: CustomAlertButton[]
 }
 
-// Dropdown menu showing all of the available logs to choose from
 export class CustomAlert extends React.Component {
     props: CustomAlertProps
 

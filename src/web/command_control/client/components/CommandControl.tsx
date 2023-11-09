@@ -2971,7 +2971,6 @@ export default class CommandControl extends React.Component {
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel: ReactElement
 		if (this.state.mode === Mode.MISSION_PLANNING) {
-
 			missionSettingsPanel = (
 				<MissionSettingsPanel
 					map={map}
@@ -3171,11 +3170,14 @@ export default class CommandControl extends React.Component {
 		) : (
 			<Button
 				className="button-jcc"
-				onClick={() => {
+				onClick={(evt) => {
 					if (!this.canUseSurveyTool()) {
 						return
 					}
 
+					// Allows seemless switch between Modes, 
+					// without it, handleJccContainerClick fires and causes bugs
+					evt.stopPropagation()
 					this.setVisiblePanel(PanelType.MISSION_SETTINGS)
 					this.setState({ mode: Mode.MISSION_PLANNING })
 
