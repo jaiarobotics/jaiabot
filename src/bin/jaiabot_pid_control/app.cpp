@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(1.0 / 10.0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(1.0 * si::hertz)
 {
     auto app_config = cfg();
 
@@ -253,7 +253,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 }
 
-void jaiabot::apps::BotPidControl::loop() {}
+void jaiabot::apps::BotPidControl::loop()
+{
+    // Heartbeat publish to arduino to ensure
+    // values are up-to-date
+    publish_low_control();
+}
 
 void jaiabot::apps::BotPidControl::publish_low_control()
 {

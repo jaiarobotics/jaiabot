@@ -36,6 +36,7 @@ interface State {
 	rudderDirection: string,
 	throttleBinNumber: number,
 	rudderBinNumber: number,
+	botId: number
 }
 
 enum JoySticks {
@@ -70,7 +71,10 @@ export default class RCControllerPanel extends React.Component {
 			throttleDirection: '',
 			rudderDirection: '',
 			throttleBinNumber: 0,
-			rudderBinNumber: 0
+			rudderBinNumber: 0,
+			// bot id is saved to determine when the user
+			// clicks on a new bot details window
+			botId: 0
         }
     }
 
@@ -115,19 +119,22 @@ export default class RCControllerPanel extends React.Component {
 
 	updateRudderDirectionMove(event: IJoystickUpdateEvent) {
 		let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
-		this.calcRudderBinNum((event.x * 100), bin)
+		// The is used to only detect changes if the value is above
+		// this percentage (Added when using tablet controller)
+		let deadzonePercent = 10
+		this.calcRudderBinNum((event.x * 100), bin, deadzonePercent)
 		this.props.remoteControlValues.pid_control.rudder = bin.binValue
 		this.setState({ rudderDirection: event.direction.toString(), rudderBinNumber: bin.binNumber })
 	}
 
-	calcRudderBinNum(position: number, bin: {binNumber: number, binValue: number}) {
+	calcRudderBinNum(position: number, bin: {binNumber: number, binValue: number}, deadzonePercent: number) {
 		// Basic error handling to protect against unexpected position value
 		if (!position) {
 			return
 		}
 		
 		// Added a deadzone
-		if (position > 10 && position < 50) {
+		if (position > deadzonePercent && position < 50) {
 			bin.binNumber = 1
 			bin.binValue = 40
 		} else if (position >= 50 && position <= 95) {
@@ -136,7 +143,7 @@ export default class RCControllerPanel extends React.Component {
 		} else if (position > 95) {
 			bin.binNumber = 3
 			bin.binValue = 100
-		} else if (position < -10 && position > -50) {
+		} else if (position < -deadzonePercent && position > -50) {
 			bin.binNumber = 1
 			bin.binValue = -40
 		} else if (position <= -50 && position >= -95) {
@@ -162,6 +169,10 @@ export default class RCControllerPanel extends React.Component {
 		let thottleBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 		let rudderBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 
+		// The is used to only detect changes if the value is above
+		// this percentage (Added when using tablet controller)
+		let deadzonePercent = 10
+
 		if (event.y > 0) {
 			throttleDirection = 'FORWARD'
 		} else if (event.y < 0) {
@@ -179,7 +190,7 @@ export default class RCControllerPanel extends React.Component {
 		this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
 		throttleBinNumber = thottleBin.binNumber
 
-		this.calcRudderBinNum((event.x * 100), rudderBin)
+		this.calcRudderBinNum((event.x * 100), rudderBin, deadzonePercent)
 		this.props.remoteControlValues.pid_control.rudder = rudderBin.binValue
 		rudderBinNumber = rudderBin.binNumber
 
@@ -192,63 +203,75 @@ export default class RCControllerPanel extends React.Component {
 		})
 	}
 
+	/**
+	 * This handles the input from the xbox controller by mapping the value
+	 * of the inputs to a bin number and direction to give the user feedback
+	 * @param axisName string - indicates the analog stick that is being controlled
+	 * @param value number - indicates the position of the analog stick
+	 */
 	handleGamepadAxisChange(axisName: string, value: number) {
 		const controlType = this.state.controlType
 
-		let throttleDirection = ''
-		let rudderDirection = ''
-		let throttleBinNumber = 0
-		let rudderBinNumber = 0
+		let throttleDirection = this.state.throttleDirection
+		let rudderDirection = this.state.rudderDirection
+		let throttleBinNumber = this.state.throttleBinNumber
+		let rudderBinNumber = this.state.rudderBinNumber
 
+		let valuePercent = (value * 100)
+
+		// The is used to only detect changes if the value is above
+		// this percentage (Added when using xbox controller)
+		let deadzonePercent = 15
+
+		// Rudder Handler
 		if (axisName === (controlType === ControlTypes.MANUAL_SINGLE ? 'LeftStickX' : 'RightStickX')) {
 			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
-			this.calcRudderBinNum((value * 100), bin)
+
+			this.calcRudderBinNum(valuePercent, bin, deadzonePercent)
 			this.props.remoteControlValues.pid_control.rudder = bin.binValue
+			rudderBinNumber = bin.binNumber
+
 			// Added a deadzone
-			if (value > 10) {
+			if (valuePercent > deadzonePercent) {
 				rudderDirection = 'RIGHT'
-			} else if (value < -10) {
+			} else if (valuePercent < -deadzonePercent) {
 				rudderDirection = 'LEFT'
-			} else if (value === 0) {
+			} else {
 				rudderDirection = ''
 				this.props.remoteControlValues.pid_control.rudder = 0
+				rudderBinNumber = 0
 			}
-			rudderBinNumber = bin.binNumber
-		} 
-		
-		if (axisName === 'LeftStickY') {	
-			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
-			if (value > 0) {
-				throttleDirection = 'FORWARD'
-				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
-				this.props.remoteControlValues.pid_control.throttle = bin.binValue
-			} else if (value < 0) {
-				throttleDirection = 'BACKWARD'
-				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
-				this.props.remoteControlValues.pid_control.throttle = bin.binValue
-			} else if(value === 0) {
-				throttleDirection = ''
-				this.props.remoteControlValues.pid_control.throttle = 0
-			}
-			throttleBinNumber = bin.binNumber
-		}
-
-		if (throttleDirection) {
-			this.setState({ throttleDirection, throttleBinNumber })
-		}
-
-		if (rudderDirection) {
-			this.setState({ rudderDirection, rudderBinNumber })
-		}
-
-		if (!throttleDirection && !rudderDirection) {
 			this.setState({ 
-				throttleDirection, 
 				rudderDirection,
-				throttleBinNumber,
 				rudderBinNumber
 			})
-		}
+		} 
+		
+		// Throttle Handler
+		if (axisName === 'LeftStickY') {	
+			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+			// Added a deadzone
+			if (valuePercent > deadzonePercent) {
+				throttleDirection = 'FORWARD'
+				this.calcThrottleBinNum(valuePercent, throttleDirection, bin)
+				this.props.remoteControlValues.pid_control.throttle = bin.binValue
+				throttleBinNumber = bin.binNumber
+			} else if (valuePercent < -deadzonePercent) {
+				throttleDirection = 'BACKWARD'
+				this.calcThrottleBinNum(valuePercent, throttleDirection, bin)
+				this.props.remoteControlValues.pid_control.throttle = bin.binValue
+				throttleBinNumber = bin.binNumber
+			} else {
+				throttleDirection = ''
+				this.props.remoteControlValues.pid_control.throttle = 0
+				throttleBinNumber = 0
+			}
+			this.setState({ 
+				throttleDirection, 
+				throttleBinNumber
+			})
+		} 
+		
 	}
 
 	controlChange(event: SelectChangeEvent) {
@@ -487,19 +510,19 @@ export default class RCControllerPanel extends React.Component {
 					{selectControlType}
 					<div className='rc-dive-info-container' >
 						<div>Max Depth:</div>
-						<input id='maxDepth' className='rc-input' type='text' value={this.props.rcDiveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
+						<input id='maxDepth' className='rc-input' type='text' value={this.props?.rcDiveParameters?.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
 						<div>m</div>
 
 						<div>Depth Interval:</div>
-						<input id='depthInterval' className='rc-input' type='text' value={this.props.rcDiveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
+						<input id='depthInterval' className='rc-input' type='text' value={this.props?.rcDiveParameters?.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
 						<div>m</div>
 
 						<div>Hold Time:</div>
-						<input id='holdTime' className='rc-input' type='text' value={this.props.rcDiveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
+						<input id='holdTime' className='rc-input' type='text' value={this.props?.rcDiveParameters?.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
 						<div>s</div>
 
 						<div>Drift Time:</div>
-						<input id='driftTime' className='rc-input' type='text' value={this.props.rcDiveParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
+						<input id='driftTime' className='rc-input' type='text' value={this.props?.rcDiveParameters?.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
 						<div>s</div>
 					</div>
 				</div>
@@ -531,12 +554,23 @@ export default class RCControllerPanel extends React.Component {
 					{rightController}
 
 					<Gamepad
-						deadZone={0.2}
+						// Not using gamepad deadzone so we can handle it in our
+						// handleGamepadAxisChange
+						deadZone={0}
 						onConnect={() => {
 							console.log('connected');
+							if (!this.props.weHaveInterval()) {
+								this.props.createInterval()
+							}
+							this.clearRemoteControlValues()
 						}}
 						onAxisChange={(axisName: string, value: number) => {
-							this.props.createInterval()
+							// Need to check for interval because onConnect is
+							// only called at the start and does not get called again
+							// if we are switching between bots
+							if (!this.props.weHaveInterval()) {
+								this.props.createInterval()
+							}
 							this.handleGamepadAxisChange(axisName, value)
 						}}
 					>
