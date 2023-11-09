@@ -54,7 +54,7 @@ else
     for var in "$@"
     do
         echo "🟢 Uploading to "$var
-        rsync -zaP --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ${botuser}@"$var":/home/${botuser}/jaiabot/
+        rsync -zaP --force --relative --exclude node_modules/ ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ${botuser}@"$var":/home/${botuser}/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
@@ -83,8 +83,7 @@ else
 
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
-            ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /usr/share/jaiabot/python/requirements.txt'"          
-            ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/requirements.txt'"          
+            ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r requirements.txt'"
         fi
 
     	echo "🟢 Creating and setting permissons on log dir"
