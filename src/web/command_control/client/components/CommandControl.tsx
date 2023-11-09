@@ -3175,7 +3175,9 @@ export default class CommandControl extends React.Component {
 						return
 					}
 
-					evt.stopPropagation() // Allows seemless switch between Modes (without it, handleJccContainerClick fires and causes bugs)
+					// Allows seemless switch between Modes, 
+					// without it, handleJccContainerClick fires and causes bugs
+					evt.stopPropagation()
 					this.setVisiblePanel(PanelType.MISSION_SETTINGS)
 					this.setState({ mode: Mode.MISSION_PLANNING })
 
