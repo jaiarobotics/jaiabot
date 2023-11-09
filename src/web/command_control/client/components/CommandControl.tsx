@@ -3041,7 +3041,8 @@ export default class CommandControl extends React.Component {
 					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 					remoteControlValues={this.state.remoteControlValues}
 					rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
-					createInterval={this.createRemoteControlInterval.bind(this)} 
+					createInterval={this.createRemoteControlInterval.bind(this)}
+					clearInterval={this.clearRemoteControlInterval.bind(this)} 
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
 					setRCDiveParameters={this.setRCDiveParams.bind(this)}
