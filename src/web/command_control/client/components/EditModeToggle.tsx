@@ -8,7 +8,7 @@ import { alpha, styled } from '@mui/material/styles'
 import { FormGroup, FormControlLabel } from '@mui/material'
 
 interface Props {
-    onClick: (evt: React.ChangeEvent, run: RunInterface,) => void,
+    onClick: (evt: React.ChangeEvent, run: RunInterface) => void,
     runIdInEditMode: string
     run: RunInterface
     label: string,
