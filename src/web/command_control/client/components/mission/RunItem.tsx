@@ -83,7 +83,8 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                     (evt: ChangeEvent<HTMLInputElement>) => {
                         if (plan != null) {
                             plan.repeats = Math.max(1, Math.min(evt.target.valueAsNumber, 100))
-                            this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
+                            // Force update, because I don't want to add repeats to the State. I want a single source of truth.
+                            this.forceUpdate() 
                         }
                     }
                 } />
@@ -135,23 +136,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                             />
                         </span>
                         <div>
-                            Repeats: {repeats}
-                            <Slider
-                                id="runRepeats"
-                                aria-label="Repeats"
-                                value={repeats}
-                                valueLabelDisplay="auto"
-                                step={1}
-                                marks
-                                min={1}
-                                max={10}
-                                onChange={(evt: Event, value: number, activeThumb: number) => {
-                                    if (plan != null) {
-                                        plan.repeats = value
-                                        this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
-                                    }
-                                }}
-                            />
+                            {repeatsInput}
                         </div>
                     </AccordionDetails>
                 </Accordion>
