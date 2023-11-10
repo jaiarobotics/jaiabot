@@ -209,6 +209,13 @@ message BotStatus
         precision: 0
         units { base_dimensions: "T" }
     }];
+    optional int32 repeat_index = 44 [
+        (dccl.field) = {
+            min: 0
+            max: 1000
+            precision: 0
+        }
+    ];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -254,7 +261,7 @@ message BotStatus
         precision: 0
     }];
 
-    optional IMUData.CalibrationStatus calibration_status = 58;
+    optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
     optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
