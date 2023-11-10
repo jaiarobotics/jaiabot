@@ -66,18 +66,19 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         this.props.setOpenRunPanels(this.props.openRunPanels)
     }
 
-    getTabTitle() {
-        let title = this.props.run.name
-        if (this.props.run.assigned !== -1) {
-            title += ` - Bot ${this.props.run.assigned}`
-        }
-        return title
-    }
-
     handleDuplicateRunClick(evt: React.MouseEvent<HTMLButtonElement>) {
         this.props.unSelectHubOrBot()
         const goals = deepcopy(this.props.run.command.plan.goal)
         this.props.addDuplicateRun(goals)
+    }
+
+    getBotName() {
+        if (this.props.run.assigned !== -1) {
+            return `Bot ${this.props.run.assigned}`
+        }
+        else {
+            return 'Unassigned'
+        }
     }
 
     render() {
@@ -112,9 +113,14 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
+                    <div className='runTitleBar'>
                         <Typography className="title">
-                            {this.getTabTitle()}
+                            {this.props.run.name}
                         </Typography>
+                        <div className='botName'>
+                            {this.getBotName()}
+                        </div>
+                    </div>
                     </AccordionSummary>
                     <AccordionDetails>
                         <span className="runItemInfo">
