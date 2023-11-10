@@ -233,8 +233,6 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
                                      << std::endl;
 
             handle_engineering_command(command);
-            // republish for logging purposes
-            interprocess().publish<jaiabot::groups::engineering_command>(command);
         },
         *groups::engineering_command_this_bot, command_subscriber);
 }

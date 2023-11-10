@@ -148,7 +148,7 @@ function handleAccordionDropdownClick(event: Event, targetClassName: string, par
     }, dropdownTimeout)
 }
 
-function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
     const parentContainer = document.getElementById(parentContainerId)
     const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
     const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
@@ -158,14 +158,12 @@ function adjustAccordionScrollPosition(parentContainerId: string, dropdownContai
         parentContainer.scrollBy({
             // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
         parentContainer.scrollBy({
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     }
 }

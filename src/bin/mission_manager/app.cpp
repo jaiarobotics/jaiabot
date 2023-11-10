@@ -306,6 +306,12 @@ jaiabot::apps::MissionManager::MissionManager()
                     machine_->process_event(statechart::EvIMURestart());
                     break;
                 case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
                 default:
                     //TODO Handle Default Case
                     break;
@@ -531,6 +537,12 @@ void jaiabot::apps::MissionManager::loop()
     if (data_offload)
     {
         report.set_data_offload_percentage(data_offload->data_offload_percentage());
+    }
+
+    // Relay the repeat_index
+    if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
+    {
+        report.set_repeat_index(in_mission->repeat_index());
     }
 
     // only report the goal index when not in recovery

@@ -12,6 +12,9 @@
 #include "crc16.h"
 
 // Indicates the code version
+// If you are increasing this version than update
+// arduino driver configuration to include the new
+// version
 const int arduino_version = 1;
 
 // Binary serial protocol
@@ -98,19 +101,6 @@ constexpr int VccVoltage = A0;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
-enum AckCode {
-  STARTUP = 0,
-  ACK = 1,
-  TIMEOUT = 2,
-  PREFIX_READ_ERROR = 3,
-  MAGIC_WRONG = 4,
-  MESSAGE_TOO_BIG = 5,
-  MESSAGE_WRONG_SIZE = 6,
-  MESSAGE_DECODE_ERROR = 7,
-  CRC_ERROR = 8,
-  SETTINGS = 9
-};
-
 double Vcccurrent_rolling_average() {
 
   //for rolling average
@@ -141,7 +131,7 @@ double Vcccurrent_rolling_average() {
 
 
 // Send a response message back to the RasPi
-void send_ack(AckCode code, uint32_t crc=0, uint32_t calculated_crc=0)
+void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t calculated_crc=0)
 {
   const size_t max_ack_size = 256;
 
@@ -238,7 +228,7 @@ void setup()
   init_crc16_tab();
 
   // Send startup code
-  send_ack(STARTUP);
+  send_ack(jaiabot_protobuf_ArduinoStatusCode_STARTUP);
 }
 
 
@@ -329,13 +319,13 @@ void loop()
     // Get prefix
     uint8_t prefix[prefix_size] = {0};
     if (Serial.readBytes(prefix, prefix_size) != prefix_size) {
-      send_ack(PREFIX_READ_ERROR);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_PREFIX_READ_ERROR);
       continue;
     }
 
     // Check magic
     if (memcmp(SERIAL_MAGIC, prefix, SERIAL_MAGIC_BYTES) != 0) {
-      send_ack(MAGIC_WRONG);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_MAGIC_WRONG);
       continue;
     }
 
@@ -346,7 +336,7 @@ void loop()
     size |= prefix[SERIAL_MAGIC_BYTES + 1];
 
     if (size > jaiabot_protobuf_ArduinoCommand_size) {
-      send_ack(MESSAGE_TOO_BIG);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_MESSAGE_TOO_BIG);
       continue;
     }
 
@@ -354,7 +344,7 @@ void loop()
 
     // Read the protobuf binary-encoded message
     if (Serial.readBytes(pb_binary_data, size) != size) {
-      send_ack(MESSAGE_WRONG_SIZE);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_MESSAGE_WRONG_SIZE);
       continue;
     }
 
@@ -362,7 +352,7 @@ void loop()
     crc_type crc;
 
     if (Serial.readBytes((char *) &crc, sizeof(crc)) != sizeof(crc)) {
-      send_ack(CRC_ERROR);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_CRC_ERROR);
       continue;
     }
 
@@ -370,7 +360,7 @@ void loop()
     crc_type calculated_crc = fletcher16(pb_binary_data, size);
 
     if (calculated_crc != crc) {
-      send_ack(CRC_ERROR, crc, calculated_crc);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_CRC_ERROR, crc, calculated_crc);
       continue;
     }
 
@@ -382,7 +372,7 @@ void loop()
     if (!status)
     {
       //Send Ack that we failed to decode command
-      send_ack(MESSAGE_DECODE_ERROR);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_MESSAGE_DECODE_ERROR);
       continue;
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     } 
@@ -403,14 +393,14 @@ void loop()
       // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
 
       //Send Ack that we successfully received command
-      send_ack(ACK);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_ACK);
     } 
     else if(command.has_settings)
     {
       motor_min_forward = command.settings.forward_start;
       motor_min_reverse = command.settings.reverse_start;
       //Send Ack that we successfully received command
-      send_ack(SETTINGS);
+      send_ack(jaiabot_protobuf_ArduinoStatusCode_SETTINGS);
     }
   }
 
@@ -424,7 +414,7 @@ void handle_timeout() {
     command_timeout = -1;
     halt_all();
 
-    send_ack(TIMEOUT);
+    send_ack(jaiabot_protobuf_ArduinoStatusCode_TIMEOUT);
   }
 }
 

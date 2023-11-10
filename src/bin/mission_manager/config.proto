@@ -48,14 +48,20 @@ message MissionManager
     // (this gives the vehicle time to begin diving)
     optional double detect_bottom_logic_init_timeout = 29
         [default = 15, (dccl.field).units = { base_dimensions: "T" }];
+
+    // detect bottom logic timeout in seconds. Used to determine 
+    // when we should start determining we reached bottom in powered descent logic.
+    // (this gives the vehicle time to begin diving after a hold)
+    optional double detect_bottom_logic_after_hold_timeout = 30
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
     
     // acceptable eps when dive depth is considered reached (in meters)
-    optional double dive_depth_eps = 30
+    optional double dive_depth_eps = 31
         [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
 
     // bottoming timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bottom has been hit
-    optional double bottoming_timeout = 31
+    optional double bottoming_timeout = 32
         [default = 3, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)

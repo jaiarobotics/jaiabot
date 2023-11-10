@@ -25,6 +25,30 @@ const taskConstantHeading = require('./taskConstantHeading.svg') as string
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const satellite = require('./satellite.svg') as string
+// Drift Icons
+const driftArrow1 = require(`./drift-arrows/drift-arrow-1.svg`) as string
+const driftArrowAnimated1 = require(`./drift-arrows/drift-arrow-animated-1.svg`) as string
+const driftArrow2 = require(`./drift-arrows/drift-arrow-2.svg`) as string
+const driftArrowAnimated2 = require(`./drift-arrows/drift-arrow-animated-2.svg`) as string
+const driftArrow3 = require(`./drift-arrows/drift-arrow-3.svg`) as string
+const driftArrowAnimated3 = require(`./drift-arrows/drift-arrow-animated-3.svg`) as string
+const driftArrow4 = require(`./drift-arrows/drift-arrow-4.svg`) as string
+const driftArrowAnimated4 = require(`./drift-arrows/drift-arrow-animated-4.svg`) as string
+const driftArrow5 = require(`./drift-arrows/drift-arrow-5.svg`) as string
+const driftArrowAnimated5 = require(`./drift-arrows/drift-arrow-animated-5.svg`) as string
+const driftArrow6 = require(`./drift-arrows/drift-arrow-6.svg`) as string
+const driftArrowAnimated6 = require(`./drift-arrows/drift-arrow-animated-6.svg`) as string
+
+// Format: [default-color-icon, animated-color-icon]
+const driftIcons: {[iconKey: string]: string[]} = {
+    'driftIcon1': [driftArrow1, driftArrowAnimated1],
+    'driftIcon2': [driftArrow2, driftArrowAnimated2],
+    'driftIcon3': [driftArrow3, driftArrowAnimated3],
+    'driftIcon4': [driftArrow4, driftArrowAnimated4],
+    'driftIcon5': [driftArrow5, driftArrowAnimated5],
+    'driftIcon6': [driftArrow6, driftArrowAnimated6]
+}
+
 export const taskNone = require('./taskNone.svg') as string
 
 // Export the PNG data for use in KMZ files
@@ -124,8 +148,6 @@ export function botMarker(feature: Feature): Style[] {
 }
 
 export function hubMarker(feature: Feature<Point>): Style[] {
-    const hub = feature.get('hub') as HubStatus
-
     const textOffsetRadius = 11
 
     var color = defaultColor
@@ -487,12 +509,21 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
 
 export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
-    // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const maxBins = 6
     const binValueIncrement = 0.5
-    let binNumber = Math.floor(feature.get('speed') / binValueIncrement)
+    let binNumber = Math.floor(feature.get('speed') ?? 0 / binValueIncrement)
 
-    const defaultSrc = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
-    const animatedSrc = require(`./drift-arrows/drift-arrow-animated-${binNumber}.svg`)
+    // If binNumber > maxBins or binNumber === 0 then a file not found error will occur
+    if (binNumber > maxBins) {
+        binNumber = maxBins
+    }
+    else if (binNumber === 0) {
+        binNumber = 1
+    }
+
+    const defaultSrc = driftIcons[`driftIcon${binNumber}`][0]
+    const animatedSrc = driftIcons[`driftIcon${binNumber}`][1]
     let src = animatedColor === 'black' ? animatedSrc : defaultSrc
     
     return new Style({
@@ -507,15 +538,24 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
 
 export function driftMapStyle(feature: Feature) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
-    // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const maxBins = 6
     const heading = feature.get('heading') as number
     const speed = feature.get('speed') as number
 
     const binValueIncrement = 0.5
     let binNumber = Math.floor(speed / binValueIncrement)
 
-    const src = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
-    
+    // If binNumber > maxBins or binNumber === 0 then a file not found error will occur
+    if (binNumber > maxBins) {
+        binNumber = maxBins
+    }
+    else if (binNumber === 0) {
+        binNumber = 1
+    }
+
+    const src = driftIcons[`driftIcon${binNumber}`][0]
+
     return new Style({
         image: new Icon({
             src: src,
