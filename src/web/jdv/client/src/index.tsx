@@ -29,6 +29,9 @@ import { Log } from './Log'
 import { Draw } from 'ol/interaction'
 
 import './styles/styles.css'
+import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
+
+import './index.css'
 
 var Plotly = require('plotly.js-dist')
 
@@ -43,9 +46,7 @@ function iso_date_to_micros(iso_date_string: string) {
 }
 
 
-interface LogAppProps {
-
-}
+interface LogAppProps {}
 
 
 interface State {
@@ -70,7 +71,10 @@ interface State {
   isOpenPlotSetDisplayed: boolean
 
   // Modal busy indicator
-  busyIndicator: boolean
+  isBusy: boolean
+
+  // Custom Alert shown, if any
+  customAlert?: React.JSX.Element
 }
 
 
@@ -103,9 +107,20 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
-
-      busyIndicator: false
+      isBusy: false,
+      customAlert: null
     }
+
+    CustomAlert.setPresenter((props: CustomAlertProps | null) => {
+      if (props == null) {
+        this.setState({customAlert: null})
+        return
+      }
+  
+      this.setState({
+        customAlert: <CustomAlert {...props} ></CustomAlert>
+      })
+    })
   }
 
   render() {
@@ -114,7 +129,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
+    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
 
 
     return (
@@ -185,6 +200,8 @@ class LogApp extends React.Component {
 
           { log_selector }
           {busyOverlay}
+
+          { this.state.customAlert }
 
         </div>
 
@@ -322,7 +339,7 @@ class LogApp extends React.Component {
           setTimeout(openLogsWhenReady, 1000)
         }
       }).catch((err) => {
-        alert(err)
+        CustomAlert.presentAlert({text: err})
         self.stopBusyIndicator()
       })
     }
@@ -332,11 +349,11 @@ class LogApp extends React.Component {
   }
 
   startBusyIndicator() {
-    this.setState({busyIndicator: true})
+    this.setState({isBusy: true})
   }
 
   stopBusyIndicator() {
-    this.setState({busyIndicator: false})
+    this.setState({isBusy: false})
   }
 
   didSelectPaths(pathArray: string[]) {
@@ -353,7 +370,7 @@ class LogApp extends React.Component {
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
-        .catch(err => {alert(err)})
+        .catch(err => {CustomAlert.presentAlert({text: err})})
         .finally(() => {
           this.stopBusyIndicator()
         })
@@ -569,7 +586,7 @@ class LogApp extends React.Component {
       this.didSelectPaths(plotSet)
     }
 
-    savePlotSetClicked() {
+    async savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
 
       if (plotSetName == null) {
@@ -578,8 +595,9 @@ class LogApp extends React.Component {
       }
 
       if (PlotProfiles.exists(plotSetName)) {
-        if (!confirm(`Are you sure you want to overwrite plot set named \"${
-                plotSetName}?`))
+
+        if (!(await CustomAlert.confirmAsync(`Are you sure you want to overwrite plot set named \"${
+                plotSetName}?`, 'Overwrite Plot Set')))
           return
       }
 

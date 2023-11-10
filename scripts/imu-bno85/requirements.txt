@@ -1,0 +1,2 @@
+adafruit-circuitpython-bno08x==1.2.4
+RPi.GPIO==0.7.1

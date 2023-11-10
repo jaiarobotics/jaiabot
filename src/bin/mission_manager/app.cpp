@@ -306,6 +306,12 @@ jaiabot::apps::MissionManager::MissionManager()
                     machine_->process_event(statechart::EvIMURestart());
                     break;
                 case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
                 default:
                     //TODO Handle Default Case
                     break;

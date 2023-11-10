@@ -2,6 +2,13 @@ import React, { ReactElement } from "react"
 
 import {Log} from './Log'
 import { LogApi } from "./LogApi"
+import { CustomAlert } from "./shared/CustomAlert"
+
+function getNavigatorLanguage() {
+    return navigator.languages?.[0] ?? navigator.language ?? 'en'
+}
+
+const sizeFormatter = Intl.NumberFormat(getNavigatorLanguage(), {minimumFractionDigits: 1, maximumFractionDigits: 1})
 
 function duration_string_from_seconds(duration_seconds: number) {
     var components = []
@@ -150,6 +157,11 @@ export default class LogSelector extends React.Component {
         const key = `${log.fleet}-${log.bot}-${log.timestamp}`
         const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
 
+        let sizeString = '?'
+        if (log.size != null) {
+            sizeString = sizeFormatter.format(log.size / 1_000_000) + ' MB'
+        }
+
         const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
             <div className="smallCell">
                 {log.fleet}
@@ -164,7 +176,7 @@ export default class LogSelector extends React.Component {
                 {log.duration ? duration_string_from_seconds(log.duration / 1e6) : "Unconverted"}
             </div>
             <div className="bigCell rightJustify">
-                {log.size?.toLocaleString() ?? "?"}
+                {sizeString}
             </div>
         </div>
 
@@ -377,7 +389,7 @@ export default class LogSelector extends React.Component {
 
         const logNamesString = logNames.join('\n')
 
-        if (confirm(`Are you sure you want to DELETE the logs named:\n${logNamesString}`)) {
+        if (await CustomAlert.confirmAsync(`Are you sure you want to DELETE the logs named:\n${logNamesString}`, 'Delete Logs')) {
             logNames.forEach(logName => {
                 LogApi.delete_log(logName)
             })

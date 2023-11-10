@@ -48,6 +48,7 @@ message DivePowerDescentDebug
     optional bool depth_reached = 7 [default = false];
     optional bool depth_changed = 8 [default = false];
     optional bool depth_change_timeout = 9 [default = false];
+    optional bool bot_is_diving = 10 [default = false];
 }
 
 message DiveHoldDebug
