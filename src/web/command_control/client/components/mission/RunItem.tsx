@@ -209,7 +209,7 @@ export default class RunItem extends React.Component {
                 <input type="number" className='NumberInput' id="repeats" name="repeats" min="1" max="100" value={repeats} onChange={
                     (evt: ChangeEvent<HTMLInputElement>) => {
                         if (plan != null) {
-                            plan.repeats = evt.target.valueAsNumber
+                            plan.repeats = Math.max(1, Math.min(evt.target.valueAsNumber, 100))
                             this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
                         }
                     }
