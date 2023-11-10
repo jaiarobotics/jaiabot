@@ -612,9 +612,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     }
 
     // Active Goal
-    console.log(`bot.repeat_index = ${bot.repeat_index}`)
-    console.log(`bot.active_mission_plan = ${bot.active_mission_plan}`)
-
     var repeatNumberString = 'N/A'
     if (bot.repeat_index != null) {
         repeatNumberString = `${bot.repeat_index + 1}`
@@ -626,7 +623,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     let activeGoal = bot.active_goal ?? 'N/A'
     let distToGoal = bot.distance_to_active_goal ?? 'N/A'
-    let goalTimeout = bot.active_goal_timeout ?? 'N/A'
 
     if (activeGoal !== 'N/A' && distToGoal === 'N/A') {
         distToGoal = 'Distance To Goal > 1000'
@@ -635,10 +631,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     } else if (activeGoal === 'N/A' && distToGoal !== 'N/A') {
         activeGoal = 'Recovery'
         distToGoal = distToGoal + ' m'
-    }
-
-    if (activeGoal !== 'N/A') {
-        goalTimeout = goalTimeout + ' s'
     }
 
     // Distance from hub
@@ -782,10 +774,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <tr>
                                             <td>Active Goal</td>
                                             <td style={{whiteSpace: 'pre-line'}}>{activeGoal}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Active Goal Timeout</td>
-                                            <td style={{whiteSpace: 'pre-line'}}>{goalTimeout}</td>
                                         </tr>
                                         <tr>
                                             <td>Distance to Goal</td>
