@@ -72,6 +72,15 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         this.props.addDuplicateRun(goals)
     }
 
+    getBotName() {
+        if (this.props.run.assigned !== -1) {
+            return `Bot ${this.props.run.assigned}`
+        }
+        else {
+            return 'Unassigned'
+        }
+    }
+
     render() {
         let title = this.props.run.name
         let plan = this.props.run.command.plan
@@ -104,9 +113,14 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
+                    <div className='runTitleBar'>
                         <Typography className="title">
-                            {title}
+                            {this.props.run.name}
                         </Typography>
+                        <div className='botName'>
+                            {this.getBotName()}
+                        </div>
+                    </div>
                     </AccordionSummary>
                     <AccordionDetails>
                         <span className="runItemInfo">
