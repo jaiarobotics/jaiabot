@@ -26,6 +26,8 @@ except ModuleNotFoundError:
 except NotImplementedError:
     log.warning('NotImplementedError, so physical device not available')
     physical_device_available = False
+except serial.serialutil.SerialException:
+    log.warning('SerialException, so physical device not available')
 
 
 @dataclass
@@ -89,6 +91,11 @@ class Adafruit(IMU):
     def setup(self):
         if not self.is_setup:
             try:
+                uart.close()
+                # allow for the port to close
+                time.sleep(0.2)
+                uart.open()
+
                 log.warning('We are not setup')
 
                 self.sensor = BNO08X_UART(uart)
@@ -113,17 +120,8 @@ class Adafruit(IMU):
                 # Set the initial calibration status
                 self.calibration_status = None
 
-            except (OSError) as e:
+            except Exception as error:
                 self.is_setup = False
-                log.warning("Tried connecting, OSError, retry setting up driver")
-                raise e
-
-            except (serial.serialutil.SerialException) as se:
-                self.is_setup = False
-                log.warning("Tried connecting, SerialException, retry setting up driver")
-                raise se
-
-            except (RuntimeError, IndexError, KeyError, AttributeError) as error:
                 log.warning("Error trying to setup driver!")
             
 
@@ -179,17 +177,8 @@ class Adafruit(IMU):
                         calibration_status=calibration_status,
                         quaternion=quaternion)
 
-        except (OSError) as e:
-            self.is_setup = False
-            log.warning("Tried getting data, OSError, retry setting up driver")
-            raise e
-        
-        except (serial.serialutil.SerialException) as se:
-            self.is_setup = False
-            log.warning("Tried getting data, SerialException, retry setting up driver")
-            raise se
-        
-        except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+        except Exception as error:
+                self.is_setup = False
                 log.warning("Error trying to get data!")
     
 

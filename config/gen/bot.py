@@ -45,7 +45,7 @@ if "jaia_imu_type" in os.environ:
 if jaia_imu_type == "bno055":
     imu_detection_solution='RESTART_IMU_PY'
 elif jaia_imu_type == 'bno085':
-    imu_detection_solution='REBOOT_BNO085_IMU'
+    imu_detection_solution='RESTART_IMU_PY'
 else:
     imu_detection_solution='RESTART_IMU_PY'
 

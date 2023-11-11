@@ -65,7 +65,9 @@ class Analyzer:
         self.imu = imu
 
         def run():
-            self._sampleLoop()
+            # Need to look into why this is triggering exceptions
+            log.warning("Disabled for now... causing issue")
+            #self._sampleLoop()
 
         self._thread = Thread(target=run, name='acceleration-sampler')
         self._thread.daemon = True
