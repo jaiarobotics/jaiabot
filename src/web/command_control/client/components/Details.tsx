@@ -12,6 +12,7 @@ import { Command, CommandType, HubCommandType, BotStatus, MissionState } from '.
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
 
 // Style Imports
+import '../style/components/Details.less'
 import { 
     mdiPlay,
     mdiStop,
@@ -700,12 +701,22 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         clickOnMap = <h3 className='name'>Click edit toggle to create waypoints</h3>
     }
 
+    function getBotString() {
+        return `Bot ${bot.bot_id}`
+    }
+
+    function getRunString() {
+        const run = getBotRun(bot.bot_id, mission.runs)
+        return run?.name ?? 'No Run'
+    }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
                 <div className='botDetailsHeading'>
-                    <div className='HorizontalFlexbox'>
-                        <h2 className='name'>{`Bot ${bot?.bot_id}`}</h2>
+                    <div className='titleBar'>
+                        <h2 className='botName'>{getBotString()}</h2>
+                        <h4 className='runName'>{getRunString()}</h4>
                         <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
                     </div>
                     {clickOnMap}
