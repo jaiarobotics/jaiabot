@@ -44,7 +44,8 @@ void jaiabot::apps::ArduinoSimThread::loop()
 
     // publish arduino status
     jaiabot::protobuf::ArduinoResponse arduino_response;
-    arduino_response.set_status_code(1);
+    arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
+    arduino_response.set_version(1);
 
     // publish gps sky data
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)

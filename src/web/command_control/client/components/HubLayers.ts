@@ -69,7 +69,10 @@ export class HubLayers {
 
         newFeature.setId(hub.hub_id)
         newFeature.setStyle(Styles.hubMarker)
-        newFeature.set('hub', hub)
+        newFeature.setProperties({
+            'type': 'hub',
+            'hub': hub
+        })
 
         source.addFeature(newFeature)
     
@@ -82,12 +85,7 @@ export class HubLayers {
     
             // ID
             const hub_id = hub.hub_id
-            // Geometry
-            const hubLatitude = hub.location?.lat
-            const hubLongitude = hub.location?.lon
-            // Properties
-            const hubHeading = 0
-    
+
             const hubLayer = this.getHubLayer(hub_id)
             const hubSource = hubLayer.getSource()
             const hubFeature = this.getHubFeature(hub, this.map, hubSource)

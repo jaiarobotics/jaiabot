@@ -13,7 +13,7 @@ import { getElementById } from './shared/Utilities';
 interface Props {
     hubs: {[key: number]: PortalHubStatus}
     api: JaiaAPI
-	control: () => boolean
+	control: (onSuccess: () => void) => void
 }
 
 export default class ScanForBotPanel extends React.Component {
@@ -55,55 +55,55 @@ export default class ScanForBotPanel extends React.Component {
 
     submitScanForBot()
     {
-        if (!this.props.control()) return;
+        this.props.control(() => {
+            let botId = Number(getElementById<HTMLInputElement>("scan_for_bot_input").value)
+            info("Scan for BOT-ID: " + botId)
 
-        let botId = Number(getElementById<HTMLInputElement>("scan_for_bot_input").value)
-        info("Scan for BOT-ID: " + botId)
+            let hubs = this.props.hubs;
+            const hubKey = Object.keys(hubs)[0];
+            const hub = hubs[Number(hubKey)];
 
-        let hubs = this.props.hubs;
-        const hubKey = Object.keys(hubs)[0];
-        const hub = hubs[Number(hubKey)];
+            console.log(hub);
+            console.log(hub?.hub_id);
 
-        console.log(hub);
-        console.log(hub?.hub_id);
-
-        if (hub?.hub_id != null) {
-            let commandForHub: CommandForHub = {
-                hub_id: hub?.hub_id,
-                type: HubCommandType.SCAN_FOR_BOTS,
-                scan_for_bot_id: botId
-            }
-    
-            debug(JSON.stringify(commandForHub))
-    
-            this.props.api.postCommandForHub(commandForHub);
-        }
-    }
-
-    submitScanForAllBots()
-    {
-        if (!this.props.control()) return;
-
-        let hubs = this.props.hubs;
-        const hubKey = Object.keys(hubs)[0];
-        const hub = hubs[Number(hubKey)];
-
-        console.log(hub);
-        console.log(hub?.hub_id);
-
-        if (hub?.hub_id != null) {
-            for (let botId in hub?.bot_ids_in_radio_file)
-            {
+            if (hub?.hub_id != null) {
                 let commandForHub: CommandForHub = {
                     hub_id: hub?.hub_id,
                     type: HubCommandType.SCAN_FOR_BOTS,
-                    scan_for_bot_id: hub?.bot_ids_in_radio_file[botId]
+                    scan_for_bot_id: botId
                 }
         
                 debug(JSON.stringify(commandForHub))
         
                 this.props.api.postCommandForHub(commandForHub);
             }
-        }
+        })
+    }
+
+    submitScanForAllBots()
+    {
+        this.props.control(() => {
+            let hubs = this.props.hubs;
+            const hubKey = Object.keys(hubs)[0];
+            const hub = hubs[Number(hubKey)];
+
+            console.log(hub);
+            console.log(hub?.hub_id);
+
+            if (hub?.hub_id != null) {
+                for (let botId in hub?.bot_ids_in_radio_file)
+                {
+                    let commandForHub: CommandForHub = {
+                        hub_id: hub?.hub_id,
+                        type: HubCommandType.SCAN_FOR_BOTS,
+                        scan_for_bot_id: hub?.bot_ids_in_radio_file[botId]
+                    }
+            
+                    debug(JSON.stringify(commandForHub))
+            
+                    this.props.api.postCommandForHub(commandForHub);
+                }
+            }
+        })
     }
 }

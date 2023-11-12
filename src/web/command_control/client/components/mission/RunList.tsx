@@ -1,56 +1,92 @@
 import React from 'react';
-import { PortalBotStatus } from '../shared/PortalStatus';
 import RunItem from './RunItem';
-import { MissionInterface, RunInterface } from '../CommandControl';
+import { adjustAccordionScrollPosition } from '../../../../shared/Utilities'
+import { RunInterface } from '../CommandControl';
+import { Goal } from '../shared/JAIAProtobuf'
 
-interface Props {
-    bots: {[key: number]: PortalBotStatus}
-    mission: MissionInterface
-    loadMissionClick: any,
-    saveMissionClick: any,
-    deleteAllRunsInMission: any,
+type RunListProps = {
+    botIds: number[]
+    botsNotAssignedToRuns: number[]
+    runIdInEditMode: string
+    runs: {[key: string]: RunInterface}
+    loadMissionClick: any
+    saveMissionClick: any
+    deleteAllRunsInMission: any
     autoAssignBotsToRuns: any
-    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+
+    handleBotAssignChange: (prevBotId: number, newBotId: number, runId: string) => void
     unSelectHubOrBot: () => void
+    addDuplicateRun: (goals: Goal[]) => void
+    deleteSingleRun: (runId: string) => void
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
 
-interface State {
+type RunListState = {
+    openRunPanels: {[runId: string]: boolean}
+    runIdInEditMode: string
 }
 
-export default class RunList extends React.Component {
-
-  props: Props
-	state: State
-
-    constructor(props: Props) {
-        super(props)
-
-        this.state = {
-        }
-
-        this.props = props
+export default class RunList extends React.Component<RunListProps, RunListState> {
+    state: RunListState = {
+        openRunPanels: {},
+        runIdInEditMode: ''
     }
 
-    render() { 
-        let self = this;
-        const emptyMission = Object.keys(this.props.mission.runs).length == 0
-        
+    componentDidUpdate() {
+        if (this.props.runIdInEditMode !== this.state.runIdInEditMode) {
+            let openRunPanels = {...this.state.openRunPanels}
+            openRunPanels[this.props.runIdInEditMode] = true
+            this.setState({ 
+                openRunPanels, 
+                runIdInEditMode: this.props.runIdInEditMode 
+            })
+            if (this.props.runIdInEditMode !== '') {
+                const runItemElement = document.getElementById(
+                    `run-accordion-${this.props.runIdInEditMode.split('-')[1]}`
+                )
+                setTimeout(() => {
+                    adjustAccordionScrollPosition('runList', runItemElement)
+                }, 30)
+            }
+        }
+    }
+
+    initRunPanelStates() {
+        const runIdInEditMode = this.props.runIdInEditMode
+        const openRunPanels = {
+            runIdInEditMode: true
+        }
+        this.setState({ openRunPanels })
+    }
+
+    setOpenRunPanels(openRunPanels: {[runId: string]: boolean}) {
+        let updatedOpenRunPanels = {...openRunPanels}
+        this.setState({ openRunPanels: updatedOpenRunPanels })
+    }
+
+    render() {
         return (
             <div id="runList">
                 {
-                    Object.entries(this.props?.mission?.runs).map(([key, value]) => 
+                    Object.entries(this.props.runs).map(([key, value]) => 
                         <React.Fragment key={key}>
                             <RunItem 
-                                bots={self.props.bots} 
+                                botIds={this.props.botIds} 
+                                botsNotAssignedToRuns={this.props.botsNotAssignedToRuns}
+                                runIdInEditMode={this.props.runIdInEditMode}
                                 run={value} 
-                                mission={self.props.mission}
-                                toggleEditMode={self.props.toggleEditMode}
-                                unSelectHubOrBot={self.props.unSelectHubOrBot}
+                                openRunPanels={this.state.openRunPanels}
+                                setOpenRunPanels={this.setOpenRunPanels.bind(this)}
+                                handleBotAssignChange={this.props.handleBotAssignChange}
+                                unSelectHubOrBot={this.props.unSelectHubOrBot}
+                                addDuplicateRun={this.props.addDuplicateRun}
+                                deleteSingleRun={this.props.deleteSingleRun}
+                                toggleEditMode={this.props.toggleEditMode}
                             />
                         </React.Fragment>
                     )
                 }
             </div>
-        );
+        )
     }
-  }
+}
