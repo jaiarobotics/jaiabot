@@ -79,7 +79,6 @@ export class JaiaAPI {
   getStatus() { return this.get('jaia/status') }
 
   /**
-   * 
    * @param startDate yyyy-mm-dd hh:mm
    * @param endDate yyyy-mm-dd hh:mm
    * @returns Array of TaskPackets
@@ -89,6 +88,9 @@ export class JaiaAPI {
         const startDateStr = convertHTMLStrDateToISO(startDate)
         const endDateStr = convertHTMLStrDateToISO(endDate)
         return this.get(`jaia/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else if (startDate && !endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        return this.get(`jaia/task-packets?startDate=${startDateStr}`)
     } else {
         // Let server set default date values
         return this.get(`jaia/task-packets`)

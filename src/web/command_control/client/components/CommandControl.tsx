@@ -2129,12 +2129,12 @@ export default class CommandControl extends React.Component {
 			}).catch((err) => {
 				console.error('Task Packets Retrieval Error:', err)
 			})
-			// Set "Keep End Date Current" checkbox to checked
-			taskPacketsTimeline.keepEndDateCurrent = true
+			this.resetTaskPacketsTimeline(false)
+		} else {
+			// Trigger the calendar view to open
+			taskPacketsTimeline.isEditing = true
+			this.setState({ taskPacketsTimeline })
 		}
-
-		taskPacketsTimeline.isEditing = !this.state.taskPacketsTimeline.isEditing
-		this.setState({ taskPacketsTimeline })
 	}
 
 	handleTaskPacketsTimelineChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -2171,8 +2171,9 @@ export default class CommandControl extends React.Component {
 
 		let end = ''
 
+		// 'Keep End Date Current' checkbox is not checked
 		if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
-			end = this.state.taskPacketsTimeline.end as string
+			end = taskPacketsTimeline.end as string
 		}
 
 		this.api.getTaskPackets(
@@ -2191,8 +2192,21 @@ export default class CommandControl extends React.Component {
 
 	handleKeepEndDateCurrentToggle() {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
-		taskPacketsTimeline.keepEndDateCurrent = !this.state.taskPacketsTimeline.keepEndDateCurrent
-		this.setState({ taskPacketsTimeline })
+		// Checkbox goes from unchecked to checked
+		// Keep start but reset end to now (by passing no argument for endDate)
+		if (!taskPacketsTimeline.keepEndDateCurrent) {
+			this.api.getTaskPackets(taskPacketsTimeline.start as string).then((taskPackets) => {
+				this.setTaskPackets(taskPackets)
+				taskData.updateTaskPacketsLayers(taskPackets)
+				this.resetTaskPacketsTimeline(true)
+			}).catch((err) => {
+				console.error('Task Packets Retrieval Error:', err)
+			})
+		} else {
+			// Uncheck the checkbox
+			taskPacketsTimeline.keepEndDateCurrent = false
+			this.setState({ taskPacketsTimeline })
+		}
 	}
 
 	isTaskPacketsSendBtnDisabled() {
@@ -2208,6 +2222,18 @@ export default class CommandControl extends React.Component {
 		}
 		return false
     }
+
+	resetTaskPacketsTimeline(isEditing: boolean) {
+		// Make update before the next poll occurs
+		let forceDateChange = {start: true, end: true}
+		if (isEditing) {
+			forceDateChange.start = false
+		}
+		let updatedTaskPacketsTimeline = this.setTaskPacketDates(forceDateChange)
+		updatedTaskPacketsTimeline.isEditing = isEditing
+		updatedTaskPacketsTimeline.keepEndDateCurrent = true
+		this.setState({ taskPacketsTimeline: updatedTaskPacketsTimeline })
+	}
 
 	getTaskPackets() {
 		return this.taskPackets
@@ -2225,21 +2251,31 @@ export default class CommandControl extends React.Component {
 		this.taskPacketsCount = count
 	}
 
-	setTaskPacketDates() {
+	/**
+	 * Update the TaskPacket date values held in state
+	 * @param forceDateChange {start: booleaan, end: boolean}
+	 * 						  special case where we need to change the calendar display 
+	 * 						  before next poll completes
+	 * @returns taskPacketsTimeline
+	 */
+	setTaskPacketDates(forceDateChange?: {[type: string]: boolean}) {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		
 		// Operator does not want the dates they set to change
-		if (taskPacketsTimeline.isEditing && !taskPacketsTimeline.keepEndDateCurrent) {
-			return
-		}
+		if (
+			taskPacketsTimeline.isEditing 
+			&& !taskPacketsTimeline.keepEndDateCurrent
+			&& !forceDateChange
+		) { return }
 
-		// Operator wants end date to stay current
+		// Make end date current
 		const endDate = new Date()
 		taskPacketsTimeline.endDate = getHTMLDateString(endDate)
 		taskPacketsTimeline.endTime = getHTMLTimeString(endDate)
+		taskPacketsTimeline.end = `${taskPacketsTimeline.endDate} ${taskPacketsTimeline.endTime}`
 
-		// Operator wants start date to maintain the default gap with end date
-		if (!taskPacketsTimeline.isEditing) {
+		// Make start date current
+		if (!taskPacketsTimeline.isEditing || forceDateChange?.start) {
 			let startDate = new Date()
 			const defaultTimeGap = 14
 			startDate.setHours(endDate.getHours() - defaultTimeGap)
@@ -2249,6 +2285,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ taskPacketsTimeline })
+		return taskPacketsTimeline
 	}
 	// 
 	// Task Packets (End)
