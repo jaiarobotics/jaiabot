@@ -143,7 +143,7 @@ class Adafruit(IMU):
                     # Set the calibration status to save when we are not querying a 
                     # new calibration status
                     self.calibration_status = calibration_status
-                except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                except Exception as error:
                     log.warning("Error trying to get calibration status!")
                 self.check_cal_time = time.time()  # Reset the start time
             else:
