@@ -402,7 +402,64 @@ class LogApp extends React.Component {
       let hovertext = series.series_y.map(y => series.hovertext?.[y])
 
       // Set the y-axis for this plot
-      layout['yaxis' + (plot_index + 1)] = {title : series.y_axis_title}
+      function wrapLines(text: string, maxLength=30, splitChars=['/', ' ']) {
+        // Get components that include the splitChars
+        var components: string[] = []
+        var newComponent = true
+
+        for (let characterIndex=0; characterIndex < text.length; characterIndex ++) {
+          if (newComponent) {
+            components.push('')
+          }
+
+          const c = text[characterIndex]
+          components[components.length - 1] = components[components.length - 1].concat(c)
+
+          if (splitChars.includes(c)) {
+            newComponent = true
+          }
+          else {
+            newComponent = false
+          }
+        }
+
+        console.log('components')
+        console.log(components)
+
+        // Concat the components, with <br> if necessary
+        var lines: string[] = []
+        var line = ''
+        
+        for (const component of components) {
+          if (component.length > maxLength) {
+            if (line.length > 0) {
+              lines.push(line)
+            }
+            lines.push(component)
+            continue
+          }
+
+          if (line.length + component.length > maxLength) {
+            lines.push(line)
+            line = component
+            continue
+          }
+
+          line = line.concat(component)
+        }
+
+        if (line.length > 0) {
+          lines.push(line)
+        }
+
+        console.log('lines')
+        console.log(lines)
+
+        return lines.join('<br>')
+      }
+
+      const y_axis_title = wrapLines(series.y_axis_title.replaceAll('\n', '<br>'))
+      layout['yaxis' + (plot_index + 1)] = {title : y_axis_title}
 
       // Add to the data array
       let yaxis = 'y' + (plot_index + 1)

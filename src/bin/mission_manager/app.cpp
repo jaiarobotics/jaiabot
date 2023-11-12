@@ -539,6 +539,12 @@ void jaiabot::apps::MissionManager::loop()
         report.set_data_offload_percentage(data_offload->data_offload_percentage());
     }
 
+    // Relay the repeat_index
+    if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
+    {
+        report.set_repeat_index(in_mission->repeat_index());
+    }
+
     // only report the goal index when not in recovery
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
