@@ -67,8 +67,13 @@ function TaskOptionsPanel(props: Props) {
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
-        const value = fmod(Number(target.value ?? ''), 360)
 
+        let value = Number(target.value)
+
+        if (key == 'constant_heading') {
+            value = fmod(value, 360)
+        }
+ 
         var newTask = deepcopy(task)
         newTask.constant_heading[key] = value
 
