@@ -1282,7 +1282,7 @@ export default class CommandControl extends React.Component {
 			console.error('Invalid runId passed to deleteSingleRun\n', err)
 		}
 		
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = {...this.pushRunListToUndoStack().getRunList()}
 		const selectedBotId = this.selectedBotId()
 		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 	
@@ -1294,6 +1294,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
+			this.setRunList(runList)
 		})
 	}
 
