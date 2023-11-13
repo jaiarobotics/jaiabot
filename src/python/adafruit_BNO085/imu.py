@@ -178,8 +178,7 @@ class Adafruit(IMU):
                         quaternion=quaternion)
 
         except Exception as error:
-                self.is_setup = False
-                log.warning("Error trying to get data!")
+            log.warning("Error trying to get data!")
     
 
 class Simulator(IMU):
