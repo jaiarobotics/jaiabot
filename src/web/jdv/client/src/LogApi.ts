@@ -23,6 +23,20 @@ function downloadURL(url: string, filename: string='filename', mimeType: string=
 }
 
 
+
+/**
+ * Response for the GET logs endpoint
+ * @date 11/12/2023 - 10:26:05 PM
+ *
+ * @interface GetLogsResponse
+ * @typedef {GetLogsResponse}
+ */
+interface GetLogsResponse {
+  availableSpace: number
+  logs: Log[]    
+}
+
+
 export class LogApi {
 
   // Do a JSON GET request
@@ -86,7 +100,7 @@ export class LogApi {
   }
 
   // Gets all of the logs and associated metadata for each
-  static get_logs(): Promise<Log[]> { return this.get_json('/logs') }
+  static get_logs(): Promise<GetLogsResponse> { return this.get_json('/logs') }
 
   static get_paths(logs: string[], root_path: string) {
     var url = new URL('paths', window.location.origin)

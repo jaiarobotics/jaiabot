@@ -59,7 +59,8 @@ interface LogSelectorProps {
 }
 
 interface LogSelectorState {
-    log_dict: LogDict
+    logDict: LogDict
+    availableSpace: number
     fleetFilter: string
     botFilter: string
     fromDate: string
@@ -79,7 +80,8 @@ export default class LogSelector extends React.Component {
         super(props)
 
         this.state = {
-            log_dict: {},
+            logDict: {},
+            availableSpace: null,
             fleetFilter: localStorage.getItem("fleetFilter"),
             botFilter: localStorage.getItem("botFilter"),
             fromDate: localStorage.getItem("fromDate"),
@@ -159,9 +161,43 @@ export default class LogSelector extends React.Component {
                 <div className="list">{logItems}</div>
             </div>
 
+            <div className="section">
+                <div>{this.availableSpaceString()} available</div>
+            </div>
+
             { this.buttonsElement() }
           </div>
         )
+    }
+
+    availableSpaceString() {
+        if (this.state.availableSpace == null) {
+            return 'Unknown'
+        }
+
+        var valueString = '0'
+        var unitsString = 'MB'
+
+        interface Unit {
+            size: number
+            units: string
+        }
+
+        const unitsArray: Unit[] = [
+            { size: 1e12, units: 'Gbytes' },
+            { size: 1e9, units: 'Gbytes' },
+            { size: 1e6, units: 'Mbytes' },
+            { size: 1e3, units: 'kbytes' },
+            { size: 1, units: 'bytes' },
+        ]
+
+        for (const unit of unitsArray) {
+            if (this.state.availableSpace >= unit.size) {
+                return `${(this.state.availableSpace / unit.size).toFixed(1)} ${unit.units}`
+            }
+        }
+
+        return '0 bytes'
     }
 
     logRowElement(log: Log) {
@@ -229,7 +265,7 @@ export default class LogSelector extends React.Component {
     }
 
     getFilteredLogs(): Log[] {
-        const { fromDate, toDate, log_dict } = this.state
+        const { fromDate, toDate, logDict: log_dict } = this.state
 
         function stringToTimestamp(str: string) {
             if (str == null) return null
@@ -319,7 +355,7 @@ export default class LogSelector extends React.Component {
     }
 
     fleet_option_elements() {
-        return this.dict_options(this.state.log_dict)
+        return this.dict_options(this.state.logDict)
     }
 
     did_select_fleet(evt: Event) {
@@ -333,7 +369,7 @@ export default class LogSelector extends React.Component {
             return null
         }
         else {
-            return this.dict_options(this.state.log_dict[this.state.fleetFilter])
+            return this.dict_options(this.state.logDict[this.state.fleetFilter])
         }
     }
 
@@ -390,9 +426,9 @@ export default class LogSelector extends React.Component {
     }
 
     refreshLogs() {
-        LogApi.get_logs().then((logs) => {
-            const log_dict = LogSelector.log_dict(logs)
-            this.setState({log_dict})
+        LogApi.get_logs().then((response) => {
+            const log_dict = LogSelector.log_dict(response.logs)
+            this.setState({log_dict, availableSpace: response.availableSpace})
 
             if (this.state.fleetFilter && log_dict[this.state.fleetFilter] == null) {
                 this.setFleetFilter(null)
