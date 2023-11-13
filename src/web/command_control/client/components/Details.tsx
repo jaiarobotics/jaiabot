@@ -8,7 +8,7 @@ import { GlobalSettings } from './Settings';
 import { error, warning, info} from '../libs/notifications';
 import { MissionInterface, RunInterface } from './CommandControl';
 import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
-import { Command, CommandType, HubCommandType, BotStatus, MissionState } from './shared/JAIAProtobuf';
+import { Command, CommandType, HubCommandType, BotStatus, MissionState, HubStatus } from './shared/JAIAProtobuf';
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
 
 // Style Imports
@@ -24,7 +24,8 @@ import {
     mdiRestartAlert,
     mdiRouterWireless,
     mdiDatabaseEyeOutline,
-    mdiCheckboxMarkedCirclePlusOutline
+    mdiCheckboxMarkedCirclePlusOutline,
+    mdiUpdate
 } from '@mdi/js'
 import { Icon } from '@mdi/react'
 import { ThemeProvider, createTheme } from '@mui/material';
@@ -1302,6 +1303,20 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                     }
                                 >
                                     <Icon path={mdiRouterWireless} title="Router"></Icon>
+                                </Button>
+                                <Button className="button-jcc" onClick={() => 
+                                        {
+                                            const hubId = 10 + hub?.hub_id
+                                            const fleetId = getFleetId()
+
+                                            if (fleetId != undefined) {
+                                                const url = `http://10.23.${fleetId}.${hubId}:9091`
+                                                window.open(url, '_blank')
+                                            }
+                                        }
+                                    }
+                                >
+                                    <Icon path={mdiUpdate} title="Upgrade"></Icon>
                                 </Button>
                             </AccordionDetails>
                         </Accordion>
