@@ -1244,16 +1244,16 @@ export default class CommandControl extends React.Component {
 	// 
 	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 		return new Promise((resolve, reject) => {
+			let updatedMission = {...mission}
 			const doDelete = () => {
-				const runs = mission.runs
-				for (const run of Object.values(runs)) {
-					const runNumber = Number(run.id.substring(4)) // run.id => run-x
-						delete mission.runs[run.id]
-						delete mission.botsAssignedToRuns[run.assigned]
+				for (const run of Object.values(mission.runs)) {
+					delete updatedMission.runs[run.id]
+					delete updatedMission.botsAssignedToRuns[run.assigned]
 				}
-				mission.runIdIncrement = 1
-				mission.runIdInEditMode = ''
-	
+				updatedMission.runIdIncrement = 1
+				updatedMission.runIdInEditMode = ''
+				this.setRunList(updatedMission)
+
 				resolve(true)			
 			}
 	
@@ -1665,6 +1665,9 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
+
+		// Prevent error after operator deletes an unassigned run and then clicks on the map
+		if (!run) { return }
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
