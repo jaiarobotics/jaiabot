@@ -886,7 +886,11 @@ export default class CommandControl extends React.Component {
 	hubConnectionError(errMsg: String) {
 		this.setState({ disconnectionMessage: "Connection Dropped To HUB" })
 		console.error(errMsg)
-		clearInterval(this.podStatusPollId) // Clear regular poll from running alongside error poll
+		
+		// Clear regular poll from running alongside error poll
+		clearInterval(this.podStatusPollId)
+		this.podStatusPollId = null
+
 		if (!this.podStatusErrorPollId) {
 			this.podStatusErrorPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_ERROR_POLL_INTERVAL)
 		}
