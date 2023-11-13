@@ -247,7 +247,6 @@ export default class CommandControl extends React.Component {
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
-	podStatusErrorPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 
@@ -421,7 +420,6 @@ export default class CommandControl extends React.Component {
 		})
 
 		this.podStatusPollId = null
-		this.podStatusErrorPollId = null
 		this.metadataPollId = null
 		this.taskPackets = []
 		this.taskPacketsCount = 0
@@ -840,18 +838,12 @@ export default class CommandControl extends React.Component {
 				}
 			},
 			(err) => {
-				console.log("Error response")
 				this.hubConnectionError(err.message)
 			}
 		)
-		// Handles inital poll and restart after error
-		if (!this.podStatusPollId && !this.state.disconnectionMessage) {
+		// Starts polling interval
+		if (!this.podStatusPollId) {
 			this.podStatusPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_POLL_INTERVAL)
-		}
-		// Clears poll used during error state
-		if (this.podStatusErrorPollId && !this.state.disconnectionMessage) {
-			clearInterval(this.podStatusErrorPollId)
-			this.podStatusErrorPollId = null
 		}
 	}
 
@@ -886,14 +878,6 @@ export default class CommandControl extends React.Component {
 	hubConnectionError(errMsg: String) {
 		this.setState({ disconnectionMessage: "Connection Dropped To HUB" })
 		console.error(errMsg)
-		
-		// Clear regular poll from running alongside error poll
-		clearInterval(this.podStatusPollId)
-		this.podStatusPollId = null
-
-		if (!this.podStatusErrorPollId) {
-			this.podStatusErrorPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_ERROR_POLL_INTERVAL)
-		}
 	}
 
 	getPodStatus() {
