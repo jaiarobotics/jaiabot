@@ -12,6 +12,7 @@ import { Command, CommandType, HubCommandType, BotStatus, MissionState } from '.
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
 
 // Style Imports
+import '../style/components/Details.less'
 import { 
     mdiPlay,
     mdiStop,
@@ -612,9 +613,17 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     }
 
     // Active Goal
+    var repeatNumberString = 'N/A'
+    if (bot.repeat_index != null) {
+        repeatNumberString = `${bot.repeat_index + 1}`
+
+        if (bot.active_mission_plan?.repeats != null) {
+            repeatNumberString = repeatNumberString + ` of ${bot.active_mission_plan?.repeats}`
+        }
+    }
+
     let activeGoal = bot.active_goal ?? 'N/A'
     let distToGoal = bot.distance_to_active_goal ?? 'N/A'
-    let goalTimeout = bot.active_goal_timeout ?? 'N/A'
 
     if (activeGoal !== 'N/A' && distToGoal === 'N/A') {
         distToGoal = 'Distance To Goal > 1000'
@@ -623,10 +632,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     } else if (activeGoal === 'N/A' && distToGoal !== 'N/A') {
         activeGoal = 'Recovery'
         distToGoal = distToGoal + ' m'
-    }
-
-    if (activeGoal !== 'N/A') {
-        goalTimeout = goalTimeout + ' s'
     }
 
     // Distance from hub
@@ -696,12 +701,22 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         clickOnMap = <h3 className='name'>Click edit toggle to create waypoints</h3>
     }
 
+    function getBotString() {
+        return `Bot ${bot.bot_id}`
+    }
+
+    function getRunString() {
+        const run = getBotRun(bot.bot_id, mission.runs)
+        return run?.name ?? 'No Run'
+    }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
                 <div className='botDetailsHeading'>
-                    <div className='HorizontalFlexbox'>
-                        <h2 className='name'>{`Bot ${bot?.bot_id}`}</h2>
+                    <div className='titleBar'>
+                        <h2 className='botName'>{getBotString()}</h2>
+                        <h4 className='runName'>{getRunString()}</h4>
                         <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
                     </div>
                     {clickOnMap}
@@ -764,12 +779,12 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                             <td>{bot.battery_percent?.toFixed(prec)} %</td>
                                         </tr>
                                         <tr>
-                                            <td>Active Goal</td>
-                                            <td style={{whiteSpace: 'pre-line'}}>{activeGoal}</td>
+                                            <td>Repeat Number</td>
+                                            <td style={{whiteSpace: 'pre-line'}}>{repeatNumberString}</td>
                                         </tr>
                                         <tr>
-                                            <td>Active Goal Timeout</td>
-                                            <td style={{whiteSpace: 'pre-line'}}>{goalTimeout}</td>
+                                            <td>Active Goal</td>
+                                            <td style={{whiteSpace: 'pre-line'}}>{activeGoal}</td>
                                         </tr>
                                         <tr>
                                             <td>Distance to Goal</td>

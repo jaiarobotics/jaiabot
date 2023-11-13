@@ -110,6 +110,13 @@ message MissionReport
             precision: 0
         }
     ];
+    optional int32 repeat_index = 16 [
+        (dccl.field) = {
+            min: 0
+            max: 1000
+            precision: 0
+        }
+    ];
 }
 
 message MissionTask
