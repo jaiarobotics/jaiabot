@@ -184,7 +184,7 @@ export default class LogSelector extends React.Component {
         }
 
         const unitsArray: Unit[] = [
-            { size: 1e12, units: 'Gbytes' },
+            { size: 1e12, units: 'Tbytes' },
             { size: 1e9, units: 'Gbytes' },
             { size: 1e6, units: 'Mbytes' },
             { size: 1e3, units: 'kbytes' },
