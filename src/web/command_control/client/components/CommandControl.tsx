@@ -88,7 +88,6 @@ const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
 const POD_STATUS_POLL_INTERVAL = 1000
-const POD_STATUS_ERROR_POLL_INTERVAL = 2500
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5000
 const MAX_GOALS = 30
