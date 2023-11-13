@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { ChangeEvent } from 'react';
 
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -17,6 +18,8 @@ import EditModeToggle from '../EditModeToggle';
 import { Goal } from '../shared/JAIAProtobuf';
 import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
+import { jaiaAPI } from '../../../common/JaiaAPI';
+import './RunItem.less'
 
 type RunItemProps = {
     botIds: number[]
@@ -69,10 +72,33 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         this.props.addDuplicateRun(goals)
     }
 
+    getBotName() {
+        if (this.props.run.assigned !== -1) {
+            return `Bot ${this.props.run.assigned}`
+        }
+        else {
+            return 'Unassigned'
+        }
+    }
+
     render() {
         let title = this.props.run.name
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
+        let repeatsInput = (
+            <div className='repeats-input'>
+                <div>Repeats (1-100)</div>
+                <input type="number" className='NumberInput' id="repeats" name="repeats" min="1" max="100" value={repeats} onChange={
+                    (evt: ChangeEvent<HTMLInputElement>) => {
+                        if (plan != null) {
+                            plan.repeats = Math.max(1, Math.min(evt.target.valueAsNumber, 100))
+                            // Force update, because I don't want to add repeats to the State. I want a single source of truth.
+                            this.forceUpdate() 
+                        }
+                    }
+                } />
+            </div>
+        )
 
         return (
             <ThemeProvider theme={this.makeAccordionTheme()}>
@@ -87,9 +113,14 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
+                    <div className='runTitleBar'>
                         <Typography className="title">
-                            {title}
+                            {this.props.run.name}
                         </Typography>
+                        <div className='botName'>
+                            {this.getBotName()}
+                        </div>
+                    </div>
                     </AccordionSummary>
                     <AccordionDetails>
                         <span className="runItemInfo">
@@ -119,23 +150,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                             />
                         </span>
                         <div>
-                            Repeats: {repeats}
-                            <Slider
-                                id="runRepeats"
-                                aria-label="Repeats"
-                                value={repeats}
-                                valueLabelDisplay="auto"
-                                step={1}
-                                marks
-                                min={1}
-                                max={10}
-                                onChange={(evt: Event, value: number, activeThumb: number) => {
-                                    if (plan != null) {
-                                        plan.repeats = value
-                                        this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
-                                    }
-                                }}
-                            />
+                            {repeatsInput}
                         </div>
                     </AccordionDetails>
                 </Accordion>

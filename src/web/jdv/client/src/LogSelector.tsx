@@ -60,8 +60,8 @@ interface LogSelectorProps {
 
 interface LogSelectorState {
     log_dict: LogDict
-    fleet: string
-    bot: string
+    fleetFilter: string
+    botFilter: string
     fromDate: string
     toDate: string
     selectedLogs: {[key: string]: Log}
@@ -80,14 +80,25 @@ export default class LogSelector extends React.Component {
 
         this.state = {
             log_dict: {},
-            fleet: localStorage.getItem("fleet"),
-            bot: localStorage.getItem("bot"),
+            fleetFilter: localStorage.getItem("fleetFilter"),
+            botFilter: localStorage.getItem("botFilter"),
             fromDate: localStorage.getItem("fromDate"),
             toDate: localStorage.getItem("toDate"),
             selectedLogs: {}
         }
 
         this.refreshLogs()
+    }
+
+    setFleetFilter(fleetFilter: string) {
+        this.setState({fleetFilter: fleetFilter, botFilter: null, selectedLogs: {}})
+        save('fleetFilter', fleetFilter)
+        this.setBotFilter(null)
+    }
+
+    setBotFilter(botFilter: string) {
+        this.setState({botFilter, selectedLogs: {}})
+        save('botFilter', botFilter)
     }
 
     render() {
@@ -125,12 +136,12 @@ export default class LogSelector extends React.Component {
                 <div className="horizontal flexbox equal" style={{justifyContent: "space-between", alignItems: "center"}}>
 
                     Fleet
-                    <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
+                    <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)} value={this.state.fleetFilter ?? undefined}>
                     {this.fleet_option_elements()}
                     </select>
 
                     Bot
-                    <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
+                    <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} value={this.state.botFilter ?? undefined}>
                     {this.bot_option_elements()}
                     </select>
 
@@ -213,7 +224,7 @@ export default class LogSelector extends React.Component {
         }
     }
 
-    clearLogs() {
+    clearSelectedLogs() {
         this.setState({selectedLogs: {}})
     }
 
@@ -238,12 +249,12 @@ export default class LogSelector extends React.Component {
         var log_array: Log[] = []
 
         for (const fleet in log_dict) {
-            if (this.state.fleet != null && this.state.fleet != fleet) continue;
+            if (this.state.fleetFilter != null && this.state.fleetFilter != fleet) continue;
 
             const fleet_dict = log_dict[fleet]
 
             for (const bot in fleet_dict) {
-                if (this.state.bot != null && this.state.bot != bot) continue;
+                if (this.state.botFilter != null && this.state.botFilter != bot) continue;
 
                 const bot_dict = fleet_dict[bot]
 
@@ -289,7 +300,7 @@ export default class LogSelector extends React.Component {
      * @returns The array of <option> elements
      */
     dict_options(dict: {[key: string]: any}): ReactElement[] {
-        let first_option = <option key={"all"}>All</option>
+        let first_option = <option key="all">All</option>
 
         if (!dict) {
             return [ first_option ]            
@@ -312,45 +323,24 @@ export default class LogSelector extends React.Component {
     }
 
     did_select_fleet(evt: Event) {
-        var fleet = this.state.fleet
         let target = evt.target as HTMLSelectElement
-
-        if (target.selectedIndex == 0) {
-            fleet = null
-        }
-        else {
-            fleet = target.value
-        }
-        this.setState({fleet})
-        save("fleet", fleet)
-
-        this.clearLogs()
-
+        const fleetFilter = (target.selectedIndex != 0) ? target.value : null
+        this.setFleetFilter(fleetFilter)
     }
 
     bot_option_elements() {
-        if (this.state.fleet == null) {
+        if (this.state.fleetFilter == null) {
             return null
         }
         else {
-            return this.dict_options(this.state.log_dict[this.state.fleet])
+            return this.dict_options(this.state.log_dict[this.state.fleetFilter])
         }
     }
 
     did_select_bot(evt: Event) {
-        var bot = this.state.bot
         let target = evt.target as HTMLSelectElement
-
-        if (target.selectedIndex == 0) {
-            bot = null
-        }
-        else {
-            bot = target.value
-        }
-        this.setState({bot})
-        save("bot", bot)
-
-        this.clearLogs()
+        const botFilter = target.selectedIndex == 0 ? null : target.value
+        this.setBotFilter(botFilter)
     }
 
     fromDateChanged(evt: Event) {
@@ -404,8 +394,8 @@ export default class LogSelector extends React.Component {
             const log_dict = LogSelector.log_dict(logs)
             this.setState({log_dict})
 
-            if (!(this.state.fleet in Object.keys(log_dict))) {
-                this.setState({fleet: Object.keys(log_dict)[0]})
+            if (this.state.fleetFilter && log_dict[this.state.fleetFilter] == null) {
+                this.setFleetFilter(null)
             }
         })
     }
