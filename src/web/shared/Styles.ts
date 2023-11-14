@@ -366,7 +366,6 @@ export function getGoalStyle(feature: Feature<Point>) {
 
 /**
  * Gets the style to apply to the waypoint circle layer
- * @date 10/25/2023 - 12:29:46 PM
  *
  * @export
  * @param {Feature<Point>} feature The waypoint circle feature
@@ -525,6 +524,16 @@ export function driftSpeedToBinIndex(driftSpeed: number) {
 }
 
 
+
+/**
+ * Returns an OpenLayers Style for the given Feature
+ * @date 11/14/2023 - 3:35:06 PM
+ *
+ * @export
+ * @param {Feature} feature Input drift packet feature
+ * @param {?string} [animatedColor] String indicating what kind of animated image to use.  Set to `black` if you want the animated version of the drift icon.
+ * @returns {*} OpenLayers Style for this drift icon
+ */
 export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     let binNumber = driftSpeedToBinIndex(feature.get('speed'))
     const maxBins = 6
