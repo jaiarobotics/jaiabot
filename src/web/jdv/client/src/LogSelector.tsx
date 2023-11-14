@@ -170,6 +170,15 @@ export default class LogSelector extends React.Component {
         )
     }
 
+    
+    /**
+     * Returns a user-readable description of the available storage space
+     * @date 11/14/2023 - 2:42:08 PM
+     *
+     * @returns {string} Available storage space as a string
+     * @example 2.3 Mbytes
+     * @example 843.5 Gbytes
+     */
     availableSpaceString() {
         if (this.state.availableSpace == null) {
             return 'Unknown'
@@ -264,6 +273,11 @@ export default class LogSelector extends React.Component {
         this.setState({selectedLogs: {}})
     }
 
+    
+    /**
+     * Returns a list of Log objects, filtered using the current user-specified filter set
+     * @returns {Log[]} An array of filtered logs
+     */
     getFilteredLogs(): Log[] {
         const { fromDate, toDate, logDict } = this.state
 
@@ -310,7 +324,25 @@ export default class LogSelector extends React.Component {
         return log_array
     }
 
-    static logDict(logs: Log[]) {
+    
+    /**
+     * Takes a list of Log objects, and organizes them into a nested index dictionary with fleet and bot keys
+     * @static
+     * @param {Log[]} logs An array of logs to organize into an index dictionary
+     * @returns {LogDict} A nested index dictionary, organizing the input logs by fleet and bot
+     * @note Returns an object organized like so:
+     * 
+     * `{
+     *   "fleet0": {
+     *     "bot0": [Log],
+     *     "bot1": [Log]
+     *   },
+     *   "fleet1": {
+     *     "bot3": [Log]
+     *   }
+     * }`
+     */
+    static getLogDictFromLogList(logs: Log[]) {
         var logDict: LogDict = {}
 
         for (let log of logs) {
@@ -425,9 +457,13 @@ export default class LogSelector extends React.Component {
         }
     }
 
+    
+    /**
+     * Calls the API to get the list of logs, updating the GUI accordingly
+     */
     refreshLogs() {
         LogApi.get_logs().then((response) => {
-            const logDict = LogSelector.logDict(response.logs)
+            const logDict = LogSelector.getLogDictFromLogList(response.logs)
             this.setState({logDict, availableSpace: response.availableSpace})
 
             if (this.state.fleetFilter && logDict[this.state.fleetFilter] == null) {
