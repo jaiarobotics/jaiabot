@@ -1226,26 +1226,36 @@ export default class CommandControl extends React.Component {
 	// Run Mission (End)
 	// 
 
-	// 
-	// Delete Mission (Start)
-	// 
-	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
+
+	/**
+	 * Reset mission planning
+	 * 
+	 * @param {MissionInterface} mission - used to access the mission state
+	 * @param {boolean} needConfirmation - does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission - is the mission a rally point mission?
+	 * @return {Promise<boolean>} - did the deletion occur? If (yes) then (true)
+	 */
+	async deleteAllRunsInMission(
+		mission: MissionInterface,
+		needConfirmation: boolean,
+		rallyPointMission?: boolean
+	) {
 		return new Promise((resolve, reject) => {
+			let updatedMission = {...mission}
 			const doDelete = () => {
-				const runs = mission.runs
-				for (const run of Object.values(runs)) {
-					const runNumber = Number(run.id.substring(4)) // run.id => run-x
-						delete mission.runs[run.id]
-						delete mission.botsAssignedToRuns[run.assigned]
+				for (const run of Object.values(mission.runs)) {
+					delete updatedMission.runs[run.id]
+					delete updatedMission.botsAssignedToRuns[run.assigned]
 				}
-				mission.runIdIncrement = 1
-				mission.runIdInEditMode = ''
-	
+				updatedMission.runIdIncrement = 1
+				updatedMission.runIdInEditMode = ''
+				this.setRunList(updatedMission)
+
 				resolve(true)			
 			}
 	
 			if (needConfirmation) {
-				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointMission)
 				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
 			}
 			else {
@@ -1269,7 +1279,7 @@ export default class CommandControl extends React.Component {
 			console.error('Invalid runId passed to deleteSingleRun\n', err)
 		}
 		
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = {...this.pushRunListToUndoStack().getRunList()}
 		const selectedBotId = this.selectedBotId()
 		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 	
@@ -1281,6 +1291,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
+			this.setRunList(runList)
 		})
 	}
 
@@ -1622,6 +1633,12 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAt(getGeographicCoordinate(coordinate, map))
 	}
 
+	/**
+	 * Add a waypoint to the OpenLayers map for a given tap/click
+	 * 
+	 * @param {GeographicCoordinate} location - where the waypoint should be added
+	 * @returns {void}
+	 */
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
 		let runList = this.pushRunListToUndoStack().getRunList()
@@ -1651,6 +1668,9 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
+
+		// Prevent error after operator deletes an unassigned run and then clicks on the map
+		if (!run) { return }
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
