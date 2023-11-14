@@ -104,7 +104,7 @@ export class SaveMissionPanel extends React.Component {
      * Called when user clicks the Save button (to save a mission to localStorage in their browser)
      *
      * @async
-     * @returns {*}
+     * @returns {Promise<void>} Promise fulfilled on completion.
      */
     async saveClicked() {
         // Check to see if we have selected a mission

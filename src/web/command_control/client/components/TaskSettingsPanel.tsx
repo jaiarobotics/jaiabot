@@ -20,7 +20,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
  *
  * @param {number} a The dividend of the modulus operation
  * @param {number} b The divisor of the modulus operation
- * @returns {*} `a` FMOD `b`
+ * @returns {number} `a` FMOD `b`
  * @example
  * fmod(2, 360) == 2
  * fmod(378, 360) == 18
