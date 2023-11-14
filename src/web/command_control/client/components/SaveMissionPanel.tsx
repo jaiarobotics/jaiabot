@@ -143,7 +143,7 @@ export class SaveMissionPanel extends React.Component {
     }
 
     downloadClicked() {
-        downloadToFile(JSON.stringify(this.props.mission), 'application/json', `${this.props.mission.name}.json`)
+        downloadToFile(JSON.stringify(this.props.mission), 'application/json', `${this.state.selectedMissionName ?? this.props.mission.name}.json`)
     }
 
 }
