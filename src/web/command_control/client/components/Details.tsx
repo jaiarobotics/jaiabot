@@ -855,7 +855,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                             aria-controls='panel1a-content'
                                             id='panel1a-header'
                                     >
-                                        <Typography>Commands</Typography>
+                                        <Typography>Advanced Commands</Typography>
                                     </AccordionSummary>
 
                                     <AccordionDetails>
