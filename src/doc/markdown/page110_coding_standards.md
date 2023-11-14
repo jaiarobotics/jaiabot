@@ -9,7 +9,7 @@
  * @returns {void} - here we briefly describe what is being returned
 */
 function doSomething(thing: string) {
-  console.log(`Doing {thing}!`)
+  console.log(`Doing ${thing}!`)
 }
 ```
 
