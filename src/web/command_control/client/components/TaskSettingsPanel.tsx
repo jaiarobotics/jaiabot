@@ -12,7 +12,7 @@ import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 // For keeping heading angles in the [0, 360] range
-function fmod(a: number, b: number) { 
+function fmod(a: number, b: number) {
     return Number((a - (Math.floor(a / b) * b)).toPrecision(8))
 }
 
@@ -65,10 +65,15 @@ function TaskOptionsPanel(props: Props) {
     }
 
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
-        const target = evt.target as any
+        const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
-        const value = Number(target.value)
 
+        let value = Number(target.value)
+
+        if (key == 'constant_heading') {
+            value = fmod(value, 360)
+        }
+ 
         var newTask = deepcopy(task)
         newTask.constant_heading[key] = value
 
