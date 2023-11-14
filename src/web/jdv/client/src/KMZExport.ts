@@ -26,6 +26,14 @@ async function getDataUrl(url: string) {
 }
 
 
+/**
+ * Returns an array of strings, containing the KML code for each feature in a task packet
+ * @date 11/14/2023 - 3:16:59 PM
+ *
+ * @async
+ * @param {LogTaskPacket} taskPacket The task packet to process into KML features
+ * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
+ */
 async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     var placemarks: string[] = []
 
@@ -41,6 +49,14 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
     const diveIconUrl = 'files/diveIcon.png'
 
+    
+    /**
+     * Returns the path to the appropriate embedded drift arrow icon PNG file
+     * @date 11/14/2023 - 3:14:28 PM
+     *
+     * @param {DriftPacket} drift drift packet whose speed will be used to find the appropriate icon
+     * @returns {string} path to the embedded drift arrow icon file
+     */
     function getDriftArrowHeadUrl(drift: DriftPacket) {
         const driftArrowIndex = Styles.driftSpeedToBinIndex(drift.estimated_drift?.speed ?? 0.0)
         return `files/drift-arrow-${driftArrowIndex}.png`
@@ -162,6 +178,13 @@ export class KMLDocument {
         `
     }
 
+    
+    /**
+     * Returns a Blob representing the KML document as a KMZ file
+     *
+     * @async
+     * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
+     */
     async getKMZ() {
         const kmlFileString = await this.getKML()
 
