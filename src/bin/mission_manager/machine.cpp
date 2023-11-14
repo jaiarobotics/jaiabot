@@ -223,6 +223,29 @@ jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
+// Movement::Trail
+jaiabot::statechart::inmission::underway::movement::Trail::Trail(typename StateBase::my_context c)
+    : AcquiredGPSCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>(c)
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_trail()->set_active(true);
+    if (this->machine().mission_plan().has_trail())
+        *update.mutable_trail()->mutable_param() = this->machine().mission_plan().trail();
+
+    glog.is_verbose() && glog << group("movement")
+                              << "Sending update to pHelmIvP: " << update.ShortDebugString()
+                              << std::endl;
+
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+jaiabot::statechart::inmission::underway::movement::Trail::~Trail()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_trail()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
 // Recovery::Transit
 jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     typename StateBase::my_context c)
@@ -1408,7 +1431,8 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                               std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
                               this->machine().data_offload_exclude() + " 2>&1");
 
-    auto offload_func = [this]() {
+    auto offload_func = [this]()
+    {
         glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
                                  << "]" << std::endl;
 

@@ -24,7 +24,8 @@ enum MissionState
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = 115;
     IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = 116;
-    
+    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = 117;
+
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = 122;
@@ -95,28 +96,16 @@ message MissionReport
         precision: 1
         units: { derived_dimensions: "length" }
     }];
-    optional uint32 active_goal_timeout = 14 [
-        (dccl.field) = {
-            min: 0
-            max: 3600
-            precision: 0
-            units { base_dimensions: "T" }
-        }
-    ];
-    optional int32 data_offload_percentage = 15 [
-        (dccl.field) = {
-            min: 0
-            max: 100
-            precision: 0
-        }
-    ];
-    optional int32 repeat_index = 16 [
-        (dccl.field) = {
-            min: 0
-            max: 1000
-            precision: 0
-        }
-    ];
+    optional uint32 active_goal_timeout = 14 [(dccl.field) = {
+        min: 0
+        max: 3600
+        precision: 0
+        units { base_dimensions: "T" }
+    }];
+    optional int32 data_offload_percentage = 15
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional int32 repeat_index = 16
+        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
 }
 
 message MissionTask
@@ -237,6 +226,7 @@ message MissionPlan
     {
         TRANSIT = 1;
         REMOTE_CONTROL = 2;
+        TRAIL = 3;
     }
     optional MovementType movement = 2 [default = TRANSIT];
 
@@ -260,7 +250,46 @@ message MissionPlan
     optional Speeds speeds = 5;
     optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
-    optional uint32 repeats = 8 [default = 1, (dccl.field) = {min: 1 max: 100 }];
+    optional uint32 repeats = 8
+        [default = 1, (dccl.field) = { min: 1 max: 100 }];
+
+    message TrailParam
+    {
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        optional int32 contact = 1
+            [default = 0, (dccl.field) = { min: 0, max: 7 }];
+
+        optional double angle = 2 [
+            default = 180,
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            }
+        ];
+        optional bool angle_relative = 3 [default = true];
+        optional double range = 4 [
+            default = 50,
+            (dccl.field) = {
+                min: 0
+                max: 500
+                precision: 0
+                units: { derived_dimensions: "length" }
+            }
+        ];
+    }
+
+    oneof movement_params
+    {
+        TrailParam trail = 9;
+    }
 }
 
 message IvPBehaviorUpdate
@@ -335,12 +364,46 @@ message IvPBehaviorUpdate
         ];  // meters/second
     }
 
+    message TrailUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional MissionPlan.TrailParam param = 2;
+    }
+
+    message ContactUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+        optional int32 contact = 1;
+        optional double x = 2
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double y = 3
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double speed = 4 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+        optional double heading = 5 [(dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }];  // degrees
+    }
+
     oneof behavior
     {
         TransitUpdate transit = 1;
         StationkeepUpdate stationkeep = 2;
         ConstantHeadingUpdate constantHeading = 3;
         ConstantSpeedUpdate constantSpeed = 4;
+        TrailUpdate trail = 5;
+        ContactUpdate contact = 6;
     }
 }
 

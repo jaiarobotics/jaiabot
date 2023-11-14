@@ -221,7 +221,8 @@ elif common.app == 'jaiabot_fusion':
                                      bot_id=bot_index,
                                      fusion_in_simulation=is_simulation(),
                                      bot_status_period=bot_status_period,
-                                     imu_detection_solution=imu_detection_solution))
+                                     imu_detection_solution=imu_detection_solution,
+                                     bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
@@ -251,8 +252,7 @@ elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.bot.gpsd_port(node_id),
-                                     gpsd_device=common.bot.gpsd_device(node_id)))
+                                     gpsd_port=common.bot.gpsd_port(node_id)))
 elif common.app == 'gpsd':
     print('-S {} -N {}'.format(common.bot.gpsd_port(node_id), common.bot.gpsd_device(node_id)))
 elif common.app == 'moos':

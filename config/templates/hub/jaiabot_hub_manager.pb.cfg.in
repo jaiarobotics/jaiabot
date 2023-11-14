@@ -52,3 +52,5 @@ task_packet_sub_cfg {
 xbee {
     $xbee_config
 }
+
+hub_gpsd_device: "$hub_gpsd_device"

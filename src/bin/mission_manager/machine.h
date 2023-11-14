@@ -197,6 +197,7 @@ struct Transit;
 struct ReacquireGPS;
 struct IMURestart;
 struct RemoteControl;
+struct Trail;
 namespace remotecontrol
 {
 struct RemoteControlEndSelection;
@@ -1063,6 +1064,7 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
         {
             case protobuf::MissionPlan::TRANSIT: return transit<Transit>();
             case protobuf::MissionPlan::REMOTE_CONTROL: return transit<RemoteControl>();
+            case protobuf::MissionPlan::TRAIL: return transit<Trail>();
         }
 
         // should never reach here but if does, abort the mission
@@ -1093,6 +1095,18 @@ struct Transit
                          boost::statechart::transition<EvIMURestart, IMURestart>>;
 };
 
+struct Trail : AcquiredGPSCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>
+{
+    Trail(typename StateBase::my_context c);
+    ~Trail();
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>>;
+};
+
 struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
                                          protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
 {
@@ -1103,10 +1117,11 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
     }
     ~ReacquireGPS(){};
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
-                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
-                                                              &ReacquireGPSCommon::gps>>;
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvGPSFix, boost::statechart::deep_history<Transit // default
+                                                                                >>,
+        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                             &ReacquireGPSCommon::gps>>;
 };
 
 struct IMURestart
@@ -1120,7 +1135,9 @@ struct IMURestart
     ~IMURestart(){};
 
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::transition<EvIMURestartCompleted,
+                                      boost::statechart::deep_history<Transit // default
+                                                                      >>,
         boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
 };
 
@@ -1335,8 +1352,9 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             drift.set_speed_with_units(boost::units::sqrt(dx * dx + dy * dy) / dt);
 
             auto heading = goby::util::pi<double> / 2 * boost::units::si::radians -
-                                         boost::units::atan2(dy, dx);
-            if (heading < 0 * boost::units::si::radians) heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
+                           boost::units::atan2(dy, dx);
+            if (heading < 0 * boost::units::si::radians)
+                heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
             drift.set_heading_with_units(heading);
 
             // Set the wave height and period

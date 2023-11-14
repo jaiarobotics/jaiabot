@@ -159,7 +159,8 @@ elif common.app == 'jaiabot_hub_manager':
                                      interprocess_block = interprocess_common,
                                      hub_id=hub_index,
                                      xbee_config=common.comms.xbee_config(),
-                                     fleet_id=fleet_index))
+                                     fleet_id=fleet_index,
+                                     hub_gpsd_device=common.hub.gpsd_device(node_id)))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

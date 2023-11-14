@@ -27,7 +27,6 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "jaiabot/messages/xbee_extensions.proto";
 
-
 package jaiabot.config;
 
 message HubManager
@@ -43,10 +42,21 @@ message HubManager
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
     required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
         12;
-    required goby.middleware.protobuf.TransporterConfig engineering_status_sub_cfg =
-        13;
+    required goby.middleware.protobuf.TransporterConfig
+        engineering_status_sub_cfg = 13;
 
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];
     optional int32 health_report_timeout_seconds = 16 [default = 20];
+
+    required string hub_gpsd_device = 20;  // gpsd device for hub itself
+
+    message ContactGPS
+    {
+        required string gpsd_device = 1;
+        required int32 contact = 2;
+    }
+    repeated ContactGPS contact_gps =
+        21;  // GPSD device feeds for contacts to
+             // send to vehicles (e.g., to trail, to avoid, etc.)
 }

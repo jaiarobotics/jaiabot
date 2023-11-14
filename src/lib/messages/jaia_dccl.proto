@@ -209,13 +209,8 @@ message BotStatus
         precision: 0
         units { base_dimensions: "T" }
     }];
-    optional int32 repeat_index = 44 [
-        (dccl.field) = {
-            min: 0
-            max: 1000
-            precision: 0
-        }
-    ];
+    optional int32 repeat_index = 44
+        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -255,11 +250,8 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
-    optional double battery_percent = 57 [(dccl.field) = { 
-        min: 0 
-        max: 100 
-        precision: 0
-    }];
+    optional double battery_percent = 57
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
     optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
@@ -267,22 +259,11 @@ message BotStatus
 
     optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 data_offload_percentage = 61 [
-        (dccl.field) = {
-            min: 0
-            max: 100
-            precision: 0
-        }
-    ];
+    optional int32 data_offload_percentage = 61
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
-    optional int32 wifi_link_quality_percentage = 62 [
-        (dccl.field) = {
-            min: 0
-            max: 100
-            precision: 0
-        }
-    ];
-
+    optional int32 wifi_link_quality_percentage = 62
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 }
 
 message DriftPacket
@@ -334,7 +315,6 @@ message DriftPacket
         precision: 3
         units: { derived_dimensions: "length" }
     }];
-
 }
 
 message DivePacket
@@ -417,7 +397,7 @@ message DivePacket
     }
 
     optional BottomType bottom_type = 19;
-    
+
     // For bottom characterization
     optional double max_acceleration = 20 [(dccl.field) = {
         min: 0
@@ -457,4 +437,29 @@ message TaskPacket
 
     optional DivePacket dive = 10;
     optional DriftPacket drift = 11;
+}
+
+message ContactUpdate
+{
+    option (dccl.msg) = {
+        id: 0x5002
+        max_bytes: 250
+        codec_version: 4
+        unit_system: "si"
+    };
+
+    optional int32 contact = 1 [(dccl.field) = { min: 0, max: 7 }];
+    required GeographicCoordinate location = 2;
+    optional double speed_over_ground = 3 [(dccl.field) = {
+        min: -5
+        max: 10
+        precision: 1
+        units { derived_dimensions: "velocity" }
+    }];
+    optional double heading = 5 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
 }

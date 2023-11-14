@@ -95,6 +95,12 @@ class HubManager : public ApplicationBase
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
+
+    // map GPSD device name to contact ID
+    std::map<std::string, int> contact_gps_;
+    // map GPSD device name to heading
+    std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>>
+        contact_heading_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -119,6 +125,9 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
         }
     }
 
+    for (auto contact_gps : cfg().contact_gps())
+        contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(), contact_gps.contact()));
+
     for (auto id : managed_bot_modem_ids_) intervehicle_subscribe(id);
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
@@ -141,12 +150,48 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
-            if (tpv.has_location())
+            if (tpv.device() == cfg().hub_gpsd_device())
             {
-                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
-                latest_hub_status_.mutable_location()->set_lat_with_units(lat);
-                latest_hub_status_.mutable_location()->set_lon_with_units(lon);
+                if (tpv.has_location())
+                {
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    latest_hub_status_.mutable_location()->set_lat_with_units(lat);
+                    latest_hub_status_.mutable_location()->set_lon_with_units(lon);
+                }
             }
+            else if (contact_gps_.count(tpv.device()))
+            {
+                if (tpv.has_location())
+                {
+                    protobuf::ContactUpdate update;
+                    update.set_contact(contact_gps_[tpv.device()]);
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    update.mutable_location()->set_lat_with_units(lat);
+                    update.mutable_location()->set_lon_with_units(lon);
+                    if (tpv.has_speed())
+                        update.set_speed_over_ground_with_units(tpv.speed_with_units());
+                    auto it = contact_heading_.find(tpv.device());
+                    if (it != contact_heading_.end())
+                        update.set_heading_with_units(it->second);
+
+                    glog.is_debug2() && glog << group("main") << "Sending contact update: "
+                                             << update.ShortDebugString() << std::endl;
+
+                    intervehicle().publish<jaiabot::groups::contact_update>(update);
+                }
+            }
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::att>(
+        [this](const goby::middleware::protobuf::gpsd::Attitude& att)
+        {
+            glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
+                                     << std::endl;
+
+            if (att.has_heading())
+                contact_heading_[att.device()] = att.heading_with_units();
         });
 
     // automatically subscribe to bots that send us subscriptions
@@ -155,9 +200,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
-        });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -545,4 +589,3 @@ void jaiabot::apps::HubManager::handle_hardware_status(
 {
     *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
 }
-
