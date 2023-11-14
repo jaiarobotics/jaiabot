@@ -53,7 +53,7 @@ export class HubLayers {
 	}
 
     /**
-     * Used to update the hub icons on the openlayers map
+     * Used to update the hub icons on the OpenLayers map
      * 
      * @param {{[key: string]: PortalHubStatus}} hubs - map of hubs to loop through and check for updates
      * @param {HubOrBot} selectedHubOrBot - an object to determine if a hub id is selected so we can update state accordingly
