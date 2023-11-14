@@ -96,7 +96,7 @@ export class HubLayers {
         } // end foreach hub
 
         // Remove hub layers for hub_ids that have disappeared
-        const defunctHubIds = Object.keys(this.layers).filter((hub_id) =>  !(String(hub_id) in hubs))
+        const defunctHubIds = Object.keys(this.layers).filter((hub_id) => !(String(hub_id) in hubs))
 
         defunctHubIds.forEach((hubIdString) => {
             this.deleteHubLayer(Number(hubIdString))
