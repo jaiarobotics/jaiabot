@@ -68,8 +68,8 @@ export class HubLayers {
 
             const hubLayer = this.getHubLayer(hub_id)
             const hubSource = hubLayer.getSource()
-            let hubFeature: Feature<Point> = hubSource.getFeatureById(hub_id) as Feature<Point>
-            if (hubFeature == null) {
+            let hubFeature = hubSource.getFeatureById(hub_id) as Feature<Point>
+            if (hubFeature === null) {
                 hubFeature = new Feature<Point>({
                     name: String(hub_id),
                 })
@@ -96,7 +96,7 @@ export class HubLayers {
         } // end foreach hub
 
         // Remove hub layers for hub_ids that have disappeared
-        const defunctHubIds = Object.keys(this.layers).filter((hub_id) => {return !(String(hub_id) in hubs)})
+        const defunctHubIds = Object.keys(this.layers).filter((hub_id) =>  !(String(hub_id) in hubs))
 
         defunctHubIds.forEach((hubIdString) => {
             this.deleteHubLayer(Number(hubIdString))
