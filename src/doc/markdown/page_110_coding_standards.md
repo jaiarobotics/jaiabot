@@ -1,6 +1,6 @@
 # Jaia Coding Standards
 
-## Function Comments
+## Function Comments (TypeScript)
 ```
 /**
  * Describe what the function does
