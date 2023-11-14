@@ -12,6 +12,20 @@ import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 // For keeping heading angles in the [0, 360] range
+
+/**
+ * Returns the modulus between two real numbers, without returning any negative numbers.
+ * This is useful, for example, for keeping angles between 0 and 360, even after adding and subtracting 
+ * angle values from one another.
+ *
+ * @param {number} a The dividend of the modulus operation
+ * @param {number} b The divisor of the modulus operation
+ * @returns {*} `a` FMOD `b`
+ * @example
+ * fmod(2, 360) == 2
+ * fmod(378, 360) == 18
+ * fmod(-45, 360) == 315
+ */
 function fmod(a: number, b: number) {
     return Number((a - (Math.floor(a / b) * b)).toPrecision(8))
 }

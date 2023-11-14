@@ -99,6 +99,13 @@ export class SaveMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
+    
+    /**
+     * Called when user clicks the Save button (to save a mission to localStorage in their browser)
+     *
+     * @async
+     * @returns {*}
+     */
     async saveClicked() {
         // Check to see if we have selected a mission
         if (Object.keys(this.props.mission.runs).length === 0) {
@@ -142,6 +149,10 @@ export class SaveMissionPanel extends React.Component {
         this.props.onDone?.()
     }
 
+    
+    /**
+     * Called when user clicks the Download button (to download a json mission)
+     */
     downloadClicked() {
         downloadToFile(JSON.stringify(this.props.mission), 'application/json', `${this.state.selectedMissionName ?? this.props.mission.name}.json`)
     }
