@@ -55,8 +55,14 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 
 args=parser.parse_args()
+
+class ARDUINO_TYPE(Enum):
+    SPI = 'spi'
+    USB = 'usb'
+    NONE = 'none'
 
 class IMU_TYPE(Enum):
     BNO055 = 'bno055'
@@ -77,6 +83,15 @@ class ELECTRONICS_STACK(Enum):
     STACK_1 = '1'
     STACK_2 = '2'
     STACK_3 = '2'
+
+# Set the arduino type based on the argument
+# Used to set the serial port device
+if args.arduino_type == 'spi':
+    jaia_arduino_type=ARDUINO_TYPE.SPI
+elif args.arduino_type == 'usb':
+    jaia_arduino_type=ARDUINO_TYPE.USB
+else:
+    jaia_arduino_type=ARDUINO_TYPE.NONE
 
 if args.imu_type == 'bno055':
     jaia_imu_type=IMU_TYPE.BNO055
@@ -145,6 +160,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
+               'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
