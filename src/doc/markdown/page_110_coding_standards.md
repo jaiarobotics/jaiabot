@@ -1,6 +1,6 @@
 # Jaia Coding Standards
 
-## Function Commenting
+## Function Comments
 ```
 /**
  * Describe what the function does
