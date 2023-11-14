@@ -385,6 +385,17 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
     const colorMain = colorNameToHex(colorName) ?? colorName
     const colorBorder = '#000'
 
+    /**
+     * Returns an OpenLayers Style object for a circle with optional radial gradient
+     * @date 11/14/2023 - 3:41:34 PM
+     *
+     * @param {Coordinate} center Center of the circle
+     * @param {number} radius Radius of the circle
+     * @param {string} color CSS Color string in the format `#rrggbb` ONLY
+     * @param {number} lineWidth Line width of the circle
+     * @param {boolean} addInnerGradientColor Should we add a gradient to the inside of the circle?
+     * @returns {*} OpenLayers Style object
+     */
     function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
         return new Style({
             geometry: new Circle(center, radius),
