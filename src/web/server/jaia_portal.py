@@ -162,7 +162,6 @@ class Interface:
 
                 self.hubs[hubStatus['hub_id']] = hubStatus
 
-
             if msg.HasField('task_packet'):
                 logging.info('Task packet received')
                 packet = msg.task_packet
