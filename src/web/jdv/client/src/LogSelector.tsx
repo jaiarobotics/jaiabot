@@ -265,7 +265,7 @@ export default class LogSelector extends React.Component {
     }
 
     getFilteredLogs(): Log[] {
-        const { fromDate, toDate, logDict: log_dict } = this.state
+        const { fromDate, toDate, logDict } = this.state
 
         function stringToTimestamp(str: string) {
             if (str == null) return null
@@ -284,10 +284,10 @@ export default class LogSelector extends React.Component {
 
         var log_array: Log[] = []
 
-        for (const fleet in log_dict) {
+        for (const fleet in logDict) {
             if (this.state.fleetFilter != null && this.state.fleetFilter != fleet) continue;
 
-            const fleet_dict = log_dict[fleet]
+            const fleet_dict = logDict[fleet]
 
             for (const bot in fleet_dict) {
                 if (this.state.botFilter != null && this.state.botFilter != bot) continue;
@@ -310,24 +310,24 @@ export default class LogSelector extends React.Component {
         return log_array
     }
 
-    static log_dict(logs: Log[]) {
-        var log_dict: LogDict = {}
+    static logDict(logs: Log[]) {
+        var logDict: LogDict = {}
 
         for (let log of logs) {
-            if (!(log.fleet in log_dict)) {
-                log_dict[log.fleet] = {}
+            if (!(log.fleet in logDict)) {
+                logDict[log.fleet] = {}
             }
 
-            if (!(log.bot in log_dict[log.fleet])) {
-                log_dict[log.fleet][log.bot] = {}
+            if (!(log.bot in logDict[log.fleet])) {
+                logDict[log.fleet][log.bot] = {}
             }
 
-            if (!(log.timestamp in log_dict[log.fleet][log.bot])) {
-                log_dict[log.fleet][log.bot][log.timestamp] = log
+            if (!(log.timestamp in logDict[log.fleet][log.bot])) {
+                logDict[log.fleet][log.bot][log.timestamp] = log
             }
         }
 
-        return log_dict
+        return logDict
     }
 
     /**
@@ -427,10 +427,10 @@ export default class LogSelector extends React.Component {
 
     refreshLogs() {
         LogApi.get_logs().then((response) => {
-            const log_dict = LogSelector.log_dict(response.logs)
-            this.setState({log_dict, availableSpace: response.availableSpace})
+            const logDict = LogSelector.logDict(response.logs)
+            this.setState({logDict, availableSpace: response.availableSpace})
 
-            if (this.state.fleetFilter && log_dict[this.state.fleetFilter] == null) {
+            if (this.state.fleetFilter && logDict[this.state.fleetFilter] == null) {
                 this.setFleetFilter(null)
             }
         })
