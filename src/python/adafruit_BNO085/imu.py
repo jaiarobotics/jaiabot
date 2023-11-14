@@ -91,16 +91,11 @@ class Adafruit(IMU):
     def setup(self):
         if not self.is_setup:
             try:
-                uart.close()
-                # allow for the port to close
-                time.sleep(0.2)
-                uart.open()
-
                 log.warning('We are not setup')
 
                 self.sensor = BNO08X_UART(uart)
 
-                log.warning('Connected, now lets enable output')
+                log.info('Connected, now lets enable output')
 
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
