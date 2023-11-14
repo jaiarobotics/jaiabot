@@ -148,6 +148,17 @@ function handleAccordionDropdownClick(event: Event, targetClassName: string, par
     }, dropdownTimeout)
 }
 
+/**
+ * Scroll a dropdown element into view within its parent element
+ * 
+ * @param {string} parentContainerId - allows us to get dimensions of the parent element
+ * @param dropdownContainer - gives us access to dimensions of the dropdown element
+ * @returns {void}
+ * 
+ * @notes
+ * The dropdown is passed as an HTMLElement to prevent the developer from having to assign ids to
+ * each dropdown element in an accordion
+ */
 export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
     const parentContainer = document.getElementById(parentContainerId)
 
@@ -161,7 +172,8 @@ export function adjustAccordionScrollPosition(parentContainerId: string, dropdow
     if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
         const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
         parentContainer.scrollBy({
-            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger
+            // than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
             left: 0
         })

@@ -1239,10 +1239,20 @@ export default class CommandControl extends React.Component {
 	// Run Mission (End)
 	// 
 
-	// 
-	// Delete Mission (Start)
-	// 
-	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
+
+	/**
+	 * Reset mission planning
+	 * 
+	 * @param {MissionInterface} mission - used to access the mission state
+	 * @param {boolean} needConfirmation - does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission - is the mission a rally point mission?
+	 * @return {Promise<boolean>} - did the deletion occur? If (yes) then (true)
+	 */
+	async deleteAllRunsInMission(
+		mission: MissionInterface,
+		needConfirmation: boolean,
+		rallyPointMission?: boolean
+	) {
 		return new Promise((resolve, reject) => {
 			let updatedMission = {...mission}
 			const doDelete = () => {
@@ -1258,7 +1268,7 @@ export default class CommandControl extends React.Component {
 			}
 	
 			if (needConfirmation) {
-				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointMission)
 				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
 			}
 			else {
@@ -1636,6 +1646,12 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAt(getGeographicCoordinate(coordinate, map))
 	}
 
+	/**
+	 * Add a waypoint to the OpenLayers map for a given tap/click
+	 * 
+	 * @param {GeographicCoordinate} location - where the waypoint should be added
+	 * @returns {void}
+	 */
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
 		let runList = this.pushRunListToUndoStack().getRunList()
