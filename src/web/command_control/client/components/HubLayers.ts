@@ -59,7 +59,7 @@ export class HubLayers {
      * @param {HubOrBot} selectedHubOrBot - an object to determine if a hub id is selected so we can update state accordingly
      * @returns {void}
      */
-	update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
+    update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
         for (let hubId in hubs) {
             let hub = hubs[hubId];
     
