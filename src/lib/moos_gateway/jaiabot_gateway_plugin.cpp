@@ -52,7 +52,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
                 std::stringstream update_ss;
                 update_ss << "point=" << update.transit().x() << "," << update.transit().y()
                           << "#speed=" << update.transit().speed()
-                          << "#nm_radius=" << update.transit().slip_radius();
+                          << "#slip_radius=" << update.transit().slip_radius();
                 moos().comms().Notify("JAIABOT_TRANSIT_UPDATES", update_ss.str());
             }
 
