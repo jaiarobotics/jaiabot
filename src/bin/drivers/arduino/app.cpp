@@ -184,7 +184,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             jaiabot::protobuf::ArduinoDebug arduino_debug;
 
-            if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
+            if (arduino_response.status_code() == protobuf::ArduinoStatusCode::STARTUP)
             {
                 if (is_settings_ack_)
                 {

@@ -55,8 +55,14 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 
 args=parser.parse_args()
+
+class ARDUINO_TYPE(Enum):
+    SPI = 'spi'
+    USB = 'usb'
+    NONE = 'none'
 
 class IMU_TYPE(Enum):
     BNO055 = 'bno055'
@@ -78,32 +84,41 @@ class ELECTRONICS_STACK(Enum):
     STACK_2 = '2'
     STACK_3 = '2'
 
-if args.imu_type == 'bno055':
-    jaia_imu_type=IMU_TYPE.BNO055
-elif args.imu_type == 'bno085':
-    jaia_imu_type=IMU_TYPE.BNO085
+# Set the arduino type based on the argument
+# Used to set the serial port device
+if args.arduino_type == 'spi':
+    jaia_arduino_type = ARDUINO_TYPE.SPI
+elif args.arduino_type == 'usb':
+    jaia_arduino_type = ARDUINO_TYPE.USB
 else:
-    jaia_imu_type=IMU_TYPE.NONE
+    jaia_arduino_type = ARDUINO_TYPE.NONE
+
+if args.imu_type == 'bno055':
+    jaia_imu_type = IMU_TYPE.BNO055
+elif args.imu_type == 'bno085':
+    jaia_imu_type = IMU_TYPE.BNO085
+else:
+    jaia_imu_type = IMU_TYPE.NONE
 
 if args.led_type == 'hub_led':
-    jaia_led_type=LED_TYPE.HUB_LED
+    jaia_led_type = LED_TYPE.HUB_LED
 elif args.led_type == 'none':
-    jaia_led_type=LED_TYPE.NONE    
+    jaia_led_type = LED_TYPE.NONE    
 else:
-    jaia_led_type=LED_TYPE.NONE
+    jaia_led_type = LED_TYPE.NONE
 
 if args.electronics_stack == '0':
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
-    jaia_gps_type=GPS_TYPE.I2C
+    jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
+    jaia_gps_type = GPS_TYPE.I2C
 elif args.electronics_stack == '1':
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
-    jaia_gps_type=GPS_TYPE.SPI
+    jaia_electronics_stack = ELECTRONICS_STACK.STACK_1
+    jaia_gps_type = GPS_TYPE.SPI
 elif args.electronics_stack == '2':
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
-    jaia_gps_type=GPS_TYPE.SPI
+    jaia_electronics_stack = ELECTRONICS_STACK.STACK_2
+    jaia_gps_type = GPS_TYPE.SPI
 else:
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
-    jaia_gps_type=GPS_TYPE.I2C
+    jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
+    jaia_gps_type = GPS_TYPE.I2C
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
@@ -114,11 +129,11 @@ class Mode(Enum):
     BOTH = 'both'
     
 if args.simulation:
-    jaia_mode=Mode.SIMULATION
-    warp=args.warp
+    jaia_mode = Mode.SIMULATION
+    warp = args.warp
 else:
-    jaia_mode=Mode.RUNTIME
-    warp=1
+    jaia_mode =  Mode.RUNTIME
+    warp = 1
 
 class Type(Enum):
     BOT = 'bot'
@@ -126,11 +141,11 @@ class Type(Enum):
     BOTH = 'both'
 
 if args.type == 'bot':
-    jaia_type=Type.BOT
-    bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
+    jaia_type = Type.BOT
+    bot_or_hub_index_str = 'export jaia_bot_index=' + str(args.bot_index) + '; '
 elif args.type == 'hub':
-    jaia_type=Type.HUB
-    bot_or_hub_index_str='export jaia_hub_index=' + str(args.hub_index) + '; '
+    jaia_type = Type.HUB
+    bot_or_hub_index_str = 'export jaia_hub_index=' + str(args.hub_index) + '; '
 
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -145,42 +160,43 @@ subprocess.run('bash -ic "' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
+               'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
 common_macros=dict()
 
-common_macros['env_file']=args.env_file
-common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
-common_macros['jaiabot_share_dir']=args.jaiabot_share_dir
-common_macros['ansible_dir']=args.ansible_dir
-common_macros['goby_bin_dir']=args.goby_bin_dir
-common_macros['moos_bin_dir']=args.moos_bin_dir
-common_macros['extra_service']=''
-common_macros['extra_unit']=''
-common_macros['extra_flags']=''
-common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
-common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
-common_macros['moos_sim_file']='/tmp/jaiabot_sim_${jaia_bot_index}.moos'
+common_macros['env_file'] = args.env_file
+common_macros['jaiabot_bin_dir'] = args.jaiabot_bin_dir
+common_macros['jaiabot_share_dir'] = args.jaiabot_share_dir
+common_macros['ansible_dir'] = args.ansible_dir
+common_macros['goby_bin_dir'] = args.goby_bin_dir
+common_macros['moos_bin_dir'] = args.moos_bin_dir
+common_macros['extra_service'] = ''
+common_macros['extra_unit'] = ''
+common_macros['extra_flags'] = ''
+common_macros['bhv_file'] = '/tmp/jaiabot_${jaia_bot_index}.bhv'
+common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_index}.moos'
+common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_index}.moos'
 # unless otherwise specified, apps are run both at runtime and simulation
-common_macros['runs_when']=Mode.BOTH
+common_macros['runs_when'] = Mode.BOTH
 
 try:
-    common_macros['user']=os.getlogin()
-    common_macros['group']=os.getlogin()
+    common_macros['user'] = os.getlogin()
+    common_macros['group'] = os.getlogin()
 except:
-    common_macros['user']=os.environ['USER']
-    common_macros['group']=os.environ['USER']
+    common_macros['user'] = os.environ['USER']
+    common_macros['group'] = os.environ['USER']
 
 if jaia_type == Type.BOT:
-    common_macros['gen']=args.gen_dir + '/bot.py'
+    common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
-    common_macros['gen']=args.gen_dir + '/hub.py'
+    common_macros['gen'] = args.gen_dir + '/hub.py'
     
     
-all_goby_apps=[]
+all_goby_apps = []
 
-jaiabot_apps=[
+jaiabot_apps = [
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
      'runs_on': Type.BOTH },
