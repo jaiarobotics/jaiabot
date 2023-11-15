@@ -1728,7 +1728,6 @@ export default class CommandControl extends React.Component {
 			// Clicked on goal / waypoint
 			const goal = feature.get('goal')
 			if (goal) {
-				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
 					goal: goal,
 					goalIndex: feature.get('goalIndex'),
@@ -2829,6 +2828,11 @@ export default class CommandControl extends React.Component {
 			const runList = this.state.undoRunListStack.pop()
 			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
+			
+			// If the reversion makes the open panel irrelevant, close it
+			if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
+				this.setState({ visiblePanel: PanelType.NONE })
+			}
 		})
 	}
 
