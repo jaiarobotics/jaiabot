@@ -1618,7 +1618,7 @@ export default class CommandControl extends React.Component {
 			if (this.state.missionParams.missionType === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
-				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task.type))
+				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task?.type))
 				missionPlanningFeaturesList.push(mpFeature)
 			}
 		}
