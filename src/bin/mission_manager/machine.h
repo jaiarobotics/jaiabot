@@ -194,8 +194,13 @@ namespace movement
 // based on the current mission
 struct MovementSelection;
 struct Transit;
-struct ReacquireGPS;
-struct IMURestart;
+
+struct TransitReacquireGPS;
+struct TransitIMURestart;
+
+struct TrailReacquireGPS;
+struct TrailIMURestart;
+
 struct RemoteControl;
 struct Trail;
 namespace remotecontrol
@@ -1094,10 +1099,10 @@ struct Transit
     using reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>,
-                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::transition<EvGPSNoFix, TransitReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>,
-                         boost::statechart::transition<EvIMURestart, IMURestart>>;
+                         boost::statechart::transition<EvIMURestart, TransitIMURestart>>;
 };
 
 struct Trail : AcquiredGPSCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>
@@ -1106,21 +1111,22 @@ struct Trail : AcquiredGPSCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY
     ~Trail();
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+        boost::mpl::list<boost::statechart::transition<EvGPSNoFix, TrailReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>,
-                         boost::statechart::transition<EvIMURestart, IMURestart>>;
+                         boost::statechart::transition<EvIMURestart, TrailIMURestart>>;
 };
 
-struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
-                                         protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
+struct TransitReacquireGPS
+    : ReacquireGPSCommon<TransitReacquireGPS, Movement,
+                         protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
 {
-    ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSCommon<ReacquireGPS, Movement,
+    TransitReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSCommon<TransitReacquireGPS, Movement,
                              protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>(c)
     {
     }
-    ~ReacquireGPS(){};
+    ~TransitReacquireGPS(){};
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
@@ -1128,18 +1134,49 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
                                                               &ReacquireGPSCommon::gps>>;
 };
 
-struct IMURestart
-    : IMURestartCommon<IMURestart, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>
+struct TransitIMURestart : IMURestartCommon<TransitIMURestart, Movement,
+                                            protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>
 {
-    IMURestart(typename StateBase::my_context c)
-        : IMURestartCommon<IMURestart, Movement,
+    TransitIMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<TransitIMURestart, Movement,
                            protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>(c)
     {
     }
-    ~IMURestart(){};
+    ~TransitIMURestart(){};
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+};
+
+struct TrailReacquireGPS
+    : ReacquireGPSCommon<TrailReacquireGPS, Movement,
+                         protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
+{
+    TrailReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSCommon<TrailReacquireGPS, Movement,
+                             protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>(c)
+    {
+    }
+    ~TrailReacquireGPS(){};
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, Trail>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
+};
+struct TrailIMURestart : IMURestartCommon<TrailIMURestart, Movement,
+                                          protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>
+{
+    TrailIMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<TrailIMURestart, Movement,
+                           protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>(c)
+    {
+    }
+    ~TrailIMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, Trail>,
         boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
 };
 
