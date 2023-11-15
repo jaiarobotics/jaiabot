@@ -61,7 +61,8 @@
 ## Raspberry Pi Pinout
 | Pin    | Description | Notes            |
 | --:    | ---         | ---              |
-| GPIO10 | IMU Reset   |                  |
+| GPIO6  | Arduino Reset   |           |
+| GPIO10 | IMU  Reset   |                  |
 | GPIO26 | XBee Reset  |                  |
 
 ## Logic Board Lights
