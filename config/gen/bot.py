@@ -132,6 +132,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
+liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_load.pb.cfg.in')
 
 
 if common.app == 'gobyd':    
@@ -172,7 +173,7 @@ elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
                                      interprocess_block = interprocess_common,
                                      http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
-                                     load_protobufs=''))
+                                     load_protobufs=liaison_load_block))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,

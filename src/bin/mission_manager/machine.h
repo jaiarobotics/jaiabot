@@ -1122,11 +1122,10 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvGPSFix, boost::statechart::deep_history<Transit // default
-                                                                                >>,
-        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
-                                             &ReacquireGPSCommon::gps>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
 };
 
 struct IMURestart
@@ -1140,9 +1139,7 @@ struct IMURestart
     ~IMURestart(){};
 
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvIMURestartCompleted,
-                                      boost::statechart::deep_history<Transit // default
-                                                                      >>,
+        boost::statechart::transition<EvIMURestartCompleted, Transit>,
         boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
 };
 
