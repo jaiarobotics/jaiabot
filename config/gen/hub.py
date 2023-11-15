@@ -175,6 +175,9 @@ elif common.app == 'jaiabot_metadata':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      xbee_info=xbee_info))
+elif common.app == 'gpsd':
+    # Run for forwarding contacts
+    print('-S {} -N {}'.format(common.hub.gpsd_port(node_id), "udp://127.0.0.1:33001"))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:

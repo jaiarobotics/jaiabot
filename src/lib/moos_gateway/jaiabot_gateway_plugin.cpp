@@ -130,7 +130,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
                           << "#trail_angle=" << update.trail().param().angle()
                           << "#trail_angle_type="
                           << (update.trail().param().angle_relative() ? "relative" : "absolute")
-                          << "#trail_range" << update.trail().param().range();
+                          << "#trail_range=" << update.trail().param().range();
                 moos().comms().Notify("JAIABOT_TRAIL_UPDATES", update_ss.str());
             }
 
@@ -144,7 +144,8 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
         {
             glog.is_verbose() && glog << "kContact: " << update.ShortDebugString() << std::endl;
             std::stringstream update_ss;
-            update_ss << "NAME=CONTACT_" << update.contact().contact() << ",TIME=" << MOOSTime()
+            update_ss << "NAME=CONTACT_" << update.contact().contact()
+                      << ",TIME=" << static_cast<std::uint64_t>(MOOSTime())
                       << ",X=" << update.contact().x() << ",Y=" << update.contact().y()
                       << ",SPD=" << update.contact().speed()
                       << ",HDG=" << update.contact().heading();

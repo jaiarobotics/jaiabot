@@ -54,3 +54,7 @@ xbee {
 }
 
 hub_gpsd_device: "$hub_gpsd_device"
+
+# Feed bot ID 1 as contact 0 via GPSD
+bot_to_gps  { bot_id: 1   udp { remote_address: "127.0.0.1" remote_port: 33001 }}
+contact_gps { contact: 0  gpsd_device: "udp://127.0.0.1:33001" }

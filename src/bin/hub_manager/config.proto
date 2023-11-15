@@ -10,7 +10,7 @@
 // The Jaia Binaries are free software: you can redistribute them and/or modify
 // them under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 2 of the License, or
-// (at your option) any later version.x
+// (at your option) any later version.
 //
 // The Jaia Binaries are distributed in the hope that they will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -26,6 +26,10 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "jaiabot/messages/xbee_extensions.proto";
+import "goby/middleware/protobuf/udp_config.proto";
+import "goby/middleware/protobuf/pty_config.proto";
+import "goby/middleware/protobuf/serial_config.proto";
+import "goby/middleware/protobuf/tcp_config.proto";
 
 package jaiabot.config;
 
@@ -59,4 +63,19 @@ message HubManager
     repeated ContactGPS contact_gps =
         21;  // GPSD device feeds for contacts to
              // send to vehicles (e.g., to trail, to avoid, etc.)
+
+    message BotToGPS
+    {
+        optional int32 bot_id = 1;
+        oneof transport
+        {
+            goby.middleware.protobuf.UDPPointToPointConfig udp = 2;
+            goby.middleware.protobuf.PTYConfig pty = 3;
+            goby.middleware.protobuf.SerialConfig serial = 4;
+            goby.middleware.protobuf.TCPClientConfig tcp_client = 5;
+            goby.middleware.protobuf.TCPServerConfig tcp_server = 6;
+        }
+    }
+    repeated BotToGPS bot_to_gps = 22;  // feed BotStatus as pseudo-GPS message
+                                        // over various transport options
 }

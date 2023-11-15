@@ -796,6 +796,11 @@ struct InMission
         // Sets goal index to be the final goal index
         goal_index_ = (this->machine().mission_plan().goal_size() - 1);
     }
+    void set_goal_index_to_recovery()
+    {
+        // Sets goal index to be the recovery goal
+        goal_index_ = RECOVERY_GOAL_INDEX;
+    }
 
     void set_mission_complete() { mission_complete_ = true; }
 

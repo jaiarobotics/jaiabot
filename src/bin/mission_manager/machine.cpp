@@ -227,6 +227,9 @@ jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
 jaiabot::statechart::inmission::underway::movement::Trail::Trail(typename StateBase::my_context c)
     : AcquiredGPSCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>(c)
 {
+    // next goal (after trailing) is recovery
+    context<InMission>().set_goal_index_to_recovery();
+
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_trail()->set_active(true);
     if (this->machine().mission_plan().has_trail())

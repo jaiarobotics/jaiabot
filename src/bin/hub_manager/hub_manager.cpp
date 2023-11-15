@@ -24,10 +24,16 @@
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/io/line_based/pty.h>
+#include <goby/middleware/io/line_based/serial.h>
+#include <goby/middleware/io/line_based/tcp_client.h>
+#include <goby/middleware/io/line_based/tcp_server.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/linebasedcomms/gps_sentence.h>
 
-#include <goby/zeromq/application/single_thread.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
@@ -40,12 +46,16 @@
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::HubManager>;
+using ApplicationBase = goby::zeromq::MultiThreadApplication<jaiabot::config::HubManager>;
 
 namespace jaiabot
 {
 namespace apps
 {
+
+constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
+constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
+
 class HubManager : public ApplicationBase
 {
   public:
@@ -101,6 +111,9 @@ class HubManager : public ApplicationBase
     // map GPSD device name to heading
     std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>>
         contact_heading_;
+
+    // set of Bot IDs with bot_to_gps in use
+    std::set<int> bot_to_gps_ids_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -127,6 +140,40 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 
     for (auto contact_gps : cfg().contact_gps())
         contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(), contact_gps.contact()));
+
+    for (auto bot_to_gps : cfg().bot_to_gps())
+    {
+        switch (bot_to_gps.transport_case())
+        {
+            case jaiabot::config::HubManager::BotToGPS::kUdp:
+                launch_thread<goby::middleware::io::UDPPointToPointThread<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.udp());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kPty:
+                launch_thread<goby::middleware::io::PTYThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.pty());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kSerial:
+                launch_thread<goby::middleware::io::SerialThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.serial());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kTcpClient:
+                launch_thread<
+                    goby::middleware::io::TCPClientThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.tcp_client());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kTcpServer:
+                launch_thread<
+                    goby::middleware::io::TCPServerThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.tcp_server());
+
+                break;
+            case jaiabot::config::HubManager::BotToGPS::TRANSPORT_NOT_SET: break;
+        }
+
+        if (bot_to_gps.transport_case() != jaiabot::config::HubManager::BotToGPS::TRANSPORT_NOT_SET)
+            bot_to_gps_ids_.insert(bot_to_gps.bot_id());
+    }
 
     for (auto id : managed_bot_modem_ids_) intervehicle_subscribe(id);
 
@@ -338,6 +385,34 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     // publish for opencpn interface
     if (node_status.IsInitialized())
         interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+
+    if (bot_to_gps_ids_.count(dccl_nav.bot_id()))
+    {
+        goby::util::gps::RMC rmc;
+        goby::util::gps::HDT hdt;
+
+        rmc.status = goby::util::gps::RMC::DataValid;
+
+        rmc.latitude = dccl_nav.location().lat_with_units();
+        rmc.longitude = dccl_nav.location().lon_with_units();
+
+        rmc.speed_over_ground = dccl_nav.speed().over_ground_with_units();
+
+        hdt.true_heading = dccl_nav.attitude().heading_with_units();
+        {
+            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+            io_data->set_index(dccl_nav.bot_id());
+            io_data->set_data(rmc.serialize().message_cr_nl());
+            interthread().publish<bot_gps_out>(io_data);
+        }
+
+        {
+            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+            io_data->set_index(dccl_nav.bot_id());
+            io_data->set_data(hdt.serialize().message_cr_nl());
+            interthread().publish<bot_gps_out>(io_data);
+        }
+    }
 }
 
 void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)

@@ -589,6 +589,16 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
                 glog.is_debug1() && glog << "Received contact update: "
                                          << contact_update.ShortDebugString() << std::endl;
 
+                // republish for logging
+                interprocess().publish<jaiabot::groups::contact_update>(contact_update);
+
+                if (!machine_->has_geodesy())
+                {
+                    glog.is_debug1() && glog << "No geodesy yet, ignore contact update"
+                                             << std::endl;
+                    return;
+                }
+
                 jaiabot::protobuf::IvPBehaviorUpdate ivp_update;
                 jaiabot::protobuf::IvPBehaviorUpdate::ContactUpdate& ivp_contact =
                     *ivp_update.mutable_contact();
@@ -632,7 +642,7 @@ void jaiabot::apps::MissionManager::loop()
         report.set_repeat_index(in_mission->repeat_index());
     }
 
-    // only report the goal index when not in recovery
+    // only report the goal index when not in recovery or trail
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
         // Set Active Goal Index + 1 for User Interface And Log Review.
@@ -647,7 +657,7 @@ void jaiabot::apps::MissionManager::loop()
         }
         goal_speed = machine_->mission_plan().speeds().transit();
     }
-    else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
+    else if (in_mission && (in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX))
     {
         if (machine_->mission_plan().recovery().has_recover_at_final_goal())
         {
