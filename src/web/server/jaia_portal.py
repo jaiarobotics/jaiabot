@@ -428,6 +428,13 @@ class Interface:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
     def get_task_packets_subset(self, task_packets_list, start_date, end_date):
+        logging.warning(f'start_date: {utime(start_date)}')
+        logging.warning(f'end_date: {end_date}')
+        if len(task_packets_list) < 15:
+            logging.warning(f'task_packets_list__start_time: {list(map(lambda task_packet: int(task_packet["start_time"]), task_packets_list))}')
+        else:
+            logging.warning('task_packet_list too long to log')
+
         start_index = bisect.bisect_left(
             list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)), 
             utime(start_date)

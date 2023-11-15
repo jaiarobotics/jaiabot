@@ -183,6 +183,8 @@ def getPackets():
     """
     startDate = parseDate(request.args.get('startDate', (datetime.now(timezone.utc) - timedelta(hours=14))))
     endDate = parseDate(request.args.get('endDate', ''))
+    logging.warning(f'startDate: {startDate}')
+    logging.warning(f'endDate: {endDate}')
     return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
 
 @app.route('/jaia/task-packets-count', methods=['GET'])
