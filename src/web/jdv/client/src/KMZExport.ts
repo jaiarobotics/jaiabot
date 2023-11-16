@@ -4,33 +4,9 @@ import * as Styles from './shared/Styles'
 import { DriftPacket } from "./shared/JAIAProtobuf";
 
 
-function blobToDataUrl(blob: Blob): Promise<string | ArrayBuffer> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-            console.log(reader.result)
-            resolve(reader.result)
-        }
-        reader.onerror = () => {                
-            reject('Cannot convert blob to base64 string')
-        }
-        reader.readAsDataURL(blob)
-    })
-}
-
-
-async function getDataUrl(url: string) {
-    const response = await fetch(url)
-    const blob = await response.blob()
-    return await blobToDataUrl(blob)
-}
-
-
 /**
  * Returns an array of strings, containing the KML code for each feature in a task packet
- * @date 11/14/2023 - 3:16:59 PM
  *
- * @async
  * @param {LogTaskPacket} taskPacket The task packet to process into KML features
  * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
  */
@@ -52,7 +28,6 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     
     /**
      * Returns the path to the appropriate embedded drift arrow icon PNG file
-     * @date 11/14/2023 - 3:14:28 PM
      *
      * @param {DriftPacket} drift packet whose speed will be used to find the appropriate icon
      * @returns {string} path to the embedded drift arrow icon file
@@ -161,6 +136,12 @@ export class KMLDocument {
     constructor() {
     }
 
+    
+    /**
+     * Returns a KML string representing the KML document
+     *
+     * @returns {Promise<string>} the KML document as a string
+     */
     async getKML() {
         var placemarksKml = ''
 
@@ -182,7 +163,6 @@ export class KMLDocument {
     /**
      * Returns a Blob representing the KML document as a KMZ file
      *
-     * @async
      * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
      */
     async getKMZ() {

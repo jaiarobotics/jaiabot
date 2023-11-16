@@ -187,7 +187,6 @@ export function hubMarker(feature: Feature<Point>): Style[] {
 
 /**
  * The style for the circles showing the comms limit radii for hubs
- * @date 10/27/2023 - 7:36:33 AM
  *
  * @export
  * @param {Feature<Point>} feature Point feature of a hub
@@ -326,7 +325,6 @@ function createRallyIcon() {
 
 /**
  * Goal / Waypoint map style function
- * @date 10/23/2023 - 8:58:49 AM
  *
  * @export
  * @param {Feature<Point>} feature
@@ -387,7 +385,6 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
 
     /**
      * Returns an OpenLayers Style object for a circle with optional radial gradient
-     * @date 11/14/2023 - 3:41:34 PM
      *
      * @param {Coordinate} center Center of the circle
      * @param {number} radius Radius of the circle
@@ -522,8 +519,8 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
 /**
  * Returns the drift icon index that should be displayed, given a drift speed.
  * 
- * @param driftSpeed Speed of the drift, in m/s
- * @returns Index into Styles.driftArrowPngs, of the icon sthat should represent this drift
+ * @param {number} driftSpeed Speed of the drift, in m/s
+ * @returns {number} Index into Styles.driftArrowPngs, of the icon sthat should represent this drift
  */
 export function driftSpeedToBinIndex(driftSpeed: number) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
@@ -538,12 +535,11 @@ export function driftSpeedToBinIndex(driftSpeed: number) {
 
 /**
  * Returns an OpenLayers Style for the given Feature
- * @date 11/14/2023 - 3:35:06 PM
  *
  * @export
  * @param {Feature} feature Input drift packet feature
  * @param {?string} [animatedColor] String indicating what kind of animated image to use.  Set to `black` if you want the animated version of the drift icon.
- * @returns {*} OpenLayers Style for this drift icon
+ * @returns {Style} OpenLayers Style for this drift icon
  */
 export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     let binNumber = driftSpeedToBinIndex(feature.get('speed'))

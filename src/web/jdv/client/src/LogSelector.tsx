@@ -381,7 +381,7 @@ export default class LogSelector extends React.Component {
 
         if (await CustomAlert.confirmAsync(`Are you sure you want to DELETE the logs named:\n${logNamesString}`, 'Delete Logs')) {
             logNames.forEach(logName => {
-                LogApi.delete_log(logName)
+                LogApi.deleteLog(logName)
             })
 
             // Deselect all logs
@@ -390,7 +390,7 @@ export default class LogSelector extends React.Component {
     }
 
     refreshLogs() {
-        LogApi.get_logs().then((logs) => {
+        LogApi.getLogs().then((logs) => {
             const log_dict = LogSelector.log_dict(logs)
             this.setState({log_dict})
 
