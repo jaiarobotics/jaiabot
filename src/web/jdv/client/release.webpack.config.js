@@ -4,7 +4,8 @@ module.exports = {
   mode : "production",
   entry : path.resolve(__dirname, './src/index.tsx'),
   module : {
-    rules : [
+    rules :
+    [
       {test : /\.(js)$/, exclude : /node_modules/, use : [ 'babel-loader' ]},
       {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]}, {
         test : /\.(png|svg|jpg|jpeg|gif)$/,

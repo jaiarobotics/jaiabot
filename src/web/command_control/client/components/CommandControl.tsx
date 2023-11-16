@@ -1456,7 +1456,6 @@ export default class CommandControl extends React.Component {
 	
 	/**
 	 * Updates the circles denoting the comms limit for each hub
-	 * @date 10/27/2023 - 7:48:35 AM
 	 */
 	updateHubCommsCircles() {
 		const hubs = Object.values(this.state.podStatus.hubs)
