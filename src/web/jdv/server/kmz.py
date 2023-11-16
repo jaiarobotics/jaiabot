@@ -5,7 +5,7 @@ import zipfile
 from typing import Iterable, List
 
 
-def task_packet_to_kml_placemarks(task_packet: TaskPacket):
+def kmlPlacemarkStringListFromTaskPacket(task_packet: TaskPacket) -> List[str]:
     '''Converts a task packet to an array of kmz placemarks in string form'''
 
     def entry(name: str, value: float, units: str):
@@ -145,13 +145,13 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
     return placemarks
 
 
-def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
+def kmlFromTaskPackets(task_packets: Iterable[TaskPacket]):
     '''Returns a kml string for the provided list of task packets'''
 
     placemarks: List[str] = []
     task_packets = list(task_packets)
     for task_packet in task_packets:
-        placemarks += task_packet_to_kml_placemarks(task_packet)
+        placemarks.extend(kmlPlacemarkStringListFromTaskPacket(task_packet))
 
     document_string = ''.join(placemarks)
 
@@ -173,7 +173,7 @@ def writeTaskPacketsToKMZ(task_packets: Iterable[TaskPacket], output_kmz_path: s
     """
 
     with zipfile.ZipFile(output_kmz_path, 'w') as output_kmz_file:
-        kml_file_string = kml_from_task_packets(task_packets)
+        kml_file_string = kmlFromTaskPackets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)
 
         output_kmz_file.write('kmz_files/bottomStrike.png', 'files/bottomStrike.png')

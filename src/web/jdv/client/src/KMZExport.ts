@@ -54,7 +54,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
      * Returns the path to the appropriate embedded drift arrow icon PNG file
      * @date 11/14/2023 - 3:14:28 PM
      *
-     * @param {DriftPacket} drift drift packet whose speed will be used to find the appropriate icon
+     * @param {DriftPacket} drift packet whose speed will be used to find the appropriate icon
      * @returns {string} path to the embedded drift arrow icon file
      */
     function getDriftArrowHeadUrl(drift: DriftPacket) {
