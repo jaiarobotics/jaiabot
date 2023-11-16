@@ -216,7 +216,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             glog.is_debug2() &&
                 glog << group("main") << "Arduino Driver Compatible: " << is_driver_compatible_
                      << ", Arduino Version: " << arduino_response.version()
-                     << ", Arduino Driver Has verision: "
+                     << ", Arduino Driver Has Verision: "
                      << arduino_version_compatibility_.count(arduino_response.version())
                      << std::endl;
 
@@ -244,7 +244,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             // Check if the driver is compatible
             if (is_driver_compatible_)
             {
-                // set the settings ack to true to begin comms
+                // Set the settings ack to true to begin comms
                 if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
                 {
                     glog.is_debug2() && glog << group("main") << "Settings were Ack by arduino"
@@ -261,7 +261,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                 std::chrono::seconds(cfg().arduino_restart_timeout_seconds()) <
                             goby::time::SteadyClock::now())
                     {
-                        // finished startup process
+                        // Finished startup process
                         arduino_restarting_ = false;
 
                         glog.is_debug2() && glog << group("main") << "Finsihed Restarting"
