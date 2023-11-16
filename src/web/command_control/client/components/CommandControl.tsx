@@ -147,7 +147,6 @@ interface State {
 
 	runList: MissionInterface,
 	runListVersion: number,
-	undoRunListStack: MissionInterface[],
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
@@ -292,7 +291,6 @@ export default class CommandControl extends React.Component {
 				runIdInEditMode: ''
 			},
 			runListVersion: 0,
-			undoRunListStack: [],
 			flagClickedInfo: {
 				runNum: -1,
 				botId: -1
@@ -572,11 +570,6 @@ export default class CommandControl extends React.Component {
 					this.toggleBot(botId)
 					return
 				}
-
-			// Undo
-			if (e.keyCode == 90 && e.ctrlKey) {
-				this.restoreUndo()
-			}
 		}
 	}
 	
@@ -1057,29 +1050,13 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Sets the runList, without pushing to the Undo stack
+	 * Updates the runList in state
 	 * 
-	 * @param runList new runList
+	 * @param {MissionInterface} runList updated version used to set state
+	 * @returns {void}
 	 */
 	setRunList(runList: MissionInterface) {
 		this.setState({runList, runListVersion: this.state.runListVersion + 1})
-	}
-	
-	/**
-	 * Push the current runList onto the undoRunListStack, if different from the top runList on the stack
-	 */
-	pushRunListToUndoStack() {
-		const { runList, undoRunListStack } = this.state
-
-		if (undoRunListStack.length >= 1) {
-			const topRunList = undoRunListStack[undoRunListStack.length - 1]
-			if (equalValues(topRunList, runList)) return this
-		}
-
-		undoRunListStack.push(deepcopy(runList))
-		this.setState({undoRunListStack})
-
-		return this
 	}
 
 	/**
@@ -1264,6 +1241,17 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Delete a run from the mission
+	 * 
+	 * @param {string} runId determines which run to delete
+	 * @param {string} disableMessage see @notes/refactor
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> remove disable message as a parameter...this should be handled by an on click
+	 * 				handler for the clear run button
+	 */
 	deleteSingleRun(runId: string, disableMessage?: string) {
 		// Exit if we have a disableMessage
 		if (disableMessage) {
@@ -1279,7 +1267,7 @@ export default class CommandControl extends React.Component {
 			console.error('Invalid runId passed to deleteSingleRun\n', err)
 		}
 		
-		const runList = {...this.pushRunListToUndoStack().getRunList()}
+		const runList = {...this.getRunList()}
 		const selectedBotId = this.selectedBotId()
 		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 	
@@ -1308,17 +1296,20 @@ export default class CommandControl extends React.Component {
 	// 
 	// Load + Save Missions (Start)
 	//
-	loadMissions(mission: MissionInterface) {
-		const runList = this.pushRunListToUndoStack().getRunList()
+	/**
+	 * Save a mission from LocalStorage into the JCC
+	 * 
+	 * @param {MissionInterface} missionToLoad mission data to be moved to JCC
+	 * @return {void}
+	 */
+	loadMissions(missionToLoad: MissionInterface) {
+		const runList = this.getRunList()
 
 		this.deleteAllRunsInMission(runList, true).then((confirmed: boolean) => {
 			if (confirmed) {
-				console.log('MARKER')
-
-				for (let run in mission?.runs) {
-					Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
+				for (let run in missionToLoad?.runs) {
+					Missions.addRunWithCommand(-1, missionToLoad.runs[run].command, runList)
 				}
-		
 				this.setRunList(runList)
 			}
 		})
@@ -1641,7 +1632,7 @@ export default class CommandControl extends React.Component {
 	 */
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
-		let runList = this.pushRunListToUndoStack().getRunList()
+		let runList = this.getRunList()
 
 		if (!botId && runList.runIdInEditMode === '') {
 			return
@@ -1696,6 +1687,16 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
+	/**
+	 * Click handler for JCC map
+	 * 
+	 * @param {MapBrowserEvent<UIEvent>} evt stores data on where the click occured
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> figure out what was clicked on, then pass to the correct secondary handler to
+	 *              break up this function
+	 */
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature: OlFeature<Geometry>) {
@@ -1728,7 +1729,6 @@ export default class CommandControl extends React.Component {
 			// Clicked on goal / waypoint
 			const goal = feature.get('goal')
 			if (goal) {
-				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
 					goal: goal,
 					goalIndex: feature.get('goalIndex'),
@@ -2514,6 +2514,14 @@ export default class CommandControl extends React.Component {
 	// 
 	// Command Drawer (Start)
 	//
+	/**
+	 * Toolbar located at the top of the JCC
+	 * 
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> this should be its own separate component
+	 */
 	commandDrawer() {
 		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
 
@@ -2550,9 +2558,6 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiProgressDownload} title="Download Queue"/>
 					</Button>
 				))}
-				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
-					<Icon path={mdiArrowULeftTop} title="Undo"/>
-				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
@@ -2813,32 +2818,18 @@ export default class CommandControl extends React.Component {
 			this.flagNumber ++
 		})
 	}
-
-	/**
-	 * Restore the top of the runList undo stack
-	 * 
-	 * @returns Nothing
-	 */
-	restoreUndo() {
-		if (this.state.undoRunListStack.length < 1) {
-			info("There is no goal or task to undo!");
-			return
-		}
-
-		CustomAlert.confirm('Undo the previous run edit that was made?', 'Undo Last Edit', () => {
-			const runList = this.state.undoRunListStack.pop()
-			this.setRunList(runList)
-			this.setState({goalBeingEdited: null})
-		})
-	}
-
 	// 
 	// Command Drawer (End)
 	// 
 
 	// 
 	// Mission Contoroller Panel Helper Methods (Start)
-	// 
+	//
+	/**
+	 * Assign bots to runs in ascending order with one click
+	 * 
+	 * @returns {void}
+	 */
 	autoAssignBotsToRuns() {
         let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
         let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
@@ -2854,7 +2845,7 @@ export default class CommandControl extends React.Component {
             }
         })
 
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = this.getRunList()
 
         botsNotAssigned.forEach((assignedKey) => {
             for (let runKey in runList.runs) {
@@ -3016,7 +3007,7 @@ export default class CommandControl extends React.Component {
 
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
-							const runList = this.pushRunListToUndoStack().getRunList()
+							const runList = this.getRunList()
 							this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
 								if (!confirmed) return
 
