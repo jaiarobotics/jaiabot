@@ -280,6 +280,8 @@ message IvPBehaviorUpdate
         optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
+
+        optional int32 slip_radius = 5;
     }
 
     message StationkeepUpdate

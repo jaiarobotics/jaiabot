@@ -612,11 +612,21 @@ class LogApp extends React.Component {
           }
         } /> : null
 
+    let noSelectedSeriesMessage: React.JSX.Element = null
+    if (this.state.chosenLogs.length > 0 && this.state.plots.length == 0) {
+      noSelectedSeriesMessage = 
+        <div className='no-selected-series-message'>
+          No data series selected to plot yet.<br />
+          To plot or export data as CSV, please select one or more series using the <Icon path = {mdiPlus} size = {1} className='button' style = {{ verticalAlign: "middle", backgroundColor: 'lightgray' }}></Icon> button above.
+        </div>
+    }
+
     return (
       <div className="plotcontainer">
         <h2>Plots</h2>{actionBar} {
               pathSelector}<div className = "horizontal flexbox">
           <div id = "plot" className = "plot">
+            { noSelectedSeriesMessage }
           </div>
           <div className="vertical flexbox deleteButtonSection">
             { deleteButtons }

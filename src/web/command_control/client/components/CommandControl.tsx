@@ -88,7 +88,6 @@ const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
 const POD_STATUS_POLL_INTERVAL = 1000
-const POD_STATUS_ERROR_POLL_INTERVAL = 2500
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5000
 const MAX_GOALS = 30
@@ -247,7 +246,6 @@ export default class CommandControl extends React.Component {
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
-	podStatusErrorPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 
@@ -421,7 +419,6 @@ export default class CommandControl extends React.Component {
 		})
 
 		this.podStatusPollId = null
-		this.podStatusErrorPollId = null
 		this.metadataPollId = null
 		this.taskPackets = []
 		this.taskPacketsCount = 0
@@ -840,18 +837,12 @@ export default class CommandControl extends React.Component {
 				}
 			},
 			(err) => {
-				console.log("Error response")
 				this.hubConnectionError(err.message)
 			}
 		)
-		// Handles inital poll and restart after error
-		if (!this.podStatusPollId && !this.state.disconnectionMessage) {
+		// Starts polling interval
+		if (!this.podStatusPollId) {
 			this.podStatusPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_POLL_INTERVAL)
-		}
-		// Clears poll used during error state
-		if (this.podStatusErrorPollId && !this.state.disconnectionMessage) {
-			clearInterval(this.podStatusErrorPollId)
-			this.podStatusErrorPollId = null
 		}
 	}
 
@@ -886,10 +877,6 @@ export default class CommandControl extends React.Component {
 	hubConnectionError(errMsg: String) {
 		this.setState({ disconnectionMessage: "Connection Dropped To HUB" })
 		console.error(errMsg)
-		clearInterval(this.podStatusPollId) // Clear regular poll from running alongside error poll
-		if (!this.podStatusErrorPollId) {
-			this.podStatusErrorPollId = setInterval(() => this.pollPodStatus(), POD_STATUS_ERROR_POLL_INTERVAL)
-		}
 	}
 
 	getPodStatus() {
@@ -1239,26 +1226,36 @@ export default class CommandControl extends React.Component {
 	// Run Mission (End)
 	// 
 
-	// 
-	// Delete Mission (Start)
-	// 
-	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
+
+	/**
+	 * Reset mission planning
+	 * 
+	 * @param {MissionInterface} mission - used to access the mission state
+	 * @param {boolean} needConfirmation - does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission - is the mission a rally point mission?
+	 * @return {Promise<boolean>} - did the deletion occur? If (yes) then (true)
+	 */
+	async deleteAllRunsInMission(
+		mission: MissionInterface,
+		needConfirmation: boolean,
+		rallyPointMission?: boolean
+	) {
 		return new Promise((resolve, reject) => {
+			let updatedMission = {...mission}
 			const doDelete = () => {
-				const runs = mission.runs
-				for (const run of Object.values(runs)) {
-					const runNumber = Number(run.id.substring(4)) // run.id => run-x
-						delete mission.runs[run.id]
-						delete mission.botsAssignedToRuns[run.assigned]
+				for (const run of Object.values(mission.runs)) {
+					delete updatedMission.runs[run.id]
+					delete updatedMission.botsAssignedToRuns[run.assigned]
 				}
-				mission.runIdIncrement = 1
-				mission.runIdInEditMode = ''
-	
+				updatedMission.runIdIncrement = 1
+				updatedMission.runIdInEditMode = ''
+				this.setRunList(updatedMission)
+
 				resolve(true)			
 			}
 	
 			if (needConfirmation) {
-				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointMission)
 				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
 			}
 			else {
@@ -1282,7 +1279,7 @@ export default class CommandControl extends React.Component {
 			console.error('Invalid runId passed to deleteSingleRun\n', err)
 		}
 		
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = {...this.pushRunListToUndoStack().getRunList()}
 		const selectedBotId = this.selectedBotId()
 		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 	
@@ -1294,6 +1291,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
+			this.setRunList(runList)
 		})
 	}
 
@@ -1619,7 +1617,7 @@ export default class CommandControl extends React.Component {
 			if (this.state.missionParams.missionType === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
-				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task.type))
+				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task?.type))
 				missionPlanningFeaturesList.push(mpFeature)
 			}
 		}
@@ -1634,6 +1632,12 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAt(getGeographicCoordinate(coordinate, map))
 	}
 
+	/**
+	 * Add a waypoint to the OpenLayers map for a given tap/click
+	 * 
+	 * @param {GeographicCoordinate} location - where the waypoint should be added
+	 * @returns {void}
+	 */
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
 		let runList = this.pushRunListToUndoStack().getRunList()
@@ -1663,6 +1667,9 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
+
+		// Prevent error after operator deletes an unassigned run and then clicks on the map
+		if (!run) { return }
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')

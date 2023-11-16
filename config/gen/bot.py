@@ -12,32 +12,28 @@ import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
 jaia_electronics_stack='0'
+jaia_imu_type='bno055'
+jaia_arduino_type='spi'
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
 if jaia_electronics_stack == '0':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=1
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
 if jaia_electronics_stack == '1':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=5
     helm_comms_tick=5
     total_after_dive_gps_fix_checks=75
 elif jaia_electronics_stack == '2':
-    jaia_arduino_dev_location="/dev/ttyAMA1"
     helm_app_tick=5
     helm_comms_tick=5
     total_after_dive_gps_fix_checks=75
 else:
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=1
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
-
-jaia_imu_type = 'bno055'
 
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
@@ -45,9 +41,19 @@ if "jaia_imu_type" in os.environ:
 if jaia_imu_type == "bno055":
     imu_detection_solution='RESTART_IMU_PY'
 elif jaia_imu_type == 'bno085':
-    imu_detection_solution='REBOOT_BNO085_IMU'
+    imu_detection_solution='RESTART_IMU_PY'
 else:
     imu_detection_solution='RESTART_IMU_PY'
+
+if "jaia_arduino_type" in os.environ:
+    jaia_arduino_type=os.environ['jaia_arduino_type']
+
+if jaia_arduino_type == "spi":
+    jaia_arduino_dev_location="/dev/ttyAMA1"
+elif jaia_arduino_type == 'usb':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+else:
+    jaia_arduino_dev_location="/dev/ttyAMA1"
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])
