@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 ## Overview
 
-The Jaiabot Data Vision package is composed of one systemd services: `jaiabot_data_vision.service`.
+The Jaiabot Data Vision package is composed of one systemd service: `jaiabot_data_vision.service`.
 
 ### jaiabot\_data\_vision.service
 
