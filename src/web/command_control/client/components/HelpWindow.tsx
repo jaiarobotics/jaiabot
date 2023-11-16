@@ -131,7 +131,6 @@ interface Props {
 
 /**
  * A window showing help information for the Jaia Command & Control user
- * @date 10/28/2023 - 11:36:47 AM
  *
  * @export
  * @class HelpWindow
