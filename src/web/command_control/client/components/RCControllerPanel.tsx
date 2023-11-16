@@ -90,6 +90,17 @@ export default class RCControllerPanel extends React.Component {
 		this.setState({ throttleDirection: event.direction.toString(), throttleBinNumber: bin.binNumber }, () => {})		
 	}
 
+	/**
+	 * Creates the bins for throttle that are used as output for the operator
+	 * 
+	 * @param {number} speed is the position of the input that is used to determine bin number
+	 * @param {string} throttleDirection determines the direction of the throttle (FORWARD, BACKWARD)
+	 * @param {{binNumber: number, binValue: number}} bin used to pass the bin number and value
+	 * @returns {number}
+	 * 
+	 * @notes
+	 * Need template for object parameters
+	 */
 	calcThrottleBinNum(speed: number, throttleDirection: string, bin: {binNumber: number, binValue: number}) {
 		// Basic error handling to protect against unexpected speed value
 		if (!speed || speed === 0) {
@@ -97,7 +108,7 @@ export default class RCControllerPanel extends React.Component {
 		}
 
 		if (throttleDirection === 'FORWARD') {
-			// This means our max forward throttle would be 40 or 2 m/s.
+			// This means our max forward throttle would be 40 or speed 2.
 			if (speed <= 95) {
 				bin.binNumber = 1
 				bin.binValue = 20
@@ -106,7 +117,7 @@ export default class RCControllerPanel extends React.Component {
 				bin.binValue = 40
 			}
 		} else if (throttleDirection === 'BACKWARD') {
-			// This means our max backward throttle would be 10 or 0.5 m/s.
+			// This means our max backward throttle would be 10 or speed 0.5.
 			bin.binNumber = 1
 			bin.binValue = -10
 		}
