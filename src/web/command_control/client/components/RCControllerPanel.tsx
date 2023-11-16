@@ -91,12 +91,12 @@ export default class RCControllerPanel extends React.Component {
 	}
 
 	/**
-	 * Creates the bins for throttle that is used as output for the operator
+	 * Creates the bins for throttle that are used as output for the operator
 	 * 
 	 * @param {number} speed is the position of the input that is used to determine bin number
 	 * @param {string} throttleDirection determines the direction of the throttle (FORWARD, BACKWARD)
 	 * @param {{binNumber: number, binValue: number}} bin used to pass the bin number and value
-	 * @returns 
+	 * @returns {number}
 	 * 
 	 * @notes
 	 * Need template for object parameters
