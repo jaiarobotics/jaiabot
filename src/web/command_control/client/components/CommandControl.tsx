@@ -1207,10 +1207,10 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Reset mission planning
 	 * 
-	 * @param {MissionInterface} mission - used to access the mission state
-	 * @param {boolean} needConfirmation - does the deletion require a confirmation by the opertor?
-	 * @param {boolean} rallyPointMission - is the mission a rally point mission?
-	 * @return {Promise<boolean>} - did the deletion occur? If (yes) then (true)
+	 * @param {MissionInterface} mission used to access the mission state
+	 * @param {boolean} needConfirmation does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission is the mission a rally point mission?
+	 * @return {Promise<boolean>} did the deletion occur? If (yes) then (true)
 	 */
 	async deleteAllRunsInMission(
 		mission: MissionInterface,
@@ -1627,7 +1627,7 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Add a waypoint to the OpenLayers map for a given tap/click
 	 * 
-	 * @param {GeographicCoordinate} location - where the waypoint should be added
+	 * @param {GeographicCoordinate} location where the waypoint should be added
 	 * @returns {void}
 	 */
 	addWaypointAt(location: GeographicCoordinate) {
