@@ -216,7 +216,7 @@ export function getHTMLTimeString(date: Date) {
 }
 
 /**
- * Converts a string date to a cleaned ISO format in UTC time
+ * Converts a string date to a cleaned ISO formatted string in UTC time
  * 
  * @param {string} strDate date to be converted to UTC in ISO format
  * @returns {string} ISO formatted date without letters and special chars

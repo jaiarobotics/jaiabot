@@ -84,7 +84,7 @@ export class JaiaAPI {
    * 
    * @param {string} startDate (optional) sets the lower bound on the TaskPackets displayed 
    * @param {string} endDate (optional) sets the upper bound on the TaskPackets displayed
-   * @returns {Promise<TaskPacket[]>}
+   * @returns {Promise<TaskPacket[]>} array of TaskPackets or error obj
    * 
    * @notes
    * Expected startDate format: yyyy-mm-dd hh:mm

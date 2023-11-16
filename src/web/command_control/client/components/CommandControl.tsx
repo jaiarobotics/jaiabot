@@ -2284,7 +2284,7 @@ export default class CommandControl extends React.Component {
 	 * Update the TaskPacket date values held in state
 	 * 
 	 * @param {{start: booleaan, end: boolean}} forceDateChange change the calendar display before next poll completes
-	 * @returns {{[x: string]: string | boolean} | null} provides newest copy for when state calls compete
+	 * @returns {{[x: string]: string | boolean} | null} provides newest copy of TaskPackets for when state calls compete
 	 */
 	setTaskPacketDates(forceDateChange?: {[type: string]: boolean}) {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
