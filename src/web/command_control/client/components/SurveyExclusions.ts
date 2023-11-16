@@ -61,7 +61,6 @@ export class SurveyExclusions {
 
     /**
      * Layer for exclusion zones for survey missions
-     * @date 6/14/2023 - 5:17:04 PM
      *
      * @type {*}
      */
