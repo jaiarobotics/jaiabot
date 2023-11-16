@@ -6,20 +6,16 @@ The JaiaBot Data Vision system is a web server that allows client browsers to pl
 
 The system can be built and installed as a systemd service using the following command:
 
-```make install```
+```make```
 
 ```
-cd jaiabot/jdv
+cd jaiabot/src/python
 pip install -r requirements.txt
 ```
 
 ## Overview
 
-The Jaiabot Data Vision package is composed of two systemd services:  `jaiabot_log_converter.service` and `jaiabot_data_vision.service`.
-
-### jaiabot\_log\_converter.service
-
-This service watches a directory (`~jaiabot_data_vision-logs` by default) for incoming `.goby` files to convert.  When a new one arrives in that directory, it will call `goby_log_tool` to convert that file to a `.h5` file for reading by `jaiabot_data_vision`.
+The Jaiabot Data Vision package is composed of one systemd service: `jaiabot_data_vision.service`.
 
 ### jaiabot\_data\_vision.service
 

@@ -285,7 +285,6 @@ export class TaskData {
     /**
      * Updates the interpolated drift layer by accessing the API
      * To Do: Figure out how to make multiple Drift Maps based on time/location
-     * @date 10/5/2023 - 5:32:55 AM
      */
     _updateInterpolatedDrifts() {
         jaiaAPI.getDriftMap()
