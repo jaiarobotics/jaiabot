@@ -90,6 +90,17 @@ export default class RCControllerPanel extends React.Component {
 		this.setState({ throttleDirection: event.direction.toString(), throttleBinNumber: bin.binNumber }, () => {})		
 	}
 
+	/**
+	 * Creates the bins for throttle that is used as output for the operator
+	 * 
+	 * @param {number} speed is the position of the input that is used to determine bin number
+	 * @param {string} throttleDirection determines the direction of the throttle (FORWARD, BACKWARD)
+	 * @param {{binNumber: number, binValue: number}} bin used to pass the bin number and value
+	 * @returns 
+	 * 
+	 * @notes
+	 * Need template for object parameters
+	 */
 	calcThrottleBinNum(speed: number, throttleDirection: string, bin: {binNumber: number, binValue: number}) {
 		// Basic error handling to protect against unexpected speed value
 		if (!speed || speed === 0) {

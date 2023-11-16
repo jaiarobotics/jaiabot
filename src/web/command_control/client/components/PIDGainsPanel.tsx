@@ -337,6 +337,12 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
+        /**
+         * Creates the table for safety parameters for the bot
+         * 
+         * @param {Engineering} engineering used to determine what the current safety requirement is set to
+         * @returns {React.JSX.Element} the safety parameter table
+         */
         function botSafetyTable(engineering: Engineering) {
             if (engineering) {
                 return  <React.Fragment>
