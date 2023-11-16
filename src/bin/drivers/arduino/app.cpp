@@ -82,6 +82,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Motor
     int target_motor_ = 1500;
     int max_reverse_ = 1320;
+    int motor_off_ = 1500;
 
     // Control surfaces
     int rudder_ = 1500;
@@ -101,11 +102,14 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
+    bool arduino_restarting_{false};
     std::string app_version_{VERSION_STRING};
     std::string delimiter_{"+"};
 
     // Used to check the time of the last arduino report
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
+    // Used to check the time the arduino restarted
+    goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
 };
 
 } // namespace apps
@@ -188,43 +192,80 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             {
                 if (is_settings_ack_)
                 {
+                    // Reset to check compatibility again
+                    is_driver_compatible_ = false;
+
                     // Reset to false because the arduino restarted
                     // Ensures that we set our bounds
                     is_settings_ack_ = false;
+
+                    // Set true so we can zero out
+                    // the arduino commands
+                    arduino_restarting_ = true;
+
+                    // Set the restart time
+                    last_arduino_restart_time_ = goby::time::SteadyClock::now();
+
+                    glog.is_debug2() && glog << group("main") << "Restarting: " << std::endl;
 
                     arduino_debug.set_arduino_restarted(true);
                     interprocess().publish<groups::arduino_debug>(arduino_debug);
                 }
             }
 
-            if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
+            glog.is_debug2() &&
+                glog << group("main") << "Arduino Driver Compatible: " << is_driver_compatible_
+                     << ", Arduino Version: " << arduino_response.version()
+                     << ", Arduino Driver Has Verision: "
+                     << arduino_version_compatibility_.count(arduino_response.version())
+                     << std::endl;
+
+            // Check if the driver is compatible
+            if (!is_driver_compatible_ &&
+                arduino_version_compatibility_.count(arduino_response.version()))
             {
-                glog.is_debug1() && glog << group("arduino") << "ArduinoResponse: "
-                                         << arduino_response.ShortDebugString() << std::endl;
+                auto compatible_from =
+                    arduino_version_compatibility_.at(arduino_response.version()).first;
+                auto compatible_to =
+                    arduino_version_compatibility_.at(arduino_response.version()).second;
 
-                if (arduino_version_compatibility_.count(arduino_response.version()))
+                // If the compatible_from version is less than or equal to the
+                // app_version_ and if the app_version_ is less
+                // than or equal to the compatible_to version
+                if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
+                    isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
                 {
-                    auto compatible_from =
-                        arduino_version_compatibility_.at(arduino_response.version()).first;
-                    auto compatible_to =
-                        arduino_version_compatibility_.at(arduino_response.version()).second;
+                    glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
+                                             << std::endl;
+                    is_driver_compatible_ = true;
+                }
+            }
 
-                    // If the compatible_from version is less than or equal to the
-                    // app_version_ and if the app_version_ is less
-                    // than or equal to the compatible_to version
-                    if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
-                        isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
+            // Check if the driver is compatible
+            if (is_driver_compatible_)
+            {
+                // Set the settings ack to true to begin comms
+                if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
+                {
+                    glog.is_debug2() && glog << group("main") << "Settings were Ack by arduino"
+                                             << std::endl;
+                    is_settings_ack_ = true;
+                }
+
+                // Check for ack statuses
+                if (arduino_response.status_code() == protobuf::ArduinoStatusCode::ACK)
+                {
+                    // Check to see if arduino has finished restarting
+                    if (arduino_restarting_ &&
+                        last_arduino_restart_time_ +
+                                std::chrono::seconds(cfg().arduino_restart_timeout_seconds()) <
+                            goby::time::SteadyClock::now())
                     {
-                        glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
-                                                 << std::endl;
-                        is_driver_compatible_ = true;
+                        // Finished startup process
+                        arduino_restarting_ = false;
 
-                        if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
-                        {
-                            glog.is_debug2() && glog << group("main")
-                                                     << "Settings were Ack by arduino" << std::endl;
-                            is_settings_ack_ = true;
-                        }
+                        glog.is_debug2() && glog << group("main") << "Finsihed Restarting"
+                                                 << std::endl;
                     }
                 }
             }
@@ -356,7 +397,7 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
 {
     if (control_surfaces.has_motor())
     {
-        target_motor_ = 1500 + (control_surfaces.motor() / 100.0) * 400;
+        target_motor_ = motor_off_ + (control_surfaces.motor() / 100.0) * 400;
 
         // Do not go lower than max_reverse
         if (target_motor_ < max_reverse_)
@@ -403,6 +444,10 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
 
 void jaiabot::apps::ArduinoDriver::loop() {}
 
+/**
+ * @brief Used to send commands to the arduino
+ * 
+ */
 void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
@@ -420,48 +465,44 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
         arduino_actuators.set_timeout(arduino_timeout_);
 
         // If command is too old, then zero the Arduino
-        if (_time_last_command_received_ != 0 &&
-            now_microseconds() - _time_last_command_received_ > timeout_)
+        if ((_time_last_command_received_ != 0 &&
+             now_microseconds() - _time_last_command_received_ > timeout_) ||
+            arduino_restarting_)
         {
-            arduino_actuators.set_motor(1500);
+            arduino_actuators.set_motor(motor_off_);
             arduino_actuators.set_rudder(bounds_.rudder().center());
             arduino_actuators.set_stbd_elevator(bounds_.strb().center());
             arduino_actuators.set_port_elevator(bounds_.port().center());
             arduino_actuators.set_led_switch_on(false);
 
             *arduino_cmd.mutable_actuators() = arduino_actuators;
-
-            // Publish interthread, so we can log it
-            interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
-
-            // Send the command to the Arduino
-            auto raw_output = lora::serialize(arduino_cmd);
-            interthread().publish<serial_out>(raw_output);
-
-            return;
         }
-        // Don't use motor values of less power than the start bounds
-        int corrected_motor;
+        else
+        {
+            // Don't use motor values of less power than the start bounds
+            int corrected_motor;
 
-        if (target_motor_ > 1500)
-            corrected_motor = max(target_motor_, bounds_.motor().forwardstart());
-        else if (target_motor_ == 1500)
-            corrected_motor = target_motor_;
-        else if (target_motor_ < 1500)
-            corrected_motor = min(target_motor_, bounds_.motor().reversestart());
+            if (target_motor_ > motor_off_)
+                corrected_motor = max(target_motor_, bounds_.motor().forwardstart());
+            else if (target_motor_ == motor_off_)
+                corrected_motor = target_motor_;
+            else if (target_motor_ < motor_off_)
+                corrected_motor = min(target_motor_, bounds_.motor().reversestart());
 
-        arduino_actuators.set_motor(corrected_motor);
-        arduino_actuators.set_rudder(rudder_);
-        arduino_actuators.set_stbd_elevator(stbd_elevator_);
-        arduino_actuators.set_port_elevator(port_elevator_);
-        arduino_actuators.set_led_switch_on(led_switch_on);
+            arduino_actuators.set_motor(corrected_motor);
+            arduino_actuators.set_rudder(rudder_);
+            arduino_actuators.set_stbd_elevator(stbd_elevator_);
+            arduino_actuators.set_port_elevator(port_elevator_);
+            arduino_actuators.set_led_switch_on(led_switch_on);
 
-        *arduino_cmd.mutable_actuators() = arduino_actuators;
+            *arduino_cmd.mutable_actuators() = arduino_actuators;
+        }
     }
 
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
 
+    // Publish interthread, so we can log it
     interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
 
     // Send the command to the Arduino
