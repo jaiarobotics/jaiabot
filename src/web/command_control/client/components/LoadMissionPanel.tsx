@@ -99,7 +99,6 @@ export class LoadMissionPanel extends React.Component {
     
     /**
      * Deletes the selected mission without a user confirmation.
-     * @date 10/22/2023 - 10:08:48 AM
      */
     deleteSelectedMission() {
         let name = this.state.selectedMissionName
@@ -116,7 +115,6 @@ export class LoadMissionPanel extends React.Component {
     
     /**
      * Deletes the selected mission after user confirmation.
-     * @date 10/22/2023 - 10:09:29 AM
      */
     deleteClicked() {
         CustomAlert.confirm("Are you sure you want to delete the mission named \"" + name + "\"?", 'Delete Mission', () => {

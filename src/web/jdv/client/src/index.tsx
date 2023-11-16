@@ -262,33 +262,33 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        const getMapJob = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+        const getMapJob = LogApi.getMapData(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        const getCommandsJob = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsJob = LogApi.getCommands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        const getActiveGoalsJob = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalsJob = LogApi.getActiveGoal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        const getTaskPacketsJob = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsJob = LogApi.getTaskPackets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        const getDepthContoursJob = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursJob = LogApi.getDepthContours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
         // Get the drift interpolations
-        const getDriftInterpolationsJob = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
+        const getDriftInterpolationsJob = LogApi.getDriftInterpolations(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
         })
 
@@ -329,7 +329,7 @@ class LogApp extends React.Component {
     function openLogsWhenReady() {
       self.startBusyIndicator()
 
-      LogApi.post_convert_if_needed(logFilenames).then((response) => {
+      LogApi.postConvertIfNeeded(logFilenames).then((response) => {
         if (response.done) {
           self.stopBusyIndicator()
           self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
@@ -362,7 +362,7 @@ class LogApp extends React.Component {
     this.setState({isPathSelectorDisplayed: false})
     this.startBusyIndicator()
 
-    LogApi.get_series(this.state.chosenLogs, pathArray)
+    LogApi.getSeries(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
@@ -538,7 +538,7 @@ class LogApp extends React.Component {
   }
 
   open_moos_messages(time_range: number[]) {
-    LogApi.get_moos(this.state.chosenLogs, time_range)
+    LogApi.getMOOS(this.state.chosenLogs, time_range)
   }
 
   // Plot Section
