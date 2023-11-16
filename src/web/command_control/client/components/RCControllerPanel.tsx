@@ -97,7 +97,7 @@ export default class RCControllerPanel extends React.Component {
 		}
 
 		if (throttleDirection === 'FORWARD') {
-			// This means our max forward throttle would be 40 or 2 m/s.
+			// This means our max forward throttle would be 40 or speed 2.
 			if (speed <= 95) {
 				bin.binNumber = 1
 				bin.binValue = 20
@@ -106,7 +106,7 @@ export default class RCControllerPanel extends React.Component {
 				bin.binValue = 40
 			}
 		} else if (throttleDirection === 'BACKWARD') {
-			// This means our max backward throttle would be 10 or 0.5 m/s.
+			// This means our max backward throttle would be 10 or speed 0.5.
 			bin.binNumber = 1
 			bin.binValue = -10
 		}

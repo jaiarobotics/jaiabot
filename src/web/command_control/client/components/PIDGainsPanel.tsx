@@ -362,7 +362,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed (m/s)</td>
+                                    <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed</td>
                                     <td key="current_bottom_depth_safety_speed">
                                         {engineering?.bottom_depth_safety_params?.constant_heading_speed  ?? "-"}
                                     </td>
@@ -410,7 +410,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed (m/s)</td>
+                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed</td>
                                     <td>
                                         <input style={{maxWidth: "80px"}} 
                                             type="number" 
