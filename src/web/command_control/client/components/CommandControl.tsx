@@ -2119,6 +2119,11 @@ export default class CommandControl extends React.Component {
 		this.setState({ isClusterModeOn: isOn })
 	}
 
+	/**
+	 * Called when operator toggles "Edit Dates" in Settings panel >> Task Packets accordion
+	 * 
+	 * @returns {void}
+	 */
 	handleTaskPacketEditDatesToggle() {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		// Reset TaskPackets to default time gap
@@ -2137,6 +2142,12 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Save changes made by an operator to the TaskPackets date/time calendar
+	 * 
+	 * @param {React.ChangeEvent<HTMLInputElement>} evt holds which date/time input changed 
+	 * @returns {void}
+	 */
 	handleTaskPacketsTimelineChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		switch(evt.target.id) {
@@ -2190,6 +2201,11 @@ export default class CommandControl extends React.Component {
 		this.setState({ taskPacketsTimeline })
 	}
 
+	/**
+	 * Adjust end date/time in TaskPackets calendar when "Keep End Date Current" checkbox changes
+	 *  
+	 * @returns {void}
+	 */
 	handleKeepEndDateCurrentToggle() {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		// Checkbox goes from unchecked to checked
@@ -2223,6 +2239,12 @@ export default class CommandControl extends React.Component {
 		return false
     }
 
+	/**
+	 * Set TaskPackets view to default start/end gap with the end date/time set to now
+	 * 
+	 * @param {boolean} isEditing determines if the Task Packets >> Edit Dates view should be open
+	 * @returns {void}
+	 */
 	resetTaskPacketsTimeline(isEditing: boolean) {
 		// Make update before the next poll occurs
 		let forceDateChange = {start: true, end: true}
@@ -2253,10 +2275,9 @@ export default class CommandControl extends React.Component {
 
 	/**
 	 * Update the TaskPacket date values held in state
-	 * @param forceDateChange {start: booleaan, end: boolean}
-	 * 						  special case where we need to change the calendar display 
-	 * 						  before next poll completes
-	 * @returns taskPacketsTimeline
+	 * 
+	 * @param {{start: booleaan, end: boolean}} forceDateChange change the calendar display before next poll completes
+	 * @returns {{[x: string]: string | boolean} | null} provides newest copy for when state calls compete
 	 */
 	setTaskPacketDates(forceDateChange?: {[type: string]: boolean}) {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
@@ -2266,7 +2287,7 @@ export default class CommandControl extends React.Component {
 			taskPacketsTimeline.isEditing 
 			&& !taskPacketsTimeline.keepEndDateCurrent
 			&& !forceDateChange
-		) { return }
+		) { return null }
 
 		// Make end date current
 		const endDate = new Date()
