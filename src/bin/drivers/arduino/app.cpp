@@ -495,8 +495,8 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
         }
     }
 
-    glog.is_verbose() && glog << group("arduino")
-                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("arduino")
+                             << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
 
     // Publish interthread, so we can log it
     interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
