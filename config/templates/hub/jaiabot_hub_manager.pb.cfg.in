@@ -60,3 +60,4 @@ bot_to_gps  { bot_id: 1   udp { remote_address: "127.0.0.1" remote_port: 33001 }
 bot_to_gps  { bot_id: 2   udp { remote_address: "127.0.0.1" remote_port: 33002 }}
 bot_to_gps  { bot_id: 3   udp { remote_address: "127.0.0.1" remote_port: 33003 }}
 contact_gps { contact: 0  gpsd_device: "udp://127.0.0.1:33001" }
+contact_gps { contact: 1  gpsd_device: "udp://127.0.0.1:33002" }

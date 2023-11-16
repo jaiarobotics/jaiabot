@@ -97,7 +97,7 @@ Behavior = BHV_ConstantSpeed
 
 Behavior = BHV_Trail
 {
-   name         = jaiabot_trail_contact_0
+   name         = jaiabot_trail
    pwt          = 100                                 // default
    condition    = JAIABOT_TRAIL_ACTIVE = true
    updates      = JAIABOT_TRAIL_UPDATES
@@ -110,7 +110,8 @@ Behavior = BHV_Trail
    radius = 5 // default, meters 
    nm_radius = 20
 
-   contact = CONTACT_0
+   // will be updated with JAIABOT_TRAIL_UPDATES
+   contact = PLACEHOLDER
 
    // set by updates
    // trail_angle = ...
