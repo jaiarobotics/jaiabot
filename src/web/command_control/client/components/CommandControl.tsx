@@ -1250,7 +1250,7 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @notes
 	 * /refactor >> remove disable message as a parameter...this should be handled by an on click
-	 * 				handler for the clear run button
+	 *              handler for the clear run button
 	 */
 	deleteSingleRun(runId: string, disableMessage?: string) {
 		// Exit if we have a disableMessage
