@@ -444,6 +444,10 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
 
 void jaiabot::apps::ArduinoDriver::loop() {}
 
+/**
+ * @brief Used to send commands to the arduino
+ * 
+ */
 void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
