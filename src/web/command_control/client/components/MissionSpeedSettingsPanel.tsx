@@ -93,7 +93,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                             </td>
                             <td>
                                 <Typography sx={{ width: 50 }}>
-                                    {this.state.speeds.transit} m/s
+                                    {this.state.speeds.transit}
                                 </Typography>
                             </td>
                         </tr>
@@ -142,7 +142,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                             </td>
                             <td>
                                 <Typography sx={{ width: 50 }}>
-                                    {this.state.speeds.stationkeep_outer} m/s
+                                    {this.state.speeds.stationkeep_outer}
                                 </Typography>
                             </td>  
                         </tr>

@@ -148,15 +148,32 @@ function handleAccordionDropdownClick(event: Event, targetClassName: string, par
     }, dropdownTimeout)
 }
 
+/**
+ * Scroll a dropdown element into view within its parent element
+ * 
+ * @param {string} parentContainerId - allows us to get dimensions of the parent element
+ * @param dropdownContainer - gives us access to dimensions of the dropdown element
+ * @returns {void}
+ * 
+ * @notes
+ * The dropdown is passed as an HTMLElement to prevent the developer from having to assign ids to
+ * each dropdown element in an accordion
+ */
 export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
     const parentContainer = document.getElementById(parentContainerId)
+
+    if (!parentContainer || !dropdownContainer) {
+        return
+    }
+
     const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
     const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
 
     if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
         const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
         parentContainer.scrollBy({
-            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger
+            // than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
             left: 0
         })
@@ -199,8 +216,13 @@ export function getHTMLTimeString(date: Date) {
 }
 
 /**
- * @param strDate "yyyy-mm-dd hh:mm"
- * @returns ISO str date in GMT
+ * Converts a string date to a cleaned ISO formatted string in UTC time
+ * 
+ * @param {string} strDate date to be converted to UTC in ISO format
+ * @returns {string} ISO formatted date without letters and special chars
+ * 
+ * @notes
+ * Expected strDate format: "yyyy-mm-dd hh:mm"
  * Example return value: "2023-10-18 09:04:00"
  */
 export function convertHTMLStrDateToISO(strDate: string) {

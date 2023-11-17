@@ -337,6 +337,12 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
+        /**
+         * Creates the table for safety parameters for the bot
+         * 
+         * @param {Engineering} engineering used to determine what the current safety requirement is set to
+         * @returns {React.JSX.Element} the safety parameter table
+         */
         function botSafetyTable(engineering: Engineering) {
             if (engineering) {
                 return  <React.Fragment>
@@ -362,7 +368,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed (m/s)</td>
+                                    <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed</td>
                                     <td key="current_bottom_depth_safety_speed">
                                         {engineering?.bottom_depth_safety_params?.constant_heading_speed  ?? "-"}
                                     </td>
@@ -410,7 +416,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed (m/s)</td>
+                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed</td>
                                     <td>
                                         <input style={{maxWidth: "80px"}} 
                                             type="number" 

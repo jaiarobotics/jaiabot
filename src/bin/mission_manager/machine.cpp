@@ -10,7 +10,8 @@ using boost::units::quantity;
 
 jaiabot::protobuf::IvPBehaviorUpdate
 create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
-                      quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy)
+                      quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
+                      const int& slip_radius)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::TransitUpdate& transit = *update.mutable_transit();
@@ -21,6 +22,7 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
     transit.set_x_with_units(xy.x);
     transit.set_y_with_units(xy.y);
     transit.set_speed_with_units(speed);
+    transit.set_slip_radius(slip_radius);
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -199,11 +201,17 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+    int slip_radius = cfg().waypoint_with_no_task_slip_radius();
+
     if (goal)
     {
+        if (goal.get().has_task())
+        {
+            slip_radius = cfg().waypoint_with_task_slip_radius();
+        }
         auto update = create_transit_update(
             goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
-            this->machine().geodesy());
+            this->machine().geodesy(), slip_radius);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
     else
@@ -230,18 +238,20 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
+    int slip_radius = cfg().waypoint_with_no_task_slip_radius();
+
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<InMission>().final_goal();
         update = create_transit_update(final_goal.location(),
                                        this->machine().mission_plan().speeds().transit_with_units(),
-                                       this->machine().geodesy());
+                                       this->machine().geodesy(), slip_radius);
     }
     else
     {
         update = create_transit_update(recovery.location(),
                                        this->machine().mission_plan().speeds().transit_with_units(),
-                                       this->machine().geodesy());
+                                       this->machine().geodesy(), slip_radius);
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }

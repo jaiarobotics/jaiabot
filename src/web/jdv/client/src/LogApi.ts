@@ -1,6 +1,20 @@
-import {Log} from "./Log"
+import {Log, LogCommand, LogTaskPacket} from "./Log"
 import download from "downloadjs"
+import { Plot } from "./Plot";
+import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
 
+
+
+export type ActiveGoals = {
+  [key: string]: {
+    _utime_: number,
+    active_goal: number
+  }[]
+}
+
+export interface ConvertStatus {
+  done: boolean
+}
 
 
 /**
@@ -37,9 +51,15 @@ interface GetLogsResponse {
 
 export class LogApi {
 
-  // Do a JSON GET request
-  static get_json(url_string: string) {
-    var request = new Request(url_string, {
+  
+  /**
+   * Perform GET request 
+   *
+   * @param {string} url URL of the endpoint
+   * @returns {Promise<any>} A Promise of the JSON-decoded object
+   */
+  static async getJSON(url: string) {
+    var request = new Request(url, {
       method : 'GET',
       headers : new Headers({'Content-Type' : 'application/json'})
     })
@@ -57,8 +77,14 @@ export class LogApi {
         .catch(err => {console.error(err)})
   }
 
-  // Download a GET request
-  static download_file(url: string) {
+  
+  /**
+   * Download a GET request
+   *
+   * @param {string} url URL to download
+   * @returns {Promise<void>} Promise for the download
+   */
+  static downloadFile(url: string) {
     return fetch(url, { method: 'GET' })
     .then( res => res.blob() )
     .then( blob => {
@@ -67,12 +93,19 @@ export class LogApi {
     });
   }
 
-  // Do a JSON GET request
-  static post(url_string: string, jsonObject: object) {
-    var request = new Request(url_string, {
+  
+  /**
+   * Do a POST request with a JSON payload
+   *
+   * @param {string} url URL of endpoint
+   * @param {object} payload Object to send as JSON payload
+   * @returns {Promise<any>} Promise for the JSON-decoded response body
+   */
+  static post(url: string, payload: object) {
+    var request = new Request(url, {
       method : 'POST',
       headers : new Headers({'Content-Type' : 'application/json'}),
-      body: JSON.stringify(jsonObject)
+      body: JSON.stringify(payload)
     })
 
     return fetch(request)
@@ -88,80 +121,164 @@ export class LogApi {
         .catch(err => {console.error(err)})
   }
 
-  // Get a series corresponding to a set of log files and paths
-  static get_series(logs: string[], paths: string[]) {
+
+  /**
+   * Get a series corresponding to a set of log files and paths
+   *
+   * @param {string[]} logs Array of log names
+   * @param {string[]} paths Comma-separate list of HDF paths to return
+   * @returns {Promise<Plot[]>} Promise of an array of Plot objects
+   */
+  static getSeries(logs: string[], paths: string[]) {
     var url = new URL('series', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('path', paths.join(','))
 
-    return this.get_json(url.toString());
+    return this.getJSON(url.toString()) as Promise<Plot[]>
+  }
+
+  
+  /**
+   * Get a list of all the available logs
+   *
+   * @returns {Promise<Log[]>} Promise of an array of Log objects
+   */
+  static getLogs(): Promise<Log[]> { 
+    return this.getJSON('/logs') as Promise<Log[]>
   }
 
   // Gets all of the logs and associated metadata for each
   static get_logs(): Promise<GetLogsResponse> { return this.get_json('/logs') }
 
-  static get_paths(logs: string[], root_path: string) {
+  /**
+   * Get a list of the paths present in a set of logs
+   *
+   * @param {string[]} logs Array of log names
+   * @param {string} root_path Path of the root path to look for child paths
+   * @returns {Promise<string[]>}
+   */
+  static getPaths(logs: string[], root_path: string) {
     var url = new URL('paths', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('root_path', root_path)
 
-    return this.get_json(url.toString())
+    return this.getJSON(url.toString()) as Promise<string[]>
   }
 
-  // Get map points
-  static get_map(logs: string[]) {
+  
+  /**
+   * Get a list of map path data
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Pomise<MapData>}
+   */
+  static getMapData(logs: string[]) {
     var url = new URL('map', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    type MapData = {
+      [key: number]: number[][]
+    }
+  
+    return this.getJSON(url.toString()) as Promise<MapData>
   }
 
-  // Get commands
-  static get_commands(logs: string[]) {
+
+  
+  /**
+   * Get a list of the commands in a set of logs
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<LogCommand>} Promise of an array of LogCommands
+   */
+  static getCommands(logs: string[]) {
     var url = new URL('commands', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    type LogCommands = {
+      [key: string]: LogCommand[]
+    }
+
+    return this.getJSON(url.toString()) as Promise<LogCommands>
   }
 
-  // Get active_goals
-  static get_active_goal(logs: string[]) {
+  
+  /**
+   * Get a list of the active goals in a set of logs
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<ActiveGoals>} Promise of an ActiveGoals object
+   */
+  static async getActiveGoal(logs: string[]): Promise<ActiveGoals> {
     var url = new URL('active-goal', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    return await this.getJSON(url.toString()) as ActiveGoals
   }
 
-  // Get task_packets
-  static get_task_packets(logs: string[]) {
+  
+  /**
+   * Get a list of task packets in a set of logs
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<LogTaskPacket[]>} An array of task packets
+   */
+  static async getTaskPackets(logs: string[]) {
     var url = new URL('task-packet', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    return await this.getJSON(url.toString()) as LogTaskPacket[]
   }
 
-  // Get depth_contours
-  static get_depth_contours(logs: string[]) {
+  
+  /**
+   * Gets a GeoJSON object for the computed depth contours
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<GeoJSONFeatureCollection>} A GeoJSON feature collection with the computed depth contours
+   */
+  static async getDepthContours(logs: string[]) {
     var url = new URL('depth-contours', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    return await this.getJSON(url.toString()) as GeoJSONFeatureCollection
   }
 
-  // Get drift_interpolations
-  static get_drift_interpolations(logs: string[]) {
+  
+  /**
+   * Gets a GeoJSON object for the computed interpolated drifts
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<GeoJSONFeatureCollection>} A GeoJSON feature collection with the interpolated drifts
+   */
+  static async getDriftInterpolations(logs: string[]) {
     var url = new URL('interpolated-drifts', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
-    return this.get_json(url.toString())
+    return await this.getJSON(url.toString()) as GeoJSONFeatureCollection
   }
 
-  static delete_log(logName: string) {
+  
+  /**
+   * Deletes a log
+   *
+   * @param {string} logName Name of the log to delete
+   * @returns {Promise<Response>} Response of the DELETE request
+   */
+  static async deleteLog(logName: string) {
     const request = new Request(`/log/${logName}`, {method: 'DELETE'})
-    fetch(request)
+    return fetch(request)
   }
 
-  static get_moos(logs: string[], time_range: number[]) {
+  
+  /**
+   * Download MOOS messages as a CSV file
+   *
+   * @param {string[]} logs Array of log names
+   * @param {number[]} time_range
+   * @returns {Promise<void>} Promise of the request
+   */
+  static async getMOOS(logs: string[], time_range: number[]) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('t_start', String(time_range[0]))
@@ -170,9 +287,15 @@ export class LogApi {
     return downloadURL(url.toString(), 'moos.csv', 'text/csv')
   }
 
-  // Convert logs if needed
-  static post_convert_if_needed(logs: string[]) {
-    return this.post('convert-if-needed', logs)
+  
+  /**
+   * Initiates a conversion from .goby to .h5 on the backend, if necessary, and responds with the conversion status
+   *
+   * @param {string[]} logs Array of log names
+   * @returns {Promise<ConvertStatus>} The status of the conversion operation
+   */
+  static async postConvertIfNeeded(logs: string[]) {
+    return await this.post('convert-if-needed', logs) as ConvertStatus
   }
 
 }
