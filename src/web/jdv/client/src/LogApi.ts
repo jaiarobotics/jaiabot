@@ -36,6 +36,19 @@ function downloadURL(url: string, filename: string='filename', mimeType: string=
 }
 
 
+
+/**
+ * Response for the GET logs endpoint
+ *
+ * @interface GetLogsResponse
+ * @typedef {GetLogsResponse}
+ */
+interface GetLogsResponse {
+  availableSpace: number
+  logs: Log[]    
+}
+
+
 export class LogApi {
 
   
@@ -134,8 +147,9 @@ export class LogApi {
     return this.getJSON('/logs') as Promise<Log[]>
   }
 
+  // Gets all of the logs and associated metadata for each
+  static get_logs(): Promise<GetLogsResponse> { return this.getJSON('/logs') }
 
-  
   /**
    * Get a list of the paths present in a set of logs
    *

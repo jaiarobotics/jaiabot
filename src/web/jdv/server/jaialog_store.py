@@ -129,7 +129,12 @@ class JaialogStore:
 
     def getLogs(self):
         '''Get list of available logs'''
-        results: list[dict] = []
+        statvfs = os.statvfs(self.LOG_DIR)
+
+        results = {
+            'availableSpace': statvfs.f_bfree * statvfs.f_frsize,
+            'logs': []
+        }
 
         if not os.path.isdir(self.LOG_DIR):
             logging.error(f'Directory does not exist: {self.LOG_DIR}')
@@ -171,7 +176,9 @@ class JaialogStore:
 
                 log_file_info['duration'] = duration
 
-        return list(log_file_dict.values())
+        results['logs'] = list(log_file_dict.values())
+
+        return results
 
 
     def fullPathForLog(self, logName: str):
