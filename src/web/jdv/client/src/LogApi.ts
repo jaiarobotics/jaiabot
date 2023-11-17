@@ -148,7 +148,7 @@ export class LogApi {
   }
 
   // Gets all of the logs and associated metadata for each
-  static get_logs(): Promise<GetLogsResponse> { return this.get_json('/logs') }
+  static get_logs(): Promise<GetLogsResponse> { return this.getJSON('/logs') }
 
   /**
    * Get a list of the paths present in a set of logs
