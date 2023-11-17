@@ -33,8 +33,7 @@ def utcnow():
 
 def utime(d: datetime):
     '''Returns the utime for a datetime object'''
-    return int(d.timestamp() * 1e6)
-
+    return int(d.replace(tzinfo=timezone.utc).timestamp() * 1e6)
 
 def floatFrom(obj):
     try:
@@ -438,7 +437,8 @@ class Interface:
         
         end_index = bisect.bisect_right(
             list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)),
-            utime(end_date))
+            utime(end_date)
+        )
         return task_packets_list[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
@@ -470,7 +470,7 @@ class Interface:
 
     # Contour map
 
-    def get_depth_contours(self, start_date, end_date): 
+    def get_depth_contours(self, start_date, end_date):
         return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
     # Drift map

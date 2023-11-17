@@ -230,6 +230,12 @@ export class TaskData {
         })
     }
 
+    /**
+     * Add dive and drift icons + create drift map and depth contours plot
+     * 
+     * @param {TaskPacket[]} taskPackets provides updated array of TaskPackets
+     * @returns {void}
+     */
     updateTaskPacketsLayers(taskPackets: TaskPacket[]) {
         const divePacketLayer = this.divePacketLayer
         const driftPacketLayer = this.driftPacketLayer
@@ -257,16 +263,15 @@ export class TaskData {
                     driftPacketFeatures.push(feature)
                 }
             }
-
-            if (taskPackets.length >= 2) {
-                this._updateInterpolatedDrifts()
-            }
-
-            if (taskPackets.length >= 3) {
-                this._updateContourPlot()
-            }
         }
-        
+
+        if (taskPackets.length >= 2) {
+            this._updateInterpolatedDrifts()
+        }
+
+        if (taskPackets.length >= 3) {
+            this._updateContourPlot()
+        }
 
         this.diveSource.clear()
         this.driftSource.clear()

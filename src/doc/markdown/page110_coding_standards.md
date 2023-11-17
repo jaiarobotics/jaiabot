@@ -5,8 +5,8 @@
 /**
  * Describe what the function does
  *
- * @param {string} thing here we quickly explain why we need this parameter
- * @returns {void} here we briefly describe what is being returned
+ * @param {string} thing Here we quickly explain why we need this parameter
+ * @returns {void} Here we briefly describe what is being returned
 */
 function doSomething(thing: string) {
   console.log(`Doing ${thing}!`)

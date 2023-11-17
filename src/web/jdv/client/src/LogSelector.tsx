@@ -59,7 +59,8 @@ interface LogSelectorProps {
 }
 
 interface LogSelectorState {
-    log_dict: LogDict
+    logDict: LogDict
+    availableSpace: number
     fleetFilter: string
     botFilter: string
     fromDate: string
@@ -79,7 +80,8 @@ export default class LogSelector extends React.Component {
         super(props)
 
         this.state = {
-            log_dict: {},
+            logDict: {},
+            availableSpace: null,
             fleetFilter: localStorage.getItem("fleetFilter"),
             botFilter: localStorage.getItem("botFilter"),
             fromDate: localStorage.getItem("fromDate"),
@@ -159,9 +161,51 @@ export default class LogSelector extends React.Component {
                 <div className="list">{logItems}</div>
             </div>
 
+            <div className="section">
+                <div>{this.availableSpaceString()} available</div>
+            </div>
+
             { this.buttonsElement() }
           </div>
         )
+    }
+
+    
+    /**
+     * Returns a user-readable description of the available storage space
+     *
+     * @returns {string} Available storage space as a string
+     * @example 2.3 Mbytes
+     * @example 843.5 Gbytes
+     */
+    availableSpaceString() {
+        if (this.state.availableSpace == null) {
+            return 'Unknown'
+        }
+
+        var valueString = '0'
+        var unitsString = 'MB'
+
+        interface Unit {
+            size: number
+            units: string
+        }
+
+        const unitsArray: Unit[] = [
+            { size: 1e12, units: 'Tbytes' },
+            { size: 1e9, units: 'Gbytes' },
+            { size: 1e6, units: 'Mbytes' },
+            { size: 1e3, units: 'kbytes' },
+            { size: 1, units: 'bytes' },
+        ]
+
+        for (const unit of unitsArray) {
+            if (this.state.availableSpace >= unit.size) {
+                return `${(this.state.availableSpace / unit.size).toFixed(1)} ${unit.units}`
+            }
+        }
+
+        return '0 bytes'
     }
 
     logRowElement(log: Log) {
@@ -228,8 +272,14 @@ export default class LogSelector extends React.Component {
         this.setState({selectedLogs: {}})
     }
 
+    
+    /**
+     * Returns a list of Log objects, filtered using the current user-specified filter set
+     * 
+     * @returns {Log[]} An array of filtered logs
+     */
     getFilteredLogs(): Log[] {
-        const { fromDate, toDate, log_dict } = this.state
+        const { fromDate, toDate, logDict } = this.state
 
         function stringToTimestamp(str: string) {
             if (str == null) return null
@@ -248,10 +298,10 @@ export default class LogSelector extends React.Component {
 
         var log_array: Log[] = []
 
-        for (const fleet in log_dict) {
+        for (const fleet in logDict) {
             if (this.state.fleetFilter != null && this.state.fleetFilter != fleet) continue;
 
-            const fleet_dict = log_dict[fleet]
+            const fleet_dict = logDict[fleet]
 
             for (const bot in fleet_dict) {
                 if (this.state.botFilter != null && this.state.botFilter != bot) continue;
@@ -274,24 +324,42 @@ export default class LogSelector extends React.Component {
         return log_array
     }
 
-    static log_dict(logs: Log[]) {
-        var log_dict: LogDict = {}
+    
+    /**
+     * Takes a list of Log objects, and organizes them into a nested index dictionary with fleet and bot keys
+     * 
+     * @param {Log[]} logs An array of logs to organize into an index dictionary
+     * @returns {LogDict} A nested index dictionary, organizing the input logs by fleet and bot
+     * @note Returns an object organized like so:
+     * 
+     * `{
+     *   "fleet0": {
+     *     "bot0": [Log],
+     *     "bot1": [Log]
+     *   },
+     *   "fleet1": {
+     *     "bot3": [Log]
+     *   }
+     * }`
+     */
+    static getLogDictFromLogList(logs: Log[]) {
+        var logDict: LogDict = {}
 
         for (let log of logs) {
-            if (!(log.fleet in log_dict)) {
-                log_dict[log.fleet] = {}
+            if (!(log.fleet in logDict)) {
+                logDict[log.fleet] = {}
             }
 
-            if (!(log.bot in log_dict[log.fleet])) {
-                log_dict[log.fleet][log.bot] = {}
+            if (!(log.bot in logDict[log.fleet])) {
+                logDict[log.fleet][log.bot] = {}
             }
 
-            if (!(log.timestamp in log_dict[log.fleet][log.bot])) {
-                log_dict[log.fleet][log.bot][log.timestamp] = log
+            if (!(log.timestamp in logDict[log.fleet][log.bot])) {
+                logDict[log.fleet][log.bot][log.timestamp] = log
             }
         }
 
-        return log_dict
+        return logDict
     }
 
     /**
@@ -319,7 +387,7 @@ export default class LogSelector extends React.Component {
     }
 
     fleet_option_elements() {
-        return this.dict_options(this.state.log_dict)
+        return this.dict_options(this.state.logDict)
     }
 
     did_select_fleet(evt: Event) {
@@ -333,7 +401,7 @@ export default class LogSelector extends React.Component {
             return null
         }
         else {
-            return this.dict_options(this.state.log_dict[this.state.fleetFilter])
+            return this.dict_options(this.state.logDict[this.state.fleetFilter])
         }
     }
 
@@ -389,12 +457,16 @@ export default class LogSelector extends React.Component {
         }
     }
 
+    
+    /**
+     * Calls the API to get the list of logs, updating the GUI accordingly
+     */
     refreshLogs() {
-        LogApi.getLogs().then((logs) => {
-            const log_dict = LogSelector.log_dict(logs)
-            this.setState({log_dict})
+        LogApi.get_logs().then((response) => {
+            const logDict = LogSelector.getLogDictFromLogList(response.logs)
+            this.setState({logDict, availableSpace: response.availableSpace})
 
-            if (this.state.fleetFilter && log_dict[this.state.fleetFilter] == null) {
+            if (this.state.fleetFilter && logDict[this.state.fleetFilter] == null) {
                 this.setFleetFilter(null)
             }
         })
