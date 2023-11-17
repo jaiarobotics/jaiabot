@@ -3,7 +3,7 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 import { GeoJSON } from 'ol/format';
-import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
+import { Command, Engineering, CommandForHub, TaskPacket } from '../../shared/JAIAProtobuf';
 import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
 
 export class JaiaAPI {
@@ -79,16 +79,25 @@ export class JaiaAPI {
   getStatus() { return this.get('jaia/status') }
 
   /**
+   * Queries the server for TaskPackets within a specified range. If no start and end date, the
+   * server defaults to a 14 hour window with the end date set to now
    * 
-   * @param startDate yyyy-mm-dd hh:mm
-   * @param endDate yyyy-mm-dd hh:mm
-   * @returns Array of TaskPackets
+   * @param {string} startDate (optional) sets the lower bound on the TaskPackets displayed 
+   * @param {string} endDate (optional) sets the upper bound on the TaskPackets displayed
+   * @returns {Promise<TaskPacket[]>} array of TaskPackets or error obj
+   * 
+   * @notes
+   * Expected startDate format: yyyy-mm-dd hh:mm
+   * Expected endDate format: yyyy-mm-dd hh:mm 
    */
   getTaskPackets(startDate?: string, endDate?: string) { 
     if (startDate && endDate) {
         const startDateStr = convertHTMLStrDateToISO(startDate)
         const endDateStr = convertHTMLStrDateToISO(endDate)
         return this.get(`jaia/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else if (startDate && !endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        return this.get(`jaia/task-packets?startDate=${startDateStr}`)
     } else {
         // Let server set default date values
         return this.get(`jaia/task-packets`)

@@ -243,7 +243,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             if (arduino_response.has_motor())
             {
                 arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
@@ -734,7 +735,6 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 void jaiabot::apps::BotPidControl::handle_dive_depth(
     const jaiabot::protobuf::DesiredSetpoints& command)
 {
-
     // Depth PID for dive
     if (command.has_dive_depth())
     {

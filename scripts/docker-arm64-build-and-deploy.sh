@@ -44,6 +44,7 @@ echo "jaia_hub_index=$jaia_hub_index"
 echo "jaia_electronics_stack=$jaia_electronics_stack"
 echo "jaia_fleet_index=$jaia_fleet_index"
 echo "jaia_imu_type=$jaia_imu_type"
+echo "jaia_arduino_type=$jaia_arduino_type"
 END_SCRIPT
 )
 
@@ -76,9 +77,10 @@ else
             jaia_electronics_stack=$(echo "$runtime_output" | awk -F'=' '/jaia_electronics_stack=/{print $2}')
             jaia_fleet_index=$(echo "$runtime_output" | awk -F'=' '/jaia_fleet_index=/{print $2}')
             jaia_imu_type=$(echo "$runtime_output" | awk -F'=' '/jaia_imu_type=/{print $2}')
+            jaia_arduino_type=$(echo "$runtime_output" | awk -F'=' '/jaia_arduino_type=/{print $2}')
 
             if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
-                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --enable'"
+                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type --enable'"
             else
                 ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led --enable --user_role advanced'"
             fi
