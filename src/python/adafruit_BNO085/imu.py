@@ -26,6 +26,8 @@ except ModuleNotFoundError:
 except NotImplementedError:
     log.warning('NotImplementedError, so physical device not available')
     physical_device_available = False
+except serial.serialutil.SerialException:
+    log.warning('SerialException, so physical device not available')
 
 
 @dataclass
@@ -93,7 +95,7 @@ class Adafruit(IMU):
 
                 self.sensor = BNO08X_UART(uart)
 
-                log.warning('Connected, now lets enable output')
+                log.info('Connected, now lets enable output')
 
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
@@ -113,17 +115,8 @@ class Adafruit(IMU):
                 # Set the initial calibration status
                 self.calibration_status = None
 
-            except (OSError) as e:
+            except Exception as error:
                 self.is_setup = False
-                log.warning("Tried connecting, OSError, retry setting up driver")
-                raise e
-
-            except (serial.serialutil.SerialException) as se:
-                self.is_setup = False
-                log.warning("Tried connecting, SerialException, retry setting up driver")
-                raise se
-
-            except (RuntimeError, IndexError, KeyError, AttributeError) as error:
                 log.warning("Error trying to setup driver!")
             
 
@@ -145,7 +138,7 @@ class Adafruit(IMU):
                     # Set the calibration status to save when we are not querying a 
                     # new calibration status
                     self.calibration_status = calibration_status
-                except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                except Exception as error:
                     log.warning("Error trying to get calibration status!")
                 self.check_cal_time = time.time()  # Reset the start time
             else:
@@ -179,18 +172,8 @@ class Adafruit(IMU):
                         calibration_status=calibration_status,
                         quaternion=quaternion)
 
-        except (OSError) as e:
-            self.is_setup = False
-            log.warning("Tried getting data, OSError, retry setting up driver")
-            raise e
-        
-        except (serial.serialutil.SerialException) as se:
-            self.is_setup = False
-            log.warning("Tried getting data, SerialException, retry setting up driver")
-            raise se
-        
-        except (RuntimeError, IndexError, KeyError, AttributeError) as error:
-                log.warning("Error trying to get data!")
+        except Exception as error:
+            log.warning("Error trying to get data!")
     
 
 class Simulator(IMU):

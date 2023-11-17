@@ -92,43 +92,51 @@ jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<imu_udp_in, imu_udp_out>;
     launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interthread().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-        // Deserialize from the UDP packet
-        jaiabot::protobuf::IMUData imu_data;
-        if (!imu_data.ParseFromString(data.data()))
+    interthread().subscribe<imu_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& data)
         {
-            glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet" << endl;
-            return;
-        }
+            // Deserialize from the UDP packet
+            jaiabot::protobuf::IMUData imu_data;
+            if (!imu_data.ParseFromString(data.data()))
+            {
+                glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet"
+                                       << endl;
+                return;
+            }
 
-        glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString() << endl;
+            glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString()
+                                     << endl;
 
-        interprocess().publish<groups::imu>(imu_data);
-        last_adafruit_BNO085_report_time_ = goby::time::SteadyClock::now();
-    });
+            interprocess().publish<groups::imu>(imu_data);
+            last_adafruit_BNO085_report_time_ = goby::time::SteadyClock::now();
+        });
 
-    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
-        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+    interprocess().subscribe<jaiabot::groups::moos>(
+        [this](const protobuf::MOOSMessage& moos_msg)
         {
-            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            if (moos_msg.key() == "JAIABOT_MISSION_STATE")
             {
-                helm_ivp_in_mission_ = true;
+                if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+                {
+                    helm_ivp_in_mission_ = true;
+                }
+                else
+                {
+                    helm_ivp_in_mission_ = false;
+                }
             }
-            else
-            {
-                helm_ivp_in_mission_ = false;
-            }
-        }
-    });
+        });
 
-    interprocess().subscribe<jaiabot::groups::imu>([this](const protobuf::IMUCommand& imu_command) {
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(imu_command.SerializeAsString());
-        interthread().publish<imu_udp_out>(io_data);
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const protobuf::IMUCommand& imu_command)
+        {
+            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+            io_data->set_data(imu_command.SerializeAsString());
+            interthread().publish<imu_udp_out>(io_data);
 
-        glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
-                                 << endl;
-    });
+            glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
+                                     << endl;
+        });
 }
 
 void jaiabot::apps::AdaFruitBNO085Publisher::loop()

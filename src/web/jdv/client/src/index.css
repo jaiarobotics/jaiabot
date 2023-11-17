@@ -368,3 +368,11 @@ div.ol-attribution > button {
     transform: translateY(-50%);
 
 }
+
+.no-selected-series-message {
+    padding: 40pt 40pt 40pt 40pt;
+    line-height: 40pt;
+    text-align: center;
+    vertical-align: middle;
+    font-size: large;
+}

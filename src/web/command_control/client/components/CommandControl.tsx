@@ -147,7 +147,6 @@ interface State {
 
 	runList: MissionInterface,
 	runListVersion: number,
-	undoRunListStack: MissionInterface[],
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
@@ -292,7 +291,6 @@ export default class CommandControl extends React.Component {
 				runIdInEditMode: ''
 			},
 			runListVersion: 0,
-			undoRunListStack: [],
 			flagClickedInfo: {
 				runNum: -1,
 				botId: -1
@@ -572,11 +570,6 @@ export default class CommandControl extends React.Component {
 					this.toggleBot(botId)
 					return
 				}
-
-			// Undo
-			if (e.keyCode == 90 && e.ctrlKey) {
-				this.restoreUndo()
-			}
 		}
 	}
 	
@@ -1057,29 +1050,13 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Sets the runList, without pushing to the Undo stack
+	 * Updates the runList in state
 	 * 
-	 * @param runList new runList
+	 * @param {MissionInterface} runList updated version used to set state
+	 * @returns {void}
 	 */
 	setRunList(runList: MissionInterface) {
 		this.setState({runList, runListVersion: this.state.runListVersion + 1})
-	}
-	
-	/**
-	 * Push the current runList onto the undoRunListStack, if different from the top runList on the stack
-	 */
-	pushRunListToUndoStack() {
-		const { runList, undoRunListStack } = this.state
-
-		if (undoRunListStack.length >= 1) {
-			const topRunList = undoRunListStack[undoRunListStack.length - 1]
-			if (equalValues(topRunList, runList)) return this
-		}
-
-		undoRunListStack.push(deepcopy(runList))
-		this.setState({undoRunListStack})
-
-		return this
 	}
 
 	/**
@@ -1226,26 +1203,36 @@ export default class CommandControl extends React.Component {
 	// Run Mission (End)
 	// 
 
-	// 
-	// Delete Mission (Start)
-	// 
-	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
+
+	/**
+	 * Reset mission planning
+	 * 
+	 * @param {MissionInterface} mission used to access the mission state
+	 * @param {boolean} needConfirmation does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission is the mission a rally point mission?
+	 * @return {Promise<boolean>} did the deletion occur? If (yes) then (true)
+	 */
+	async deleteAllRunsInMission(
+		mission: MissionInterface,
+		needConfirmation: boolean,
+		rallyPointMission?: boolean
+	) {
 		return new Promise((resolve, reject) => {
+			let updatedMission = {...mission}
 			const doDelete = () => {
-				const runs = mission.runs
-				for (const run of Object.values(runs)) {
-					const runNumber = Number(run.id.substring(4)) // run.id => run-x
-						delete mission.runs[run.id]
-						delete mission.botsAssignedToRuns[run.assigned]
+				for (const run of Object.values(mission.runs)) {
+					delete updatedMission.runs[run.id]
+					delete updatedMission.botsAssignedToRuns[run.assigned]
 				}
-				mission.runIdIncrement = 1
-				mission.runIdInEditMode = ''
-	
+				updatedMission.runIdIncrement = 1
+				updatedMission.runIdInEditMode = ''
+				this.setRunList(updatedMission)
+
 				resolve(true)			
 			}
 	
 			if (needConfirmation) {
-				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointMission)
 				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
 			}
 			else {
@@ -1254,6 +1241,17 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Delete a run from the mission
+	 * 
+	 * @param {string} runId determines which run to delete
+	 * @param {string} disableMessage see @notes/refactor
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> remove disable message as a parameter...this should be handled by an on click
+	 *              handler for the clear run button
+	 */
 	deleteSingleRun(runId: string, disableMessage?: string) {
 		// Exit if we have a disableMessage
 		if (disableMessage) {
@@ -1269,7 +1267,7 @@ export default class CommandControl extends React.Component {
 			console.error('Invalid runId passed to deleteSingleRun\n', err)
 		}
 		
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = {...this.getRunList()}
 		const selectedBotId = this.selectedBotId()
 		const warningString = runId ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 	
@@ -1281,6 +1279,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
+			this.setRunList(runList)
 		})
 	}
 
@@ -1297,17 +1296,20 @@ export default class CommandControl extends React.Component {
 	// 
 	// Load + Save Missions (Start)
 	//
-	loadMissions(mission: MissionInterface) {
-		const runList = this.pushRunListToUndoStack().getRunList()
+	/**
+	 * Save a mission from LocalStorage into the JCC
+	 * 
+	 * @param {MissionInterface} missionToLoad mission data to be moved to JCC
+	 * @return {void}
+	 */
+	loadMissions(missionToLoad: MissionInterface) {
+		const runList = this.getRunList()
 
 		this.deleteAllRunsInMission(runList, true).then((confirmed: boolean) => {
 			if (confirmed) {
-				console.log('MARKER')
-
-				for (let run in mission?.runs) {
-					Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
+				for (let run in missionToLoad?.runs) {
+					Missions.addRunWithCommand(-1, missionToLoad.runs[run].command, runList)
 				}
-		
 				this.setRunList(runList)
 			}
 		})
@@ -1445,7 +1447,6 @@ export default class CommandControl extends React.Component {
 	
 	/**
 	 * Updates the circles denoting the comms limit for each hub
-	 * @date 10/27/2023 - 7:48:35 AM
 	 */
 	updateHubCommsCircles() {
 		const hubs = Object.values(this.state.podStatus.hubs)
@@ -1607,7 +1608,7 @@ export default class CommandControl extends React.Component {
 			if (this.state.missionParams.missionType === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
-				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task.type))
+				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task?.type))
 				missionPlanningFeaturesList.push(mpFeature)
 			}
 		}
@@ -1622,9 +1623,15 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAt(getGeographicCoordinate(coordinate, map))
 	}
 
+	/**
+	 * Add a waypoint to the OpenLayers map for a given tap/click
+	 * 
+	 * @param {GeographicCoordinate} location where the waypoint should be added
+	 * @returns {void}
+	 */
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
-		let runList = this.pushRunListToUndoStack().getRunList()
+		let runList = this.getRunList()
 
 		if (!botId && runList.runIdInEditMode === '') {
 			return
@@ -1651,6 +1658,9 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
+
+		// Prevent error after operator deletes an unassigned run and then clicks on the map
+		if (!run) { return }
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
@@ -1676,6 +1686,16 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
+	/**
+	 * Click handler for JCC map
+	 * 
+	 * @param {MapBrowserEvent<UIEvent>} evt stores data on where the click occured
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> figure out what was clicked on, then pass to the correct secondary handler to
+	 *              break up this function
+	 */
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature: OlFeature<Geometry>) {
@@ -1708,7 +1728,6 @@ export default class CommandControl extends React.Component {
 			// Clicked on goal / waypoint
 			const goal = feature.get('goal')
 			if (goal) {
-				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
 					goal: goal,
 					goalIndex: feature.get('goalIndex'),
@@ -2106,6 +2125,11 @@ export default class CommandControl extends React.Component {
 		this.setState({ isClusterModeOn: isOn })
 	}
 
+	/**
+	 * Called when operator toggles "Edit Dates" in Settings panel >> Task Packets accordion
+	 * 
+	 * @returns {void}
+	 */
 	handleTaskPacketEditDatesToggle() {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		// Reset TaskPackets to default time gap
@@ -2116,14 +2140,20 @@ export default class CommandControl extends React.Component {
 			}).catch((err) => {
 				console.error('Task Packets Retrieval Error:', err)
 			})
-			// Set "Keep End Date Current" checkbox to checked
-			taskPacketsTimeline.keepEndDateCurrent = true
+			this.resetTaskPacketsTimeline(false)
+		} else {
+			// Trigger the calendar view to open
+			taskPacketsTimeline.isEditing = true
+			this.setState({ taskPacketsTimeline })
 		}
-
-		taskPacketsTimeline.isEditing = !this.state.taskPacketsTimeline.isEditing
-		this.setState({ taskPacketsTimeline })
 	}
 
+	/**
+	 * Save changes made by an operator to the TaskPackets date/time calendar
+	 * 
+	 * @param {React.ChangeEvent<HTMLInputElement>} evt holds which date/time input changed 
+	 * @returns {void}
+	 */
 	handleTaskPacketsTimelineChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		switch(evt.target.id) {
@@ -2158,8 +2188,9 @@ export default class CommandControl extends React.Component {
 
 		let end = ''
 
+		// 'Keep End Date Current' checkbox is not checked
 		if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
-			end = this.state.taskPacketsTimeline.end as string
+			end = taskPacketsTimeline.end as string
 		}
 
 		this.api.getTaskPackets(
@@ -2176,10 +2207,28 @@ export default class CommandControl extends React.Component {
 		this.setState({ taskPacketsTimeline })
 	}
 
+	/**
+	 * Adjust end date/time in TaskPackets calendar when "Keep End Date Current" checkbox changes
+	 *  
+	 * @returns {void}
+	 */
 	handleKeepEndDateCurrentToggle() {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
-		taskPacketsTimeline.keepEndDateCurrent = !this.state.taskPacketsTimeline.keepEndDateCurrent
-		this.setState({ taskPacketsTimeline })
+		// Checkbox goes from unchecked to checked
+		// Keep start but reset end to now (by passing no argument for endDate)
+		if (!taskPacketsTimeline.keepEndDateCurrent) {
+			this.api.getTaskPackets(taskPacketsTimeline.start as string).then((taskPackets) => {
+				this.setTaskPackets(taskPackets)
+				taskData.updateTaskPacketsLayers(taskPackets)
+				this.resetTaskPacketsTimeline(true)
+			}).catch((err) => {
+				console.error('Task Packets Retrieval Error:', err)
+			})
+		} else {
+			// Uncheck the checkbox
+			taskPacketsTimeline.keepEndDateCurrent = false
+			this.setState({ taskPacketsTimeline })
+		}
 	}
 
 	isTaskPacketsSendBtnDisabled() {
@@ -2195,6 +2244,24 @@ export default class CommandControl extends React.Component {
 		}
 		return false
     }
+
+	/**
+	 * Set TaskPackets view to default start/end gap with the end date/time set to now
+	 * 
+	 * @param {boolean} isEditing determines if the Task Packets >> Edit Dates view should be open
+	 * @returns {void}
+	 */
+	resetTaskPacketsTimeline(isEditing: boolean) {
+		// Make update before the next poll occurs
+		let forceDateChange = {start: true, end: true}
+		if (isEditing) {
+			forceDateChange.start = false
+		}
+		let updatedTaskPacketsTimeline = this.setTaskPacketDates(forceDateChange)
+		updatedTaskPacketsTimeline.isEditing = isEditing
+		updatedTaskPacketsTimeline.keepEndDateCurrent = true
+		this.setState({ taskPacketsTimeline: updatedTaskPacketsTimeline })
+	}
 
 	getTaskPackets() {
 		return this.taskPackets
@@ -2212,21 +2279,30 @@ export default class CommandControl extends React.Component {
 		this.taskPacketsCount = count
 	}
 
-	setTaskPacketDates() {
+	/**
+	 * Update the TaskPacket date values held in state
+	 * 
+	 * @param {{start: booleaan, end: boolean}} forceDateChange change the calendar display before next poll completes
+	 * @returns {{[x: string]: string | boolean} | null} provides newest copy of taskPacketsTimeline for when state calls compete
+	 */
+	setTaskPacketDates(forceDateChange?: {[type: string]: boolean}) {
 		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
 		
 		// Operator does not want the dates they set to change
-		if (taskPacketsTimeline.isEditing && !taskPacketsTimeline.keepEndDateCurrent) {
-			return
-		}
+		if (
+			taskPacketsTimeline.isEditing 
+			&& !taskPacketsTimeline.keepEndDateCurrent
+			&& !forceDateChange
+		) { return null }
 
-		// Operator wants end date to stay current
+		// Make end date current
 		const endDate = new Date()
 		taskPacketsTimeline.endDate = getHTMLDateString(endDate)
 		taskPacketsTimeline.endTime = getHTMLTimeString(endDate)
+		taskPacketsTimeline.end = `${taskPacketsTimeline.endDate} ${taskPacketsTimeline.endTime}`
 
-		// Operator wants start date to maintain the default gap with end date
-		if (!taskPacketsTimeline.isEditing) {
+		// Make start date current
+		if (!taskPacketsTimeline.isEditing || forceDateChange?.start) {
 			let startDate = new Date()
 			const defaultTimeGap = 14
 			startDate.setHours(endDate.getHours() - defaultTimeGap)
@@ -2236,6 +2312,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ taskPacketsTimeline })
+		return taskPacketsTimeline
 	}
 	// 
 	// Task Packets (End)
@@ -2494,6 +2571,14 @@ export default class CommandControl extends React.Component {
 	// 
 	// Command Drawer (Start)
 	//
+	/**
+	 * Toolbar located at the top of the JCC
+	 * 
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * /refactor >> this should be its own separate component
+	 */
 	commandDrawer() {
 		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
 
@@ -2530,9 +2615,6 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiProgressDownload} title="Download Queue"/>
 					</Button>
 				))}
-				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
-					<Icon path={mdiArrowULeftTop} title="Undo"/>
-				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
@@ -2793,32 +2875,18 @@ export default class CommandControl extends React.Component {
 			this.flagNumber ++
 		})
 	}
-
-	/**
-	 * Restore the top of the runList undo stack
-	 * 
-	 * @returns Nothing
-	 */
-	restoreUndo() {
-		if (this.state.undoRunListStack.length < 1) {
-			info("There is no goal or task to undo!");
-			return
-		}
-
-		CustomAlert.confirm('Undo the previous run edit that was made?', 'Undo Last Edit', () => {
-			const runList = this.state.undoRunListStack.pop()
-			this.setRunList(runList)
-			this.setState({goalBeingEdited: null})
-		})
-	}
-
 	// 
 	// Command Drawer (End)
 	// 
 
 	// 
 	// Mission Contoroller Panel Helper Methods (Start)
-	// 
+	//
+	/**
+	 * Assign bots to runs in ascending order with one click
+	 * 
+	 * @returns {void}
+	 */
 	autoAssignBotsToRuns() {
         let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
         let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
@@ -2834,7 +2902,7 @@ export default class CommandControl extends React.Component {
             }
         })
 
-		const runList = this.pushRunListToUndoStack().getRunList()
+		const runList = this.getRunList()
 
         botsNotAssigned.forEach((assignedKey) => {
             for (let runKey in runList.runs) {
@@ -2996,7 +3064,7 @@ export default class CommandControl extends React.Component {
 
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
-							const runList = this.pushRunListToUndoStack().getRunList()
+							const runList = this.getRunList()
 							this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
 								if (!confirmed) return
 
