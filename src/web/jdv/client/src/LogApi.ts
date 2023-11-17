@@ -5,12 +5,11 @@ import download from "downloadjs"
 
 /**
  * Initiates a browser download of the given URL, with filename and mimeType
- * @date 10/14/2023 - 8:29:07 PM
  *
  * @param {string} url URL of the target
  * @param {string} [filename='filename'] Default filename to save the URL as
  * @param {string} [mimeType='text/plain'] MIME type of the content
- * @returns {*} A Promise for the fetch operation
+ * @returns {Promise<void>} A Promise for the fetch operation
  */
 function downloadURL(url: string, filename: string='filename', mimeType: string='text/plain') {
   return fetch(url, { method: 'GET' })
@@ -26,7 +25,6 @@ function downloadURL(url: string, filename: string='filename', mimeType: string=
 
 /**
  * Response for the GET logs endpoint
- * @date 11/12/2023 - 10:26:05 PM
  *
  * @interface GetLogsResponse
  * @typedef {GetLogsResponse}

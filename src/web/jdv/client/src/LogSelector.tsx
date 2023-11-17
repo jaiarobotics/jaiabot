@@ -173,7 +173,6 @@ export default class LogSelector extends React.Component {
     
     /**
      * Returns a user-readable description of the available storage space
-     * @date 11/14/2023 - 2:42:08 PM
      *
      * @returns {string} Available storage space as a string
      * @example 2.3 Mbytes
@@ -276,6 +275,7 @@ export default class LogSelector extends React.Component {
     
     /**
      * Returns a list of Log objects, filtered using the current user-specified filter set
+     * 
      * @returns {Log[]} An array of filtered logs
      */
     getFilteredLogs(): Log[] {
@@ -327,7 +327,7 @@ export default class LogSelector extends React.Component {
     
     /**
      * Takes a list of Log objects, and organizes them into a nested index dictionary with fleet and bot keys
-     * @static
+     * 
      * @param {Log[]} logs An array of logs to organize into an index dictionary
      * @returns {LogDict} A nested index dictionary, organizing the input logs by fleet and bot
      * @note Returns an object organized like so:
