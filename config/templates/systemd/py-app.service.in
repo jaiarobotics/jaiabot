@@ -8,6 +8,7 @@ $extra_unit
 [Service]
 User=$user
 Group=$group
+Restart=$restart
 
 EnvironmentFile=$env_file
 ExecStartPre=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state START --error_code $error_on_fail --service_name $service

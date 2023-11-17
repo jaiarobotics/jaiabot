@@ -2,6 +2,20 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
+enum ArduinoStatusCode
+{
+    STARTUP = 0;
+    ACK = 1;
+    TIMEOUT = 2;
+    PREFIX_READ_ERROR = 3;
+    MAGIC_WRONG = 4;
+    MESSAGE_TOO_BIG = 5;
+    MESSAGE_WRONG_SIZE = 6;
+    MESSAGE_DECODE_ERROR = 7;
+    CRC_ERROR = 8;
+    SETTINGS = 9;
+}
+
 message ArduinoSettings
 {
     required sint32 forward_start = 1;
@@ -27,15 +41,16 @@ message ArduinoCommand
 
 message ArduinoResponse
 {
-    required sint32 status_code = 1;
+    required ArduinoStatusCode status_code = 1;
     optional float thermocouple_temperature_C = 2;
     optional float vccvoltage = 3;
     optional float vcccurrent = 4;
     optional float vvcurrent = 5;
+    optional int32 motor = 6;
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;
-    optional uint32 version = 52 [default = 0];
+    required uint32 version = 52 [default = 0];
 }
 
 message ArduinoDebug
