@@ -48,11 +48,3 @@ div.button {
     margin: 0pt 20pt 0pt 20pt;
     user-select: none;
 }
-
-div.button:hover {
-    background-color: darkgray;
-}
-
-div.button:active {
-    background-color: #707070;
-}
