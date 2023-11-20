@@ -19,7 +19,7 @@ import { Goal } from '../shared/JAIAProtobuf';
 import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
-import './RunItem.less'
+import '../../style/components/RunItem.less'
 
 type RunItemProps = {
     botIds: number[]
