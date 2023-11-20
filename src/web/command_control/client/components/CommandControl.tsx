@@ -1069,7 +1069,7 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Check if there are runs in the mission panel
 	 * 
-	 * @returns True if there are runs and false if there are no runs
+	 * @returns {boolean} True if there are runs and false if there are no runs
 	 */
 	areThereRuns() {
 		return Object.keys(this.getRunList().runs).length > 0
@@ -1309,7 +1309,7 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Save a mission from LocalStorage into the JCC
 	 * 
-	 * @param {MissionInterface} missionToLoad mission data to be moved to JCC
+	 * @param {MissionInterface} missionToLoad Mission data to be moved to JCC
 	 * @return {void}
 	 */
 	loadMissions(missionToLoad: MissionInterface) {
