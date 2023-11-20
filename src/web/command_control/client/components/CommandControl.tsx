@@ -1914,21 +1914,23 @@ export default class CommandControl extends React.Component {
 		this.setState({ goalBeingEdited })
 	}
 
+	/**
+	 * Moves a waypoint from its existing location to a new location selected by the operator
+	 * 
+	 * @param {MapBrowserEvent<UIEvent>} evt Holds the new location for the waypoint
+	 * @returns {boolean} Whether or not the waypoint moved
+	 */
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
 		const goalNum = this.state.goalBeingEdited?.goalIndex
 		const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
-		const runs = this.getRunList().runs
+		let runList = {...this.state.runList}
+		let runs = runList.runs
 		const runId = `run-${this.state.goalBeingEdited?.runNumber}`
-		let run: RunInterface = null
-
-		for (const testRun of Object.values(runs)) {
-			if (testRun.id === runId) {
-				run = testRun 
-			}
-		}
+		let run = runs[runId]
 
 		if (this.state.goalBeingEdited?.moveWptMode && run) {
 			run.command.plan.goal[goalNum -1].location = geoCoordinate
+			this.setRunList(runList)
 			return true
 		}
 		return false
