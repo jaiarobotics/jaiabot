@@ -25,6 +25,7 @@ interface Props {
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
+    setRunList: (runList: MissionInterface) => void
 }
 
 interface State {
@@ -163,19 +164,28 @@ export class GoalSettingsPanel extends React.Component {
         }
     }
 
+    /**
+     * Removes a single waypoint from a run
+     * 
+     * @returns {void}
+     */
     async deleteWaypoint() {
-        const runs = this.props.runList.runs
         const wptNum = this.props.goalIndex
 
         if (!await CustomAlert.confirmAsync(`Are you sure you want to delete Waypoint ${wptNum}?`, 'Delete Waypoint')) {
             return
         }
 
-        const runIndex = `run-${this.props.runNumber}`
-        const run = this.props.runList.runs[runIndex]
-        const wpts = run.command.plan?.goal
-        this.doneClicked()
-        wpts?.splice(wptNum - 1, 1)
+        const runId = `run-${this.props.runNumber}`
+        let runList = this.props.runList
+        const run = runList.runs[runId]
+        const wpts = run.command.plan.goal
+        // Removes selected wpt from array of wpts
+        // Wpt numbers start counting at 1, so we subtract 1 to match 0 index scheme of arrays
+        const updatedWpts = wpts.filter((wpt, index) => index !== wptNum - 1)
+        runList.runs[runId].command.plan.goal = updatedWpts
+        this.props.setRunList(runList)
+        this.props.setVisiblePanel(PanelType.NONE)
     }
 
     render() {
