@@ -170,6 +170,7 @@ export class Missions {
      * 
      * @param run The run that is going to be copied
      * @param mission The mission that contains the run
+     * @returns {void}
      */
     static duplicateRun(run: RunInterface, mission: MissionInterface) {
         const newRun = deepcopy(run)

@@ -26,6 +26,7 @@ export default class RunPanel extends React.Component<RunPanelProps, RunPanelSta
      * passed as a parameter
      * 
      * @param run The run that is going to be duplicated
+     * @returns {void}
      */
     addDuplicateRun(run: RunInterface) {
         Missions.duplicateRun(run, this.props.mission);
