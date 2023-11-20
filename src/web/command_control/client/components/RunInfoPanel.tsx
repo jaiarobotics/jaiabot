@@ -14,7 +14,7 @@ interface Props {
 
 export default function RunInfoPanel(props: Props) {
     /**
-     * Calls the deleteSingleRun function in CommandControl.tsx and close the RunInfoPanel
+     * Calls the deleteSingleRun function in CommandControl.tsx and closes the RunInfoPanel
      * 
      * @returns {void}
      */
