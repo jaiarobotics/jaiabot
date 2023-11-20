@@ -606,6 +606,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
 
+    // check needed to initially set the last_depth to the current one
+    if (is_initial_depth_reading_)
+    {
+        last_depth_ = ev.depth;
+        is_initial_depth_reading_ = false;
+    }
+
     dive_pdescent_debug.set_current_depth(ev.depth.value());
     dive_pdescent_debug.set_goal_depth(context<Dive>().goal_depth().value());
     dive_pdescent_debug.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
@@ -636,13 +643,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
              << ((now - last_depth_change_time_) >
                  static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
              << std::endl;
-
-    // check needed to initially set the last_depth to the current one
-    if (is_initial_depth_reading_)
-    {
-        last_depth_ = ev.depth;
-        is_initial_depth_reading_ = false;
-    }
 
     if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
         cfg().dive_depth_eps_with_units())
