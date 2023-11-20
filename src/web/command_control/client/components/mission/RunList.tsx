@@ -16,7 +16,7 @@ type RunListProps = {
 
     handleBotAssignChange: (prevBotId: number, newBotId: number, runId: string) => void
     unSelectHubOrBot: () => void
-    addDuplicateRun: (goals: Goal[]) => void
+    addDuplicateRun: (run: RunInterface) => void
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
