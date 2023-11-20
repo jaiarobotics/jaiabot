@@ -283,17 +283,25 @@ export class TaskData {
     }
 
     /**
-     * Updates the interpolated drift layer by accessing the API
+     * Updates the interpolated drift layer through the Jaia API
+     * 
+     * @returns {void}
+     * 
+     * @notes
      * To Do: Figure out how to make multiple Drift Maps based on time/location
      */
     _updateInterpolatedDrifts() {
         jaiaAPI.getDriftMap()
         .then(features => {
-            const tFeatures = features.map(feature => {
-                feature.setGeometry(feature.getGeometry().transform('EPSG:4326', this.map.getView().getProjection()))
-                return feature
-            })
-            this.driftMapLayer.setSource(new VectorSource({ features: tFeatures }))
+            if (Array.isArray(features)) {
+                const tFeatures = features.map(feature => {
+                    feature.setGeometry(feature.getGeometry().transform('EPSG:4326', this.map.getView().getProjection()))
+                    return feature
+                })
+                this.driftMapLayer.setSource(new VectorSource({ features: tFeatures }))
+            } else {
+                console.error('_updateInterpolatedDrifts response void')
+            }
         }).catch(error => {
             console.error(error)
         })
