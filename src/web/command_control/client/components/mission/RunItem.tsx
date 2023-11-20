@@ -72,7 +72,8 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
      * so that we can have multiple bots with the same run
      * 
      * @returns {void}
-     * @notes The new run will be unassigned by default
+     * @notes 
+     * The new run will be unassigned by default
      */
     handleDuplicateRunClick() {
         this.props.unSelectHubOrBot()
