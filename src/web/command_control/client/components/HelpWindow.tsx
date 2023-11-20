@@ -1,5 +1,5 @@
 import React from 'react'
-import './HelpWindow.less'
+import '../style/components/HelpWindow.less'
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
@@ -80,11 +80,6 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiProgressDownload,
         name: 'Download Queue',
         description: 'Open the Download Queue panel, which shows the currently queued data downloads from the bots to the hub.'
-    },
-    {
-        iconPath: mdiArrowULeftTop,
-        name: 'Undo',
-        description: 'Undo the last mission editing action.'
     },
     {
         iconPath: mdiCog,
