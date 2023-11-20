@@ -19,7 +19,7 @@ import { Goal } from '../shared/JAIAProtobuf';
 import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
-import './RunItem.less'
+import '../../style/components/RunItem.less'
 
 type RunItemProps = {
     botIds: number[]
@@ -30,7 +30,7 @@ type RunItemProps = {
     setOpenRunPanels: (runPanels: {[runId: string]: boolean}) => void
     handleBotAssignChange: (prevBotId: number, newBotId: number, runId: string) => void
     unSelectHubOrBot: () => void
-    addDuplicateRun: (goals: Goal[]) => void
+    addDuplicateRun: (run: RunInterface) => void
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
@@ -66,10 +66,19 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         this.props.setOpenRunPanels(this.props.openRunPanels)
     }
 
-    handleDuplicateRunClick(evt: React.MouseEvent<HTMLButtonElement>) {
+    /**
+     * On user click the current run will be copied and 
+     * a new run will be created from this copied run
+     * so that we can have multiple bots with the same run
+     * 
+     * @returns {void}
+     * 
+     * @notes
+     * The new run will be unassigned by default
+     */
+    handleDuplicateRunClick() {
         this.props.unSelectHubOrBot()
-        const goals = deepcopy(this.props.run.command.plan.goal)
-        this.props.addDuplicateRun(goals)
+        this.props.addDuplicateRun(this.props.run)
     }
 
     getBotName() {
@@ -131,7 +140,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                             />
                             <Button 
                                 className={'button-jcc missionAccordian'}
-                                onClick={(evt) => this.handleDuplicateRunClick(evt)}
+                                onClick={() => this.handleDuplicateRunClick()}
                             >
                                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
                             </Button>

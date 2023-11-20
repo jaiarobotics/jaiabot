@@ -18,7 +18,7 @@ interface Props {
     missionLibrary: MissionLibraryLocalStorage
     selectedMission: (mission: MissionInterface) => void
     onCancel: () => void
-    areBotsAssignedToRuns: () => boolean
+    areThereRuns: () => boolean
 }
 
 interface State {
@@ -83,12 +83,17 @@ export class LoadMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
+    /**
+     * Loads in the saved mission on user click
+     * 
+     * @returns {void}
+     */
     loadClicked() {
         const loadSelectedMission = () => {
             this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
         }
 
-        if (this.props.areBotsAssignedToRuns()) {
+        if (this.props.areThereRuns()) {
             CustomAlert.confirm('Loading a new mission will delete all runs in the mission. Make sure the current mission is saved.', 'Replace Current Mission', loadSelectedMission.bind(this))
         }
         else {

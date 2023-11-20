@@ -49,6 +49,7 @@ interface Props {
     onTaskTypeChange: () => void
     setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void
     onChange?: () => void
+    areThereRuns: () => boolean
 
 }
 
@@ -238,8 +239,15 @@ export class MissionSettingsPanel extends React.Component {
         this.onClose?.()
     }
 
+    /**
+     * Used to save the mission preview
+     * 
+     * @returns {void}
+     */
     async applyMissionClicked() {
-        if (!(await CustomAlert.confirmAsync('Adding this new mission will delete the current mission. Are you sure?', 'Replace Current Mission'))) {
+ 
+        if (this.props.areThereRuns() &&
+            !(await CustomAlert.confirmAsync('Adding this new mission will delete the current mission. Are you sure?', 'Replace Current Mission'))) {
             this.props.onClose()
             return
         }

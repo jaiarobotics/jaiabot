@@ -165,9 +165,16 @@ export class Missions {
         return mission;
     }
 
+    /**
+     *  Used as a helper function to duplicate a run of interest
+     * 
+     * @param run The run that is going to be copied
+     * @param mission The mission that contains the run
+     * @returns {void}
+     */
     static duplicateRun(run: RunInterface, mission: MissionInterface) {
         const newRun = deepcopy(run)
-        const runId = `run=${mission.runIdIncrement}`
+        const runId = `run-${mission.runIdIncrement}`
 
         newRun.id = runId
         newRun.name = `Run ${mission.runIdIncrement}`
