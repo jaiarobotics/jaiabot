@@ -1066,6 +1066,15 @@ export default class CommandControl extends React.Component {
 		return Object.keys(this.getRunList().botsAssignedToRuns).length > 0
 	}
 
+	/**
+	 * Check if there are runs in the mission panel
+	 * 
+	 * @returns True if there are runs and false if there are no runs
+	 */
+	areThereRuns() {
+		return Object.keys(this.getRunList().runs).length > 0
+	}
+
 	getActiveRunNumbers(mission: MissionInterface) {
 		const missionActiveRuns: number[] = []
 		const runs = mission.runs
@@ -1230,8 +1239,9 @@ export default class CommandControl extends React.Component {
 
 				resolve(true)			
 			}
-	
-			if (needConfirmation) {
+			
+			// Check if we need a confirmation and if there are runs available 
+			if (needConfirmation && this.areThereRuns()) {
 				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointMission)
 				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
 			}
@@ -1305,7 +1315,7 @@ export default class CommandControl extends React.Component {
 	loadMissions(missionToLoad: MissionInterface) {
 		const runList = this.getRunList()
 
-		this.deleteAllRunsInMission(runList, true).then((confirmed: boolean) => {
+		this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
 			if (confirmed) {
 				for (let run in missionToLoad?.runs) {
 					Missions.addRunWithCommand(-1, missionToLoad.runs[run].command, runList)
@@ -1315,6 +1325,11 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Opens load mission panel
+	 * 
+	 * @return {void}
+	 */
 	loadMissionButtonClicked() {
 		let panel = (
 			<LoadMissionPanel 
@@ -1326,7 +1341,7 @@ export default class CommandControl extends React.Component {
 				onCancel={() => {
 					this.setState({loadMissionPanel: null})
 				}}
-				areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+				areThereRuns={() => this.areThereRuns()}
 			></LoadMissionPanel>
 		)
 
@@ -3084,6 +3099,7 @@ export default class CommandControl extends React.Component {
 						}
 					}}
 					setSelectedRallyPoint={this.setSelectedRallyPoint.bind(this)}
+					areThereRuns={this.areThereRuns.bind(this)}
 				/>
 			)
 		}
