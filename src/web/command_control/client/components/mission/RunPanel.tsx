@@ -22,8 +22,7 @@ type RunPanelState = {}
 export default class RunPanel extends React.Component<RunPanelProps, RunPanelState> {
     /**
      * Executes the static function duplicateRun which copies
-     * the run parameter and creates a new run from the run that is
-     * passed as a parameter
+     * the run parameter and creates a new run
      * 
      * @param run The run that is going to be duplicated
      * @returns {void}

@@ -69,10 +69,10 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
     /**
      * On user click the current run will be copied and 
      * a new run will be created from this copied run
-     * so that we can have multiple bots running the same run.
-     * The new run will be unassigned by default.
+     * so that we can have multiple bots with the same run
      * 
      * @returns {void}
+     * @notes The new run will be unassigned by default
      */
     handleDuplicateRunClick() {
         this.props.unSelectHubOrBot()
