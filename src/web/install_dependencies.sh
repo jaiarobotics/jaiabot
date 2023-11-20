@@ -9,9 +9,9 @@ fi
 
 echo 🟢 Installing npm dependencies to: $NODE_MODULES_DIR
 
-# We need to check if node_modules is already create and the privileges set.
+# We need to check if node_modules is already created.
 # If the privileges are root then we should remove and install again as
-# this may cause issues with running and installing new dependencies
+# this may cause issues with running and installing new dependencies.
 if [ -d "${NODE_MODULES_DIR}node_modules" ]; then
     if [ "$(find "node_modules" -maxdepth 0 -printf '%u\n')" == "root" ]; then
         echo "Running with root privileges to remove node_modules."
@@ -19,7 +19,7 @@ if [ -d "${NODE_MODULES_DIR}node_modules" ]; then
     fi
 
     # We need to check for ol-layerswitcher because it is causing jcc web
-    # build errors. Again, we check the privileges on the folder to determine
+    # build errors if it already exists. We check the privileges on the folder to determine
     # if we need to escalate our priveleges to remove it.
     if [ -d "${NODE_MODULES_DIR}node_modules/ol-layerswitcher" ]; then
         echo "Remove ol-layerswitcher before install"
