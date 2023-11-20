@@ -175,10 +175,15 @@ def taskPacketsToDrifts(taskPackets: List[Dict]):
         if drift is not None:
             location = drift['start_location']
             location = LatLon(lat=location['lat'], lon=location['lon'])
-
-            estimated_drift = drift['estimated_drift']
-            drift = Drift(location=location, speed=estimated_drift['speed'], heading=estimated_drift['heading'] or 0.0)
-            drifts.append(drift)
+            
+            estimated_drift = drift.get('estimated_drift', None)
+            if estimated_drift is not None:
+                speed = estimated_drift.get('speed', 0.0)
+                heading = estimated_drift.get('heading', 0.0)
+                drift = Drift(
+                    location=location, speed=speed, heading=heading
+                )
+                drifts.append(drift)
 
     return drifts
 

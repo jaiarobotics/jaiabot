@@ -5,6 +5,7 @@ require('isomorphic-fetch');
 import { GeoJSON } from 'ol/format';
 import { Command, Engineering, CommandForHub, TaskPacket } from '../../shared/JAIAProtobuf';
 import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
+import { Geometry } from 'ol/geom';
 
 export class JaiaAPI {
   clientId: string
@@ -121,9 +122,11 @@ export class JaiaAPI {
 
   /**
    * Gets a GeoJSON object with interpolated drift features
-   * @date 10/5/2023 - 5:22:32 AM
+   * 
+   * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation
+   * @param {string} endDate (optional) Set an upper bound of drift packets used for interpolation
    *
-   * @returns {*} A GeoJSON feature set containing interpolated drift features
+   * @returns {Feature<Geometry>[] | void} A GeoJSON feature set containing interpolated drift features
    */
   getDriftMap(startDate?: string, endDate?: string) {
     if (startDate && endDate) {
@@ -133,6 +136,8 @@ export class JaiaAPI {
         this.get(`jaia/drift-map?startDate=${startDateStr}&endDate=${endDateStr}`).then((geoJSON) => {
           const features = new GeoJSON().readFeatures(geoJSON)
           return features
+        }).catch((err) => {
+          logResReqError('getDriftMap', err)
         })
       )
     } else {
@@ -141,6 +146,8 @@ export class JaiaAPI {
         this.get(`jaia/drift-map`).then((geoJSON) => {
           const features = new GeoJSON().readFeatures(geoJSON)
           return features
+        }).catch((err) => {
+          logResReqError('getDriftMap', err)
         })
       )
     } 
@@ -171,6 +178,18 @@ export class JaiaAPI {
   postMissionFilesCreate(descriptor: any) {
     return this.post('missionfiles/create', descriptor)
   }
+}
+
+/**
+ * Combine console.error and console.log into one function to reduce code repetition
+ * 
+ * @param {string} functionName Used as location input to the error msg to help debug
+ * @param {Error} error Prints the error object to make all debug data visible
+ * @returns {void}
+ */
+function logResReqError(functionName: string, error: Error) {
+  console.error(`${functionName}:`, error)
+  console.log(`${functionName}:`, error)
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), '/', false)
