@@ -3366,6 +3366,7 @@ export default class CommandControl extends React.Component {
 						onChange={() => this.setRunList(this.getRunList())} 
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
+						setRunList={this.setRunList.bind(this)}
 					/>
 				)
 				break
