@@ -9,12 +9,17 @@ interface Props {
     setVisiblePanel: (panelType: PanelType) => void,
     runNum: number,
     botId: number
-    deleteRun: (runNum: number) => void
+    deleteRun: (runId: string) => void
 }
 
 export default function RunInfoPanel(props: Props) {
+    /**
+     * Calls the deleteSingleRun function in CommandControl.tsx and closes the RunInfoPanel
+     * 
+     * @returns {void}
+     */
     const handleDeleteRunClick = () => {
-        props.deleteRun(props.runNum)
+        props.deleteRun(`run-${props.runNum}`)
         props.setVisiblePanel(PanelType.NONE)
     }
 
