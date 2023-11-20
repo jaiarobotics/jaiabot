@@ -20,9 +20,16 @@ type RunPanelProps = {
 type RunPanelState = {}
 
 export default class RunPanel extends React.Component<RunPanelProps, RunPanelState> {
-    addDuplicateRun(goals: Goal[]) {
-        Missions.addRunWithGoals(-1, goals, this.props.mission)
-    }
+    /**
+     * Executes the static function duplicateRun which copies
+     * the run parameter and creates a new run
+     * 
+     * @param run The run that is going to be duplicated
+     * @returns {void}
+     */
+    addDuplicateRun(run: RunInterface) {
+        Missions.duplicateRun(run, this.props.mission);
+    }   
 
     handleBotAssignChange(prevBotId: number, newBotId: number, runId: string) {
         if (isFinite(newBotId)) {
