@@ -19,16 +19,26 @@ export class ContactLayers {
     layers: {[key: number]: VectorLayer<VectorSource>} = {}
     map: Map
 	zIndex: number
+	contactGroup: LayerGroup
 
     constructor(map: Map) {
         this.map = map
 		this.zIndex = 3000
+		this.contactGroup = new LayerGroup({
+			properties: { 
+				title: 'Contacts',
+				fold: 'close',
+			},
+			layers: []
+		})
+		this.map.addLayer(this.contactGroup)
     }
 
     getContactLayer(contact_id: number) {
 		if (this.layers[contact_id] == null) {
 			this.layers[contact_id] = new VectorLayer({
 				properties: {
+					title: `Contact ${contact_id}`,
 					name: `Contact ${contact_id}`,
 				},
 				zIndex: this.zIndex,
@@ -37,7 +47,7 @@ export class ContactLayers {
 					features: new Collection([], { unique: true })
 				})
 			})
-			this.map.addLayer(this.layers[contact_id])
+			this.contactGroup.getLayers().push(this.layers[contact_id])
 		}
 
 		return this.layers[contact_id]
