@@ -2422,6 +2422,11 @@ export default class CommandControl extends React.Component {
 	//
 	// Download Queue (Start)
 	//
+	/**
+	 * Triggers the download of all ready bots when the Downlaod All button is pressed
+	 * 
+	 * @returns {void}
+	 */
 	async processDownloadAllBots() {
 		this.takeControl(() => {
 
@@ -2430,7 +2435,11 @@ export default class CommandControl extends React.Component {
 			const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
 
 			if (downloadableBotIds.length === 0) {
-				CustomAlert.alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
+				CustomAlert.alert(
+					commDest.downloadQueueMessage
+					+ commDest.botIdsDownloadNotAvailable
+					+ commDest.disconnectedMessage
+				)
 				return
 			}
 
