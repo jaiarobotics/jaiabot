@@ -87,9 +87,9 @@ const viewportDefaultPadding = 100
 const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
-const POD_STATUS_POLL_INTERVAL = 1000
+const POD_STATUS_POLL_INTERVAL = 500
 const METADATA_POLL_INTERVAL = 10_000
-const TASK_PACKET_POLL_INTERVAL = 5000
+const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
 
 interface Props {}
@@ -1125,13 +1125,19 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	// Runs a set of missions, and updates the GUI
-	runMissions(missions: MissionInterface, addRuns: CommandList, rallyPointRun?: boolean) {
+	/**
+	 * Determines which runs in a mission are eligible to start and plays those runs
+	 * 
+	 * @param {MissionInterface} mission Holds the runs 
+	 * @param {CommandList} addRuns A set of runs to be added to the mission
+	 * @returns {void}
+	 */
+	runMissions(mission: MissionInterface, addRuns: CommandList) {
 		this.takeControl(() => {
 
 			const commDest = this.determineAllCommandBots(true, false, false, false)
 			const botIdsAssignedToRuns: number[] = []
-			const runs = missions.runs
+			const runs = mission.runs
 
 			if (addRuns) {
 				Object.keys(addRuns).map(botIndex => {
@@ -1189,14 +1195,17 @@ export default class CommandControl extends React.Component {
 					}
 
 					if (addRuns) {
-						this.deleteAllRunsInMission(missions, true, true).then((confirmed: boolean) => {
+						this.deleteAllRunsInMission(mission, true, true).then((confirmed: boolean) => {
 							if (!confirmed) return
 
 							Object.keys(addRuns).map(key => {
-								Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+								// Mutates missions
+								Missions.addRunWithCommand(Number(key), addRuns[Number(key)], mission);
 							});
+							// Sets state with the most up to date missions
+							this.setRunList(mission)
 
-							doExecuteMission()	
+							doExecuteMission()
 						})
 					}
 					else {
@@ -1318,8 +1327,10 @@ export default class CommandControl extends React.Component {
 		this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
 			if (confirmed) {
 				for (let run in missionToLoad?.runs) {
+					// Mutates runList
 					Missions.addRunWithCommand(-1, missionToLoad.runs[run].command, runList)
 				}
+				// Sets state with the most up to date runList
 				this.setRunList(runList)
 			}
 		})
@@ -1999,16 +2010,24 @@ export default class CommandControl extends React.Component {
 		return rallyNum
 	}
 
+	/**
+	 * Sends all bots to the targeted rally point
+	 * 
+	 * @param {OlFeature<Point>} rallyFeature Holds the location of the targeted rally
+	 * @returns {void}
+	 */
 	goToRallyPoint(rallyFeature: OlFeature<Point>) {
 		const location = rallyFeature.get('location')
 		let addRuns: CommandList = {}
 
-		for(let bot in this.getPodStatus().bots) {
+		for (let bot in this.getPodStatus().bots) {
 			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [location]);
 		}
 
-		this.runMissions(this.getRunList(), addRuns, true)
-		this.getRunList().runIdInEditMode = ''
+		let runList = this.getRunList()
+		this.runMissions(runList, addRuns)
+		runList.runIdInEditMode = ''
+		this.setRunList(runList)
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
@@ -3086,9 +3105,12 @@ export default class CommandControl extends React.Component {
 								if (!confirmed) return
 
 								for (let id in this.missionPlans) {
+									// Mutates runList
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}
-	
+								// Sets state with the most up to date runList
+								this.setRunList(runList)
+
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
 	
