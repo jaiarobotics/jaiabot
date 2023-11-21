@@ -18,6 +18,7 @@ import { HubOrBot } from './HubOrBot'
 import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
+import { ContactLayers } from './ContactLayers'
 import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
@@ -43,6 +44,7 @@ import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } f
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
+import LayerGroup from 'ol/layer/Group';
 
 
 // OpenLayers
@@ -234,6 +236,7 @@ export default class CommandControl extends React.Component {
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	botLayers: BotLayers
 	hubLayers: HubLayers
+	contactLayers: ContactLayers
 	oldPodStatus?: PodStatus
 	missionPlans?: CommandList = null
 	taskPackets: TaskPacket[]
@@ -255,6 +258,7 @@ export default class CommandControl extends React.Component {
 			podStatus: {
 				bots: {},
 				hubs: {},
+				contacts: {},
 				controllingClientId: null
 			},
 			podStatusVersion: 0,
@@ -452,6 +456,7 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
+		this.contactLayers = new ContactLayers(map)
 
 		const viewport = document.getElementById(this.mapDivId)
 		map.setTarget(this.mapDivId)
@@ -494,6 +499,7 @@ export default class CommandControl extends React.Component {
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
+				this.contactLayers.update(this.state.podStatus?.contacts)
 				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
 				this.updateBotCourseOverGroundLayer()

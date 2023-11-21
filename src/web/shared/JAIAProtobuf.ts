@@ -1212,3 +1212,9 @@ export interface HubStatus {
     linux_hardware_status?: LinuxHardwareStatus
 }
 
+export interface ContactStatus {
+    contact?: number,
+    location: GeographicCoordinate,
+    speed_over_ground?: number,
+    heading?: number
+}
