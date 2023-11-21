@@ -201,4 +201,10 @@ message MissionManager
     // timeout for when to stop logging if in failed state
     optional int32 failed_startup_log_timeout = 85
         [default = 300, (dccl.field).units = { base_dimensions: "T" }];
+
+    // used to update transitting to waypoint to allow more overshoot
+    optional int32 waypoint_with_no_task_slip_radius = 86 [default = 15];
+
+    // used to update transitting to waypoint to allow less overshoot
+    optional int32 waypoint_with_task_slip_radius = 87 [default = 5];
 }

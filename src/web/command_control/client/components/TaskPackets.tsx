@@ -230,6 +230,12 @@ export class TaskData {
         })
     }
 
+    /**
+     * Add dive and drift icons + create drift map and depth contours plot
+     * 
+     * @param {TaskPacket[]} taskPackets provides updated array of TaskPackets
+     * @returns {void}
+     */
     updateTaskPacketsLayers(taskPackets: TaskPacket[]) {
         const divePacketLayer = this.divePacketLayer
         const driftPacketLayer = this.driftPacketLayer
@@ -257,16 +263,15 @@ export class TaskData {
                     driftPacketFeatures.push(feature)
                 }
             }
-
-            if (taskPackets.length >= 2) {
-                this._updateInterpolatedDrifts()
-            }
-
-            if (taskPackets.length >= 3) {
-                this._updateContourPlot()
-            }
         }
-        
+
+        if (taskPackets.length >= 2) {
+            this._updateInterpolatedDrifts()
+        }
+
+        if (taskPackets.length >= 3) {
+            this._updateContourPlot()
+        }
 
         this.diveSource.clear()
         this.driftSource.clear()
@@ -278,18 +283,25 @@ export class TaskData {
     }
 
     /**
-     * Updates the interpolated drift layer by accessing the API
+     * Updates the interpolated drift layer through the Jaia API
+     * 
+     * @returns {void}
+     * 
+     * @notes
      * To Do: Figure out how to make multiple Drift Maps based on time/location
-     * @date 10/5/2023 - 5:32:55 AM
      */
     _updateInterpolatedDrifts() {
         jaiaAPI.getDriftMap()
         .then(features => {
-            const tFeatures = features.map(feature => {
-                feature.setGeometry(feature.getGeometry().transform('EPSG:4326', this.map.getView().getProjection()))
-                return feature
-            })
-            this.driftMapLayer.setSource(new VectorSource({ features: tFeatures }))
+            if (Array.isArray(features)) {
+                const tFeatures = features.map(feature => {
+                    feature.setGeometry(feature.getGeometry().transform('EPSG:4326', this.map.getView().getProjection()))
+                    return feature
+                })
+                this.driftMapLayer.setSource(new VectorSource({ features: tFeatures }))
+            } else {
+                console.error('_updateInterpolatedDrifts response void')
+            }
         }).catch(error => {
             console.error(error)
         })

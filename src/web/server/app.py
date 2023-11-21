@@ -8,7 +8,6 @@ from datetime import *
 
 def parseDate(date):
     if date is None or date == '':
-        logging.warning('date is empty')
         return ''
     
     try:
@@ -182,7 +181,7 @@ def getPackets():
     Timezone: GMT
     Example Request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
     """
-    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    startDate = parseDate(request.args.get('startDate', (datetime.now(timezone.utc) - timedelta(hours=14))))
     endDate = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
 

@@ -216,8 +216,13 @@ export function getHTMLTimeString(date: Date) {
 }
 
 /**
- * @param strDate "yyyy-mm-dd hh:mm"
- * @returns ISO str date in GMT
+ * Converts a string date to a cleaned ISO formatted string in UTC time
+ * 
+ * @param {string} strDate date to be converted to UTC in ISO format
+ * @returns {string} ISO formatted date without letters and special chars
+ * 
+ * @notes
+ * Expected strDate format: "yyyy-mm-dd hh:mm"
  * Example return value: "2023-10-18 09:04:00"
  */
 export function convertHTMLStrDateToISO(strDate: string) {
