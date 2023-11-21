@@ -87,9 +87,9 @@ const viewportDefaultPadding = 100
 const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
-const POD_STATUS_POLL_INTERVAL = 1000
+const POD_STATUS_POLL_INTERVAL = 500
 const METADATA_POLL_INTERVAL = 10_000
-const TASK_PACKET_POLL_INTERVAL = 5000
+const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
 
 interface Props {}
