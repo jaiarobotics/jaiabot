@@ -605,6 +605,12 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
     }
 }
 
+/**
+ * @brief Executes when the bot receives a new depth reading so that the bot can 
+ *        determine if it has reached its goal depth 
+ * 
+ * @param ev Depth event used to pass the new depth reading
+ */
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(
     const EvVehicleDepth& ev)
 {
@@ -626,6 +632,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
 
+    // check needed to initially set the last_depth to the current one
+    if (is_initial_depth_reading_)
+    {
+        last_depth_ = ev.depth;
+        is_initial_depth_reading_ = false;
+    }
+
     dive_pdescent_debug.set_current_depth(ev.depth.value());
     dive_pdescent_debug.set_goal_depth(context<Dive>().goal_depth().value());
     dive_pdescent_debug.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
@@ -634,16 +647,16 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     dive_pdescent_debug.set_bottoming_timeout_with_units(cfg().bottoming_timeout_with_units());
 
     glog.is_debug1() &&
-        glog << "if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
+        glog << "(boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
                 "cfg().dive_depth_eps_with_units()): "
              << (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
                  cfg().dive_depth_eps_with_units())
              << "\n ev.depth: " << ev.depth.value()
              << "\n context<Dive>().goal_depth(): " << context<Dive>().goal_depth().value()
              << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps()
-             << "\n if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
+             << "\n ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
              << ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
-             << "\n if ((ev.depth - last_depth_) > "
+             << "\n ((ev.depth - last_depth_) > "
                 "cfg().dive_eps_to_determine_diving_with_units()): "
              << ((ev.depth - last_depth_) > cfg().dive_eps_to_determine_diving_with_units())
              << "\n ev.depth: " << ev.depth.value() << "\n last_depth_" << last_depth_.value()

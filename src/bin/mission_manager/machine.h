@@ -1684,6 +1684,8 @@ struct PoweredDescent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
     // determines when the bot is diving
     bool is_bot_diving_{false};
+    // determines the initial value for last_depth_
+    bool is_initial_depth_reading_{true};
 };
 
 struct Hold
