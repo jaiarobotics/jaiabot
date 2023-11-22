@@ -36,6 +36,7 @@ interface Props {
     task?: MissionTask
     location?: GeographicCoordinate
     isEditMode?: boolean
+    scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
 }
 
@@ -255,6 +256,12 @@ function TaskOptionsPanel(props: Props) {
 
 
 export function TaskSettingsPanel(props: Props) {
+    /**
+     * Updates the Task input options based on the type of Task selected
+     * 
+     * @param {SelectChangeEvent} evt Provides the new Task type 
+     * @returns {void}
+     */
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType
         const oldTaskType = props.task?.type ?? TaskType.NONE
@@ -287,6 +294,9 @@ export function TaskSettingsPanel(props: Props) {
         }
 
         props.onChange(newTask)
+        if (props.scrollTaskSettingsIntoView !== undefined) {
+            props.scrollTaskSettingsIntoView()
+        }
     }
 
     return (
