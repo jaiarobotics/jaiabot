@@ -294,6 +294,54 @@ export function hubCommsCircleStyle(feature: Feature<Point>) {
     return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
+/**
+ * The style for the trail circles for contacts
+ *
+ * @param {Feature<Point>} feature Point feature of a contact
+ * @returns {Style[]} Styles for the trail circle limits
+ */
+export function contactTrailCircleStyle(feature: Feature<Point>) {
+    const contact = feature.get('contact') as ContactStatus
+    if (contact == null) {
+        console.warn("Feature doesn't have contact property")
+        return []
+    }
+    const center = feature.getGeometry()!.getCoordinates()
+
+    // The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((contact.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+
+    // Values are set in templates/bot/bot.bhv.in (Trail behavior)
+    const trailInnerRadius = 5.0 / latitudeCoefficient
+    const trailOuterRadius = 20.0 / latitudeCoefficient
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate | Coordinate[] | Coordinate[][], state) {
+                const [[x, y], [x1, y1]] = coordinates as Coordinate[]
+                const dx = x1 - x
+                const dy = y1 - y
+                const screenRadius = Math.sqrt(dx * dx + dy * dy)
+
+                const ctx = state.context
+
+                ctx.beginPath()
+                ctx.arc(x, y, screenRadius, 0, 2 * Math.PI, true)
+                ctx.strokeStyle = color
+                ctx.lineWidth = lineWidth
+                ctx.stroke()
+            }
+        })
+    }
+
+    const trailInnerRadiusStyle = getCircleStyle(center, trailInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const trailOuterRadiusStyle = getCircleStyle(center, trailOuterRadius, 'rgba(128,0,0,0.6)', 5)
+        
+    return [ trailInnerRadiusStyle, trailOuterRadiusStyle ]
+}
+
 
 
 /**

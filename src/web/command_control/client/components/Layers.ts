@@ -103,6 +103,15 @@ export class Layers {
         zIndex: 998
     })
 
+    contactTrailCirclesLayer = new VectorLayer({
+        properties: {
+            title: 'Contact Trail Circles'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
+    })
+
     
     /**
      * Layer group for mission-related layers
@@ -120,7 +129,8 @@ export class Layers {
             this.courseOverGroundLayer,
             this.headingLayer,
             this.hubCommsLimitCirclesLayer,
-            this.waypointCircleLayer
+            this.waypointCircleLayer,
+            this.contactTrailCirclesLayer
         ]
     })
     
@@ -172,6 +182,7 @@ export class Layers {
         // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
         this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
+        this.contactTrailCirclesLayer.setStyle(Styles.contactTrailCircleStyle)
 
         this.addLayerGroup(this.baseLayerGroup);
         this.addLayerGroup(this.chartLayerGroup);
