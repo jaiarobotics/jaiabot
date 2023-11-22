@@ -4,6 +4,9 @@ import TileWMS from 'ol/source/TileWMS'
 import { persistVisibility } from './VisibleLayerPersistance'
 import { TileArcGISRest } from 'ol/source'
 import { ImageTile } from 'ol'
+import ImageLayer from 'ol/layer/Image.js';
+import Static from 'ol/source/ImageStatic.js';
+const aus00167P1 = require('../overlays/AUS00167P1.png') as string
 
 // IndexedDB
 import { openDB } from 'idb';
@@ -90,6 +93,22 @@ export const gebcoLayer = new TileLayer({
 });
 
 export function createChartLayerGroup() {
+    
+    // TODO make this an option for user
+    const image_overlay = new ImageLayer({
+        properties: {
+            title: 'AUS00167P1',
+        },
+        source: new Static({
+            attributions: '© <a href="https://xkcd.com/license.html">xkcd</a>',
+            url: aus00167P1,
+            projection: 'EPSG:4326',
+            imageExtent: [146.814691, -41.161841, 146.892519, -41.128482],
+        }),
+        zIndex: 20,
+    })
+
+
     // Configure the basemap layers
     let layers = [
         new TileLayer({
@@ -100,7 +119,8 @@ export function createChartLayerGroup() {
             zIndex: 20,
             source: noaaEncSource,
         }),
-        gebcoLayer
+        gebcoLayer,
+        image_overlay
     ]
     
     layers.forEach((layer) => {
