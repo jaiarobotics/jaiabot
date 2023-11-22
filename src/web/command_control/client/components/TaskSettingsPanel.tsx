@@ -256,7 +256,6 @@ function TaskOptionsPanel(props: Props) {
 
 
 export function TaskSettingsPanel(props: Props) {
-    
     /**
      * Updates the Task input options based on the type of Task selected
      * 
