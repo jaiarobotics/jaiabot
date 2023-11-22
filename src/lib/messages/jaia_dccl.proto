@@ -463,3 +463,4 @@ message ContactUpdate
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 }
+
