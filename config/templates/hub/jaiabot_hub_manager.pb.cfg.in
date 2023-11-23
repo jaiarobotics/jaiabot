@@ -59,4 +59,9 @@ hub_gpsd_device: "$hub_gpsd_device"
 bot_to_gps  { bot_id: 3   udp { remote_address: "127.0.0.1" remote_port: 33001 }}
 bot_to_gps  { bot_id: 5   udp { remote_address: "127.0.0.1" remote_port: 33002 }}
 bot_to_gps  { bot_id: 6   udp { remote_address: "127.0.0.1" remote_port: 33003 }}
+
+# bot 5 -> contact 5
 contact_gps { contact: 5  gpsd_device: "udp://127.0.0.1:33002" }
+
+# educat -> contact 1
+contact_gps { contact: 1  gpsd_device: "udp://10.23.2.11:33004"  use_track: true}

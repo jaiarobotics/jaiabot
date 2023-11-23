@@ -108,9 +108,11 @@ class HubManager : public ApplicationBase
 
     // map GPSD device name to contact ID
     std::map<std::string, int> contact_gps_;
-    // map GPSD device name to heading
+    std::set<std::string> contact_use_track_;
+    // map GPSD device name to heading / track
     std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>>
         contact_heading_;
+    std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>> contact_track_;
 
     // set of Bot IDs with bot_to_gps in use
     std::set<int> bot_to_gps_ids_;
@@ -139,7 +141,11 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     }
 
     for (auto contact_gps : cfg().contact_gps())
+    {
         contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(), contact_gps.contact()));
+        if (contact_gps.use_track())
+            contact_use_track_.insert(contact_gps.gpsd_device());
+    }
 
     for (auto bot_to_gps : cfg().bot_to_gps())
     {
@@ -219,9 +225,19 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                     update.mutable_location()->set_lon_with_units(lon);
                     if (tpv.has_speed())
                         update.set_speed_over_ground_with_units(tpv.speed_with_units());
-                    auto it = contact_heading_.find(tpv.device());
-                    if (it != contact_heading_.end())
-                        update.set_heading_with_units(it->second);
+
+                    if (contact_use_track_.count(tpv.device()))
+                    {
+                        if (!tpv.has_track())
+                            return;
+                        update.set_heading_with_units(tpv.track_with_units());
+                    }
+                    else
+                    {
+                        auto it = contact_heading_.find(tpv.device());
+                        if (it != contact_heading_.end())
+                            update.set_heading_with_units(it->second);
+                    }
 
                     glog.is_debug2() && glog << group("main") << "Sending contact update: "
                                              << update.ShortDebugString() << std::endl;

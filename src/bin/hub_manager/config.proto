@@ -59,6 +59,7 @@ message HubManager
     {
         required string gpsd_device = 1;
         required int32 contact = 2;
+        optional bool use_track = 3 [default = false];
     }
     repeated ContactGPS contact_gps =
         21;  // GPSD device feeds for contacts to
