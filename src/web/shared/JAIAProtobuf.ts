@@ -353,6 +353,7 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS",
     IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = "IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART",
+    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = "IN_MISSION__UNDERWAY__MOVEMENT__TRAIL",
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = "IN_MISSION__UNDERWAY__TASK__STATION_KEEP",
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT",
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS",
@@ -417,6 +418,13 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number
 }
 
+export interface TrailParameters {
+    contact?: number
+    angle?: number
+    angle_relative?: boolean
+    range?: number
+}
+
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
@@ -432,6 +440,7 @@ export enum MissionStart {
 export enum MovementType {
     TRANSIT = "TRANSIT",
     REMOTE_CONTROL = "REMOTE_CONTROL",
+    TRAIL = "TRAIL"
 }
 
 export interface Goal {
@@ -455,6 +464,7 @@ export interface MissionPlan {
     fragment_index?: number
     expected_fragments?: number
     repeats?: number
+    trail?: TrailParameters
 }
 
 export interface TransitUpdate {

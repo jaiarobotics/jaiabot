@@ -1,4 +1,4 @@
-import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
+import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType, Speeds} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 import { deepcopy } from './shared/Utilities';
 import { CustomAlert } from './shared/CustomAlert';
@@ -87,6 +87,42 @@ export class Missions {
             }
         }
         
+        return command
+    }
+
+    /**
+     * This is a helper function for creating the trail command
+     * 
+     * @param botId {number} The bot the command is for
+     * @param datumLocation {GeographicCoordinate} The location to use for recovery
+     * @param speed {Speeds} The speeds to use for transit and station keep 
+     * @returns {Command} This is the trail command that gets created
+     */
+    static TrailMode(botId: number, datumLocation: GeographicCoordinate, speed: Speeds) {
+        let millisecondsSinceEpoch = new Date().getTime();
+        let command: Command
+        command = {
+            bot_id: botId,
+            time: millisecondsSinceEpoch,
+            type: CommandType.MISSION_PLAN,
+            plan: {
+                start: MissionStart.START_IMMEDIATELY,
+                movement: MovementType.TRAIL,
+                recovery: {
+                    recover_at_final_goal: false,
+                    location: datumLocation
+                },
+                speeds: speed,
+                trail: {
+                    contact: botId,
+                    angle_relative: true,
+                    // relative to contact, so this would be directly behind.
+                    angle: 180,
+                    // meters
+                    range: 50 
+                }
+            }
+        }
         return command
     }
 

@@ -9,6 +9,7 @@ import EngineeringPanel from './EngineeringPanel'
 import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
+import ContactInfoPanel from './ContactInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
@@ -42,7 +43,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, ContactStatus } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 import LayerGroup from 'ol/layer/Group';
 
@@ -108,7 +109,8 @@ export enum PanelType {
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
 	RALLY_POINT = 'RALLY_POINT',
 	TASK_PACKET = 'TASK_PACKET',
-	SETTINGS = 'SETTINGS'
+	SETTINGS = 'SETTINGS',
+	CONTACT_INFO = 'CONTACT_INFO'
 }
 
 export enum Mode {
@@ -153,7 +155,7 @@ interface State {
 		runNum: number,
 		botId: number,
 	},
-
+	contactClickedInfo: ContactStatus,
 	goalBeingEdited: {
 		goal?: Goal,
 		goalIndex?: number,
@@ -298,6 +300,12 @@ export default class CommandControl extends React.Component {
 			flagClickedInfo: {
 				runNum: -1,
 				botId: -1
+			},
+			contactClickedInfo: {
+				location: {
+					lat: 0,
+					lon: 0
+				}
 			},
 			goalBeingEdited: {},
 
@@ -1767,7 +1775,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line', 'contact']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -1828,6 +1836,19 @@ export default class CommandControl extends React.Component {
 
 				this.setState({ flagClickedInfo }, () => {
 					this.setVisiblePanel(PanelType.RUN_INFO)	
+				})
+
+				return false
+			}
+
+			// Clicked on contact
+			const isContact = feature.get('type') === 'contact'
+			if (isContact) {
+				const contactFeature = feature.get('contact')
+				const contactClickedInfo = contactFeature
+
+				this.setState({ contactClickedInfo }, () => {
+					this.setVisiblePanel(PanelType.CONTACT_INFO)	
 				})
 
 				return false
@@ -3430,6 +3451,16 @@ export default class CommandControl extends React.Component {
 						runNum={this.state.flagClickedInfo.runNum}
 						botId={this.state.flagClickedInfo.botId}
 						deleteRun={this.deleteSingleRun.bind(this)}
+					/>
+				)
+				break
+			case PanelType.CONTACT_INFO:
+				visiblePanelElement = (
+					<ContactInfoPanel
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						contact={this.state.contactClickedInfo}
+						botIds={this.getBotIdList()} 
+						api={this.api}
 					/>
 				)
 				break
