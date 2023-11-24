@@ -310,7 +310,7 @@ export function contactTrailCircleStyle(feature: Feature<Point>) {
     }
     // Values are set in templates/bot/bot.bhv.in (Trail behavior)
     const trailDistance = 50.0
-    const trailAngle = 180.0
+    const trailAngle = (contact?.heading + 180) % 360
     const radius = 5.0
     const nm_radius = 20.0
 
