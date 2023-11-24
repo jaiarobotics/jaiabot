@@ -97,9 +97,9 @@ button {
 
 .dialog {
     position: fixed;
-    left: 25%;
+    left: 10%;
     top: 10%;
-    right: 25%;
+    right: 10%;
     z-index: 10000;
 
     background-color: whitesmoke;
