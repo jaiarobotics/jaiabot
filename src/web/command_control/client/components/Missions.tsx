@@ -94,11 +94,12 @@ export class Missions {
      * This is a helper function for creating the trail command
      * 
      * @param botId {number} The bot the command is for
+     * @param contactId {number} The contact to trail
      * @param datumLocation {GeographicCoordinate} The location to use for recovery
      * @param speed {Speeds} The speeds to use for transit and station keep 
      * @returns {Command} This is the trail command that gets created
      */
-    static TrailMode(botId: number, datumLocation: GeographicCoordinate, speed: Speeds) {
+    static TrailMode(botId: number, contactId: number, datumLocation: GeographicCoordinate, speed: Speeds) {
         let millisecondsSinceEpoch = new Date().getTime();
         let command: Command
         command = {
@@ -114,7 +115,7 @@ export class Missions {
                 },
                 speeds: speed,
                 trail: {
-                    contact: botId,
+                    contact: contactId,
                     angle_relative: true,
                     // relative to contact, so this would be directly behind.
                     angle: 180,

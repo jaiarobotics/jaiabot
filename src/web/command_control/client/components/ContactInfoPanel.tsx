@@ -41,7 +41,7 @@ export default function ContactInfoPanel(props: Props) {
             datumLocation = {lat: 0, lon: 0}
         }
         
-        const botMission = Missions.TrailMode(botAssigned, datumLocation, speed)
+        const botMission = Missions.TrailMode(botAssigned, props.contact?.contact, datumLocation, speed)
 
         CustomAlert.confirm(`Are you sure you'd like bot: ` + botAssigned?.toString() 
             + ` to trail contact: ` + props.contact?.contact?.toString(), 
