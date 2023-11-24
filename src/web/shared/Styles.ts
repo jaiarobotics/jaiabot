@@ -2,10 +2,12 @@ import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
 import { Goal, HubStatus, TaskType, ContactStatus } from './JAIAProtobuf'
 import { LineString, Point, Circle } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
 import { colorNameToHex } from './Color'
+import * as turf from '@turf/turf';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -306,15 +308,30 @@ export function contactTrailCircleStyle(feature: Feature<Point>) {
         console.warn("Feature doesn't have contact property")
         return []
     }
-    const center = feature.getGeometry()!.getCoordinates()
+    // Values are set in templates/bot/bot.bhv.in (Trail behavior)
+    const trailDistance = 50.0
+    const trailAngle = 180.0
+    const radius = 5.0
+    const nm_radius = 20.0
+
+    // Create a point feature using Turf.js
+    const turfCenter = turf.point([(contact.location?.lon ?? 0), (contact.location?.lat ?? 0)])
+
+    // Calculate the trail point using Turf.js
+    const trailPoint = turf.destination(turfCenter, trailDistance, trailAngle, { units: 'meters' })
+
+    // Get the coordinates of the trailPoint point
+    const [trailLon, trailLat] = trailPoint.geometry.coordinates
+    const convertToPoint = new Point(fromLonLat([trailLon, trailLat]));
+    const trailCircleCenter = convertToPoint.getCoordinates()
 
     // The reason we need to divide by the cosine of the 
     // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
-    const latitudeCoefficient = Math.max(Math.cos((contact.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const latitudeCoefficient = Math.max(Math.cos((trailLat) * DEG), 0.001) // To avoid division by zero
 
     // Values are set in templates/bot/bot.bhv.in (Trail behavior)
-    const trailInnerRadius = 5.0 / latitudeCoefficient
-    const trailOuterRadius = 20.0 / latitudeCoefficient
+    const trailInnerRadius = radius / latitudeCoefficient
+    const trailOuterRadius = nm_radius / latitudeCoefficient
 
     function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
         return new Style({
@@ -336,8 +353,8 @@ export function contactTrailCircleStyle(feature: Feature<Point>) {
         })
     }
 
-    const trailInnerRadiusStyle = getCircleStyle(center, trailInnerRadius, 'rgba(0,128,0,0.6)', 5)
-    const trailOuterRadiusStyle = getCircleStyle(center, trailOuterRadius, 'rgba(128,0,0,0.6)', 5)
+    const trailInnerRadiusStyle = getCircleStyle(trailCircleCenter, trailInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const trailOuterRadiusStyle = getCircleStyle(trailCircleCenter, trailOuterRadius, 'rgba(128,0,0,0.6)', 5)
         
     return [ trailInnerRadiusStyle, trailOuterRadiusStyle ]
 }
