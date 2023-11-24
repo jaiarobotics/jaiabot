@@ -22,9 +22,10 @@ parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Lo
 args = parser.parse_args()
 
 # Setup logging module
-logLevel = getattr(logging, args.logLevel.upper())
-logging.basicConfig(level=logLevel)
+logLevel = logging.getLevelName(args.logLevel.upper())
+logging.getLogger('root').setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
+
 
 # Setup the directory
 jaialogStore = jaialog_store.JaialogStore(args.directory)
@@ -180,5 +181,11 @@ def getH5():
 
 
 if __name__ == '__main__':
+
+    # Always print the log level to console
+    rootLogger = logging.getLogger('root')
+    logLevelName = logging.getLevelName(rootLogger.getEffectiveLevel())
+    print(f'==> Logging level: {logLevelName}')
+
     logging.warning(f'Serving on port {args.port}')
     app.run(host='0.0.0.0', port=args.port, debug=True)

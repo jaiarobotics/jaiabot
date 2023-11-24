@@ -10,6 +10,11 @@ import numpy as np
 import math
 import random
 import geojson
+import logging
+
+logger = logging.getLogger('drift_interpolation')
+logger.setLevel(logging.INFO)
+
 
 def plotDrifts(driftsList: List[List["Drift"]]):
     import plotly.graph_objects as go
@@ -60,6 +65,7 @@ class Drift:
     heading: float = 0.0
 
     def interpolateTo(self, other: "Drift", distance: float, units: str='km'):
+
         lineString = LineString([self.location.list(), other.location.list()])
         lineLength = measurement.length(lineString, units=units)
         otherWeight = distance / lineLength
@@ -76,6 +82,15 @@ class Drift:
         return newDrift
     
     def interpolateToFraction(self, other: "Drift", otherWeight: float):
+        """Interpolate between self and another Drift object by a certain fraction
+
+        Args:
+            other (Drift): The other drift object
+            otherWeight (float): Linear fraction the other drift object interpolate to
+
+        Returns:
+            _type_: A drift object that's interpolated between self andthe other drift object
+        """
         lineString = LineString([self.location.list(), other.location.list()])
         lineLength = measurement.length(lineString)
         ourWeight = 1 - otherWeight
@@ -86,9 +101,12 @@ class Drift:
         return Drift(
             location=newLocation, 
             speed=ourWeight * self.speed + otherWeight * other.speed,
-            heading=fmod(ourWeight * self.heading + otherWeight * other.heading, 0, 360))
+            heading=fmod(ourWeight * (self.heading or 0.0) + otherWeight * (other.heading or 0.0), 0, 360))
 
 def getInterpolatedDrifts(drifts: List[Drift], delta=50):
+
+    MAX_INTERPOLATION_POINTS = 5
+
     # We need at least two points to do any interpolation
     if len(drifts) < 2:
         return deepcopy(drifts)
@@ -100,7 +118,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
         lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
         lineLength = measurement.length(lineString, units='m')
 
-        nPoints = math.ceil(lineLength / delta)
+        nPoints = min(math.ceil(lineLength / delta), MAX_INTERPOLATION_POINTS)
         actualDelta = lineLength / nPoints
 
         for pointIndex in range(1, nPoints):
@@ -120,11 +138,14 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
     # Fill triangles with interpolated drifts
     vertexIndices: List[int]
 
+    logger.debug('Calculating interpolated drifts')
+    logger.debug(f'  simplex count: {len(tri.simplices)}')
+
     for vertexIndices in tri.simplices:
         vertexDrifts = [drifts[i] for i in vertexIndices]
         a = vertexDrifts[0].location.distanceTo(vertexDrifts[1].location)
         a1 = vertexDrifts[0].location.distanceTo(vertexDrifts[2].location)
-        aDiv = min(div(min(a, a1), delta), 10)
+        aDiv = min(div(min(a, a1), delta), MAX_INTERPOLATION_POINTS)
 
         for rowIndex in range(1, aDiv):
             # Loop through rows from vertex 0 to vertex 1/2
@@ -132,7 +153,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
             endDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[2], (rowIndex / aDiv))
 
             b = startDrift.location.distanceTo(endDrift.location)
-            bDiv = min(div(b, delta), 10)
+            bDiv = min(div(b, delta), MAX_INTERPOLATION_POINTS)
 
             for ptIndex in range(1, bDiv):
                 newDrift = startDrift.interpolateToFraction(endDrift, ptIndex / bDiv)
@@ -151,10 +172,12 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
 
     edges = getEdges(tri.simplices)
 
+    logger.debug(f'  num edges: {len(edges)}')
+
     for edge in edges:
         edgeDrifts = [drifts[i] for i in edge]
         d = edgeDrifts[0].location.distanceTo(edgeDrifts[1].location)
-        dDiv = div(d, delta)
+        dDiv = min(div(d, delta), MAX_INTERPOLATION_POINTS)
 
         for i in range(1, dDiv):
             newDrift = edgeDrifts[0].interpolateToFraction(edgeDrifts[1], i / dDiv)
