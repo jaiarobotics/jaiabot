@@ -65,7 +65,7 @@ def getRoot():
 
 @app.route('/logs', methods=['GET'])
 def getLogs():
-    return JSONResponse(jaialogStore.getLogs())
+    return JSONResponse(jaialogStore.getLogs().to_dict())
 
 @app.route('/convert-if-needed', methods=['POST'])
 def convertLogs():
