@@ -26,6 +26,7 @@ interface Props {
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
     setRunList: (runList: MissionInterface) => void
+    updateMissionHistory: (mission: MissionInterface) => void
 }
 
 interface State {
@@ -185,6 +186,7 @@ export class GoalSettingsPanel extends React.Component {
         const updatedWpts = wpts.filter((wpt, index) => index !== wptNum - 1)
         runList.runs[runId].command.plan.goal = updatedWpts
         this.props.setRunList(runList)
+        this.props.updateMissionHistory(runList)
         this.props.setVisiblePanel(PanelType.NONE)
     }
 

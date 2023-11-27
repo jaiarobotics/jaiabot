@@ -19,6 +19,8 @@ type MissionControllerProps = {
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
+    setRunList: (mission: MissionInterface) => void
+    updateMissionHistory: (mission: MissionInterface) => void
 }
 
 type MissionControllerState = {}
@@ -85,6 +87,8 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     deleteSingleRun={this.props.deleteSingleRun}
                     unSelectHubOrBot={this.props.unSelectHubOrBot}
                     toggleEditMode={this.props.toggleEditMode}
+                    setRunList={this.props.setRunList}
+                    updateMissionHistory={this.props.updateMissionHistory}
                 />
             </div>
         )
