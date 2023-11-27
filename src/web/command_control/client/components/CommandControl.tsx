@@ -1083,10 +1083,13 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @notes
 	 * The maximum size of the missionHistory array is set to the variable missionHistoryMaxLen.
-	 * This is to prevent the mission history from causing performance issues.
+	 * This is to prevent the mission history from growing unbounded and potentially causing
+	 * performance issues.
 	 */
 	updateMissionHistory(mission: MissionInterface) {
-		const missionHistoryMaxLen = 5
+		// this.missionHistory[0] does not get removed
+		// so the number of possible undo actions equals missionHistoryMaxLen - 1
+		const missionHistoryMaxLen = 11
 		if (this.missionHistory.length === missionHistoryMaxLen) {
 			this.missionHistory.shift()
 		}
@@ -1262,7 +1265,7 @@ export default class CommandControl extends React.Component {
 	 * @param {MissionInterface} mission Used to access the mission state
 	 * @param {boolean} needConfirmation Does the deletion require a confirmation by the opertor?
 	 * @param {boolean} rallyPointMission Is the mission a rally point mission?
-	 * @returns {Promise<boolean>} Did the deletion occur? If (yes) then (true)
+	 * @returns {Promise<boolean>} Did the deletion occur?
 	 */
 	async deleteAllRunsInMission(
 		mission: MissionInterface,
@@ -2959,6 +2962,7 @@ export default class CommandControl extends React.Component {
 	handleUndoClick() {
 		if (this.missionHistory.length === 1) {
 			this.setRunList(deepcopy(this.missionHistory[0]))
+			info('There is no more history to undo')
 			return
 		}
 

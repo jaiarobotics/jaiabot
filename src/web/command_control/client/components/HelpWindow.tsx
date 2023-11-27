@@ -84,7 +84,7 @@ const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiArrowULeftTop,
         name: 'Undo',
-        description: 'Undo the last mission planning action.'
+        description: 'Undo the last 10 mission planning actions (excluding Task modifications).'
     },
     {
         iconPath: mdiCog,
