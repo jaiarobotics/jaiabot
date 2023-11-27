@@ -146,6 +146,17 @@ message BottomDepthSafetyParams
     ];
 }
 
+message IMUCalibration
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool run_cal = 1 [default = false];
+    optional bool cal_complete = 2 [default = false];
+    optional bool cal_failed = 3 [default = false];
+}
+
 message Engineering
 {
     /*
@@ -184,6 +195,8 @@ message Engineering
     optional RFDisableOptions rf_disable_options = 16;
 
     optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
+
+    optional IMUCalibration imu_cal = 18;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

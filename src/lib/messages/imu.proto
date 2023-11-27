@@ -13,6 +13,7 @@ message IMUCommand
         STOP_WAVE_HEIGHT_SAMPLING = 2;
         START_BOTTOM_TYPE_SAMPLING = 3;
         STOP_BOTTOM_TYPE_SAMPLING = 4;
+        START_CALIBRATION = 5;
     }
 
     required IMUCommandType type = 1;
