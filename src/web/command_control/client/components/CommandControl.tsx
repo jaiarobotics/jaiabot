@@ -247,6 +247,7 @@ export default class CommandControl extends React.Component {
 	podStatusPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
+	missionHistory: MissionInterface[]
 
 	constructor(props: Props) {
 		super(props)
@@ -423,6 +424,7 @@ export default class CommandControl extends React.Component {
 		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
 		this.enabledDownloadStates = ['PRE_DEPLOYMENT', 'STOPPED', 'POST_DEPLOYMENT']
 		this.flagNumber = 1
+		this.missionHistory = []
 
 		CustomAlert.setPresenter((props: CustomAlertProps) => {
 			if (props == null) {
@@ -462,6 +464,16 @@ export default class CommandControl extends React.Component {
 		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
 		this.setupMapLayersPanel()
+
+		const emptyMission = {
+			id: '',
+			name: '',
+			runs: {},
+			runIdIncrement: 1,
+			botsAssignedToRuns: {},
+			runIdInEditMode: ''
+		}
+		this.updateMissionHistory(emptyMission)
 
 		// Hotkeys
 		document.onkeydown = this.keyPressed.bind(this)
@@ -1052,11 +1064,36 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Updates the runList in state
 	 * 
-	 * @param {MissionInterface} runList updated version used to set state
+	 * @param {MissionInterface} runList Updated version used to set state
 	 * @returns {void}
 	 */
 	setRunList(runList: MissionInterface) {
-		this.setState({runList, runListVersion: this.state.runListVersion + 1})
+		const updatedRunList = {...runList}
+		this.setState({
+			runList: updatedRunList, 
+			runListVersion: this.state.runListVersion + 1
+		})
+	}
+
+	/**
+	 * Saves a deep copy of the current mission state so the operator can restore changes
+	 * 
+	 * @param {MissionInterface} mission Provides current mission data to append to mission history
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * The maximum size of the missionHistory array is set to the variable missionHistoryMaxLen.
+	 * This is to prevent the mission history from growing unbounded and potentially causing
+	 * performance issues.
+	 */
+	updateMissionHistory(mission: MissionInterface) {
+		// this.missionHistory[0] does not get removed
+		// so the number of possible undo actions equals missionHistoryMaxLen - 1
+		const missionHistoryMaxLen = 11
+		if (this.missionHistory.length === missionHistoryMaxLen) {
+			this.missionHistory.shift()
+		}
+		this.missionHistory.push(deepcopy(mission))
 	}
 
 	/**
@@ -1225,10 +1262,10 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Reset mission planning
 	 * 
-	 * @param {MissionInterface} mission used to access the mission state
-	 * @param {boolean} needConfirmation does the deletion require a confirmation by the opertor?
-	 * @param {boolean} rallyPointMission is the mission a rally point mission?
-	 * @return {Promise<boolean>} did the deletion occur? If (yes) then (true)
+	 * @param {MissionInterface} mission Used to access the mission state
+	 * @param {boolean} needConfirmation Does the deletion require a confirmation by the opertor?
+	 * @param {boolean} rallyPointMission Is the mission a rally point mission?
+	 * @returns {Promise<boolean>} Did the deletion occur?
 	 */
 	async deleteAllRunsInMission(
 		mission: MissionInterface,
@@ -1245,6 +1282,7 @@ export default class CommandControl extends React.Component {
 				updatedMission.runIdIncrement = 1
 				updatedMission.runIdInEditMode = ''
 				this.setRunList(updatedMission)
+				this.updateMissionHistory(updatedMission)
 
 				resolve(true)			
 			}
@@ -1263,8 +1301,8 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Delete a run from the mission
 	 * 
-	 * @param {string} runId determines which run to delete
-	 * @param {string} disableMessage see @notes/refactor
+	 * @param {string} runId Determines which run to delete
+	 * @param {string} disableMessage See @notes/refactor
 	 * @returns {void}
 	 * 
 	 * @notes
@@ -1299,6 +1337,7 @@ export default class CommandControl extends React.Component {
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
 			this.setRunList(runList)
+			this.updateMissionHistory(runList)
 		})
 	}
 
@@ -1332,6 +1371,7 @@ export default class CommandControl extends React.Component {
 				}
 				// Sets state with the most up to date runList
 				this.setRunList(runList)
+				this.updateMissionHistory(runList)
 			}
 		})
 	}
@@ -1652,7 +1692,7 @@ export default class CommandControl extends React.Component {
 	/**
 	 * Add a waypoint to the OpenLayers map for a given tap/click
 	 * 
-	 * @param {GeographicCoordinate} location where the waypoint should be added
+	 * @param {GeographicCoordinate} location Where the waypoint should be added
 	 * @returns {void}
 	 */
 	addWaypointAt(location: GeographicCoordinate) {
@@ -1700,6 +1740,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setRunList(runList)
+		this.updateMissionHistory(runList)
 	}
 
 	handleEvent(evt: any) {
@@ -1957,6 +1998,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.goalBeingEdited?.moveWptMode && run) {
 			run.command.plan.goal[goalNum -1].location = geoCoordinate
 			this.setRunList(runList)
+			this.updateMissionHistory(runList)
 			return true
 		}
 		return false
@@ -2028,6 +2070,7 @@ export default class CommandControl extends React.Component {
 		this.runMissions(runList, addRuns)
 		runList.runIdInEditMode = ''
 		this.setRunList(runList)
+		this.updateMissionHistory(runList)
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
@@ -2660,6 +2703,9 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiProgressDownload} title="Download Queue"/>
 					</Button>
 				))}
+				<Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
+					<Icon path={mdiArrowULeftTop} title="Undo"/>
+				</Button>
 				{(this.state.visiblePanel == PanelType.SETTINGS ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
@@ -2903,6 +2949,32 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Restores the previous mission planning state by removing the last item from the history array
+	 * and setting the displayed mission to the new last item of the history array
+	 * 
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * We passs the mission-to-display as a deepcopy to prevent the mission obj in the history
+	 * array from being modified while acting as the displayed mission 
+	 */
+	handleUndoClick() {
+		if (this.missionHistory.length === 1) {
+			this.setRunList(deepcopy(this.missionHistory[0]))
+			info('There is no more history to undo')
+			return
+		}
+
+		this.missionHistory.pop()
+		this.setRunList(deepcopy(this.missionHistory[this.missionHistory.length - 1]))
+
+		// Close waypoint panel since it could apply to a waypoint that no longer exists
+		if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
+			this.setState({ visiblePanel: PanelType.NONE })
+		}
+	}
+
 	sendFlag(evt: UIEvent) {
 		this.takeControl(() => {
 
@@ -3117,11 +3189,10 @@ export default class CommandControl extends React.Component {
 									// Mutates runList
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}
-								// Sets state with the most up to date runList
-								this.setRunList(runList)
-
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
+								this.setRunList(runList)
+								this.updateMissionHistory(runList)
 	
 								// Close panel after applying
 								this.setVisiblePanel(PanelType.NONE)
@@ -3362,6 +3433,8 @@ export default class CommandControl extends React.Component {
 					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
 					toggleEditMode={this.toggleEditMode.bind(this)}
 					unSelectHubOrBot={this.unselectHubOrBot.bind(this)}
+					setRunList={this.setRunList.bind(this)}
+					updateMissionHistory={this.updateMissionHistory.bind(this)}
 					/>
 				)
 				break
@@ -3416,6 +3489,7 @@ export default class CommandControl extends React.Component {
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
 						setRunList={this.setRunList.bind(this)}
+						updateMissionHistory={this.updateMissionHistory.bind(this)}
 					/>
 				)
 				break
