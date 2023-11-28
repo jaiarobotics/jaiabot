@@ -1,4 +1,4 @@
-# Launching the Simulator
+# Launching The Simulator
 Note: The Jaia simulator works __exclusively with Ubuntu 20.04__
 1. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
 2. Run the setup scripts
