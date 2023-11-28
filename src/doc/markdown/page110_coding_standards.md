@@ -5,8 +5,8 @@
 /**
  * Describe what the function does
  *
- * @param {string} name Here we quickly explain why we need this parameter
- * @returns {string} Here we briefly describe what is being returned
+ * @param {string} name Briefly explain why we need this parameter
+ * @returns {string} Briefly describe what is being returned
  */
 function createGreeting(name: string) {
   return `Hello ${name},` 
