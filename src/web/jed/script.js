@@ -1,4 +1,7 @@
+import * as api from './api.js'
 import './calibration.js'
+import { deadMansSwitch } from './deadMansSwitch.js'
+
 
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
@@ -7,25 +10,6 @@ let warningStatusInner = ""
 //****** Please do not increase the SAFE_BOT_SPEED unless you know the  ****** 
 //****** consequences                                                     ******
 let SAFE_BOT_SPEED = 60;
-
-function randomBase57(stringLength) {
-  const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
-
-  var s = ''
-  for (let i = 0; i < stringLength; i++) {
-      s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
-  }
-  return s
-}
-
-
-const clientId = randomBase57(22) // UUID-length
-const headers = {
-  'clientId' : clientId,
-  'Content-Type' : 'application/json'
-} 
-
-var inControl = true
 
 // Gets an element with this id
 function el(id) {
@@ -455,7 +439,7 @@ class PIDGains {
         pid_control : pid_control
       }
 
-      sendCommand(engineering_command)
+      api.sendCommand(engineering_command)
     }
   }
 
@@ -516,7 +500,7 @@ function diveButtonOnClick() {
           };
           break;
       }
-      sendCommand(engineering_command)
+      api.sendCommand(engineering_command)
     }
     else
     {
@@ -525,19 +509,6 @@ function diveButtonOnClick() {
 }
 
 el('diveButton').addEventListener('click', diveButtonOnClick)
-
-function sendCommand(command) {
-  if (!inControl) return
-
-  fetch('/jaia/pid-command', {method: 'POST', headers: headers, body: JSON.stringify(command)})
-  .then((response) => response.json())
-  .then((response) => {
-    if (response.status != 'ok') {
-      alert(response.message)
-    }
-  })
-
-}
 
 ///////
 
@@ -548,31 +519,6 @@ function selectSection(selectedSection, unselectedSection) {
   el(unselectedSection + "Section").classList.add("unselected")
   el(unselectedSection + "Section").classList.remove("selected")
 }
-
-////////// Dead man's switch / throttle lock ////////
-
-class DeadMansSwitch {
-  static #on = false
-
-  static setOn(_on) {
-    DeadMansSwitch.on = _on
-    el("deadMansSwitch").style.backgroundColor = _on ? "green" : "red"
-
-    el('throttleSlider').disabled = !_on
-    el('speedSlider').disabled = !_on
-
-    if (!_on) {
-      throttleSlider.value = 0
-      speedSlider.value = 0
-    }
-  }
-}
-
-window.onblur = function() {
-  DeadMansSwitch.setOn(false)
-}
-
-DeadMansSwitch.setOn(false)
 
 ////////// LED code //////////
 let LEDSwitchON = false
@@ -597,7 +543,7 @@ document.getElementById('LEDOffButton')
 
 function keyDown(e) {
   if (e.code == DEAD_MANS_SWITCH_KEY) {
-    DeadMansSwitch.setOn(true)
+    deadMansSwitch.setOn(true)
     return
   }
   else {
@@ -607,7 +553,7 @@ function keyDown(e) {
 
 function keyUp(e) {
   if (e.code == DEAD_MANS_SWITCH_KEY) {
-    DeadMansSwitch.setOn(false)
+    deadMansSwitch.setOn(false)
     return
   }
 }
@@ -715,7 +661,7 @@ function getVisibleCommand() {
     timeout: timeoutSlider.value
   }
 
-  if (DeadMansSwitch.on) {
+  if (deadMansSwitch.on) {
 
     // Throttle
     switch(throttleTabbedSections.activeIndex) {
@@ -808,11 +754,11 @@ function sendVisibleCommand() {
   }
 
   let command = getVisibleCommand()
-  sendCommand(command)
+  api.sendCommand(command)
 
   // Get vehicle status
   
-  fetch('/jaia/status', {headers: headers})
+  fetch('/jaia/status', {headers: api.headers})
   .then((response) => response.json())
   .then((response) => {
     updateStatus(response)
@@ -833,11 +779,11 @@ var oldControllingClientId = ''
 function updateStatus(status) {
 
   ///// Is this client in control?
-  inControl = (status.controllingClientId == clientId) || status.controllingClientId == null
+  api.setInControl((status.controllingClientId == api.clientId) || status.controllingClientId == null)
 
-  document.getElementById('takeControlButton').style.display = inControl ? 'none' : 'inline'
+  document.getElementById('takeControlButton').style.display = api.inControl ? 'none' : 'inline'
 
-  const controlClass = inControl ? 'controlling' : 'noncontrolling'
+  const controlClass = api.inControl ? 'controlling' : 'noncontrolling'
   document.getElementById('body').setAttribute('class', controlClass)
 
   //////
@@ -864,8 +810,6 @@ function updateStatus(status) {
   let now_us = Date.now() * 1e3
 
   for (const [botId, bot] of Object.entries(bots)) {
-    console.log(bot)
-
     const loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
@@ -1033,16 +977,5 @@ document.getElementById('helpOpenButton')
 document.getElementById('helpCloseButton')
     .addEventListener('click', helpButtonOnClick)
 
-export function onMouseDownDeadMansSwitch(evt) { DeadMansSwitch.setOn(true)}
-
-export function onMouseUpDeadMansSwitch(evt) { DeadMansSwitch.setOn(false)}
-
-export function takeControl(evt) {
-  fetch('/jaia/take-control', {
-    method : 'POST',
-    headers : {clientId : clientId}
-  }).then((response) => response.json())
-}
-
 document.getElementById('takeControlButton')
-    .addEventListener('click', takeControl)
+    .addEventListener('click', api.takeControl)

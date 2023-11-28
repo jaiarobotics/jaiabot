@@ -21,6 +21,7 @@
       </div>
       <div id="warningStatus"></div>
       <div>
+        <button id="boundsButton">Bounds</button>
         <button id="helpOpenButton">⌨️</button>
         <button id="LEDOnButton">LED:🟢</button>
         <button id="LEDOffButton">LED:❌</button>
@@ -88,13 +89,7 @@
       </div>
 
       <div style="display: flex; flex-direction: column; justify-content: center; width: 100pt">
-        <div id="deadMansSwitch" 
-             onmousedown="onMouseDownDeadMansSwitch(this)" 
-             onmouseup="onMouseUpDeadMansSwitch(this)" 
-             onmouseleave="onMouseUpDeadMansSwitch(this)" 
-             ontouchstart="onMouseDownDeadMansSwitch(this)" 
-             ontouchend="onMouseUpDeadMansSwitch(this)"
-             ontouchcancel="onMouseUpDeadMansSwitch(this)">DEAD MAN'S SWITCH</div>
+        <div id="deadMansSwitch">DEAD MAN'S SWITCH</div>
       </div>
     </div>
 
@@ -161,6 +156,30 @@
     <div class="helpPane hidden" id="helpPane">
       <button id="helpCloseButton" class="close">✖️</button>
       <image src="helpPane.png">
+    </div>
+
+    <div class="boundsPane" id="boundsPane">
+      <table>
+        <tbody>
+          <tr>
+            <td>forwardStart</td>
+            <td><input id="forwardStartInput" min="1000" max="2000"></input></td>
+          </tr>
+          <tr>
+            <td>reverseStart</td>
+            <td><input id="reverseStartInput" min="1000" max="2000"></input></td>
+          </tr>
+          <tr>
+            <td>max_reverse</td>
+            <td><input id="maxReverseInput" min="1000" max="2000"></input></td>
+          </tr>
+          <tr>
+            <td>
+              <button id="boundsApplyButton">Apply</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
   </body>
