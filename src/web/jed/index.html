@@ -21,15 +21,15 @@
       </div>
       <div id="warningStatus"></div>
       <div>
-        <button id="helpButton" onclick="helpButtonOnClick()">⌨️</button>
-        <button id="LEDButton" onclick="LEDButtonOnClick()">LED:🟢</button>
-        <button id="LEDOffButton" onclick="LEDButtoffOnClick()">LED:❌</button>
+        <button id="helpOpenButton">⌨️</button>
+        <button id="LEDOnButton">LED:🟢</button>
+        <button id="LEDOffButton">LED:❌</button>
       </div>
     </div>
 
     <div class="row">
       <div>
-        <button id="takeControlButton" onclick="takeControl()">Take Control</button>
+        <button id="takeControlButton">Take Control</button>
         <label for="botSelect">Bot:</label>
         <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;">
         </select>
@@ -62,7 +62,7 @@
   </div>
 
   <div style="width: 100pt">
-    <button id="diveButton" onclick="diveButtonOnClick()">🤿 Dive</button>
+    <button id="diveButton">🤿 Dive</button>
   </div>
 </div>
 
@@ -158,10 +158,13 @@
       </table>
     </div>
 
-    <div class="helpPane hidden" id="helpPane"><button onclick="helpButtonOnClick()" class="close">✖️</button></button><image src="helpPane.png"></div>
+    <div class="helpPane hidden" id="helpPane">
+      <button id="helpCloseButton" class="close">✖️</button>
+      <image src="helpPane.png">
+    </div>
 
   </body>
 
-    <script src="script.js"></script>
+  <script src="script.js" type="module"></script>
 
 </html>
