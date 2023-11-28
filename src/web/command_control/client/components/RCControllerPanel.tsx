@@ -26,6 +26,7 @@ interface Props {
 	weAreInControl: () => boolean,
 	weHaveInterval: () => boolean,
 	setRCDiveParameters: (diveParams: {[param: string]: string} ) => void,
+	initRCDivesStorage: (botId: number) => void
 }
 
 interface State {
@@ -59,6 +60,12 @@ export default class RCControllerPanel extends React.Component {
     constructor(props: Props) {
         super(props)
         this.api = props.api
+
+        // Check to see if rc dive parameters are
+        // saved in local storage
+        if (props.rcDiveParameters === undefined) {
+            props.initRCDivesStorage(props.bot.bot_id)
+        }
 
         this.state = {
 			controlType: ControlTypes.MANUAL_DUAL,
@@ -515,42 +522,46 @@ export default class RCControllerPanel extends React.Component {
 			</div>
 		)
 
-		diveControlPad = (
-			<div className='rc-dive-labels-container'>
-				<div className='rc-labels-left'>
-					{selectControlType}
-					<div className='rc-dive-info-container' >
-						<div>Max Depth:</div>
-						<input id='maxDepth' className='rc-input' type='text' value={this.props?.rcDiveParameters?.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
-						<div>m</div>
+		if (this.props?.rcDiveParameters !== undefined) {
+			diveControlPad = (
+				<div className='rc-dive-labels-container'>
+					<div className='rc-labels-left'>
+						{selectControlType}
+						<div className='rc-dive-info-container' >
+							<div>Max Depth:</div>
+							<input id='maxDepth' className='rc-input' type='text' value={this.props.rcDiveParameters?.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
+							<div>m</div>
 
-						<div>Depth Interval:</div>
-						<input id='depthInterval' className='rc-input' type='text' value={this.props?.rcDiveParameters?.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
-						<div>m</div>
+							<div>Depth Interval:</div>
+							<input id='depthInterval' className='rc-input' type='text' value={this.props.rcDiveParameters?.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
+							<div>m</div>
 
-						<div>Hold Time:</div>
-						<input id='holdTime' className='rc-input' type='text' value={this.props?.rcDiveParameters?.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
-						<div>s</div>
+							<div>Hold Time:</div>
+							<input id='holdTime' className='rc-input' type='text' value={this.props.rcDiveParameters?.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
+							<div>s</div>
 
-						<div>Drift Time:</div>
-						<input id='driftTime' className='rc-input' type='text' value={this.props?.rcDiveParameters?.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
-						<div>s</div>
+							<div>Drift Time:</div>
+							<input id='driftTime' className='rc-input' type='text' value={this.props.rcDiveParameters?.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
+							<div>s</div>
+						</div>
+					</div>
+					<div className='rc-labels-right'>
+						<Button
+							className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? 'inactive' : ''}`}
+							disabled={this.isDiveButtonDisabled()} 
+							onClick={() => this.handleDiveButtonClick()}
+						>
+							<Icon path={mdiPlay} title='Run Mission'/>
+						</Button>
 					</div>
 				</div>
-				<div className='rc-labels-right'>
-					<Button
-						className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? 'inactive' : ''}`}
-						disabled={this.isDiveButtonDisabled()} 
-						onClick={() => this.handleDiveButtonClick()}
-                    >
-						<Icon path={mdiPlay} title='Run Mission'/>
-                    </Button>
-				</div>
-			</div>
-		)
+			)
+		}
 
-		// Set the remoteControlValues to the selected bot id
-		this.props.remoteControlValues.bot_id = this.props.bot.bot_id
+		if (this.props?.bot?.bot_id !== undefined) {
+			// Set the remoteControlValues to the selected bot id
+			this.props.remoteControlValues.bot_id = this.props.bot.bot_id
+		}
 
 		return (
 			<div id='remoteControlPanelContainer'>
