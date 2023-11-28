@@ -44,7 +44,7 @@ boundsApplyButton.addEventListener('click', (e) => {
     sendCommand({
         bot_id,
         bounds
-    })
+    }, true)
 })
 
 // Update values

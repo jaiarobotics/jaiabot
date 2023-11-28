@@ -23,6 +23,7 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
+#include <fstream>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -280,6 +281,15 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
     if (command.query_engineering_status())
     {
         queried_for_status_ = command.query_engineering_status();
+    }
+
+    // Persist the bounds configuration, if we received one
+    if (command.has_bounds()) {
+        const auto bounds = command.bounds();
+        glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString() << std::endl;
+        auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
+        configFile << bounds.DebugString();
+        configFile.close();
     }
 
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands

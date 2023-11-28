@@ -29,9 +29,15 @@ function takeControl(evt) {
   }).then((response) => response.json())
 }
 
+var apiThrottleEndTime = 0
 
-function sendCommand(command) {
+function sendCommand(command, force=false) {
   if (!inControl) return
+
+  if (!force && Date.now() < apiThrottleEndTime) {
+    console.warn(`Dropped command: ${command}`)
+    return
+  }
 
   fetch('/jaia/pid-command', {method: 'POST', headers: headers, body: JSON.stringify(command)})
   .then((response) => response.json())
@@ -40,6 +46,9 @@ function sendCommand(command) {
       alert(response.message)
     }
   })
+
+  apiThrottleEndTime = Date.now() + 1000
+
 }
 
 export {

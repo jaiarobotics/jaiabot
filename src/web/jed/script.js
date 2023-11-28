@@ -770,7 +770,8 @@ function sendVisibleCommand() {
 
 }
 
-const interval = setInterval(sendVisibleCommand, 100);
+// 1 second plus 10 milliseconds, to avoid dropping a lot of engineering commands due to rounding errors
+const interval = setInterval(sendVisibleCommand, 1010);
 
 var hub_location = null
 var oldControllingClientId = ''
