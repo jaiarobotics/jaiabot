@@ -76,7 +76,7 @@ export default class PathSelector extends React.Component {
         }
 
         // Get new options
-        LogApi.get_paths(this.state.logs, this.state.chosen_path).then(paths => {
+        LogApi.getPaths(this.state.logs, this.state.chosen_path).then(paths => {
 
             // This path is a dataset, with no children.  So, get and plot it
             if (paths.length == 0) {

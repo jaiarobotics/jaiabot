@@ -13,6 +13,7 @@ import { downloadToFile } from './shared/Utilities';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
 import { CommandList } from './Missions';
 import { MissionInterface } from './CommandControl';
+import { CustomAlert } from './shared/CustomAlert';
 
 
 interface Props {
@@ -98,38 +99,45 @@ export class SaveMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
-    saveClicked() {
+    
+    /**
+     * Called when user clicks the Save button (to save a mission to localStorage in their browser)
+     *
+     * @returns {Promise<void>} Promise fulfilled on completion.
+     */
+    async saveClicked() {
         // Check to see if we have selected a mission
         if (Object.keys(this.props.mission.runs).length === 0) {
-            alert("Please create a mission to save")
+            CustomAlert.alert("Please create a mission to save")
             return
         }
 
         let name = this.state.selectedMissionName
         if (name == null) {
-            alert("Please name this mission")
+            CustomAlert.alert("Please name this mission")
             return
         }
 
         if (this.props.missionLibrary.hasMission(name)) {
-            if (!confirm('Do you really want to replace mission named \"' + name + '\"?')) {
+            if (!(await CustomAlert.confirmAsync('Do you really want to replace mission named \"' + name + '\"?', 'Replace Mission'))) {
                 return
             }
         }
 
+        this.props.mission.name = name
         this.props.missionLibrary.saveMission(name, this.props.mission)
 
         this.props.onDone?.()
     }
 
-    deleteClicked() {
+    async deleteClicked() {
         let name = this.state.selectedMissionName
 
         if (name == null) {
             return
         }
         
-        if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
+        if (await CustomAlert.confirmAsync("Are you sure you want to delete the mission named \"" + name + "\"?", 'Delete Mission')) {
             this.props.missionLibrary.deleteMission(name)
             this.state.selectedMissionName = null;
             this.forceUpdate()
@@ -140,8 +148,14 @@ export class SaveMissionPanel extends React.Component {
         this.props.onDone?.()
     }
 
+    
+    /**
+     * Called when user clicks the Download button (to download a json mission)
+     * 
+     * @returns {void}
+     */
     downloadClicked() {
-        downloadToFile(JSON.stringify(this.props.mission), 'application/json', 'mission.json')
+        downloadToFile(JSON.stringify(this.props.mission), 'application/json', `${this.state.selectedMissionName ?? this.props.mission.name}.json`)
     }
 
 }

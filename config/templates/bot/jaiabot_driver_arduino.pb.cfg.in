@@ -6,22 +6,19 @@ serial_arduino {
     baud: 115200
 }
 
-$jaiabot_driver_arduino_bounds
-
-arduino_version_table: {
-    arduino_version: 0
-    app_versions: ""
-}
-
-arduino_version_table: {
+arduino_version_table {
     arduino_version: 1
-    app_versions: "1.0.0"
-    app_versions: "1.0.1"
-    app_versions: "1.0.2"
-    app_versions: "1.0.3"
-    app_versions: "1.0.4"
-    app_versions: "1.0.4~beta0"
+    # If empty than we assume the arduino
+    # version is compatible with all versions 
+    # up to the "app_versions_compatible_to"
+    # else
+    # If we did set this than any versions before are
+    # not compatible
+    app_versions_compatible_from: "1.7.0"
+    # If empty then we are assuming that the next
+    # app versions will be compatible with this 
+    # arduino version
+    app_versions_compatible_to: ""
 }
 
-# How long to wait until we report we are missing data
-arduino_report_timeout_seconds: 2  # (default = false)
+$jaiabot_driver_arduino_bounds

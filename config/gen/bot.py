@@ -12,30 +12,48 @@ import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
 jaia_electronics_stack='0'
+jaia_imu_type='bno055'
+jaia_arduino_type='spi'
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
 if jaia_electronics_stack == '0':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=1
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
 if jaia_electronics_stack == '1':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=5
     helm_comms_tick=5
     total_after_dive_gps_fix_checks=75
 elif jaia_electronics_stack == '2':
-    jaia_arduino_dev_location="/dev/ttyAMA1"
     helm_app_tick=5
     helm_comms_tick=5
     total_after_dive_gps_fix_checks=75
 else:
-    jaia_arduino_dev_location="/dev/ttyUSB0"
     helm_app_tick=1
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
+
+if "jaia_imu_type" in os.environ:
+    jaia_imu_type = os.environ["jaia_imu_type"]
+
+if jaia_imu_type == "bno055":
+    imu_detection_solution='RESTART_IMU_PY'
+elif jaia_imu_type == 'bno085':
+    imu_detection_solution='RESTART_IMU_PY'
+else:
+    imu_detection_solution='RESTART_IMU_PY'
+
+if "jaia_arduino_type" in os.environ:
+    jaia_arduino_type=os.environ['jaia_arduino_type']
+
+if jaia_arduino_type == "spi":
+    jaia_arduino_dev_location="/dev/ttyAMA1"
+elif jaia_arduino_type == 'usb':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+else:
+    jaia_arduino_dev_location="/dev/ttyAMA1"
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])
@@ -73,6 +91,7 @@ verbosities = \
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -185,6 +204,11 @@ elif common.app == 'jaiabot_adafruit_BNO055_driver':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      adafruit_bno055_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_adafruit_BNO085_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     adafruit_bno085_report_in_simulation=is_simulation()))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
@@ -202,7 +226,8 @@ elif common.app == 'jaiabot_fusion':
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      fusion_in_simulation=is_simulation(),
-                                     bot_status_period=bot_status_period))
+                                     bot_status_period=bot_status_period,
+                                     imu_detection_solution=imu_detection_solution))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,

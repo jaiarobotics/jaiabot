@@ -22,7 +22,7 @@ module.exports = {
       {test : /\.tsx?$/, exclude : [ /node_modules/], use : [ 'ts-loader' ]}
     ]
   },
-  resolve : {extensions : [ '*', '.js', '.ts', '.tsx' ]},
+  resolve : {extensions : [ '*', '.js', '.ts', '.tsx', '.css' ]},
   output : {
     path : path.resolve(__dirname, './dist'),
     filename : 'bundle.js',

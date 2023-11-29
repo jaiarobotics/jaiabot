@@ -1,10 +1,14 @@
 import React, { ChangeEvent } from 'react'
+
+import { Map } from 'ol';
+
 import WptToggle from './WptToggle';
 import { Goal } from './shared/JAIAProtobuf';
-import { deepcopy } from './shared/Utilities'
+import { CustomAlert } from './shared/CustomAlert';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
-import { Map } from 'ol';
 import { MissionInterface, PanelType} from './CommandControl';
+import { deepcopy, adjustAccordionScrollPosition } from './shared/Utilities'
+
 import { Icon } from '@mdi/react'
 import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
@@ -24,6 +28,8 @@ interface Props {
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
+    setRunList: (runList: MissionInterface) => void
+    updateMissionHistory: (mission: MissionInterface) => void
 }
 
 interface State {
@@ -37,6 +43,7 @@ export class GoalSettingsPanel extends React.Component {
     props: Props
     state: State
     oldGoal: Goal
+    autoScrollTimeout: number
 
     constructor(props: Props) {
         super(props)
@@ -50,6 +57,7 @@ export class GoalSettingsPanel extends React.Component {
             }
         }
         this.oldGoal = deepcopy(props.goal)
+        this.autoScrollTimeout = 30 // ms
     }
 
     componentWillUnmount() {
@@ -162,21 +170,41 @@ export class GoalSettingsPanel extends React.Component {
         }
     }
 
-    deleteWaypoint() {
-        const runs = this.props.runList.runs
+    /**
+     * Removes a single waypoint from a run
+     * 
+     * @returns {void}
+     */
+    async deleteWaypoint() {
         const wptNum = this.props.goalIndex
 
-        if (!confirm(`Are you sure you want to delete Waypoint ${wptNum}?`)) {
+        if (!await CustomAlert.confirmAsync(`Are you sure you want to delete Waypoint ${wptNum}?`, 'Delete Waypoint')) {
             return
         }
 
-        for (const run of Object.values(runs)) {
-            if (run.assigned === this.props.botId) {
-                const wpts = run.command.plan.goal
-                this.doneClicked()
-                wpts.splice(wptNum - 1, 1)
-            }
-        }
+        const runId = `run-${this.props.runNumber}`
+        let runList = this.props.runList
+        const run = runList.runs[runId]
+        const wpts = run.command.plan.goal
+        // Removes selected wpt from array of wpts
+        // Wpt numbers start counting at 1, so we subtract 1 to match 0 index scheme of arrays
+        const updatedWpts = wpts.filter((wpt, index) => index !== wptNum - 1)
+        runList.runs[runId].command.plan.goal = updatedWpts
+        this.props.setRunList(runList)
+        this.props.updateMissionHistory(runList)
+        this.props.setVisiblePanel(PanelType.NONE)
+    }
+
+    /**
+     * Auto scrolls Task inputs into view
+     * 
+     * @returns {void}
+     */
+    scrollTaskSettingsIntoView() {
+        const taskScrollElement = document.getElementById('task-scroll-hook')
+        setTimeout(() => {
+            adjustAccordionScrollPosition('goal-settings-content-panel', taskScrollElement)
+        }, this.autoScrollTimeout)
     }
 
     render() {
@@ -187,7 +215,7 @@ export class GoalSettingsPanel extends React.Component {
 
         return (
             <div className="goal-settings-panel-outer-container">
-                <div className="goal-settings-panel-container">
+                <div className="goal-settings-panel-inner-container" id="goal-settings-content-panel">
                     <div className="goal-settings-label wpt-label">Wpt:</div>
                     <div className="goal-settings-wpt-input-container">
                         <div className="goal-settings-input wpt-input">{goalIndex}</div>
@@ -214,12 +242,13 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label coord-label">Lon:</div>
                     <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LON)} onChange={(e) => this.handleCoordChange(e, LatLon.LON)} disabled={!isEditMode} />
                     <div className="goal-settings-line-break"></div>
-                    <div className="goal-settings-label task-label">Task:</div>
+                    <div className="goal-settings-label task-label" id="task-scroll-hook">Task:</div>
                     <TaskSettingsPanel 
                         task={goal?.task}
                         map={this.props.map}
                         location={goal?.location}
                         isEditMode={isEditMode}
+                        scrollTaskSettingsIntoView={this.scrollTaskSettingsIntoView.bind(this)}
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
