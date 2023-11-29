@@ -9,7 +9,13 @@ UINT32_MAX = (2 << 31) - 1
 
 
 def h5_get_files(filenames):
-    return [h5py.File(fn) for fn in filenames]
+    h5Files: h5py.File = []
+    for fn in filenames:
+        try:
+            h5Files.append(h5py.File(fn))
+        except OSError:
+            continue
+    return h5Files
 
 
 def h5_get_string(string_dataset: h5py.Dataset, length_dataset: h5py.Dataset, index: int):

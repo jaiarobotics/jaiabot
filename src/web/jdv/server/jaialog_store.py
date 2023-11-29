@@ -203,7 +203,15 @@ class JaialogStore:
     
 
     def openLogs(self, logNames: List[str]):
-        return [self.openLog(logName) for logName in logNames]
+        logs: [h5py.File] = []
+        for logName in logNames:
+            try:
+                logs.append(self.openLog(logName))
+            except OSError:
+                # Corrupt hdf5 file?
+                continue
+        
+        return logs
 
 
     def convertIfNeeded(self, log_names: List[str]):
