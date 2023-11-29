@@ -14,7 +14,16 @@ MOOS_MESSAGE_PATH = '/jaiabot::moos/jaiabot.protobuf.MOOSMessage'
 
 
 def get_moos_messages(log_filenames: List[str], t_start: int=None, t_end: int=None) -> str:
-    '''Gets a list of all the MOOSMessages from the logs in CSV format'''
+    '''Gets a list of all the MOOSMessages from the logs in CSV format
+
+    Args:
+        log_filenames (List[str]): List of filenames of the logs
+        t_start (int, optional): Start of the window (UNIX timestamp in microseconds). Defaults to None.
+        t_end (int, optional): End of the time window (UNIX timestamp in microseconds). Defaults to None.
+
+    Returns:
+        str: All of the MOOS messages from the log files within the time range, dumped in CSV format.
+    '''
 
     files = h5_get_files(log_filenames)
 
@@ -77,10 +86,3 @@ def get_moos_messages(log_filenames: List[str], t_start: int=None, t_end: int=No
             })
  
     return output_string_io.getvalue()
-
-
-if __name__ == '__main__':
-    '''Test'''
-
-    print(get_moos_messages(['/var/log/jaiabot/bot_offload/bot4_fleet1_20230518T161241.h5']))
-

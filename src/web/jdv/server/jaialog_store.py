@@ -112,7 +112,7 @@ class LogDescription:
 @dataclass
 @dataclass_json
 class LogDirectory:
-    """A list of available logs with their metadata, and the available space on the storage device"""
+    '''A list of available logs with their metadata, and the available space on the storage device'''
 
     availableSpace: int
     '''Available storage space (in bytes)'''
