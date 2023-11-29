@@ -7,60 +7,23 @@ import csv
 import io
 import datetime
 import base64
-
-
-def h5_get_files(filenames):
-    return [h5py.File(fn) for fn in filenames]
-
-
-def h5_get_enum_dict(dataset):
-    '''Get the enum dictionary for a dataset'''
-
-    enum_names = dataset.attrs['enum_names']
-    enum_values = dataset.attrs['enum_values']
-    return { enum_names[index]: int(enum_values[index]) for index in range(0, len(enum_values))}
-
-
-def h5_get_string(string_dataset, length_dataset, index):
-    length = length_dataset[index]
-
-    string_bytes = b''
-    string_int_array = string_dataset[index]
-    for i in range(length):
-        string_bytes += string_int_array[i]
-    
-    return string_bytes.decode('utf8')
-
-
-def h5_get_bytes(bytes_dataset, length_dataset, index):
-    length = length_dataset[index]
-
-    string_bytes = b''
-    string_int_array = string_dataset[index]
-    for i in range(length):
-        string_bytes += string_int_array[i]
-    
-    return string_bytes
-
-
-def h5_get_int(dataset, index):
-    return int(dataset[index])
-
-
-def h5_get_float(dataset, index):
-    f = dataset[index]
-
-    if math.isnan(f):
-        return None
-    else:
-        return float(f)
+from h5_tools import *
 
 
 MOOS_MESSAGE_PATH = '/jaiabot::moos/jaiabot.protobuf.MOOSMessage'
 
 
-def get_moos_messages(log_filenames, t_start, t_end) -> str:
-    '''Gets a list of all the MOOSMessages from the logs in CSV format'''
+def get_moos_messages(log_filenames: List[str], t_start: int=None, t_end: int=None) -> str:
+    '''Gets a list of all the MOOSMessages from the logs in CSV format
+
+    Args:
+        log_filenames (List[str]): List of filenames of the logs
+        t_start (int, optional): Start of time window (UNIX timestamp in microseconds). Defaults to None.
+        t_end (int, optional): End of time window (UNIX timestamp in microseconds). Defaults to None.
+
+    Returns:
+        str: All of the MOOS messages from the log files within the time range, dumped in CSV format.
+    '''
 
     files = h5_get_files(log_filenames)
 
@@ -70,11 +33,14 @@ def get_moos_messages(log_filenames, t_start, t_end) -> str:
     csv_writer = csv.DictWriter(output_string_io, fieldnames=fieldnames)
     csv_writer.writeheader()
 
+    t_start = t_start or 0
+    t_end = t_end or 9e99
+
     for file in files:
         moosmessage = file[MOOS_MESSAGE_PATH]
 
         moosmessage_type = moosmessage['type']
-        moosmessage_type_enum_dict = h5_get_enum_dict(moosmessage_type)
+        moosmessage_type_enum_dict = h5_get_inverse_enum_map(moosmessage_type)
         MOOSMESSAGE_TYPE_DOUBLE = moosmessage_type_enum_dict['TYPE_DOUBLE']
         MOOSMESSAGE_TYPE_STRING = moosmessage_type_enum_dict['TYPE_STRING']
         MOOSMESSAGE_TYPE_BINARY_STRING = moosmessage_type_enum_dict['TYPE_BINARY_STRING']
