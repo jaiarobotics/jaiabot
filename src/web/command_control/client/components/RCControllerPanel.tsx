@@ -26,7 +26,7 @@ interface Props {
 	weAreInControl: () => boolean,
 	weHaveInterval: () => boolean,
 	setRCDiveParameters: (diveParams: {[param: string]: string} ) => void,
-	initRCDivesStorage: (botId: number) => void
+	initRCDivesParams: (botId: number) => void
 }
 
 interface State {
@@ -62,9 +62,9 @@ export default class RCControllerPanel extends React.Component {
         this.api = props.api
 
         // Check to see if rc dive parameters are
-        // saved in local storage
+        // saved in state
         if (props.rcDiveParameters === undefined) {
-            props.initRCDivesStorage(props.bot.bot_id)
+            props.initRCDivesParams(props.bot.bot_id)
         }
 
         this.state = {
@@ -522,7 +522,7 @@ export default class RCControllerPanel extends React.Component {
 			</div>
 		)
 
-		if (this.props?.rcDiveParameters !== undefined) {
+		if (this.props.rcDiveParameters !== undefined) {
 			diveControlPad = (
 				<div className='rc-dive-labels-container'>
 					<div className='rc-labels-left'>
@@ -558,7 +558,7 @@ export default class RCControllerPanel extends React.Component {
 			)
 		}
 
-		if (this.props?.bot?.bot_id !== undefined) {
+		if (this.props.bot?.bot_id !== undefined) {
 			// Set the remoteControlValues to the selected bot id
 			this.props.remoteControlValues.bot_id = this.props.bot.bot_id
 		}

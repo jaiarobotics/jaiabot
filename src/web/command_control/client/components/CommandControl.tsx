@@ -2450,19 +2450,19 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Used to initialize the rc dive parameters in local storage
+	 * Used to initialize the RC dive parameters in state
 	 * 
-	 * @param botId Used to find the bot's dive parameters
+	 * @param {number} botId Used to find the bot's dive parameters
 	 * @returns {void}
 	 */
-	initRCDivesStorage(botId: number) {
+	initRCDivesParams(botId: number) {
 		if (botId !== undefined) {
 			let newRCDives = cloneDeep(this.state.rcDives)
 				newRCDives[botId] = {
-				maxDepth: '0',
-				depthInterval: '0',
+				maxDepth: '10',
+				depthInterval: '10',
 				holdTime: '0',
-				driftTime: '0'
+				driftTime: '10'
 			}
 			this.setState({ rcDives: newRCDives })
 		}
@@ -3220,7 +3220,7 @@ export default class CommandControl extends React.Component {
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
 					setRCDiveParameters={this.setRCDiveParams.bind(this)}
-					initRCDivesStorage={this.initRCDivesStorage.bind(this)}
+					initRCDivesParams={this.initRCDivesParams.bind(this)}
 				/>
 			)
 		}
