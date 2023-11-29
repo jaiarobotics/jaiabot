@@ -18,8 +18,8 @@ def get_moos_messages(log_filenames: List[str], t_start: int=None, t_end: int=No
 
     Args:
         log_filenames (List[str]): List of filenames of the logs
-        t_start (int, optional): Start of the window (UNIX timestamp in microseconds). Defaults to None.
-        t_end (int, optional): End of the time window (UNIX timestamp in microseconds). Defaults to None.
+        t_start (int, optional): Start of time window (UNIX timestamp in microseconds). Defaults to None.
+        t_end (int, optional): End of time window (UNIX timestamp in microseconds). Defaults to None.
 
     Returns:
         str: All of the MOOS messages from the log files within the time range, dumped in CSV format.
