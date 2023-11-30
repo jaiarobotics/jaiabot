@@ -340,7 +340,7 @@ export default class CommandControl extends React.Component {
 				pid_control: {
 					throttle: 0,
 					rudder: 0,
-					timeout: 1
+					timeout: 2
 				}
 			},
 			rcDives: {},
