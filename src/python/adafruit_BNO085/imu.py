@@ -38,7 +38,7 @@ class IMUReading:
     gravity: Vector3
     calibration_status: int
     quaternion: Quaternion
-
+    calibration_complete: bool
 
 class IMU:
     def setup(self):
@@ -75,6 +75,9 @@ class IMU:
         if reading.calibration_status is not None:
             imu_data.calibration_status = reading.calibration_status
 
+        if reading.calibration_complete is not None:
+            imu_data.calibration_complete = reading.calibration_complete
+
         return imu_data
     
     def startCalibration(self):
@@ -91,8 +94,6 @@ class Adafruit(IMU):
             exit(1)
 
         self.is_setup = False
-        self.start_cal = False
-        self.is_calibrating = False
 
     def setup(self):
         if not self.is_setup:
@@ -112,14 +113,14 @@ class Adafruit(IMU):
 
                 self.is_setup = True
 
-                # Set the duration for checking calibration
-                self.wait_to_check_cal_duration = 1
-
-                # Set the initial time for checking calibration
-                self.check_cal_time = time.time()
-
-                # Set the initial calibration status
+                # set the initial calibration status
                 self.calibration_status = None
+                # set the duration for checking calibration (seconds)
+                self.wait_to_check_calibration_duration = 1
+                # set the initial time for checking calibration
+                self.check_calibration_time = time.time()
+                self.is_calibrating = None
+                self.calibration_complete = None
 
             except Exception as error:
                 self.is_setup = False
@@ -129,11 +130,6 @@ class Adafruit(IMU):
     def takeReading(self):
         if not self.is_setup:
             self.setup()
-
-        if self.start_cal and not self.is_calibrating:
-            self.sensor.begin_calibration()
-            self.is_calibrating = True
-            self.calibration_good_at = None
 
         try:
             quat_x, quat_y, quat_z, quat_w = self.sensor.quaternion
@@ -148,7 +144,7 @@ class Adafruit(IMU):
                 log.warning("We received None data in the takeReading function")
                 return None
 
-            # This is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
+            # this is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
             def filter(iterable: Iterable[float], threshold: float=50):
                 for value in iterable:
                     if abs(value) > threshold:
@@ -160,7 +156,7 @@ class Adafruit(IMU):
 
             quaternion = Quaternion.from_tuple(quaternion)
             orientation = quaternion.to_euler_angles()
-            orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
+            orientation.heading = (orientation.heading + 90) % 360 # even after consulting the docs, we're still off by 90 degrees!
             linear_acceleration = Vector3(*linear_acceleration)
             linear_acceleration_world = quaternion.apply(linear_acceleration)
             gravity = Vector3(*gravity)
@@ -170,23 +166,28 @@ class Adafruit(IMU):
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
                         calibration_status=calibration_status,
-                        quaternion=quaternion)
+                        quaternion=quaternion,
+                        calibration_complete=self.calibration_complete)
 
         except Exception as error:
             log.warning("Error trying to get data!")
 
     def startCalibration(self):
-        self.start_cal = True   
+        self.calibration_complete = False 
+        self.is_calibrating = True
+        self.calibration_good_at = None
+        self.sensor.begin_calibration()
 
     def checkCalibration(self):
-        if time.time() - self.check_cal_time >= self.wait_to_check_cal_duration:
+        if time.time() - self.check_calibration_time >= self.wait_to_check_calibration_duration:
             logging.debug("Checking Calibration")
             try:
-                # Set the calibration status to save when we are not querying a 
+                # set the calibration status to save when we are not querying a 
                 # new calibration status
                 self.calibration_status = self.sensor.calibration_status
 
                 if self.is_calibrating:
+                    logging.debug("Calibrating imu")
                     if not self.calibration_good_at and self.calibration_status > 2:
                         self.calibration_good_at = time.monotonic()
                         logging.debug("Record time of good calibration")
@@ -195,9 +196,10 @@ class Adafruit(IMU):
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
                         self.is_calibrating = False
+                        self.calibration_complete = True
             except Exception as error:
                 log.warning("Error trying to get calibration status!")
-            self.check_cal_time = time.time()  # Reset the start time
+            self.check_calibration_time = time.time()  # Reset the start time
         else:
             logging.debug("Waiting To Check Calibration")
 
@@ -225,7 +227,7 @@ class Simulator(IMU):
         return IMUReading(orientation=quaternion.to_euler_angles(), 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
-                        gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
+                        gravity=Vector3(0.03, 0.03, 9.8), # we need to use 0.03, to avoid looking like a common glitch that gets filtered
                         calibration_status=(3, 3, 3, 3),
                         quaternion=quaternion)
 

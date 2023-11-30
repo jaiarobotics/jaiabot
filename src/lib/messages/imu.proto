@@ -72,7 +72,8 @@ message IMUData
             system: "si"
             }}
         ];
-
+    
+    optional bool calibration_complete = 8;
 }
 
 message IMUIssue
