@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <meta 
+    name='viewport' 
+    content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
+  />
+  <head>
+
+    <title>JaiaBot Calibration</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="calibration.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
+
+  </head>
+
+  <body id="body">
+
+    <div class="row" style="background-color: white;">
+        <div>
+            <image src="/favicon.png" style="display: inline-block;" width="100" height="100"></image>
+            <h2 style="display: inline-block; vertical-align: text-bottom; margin: 10pt">JaiaBot Engineer & Debug</h2>
+        </div>
+        <div id="loggingStatus"></div>
+    </div>
+
+    <div id="status" class="row">
+      <table class="status" id="statusTable">
+      </table>
+    </div>
+
+    <div>
+        <label for="botSelect">Bot:</label>
+        <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;"></select>
+    </div>
+
+    <div>
+        <h3>Motor</h3>
+        <div id="motor.value"></div>
+        <input id="motor.input" class="actuator" type="range" min="1000" max="2000" step="1" />
+        <h3>Rudder</h3>
+        <div id="rudder.value"></div>
+        <input id="rudder.input" class="actuator" type="range" min="1000" max="2000" step="1" />
+    </div>
+
+  </body>
+
+    <script src="calibration.js" type="module"></script>
+
+</html>

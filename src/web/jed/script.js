@@ -1,5 +1,4 @@
-import * as api from './api.js'
-import './calibration.js'
+import { api, JaiaAPI } from './api.js'
 import { deadMansSwitch } from './deadMansSwitch.js'
 
 
@@ -439,7 +438,7 @@ class PIDGains {
         pid_control : pid_control
       }
 
-      api.sendCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command)
     }
   }
 
@@ -500,7 +499,7 @@ function diveButtonOnClick() {
           };
           break;
       }
-      api.sendCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command)
     }
     else
     {
@@ -754,7 +753,7 @@ function sendVisibleCommand() {
   }
 
   let command = getVisibleCommand()
-  api.sendCommand(command)
+  api.sendEngineeringCommand(command)
 
   // Get vehicle status
   
@@ -778,9 +777,6 @@ var oldControllingClientId = ''
 
 // Updates the status element with a status response object
 function updateStatus(status) {
-
-  ///// Is this client in control?
-  api.setInControl((status.controllingClientId == api.clientId) || status.controllingClientId == null)
 
   document.getElementById('takeControlButton').style.display = api.inControl ? 'none' : 'inline'
 

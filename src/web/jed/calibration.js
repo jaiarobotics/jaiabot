@@ -1,65 +1,55 @@
-import './api.js'
-import { sendCommand } from './api.js'
-import { byId } from './byId.js'
+import { byId } from './domQuery.js' 
+import { api, JaiaAPI } from './api.js'
+import { updateStatus } from './updateStatus.js'
+import { BotDropdown } from './BotDropdown.js'
+import { ActuatorInput } from './ActuatorInput.js'
 
-// Start with the default values
-var bounds = {
-  rudder : {upper : 1100, lower : 1900, center : 1500},
-  motor : {
-    forwardStart : 1600,
-    reverseStart : 1400,
-    max_reverse : 1320,
-    throttle_zero_net_buoyancy : -35,
-    throttle_dive : -35,
-    throttle_ascent : 25,
-  }
+
+class CalibrationApp {
+
+    constructor() {
+        this.command = {
+            bot_id: 1,
+            control_surfaces: {
+                motor: 1500,
+                rudder: 1500,
+                timeout: 5,
+            }
+        }
+
+        // Bot selector
+        this.botDropdown = new BotDropdown('botSelect', (bot_id) => {
+            this.command.bot_id = bot_id
+        })
+
+        // Motor actuator
+        this.motorValue = byId('motor.value')
+        this.motorInput = new ActuatorInput('motor.input', 1500, (value) => {
+            this.motorValue.innerHTML = `${value} microseconds`
+            this.command.control_surfaces.motor = value
+        })
+
+        // Rudder actuator
+        this.rudderValue = byId('rudder.value')
+        this.rudderInput = new ActuatorInput('rudder.input', 1500, (value) => {
+            this.rudderValue.innerHTML = `${value} microseconds`
+            this.command.control_surfaces.rudder = value
+        })
+
+        this.interval = setInterval(this.mainLoop.bind(this), 1000)
+    }
+
+
+    mainLoop() {
+        console.log(`Engineering command:`)
+        console.log(this.command)
+
+        api.getStatus().then((status) => {
+            updateStatus(status)
+            this.botDropdown.updateWithBots(status.bots)
+        })
+    }
+
 }
 
-const boundsPane = byId('boundsPane')
-
-const forwardStartInput = byId('forwardStartInput')
-forwardStartInput.addEventListener('change', (e) => {
-    bounds.motor.forwardStart = Number(e.target.value)
-})
-
-const reverseStartInput = byId('reverseStartInput')
-reverseStartInput.addEventListener('change', (e) => {
-    bounds.motor.reverseStart = Number(e.target.value)
-})
-
-const maxReverseInput = byId('maxReverseInput')
-maxReverseInput.addEventListener('change', (e) => {
-    bounds.motor.max_reverse = Number(e.target.value)
-})
-
-const boundsApplyButton = byId('boundsApplyButton')
-boundsApplyButton.addEventListener('click', (e) => {
-    const bot_id = byId('botSelect')?.value || "0"
-    
-    console.log({
-        bot_id,
-        bounds
-    })
-
-    sendCommand({
-        bot_id,
-        bounds
-    }, true)
-})
-
-// Update values
-forwardStartInput.value = String(bounds.motor.forwardStart)
-reverseStartInput.value = String(bounds.motor.reverseStart)
-maxReverseInput.value = String(bounds.motor.max_reverse)
-
-
-export function toggleBoundsPane() {
-    if (boundsPane.classList.contains('hidden')) {
-        boundsPane.classList.remove('hidden')
-
-    }
-    else {
-        boundsPane.classList.add('hidden')
-    }
-}
-
+const app = new CalibrationApp()
