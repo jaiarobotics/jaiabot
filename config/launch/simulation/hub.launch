@@ -14,8 +14,8 @@ jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
 jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 
 # Uncomment the following 2 lines to use opencpn
-goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
-[kill=SIGTERM] socat tcp:localhost:30100 pty,link=/tmp/pty_jaiahub,raw,echo=0
+# goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
+# [kill=SIGTERM] socat tcp:localhost:30100 pty,link=/tmp/pty_jaiahub,raw,echo=0
 
 goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_hub_manager --expected_name jaiabot_web_portal --expected_name jaiabot_metadata --expected_name jaiabot_health
 jaiabot_health <(../../gen/hub.py jaiabot_health)

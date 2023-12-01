@@ -28,3 +28,6 @@ def atlas_ezo_py_udp_port(node_id):
     else:
         return 20002
     
+
+def contact_gpsd_port(contact_id):
+    return 33000 + contact_id

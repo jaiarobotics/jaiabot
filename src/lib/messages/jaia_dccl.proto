@@ -443,12 +443,12 @@ message ContactUpdate
 {
     option (dccl.msg) = {
         id: 0x5002
-        max_bytes: 250
+        max_bytes: 16
         codec_version: 4
         unit_system: "si"
     };
 
-    optional int32 contact = 1 [(dccl.field) = { min: 0, max: 7 }];
+    optional int32 contact = 1 [(dccl.field) = { min: 1, max: 15 }]; 
     required GeographicCoordinate location = 2;
     optional double speed_over_ground = 3 [(dccl.field) = {
         min: -5
