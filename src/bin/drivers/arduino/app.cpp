@@ -65,6 +65,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
     std::vector<int> splitVersion(const std::string& version);
@@ -158,15 +159,20 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                               << std::endl;
 
     // Setup our bounds configuration
-    bounds_ = cfg().bounds();
-
-    if (bounds_.motor().has_max_reverse())
-    {
-        max_reverse_ = bounds_.motor().max_reverse();
-    }
+    setBounds(cfg().bounds());
 
     // Publish to meatadata group to record bounds file used
     interprocess().publish<groups::metadata>(bounds_);
+
+    // Subscribe to engineering commands for:
+    // * bounds config changes
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& engineering) {
+            if (engineering.has_bounds())
+            {
+                setBounds(engineering.bounds());
+            }
+        });
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -297,6 +303,25 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
+}
+
+/**
+ * @brief Updates the bounds configuration for the Arduino actuators
+ * 
+ * @param bounds - the new bounds configuration to use
+ */
+void jaiabot::apps::ArduinoDriver::setBounds(const jaiabot::protobuf::Bounds& bounds)
+{
+    bounds_ = bounds;
+
+    glog.is_debug1() && glog << "Setting bounds to " << bounds.ShortDebugString() << endl;
+
+    if (bounds_.motor().has_max_reverse())
+    {
+        max_reverse_ = bounds_.motor().max_reverse();
+    }
+
+    is_settings_ack_ = false; // Ensures that we re-send our bounds to the Arduino
 }
 
 /**
