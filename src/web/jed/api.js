@@ -28,7 +28,10 @@ class JaiaAPI {
    * @param {*} command
    */
   sendEngineeringCommand(command, force=false) {
-    if (!this.inControl) return
+    if (!this.inControl) {
+      console.log(`Not inControl: ${this.clientId}`)
+      return
+    }
   
     if (!force && Date.now() < this.apiThrottleEndTime) {
       console.warn(`Dropped command: ${command}`)

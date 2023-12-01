@@ -1,8 +1,12 @@
+body {
+    font-size: large;
+}
+
 button {
-    padding: 20pt;
-    margin: 20pt;
-    width: 150pt;
-    height: 50pt;
+    padding: 10pt;
+    margin: 10pt;
+    width: 140pt;
+    height: 40pt;
     background-color: lightskyblue;
     font-size: large;
     border-radius: 16pt;

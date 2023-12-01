@@ -28,16 +28,7 @@ import { ActuatorConfigSlider } from './ActuatorConfigSlider.js'
 class CalibrationApp {
 
     constructor() {
-        this.command = {
-            bot_id: 1,
-            control_surfaces: {
-                motor: 1500,
-                rudder: 1500,
-                timeout: 5,
-            }
-        }
-
-        this.bounds = {
+        this.defaultBounds = {
             motor: {
                 forwardStart: 1600,
                 reverseStart: 1400,
@@ -52,11 +43,14 @@ class CalibrationApp {
 
         // Bot selector
         this.botDropdown = new BotDropdown('botSelect', (bot_id) => {
-            this.command.bot_id = bot_id
+            this.bot_id = bot_id
         })
 
-        this.motorConfigControl = new ActuatorConfigSlider('motor-config-control', this.bounds.motor)
-        this.rudderConfigControl = new ActuatorConfigSlider('rudder-config-control', this.bounds.rudder)
+        this.motorConfigControl = new ActuatorConfigSlider('motor-config-control', this.defaultBounds.motor)
+        this.rudderConfigControl = new ActuatorConfigSlider('rudder-config-control', this.defaultBounds.rudder)
+
+        this.takeControlButton = byId('take-control')
+        this.takeControlButton.addEventListener('click', this.takeControl.bind(this))
 
         this.submitButton = byId('submit-config')
         this.submitButton.addEventListener('click', this.submitConfig.bind(this))
@@ -71,14 +65,29 @@ class CalibrationApp {
             this.botDropdown.updateWithBots(status.bots)
         })
     }
+
+
+    takeControl() {
+        api.takeControl()
+    }
         
 
     submitConfig(event) {
-        this.bounds = {
-            motor: this.motorConfigControl.config,
-            rudder: this.rudderConfigControl.config
+        const bot_id = this.botDropdown.getSelectedBotId()
+        if (bot_id == null) {
+            alert("Please select a bot first")
+            return
         }
-        console.log(this.bounds)
+
+        const engineeringCommand = {
+            bot_id: bot_id,
+            bounds: {
+                motor: this.motorConfigControl.getConfig(),
+                rudder: this.rudderConfigControl.getConfig()
+            }
+        }
+
+        api.sendEngineeringCommand(engineeringCommand, true)
     }
 
 }

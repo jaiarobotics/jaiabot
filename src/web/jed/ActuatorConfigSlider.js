@@ -25,7 +25,7 @@ class ActuatorConfigSlider {
         }
 
         // Set motor
-        this.config = initialConfig
+        this._config = initialConfig
 
         // Add handlers
         this.pageX = 0
@@ -43,7 +43,7 @@ class ActuatorConfigSlider {
             
         for (const handle of this.handles) {
             // Text
-            const value = this.config[handle.name].toFixed(0)
+            const value = this._config[handle.name].toFixed(0)
             handle.textElement.innerHTML = `${handle.name}<br>${value}`
 
             // Position
@@ -53,7 +53,6 @@ class ActuatorConfigSlider {
     }
 
     mousedown(type, event) {
-        console.log(type)
         this.type = type
         this.pageX = event.pageX
     }
@@ -68,28 +67,28 @@ class ActuatorConfigSlider {
 
         switch(this.type) {
             case 'forwardStart':
-                minValue = this.config.reverseStart
+                minValue = this._config.reverseStart
                 maxValue = MICRO_MAX
                 break;
             case 'reverseStart':
-                minValue = this.config.max_reverse
-                maxValue = this.config.forwardStart
+                minValue = this._config.max_reverse
+                maxValue = this._config.forwardStart
                 break;
             case 'max_reverse':
                 minValue = MICRO_MIN
-                maxValue = this.config.reverseStart
+                maxValue = this._config.reverseStart
                 break;
             case 'lower':
-                minValue = this.config.center
+                minValue = this._config.center
                 maxValue = MICRO_MAX
                 break;
             case 'center':
-                minValue = this.config.upper
-                maxValue = this.config.lower
+                minValue = this._config.upper
+                maxValue = this._config.lower
                 break;
             case 'upper':
                 minValue = MICRO_MIN
-                maxValue = this.config.center
+                maxValue = this._config.center
                 break;
         }
 
@@ -98,7 +97,7 @@ class ActuatorConfigSlider {
             if (this.pageX != 0) {
                 const deltaX = event.pageX - this.pageX
                 const deltaMicros = (deltaX / totalWidth) * MICRO_RANGE
-                this.config[this.type] = clamp(this.config[this.type] + deltaMicros, minValue, maxValue)
+                this._config[this.type] = clamp(this._config[this.type] + deltaMicros, minValue, maxValue)
                 this.update()
             }
             this.pageX = event.pageX
@@ -107,6 +106,13 @@ class ActuatorConfigSlider {
             this.type = null
         }
 
+    }
+
+    getConfig() {
+        for (const name in this._config) {
+            this._config[name] = Math.round(this._config[name])
+        }
+        return this._config
     }
 }
 
