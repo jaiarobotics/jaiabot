@@ -5,10 +5,8 @@ import numpy
 import logging
 import copy
 import bisect
-
-
-INT32_MAX = (2 << 30) - 1
-UINT32_MAX = (2 << 31) - 1
+from typing import *
+from h5_tools import *
 
 
 def get_root_item_path(path, root_item=''):
@@ -18,57 +16,11 @@ def get_root_item_path(path, root_item=''):
     return '/'.join(components)
 
 
-def h5_get_series(dataset: Dataset):
-    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
-    dtype: numpy.dtype = dataset.dtype
-
-    def from_float(x):
-        x = float(x)
-        if math.isnan(x):
-            return None
-        return x
-
-    def from_int32(x):
-        if x == INT32_MAX:
-            return None
-        return int(x)
-
-    def from_uint32(x):
-        if x == UINT32_MAX:
-            return None
-        return int(x)
-
-    dtype_proc = {
-        'f': from_float,
-        'i': from_int32,
-        'u': from_uint32
-    }
-
-    map_proc = dtype_proc[dtype.kind]
-    filtered_list = [map_proc(x) for x in dataset]
-
-    return filtered_list
-
-
-def h5_get_hovertext(dataset: Dataset):
-    '''Get the hovertext for an h5 dataset'''
-
-    # Get the enum value names
-    try:
-        enum_names = dataset.attrs['enum_names']
-        enum_values = dataset.attrs['enum_values']
-        enum_dict = { int(enum_values[index]): enum_names[index] for index in range(0, len(enum_values))}
-        return enum_dict
-
-    except KeyError:
-        return None
-
-
 @dataclass
 class Series:
     utime: list
     y_values: list
-    hovertext: dict
+    hovertext: Dict[int, str]
 
     def __init__(self, log=None, path=None, scheme=1, invalid_values=set()) -> None:
         self.utime = []
@@ -94,7 +46,7 @@ class Series:
 
                 return
 
-            self.hovertext = h5_get_hovertext(log[path]) or {}
+            self.hovertext = h5_get_enum_map(log[path]) or {}
 
     def __add__(self, other_series: 'Series'):
         r = copy.copy(self)

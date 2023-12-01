@@ -1,30 +1,15 @@
 import { LogTaskPacket } from "./Log"
 import JSZip from 'jszip';
 import * as Styles from './shared/Styles'
+import { DriftPacket } from "./shared/JAIAProtobuf";
 
 
-function blobToDataUrl(blob: Blob): Promise<string | ArrayBuffer> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-            console.log(reader.result)
-            resolve(reader.result)
-        }
-        reader.onerror = () => {                
-            reject('Cannot convert blob to base64 string')
-        }
-        reader.readAsDataURL(blob)
-    })
-}
-
-
-async function getDataUrl(url: string) {
-    const response = await fetch(url)
-    const blob = await response.blob()
-    return await blobToDataUrl(blob)
-}
-
-
+/**
+ * Returns an array of strings, containing the KML code for each feature in a task packet
+ *
+ * @param {LogTaskPacket} taskPacket The task packet to process into KML features
+ * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
+ */
 async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     var placemarks: string[] = []
 
@@ -37,8 +22,20 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const dateString = formatter.format(date)
     const bot_id = taskPacket.bot_id
 
-    const diveIconUrl = 'file://files/diveIcon.png'
-    const driftArrowHeadUrl = 'file://files/driftArrowHead.png'
+    // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
+    const diveIconUrl = 'files/diveIcon.png'
+
+    
+    /**
+     * Returns the path to the appropriate embedded drift arrow icon PNG file
+     *
+     * @param {DriftPacket} drift packet whose speed will be used to find the appropriate icon
+     * @returns {string} path to the embedded drift arrow icon file
+     */
+    function getDriftArrowHeadUrl(drift: DriftPacket) {
+        const driftArrowIndex = Styles.driftSpeedToBinIndex(drift.estimated_drift?.speed ?? 0.0)
+        return `files/drift-arrow-${driftArrowIndex}.png`
+    }
 
     const dive = taskPacket.dive
     if (dive != null && dive.depth_achieved != 0) {
@@ -91,7 +88,8 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
         const DEG = Math.PI / 180.0
         const speedString = `${drift.estimated_drift.speed?.toFixed(2)} m/s`
-        const heading = Math.atan2(drift.end_location.lon - drift.start_location.lon, drift.end_location.lat - drift.start_location.lat) / DEG - 90.0
+        const heading = drift.estimated_drift.heading ?? 0.0
+        const driftArrowIndex = Styles.driftSpeedToBinIndex(drift.estimated_drift.speed) ?? 0
 
         const driftDescription = `
             <h2>Drift</h2>
@@ -106,24 +104,6 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
         placemarks.push(`
         <Placemark>
-            <name>Drift</name>
-            <description>
-                ${driftDescription}
-            </description>
-            <LineString>
-                <coordinates>${drift.start_location.lon},${drift.start_location.lat} ${drift.end_location.lon},${drift.end_location.lat}</coordinates>
-            </LineString>
-            <Style>
-                <LineStyle>
-                    <color>ff008cff</color>            <!-- kml:color -->
-                    <colorMode>normal</colorMode>      <!-- colorModeEnum: normal or random -->
-                    <width>4</width>                            <!-- float -->
-                    <gx:labelVisibility>0</gx:labelVisibility>  <!-- boolean -->
-                </LineStyle>
-            </Style>
-        </Placemark>
-
-        <Placemark>
             <name>${speedString}</name>
             <description>
                 ${driftDescription}
@@ -133,12 +113,10 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
             </Point>
             <Style id="driftArrowHead">
                 <IconStyle>
-                    <color>ff008cff</color>            <!-- kml:color -->
-                    <colorMode>normal</colorMode>      <!-- kml:colorModeEnum:normal or random -->
                     <scale>1.0</scale>                   <!-- float -->
                     <heading>${heading}</heading>               <!-- float -->
                     <Icon>
-                        <href>${driftArrowHeadUrl}</href>
+                        <href>${getDriftArrowHeadUrl(drift)}</href>
                     </Icon>
                     <hotSpot x="0.5"  y="0.5"
                         xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
@@ -158,6 +136,12 @@ export class KMLDocument {
     constructor() {
     }
 
+    
+    /**
+     * Returns a KML string representing the KML document
+     *
+     * @returns {Promise<string>} the KML document as a string
+     */
     async getKML() {
         var placemarksKml = ''
 
@@ -175,6 +159,12 @@ export class KMLDocument {
         `
     }
 
+    
+    /**
+     * Returns a Blob representing the KML document as a KMZ file
+     *
+     * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
+     */
     async getKMZ() {
         const kmlFileString = await this.getKML()
 
@@ -186,8 +176,10 @@ export class KMLDocument {
         const diveIconBlob = await fetch(Styles.bottomStrikePng).then(r => r.blob())
         filesFolder.file('diveIcon.png', diveIconBlob)
         
-        const driftArrowBlob = await fetch(Styles.arrowHeadPng).then(r => r.blob())
-        filesFolder.file('driftArrowHead.png', driftArrowBlob)
+        for (let index = 0; index < Styles.driftArrowPngs.length; index++) {
+            const driftArrowBlob = await fetch(Styles.driftArrowPngs[index]).then(r => r.blob())
+            filesFolder.file(`drift-arrow-${index}.png`, driftArrowBlob)
+        }
         
         return await zip.generateAsync({type:"blob"})
     }

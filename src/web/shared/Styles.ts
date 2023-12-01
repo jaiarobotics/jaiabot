@@ -52,7 +52,9 @@ const driftIcons: {[iconKey: string]: string[]} = {
 export const taskNone = require('./taskNone.svg') as string
 
 // Export the PNG data for use in KMZ files
-export const arrowHeadPng = require('./arrowHead.png') as string
+export const driftArrowPngs = [0, 1, 2, 3, 4, 5].map((index: number) => {
+    return require(`./drift-arrows/drift-arrow-${index}.png`) as string
+})
 export const bottomStrikePng = require('./bottomStrike.png') as string
 
 // Colors
@@ -87,6 +89,13 @@ export const endMarker = new Style({
     })
 })
 
+
+/**
+ * Style function for bot markers
+ *
+ * @param {Feature} feature The bot marker feature
+ * @returns {Style[]} Styles for the bot marker feature
+ */
 export function botMarker(feature: Feature): Style[] {
     const geometry = feature.getGeometry() as Point
     const centerPosition = geometry.getCoordinates()
@@ -147,6 +156,12 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
+/**
+ * Style function for hub markers
+ *
+ * @param {Feature} feature The hub marker feature
+ * @returns {Style[]} Styles for the hub marker feature
+ */
 export function hubMarker(feature: Feature<Point>): Style[] {
     const textOffsetRadius = 11
 
@@ -185,18 +200,17 @@ export function hubMarker(feature: Feature<Point>): Style[] {
 
 /**
  * The style for the circles showing the comms limit radii for hubs
- * @date 10/27/2023 - 7:36:33 AM
  *
- * @export
  * @param {Feature<Point>} feature Point feature of a hub
+ * @returns {Style[]} Styles for the hub comms limit
  */
 export function hubCommsCircleStyle(feature: Feature<Point>) {
     const hub = feature.get('hub') as HubStatus
     if (hub == null) {
         console.warn("Feature doesn't have hub property")
-        return
+        return []
     }
-    const center = feature.getGeometry().getCoordinates()
+    const center = feature.getGeometry()!.getCoordinates()
 
     // The reason we need to divide by the cosine of the 
     // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
@@ -207,8 +221,8 @@ export function hubCommsCircleStyle(feature: Feature<Point>) {
     function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
         return new Style({
             geometry: new Circle(center, radius),
-            renderer(coordinates: Coordinate[], state) {
-                const [[x, y], [x1, y1]] = coordinates
+            renderer(coordinates: Coordinate | Coordinate[] | Coordinate[][], state) {
+                const [[x, y], [x1, y1]] = coordinates as Coordinate[]
                 const dx = x1 - x
                 const dy = y1 - y
                 const screenRadius = Math.sqrt(dx * dx + dy * dy)
@@ -230,6 +244,14 @@ export function hubCommsCircleStyle(feature: Feature<Point>) {
     return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
+
+
+/**
+ * Course over ground arrow style
+ *
+ * @param {number} courseOverGround Course over ground, in degrees
+ * @returns {Style} The course over ground arrow feature style
+ */
 export function courseOverGroundArrow(courseOverGround: number): Style {
     const courseOverGroundDeg = courseOverGround * DEG
     const color = 'green'
@@ -245,6 +267,13 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
     })
 }
 
+
+/**
+ * Heading arrow feature
+ *
+ * @param {number} heading Heading, in degrees
+ * @returns {Style} The heading arrow style
+ */
 export function headingArrow(heading: number): Style {
     const color = 'green'
 
@@ -259,12 +288,27 @@ export function headingArrow(heading: number): Style {
     })
 }
 
+
+
+/**
+ * Desired heading style function
+ *
+ * @param {Feature} feature Desired heading feature
+ * @returns {Style} Desired heading arrow style
+ */
 export function desiredHeadingArrow(feature: Feature): Style {
     const desiredHeading = feature.get('desiredHeading') as number ?? 0.0
     return headingArrow(desiredHeading)
 }
 
-// Markers for the mission goals
+
+
+/**
+ * Gets the icon src corresponding to a TaskType
+ *
+ * @param {(TaskType | null)} taskType A task type
+ * @returns {string} Icon src for the given task type
+ */
 function getGoalSrc(taskType: TaskType | null) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
@@ -277,6 +321,16 @@ function getGoalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
+
+
+/**
+ * Gets the color of a goal, given its current state
+ *
+ * @param {boolean} isActiveGoal Is this goal the current active goal for its bot?
+ * @param {boolean} isSelected Is this goal currently selected by the user?
+ * @param {boolean} canEdit Is this run in an editable state?
+ * @returns {string} A CSS string representing the color of the goal
+ */
 function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     let nonActiveGoalColor: string
 
@@ -289,6 +343,17 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
     return isActiveGoal ? activeGoalColor : nonActiveGoalColor
 }
 
+
+
+/**
+ * Returns the icon style for a goal, given its task type and current state
+ *
+ * @param {(TaskType | null | undefined)} taskType Task type for this goal
+ * @param {boolean} isActiveGoal Is this goal the active goal for its bot?
+ * @param {boolean} isSelected Is this goal selected by the user?
+ * @param {boolean} canEdit Is this goal in an editable state?
+ * @returns {Icon} The Icon style for this goal
+ */
 export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     taskType = taskType ?? TaskType.NONE
     const src = getGoalSrc(taskType)
@@ -302,6 +367,16 @@ export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGo
 }
 
 
+
+/**
+ * Returns the flag icon style, given a possible task type and current state
+ *
+ * @param {(TaskType | null | undefined)} taskType Task type for this flag (if any)
+ * @param {boolean} isSelected Is this goal selected by the user?
+ * @param {number} runNumber Number of this run
+ * @param {boolean} canEdit Is this goal in an editable state?
+ * @returns {Icon} The icon style for this flag
+ */
 function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const isTask = taskType && taskType !== 'NONE'
 
@@ -314,6 +389,13 @@ function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boole
     })
 }
 
+
+
+/**
+ * Rally icon style
+ *
+ * @returns {Icon} The style for a rally point
+ */
 function createRallyIcon() {
     return new Icon({
         src: rallyPoint,
@@ -324,11 +406,9 @@ function createRallyIcon() {
 
 /**
  * Goal / Waypoint map style function
- * @date 10/23/2023 - 8:58:49 AM
  *
- * @export
  * @param {Feature<Point>} feature
- * @returns {{}} Style(s) for the feature
+ * @returns {Style} Style(s) for the feature
  */
 export function getGoalStyle(feature: Feature<Point>) {
     const goal = feature.get('goal') as Goal
@@ -364,10 +444,9 @@ export function getGoalStyle(feature: Feature<Point>) {
 
 /**
  * Gets the style to apply to the waypoint circle layer
- * @date 10/25/2023 - 12:29:46 PM
  *
- * @export
  * @param {Feature<Point>} feature The waypoint circle feature
+ * @returns {Style[]} The styles for the waypoint circle feature
  */
 export function getWaypointCircleStyle(feature: Feature<Point>) {
     const goal = feature.get('goal') as Goal
@@ -377,18 +456,28 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
 
     //The reason we need to divide by the cosine of the 
     // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
-    const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
+    const latitudeCoefficient = Math.max(Math.cos((goal.location?.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
-    const centerCoordinate = feature.getGeometry().getCoordinates()
+    const centerCoordinate = feature.getGeometry()!.getCoordinates()
     const colorName = getGoalColor(isActive, isSelected, canEdit)
     const colorMain = colorNameToHex(colorName) ?? colorName
-    const colorBorder = colorNameToHex('black')
+    const colorBorder = '#000'
 
+    /**
+     * Returns an OpenLayers Style object for a circle with optional radial gradient
+     *
+     * @param {Coordinate} center Center of the circle
+     * @param {number} radius Radius of the circle
+     * @param {string} color CSS Color string in the format `#rrggbb` ONLY
+     * @param {number} lineWidth Line width of the circle
+     * @param {boolean} addInnerGradientColor Should we add a gradient to the inside of the circle?
+     * @returns {Style} OpenLayers Style object
+     */
     function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
         return new Style({
             geometry: new Circle(center, radius),
-            renderer(coordinates: Coordinate[], state) {
-                const [[x, y], [x1, y1]] = coordinates
+            renderer(coordinates: Coordinate | Coordinate[] | Coordinate[][], state) {
+                const [[x, y], [x1, y1]] = coordinates as Coordinate[]
                 const dx = x1 - x
                 const dy = y1 - y
 
@@ -425,6 +514,17 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
 
 }
 
+
+/**
+ * Gets the flag style from a goal
+ *
+ * @param {Goal} goal The goal
+ * @param {boolean} isSelected Is this goal selected by the user?
+ * @param {number} runNumber Number of this run
+ * @param {number} zIndex z-index to place the flag
+ * @param {boolean} canEdit Is this goal in an editable state?
+ * @returns {Style}
+ */
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
     let icon = createFlagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
@@ -445,6 +545,13 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
     })
 }
 
+
+/**
+ * The style for the reacquire GPS icon
+ *
+ * @param {number} headingRadians Heading of the bot, in radians
+ * @returns {Style} The reacquire GPS icon style
+ */
 function getGpsStyle(headingRadians: number) {
     return new Style({
         image: new Icon({
@@ -459,6 +566,14 @@ function getGpsStyle(headingRadians: number) {
     })
 }
 
+
+
+/**
+ * Get the rally point style
+ *
+ * @param {number} rallyFeatureCount Number of this rally point
+ * @returns {Style} Style for this rally point
+ */
 export function getRallyStyle(rallyFeatureCount: number) {
     return new Style({
         image: createRallyIcon(),
@@ -474,7 +589,15 @@ export function getRallyStyle(rallyFeatureCount: number) {
     })
 }
 
-// Markers for dives
+
+
+/**
+ * Get a dive packet icon style
+ *
+ * @param {Feature} feature Dive packet feature
+ * @param {?string} [animatedColor="white"] Color of the dive packet icon
+ * @returns {Style} Style for this dive packet
+ */
 export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     // Depth text
     let text = feature.get('depthAchieved') ? feature.get('depthAchieved').toFixed(1) : null
@@ -507,12 +630,33 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     })
 }
 
-export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
+/**
+ * Returns the drift icon index that should be displayed, given a drift speed.
+ * 
+ * @param {number} driftSpeed Speed of the drift, in m/s
+ * @returns {number} Index into Styles.driftArrowPngs, of the icon sthat should represent this drift
+ */
+export function driftSpeedToBinIndex(driftSpeed: number) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
-    // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
-    const maxBins = 6
+    // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    if (driftSpeed == null) return 0
+    
     const binValueIncrement = 0.5
-    let binNumber = Math.floor(feature.get('speed') ?? 0 / binValueIncrement)
+    return Math.floor(driftSpeed / binValueIncrement)
+}
+
+
+
+/**
+ * Returns an OpenLayers Style for the given Feature
+ *
+ * @param {Feature} feature Input drift packet feature
+ * @param {?string} [animatedColor] String indicating what kind of animated image to use.  Set to `black` if you want the animated version of the drift icon.
+ * @returns {Style} OpenLayers Style for this drift icon
+ */
+export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
+    let binNumber = driftSpeedToBinIndex(feature.get('speed'))
+    const maxBins = 6
 
     // If binNumber > maxBins or binNumber === 0 then a file not found error will occur
     if (binNumber > maxBins) {
@@ -536,6 +680,14 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     })
 }
 
+
+
+/**
+ * Style for the drift icons
+ *
+ * @param {Feature} feature Drift icon feature
+ * @returns {Style} The drift icon style
+ */
 export function driftMapStyle(feature: Feature) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
     // Bin numbers correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
@@ -566,7 +718,14 @@ export function driftMapStyle(feature: Feature) {
     })
 }
 
-// The mission path linestring
+
+
+/**
+ * Style for the mission path features
+ *
+ * @param {Feature} feature The mission path feature
+ * @returns {Style[]} Styles for the mission paths 
+ */
 export function missionPath(feature: Feature) {
     const isSelected = feature.get('isSelected') ?? false
     const zIndex = isSelected ? 101 : 1

@@ -10,7 +10,8 @@ using boost::units::quantity;
 
 jaiabot::protobuf::IvPBehaviorUpdate
 create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
-                      quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy)
+                      quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
+                      const int& slip_radius)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::TransitUpdate& transit = *update.mutable_transit();
@@ -21,6 +22,7 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
     transit.set_x_with_units(xy.x);
     transit.set_y_with_units(xy.y);
     transit.set_speed_with_units(speed);
+    transit.set_slip_radius(slip_radius);
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -199,11 +201,17 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+    int slip_radius = cfg().waypoint_with_no_task_slip_radius();
+
     if (goal)
     {
+        if (goal.get().has_task())
+        {
+            slip_radius = cfg().waypoint_with_task_slip_radius();
+        }
         auto update = create_transit_update(
             goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
-            this->machine().geodesy());
+            this->machine().geodesy(), slip_radius);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
     else
@@ -230,18 +238,20 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
+    int slip_radius = cfg().waypoint_with_no_task_slip_radius();
+
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<InMission>().final_goal();
         update = create_transit_update(final_goal.location(),
                                        this->machine().mission_plan().speeds().transit_with_units(),
-                                       this->machine().geodesy());
+                                       this->machine().geodesy(), slip_radius);
     }
     else
     {
         update = create_transit_update(recovery.location(),
                                        this->machine().mission_plan().speeds().transit_with_units(),
-                                       this->machine().geodesy());
+                                       this->machine().geodesy(), slip_radius);
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -569,6 +579,12 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
     }
 }
 
+/**
+ * @brief Executes when the bot receives a new depth reading so that the bot can 
+ *        determine if it has reached its goal depth 
+ * 
+ * @param ev Depth event used to pass the new depth reading
+ */
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(
     const EvVehicleDepth& ev)
 {
@@ -590,6 +606,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
 
+    // check needed to initially set the last_depth to the current one
+    if (is_initial_depth_reading_)
+    {
+        last_depth_ = ev.depth;
+        is_initial_depth_reading_ = false;
+    }
+
     dive_pdescent_debug.set_current_depth(ev.depth.value());
     dive_pdescent_debug.set_goal_depth(context<Dive>().goal_depth().value());
     dive_pdescent_debug.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
@@ -598,16 +621,16 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     dive_pdescent_debug.set_bottoming_timeout_with_units(cfg().bottoming_timeout_with_units());
 
     glog.is_debug1() &&
-        glog << "if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
+        glog << "(boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
                 "cfg().dive_depth_eps_with_units()): "
              << (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
                  cfg().dive_depth_eps_with_units())
              << "\n ev.depth: " << ev.depth.value()
              << "\n context<Dive>().goal_depth(): " << context<Dive>().goal_depth().value()
              << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps()
-             << "\n if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
+             << "\n ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
              << ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
-             << "\n if ((ev.depth - last_depth_) > "
+             << "\n ((ev.depth - last_depth_) > "
                 "cfg().dive_eps_to_determine_diving_with_units()): "
              << ((ev.depth - last_depth_) > cfg().dive_eps_to_determine_diving_with_units())
              << "\n ev.depth: " << ev.depth.value() << "\n last_depth_" << last_depth_.value()

@@ -12,7 +12,21 @@ import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 // For keeping heading angles in the [0, 360] range
-function fmod(a: number, b: number) { 
+
+/**
+ * Returns the modulus between two real numbers, without returning any negative numbers.
+ * This is useful, for example, for keeping angles between 0 and 360, even after adding and subtracting 
+ * angle values from one another.
+ *
+ * @param {number} a The dividend of the modulus operation
+ * @param {number} b The divisor of the modulus operation
+ * @returns {number} `a` FMOD `b`
+ * @example
+ * fmod(2, 360) == 2
+ * fmod(378, 360) == 18
+ * fmod(-45, 360) == 315
+ */
+function fmod(a: number, b: number) {
     return Number((a - (Math.floor(a / b) * b)).toPrecision(8))
 }
 
@@ -22,6 +36,7 @@ interface Props {
     task?: MissionTask
     location?: GeographicCoordinate
     isEditMode?: boolean
+    scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
 }
 
@@ -65,10 +80,15 @@ function TaskOptionsPanel(props: Props) {
     }
 
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
-        const target = evt.target as any
+        const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
-        const value = Number(target.value)
 
+        let value = Number(target.value)
+
+        if (key == 'constant_heading') {
+            value = fmod(value, 360)
+        }
+ 
         var newTask = deepcopy(task)
         newTask.constant_heading[key] = value
 
@@ -236,6 +256,12 @@ function TaskOptionsPanel(props: Props) {
 
 
 export function TaskSettingsPanel(props: Props) {
+    /**
+     * Updates the Task input options based on the type of Task selected
+     * 
+     * @param {SelectChangeEvent} evt Provides the new Task type 
+     * @returns {void}
+     */
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType
         const oldTaskType = props.task?.type ?? TaskType.NONE
@@ -268,6 +294,9 @@ export function TaskSettingsPanel(props: Props) {
         }
 
         props.onChange(newTask)
+        if (props.scrollTaskSettingsIntoView !== undefined) {
+            props.scrollTaskSettingsIntoView()
+        }
     }
 
     return (
