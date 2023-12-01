@@ -37,6 +37,18 @@
         <h3>Motor</h3>
         <div id="motor.value"></div>
         <input id="motor.input" class="actuator" type="range" min="1000" max="2000" step="1" />
+
+        <div class="bounds-value-container">
+            <div id="maxReverseValue" class="bounds-value"></div>
+            <div id="reverseStartValue" class="bounds-value"></div>
+            <div id="forwardStartValue" class="bounds-value"></div>
+        </div>
+        <div>
+            <button id="bounds.motor.max_reverse.set" class="bounds-set">Set max_reverse</button>
+            <button id="bounds.motor.reverseStart.set" class="bounds-set">Set reverseStart</button>
+            <button id="bounds.motor.forwardStart.set" class="bounds-set">Set forwardStart</button>
+        </div>
+
         <h3>Rudder</h3>
         <div id="rudder.value"></div>
         <input id="rudder.input" class="actuator" type="range" min="1000" max="2000" step="1" />

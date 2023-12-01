@@ -2,3 +2,43 @@ input.actuator {
     width: 90%;
     height: 50pt;
 }
+
+div.bounds-value-container {
+    display: block;
+    width: 90%;
+    height: 50pt;
+    background-color: lightgray;
+    position: relative;
+}
+
+div.bounds-value {
+    left: 0pt;
+    top: 0pt;
+    background-color: lightgreen;
+    width: 50pt;
+    border-radius: 16pt;
+    text-align: center;
+    padding: 8pt 16pt 8pt 16pt;
+    display: block;
+    position: absolute;
+}
+
+button.bounds-set {
+    padding: 20pt;
+    margin: 20pt;
+    width: 150pt;
+    height: 50pt;
+    background-color: lightskyblue;
+    font-size: large;
+    border-radius: 16pt;
+    border-width: 0pt;
+    vertical-align: middle;
+}
+
+button:hover {
+    background-color: lightgray;
+}
+
+button:active {
+    background-color: darkgray;
+}
