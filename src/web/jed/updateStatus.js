@@ -18,9 +18,9 @@ function updateStatus(status) {
 
     let now_us = Date.now() * 1e3
 
-    for (const [botId, bot] of Object.entries(bots)) {
+    var loggingStatus = byId("loggingStatus")
 
-        var loggingStatus = byId("loggingStatus")
+    for (const [botId, bot] of Object.entries(bots)) {
 
         // Alert user that data is not being logged
         if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||

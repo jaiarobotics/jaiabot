@@ -1,29 +1,4 @@
-input.actuator {
-    width: 90%;
-    height: 50pt;
-}
-
-div.bounds-value-container {
-    display: block;
-    width: 90%;
-    height: 50pt;
-    background-color: lightgray;
-    position: relative;
-}
-
-div.bounds-value {
-    left: 0pt;
-    top: 0pt;
-    background-color: lightgreen;
-    width: 50pt;
-    border-radius: 16pt;
-    text-align: center;
-    padding: 8pt 16pt 8pt 16pt;
-    display: block;
-    position: absolute;
-}
-
-button.bounds-set {
+button {
     padding: 20pt;
     margin: 20pt;
     width: 150pt;
@@ -41,4 +16,40 @@ button:hover {
 
 button:active {
     background-color: darkgray;
+}
+
+.config-slider-background {
+    display: block;
+    width: 90%;
+    height: 50pt;
+    background-color: lightgray;
+    position: relative;
+}
+
+.config-slider-handle {
+    left: 0pt;
+    top: 0pt;
+    width: 100pt;
+    height: 25pt;
+    text-align: center;
+    display: block;
+    position: absolute;
+    user-select: none;
+}
+
+.config-slider-line {
+    left: 0pt;
+    top: 0pt;
+    width: 2pt;
+    height: 50pt;
+    background-color: red;
+    position: absolute;
+}
+
+.config-slider-text {
+    left: -50pt;
+    top: 0pt;
+    width: 100pt;
+    background-color: red;
+    position: absolute;
 }

@@ -2,7 +2,7 @@ import { byId } from './domQuery.js'
 import { api, JaiaAPI } from './api.js'
 import { updateStatus } from './updateStatus.js'
 import { BotDropdown } from './BotDropdown.js'
-import { ActuatorInput } from './ActuatorInput.js'
+import { ActuatorConfigSlider } from './ActuatorConfigSlider.js'
 
 // message SurfaceBounds {
 //     optional int32 upper = 1  [default = 1100];
@@ -55,74 +55,30 @@ class CalibrationApp {
             this.command.bot_id = bot_id
         })
 
-        // Motor actuator
-        this.motorValue = byId('motor.value')
-        this.motorInput = new ActuatorInput('motor.input', 1500, (value) => {
-            this.motorValue.innerHTML = `${value} micros`
-            this.command.control_surfaces.motor = value
-        })
+        this.motorConfigControl = new ActuatorConfigSlider('motor-config-control', this.bounds.motor)
+        this.rudderConfigControl = new ActuatorConfigSlider('rudder-config-control', this.bounds.rudder)
 
-        // Rudder actuator
-        this.rudderValue = byId('rudder.value')
-        this.rudderInput = new ActuatorInput('rudder.input', 1500, (value) => {
-            this.rudderValue.innerHTML = `${value} micros`
-            this.command.control_surfaces.rudder = value
-        })
+        this.submitButton = byId('submit-config')
+        this.submitButton.addEventListener('click', this.submitConfig.bind(this))
 
-
-        // Motor bounds
-        this.maxReverseValue = byId('maxReverseValue')
-
-        this.maxReverseSetButton = byId('bounds.motor.max_reverse.set')
-        this.maxReverseSetButton.addEventListener('click', (e) => {
-            this.bounds.motor.max_reverse = this.command.control_surfaces.motor
-            this.updateBoundsInterface()
-        })
-
-        this.reverseStartValue = byId('reverseStartValue')
-        this.reverseStartSetButton = byId('bounds.motor.reverseStart.set')
-        this.reverseStartSetButton.addEventListener('click', (e) => {
-            this.bounds.motor.reverseStart = this.command.control_surfaces.motor
-            this.updateBoundsInterface()
-        })
-
-        this.forwardStartValue = byId('forwardStartValue')
-        this.forwardStartSetButton = byId('bounds.motor.forwardStart.set')
-        this.forwardStartSetButton.addEventListener('click', (e) => {
-            this.bounds.motor.forwardStart = this.command.control_surfaces.motor
-            this.updateBoundsInterface()
-        })
-
-        this.updateBoundsInterface()
-
-        this.interval = setInterval(this.mainLoop.bind(this), 1000)
+        this.timer = setInterval(this.mainLoop.bind(this), 1000)
     }
 
 
     mainLoop() {
-        console.log(`Engineering command:`)
-        console.log(this.command)
-
         api.getStatus().then((status) => {
             updateStatus(status)
             this.botDropdown.updateWithBots(status.bots)
         })
     }
+        
 
-
-    updateBoundsInterface() {
-        function getPercentX(microseconds) {
-            return (microseconds - 1000) * 100 / 1000
+    submitConfig(event) {
+        this.bounds = {
+            motor: this.motorConfigControl.config,
+            rudder: this.rudderConfigControl.config
         }
-
-        this.maxReverseValue.innerHTML = `${this.bounds.motor.max_reverse} micros`
-        this.maxReverseValue.style['left'] = `${getPercentX(this.bounds.motor.max_reverse)}%`
-
-        this.reverseStartValue.innerHTML = `${this.bounds.motor.reverseStart} micros`
-        this.reverseStartValue.style['left'] = `${getPercentX(this.bounds.motor.reverseStart)}%`
-
-        this.forwardStartValue.innerHTML = `${this.bounds.motor.forwardStart} micros`
-        this.forwardStartValue.style['left'] = `${getPercentX(this.bounds.motor.forwardStart)}%`
+        console.log(this.bounds)
     }
 
 }
