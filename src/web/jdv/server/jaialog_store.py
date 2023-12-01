@@ -17,29 +17,10 @@ from jaia_h5 import JaiaH5FileSet
 from typing import *
 
 import log_conversion
-
+from dataclasses_json import dataclass_json
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
-
-
-def h5_get_string(dataset):
-    s = ''.join([chr(a) for a in list(list(dataset)[0])])
-    return s
-
-
-def h5_get_hovertext(dataset):
-    '''Get the hovertext for an h5 dataset'''
-
-    # Get the enum value names
-    try:
-        enum_names = dataset.attrs['enum_names']
-        enum_values = dataset.attrs['enum_values']
-        enum_dict = { int(enum_values[index]): enum_names[index] for index in range(0, len(enum_values))}
-        return enum_dict
-
-    except KeyError:
-        return None
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
@@ -107,6 +88,37 @@ TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
 UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
 
 
+@dataclass
+@dataclass_json
+class LogDescription:
+    '''Metadata pertaining to a log'''
+
+    bot: str
+    fleet: str
+    
+    filename: str
+    '''File stem for this log (without path, .goby or .h5 extension)'''
+
+    timestamp: float
+    '''UNIX timestamp of the date (from the filename)'''
+
+    duration: Optional[float] = None
+    '''Log duration (in microseconds).  Only present for a log that has been converted to HDF5 format.'''
+
+    size: int = 0
+    '''Log file size (in bytes)'''
+
+
+@dataclass
+@dataclass_json
+class LogDirectory:
+    '''A list of available logs with their metadata, and the available space on the storage device'''
+
+    availableSpace: int
+    '''Available storage space (in bytes)'''
+
+    logs: List[LogDescription] = field(default_factory=list)
+    '''List of available logs'''
 
 
 class JaialogStore:
@@ -131,41 +143,42 @@ class JaialogStore:
         '''Get list of available logs'''
         statvfs = os.statvfs(self.LOG_DIR)
 
-        results = {
-            'availableSpace': statvfs.f_bfree * statvfs.f_frsize,
-            'logs': []
-        }
+        results = LogDirectory()
+        results.availableSpace = statvfs.f_bfree * statvfs.f_frsize
 
         if not os.path.isdir(self.LOG_DIR):
             logging.error(f'Directory does not exist: {self.LOG_DIR}')
             return results
 
-        log_file_dict: dict[str, dict] = {}
+        log_file_dict: dict[str, LogDescription] = {}
+        '''maps the log names onto their description, so we don't duplicate'''
 
-        for file_path_string in glob.glob(self.LOG_DIR + '/*_*_????????T??????.*'):
+        goby_and_h5_path_strings = glob.glob(self.LOG_DIR + '/bot*_fleet*_????????T??????.goby') + \
+            glob.glob(self.LOG_DIR + '/bot*_fleet*_????????T??????.h5')
+
+        for file_path_string in goby_and_h5_path_strings:
             file_path = Path(file_path_string)
             filename = file_path.stem
-            log_file_info = log_file_dict.setdefault(filename, {})
+
+            try:
+                file_description = log_file_dict[filename]
+            except KeyError:
+                file_description = LogDescription()
+                log_file_dict[filename] = file_description
 
             suffix = file_path.suffix
             components = re.match(r'(.+)_(.+)_(.+)$', filename)
-            bot, fleet, date_string = components.groups()
-
-            log_file_info.update({
-                'bot': bot,
-                'fleet': fleet,
-                'filename': filename
-            })
+            file_description.bot, file_description.fleet, date_string = components.groups()
+            file_description.filename = filename
 
             try:
                 date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
-                log_file_info['timestamp'] = date.timestamp()
+                file_description.timestamp = date.timestamp()
             except ValueError:
                 logging.warning(f'No date in filename {filename}')
                 continue
 
-            if suffix == '.goby':
-                log_file_info['size'] = file_path.stat().st_size
+            file_description.size += file_path.stat().st_size
 
             if suffix == '.h5':
                 try:
@@ -174,9 +187,9 @@ class JaialogStore:
                 except FileNotFoundError:
                     duration = None
 
-                log_file_info['duration'] = duration
+                file_description.duration = duration
 
-        results['logs'] = list(log_file_dict.values())
+        results.logs = list(log_file_dict.values())
 
         return results
 
@@ -190,7 +203,15 @@ class JaialogStore:
     
 
     def openLogs(self, logNames: List[str]):
-        return [self.openLog(logName) for logName in logNames]
+        logs: [h5py.File] = []
+        for logName in logNames:
+            try:
+                logs.append(self.openLog(logName))
+            except OSError:
+                # Corrupt hdf5 file?
+                continue
+        
+        return logs
 
 
     def convertIfNeeded(self, log_names: List[str]):

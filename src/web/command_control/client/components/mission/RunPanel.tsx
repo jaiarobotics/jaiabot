@@ -15,21 +15,25 @@ type RunPanelProps = {
     deleteSingleRun: (runId: string) => void
     unSelectHubOrBot: () => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    setRunList: (runList: MissionInterface) => void
+    updateMissionHistory: (mission: MissionInterface) => void
 }
 
 type RunPanelState = {}
 
 export default class RunPanel extends React.Component<RunPanelProps, RunPanelState> {
     /**
-     * Executes the static function duplicateRun which copies
-     * the run parameter and creates a new run
+     * Executes the static function duplicateRun which mutates
+     * the run argument to add a new run
      * 
      * @param run The run that is going to be duplicated
      * @returns {void}
      */
     addDuplicateRun(run: RunInterface) {
         Missions.duplicateRun(run, this.props.mission);
-    }   
+        this.props.setRunList(this.props.mission)
+        this.props.updateMissionHistory(this.props.mission)
+    }
 
     handleBotAssignChange(prevBotId: number, newBotId: number, runId: string) {
         if (isFinite(newBotId)) {

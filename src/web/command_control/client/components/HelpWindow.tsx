@@ -82,6 +82,11 @@ const buttons: ButtonDescriptor[] = [
         description: 'Open the Download Queue panel, which shows the currently queued data downloads from the bots to the hub.'
     },
     {
+        iconPath: mdiArrowULeftTop,
+        name: 'Undo',
+        description: 'Undo the last 10 mission planning actions (excluding Task modifications).'
+    },
+    {
         iconPath: mdiCog,
         name: 'Settings',
         description: 'Open the global Settings panel for Jaia Command & Control.'
