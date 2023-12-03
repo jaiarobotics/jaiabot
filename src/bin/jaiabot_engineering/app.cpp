@@ -88,6 +88,13 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                     latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
                 });
 
+
+        // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::Bounds& bounds) {
+                    latest_engineering.mutable_bounds()->CopyFrom(bounds);
+            });
+
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status) {
                 if (engineering_status.has_bot_status_rate())

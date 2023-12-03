@@ -4,27 +4,6 @@ import { updateStatus } from './updateStatus.js'
 import { BotDropdown } from './BotDropdown.js'
 import { ActuatorConfigSlider } from './ActuatorConfigSlider.js'
 
-// message SurfaceBounds {
-//     optional int32 upper = 1  [default = 1100];
-//     optional int32 lower = 2  [default = 1900];
-//     optional int32 center = 3 [default = 1500];
-// }
-// message MotorBounds {
-//     optional int32 forwardStart = 1 [default = 1600];
-//     optional int32 reverseStart = 2 [default = 1400];
-//     optional int32 max_reverse = 3 [default = 1320];
-//     optional int32 throttle_zero_net_buoyancy = 4 [default = -35];
-//     optional int32 throttle_dive = 5 [default = -35];
-//     optional int32 throttle_ascent = 6 [default = 25];
-// }
-
-// message Bounds{
-// optional SurfaceBounds strb = 1;
-// optional SurfaceBounds port = 2;
-// optional SurfaceBounds rudder = 3;
-// optional MotorBounds motor = 4;               
-// }
-
 class CalibrationApp {
 
     constructor() {
@@ -55,6 +34,11 @@ class CalibrationApp {
         this.submitButton = byId('submit-config')
         this.submitButton.addEventListener('click', this.submitConfig.bind(this))
 
+        this.queryButton = byId('query-engineering-status')
+        this.queryButton.addEventListener('click', this.queryEngineeringStatus.bind(this))
+
+        this.lastEngineeringStatusTime = 0
+
         this.timer = setInterval(this.mainLoop.bind(this), 1000)
     }
 
@@ -63,7 +47,33 @@ class CalibrationApp {
         api.getStatus().then((status) => {
             updateStatus(status)
             this.botDropdown.updateWithBots(status.bots)
+            this.updateStatus(status)
         })
+    }
+
+
+    updateStatus(status) {
+        // Update bounds, if the time is newer on this engineering status
+        const selected_bot_id = this.botDropdown.getSelectedBotId()
+        if (selected_bot_id == null) return
+
+        const thisBot = status.bots[this.botDropdown.getSelectedBotId()]
+        if (thisBot == null) return
+
+        const engineering_status = thisBot.engineering
+        if (engineering_status == null) return
+
+        const engineeringStatusTime = Number(engineering_status.time)
+        if (engineeringStatusTime <= this.lastEngineeringStatusTime) return
+        this.lastEngineeringStatusTime = engineeringStatusTime
+
+        const bounds = engineering_status.bounds
+        if (bounds == null) return
+
+        console.log(`Updating GUI to:`)
+        console.log(bounds)
+        this.motorConfigControl.setConfig(bounds.motor)
+        this.rudderConfigControl.setConfig(bounds.rudder)
     }
 
 
@@ -79,12 +89,37 @@ class CalibrationApp {
             return
         }
 
+        if (!api.inControl) {
+            alert("We are not in control yet.  Please press 'Take Control' if you'd like to take control.")
+            return
+        }
+
         const engineeringCommand = {
             bot_id: bot_id,
             bounds: {
                 motor: this.motorConfigControl.getConfig(),
                 rudder: this.rudderConfigControl.getConfig()
             }
+        }
+
+        api.sendEngineeringCommand(engineeringCommand, true)
+    }
+
+    queryEngineeringStatus(event) {
+        const bot_id = this.botDropdown.getSelectedBotId()
+        if (bot_id == null) {
+            alert("Please select a bot first")
+            return
+        }
+
+        if (!api.inControl) {
+            alert("We are not in control yet.  Please press 'Take Control' if you'd like to take control.")
+            return
+        }
+
+        const engineeringCommand = {
+            bot_id: bot_id,
+            query_engineering_status: true
         }
 
         api.sendEngineeringCommand(engineeringCommand, true)

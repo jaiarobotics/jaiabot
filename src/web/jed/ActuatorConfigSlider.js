@@ -24,14 +24,15 @@ class ActuatorConfigSlider {
             handleElement.addEventListener('mousedown', this.mousedown.bind(this, handleElement.id))
         }
 
-        // Set motor
-        this._config = initialConfig
-
         // Add handlers
         this.pageX = 0
         this.fullRange.addEventListener("mousemove", this.mousemove.bind(this))
 
-        // Update
+        this.setConfig(initialConfig)
+    }
+
+    setConfig(config) {
+        this._config = config
         this.update()
     }
 

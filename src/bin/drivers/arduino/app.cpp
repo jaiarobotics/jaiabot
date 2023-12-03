@@ -321,6 +321,9 @@ void jaiabot::apps::ArduinoDriver::setBounds(const jaiabot::protobuf::Bounds& bo
         max_reverse_ = bounds_.motor().max_reverse();
     }
 
+    // Publish an engineering_status message, so the current bounds can be queried in engineering_status
+    interprocess().publish<jaiabot::groups::engineering_status>(bounds);
+
     is_settings_ack_ = false; // Ensures that we re-send our bounds to the Arduino
 }
 
