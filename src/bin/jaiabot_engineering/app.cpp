@@ -297,6 +297,8 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
         auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
         configFile << bounds.DebugString();
         configFile.close();
+
+        latest_engineering.mutable_bounds()->CopyFrom(bounds);
     }
 
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands

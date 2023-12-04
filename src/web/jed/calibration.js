@@ -1,7 +1,7 @@
 import { byId } from './domQuery.js' 
 import { api, JaiaAPI } from './api.js'
 import { updateStatus } from './updateStatus.js'
-import { BotDropdown } from './BotDropdown.js'
+import { botDropdown } from './BotDropdown.js'
 import { ActuatorConfigSlider } from './ActuatorConfigSlider.js'
 
 class CalibrationApp {
@@ -20,16 +20,8 @@ class CalibrationApp {
             }
         }
 
-        // Bot selector
-        this.botDropdown = new BotDropdown('botSelect', (bot_id) => {
-            this.bot_id = bot_id
-        })
-
         this.motorConfigControl = new ActuatorConfigSlider('motor-config-control', this.defaultBounds.motor)
         this.rudderConfigControl = new ActuatorConfigSlider('rudder-config-control', this.defaultBounds.rudder)
-
-        this.takeControlButton = byId('take-control')
-        this.takeControlButton.addEventListener('click', this.takeControl.bind(this))
 
         this.submitButton = byId('submit-config')
         this.submitButton.addEventListener('click', this.submitConfig.bind(this))
@@ -38,52 +30,40 @@ class CalibrationApp {
         this.queryButton.addEventListener('click', this.queryEngineeringStatus.bind(this))
 
         this.lastEngineeringStatusTime = 0
-
-        this.timer = setInterval(this.mainLoop.bind(this), 1000)
-    }
-
-
-    mainLoop() {
-        api.getStatus().then((status) => {
-            updateStatus(status)
-            this.botDropdown.updateWithBots(status.bots)
-            this.updateStatus(status)
-        })
     }
 
 
     updateStatus(status) {
+        console.log('1')
         // Update bounds, if the time is newer on this engineering status
-        const selected_bot_id = this.botDropdown.getSelectedBotId()
+        const selected_bot_id = botDropdown.getSelectedBotId()
         if (selected_bot_id == null) return
 
-        const thisBot = status.bots[this.botDropdown.getSelectedBotId()]
+        console.log('2')
+        const thisBot = status.bots[botDropdown.getSelectedBotId()]
         if (thisBot == null) return
 
+        console.log('3')
         const engineering_status = thisBot.engineering
         if (engineering_status == null) return
 
         const engineeringStatusTime = Number(engineering_status.time)
+        console.log(`${engineeringStatusTime} ${this.lastEngineeringStatusTime}`)
         if (engineeringStatusTime <= this.lastEngineeringStatusTime) return
         this.lastEngineeringStatusTime = engineeringStatusTime
 
+        console.log('5')
         const bounds = engineering_status.bounds
         if (bounds == null) return
 
-        console.log(`Updating GUI to:`)
-        console.log(bounds)
+        console.log('updating bounds GUI')
         this.motorConfigControl.setConfig(bounds.motor)
         this.rudderConfigControl.setConfig(bounds.rudder)
     }
 
 
-    takeControl() {
-        api.takeControl()
-    }
-        
-
     submitConfig(event) {
-        const bot_id = this.botDropdown.getSelectedBotId()
+        const bot_id = botDropdown.getSelectedBotId()
         if (bot_id == null) {
             alert("Please select a bot first")
             return
@@ -106,7 +86,7 @@ class CalibrationApp {
     }
 
     queryEngineeringStatus(event) {
-        const bot_id = this.botDropdown.getSelectedBotId()
+        const bot_id = botDropdown.getSelectedBotId()
         if (bot_id == null) {
             alert("Please select a bot first")
             return
@@ -122,9 +102,11 @@ class CalibrationApp {
             query_engineering_status: true
         }
 
+        console.log(engineeringCommand)
+
         api.sendEngineeringCommand(engineeringCommand, true)
     }
 
 }
 
-const app = new CalibrationApp()
+export const calibrationApp = new CalibrationApp()

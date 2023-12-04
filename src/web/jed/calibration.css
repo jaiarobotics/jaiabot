@@ -5,8 +5,8 @@ body {
 button {
     padding: 10pt;
     margin: 10pt;
-    width: 140pt;
-    height: 40pt;
+    /* width: 140pt;
+    height: 40pt; */
     background-color: lightskyblue;
     font-size: large;
     border-radius: 16pt;
@@ -46,7 +46,7 @@ button:active {
     top: 0pt;
     width: 2pt;
     height: 50pt;
-    background-color: red;
+    background-color: darkgreen;
     position: absolute;
 }
 
@@ -54,6 +54,7 @@ button:active {
     left: -50pt;
     top: 0pt;
     width: 100pt;
-    background-color: red;
+    background-color: darkgreen;
+    color: white;
     position: absolute;
 }

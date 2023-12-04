@@ -18,7 +18,7 @@ class JaiaAPI {
           'clientId': this.clientId,
           'Content-Type': 'application/json'
       }
-        
+
   }
 
   
@@ -34,7 +34,8 @@ class JaiaAPI {
     }
   
     if (!force && Date.now() < this.apiThrottleEndTime) {
-      console.warn(`Dropped command: ${command}`)
+      console.warn(`Dropped command:`)
+      console.warn(command)
       return
     }
   

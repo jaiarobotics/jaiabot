@@ -1,6 +1,8 @@
 import { api, JaiaAPI } from './api.js'
 import { deadMansSwitch } from './deadMansSwitch.js'
-
+import { updateStatus } from './updateStatus.js'
+import { botDropdown } from './BotDropdown.js'
+import { calibrationApp } from './calibration.js'
 
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
@@ -424,7 +426,7 @@ class PIDGains {
     this.submitElement = el(name + '_submit')
     let self = this
 
-               this.submitElement.onclick = function() {
+    this.submitElement.onclick = function() {
       let pid_control = {timeout : 1}
 
       pid_control[self.api_name] = {
@@ -438,7 +440,7 @@ class PIDGains {
         pid_control : pid_control
       }
 
-      api.sendEngineeringCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command, true)
     }
   }
 
@@ -499,7 +501,7 @@ function diveButtonOnClick() {
           };
           break;
       }
-      api.sendEngineeringCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command, true)
     }
     else
     {
@@ -757,10 +759,11 @@ function sendVisibleCommand() {
 
   // Get vehicle status
   
-  fetch('/jaia/status', {headers: api.headers})
-  .then((response) => response.json())
-  .then((response) => {
-    updateStatus(response)
+  api.getStatus()
+  .then((status) => {
+    updateStatus(status)
+    botDropdown.updateWithBots(status.bots)
+    calibrationApp.updateStatus(status)
   })
   .catch((e) => {
     console.error(e)
@@ -774,110 +777,6 @@ const interval = setInterval(sendVisibleCommand, 1010);
 
 var hub_location = null
 var oldControllingClientId = ''
-
-// Updates the status element with a status response object
-function updateStatus(status) {
-
-  document.getElementById('takeControlButton').style.display = api.inControl ? 'none' : 'inline'
-
-  const controlClass = api.inControl ? 'controlling' : 'noncontrolling'
-  document.getElementById('body').setAttribute('class', controlClass)
-
-  //////
-
-  const bots = status["bots"] 
-  const hubs = status["hubs"]
-
-  // For now we just handle one hub
-  const hub = hubs[0];
-
-  updateBotSelectDropdown(bots)
-
-  const table = el("statusTable")
-  var innerHTML =
-      "<tr><th>Bot ID</th><th>Mission State</th><th>Latitude (°)</th><th>Longitude (°)</th><th>Distance (m)</th><th>Depth (m)</th><th>Ground Speed (m/s)</th><th>Course Over Ground (°)</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Temperature (℃)</th><th>Salinity (PSU(ppt))</th><th>Vcc Voltage (V)</th><th>Vcc Current (A)</th><th>5V Current (A)</th><th>Status Age (s)</th><th>Command Age (s)</th></tr>"
-  var loggingStatusInnerUp =
-      "<label style='color:black; display: inline-block;'>Bots: "
-  var loggingStatusInnerDown =
-      "<label style='color:red; display: inline-block;'>Bots: "
-  var loggingStatusInner = ""
-  var isLogging = false
-  var isNotLogging = false
-
-  let now_us = Date.now() * 1e3
-
-  for (const [botId, bot] of Object.entries(bots)) {
-    const loggingStatus = el("loggingStatus")
-
-    // Alert user that data is not being logged
-    if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||
-        bot.missionState == "POST_DEPLOYMENT__IDLE") {
-      loggingStatusInnerDown += bot.bot_id + ", "
-      isNotLogging = true;
-    }
-    else {
-      loggingStatusInnerUp += bot.bot_id + ", "
-      isLogging = true;
-    }
-
-    innerHTML += "<tr>"
-    innerHTML += "<td>" + bot.bot_id + "</td>"
-
-    innerHTML += "<td>" + bot.mission_state + "</td>"
-
-    let bot_location = bot.location || null
-    let hub_location = hub?.location || null
-    innerHTML += "<td>" + (bot.location?.lat?.toFixed(6) || "❌") + "</td>"
-    innerHTML += "<td>" + (bot.location?.lon?.toFixed(6) || "❌") + "</td>"
-
-    const d = latlon_distance(bot_location, hub_location)
-    innerHTML += "<td>" + d?.toFixed(1) || "?" + "</td>"
-
-    innerHTML += "<td>" + (bot.depth?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.speed?.over_ground?.toFixed(1) || "?") + "</td>"
-    innerHTML +=
-        "<td>" + (bot.attitude?.course_over_ground?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.heading?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.pitch?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.roll?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.temperature?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.salinity?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.vcc_voltage?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vcc_current?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>"
-
-    innerHTML +=
-        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
-
-    const lastCommandTime =
-        bot.last_command_time
-            ? ((now_us - bot.last_command_time) / 1e6).toFixed(0)
-            : ""
-    innerHTML += "<td>" + lastCommandTime + "</td>"
-
-    innerHTML += "</tr>"
-  }
-  loggingStatusInnerUp += "Logging Status: Logging</label>"
-  loggingStatusInnerDown +=
-      "Logging Status: Not Logging (Activate For Logging)</label>"
-
-  if (isNotLogging && isLogging) {
-    loggingStatusInner = loggingStatusInnerDown + "<br>" + loggingStatusInnerUp
-  }
-  else if (isNotLogging && !isLogging) {
-    loggingStatusInner = loggingStatusInnerDown
-  }
-  else {loggingStatusInner = loggingStatusInnerUp}
-
-  loggingStatus.innerHTML = loggingStatusInner;
-  table.innerHTML = innerHTML
-  const warningStatus = el("warningStatus")
-  warningStatus.innerHTML = warningStatusInner;
-}
 
 function getSelectedBotId() {
   return document.getElementById("botSelect")?.value || "0"
@@ -974,5 +873,7 @@ document.getElementById('helpOpenButton')
 document.getElementById('helpCloseButton')
     .addEventListener('click', helpButtonOnClick)
 
-document.getElementById('takeControlButton')
-    .addEventListener('click', api.takeControl)
+document.getElementById('take-control')
+    .addEventListener('click', () => {
+      api.takeControl()
+    })

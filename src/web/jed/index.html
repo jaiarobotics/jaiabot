@@ -8,6 +8,7 @@
 
     <title>JaiaBot Engineer & Debug</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="calibration.css">
     <link rel="icon" type="image/x-icon" href="/favicon.png">
 
   </head>
@@ -21,7 +22,6 @@
       </div>
       <div id="warningStatus"></div>
       <div>
-        <button id="boundsButton">Bounds</button>
         <button id="helpOpenButton">⌨️</button>
         <button id="LEDOnButton">LED:🟢</button>
         <button id="LEDOffButton">LED:❌</button>
@@ -30,10 +30,11 @@
 
     <div class="row">
       <div>
-        <button id="takeControlButton">Take Control</button>
-        <label for="botSelect">Bot:</label>
-        <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;">
-        </select>
+        <div>
+          <label for="botSelect">Bot:</label>
+          <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;"></select>
+          <button id="take-control">Take Control</button>
+        </div>
         <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
         <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
         <a href="/">Jaia Command & Control</a>
@@ -151,6 +152,42 @@
     <div id="status" class="row">
       <table class="status" id="statusTable">
       </table>
+    </div>
+
+    <div>
+      <h2>Calibration</h2>
+      <h3>Motor</h3>
+      <div id="motor-config-control" class="config-slider-background">
+        <div id="max_reverse" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+        <div id="reverseStart" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+        <div id="forwardStart" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+      </div>
+      <h3>Rudder</h3>
+      <div id="rudder-config-control" class="config-slider-background">
+        <div id="upper" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+        <div id="center" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+        <div id="lower" class="config-slider-handle">
+          <div class="config-slider-line"></div>
+          <div class="config-slider-text"></div>
+        </div>
+      </div>
+      <button id="submit-config">Submit</button>
+      <button id="query-engineering-status">Query</button>
     </div>
 
     <div class="helpPane hidden" id="helpPane">

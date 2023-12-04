@@ -2,19 +2,22 @@ import { byId } from "./domQuery.js";
 
 class BotDropdown {
 
-    constructor(elementId, onChange) {
+    constructor(elementId) {
         this.selectElement = byId(elementId)
-
-        this.selectElement.addEventListener('change', (e) => {
-            onChange(Number(e.target.value))
-        })
+        if (this.selectElement == null) {
+          console.warn(`Couldn't find element with id="${elementId}"`)
+        }
     }
 
     getSelectedBotId() {
-        return this.selectElement?.value || "0"
+      console.log('selectedBotId =')
+      console.log(this.selectElement?.value)
+      return this.selectElement?.value || "0"
     }
       
     updateWithBots(bots) {
+        if (bots == null) return
+
         let existingBotIds = Array.from(this.selectElement.getElementsByTagName('option')).map(element => element.value)
         let newBotIds = Object.keys(bots)
       
@@ -51,4 +54,6 @@ class BotDropdown {
       
 }
 
-export { BotDropdown }
+const botDropdown = new BotDropdown("botSelect")
+
+export { BotDropdown, botDropdown }
