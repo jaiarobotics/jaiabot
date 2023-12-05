@@ -56,9 +56,9 @@ xbee {
 hub_gpsd_device: "$hub_gpsd_device"
 
 # Feed bot status as GPS sentences (RMC / HDT)
-# bot_to_gps  { bot_id: 3   udp { remote_address: "127.0.0.1" remote_port: 33003 }}
+bot_to_gps  { bot_id: 1   udp { remote_address: "127.0.0.1" remote_port: 33001 }}
 
 # GPSD contacts (max 4 devices, so 3 contacts + hub local GPS)
-contact_gps { contact: 1  gpsd_device: "udp://0.0.0.0:33001" use_track: true}
-contact_gps { contact: 2  gpsd_device: "udp://0.0.0.0:33002" use_track: true}
-contact_gps { contact: 3  gpsd_device: "udp://0.0.0.0:33003" use_track: true}
+contact_gps { contact: 1  gpsd_device: "udp://0.0.0.0:33001" use_cog: true}
+contact_gps { contact: 2  gpsd_device: "udp://0.0.0.0:33002" use_cog: true}
+contact_gps { contact: 3  gpsd_device: "udp://0.0.0.0:33003" use_cog: true}

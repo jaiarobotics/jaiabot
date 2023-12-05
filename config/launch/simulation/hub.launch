@@ -9,7 +9,7 @@ jaiabot_simulator <(../../gen/hub.py jaiabot_simulator)
 goby_gps <(../../gen/hub.py goby_gps)
 goby_logger <(../../gen/hub.py goby_logger)
 
-jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -v
+jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -vvv
 jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
 jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 

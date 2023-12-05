@@ -610,7 +610,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
                 ivp_contact.set_x_with_units(xy.x);
                 ivp_contact.set_y_with_units(xy.y);
                 ivp_contact.set_speed_with_units(contact_update.speed_over_ground_with_units());
-                ivp_contact.set_heading_with_units(contact_update.heading_with_units());
+                ivp_contact.set_heading_or_cog_with_units(
+                    contact_update.heading_or_cog_with_units());
 
                 glog.is_verbose() && glog << group("movement") << "Sending update to pHelmIvP: "
                                           << ivp_update.ShortDebugString() << std::endl;

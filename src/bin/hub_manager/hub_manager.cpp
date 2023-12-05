@@ -107,12 +107,16 @@ class HubManager : public ApplicationBase
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 
     // map GPSD device name to contact ID
-    std::map<std::string, int> contact_gps_;
-    std::set<std::string> contact_use_track_;
-    // map GPSD device name to heading / track
+    struct Contact
+    {
+        int id;
+        bool use_cog;
+    };
+
+    std::map<std::string, Contact> contact_gps_;
+    // map GPSD device name to heading
     std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>>
         contact_heading_;
-    std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>> contact_track_;
 
     // set of Bot IDs with bot_to_gps in use
     std::set<int> bot_to_gps_ids_;
@@ -142,9 +146,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 
     for (auto contact_gps : cfg().contact_gps())
     {
-        contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(), contact_gps.contact()));
-        if (contact_gps.use_track())
-            contact_use_track_.insert(contact_gps.gpsd_device());
+        contact_gps_.insert(std::make_pair(
+            contact_gps.gpsd_device(), Contact({contact_gps.contact(), contact_gps.use_cog()})));
     }
 
     for (auto bot_to_gps : cfg().bot_to_gps())
@@ -218,7 +221,7 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                 if (tpv.has_location())
                 {
                     protobuf::ContactUpdate update;
-                    update.set_contact(contact_gps_[tpv.device()]);
+                    update.set_contact(contact_gps_[tpv.device()].id);
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     update.mutable_location()->set_lat_with_units(lat);
@@ -226,17 +229,16 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                     if (tpv.has_speed())
                         update.set_speed_over_ground_with_units(tpv.speed_with_units());
 
-                    if (contact_use_track_.count(tpv.device()))
+                    if (contact_gps_[tpv.device()].use_cog)
                     {
-                        if (!tpv.has_track())
-                            return;
-                        update.set_heading_with_units(tpv.track_with_units());
+                        if (tpv.has_track())
+                            update.set_heading_or_cog_with_units(tpv.track_with_units());
                     }
                     else
                     {
                         auto it = contact_heading_.find(tpv.device());
                         if (it != contact_heading_.end())
-                            update.set_heading_with_units(it->second);
+                            update.set_heading_or_cog_with_units(it->second);
                     }
 
                     glog.is_debug2() && glog << group("main") << "Sending contact update: "
@@ -407,14 +409,25 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         goby::util::gps::RMC rmc;
         goby::util::gps::HDT hdt;
 
-        rmc.status = goby::util::gps::RMC::DataValid;
+        rmc.time =
+            goby::time::convert<goby::time::SystemClock::time_point>(node_status.time_with_units());
 
-        rmc.latitude = dccl_nav.location().lat_with_units();
-        rmc.longitude = dccl_nav.location().lon_with_units();
+        if (dccl_nav.has_location())
+            rmc.status = goby::util::gps::RMC::DataValid;
+        else
+            rmc.status = goby::util::gps::RMC::NavigationReceiverWarning;
 
-        rmc.speed_over_ground = dccl_nav.speed().over_ground_with_units();
+        if (dccl_nav.has_location())
+        {
+            rmc.latitude = dccl_nav.location().lat_with_units();
+            rmc.longitude = dccl_nav.location().lon_with_units();
+        }
+        if (dccl_nav.has_speed())
+            rmc.speed_over_ground = dccl_nav.speed().over_ground_with_units();
 
-        hdt.true_heading = dccl_nav.attitude().heading_with_units();
+        if (dccl_nav.attitude().has_course_over_ground())
+            rmc.course_over_ground = dccl_nav.attitude().course_over_ground_with_units();
+
         {
             auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
             io_data->set_index(dccl_nav.bot_id());
@@ -422,7 +435,9 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
             interthread().publish<bot_gps_out>(io_data);
         }
 
+        if (dccl_nav.attitude().has_heading())
         {
+            hdt.true_heading = dccl_nav.attitude().heading_with_units();
             auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
             io_data->set_index(dccl_nav.bot_id());
             io_data->set_data(hdt.serialize().message_cr_nl());

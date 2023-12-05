@@ -149,7 +149,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
                       << ",TIME=" << static_cast<std::uint64_t>(MOOSTime())
                       << ",X=" << update.contact().x() << ",Y=" << update.contact().y()
                       << ",SPD=" << update.contact().speed()
-                      << ",HDG=" << update.contact().heading();
+                      << ",HDG=" << update.contact().heading_or_cog();
             moos().comms().Notify("NODE_REPORT", update_ss.str());
             break;
         }

@@ -448,7 +448,7 @@ message ContactUpdate
         unit_system: "si"
     };
 
-    optional int32 contact = 1 [(dccl.field) = { min: 1, max: 15 }]; 
+    optional int32 contact = 1 [(dccl.field) = { min: 1, max: 15 }];
     required GeographicCoordinate location = 2;
     optional double speed_over_ground = 3 [(dccl.field) = {
         min: -5
@@ -456,11 +456,10 @@ message ContactUpdate
         precision: 1
         units { derived_dimensions: "velocity" }
     }];
-    optional double heading = 5 [(dccl.field) = {
+    optional double heading_or_cog = 5 [(dccl.field) = {
         min: 0
         max: 360
         precision: 0
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 }
-
