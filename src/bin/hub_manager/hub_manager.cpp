@@ -111,6 +111,7 @@ class HubManager : public ApplicationBase
     {
         int id;
         bool use_cog;
+        goby::time::SteadyClock::time_point next_send_time;
     };
 
     std::map<std::string, Contact> contact_gps_;
@@ -146,8 +147,9 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 
     for (auto contact_gps : cfg().contact_gps())
     {
-        contact_gps_.insert(std::make_pair(
-            contact_gps.gpsd_device(), Contact({contact_gps.contact(), contact_gps.use_cog()})));
+        contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(),
+                                           Contact({contact_gps.contact(), contact_gps.use_cog(),
+                                                    goby::time::SteadyClock::now()})));
     }
 
     for (auto bot_to_gps : cfg().bot_to_gps())
@@ -221,7 +223,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                 if (tpv.has_location())
                 {
                     protobuf::ContactUpdate update;
-                    update.set_contact(contact_gps_[tpv.device()].id);
+                    Contact& contact_param = contact_gps_[tpv.device()];
+                    update.set_contact(contact_param.id);
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     update.mutable_location()->set_lat_with_units(lat);
@@ -229,7 +232,7 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                     if (tpv.has_speed())
                         update.set_speed_over_ground_with_units(tpv.speed_with_units());
 
-                    if (contact_gps_[tpv.device()].use_cog)
+                    if (contact_param.use_cog)
                     {
                         if (tpv.has_track())
                             update.set_heading_or_cog_with_units(tpv.track_with_units());
@@ -241,10 +244,26 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
                             update.set_heading_or_cog_with_units(it->second);
                     }
 
-                    glog.is_debug2() && glog << group("main") << "Sending contact update: "
-                                             << update.ShortDebugString() << std::endl;
+                    if (goby::time::SteadyClock::now() > contact_param.next_send_time)
+                    {
+                        glog.is_debug2() && glog << group("main") << "Sending contact update: "
+                                                 << update.ShortDebugString() << std::endl;
 
-                    intervehicle().publish<jaiabot::groups::contact_update>(update);
+                        intervehicle().publish<jaiabot::groups::contact_update>(update);
+
+                        contact_param.next_send_time =
+                            goby::time::SteadyClock::now() +
+                            (std::chrono::seconds(cfg().contact_blackout_seconds()) *
+                             managed_bot_modem_ids_
+                                 .size()); // spread out contact transmissions based on number of bots. TODO: use broadcast to send contacts if we can.
+                    }
+                    else
+                    {
+                        glog.is_debug2() &&
+                            glog << group("main")
+                                 << "Skipping contact update (not time to send again yet): "
+                                 << update.ShortDebugString() << std::endl;
+                    }
                 }
             }
         });

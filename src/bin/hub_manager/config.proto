@@ -79,4 +79,7 @@ message HubManager
     }
     repeated BotToGPS bot_to_gps = 22;  // feed BotStatus as pseudo-GPS message
                                         // over various transport options
+
+    optional int32 contact_blackout_seconds = 23
+        [default = 2];  // don't send a contact update more often than this
 }
