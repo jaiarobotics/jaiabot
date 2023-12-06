@@ -3,7 +3,6 @@ import { clamp } from "./utils.js"
 
 const MICRO_MIN = 1000
 const MICRO_MAX = 2000
-const MICRO_RANGE = MICRO_MAX - MICRO_MIN
 
 class ActuatorConfigTextInputs {
 
@@ -21,7 +20,7 @@ class ActuatorConfigTextInputs {
             // If field loses focus, clamp the value to the acceptable range
             inputElement.addEventListener('blur', (event) => {
                 const value = Number(event.target.value)
-                event.target.value = clamp(value, 1000, 2000)
+                event.target.value = clamp(value, MICRO_MIN, MICRO_MAX)
             })
         }
 
