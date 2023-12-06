@@ -58,3 +58,11 @@ button:active {
     color: white;
     position: absolute;
 }
+
+input {
+    font-size: large;
+}
+
+td {
+    font-size: large;
+}

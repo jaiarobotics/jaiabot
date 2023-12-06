@@ -10,8 +10,6 @@ class BotDropdown {
     }
 
     getSelectedBotId() {
-      console.log('selectedBotId =')
-      console.log(this.selectElement?.value)
       return this.selectElement?.value || "0"
     }
       

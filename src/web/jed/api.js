@@ -41,7 +41,7 @@ class JaiaAPI {
   
     this.apiThrottleEndTime = Date.now() + 1000
 
-    fetch('/jaia/engineering-command', {method: 'POST', headers: this.headers, body: JSON.stringify(command)})
+    return fetch('/jaia/engineering-command', {method: 'POST', headers: this.headers, body: JSON.stringify(command)})
     .then((response) => response.json())
     .then((response) => {
       if (response.status != 'ok') {

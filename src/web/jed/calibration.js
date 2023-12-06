@@ -3,6 +3,7 @@ import { api, JaiaAPI } from './api.js'
 import { updateStatus } from './updateStatus.js'
 import { botDropdown } from './BotDropdown.js'
 import { ActuatorConfigSlider } from './ActuatorConfigSlider.js'
+import { ActuatorConfigTextInputs } from './ActuatorConfigTextInputs.js'
 
 class CalibrationApp {
 
@@ -20,8 +21,8 @@ class CalibrationApp {
             }
         }
 
-        this.motorConfigControl = new ActuatorConfigSlider('motor-config-control', this.defaultBounds.motor)
-        this.rudderConfigControl = new ActuatorConfigSlider('rudder-config-control', this.defaultBounds.rudder)
+        this.motorConfigControl = new ActuatorConfigTextInputs('motor-bounds-config', this.defaultBounds.motor)
+        this.rudderConfigControl = new ActuatorConfigTextInputs('rudder-bounds-config', this.defaultBounds.rudder)
 
         this.submitButton = byId('submit-config')
         this.submitButton.addEventListener('click', this.submitConfig.bind(this))
@@ -34,29 +35,23 @@ class CalibrationApp {
 
 
     updateStatus(status) {
-        console.log('1')
         // Update bounds, if the time is newer on this engineering status
         const selected_bot_id = botDropdown.getSelectedBotId()
         if (selected_bot_id == null) return
 
-        console.log('2')
         const thisBot = status.bots[botDropdown.getSelectedBotId()]
         if (thisBot == null) return
 
-        console.log('3')
         const engineering_status = thisBot.engineering
         if (engineering_status == null) return
 
         const engineeringStatusTime = Number(engineering_status.time)
-        console.log(`${engineeringStatusTime} ${this.lastEngineeringStatusTime}`)
         if (engineeringStatusTime <= this.lastEngineeringStatusTime) return
         this.lastEngineeringStatusTime = engineeringStatusTime
 
-        console.log('5')
         const bounds = engineering_status.bounds
         if (bounds == null) return
 
-        console.log('updating bounds GUI')
         this.motorConfigControl.setConfig(bounds.motor)
         this.rudderConfigControl.setConfig(bounds.rudder)
     }
@@ -82,6 +77,9 @@ class CalibrationApp {
             }
         }
 
+        console.debug(`Submitting:`)
+        console.debug(engineeringCommand)
+
         api.sendEngineeringCommand(engineeringCommand, true)
     }
 
@@ -101,8 +99,6 @@ class CalibrationApp {
             bot_id: bot_id,
             query_engineering_status: true
         }
-
-        console.log(engineeringCommand)
 
         api.sendEngineeringCommand(engineeringCommand, true)
     }
