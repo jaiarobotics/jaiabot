@@ -9,6 +9,7 @@ add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/client/build.sh
   ARGS ${jdv_client_outdir}
   COMMENT "Running jdv build.sh"
+  DEPENDS npm_depdendencies
   )
 
 add_custom_target(jdv

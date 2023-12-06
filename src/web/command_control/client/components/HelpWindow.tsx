@@ -1,5 +1,5 @@
 import React from 'react'
-import './HelpWindow.less'
+import '../style/components/HelpWindow.less'
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
@@ -84,7 +84,7 @@ const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiArrowULeftTop,
         name: 'Undo',
-        description: 'Undo the last mission editing action.'
+        description: 'Undo the last 10 mission planning actions (excluding Task modifications).'
     },
     {
         iconPath: mdiCog,
