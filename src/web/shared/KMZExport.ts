@@ -1,7 +1,7 @@
-import { LogTaskPacket } from "./Log"
+import { LogTaskPacket } from "./LogMessages"
 import JSZip from 'jszip';
-import * as Styles from './shared/Styles'
-import { DriftPacket } from "./shared/JAIAProtobuf";
+import * as Styles from './Styles'
+import { DriftPacket, TaskPacket } from "./JAIAProtobuf";
 
 
 /**
@@ -10,16 +10,24 @@ import { DriftPacket } from "./shared/JAIAProtobuf";
  * @param {LogTaskPacket} taskPacket The task packet to process into KML features
  * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
  */
-async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
+async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket) {
     var placemarks: string[] = []
 
-    if (taskPacket._scheme_ != 1) {
+    if ('_scheme_' in taskPacket && taskPacket._scheme_ != 1) {
         return []
     }
 
     const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
-    const date = new Date(taskPacket._utime_ / 1e3)
-    const dateString = formatter.format(date)
+
+    var startTimeString: string
+    if (taskPacket.start_time != null) {
+        const startTime = new Date(taskPacket.start_time / 1e3)
+        startTimeString = formatter.format(startTime)
+    }
+    else {
+        startTimeString = "Unknown"
+    }
+
     const bot_id = taskPacket.bot_id
 
     // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
@@ -59,7 +67,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                 <description>
                     <h2>Dive</h2>
                     Bot-ID: ${bot_id}<br />
-                    Time: ${dateString}<br />
+                    Start: ${startTimeString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
                     Duration-to-GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
@@ -94,7 +102,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
         const driftDescription = `
             <h2>Drift</h2>
             Bot-ID: ${bot_id}<br />
-            Start: ${dateString}<br />
+            Start: ${startTimeString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
             Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
@@ -131,7 +139,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
 
 export class KMLDocument {
-    task_packets: LogTaskPacket[] = []
+    task_packets: (LogTaskPacket | TaskPacket)[] = []
 
     constructor() {
     }

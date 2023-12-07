@@ -84,6 +84,15 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
     document.body.removeChild(link)
 }
 
+export function downloadBlobToFile(name: string, data: BlobPart) {
+    let a = document.createElement("a");
+    if (typeof a.download !== "undefined") a.download = name;
+    a.href = URL.createObjectURL(new Blob([data], {
+        type: "application/octet-stream"
+    }));
+    a.dispatchEvent(new MouseEvent("click"));
+}
+
 // getGeographicCoordinate()
 //   Returns the GeographicCoordinate of an OpenLayers coordinate on a map
 //   
