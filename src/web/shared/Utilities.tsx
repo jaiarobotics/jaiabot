@@ -72,6 +72,14 @@ export function randomBase57(stringLength: number) {
     return s
 }
 
+
+/**
+ * Starts a browser download of a file with string contents
+ *
+ * @param {string} data file contents
+ * @param {string} mimeType MIME type
+ * @param {string} fileName default filename
+ */
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], {type: mimeType})
 
@@ -84,6 +92,13 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
     document.body.removeChild(link)
 }
 
+
+/**
+ * Starts a browser download of a file with binary data contents
+ *
+ * @param {string} name default filename
+ * @param {BlobPart} data file contents
+ */
 export function downloadBlobToFile(name: string, data: BlobPart) {
     let a = document.createElement("a");
     if (typeof a.download !== "undefined") a.download = name;
