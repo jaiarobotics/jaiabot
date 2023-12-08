@@ -10,7 +10,7 @@ import { DriftPacket, TaskPacket } from "./JAIAProtobuf";
  * @param {LogTaskPacket} taskPacket The task packet to process into KML features
  * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
  */
-async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket) {
+async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket): Promise<string[]> {
     var placemarks: string[] = []
 
     if ('_scheme_' in taskPacket && taskPacket._scheme_ != 1) {
@@ -138,7 +138,20 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
 }
 
 
+
+/**
+ * A KML/KMZ document
+ *
+ * @class KMLDocument
+ * @typedef {KMLDocument}
+ */
 export class KMLDocument {
+    
+    /**
+     * Task packets in this KMLDocument
+     *
+     * @type {(LogTaskPacket | TaskPacket)[]}
+     */
     task_packets: (LogTaskPacket | TaskPacket)[] = []
 
     constructor() {
@@ -150,7 +163,7 @@ export class KMLDocument {
      *
      * @returns {Promise<string>} the KML document as a string
      */
-    async getKML() {
+    async getKML(): Promise<string> {
         var placemarksKml = ''
 
         for (const task_packet of this.task_packets) {
@@ -173,7 +186,7 @@ export class KMLDocument {
      *
      * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
      */
-    async getKMZ() {
+    async getKMZ(): Promise<Blob> {
         const kmlFileString = await this.getKML()
 
         var zip = new JSZip()
