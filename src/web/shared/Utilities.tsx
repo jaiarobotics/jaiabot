@@ -76,9 +76,9 @@ export function randomBase57(stringLength: number) {
 /**
  * Starts a browser download of a file with string contents
  *
- * @param {string} data file contents
+ * @param {string} data File contents
  * @param {string} mimeType MIME type
- * @param {string} fileName default filename
+ * @param {string} fileName Default filename
  */
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], {type: mimeType})
@@ -96,8 +96,8 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
 /**
  * Starts a browser download of a file with binary data contents
  *
- * @param {string} name default filename
- * @param {BlobPart} data file contents
+ * @param {string} name Default filename
+ * @param {BlobPart} data File contents
  */
 export function downloadBlobToFile(name: string, data: BlobPart) {
     let a = document.createElement("a");
@@ -108,12 +108,13 @@ export function downloadBlobToFile(name: string, data: BlobPart) {
     a.dispatchEvent(new MouseEvent("click"));
 }
 
-// getGeographicCoordinate()
-//   Returns the GeographicCoordinate of an OpenLayers coordinate on a map
-//   
-//   Inputs
-//     coordinate: coordinate to convert
-//     map: an OpenLayers map that the coordinates refer to
+/**
+ * Returns the GeographicCoordinate of an OpenLayers coordinate on a map
+ *
+ * @param {Coordinate} coordinate Coordinate to convert
+ * @param {Map} map An OpenLayers map that the coordinates refer to
+ * @returns {GeographicCoordinate} The GeographicCoordinate of the input coordinate
+ */
 export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     const lonLat = toLonLat(coordinate, map.getView().getProjection())
     const geographicCoordinate: GeographicCoordinate = {
@@ -124,12 +125,13 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     return geographicCoordinate
 }
 
-// getMapCoordinate()
-//   Returns the OpenLayers Coordinate of an GeographicCoordinate on a map
-//   
-//   Inputs
-//     coordinate: coordinate to convert
-//     map: an OpenLayers map that the coordinates refer to
+/**
+ * Returns the OpenLayers Coordinate of an GeographicCoordinate on a map
+ *
+ * @param {GeographicCoordinate} coordinate Coordinate to convert
+ * @param {Map} map An OpenLayers map that the coordinates refer to
+ * @returns {*} The OpenLayers coordinate on the map corresponding to the input coordinate
+ */
 export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
     if (coordinate == null) return null
     return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())

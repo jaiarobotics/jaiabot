@@ -69,11 +69,11 @@ export function SettingsPanel(props: Props) {
 
     const handleClickedDownloadKMZ = async (event: React.MouseEvent<HTMLButtonElement>) => {
         const kmlDocument = new KMLDocument()
-        kmlDocument.task_packets = taskData.taskPackets
+        kmlDocument.setTaskPackets(taskData.taskPackets)
 
-        var fileDate = new Date()
+        let fileDate = new Date()
         // Use the date of the first task packet, if present
-        if (taskData.taskPackets[0]?.start_time != null) {
+        if (taskData.taskPackets[0]?.start_time !== undefined) {
             fileDate = new Date(taskData.taskPackets[0].start_time / 1e3)
         }
 

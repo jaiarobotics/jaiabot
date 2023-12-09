@@ -5,10 +5,8 @@ import { Command, TaskPacket } from "./JAIAProtobuf"
  * Messages stored in Jaia .goby and .h5 files contain a few extra fields
  *
  * @interface LogMessage
- * @typedef {LogMessage}
  */
 export interface LogMessage {
-    
     /**
      * Unix timestamp in microseconds since the Unix epoch
      *

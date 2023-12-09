@@ -13,7 +13,7 @@ import { DriftPacket, TaskPacket } from "./JAIAProtobuf";
 async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket): Promise<string[]> {
     var placemarks: string[] = []
 
-    if ('_scheme_' in taskPacket && taskPacket._scheme_ != 1) {
+    if ('_scheme_' in taskPacket && taskPacket._scheme_ !== 1) {
         return []
     }
 
@@ -146,15 +146,20 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
  * @typedef {KMLDocument}
  */
 export class KMLDocument {
-    
-    /**
-     * Task packets in this KMLDocument
-     *
-     * @type {(LogTaskPacket | TaskPacket)[]}
-     */
-    task_packets: (LogTaskPacket | TaskPacket)[] = []
+    #taskPackets: (LogTaskPacket | TaskPacket)[]
 
     constructor() {
+        this.#taskPackets = []
+    }
+
+
+    setTaskPackets(taskPackets: (LogTaskPacket | TaskPacket)[]) {
+        this.#taskPackets = taskPackets
+    }
+
+
+    getTaskPackets() {
+        return this.#taskPackets
     }
 
     
@@ -166,7 +171,7 @@ export class KMLDocument {
     async getKML(): Promise<string> {
         var placemarksKml = ''
 
-        for (const task_packet of this.task_packets) {
+        for (const task_packet of this.#taskPackets) {
             const taskPacketKml = await taskPacketToKMLPlacemarks(task_packet)
             placemarksKml += taskPacketKml
         }
