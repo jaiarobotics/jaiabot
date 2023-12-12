@@ -673,7 +673,7 @@ export default class JaiaMap {
 
     exportKml() {
         const kmz = new KMLDocument()
-        kmz.task_packets = this.task_packets
+        kmz.setTaskPackets(this.task_packets)
 
         kmz.getKMZ().then((kml) => {
             downloadBlobToFile('map.kmz', kml)
