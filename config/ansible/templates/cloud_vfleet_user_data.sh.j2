@@ -1,5 +1,11 @@
 #!/bin/bash
 
+## SSH Keys
+mkdir -p /home/jaia/.ssh
+cat << EOF >> /home/jaia/.ssh/authorized_keys
+{{ ssh_pubkeys }}
+EOF
+
 ## Set up VPN
 
 node_type={{ item.node_type }}

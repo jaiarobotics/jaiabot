@@ -12,46 +12,43 @@
       set_fact:
         private_vpn_keys: {}
         public_vpn_keys: {}
-      tags: test 
+     
+    - name: Read publickeys configured on Cloudhub and use these for VirtualFleet
+      set_fact:
+        ssh_pubkeys: "{{ lookup('file', '/home/jaia/.ssh/authorized_keys') }}"
 
     - name: Generate WireGuard private key for each instance
       command: wg genkey
       register: wg_private_key
       loop: "{{ node_map }}"
       no_log: true
-      tags: test 
 
     - name: Add WireGuard private keys to vpn_keys dictionary
       set_fact:
         private_vpn_keys: "{{ private_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
       loop: "{{ wg_private_key.results }}"
       no_log: true
-      tags: test 
 
     - name: Generate WireGuard public key for each instance
       shell: echo "{{ private_vpn_keys[item.node_type][item.node_id] }}" | wg pubkey
       register: wg_public_key
       loop: "{{ node_map }}"
       no_log: true
-      tags: test 
 
     - name: Add WireGuard private keys to vpn_keys dictionary
       set_fact:
         public_vpn_keys: "{{ public_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
       loop: "{{ wg_public_key.results }}"
       no_log: true
-      tags: test 
 
     - name: Read /etc/jaiabot/cloud.env
       shell: "cat /etc/jaiabot/cloud.env | grep -v '^#' | grep -v '^$'"
       register: cloud_env_output
-      tags: test 
 
     - name: Set facts from cloud.env
       set_fact:
         cloud_env_vars: "{{ cloud_env_vars | default({}) | combine({ item.split('=', 1)[0]: (item.split('=', 1)[1] | default('')) }) }}"
       loop: "{{ cloud_env_output.stdout_lines }}"
-      tags: test 
 
     - name: Set derived facts using cloud.env
       set_fact:
@@ -88,8 +85,9 @@
           jaiabot-rootfs-gen_repository_version: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository_version }}"          
         user_data: "{{ lookup('template', 'templates/cloud_vfleet_user_data.sh.j2') }}"
         wait: true
-        state: running
+        state: present
       loop: "{{ node_map }}"
+#     no_log: true
       register: ec2_instances_results
 
     - name: Update peer blocks in WireGuard config
