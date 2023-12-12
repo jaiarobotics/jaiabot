@@ -1,0 +1,56 @@
+---
+- name: Start EC2 instances
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Read /etc/jaiabot/cloud.env
+      shell: "cat /etc/jaiabot/cloud.env | grep -v '^#' | grep -v '^$'"
+      register: cloud_env_output
+
+    - name: Set facts from cloud.env
+      set_fact:
+        cloud_env_vars: "{{ cloud_env_vars | default({}) | combine({ item.split('=')[0]: (item.split('=')[1] | default('')) }) }}"
+      loop: "{{ cloud_env_output.stdout_lines }}"
+
+    - name: Find latest AMI
+      amazon.aws.ec2_ami_info:
+        region: "{{ cloud_env_vars.jaia_aws_region }}"
+        filters:
+          "tag:jaiabot-rootfs-gen_repository": "{{ cloud_env_vars.jaia_aws_virtualfleet_repository }}"
+          "tag:jaiabot-rootfs-gen_repository_version": "{{ cloud_env_vars.jaia_aws_virtualfleet_repository_version }}"
+      register: ami_info
+
+    - name: Show ami_info
+      ansible.builtin.debug:
+        var: ami_info
+      
+    - name: Start EC2 instances
+      amazon.aws.ec2_instance:
+        name: "VirtualFleetNode1"
+        region: "{{ cloud_env_vars.jaia_aws_region }}"
+        image_id: "{{ ami_info.images[0].image_id }}"
+        instance_type: "t3a.medium"
+        vpc_subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_subnet_id }}"
+        security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
+        tags:
+          jaia_instance_type: "virtualfleet"
+        user_data: "{{ lookup('template', 'templates/cloud_vfleet_user_data.sh.j2') }}"
+        wait: true
+        state: started
+        instance_tags:
+          jaia_node_type: "{{ item.node_type }}"
+          jaia_node_id: "{{ item.node_id }}"
+          wireguard_public_key: "{{ cloud_env_vars.jaia_cloudhub_wg_pubkey }}"
+      loop: "{{ node_map }}"
+      vars:
+        node_map:
+          - { node_type: 'hub', node_id: '1' }
+          - { node_type: 'bot', node_id: '1' }
+#          - { node_type: 'bot', node_id: '2' }
+#          - { node_type: 'bot', node_id: '3' }
+
+    - name: Save instance details
+      copy:
+        content: "{{ ec2_instances.instances | to_nice_json }}"
+        dest: "/tmp/ec2_instance_details.json"
