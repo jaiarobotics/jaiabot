@@ -2,10 +2,11 @@
 - name: Create new VirtualFleet EC2 instances (and delete any old ones)
   hosts: localhost
   gather_facts: yes
-  vars:
-    node_map:
-      - { node_type: 'hub', node_id: '1' }
-      - { node_type: 'bot', node_id: '1' }
+  vars_files:
+    - vars/vfleet_nodes.yml
+  vars:    
+    server_ssh_privkey_path: /home/jaia/.ssh/id_ed25519
+    server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
 
   tasks:
     - name: Read cloud.env
@@ -20,6 +21,23 @@
       include_tasks: tasks/cloud-read-ip-addresses.yml    
       tags: read
 
+    - name: Read publickeys configured on Cloudhub and use these for VirtualFleet
+      set_fact:
+        user_ssh_pubkeys: "{{ lookup('file', '/home/jaia/.ssh/authorized_keys') }}"
+      tags: read
+
+    - name: Generate OpenSSH keypair
+      community.crypto.openssh_keypair:
+        path: "{{ server_ssh_privkey_path }}"
+        type: ed25519
+      tags: read
+
+    - name: Read server publickey
+      set_fact:
+        server_ssh_pubkey: "{{ lookup('file', server_ssh_pubkey_path) }}"
+        tags: read
+      tags: read
+        
     - name: Find latest AMI
       amazon.aws.ec2_ami_info:
         region: "{{ cloud_env_vars.jaia_aws_region }}"
@@ -39,13 +57,8 @@
           tag:jaia_instance_type: "virtualfleet"
           tag:jaia_fleet: "{{ cloud_env_vars.jaia_fleet_index }}"
           tag:jaia_customer: "{{ jaia_customer_no_quotes }}"
-#        wait: false
         wait: true
         state: terminated
-
-#    - name: Pause to let old EC2 instances start termination (no need to wait for full termination - just until network interfaces are deallocated)
-#      pause:
-#        seconds: 30
         
     - name: Create EC2 instances
       amazon.aws.ec2_instance:
@@ -89,3 +102,6 @@
         name: wg-quick@wg_virtualfleet
         state: restarted
         daemon_reload: yes
+
+    - name: Write /etc/hosts
+      include_tasks: tasks/cloud-write-etc-hosts.yml

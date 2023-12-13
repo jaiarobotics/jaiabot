@@ -16,11 +16,6 @@
     virtualfleet_vpn_server_network: "{{ virtualfleet_vpn_server_result.stdout }}"
   tags: read
 
-- name: Read publickeys configured on Cloudhub and use these for VirtualFleet
-  set_fact:
-    ssh_pubkeys: "{{ lookup('file', '/home/jaia/.ssh/authorized_keys') }}"
-  tags: read
-
 - name: Generate WireGuard private key for each instance
   command: wg genkey
   register: wg_private_key

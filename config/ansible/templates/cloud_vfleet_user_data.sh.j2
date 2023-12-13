@@ -3,7 +3,8 @@
 ## SSH Keys
 mkdir -p /home/jaia/.ssh
 cat << EOF >> /home/jaia/.ssh/authorized_keys
-{{ ssh_pubkeys }}
+{{ server_ssh_pubkey }}
+{{ user_ssh_pubkeys }}
 EOF
 
 ## Set up VPN

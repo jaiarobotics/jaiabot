@@ -1,0 +1,18 @@
+---
+- name: Update /etc/hosts for nodes in VirtualFleet
+  hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - vars/vfleet_nodes.yml
+  tasks:
+    - name: Read cloud.env
+      include_tasks: tasks/cloud-read-env.yml
+      tags: read
+
+    - name: Read IP addresses
+      include_tasks: tasks/cloud-read-ip-addresses.yml    
+      tags: read
+
+    - name: Write /etc/hosts
+      include_tasks: tasks/cloud-write-etc-hosts.yml
+      

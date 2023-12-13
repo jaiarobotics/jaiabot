@@ -1,0 +1,12 @@
+- name: Add/update entries in /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    regexp: '.* {{ node_type }}{{ node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}$'
+    line: '{{ ip }} {{ node_type }}{{ node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}'
+    state: present
+  loop: "{{ query('dict', vpn_ipv6_addresses) }}"
+  vars:
+    node_type: "{{ item.key }}"
+    node_id: "{{ item.value.keys() | first }}"
+    ip: "{{ item.value.values() | first }}"
+  become: true
