@@ -18,6 +18,8 @@ The Jaia Cloud is designed to provide:
 
 ## Network addresses
 
+The use of the `ip.py` tool (in `jaiabot/config/gen`) is recommended for determining IP addresses for a given node, id, fleet, etc.
+
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page55_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
 1. "fleet VPN": The fleet VPN for remote support (vpn.jaia.tech) - UDP port 51821 + fleet ID
@@ -30,10 +32,11 @@ These all need to be different because:
 - Some customers will not have a VirtualFleet at all.
 - Some customers may want to restrict access to the Cloudhub to a different set of users than those who have access to the VirtualFleet (e.g., trainees not able to accidentally command real fleet).
 
-Additionally, each VPC has two subnets assigned:
+Additionally, each VPC has three subnets assigned:
 
-1. CloudHub Subnet: 10.23.flt.0/24 and 2001:db8:0:**0**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
-2. VirtualFleet Subnet: 2001:db8:0:**1**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC. This subnet has no IPv4 addressing.
+1. CloudHub Subnet: 10.23.255.0/24 and 2001:db8:0:**0**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
+2. VirtualFleet ETH0 Subnet: 10.23.254.0/24 and 2001:db8:0:**1**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
+3. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 
 ### IPv4 
 
@@ -61,7 +64,7 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
-For a given node (bot or hub) on the VPN, the 64-bit interface identifier is given as `::0:hub_id` for hubs, `::1:bot_id` for bots, and `::2:customer_id` for various customer machines (laptop / tablet). This allows up to 2^16 = 65536 bots and hubs to be assigned per fleet.
+For a given node (bot or hub) on the VPN, the 64-bit interface identifier is given as `::0:hub_id` for hubs, `::1:bot_id` for bots, and `::2:customer_id` for various customer machines (desktop / laptop / tablet). This allows up to 2^16 = 65536 bots and hubs to be assigned per fleet.
 
 Some examples include:
 
