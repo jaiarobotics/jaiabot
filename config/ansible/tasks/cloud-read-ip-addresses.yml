@@ -1,0 +1,20 @@
+# prereq: node_map and cloud.env read
+
+- name: Initialize IP addresses dict
+  set_fact:
+    ipv6_addresses: {}
+  tags: read
+      
+- name: Look up IPv6 addresses
+  shell: /etc/jaiabot/ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  register: ip_addresses
+  loop: "{{ node_map }}"
+  tags: read
+
+- name: Add IPv6 addresses to dictionary
+  set_fact:
+    ipv6_addresses: "{{ ipv6_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+  loop: "{{ ip_addresses.results }}"
+  tags: read
+
+  

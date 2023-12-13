@@ -8,32 +8,11 @@ EOF
 
 ## Set up VPN
 
-node_type={{ item.node_type }}
-FLEET_ID={{ cloud_env_vars.jaia_fleet_index }}
-VIRTUALFLEET_VPN_SERVER_CIDR_48="fd6e:cf0d:aefa"
-VIRTUALFLEET_VPN_CLIENT_IPV6={{ item.ipv6_address }}
-VFLEET_VPN=wg_jaia_vfleet${FLEET_ID}
+VIRTUALFLEET_VPN_SERVER_CIDR_64="fd6e:cf0d:aefa"
 
+VFLEET_VPN=wg_jaia_vfleet{{ cloud_env_vars.jaia_fleet_index }}
 cat <<EOF > /etc/wireguard/${VFLEET_VPN}.conf
-[Interface]
-PrivateKey = {{ private_vpn_keys[item.node_type][item.node_id] }}
-
-# this client's VPN IP address
-Address = ${VIRTUALFLEET_VPN_CLIENT_IPV6}/128
-
-[Peer]
-# Server public key (from /etc/wireguard/publickey on server)
-PublicKey = {{ cloud_env_vars.jaia_cloudhub_wg_pubkey }}
-
-# Allowed private IPs
-AllowedIPs = ${VIRTUALFLEET_VPN_SERVER_CIDR_48}::/48
-
-# Server IP and port
-Endpoint = {{ ansible_eth0.ipv6[0].address }}:51820
-
-# Keep connection alive (required for behind NAT routers)
-PersistentKeepalive = 52
-
+{% include 'wireguard_client.conf.j2' %}
 EOF
 
 systemctl enable wg-quick@${VFLEET_VPN}

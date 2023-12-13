@@ -1,0 +1,50 @@
+# prereq: node_map and cloud.env read
+
+- name: Initialize dictionaries
+  set_fact:
+    private_vpn_keys: {}
+    public_vpn_keys: {}
+  tags: read
+
+- name: Look up server network
+  shell: /etc/jaiabot/ip.py net  --net vfleet_vpn --fleet_id  {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  register: virtualfleet_vpn_server_result
+  tags: read
+  
+- name: Add server network fact
+  set_fact: 
+    virtualfleet_vpn_server_network: "{{ virtualfleet_vpn_server_result.stdout }}"
+  tags: read
+
+- name: Read publickeys configured on Cloudhub and use these for VirtualFleet
+  set_fact:
+    ssh_pubkeys: "{{ lookup('file', '/home/jaia/.ssh/authorized_keys') }}"
+  tags: read
+
+- name: Generate WireGuard private key for each instance
+  command: wg genkey
+  register: wg_private_key
+  loop: "{{ node_map }}"
+  no_log: true
+  tags: read
+
+- name: Add WireGuard private keys to vpn_keys dictionary
+  set_fact:
+    private_vpn_keys: "{{ private_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+  loop: "{{ wg_private_key.results }}"
+  no_log: true
+  tags: read
+
+- name: Generate WireGuard public key for each instance
+  shell: echo "{{ private_vpn_keys[item.node_type][item.node_id] }}" | wg pubkey
+  register: wg_public_key
+  loop: "{{ node_map }}"
+  no_log: true
+  tags: read
+
+- name: Add WireGuard private keys to vpn_keys dictionary
+  set_fact:
+    public_vpn_keys: "{{ public_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+  loop: "{{ wg_public_key.results }}"
+  no_log: true
+  tags: read
