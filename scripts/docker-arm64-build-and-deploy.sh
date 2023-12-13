@@ -90,7 +90,7 @@ else
         fi
 
     	echo "🟢 Creating python virtual environment (venv)"
-        ssh ${botuser}@"$var" "bash -c 'pushd /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r requirements.txt; popd;'"
+        ssh ${botuser}@"$var" "bash -c 'pushd /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; python3 -m pip -q install wheel; python3 -m pip install -q -r requirements.txt; popd;'"
 
     	echo "🟢 Creating and setting permissons on log dir"
         ssh ${botuser}@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
