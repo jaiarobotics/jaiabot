@@ -18,7 +18,7 @@ The Jaia Cloud is designed to provide:
 
 ## Network addresses
 
-The use of the `ip.py` tool (in `jaiabot/config/gen`) is recommended for determining IP addresses for a given node, id, fleet, etc.
+The use of the `ip.py` tool (in `jaiabot-rootfs-gen/customization/includes.chroot/etc/jaiabot`) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page55_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
