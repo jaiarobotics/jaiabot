@@ -39,21 +39,25 @@
           tag:jaia_instance_type: "virtualfleet"
           tag:jaia_fleet: "{{ cloud_env_vars.jaia_fleet_index }}"
           tag:jaia_customer: "{{ jaia_customer_no_quotes }}"
-        wait: false
+#        wait: false
+        wait: true
         state: terminated
 
+#    - name: Pause to let old EC2 instances start termination (no need to wait for full termination - just until network interfaces are deallocated)
+#      pause:
+#        seconds: 30
+        
     - name: Create EC2 instances
       amazon.aws.ec2_instance:
         name: "jaia__Virtual{{ item.node_type | capitalize }}{{ item.node_id }}__{{ jaia_customer_no_quotes }}"
         region: "{{ cloud_env_vars.jaia_aws_region }}"
         image_id: "{{ ami_id }}"
         instance_type: "t3a.medium"
-        vpc_subnet_id: 
+        security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
+        subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_wlan_subnet_id }}"
         network:
-          - subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_eth0_subnet_id }}"
-            security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
-          - subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_wlan_subnet_id }}"
-            security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
+          private_ip_address: "{{ wlan_ipv4_addresses[item.node_type][item.node_id] }}"
+          description: "wlan"
         tags:
           jaia_instance_type: "virtualfleet"
           jaia_node_type: "{{ item.node_type }}"
@@ -66,13 +70,9 @@
         wait: false
         state: present
       loop: "{{ node_map }}"
-      no_log: true
+#      no_log: true
       register: ec2_instances
-
-    - name: Print results
-      debug:
-        var: ec2_instances      
-      
+        
     - name: Update peer blocks in WireGuard config
       blockinfile:
         path: /etc/wireguard/wg_virtualfleet.conf

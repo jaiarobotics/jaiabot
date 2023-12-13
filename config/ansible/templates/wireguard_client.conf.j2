@@ -2,7 +2,7 @@
 PrivateKey = {{ private_vpn_keys[item.node_type][item.node_id] }}
 
 # this client's VPN IP address
-Address = {{ ipv6_addresses[item.node_type][item.node_id] }}/128
+Address = {{ vpn_ipv6_addresses[item.node_type][item.node_id] }}/128
 
 [Peer]
 # Server public key (from /etc/wireguard/publickey on server)

@@ -7,7 +7,6 @@ cat << EOF >> /home/jaia/.ssh/authorized_keys
 EOF
 
 ## Set up VPN
-
 VIRTUALFLEET_VPN_SERVER_CIDR_64="fd6e:cf0d:aefa"
 
 VFLEET_VPN=wg_jaia_vfleet{{ cloud_env_vars.jaia_fleet_index }}
@@ -16,6 +15,20 @@ cat <<EOF > /etc/wireguard/${VFLEET_VPN}.conf
 EOF
 
 systemctl enable wg-quick@${VFLEET_VPN}
+
+## Set /etc/network/interfaces for IPv6 only internet
+cat <<EOF > /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+  address {{ wlan_ipv4_addresses[item.node_type][item.node_id] }}/24
+iface eth0 inet6 dhcp
+EOF
+
+## Restore default hostname
+hostnamectl set-hostname "jaia-unnamed"
 
 ## Preseed jaiabot
 mount -o remount,rw /boot/firmware
