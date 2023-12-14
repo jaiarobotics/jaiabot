@@ -27,11 +27,8 @@ systemctl enable wg-quick@${VFLEET_VPN}
 cat <<EOF > /etc/network/interfaces
 auto lo
 iface lo inet loopback
-
 auto eth0
-iface eth0 inet static
-  address {{ wlan_ipv4_addresses[item.node_type][item.node_id] }}/24
-iface eth0 inet6 dhcp
+iface eth0 inet dhcp
 EOF
 
 ## Restore default hostname
