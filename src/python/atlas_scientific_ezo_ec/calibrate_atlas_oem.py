@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-import atlas_oem
+try:
+    import atlas_oem
+except ImportError:
+    print('❗ WARNING: Could not import atlas_oem, using simulator ❗')
+    input('Press ENTER')
+    import atlas_oem_simulator as atlas_oem
 
 probe = atlas_oem.AtlasOEM()
 probe.setActiveHibernate(1)
@@ -10,33 +15,41 @@ def clearScreen():
     print('\033[2J\033[H')
 
 
-def presentMenu(menu):
+def presentMenu(menu) -> bool:
+    """Present a menu and execute the associated function.
+
+    Args:
+        menu (_type_): An array of dictionaries describing the menu entries
+
+    Returns:
+        bool: False if user chose an entry with func == None (exit to previous menu)
+    """
     item_func_dict = { item['key'].lower(): item['func'] for item in menu['items'] }
 
-    done = False
-    while not done:
-        clearScreen()
-        print(menu['title'])
-        print('============')
-        print()
+    clearScreen()
+    print(menu['title'])
+    print('============')
+    print()
 
-        for item in menu['items']:
-            print(f'{item["key"]}) {item["description"]}')
+    for item in menu['items']:
+        print(f'{item["key"]}) {item["description"]}')
 
-        print()
+    print()
 
-        choice = input('Enter choice > ')
+    choice = input('Enter choice > ')
 
-        if choice.lower() in item_func_dict:
-            func = item_func_dict[choice]
+    if choice.lower() in item_func_dict:
+        func = item_func_dict[choice]
 
-            if func is None:
-                return
-            else:
-                func()
+        if func is None:
+            return False
         else:
-            print('Invalid choice.')
-            input()
+            func()
+            return True
+    else:
+        print('Invalid choice.')
+        input()
+        return True
 
 
 def setProbeType():
@@ -60,7 +73,7 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
-    if description is not 'DRY':
+    if description != 'DRY':
         value = input(f'{description} calibration value: ')
     else:
         value = 0
@@ -90,44 +103,56 @@ def lowCalibration():
 
 
 def calibrate():
-    presentMenu({
-        'title': 'Calibrate',
-        'items': [
-            {
-                'description': 'Clear Calibration Data',
-                'key': 'c',
-                'func': clearCalibration
-            },
-            {
-                'description': 'Dry Calibration',
-                'key': 'd',
-                'func': dryCalibration
-            },
-            {
-                'description': 'Single Point Calibration',
-                'key': 's',
-                'func': singlePointCalibration
-            },
-            {
-                'description': 'Dual Point High Calibration',
-                'key': 'h',
-                'func': highCalibration
-            },
-            {
-                'description': 'Dual Point Low Calibration',
-                'key': 'l',
-                'func': lowCalibration
-            },
-            {
-                'description': 'Exit Menu',
-                'key': 'e',
-                'func': None
-            }
-        ]
-    })
+    shouldContinue = True
+
+    while shouldContinue:
+        calibrationConfirmation = probe.calibrationConfirmation()
+
+        if calibrationConfirmation == 0:
+            calibrationStatusString = 'Status: UNCALIBRATED'
+        elif calibrationConfirmation == 1:
+            calibrationStatusString = 'Status: ONE-POINT CALIBRATION COMPLETE'
+        elif calibrationConfirmation == 2:
+            calibrationStatusString = 'Status: TWO-POINT CALIBRATION COMPLETE'
+
+        shouldContinue = presentMenu({
+            'title': f'Calibrate\n{calibrationStatusString}',
+            'items': [
+                {
+                    'description': 'Clear Calibration Data',
+                    'key': 'c',
+                    'func': clearCalibration
+                },
+                {
+                    'description': 'Dry Calibration',
+                    'key': 'd',
+                    'func': dryCalibration
+                },
+                {
+                    'description': 'Single Point Calibration',
+                    'key': 's',
+                    'func': singlePointCalibration
+                },
+                {
+                    'description': 'Dual Point High Calibration',
+                    'key': 'h',
+                    'func': highCalibration
+                },
+                {
+                    'description': 'Dual Point Low Calibration',
+                    'key': 'l',
+                    'func': lowCalibration
+                },
+                {
+                    'description': 'Exit Menu',
+                    'key': 'e',
+                    'func': None
+                }
+            ]
+        })
 
 
-presentMenu({
+while presentMenu({
     'title': 'Main Menu',
     'items': [
         {
@@ -151,4 +176,5 @@ presentMenu({
             'func': None
         }
     ]
-})
+}):
+    pass
