@@ -22,7 +22,7 @@
         path: /etc/apt/sources.list.d/jaiabot.list
         regexp: '^(deb.*)'
         replace: '#\1'
-    - name: Uncomment test repo lines
+    - name: Uncomment desired repo lines
       ansible.builtin.replace:
         path: /etc/apt/sources.list.d/jaiabot.list
         regexp: '^#(deb.*/{{ repo }}/.*)'

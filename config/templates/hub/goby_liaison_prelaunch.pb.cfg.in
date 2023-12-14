@@ -30,6 +30,7 @@ add_commander_tab: false
             value: "release"
             value: "beta"
             value: "continuous"
+            value: "test"
         }
     }
     ansible_playbook {
