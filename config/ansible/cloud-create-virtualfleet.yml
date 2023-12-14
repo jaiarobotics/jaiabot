@@ -65,7 +65,7 @@
         name: "jaia__Virtual{{ item.node_type | capitalize }}{{ item.node_id }}__{{ jaia_customer_no_quotes }}"
         region: "{{ cloud_env_vars.jaia_aws_region }}"
         image_id: "{{ ami_id }}"
-        instance_type: "t3a.medium"
+        instance_type: "t3a.small"
         security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
         subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_wlan_subnet_id }}"
         network:
@@ -98,10 +98,7 @@
 
     - name: Restart WireGuard
       become: yes
-      ansible.builtin.systemd:
-        name: wg-quick@wg_virtualfleet
-        state: restarted
-        daemon_reload: yes
+      shell: "systemctl restart wg-quick@wg_virtualfleet"
 
     - name: Write /etc/hosts
       include_tasks: tasks/cloud-write-etc-hosts.yml

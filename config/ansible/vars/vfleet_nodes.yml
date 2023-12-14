@@ -1,3 +1,4 @@
 node_map:
   - { node_type: 'hub', node_id: '1' }
   - { node_type: 'bot', node_id: '1' }
+  - { node_type: 'bot', node_id: '2' }

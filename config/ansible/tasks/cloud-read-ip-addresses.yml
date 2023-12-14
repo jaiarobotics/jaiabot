@@ -14,7 +14,7 @@
 
 - name: Add IPv6 addresses to dictionary
   set_fact:
-    vpn_ipv6_addresses: "{{ vpn_ipv6_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+    vpn_ipv6_addresses: "{{ vpn_ipv6_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
   loop: "{{ _vpn_ipv6_addresses.results }}"
   tags: read
   
@@ -26,6 +26,6 @@
 
 - name: Add WLAN IPv4 addresses to dictionary
   set_fact:
-    wlan_ipv4_addresses: "{{ wlan_ipv4_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+    wlan_ipv4_addresses: "{{ wlan_ipv4_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
   loop: "{{ _wlan_ipv4_addresses.results }}"
   tags: read

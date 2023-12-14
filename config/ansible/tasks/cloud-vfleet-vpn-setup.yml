@@ -23,23 +23,23 @@
   no_log: true
   tags: read
 
-- name: Add WireGuard private keys to vpn_keys dictionary
+- name: Add WireGuard private keys to private_vpn_keys dictionary
   set_fact:
-    private_vpn_keys: "{{ private_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+    private_vpn_keys: "{{ private_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
   loop: "{{ wg_private_key.results }}"
-  no_log: true
+#  no_log: true
   tags: read
 
 - name: Generate WireGuard public key for each instance
   shell: echo "{{ private_vpn_keys[item.node_type][item.node_id] }}" | wg pubkey
   register: wg_public_key
   loop: "{{ node_map }}"
-  no_log: true
+#  no_log: true
   tags: read
 
-- name: Add WireGuard private keys to vpn_keys dictionary
+- name: Add WireGuard public keys to public_vpn_keys dictionary
   set_fact:
-    public_vpn_keys: "{{ public_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}) }}"
+    public_vpn_keys: "{{ public_vpn_keys | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
   loop: "{{ wg_public_key.results }}"
-  no_log: true
+#  no_log: true
   tags: read
