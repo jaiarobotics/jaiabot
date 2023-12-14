@@ -105,3 +105,11 @@
 
     - name: Write /etc/hosts
       include_tasks: tasks/cloud-write-etc-hosts.yml
+
+    - name: Wait for the hosts to be reachable
+      wait_for:
+        host: "{{ item.node_type}}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}"
+        port: 22
+        state: started
+        timeout: 300
+      loop: "{{ node_map }}"
