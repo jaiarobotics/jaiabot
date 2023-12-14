@@ -29,7 +29,8 @@ def xbee_modem_id(node_id):
 
 def runtime_wifi_ip_addr(node_id, fleet_index):
     if node_id == hub_node_id:
-        hub_index = 0
+        # TODO - support multiple hubs. For now, can only use VirtualFleet with hub1
+        hub_index = 1
         return '10.23.' + str(fleet_index) + '.' + str(hub_index + 10)
     else:
         bot_index = node_id - 1

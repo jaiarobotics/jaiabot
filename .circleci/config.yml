@@ -172,12 +172,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
+        - "feature/aws-cloud"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
+        - "feature/aws-cloud"
         
 ## Begin actual config
 version: 2
