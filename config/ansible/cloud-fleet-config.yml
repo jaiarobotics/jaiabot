@@ -1,0 +1,16 @@
+---
+- name: Run fleet-config
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - vars/vfleet_nodes.yml
+  tasks:
+    - name: Read cloud.env
+      include_tasks: tasks/cloud-read-env.yml
+      tags: read
+
+    - name: Run fleet-config
+      include_tasks: tasks/cloud-run-fleet-config.yml
+
+    - name: Wait for hosts
+      include_tasks: tasks/cloud-wait-hosts.yml
