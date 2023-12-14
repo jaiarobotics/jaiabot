@@ -167,10 +167,6 @@ message MissionManager
     // e.g. /var/log/jaiabot/bot/*/
     required string log_dir = 71;
 
-    // Set to true if we want to not send goby files to hub during offload,
-    // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 72 [default = false];
-
     required int32 hub_start_ip = 73 [default = 10];
 
     required string class_b_network = 74 [default = "10.23"];

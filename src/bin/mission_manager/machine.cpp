@@ -323,7 +323,9 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        if (cfg().data_offload_only_task_packet_file())
+        std::string data_offload_exclude = this->machine().data_offload_exclude();
+        // search for "*.taskpacket" in exclude string return npos if not found
+        if (data_offload_exclude.find("*.taskpacket") == data_offload_exclude.npos)
         {
             // Convert to json string
             std::string json_string;
@@ -1399,7 +1401,9 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().data_offload_only_task_packet_file())
+    std::string data_offload_exclude = this->machine().data_offload_exclude();
+    // search for "*.taskpacket" in exclude string return npos if not found
+    if (data_offload_exclude.find("*.taskpacket") == data_offload_exclude.npos)
     {
         // Reset if recovered
         // If bot is activated again and more task packets
