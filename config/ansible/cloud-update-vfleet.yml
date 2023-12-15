@@ -1,0 +1,5 @@
+---
+- import_playbook: change-sources.yml
+- import_playbook: install.yml
+- import_playbook: restart-jaiabot-services.yml
+  
