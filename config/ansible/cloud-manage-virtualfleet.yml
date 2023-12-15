@@ -4,11 +4,10 @@
   gather_facts: yes
 
   tasks:
-    - name: Read cloud.env
-      include_tasks: tasks/cloud-read-env.yml
-      tags: read
+    - include_tasks: tasks/cloud-read-env.yml
     
-    - name: Change instance state
-      include_tasks: tasks/cloud-instance-state.yml
+    - include_tasks: tasks/cloud-instance-state.yml
       vars: 
         - do_wait: false
+
+    - include_tasks: tasks/cloud-check-state.yml
