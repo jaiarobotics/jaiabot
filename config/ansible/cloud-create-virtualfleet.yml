@@ -124,7 +124,7 @@
       include_tasks: tasks/cloud-instance-state.yml
       vars: 
         - do_wait: true
-        - desired_state: started
+        - desired_state: running
 
     - name: Wait for hosts
       include_tasks: tasks/cloud-wait-hosts.yml

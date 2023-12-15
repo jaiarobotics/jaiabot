@@ -1,4 +1,5 @@
 ANSIBLE_INVENTORY=/tmp/jaiabot-ansible-inventory.yml
+ANSIBLE_VFLEET_INVENTORY=/tmp/jaiabot-ansible-vfleet-inventory.yml
 
 function generate_and_exchange_keys() {
     local entity_type=$1 # "bot" or "hub"
@@ -194,16 +195,19 @@ perform_action() {
                 ;;
             "create_ansible_inventory")
                 ENTITY_IP_INTERNAL=$(eval ${entity_type}_ip ${ENTITY_ID} "internal")
-                echo "    ${entity_type}${ENTITY_ID}-fleet${FLEET_ID}:" >> ${ANSIBLE_INVENTORY}
+                echo "    ${entity_type}${ENTITY_ID}-fleet${FLEET_ID}:" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
 
-                if [[ "$entity_type" == "hub" ]]; then
+                if [[ "$entity_type" = "hub" && "$CONFIGURE_VIRTUALBOX" != "true" ]]; then
                     # we do not currently have SSH keys set up for the hubs to connect to each other, so we use a local connection
                     # for the currently running hub to update itself. If we switch to having hubs on the same network, we can update
                     # the key exchange to do hub->hub exchange and then remove this (and using ansible_host, just as the bots do)
-                    echo "      ansible_connection: local" >> ${ANSIBLE_INVENTORY}
+                    echo "      ansible_connection: local" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
                 else
-                    echo "      ansible_host: ${ENTITY_IP_INTERNAL}" >> ${ANSIBLE_INVENTORY}
+                    echo "      ansible_host: ${ENTITY_IP_INTERNAL}" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
                 fi
+
+		sed -i "s/${ENTITY_IP_INTERNAL}/${ENTITY_IP}/" ${ANSIBLE_VFLEET_INVENTORY} 
+		
                 ;;
             "copy_ansible_inventory")
                 rsync --rsync-path="$RO_CMD rsync" --rsh="$SSH" ${ANSIBLE_INVENTORY} jaia@${ENTITY_IP}:/etc/jaiabot/inventory.yml
@@ -233,15 +237,16 @@ function xbee_radio_setup() {
 }
 
 function gen_ansible_inventory() {
-    cat <<EOF > ${ANSIBLE_INVENTORY}
+    cat <<EOF | tee ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
 bots:
   hosts:
 EOF
     perform_action "create_ansible_inventory" "bot" "${BOT_IDS}"
-    cat <<EOF >> ${ANSIBLE_INVENTORY}
+    cat <<EOF | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
 hubs:
   hosts:
 EOF
+    [[ "$CONFIGURE_VIRTUALBOX" != "true" ]] && rm ${ANSIBLE_VFLEET_INVENTORY}
     perform_action "create_ansible_inventory" "hub" "${HUB_IDS}"
 
     # only need the inventory on the hubs, so only copy it there, to make configuring easier
