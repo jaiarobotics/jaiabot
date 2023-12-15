@@ -206,7 +206,7 @@ perform_action() {
                 fi
                 ;;
             "copy_ansible_inventory")
-                rsync --rsync-path="$RO_CMD rsync" ${ANSIBLE_INVENTORY} jaia@${ENTITY_IP}:/etc/jaiabot/inventory.yml
+                rsync --rsync-path="$RO_CMD rsync" --rsh="$SSH" ${ANSIBLE_INVENTORY} jaia@${ENTITY_IP}:/etc/jaiabot/inventory.yml
                 ;;
             "reboot")
                 $SSH -o ServerAliveInterval=2 jaia@${ENTITY_IP} "sudo systemctl start reboot.target" || true
