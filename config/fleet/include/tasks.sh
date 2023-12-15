@@ -197,11 +197,12 @@ perform_action() {
                 ENTITY_IP_INTERNAL=$(eval ${entity_type}_ip ${ENTITY_ID} "internal")
                 echo "    ${entity_type}${ENTITY_ID}-fleet${FLEET_ID}:" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
 
-                if [[ "$entity_type" = "hub" && "$CONFIGURE_VIRTUALBOX" != "true" ]]; then
+                if [[ "$entity_type" = "hub" ]]; then
                     # we do not currently have SSH keys set up for the hubs to connect to each other, so we use a local connection
                     # for the currently running hub to update itself. If we switch to having hubs on the same network, we can update
                     # the key exchange to do hub->hub exchange and then remove this (and using ansible_host, just as the bots do)
-                    echo "      ansible_connection: local" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
+                    echo "      ansible_connection: local" | tee -a ${ANSIBLE_INVENTORY}		    
+                    echo "      ansible_host: ${ENTITY_IP_INTERNAL}" | tee -a ${ANSIBLE_VFLEET_INVENTORY}
                 else
                     echo "      ansible_host: ${ENTITY_IP_INTERNAL}" | tee -a ${ANSIBLE_INVENTORY} ${ANSIBLE_VFLEET_INVENTORY}
                 fi
