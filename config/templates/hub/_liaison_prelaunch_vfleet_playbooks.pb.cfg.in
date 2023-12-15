@@ -1,0 +1,27 @@
+ansible_playbook {
+    file: "cloud-check-virtualfleet-state.yml"
+    name: "Check state (e.g, running, stopped, etc.) of VirtualFleet machines (AWS Instances)"
+    role: USER
+    output_var {
+        name: "instance_names"
+        display_name: "Name"
+    }
+    output_var {
+        name: "instance_state"
+        display_name: "State"
+    }
+    limit: "localhost"
+}
+
+ansible_playbook {
+    file: "cloud-manage-virtualfleet.yml"
+    name: "Start or Stop VirtualFleet machines (AWS Instances)"
+    input_var {
+        name: "desired_state"
+        display_name: "Desired State"
+        value: "running"
+        value: "stopped"
+    }
+    role: USER
+    limit: "localhost"
+}

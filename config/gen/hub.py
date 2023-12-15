@@ -20,6 +20,7 @@ try:
     hub_index=int(os.environ['jaia_hub_index'])
 except:
     hub_index=0
+cloudhub_index=30
 
 try:
     user_role=os.environ['jaia_user_role'].upper()
@@ -131,12 +132,18 @@ elif common.app == 'goby_liaison':
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_liaison_prelaunch':
     liaison_port=9091
-    this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)    
+    this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)
+    if hub_index == cloudhub_index:
+        vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
+    else:
+        vfleet_playbooks=''
+        
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
                                      this_hub=this_hub,
-                                     user_role=user_role))
+                                     user_role=user_role,
+                                     vfleet_playbooks=vfleet_playbooks))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,

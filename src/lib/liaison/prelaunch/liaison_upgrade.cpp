@@ -134,8 +134,8 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     {
         std::string input_vars;
         for (const auto& p : playbook.input_var) input_vars += p.first + "=" + p.second + " ";
-        playbook.pdata.reset(
-            new AnsiblePlaybookConfig::ProcessData(cfg_, playbook.file, input_vars));
+        playbook.pdata.reset(new AnsiblePlaybookConfig::ProcessData(
+            cfg_, playbook.file, playbook.pb_playbook, input_vars));
     }
     catch (const std::exception& e)
     {
@@ -310,11 +310,13 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
 //
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
     const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
+    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
     const std::string& input_vars)
 
     : process(boost::process::search_path("ansible-playbook"), "-i", cfg.ansible_inventory(),
               playbook_file, "-e", input_vars, boost::process::std_in.close(), "-l",
-              "bots:" + cfg.this_hub(), boost::process::std_out > stdout, io,
+              pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
+              boost::process::std_out > stdout, io,
               boost::process::env["ANSIBLE_CONFIG"] = cfg.ansible_config()),
       io_thread([this]() { io.run(); })
 {
