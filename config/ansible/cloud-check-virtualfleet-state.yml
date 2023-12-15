@@ -1,0 +1,24 @@
+---
+- name: Check VirtualFleet state
+  hosts: localhost
+  gather_facts: yes
+
+  tasks:
+    - name: Read cloud.env
+      include_tasks: tasks/cloud-read-env.yml
+      tags: read
+      
+    - name: Gather EC2 instance info
+      amazon.aws.ec2_instance_info:
+        region: "{{ cloud_env_vars.jaia_aws_region }}"
+        filters:
+          "tag:jaia_instance_type": "virtualfleet"
+          "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_index }}"
+          "tag:jaia_customer": "{{ jaia_customer_no_quotes }}"
+      register: ec2_info
+
+    - name: Create useful facts
+      set_fact:
+        instance_names: "{{ ec2_info.instances | map(attribute='tags.Name') | list }}"
+        instance_ids: "{{ ec2_info.instances | map(attribute='instance_id') | list }}"
+        instance_state: "{{ ec2_info.instances | map(attribute='state.name') | list }}"

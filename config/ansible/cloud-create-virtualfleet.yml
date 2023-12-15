@@ -4,7 +4,9 @@
   gather_facts: yes
   vars_files:
     - vars/vfleet_nodes.yml
-  vars:    
+  vars:
+    warp: 5
+    instance_type: t3a.small
     server_ssh_privkey_path: /home/jaia/.ssh/id_ed25519
     server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
 
@@ -70,7 +72,7 @@
         name: "jaia__Virtual{{ item.node_type | capitalize }}{{ item.node_id }}__{{ jaia_customer_no_quotes }}"
         region: "{{ cloud_env_vars.jaia_aws_region }}"
         image_id: "{{ ami_id }}"
-        instance_type: "t3a.small"
+        instance_type: "{{ instance_type }}"
         security_group: "{{ cloud_env_vars.jaia_aws_virtualfleet_security_group }}"
         subnet_id: "{{ cloud_env_vars.jaia_aws_virtualfleet_wlan_subnet_id }}"
         network:
