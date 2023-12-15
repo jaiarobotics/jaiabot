@@ -2,3 +2,11 @@ node_map:
   - { node_type: 'hub', node_id: '1' }
   - { node_type: 'bot', node_id: '1' }
   - { node_type: 'bot', node_id: '2' }
+  - { node_type: 'bot', node_id: '3' }
+  - { node_type: 'bot', node_id: '4' }
+  - { node_type: 'bot', node_id: '5' }
+  - { node_type: 'bot', node_id: '6' }
+  - { node_type: 'bot', node_id: '7' }
+  - { node_type: 'bot', node_id: '8' }
+  - { node_type: 'bot', node_id: '9' }
+  - { node_type: 'bot', node_id: '10' }

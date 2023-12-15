@@ -5,7 +5,7 @@
       become: yes
     - name: Run fleet config
       shell: |
-        cd /home/jaia/private_jaia/fleet_config
+        cd ../fleet
         export JAIA_FLEET_CONFIG_PRESEED="/etc/jaiabot/fleet-config.preseed"
         export JAIA_FLEET_CONFIG_SSH_OPTS="-o StrictHostKeyChecking=no" 
         ./fleet-config.sh

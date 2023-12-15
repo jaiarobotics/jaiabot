@@ -7,39 +7,8 @@
     - name: Read cloud.env
       include_tasks: tasks/cloud-read-env.yml
       tags: read
-
-    - name: Gather EC2 instance info
-      amazon.aws.ec2_instance_info:
-        region: "{{ cloud_env_vars.jaia_aws_region }}"
-        filters:
-          "tag:jaia_instance_type": "virtualfleet"
-          "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_index }}"
-          "tag:jaia_customer": "{{ jaia_customer_no_quotes }}"
-      register: ec2_info
-
-    - name: Filter out terminated instances
-      set_fact:
-        active_instances: "{{ ec2_info.instances | selectattr('state.name', '!=', 'terminated') | list }}"
-
-    - name: Create a list of instance IDs from active instances
-      set_fact:
-        active_instance_ids: "{{ active_instances | map(attribute='instance_id') | list }}"
-
-    - name: Show active instance ids
-      debug:
-        var: active_instance_ids
-
-    - name: Perform actions on active instances
-      amazon.aws.ec2_instance:
-        instance_ids: "{{ active_instance_ids }}"
-        region: "{{ cloud_env_vars.jaia_aws_region }}"
-        state: "{{ desired_state }}"
-        wait: false
-
-    #- name: Perform actions on active instances
-    #  loop: "{{ active_instances }}"
-    #  amazon.aws.ec2_instance:
-    #    instance_ids: "{{ item.instance_id }}"
-    #    region: "{{ cloud_env_vars.jaia_aws_region }}"
-    #    state: "{{ desired_state }}"
-    #    wait: false
+    
+    - name: Change instance state
+      include_tasks: tasks/cloud-instance-state.yml
+      vars: 
+        - do_wait: false

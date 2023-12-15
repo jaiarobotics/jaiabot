@@ -59,6 +59,11 @@
           tag:jaia_customer: "{{ jaia_customer_no_quotes }}"
         wait: true
         state: terminated
+
+    - name: Clear out old known_hosts file
+      file:
+        path: /home/jaia/.ssh/known_hosts
+        state: absent
         
     - name: Create EC2 instances
       amazon.aws.ec2_instance:
@@ -108,6 +113,18 @@
 
     - name: Run fleet-config.sh
       include_tasks: tasks/cloud-run-fleet-config.yml
+
+    - name: Stop instances state
+      include_tasks: tasks/cloud-instance-state.yml
+      vars: 
+        - do_wait: true
+        - desired_state: stopped
+
+    - name: Start instances state
+      include_tasks: tasks/cloud-instance-state.yml
+      vars: 
+        - do_wait: true
+        - desired_state: started
 
     - name: Wait for hosts
       include_tasks: tasks/cloud-wait-hosts.yml

@@ -12,5 +12,17 @@
     - name: Run fleet-config
       include_tasks: tasks/cloud-run-fleet-config.yml
 
+    - name: Stop instances state
+      include_tasks: tasks/cloud-instance-state.yml
+      vars: 
+        - do_wait: true
+        - desired_state: stopped
+
+    - name: Start instances state
+      include_tasks: tasks/cloud-instance-state.yml
+      vars: 
+        - do_wait: true
+        - desired_state: started
+
     - name: Wait for hosts
       include_tasks: tasks/cloud-wait-hosts.yml

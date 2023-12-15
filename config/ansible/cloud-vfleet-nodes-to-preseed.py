@@ -2,34 +2,29 @@
 
 import yaml
 
-# Path to the YAML file
 yaml_file_path = 'vars/vfleet_nodes.yml'
 
-# Path to the output file
 output_file_path = '/etc/jaiabot/fleet-config.preseed'
 
-# Read the YAML content from the file
 with open(yaml_file_path, 'r') as file:
     data = yaml.safe_load(file)
 
-# Initialize lists for hubs and bots
 jaia_hubs = []
 jaia_bots = []
 
-# Iterate and populate lists
 for node in data['node_map']:
     if node['node_type'] == 'hub':
         jaia_hubs.append(f"\"{node['node_id']}\"")
     elif node['node_type'] == 'bot':
         jaia_bots.append(f"\"{node['node_id']}\"")
 
-# Convert lists to space-separated strings
 jaia_hubs_str = ' '.join(jaia_hubs)
 jaia_bots_str = ' '.join(jaia_bots)
 
-# Predefined content
 jaia_is_real_fleet = 'no'
-jaia_actions = '"ssh-keys" "ansible-inventory" "reboot"'
+
+# do not reboot - not reliable for some reason after running fleet-config.sh - we'll use Ansible to stop/start
+jaia_actions = '"ssh-keys" "ansible-inventory"'
 
 # Write the output to the file
 with open(output_file_path, 'w') as file:
