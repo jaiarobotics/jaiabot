@@ -22,6 +22,14 @@ ansible_playbook {
         value: "running"
         value: "stopped"
     }
+    output_var {
+        name: "instance_names"
+        display_name: "Name"
+    }
+    output_var {
+        name: "instance_state"
+        display_name: "State"
+    }
     role: USER
     limit: "localhost"
 }
@@ -50,6 +58,7 @@ ansible_playbook {
 ansible_playbook {
     file: "cloud-update-vfleet.yml" 
     name: "[VirtualFleet] Change JaiaBot repository and update all packages"
+    limit: "localhost"
     role: ADVANCED    
     input_var {
         name: "repo"
