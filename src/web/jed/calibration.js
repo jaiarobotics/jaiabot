@@ -77,9 +77,6 @@ class CalibrationApp {
             }
         }
 
-        console.debug(`Submitting:`)
-        console.debug(engineeringCommand)
-
         api.sendEngineeringCommand(engineeringCommand, true)
     }
 
