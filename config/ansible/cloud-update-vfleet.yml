@@ -1,5 +1,8 @@
 ---
 - import_playbook: change-sources.yml
 - import_playbook: install.yml
-- import_playbook: restart-jaiabot-services.yml
-  
+- hosts: all
+  tasks:
+    - name: Reboot all
+      reboot:
+      become: yes
