@@ -68,9 +68,11 @@ class HubManager : public ApplicationBase
 
     void update_vfleet_shutdown_time()
     {
+        // multiply by warp factor so the shutdown delay is actual wall time not sim time
         vfleet_shutdown_time_ =
             goby::time::SteadyClock::now() +
-            std::chrono::seconds(cfg().vfleet().shutdown_after_last_command_seconds());
+            std::chrono::seconds(cfg().app().simulation().time().warp_factor() *
+                                 cfg().vfleet().shutdown_after_last_command_seconds());
     }
 
   private:
@@ -290,8 +292,10 @@ void jaiabot::apps::HubManager::loop()
                 cmd.set_type(jaiabot::protobuf::Command::SHUTDOWN_COMPUTER);
                 handle_command(cmd);
             }
-            vhub_shutdown_time_ = goby::time::SteadyClock::now() +
-                                  std::chrono::seconds(cfg().vfleet().hub_shutdown_delay_seconds());
+            vhub_shutdown_time_ =
+                goby::time::SteadyClock::now() +
+                std::chrono::seconds(cfg().app().simulation().time().warp_factor() *
+                                     cfg().vfleet().hub_shutdown_delay_seconds());
         }
         if (goby::time::SteadyClock::now() > vhub_shutdown_time_)
         {
