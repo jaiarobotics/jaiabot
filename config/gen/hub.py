@@ -39,11 +39,9 @@ templates_dir=common.jaia_templates_dir
 
 liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_load.pb.cfg.in')
 
-is_vfleet=os.path.isfile('/etc/jaiabot/cloud.env')
-
 # omit so we don't shutdown the real system on a timeout
-vfleet_shutdown_times=
-if is_vfleet:
+vfleet_shutdown_times=''
+if common.is_vfleet:
     vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 60 }'
     
     
@@ -121,12 +119,13 @@ elif common.app == 'goby_coroner':
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
-elif common.app == 'jaiabot_health':    
+elif common.app == 'jaiabot_health':
+    ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/hub/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation(),
+                                     ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation()))
 elif common.app == 'goby_liaison':
     liaison_port=30000
