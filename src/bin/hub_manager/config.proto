@@ -49,4 +49,15 @@ message HubManager
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];
     optional int32 health_report_timeout_seconds = 16 [default = 20];
+
+    message VirtualFleetData
+    {
+        // used by VirtualHub to shut down system after idle (no commands received)
+        // to avoid running up EC2 costs unexpectedly
+        required int32 shutdown_after_last_command_seconds = 1 [default = 3600];
+        // delay shutting down hub after shutting down bots to let comms messages get through
+        required int32 hub_shutdown_delay_seconds = 2 [default = 60];
+    }
+    optional VirtualFleetData vfleet = 20;
+        
 }
