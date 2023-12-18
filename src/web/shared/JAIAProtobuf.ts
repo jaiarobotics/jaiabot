@@ -1041,6 +1041,10 @@ export interface CommandForHub {
     scan_for_bot_id?: number
 }
 
+export interface DataOffloadParams {
+    data_offload_exclude?: string
+}
+
 export interface Attitude {
     roll?: number
     pitch?: number

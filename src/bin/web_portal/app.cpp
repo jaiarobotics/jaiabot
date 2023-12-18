@@ -98,6 +98,8 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     void process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg);
     void handle_command(const jaiabot::protobuf::Command& command);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& command_for_hub);
+    void
+    handle_data_offload_params(const jaiabot::protobuf::DataOffloadParams& data_offload_params);
 
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
 
@@ -249,6 +251,11 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     {
         handle_command_for_hub(msg.command_for_hub());
     }
+
+    if (msg.has_data_offload_params())
+    {
+        handle_data_offload_params(msg.data_offload_params());
+    }
 }
 
 void jaiabot::apps::WebPortal::loop()
@@ -343,4 +350,11 @@ void jaiabot::apps::WebPortal::handle_command_for_hub(
                              << command_for_hub.ShortDebugString() << endl;
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command_for_hub);
+}
+
+void jaiabot::apps::WebPortal::handle_data_offload_params(
+    const jaiabot::protobuf::DataOffloadParams& data_offload_params)
+{
+    interprocess().publish<jaiabot::groups::data_offload_params>(data_offload_params);
+    glog.is_debug1() && glog << "PUBLISHED" << std::endl;
 }

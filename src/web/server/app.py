@@ -123,6 +123,12 @@ def postSingleWaypointMission():
     jaia_interface.post_single_waypoint_mission(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
+@app.route('/jaia/data-offload-params', methods=['POST'])
+def postDataOffloadParams():
+    logging.warning(f'request.json: {request.json}')
+    response = jaia_interface.post_data_offload_params(request.json)
+    return JSONResponse(response)
+
 ######## Map tiles
 
 @app.route('/tiles/index', methods=['GET'])

@@ -2568,9 +2568,13 @@ export default class CommandControl extends React.Component {
 			type: retryDownload ? CommandType.RETRY_DATA_OFFLOAD : CommandType.RECOVERED
 		}
 
+		const dataOffloadParams = {
+			data_offload_exclude: "'*.goby'"
+		}
+
 		try {
-			await this.api.postCommand(command)
-			console.log('Command', command)
+			await this.api.postDataOffloadParams(dataOffloadParams)
+			// await this.api.postCommand(command)
 		} catch (error) {
 			console.error('Function: startDownload', error)
 		}

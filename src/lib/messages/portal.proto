@@ -23,7 +23,8 @@ message ClientToPortalMessage
     optional Engineering engineering_command = 1;
     optional Command command = 2;
     optional CommandForHub command_for_hub = 3;
-    optional bool ping = 4;
+    optional DataOffloadParams data_offload_params = 4;
+    optional bool ping = 5;
 }
 
 message PortalToClientMessage
@@ -41,4 +42,9 @@ message PortalToClientMessage
     // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
     optional MissionPlan active_mission_plan = 6;
 
+}
+
+message DataOffloadParams
+{
+    optional string data_offload_exclude = 1;
 }

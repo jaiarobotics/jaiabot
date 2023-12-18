@@ -87,8 +87,9 @@ constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
 constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
 constexpr goby::middleware::Group arduino_debug{"jaiabot::arduino_debug"};
 
-// Metadata
+// web portal
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
+constexpr goby::middleware::Group data_offload_params{"jaiabot::data_offload_params"};
 
 // MOOS
 constexpr goby::middleware::Group moos{"jaiabot::moos"};

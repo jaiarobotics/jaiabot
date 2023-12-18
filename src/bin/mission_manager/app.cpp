@@ -30,6 +30,7 @@
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/portal.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
@@ -444,6 +445,12 @@ jaiabot::apps::MissionManager::MissionManager()
                     }
                 }
             }
+        });
+
+    glog.is_verbose() && glog << "Hello, world!" << std::endl;
+    interprocess().subscribe<jaiabot::groups::data_offload_params>(
+        [this](const jaiabot::protobuf::DataOffloadParams& data_offload_params) {
+            glog.is_debug1() && glog << "WE HAVE SUBSCRIBED" << std::endl;
         });
 }
 

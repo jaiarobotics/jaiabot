@@ -7,7 +7,7 @@ import threading
 import pyjaia.contours
 import pyjaia.drift_interpolation
 
-from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
+from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage, DataOffloadParams
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
 from jaiabot.messages.hub_pb2 import HubStatus
@@ -413,6 +413,13 @@ class Interface:
         self.controllingClientId = clientId
         self.send_message_to_portal(msg)
 
+        return {'status': 'ok'}
+    
+    def post_data_offload_params(self, data_offload_params):
+        params = google.protobuf.json_format.ParseDict(data_offload_params, DataOffloadParams())
+        msg = ClientToPortalMessage()
+        msg.data_offload_params.CopyFrom(params)
+        self.send_message_to_portal(msg)
         return {'status': 'ok'}
 
     def process_task_packet(self, task_packet_message):

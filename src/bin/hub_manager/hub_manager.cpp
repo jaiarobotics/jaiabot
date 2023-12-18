@@ -37,6 +37,7 @@
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/portal.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -157,6 +158,11 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
         [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
             handle_hardware_status(hardware_status);
+        });
+
+    interprocess().subscribe<jaiabot::groups::data_offload_params>(
+        [this](const jaiabot::protobuf::DataOffloadParams& data_offload_params) {
+            glog.is_debug1() && glog << "WE HAVE SUBSCRIBED" << std::endl;
         });
 }
 

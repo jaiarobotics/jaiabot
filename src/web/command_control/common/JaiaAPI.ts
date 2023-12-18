@@ -3,7 +3,7 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 import { GeoJSON } from 'ol/format';
-import { Command, Engineering, CommandForHub, TaskPacket } from '../../shared/JAIAProtobuf';
+import { Command, Engineering, CommandForHub, TaskPacket, DataOffloadParams } from '../../shared/JAIAProtobuf';
 import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
 import { Geometry } from 'ol/geom';
 
@@ -167,6 +167,11 @@ export class JaiaAPI {
 
   postEngineeringPanel(engineeringPanelCommand: Engineering) {
       return this.post('jaia/ep-command', engineeringPanelCommand)
+  }
+
+  postDataOffloadParams(dataOffloadParams: DataOffloadParams) {
+    console.log('dataOffloadParams', dataOffloadParams)
+    return this.post('jaia/data-offload-params', dataOffloadParams)
   }
 
   takeControl() { return this.post('jaia/take-control', null) }
