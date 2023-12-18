@@ -1,34 +1,49 @@
 import {TaskPacket} from './JAIAProtobuf'
 import {LogTaskPacket} from './LogMessages'
 
-function isoString(t_micros: number | undefined): string {
-    if (t_micros == null) {
+/**
+ * Converts a Unix timestamp (microseconds) to an ISO date string.
+ *
+ * @param {(number | undefined)} tMicroseconds Unix timestamp in microseconds
+ * since Unix epoch.
+ * @returns {string} Date string in ISO date format.
+ */
+function isoString(tMicroseconds: number | undefined): string {
+    if (tMicroseconds == null) {
         return ''
     }
 
-    return new Date(t_micros / 1000).toISOString()
+    return new Date(tMicroseconds / 1000).toISOString()
 }
 
+/**
+ * Converts an array of task packets into the CSV file format as a string.
+ *
+ * @async
+ * @param {(TaskPacket | LogTaskPacket)[]} taskPackets The task packets to
+ * include in the CSV file.
+ * @returns {string} The CSV file contents as a string.
+ */
 export async function getCSV(taskPackets: (TaskPacket | LogTaskPacket)[]) {
-    var csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg)\n'
-    var id = 0
+    let csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg)\n'
+    let id = 0
 
     for (const taskPacket of taskPackets) {
         if ('_scheme_' in taskPacket) {
-            if (taskPacket._scheme_ != 1) {
+            if (taskPacket._scheme_ !== 1) {
                 // Skip DCCL messages
                 continue
             }
         }
 
-        const start_location = taskPacket.dive?.start_location ?? taskPacket.drift?.start_location
+        const startLocation = taskPacket.dive?.start_location ?? taskPacket.drift?.start_location
 
         const rowData: string[] = [
             id.toString(),
             taskPacket.bot_id?.toString() ?? '',
             taskPacket.type.toString() ?? '',
-            start_location.lat?.toString() ?? '',
-            start_location.lon?.toString() ?? '',
+            startLocation.lat?.toString() ?? '',
+            startLocation.lon?.toString() ?? '',
             isoString(taskPacket.start_time),
             String(taskPacket.dive?.bottom_dive ?? false),
             taskPacket.dive?.depth_achieved?.toFixed(3) ?? '',
@@ -44,6 +59,14 @@ export async function getCSV(taskPackets: (TaskPacket | LogTaskPacket)[]) {
     return csvText
 }
 
+/**
+ * Returns a filename to use for the task packet CSV file.  The filename includes
+ * the date of the first task packet's start time.
+ *
+ * @param {TaskPacket[]} taskPackets The task packets to
+ * include in the CSV file.
+ * @returns {string} A filename in the format `taskPackets-[date].csv`.
+ */
 export function getCSVFilename(taskPackets: TaskPacket[]) {
     const fileDate = taskPackets[0]?.start_time
     const fileDateString = fileDate ? isoString(fileDate) : new Date().toISOString()

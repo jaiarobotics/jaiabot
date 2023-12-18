@@ -67,6 +67,13 @@ export function SettingsPanel(props: Props) {
         }
     }
     
+    
+    /**
+     * Event handler for the CSV dowload button.  Creates the CSV file and initiates
+     * the download.
+     *
+     * @async
+    **/
     const handleDownloadCSV = async (event: React.MouseEvent<HTMLButtonElement>) => {
         const csvFilename = getCSVFilename(taskData.taskPackets)
         downloadToFile(await getCSV(taskData.taskPackets), 'text/csv', csvFilename)
