@@ -123,6 +123,11 @@
     - name: Run fleet-config.sh
       include_tasks: tasks/cloud-run-fleet-config.yml
 
+    - name: Copy VirtualFleet inventory (created by fleet-config.sh)
+      shell: |
+        cp /tmp/jaiabot-ansible-vfleet-inventory.yml /etc/jaiabot/vfleet-inventory.yml
+      become: yes
+
     - name: Stop instances state
       include_tasks: tasks/cloud-instance-state.yml
       vars: 
