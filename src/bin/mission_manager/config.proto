@@ -167,9 +167,10 @@ message MissionManager
     // e.g. /var/log/jaiabot/bot/*/
     required string log_dir = 71;
 
-    // Set to true if we want to not send goby files to hub during offload,
-    // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 72 [default = false];
+    // Follows the rsync --exclude structure
+    // Currently we allow a single file type to be excluded
+    // Example: data_offload_exclude = "*.goby"
+    optional string data_offload_exclude = 72 [default = ""];
 
     required int32 hub_start_ip = 73 [default = 10];
 
