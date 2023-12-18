@@ -7,6 +7,7 @@
   vars:
     warp: 5
     instance_type: t3a.small
+    volume_size_gb: 32
     server_ssh_privkey_path: /home/jaia/.ssh/id_ed25519
     server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
 
@@ -78,6 +79,12 @@
         network:
           private_ip_address: "{{ wlan_ipv4_addresses[item.node_type][item.node_id] }}"
           description: "wlan"
+        volumes:
+        - device_name: /dev/sda1
+          ebs:
+            delete_on_termination: true
+            volume_type: gp3
+            volume_size: "{{ volume_size_gb }}"
         tags:
           jaia_instance_type: "virtualfleet"
           jaia_node_type: "{{ item.node_type }}"
