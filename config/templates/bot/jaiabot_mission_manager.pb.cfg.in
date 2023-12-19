@@ -61,7 +61,7 @@ data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 log_dir: "$log_dir" # (required)
 hub_start_ip: 10 # (required)
 class_b_network: "10.23" # (required)
-data_offload_only_task_packet_file: true # (optional)
+data_offload_only_task_packet_file: false # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
