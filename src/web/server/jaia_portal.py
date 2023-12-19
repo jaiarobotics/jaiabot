@@ -3,6 +3,7 @@ import json
 import bisect
 import socket
 import threading
+import ipaddress
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -85,7 +86,28 @@ class Interface:
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        try:
+            # Resolve the hostname to an IP address
+            addr_info = socket.getaddrinfo(goby_host[0], goby_host[1], socket.AF_UNSPEC, socket.SOCK_DGRAM)
+            # addr_info is a list of 5-tuples with the address family, socket type, protocol, canonical name, and socket address
+            # Extract the first resolved address (IP and port)
+            first_resolved_address = addr_info[0][4][0]
+            # Parse the IP address
+            ip = ipaddress.ip_address(first_resolved_address)
+            # Determine the socket type based on IP address version
+            if ip.version == 4:
+                # IPv4
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            elif ip.version == 6:
+                # IPv6
+                self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            else:
+                raise ValueError("Invalid IP address format")
+            
+        except socket.gaierror:
+            raise ValueError("Hostname could not be resolved")
+        
         self.sock.settimeout(5)
 
         self.read_only = read_only
@@ -191,7 +213,7 @@ class Interface:
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
-        logging.warning('🏓 Pinging server')
+        logging.warning(f'🏓 Pinging server {self.goby_host[0]}:{self.goby_host[1]}')
         msg = ClientToPortalMessage()
         msg.ping = True
         self.send_message_to_portal(msg, True)
