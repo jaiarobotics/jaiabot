@@ -76,9 +76,9 @@ export function randomBase57(stringLength: number) {
 /**
  * Starts a browser download of a file with string contents
  *
- * @param {string} data File contents
- * @param {string} mimeType MIME type
- * @param {string} fileName Default filename
+ * @param {string} data Contents written to file
+ * @param {string} mimeType Informs the browser of the type of data being sent
+ * @param {string} fileName Name given to the downloadable file
  */
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], {type: mimeType})
@@ -96,16 +96,18 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
 /**
  * Starts a browser download of a file with binary data contents
  *
- * @param {string} name Default filename
- * @param {BlobPart} data File contents
+ * @param {string} name Name given to the downloadable file
+ * @param {BlobPart} data Contents written to file
  */
 export function downloadBlobToFile(name: string, data: BlobPart) {
-    let a = document.createElement("a");
-    if (typeof a.download !== "undefined") a.download = name;
+    let a = document.createElement('a')
+    if (a.download !== undefined) {
+        a.download = name;
+    }
     a.href = URL.createObjectURL(new Blob([data], {
-        type: "application/octet-stream"
-    }));
-    a.dispatchEvent(new MouseEvent("click"));
+        type: 'application/octet-stream'
+    }))
+    a.dispatchEvent(new MouseEvent('click'))
 }
 
 /**
@@ -126,11 +128,11 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
 }
 
 /**
- * Returns the OpenLayers Coordinate of an GeographicCoordinate on a map
+ * Returns the OpenLayers Coordinate of a GeographicCoordinate on a map
  *
  * @param {GeographicCoordinate} coordinate Coordinate to convert
- * @param {Map} map An OpenLayers map that the coordinates refer to
- * @returns {*} The OpenLayers coordinate on the map corresponding to the input coordinate
+ * @param {Map} map Provides access to the map's projection
+ * @returns {Coordinate} The OpenLayers coordinate (adj to the map) corresponding to the input coordinate
  */
 export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
     if (coordinate == null) return null

@@ -32,6 +32,12 @@
     gap: 30px;
 }
 
+.settings-card .button-jcc {
+    /* !important overrides width property set in #jcc-container .button-jcc */
+    width: 100% !important;
+    font-weight: bold;
+}
+
 .settings-card-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

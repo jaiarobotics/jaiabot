@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 
 import WptToggle from './WptToggle'
 import { taskData } from './TaskPackets'
+import { KMLDocument } from './shared/KMZExport'
+import { downloadBlobToFile } from './shared/Utilities'
 
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
@@ -10,11 +12,8 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
-import { Button } from '@mui/material'
-import { mdiDownload, mdiSendVariant } from '@mdi/js'
+import { mdiSendVariant } from '@mdi/js'
 import '../style/components/SettingsPanel.css'
-import { KMLDocument } from './shared/KMZExport'
-import { downloadBlobToFile, downloadToFile } from './shared/Utilities'
 
 interface Props {
     taskPacketsTimeline: {[key: string]: string | boolean}
@@ -67,7 +66,12 @@ export function SettingsPanel(props: Props) {
         }
     }
 
-    const handleClickedDownloadKMZ = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    /**
+     * Prepares a KML document for download
+     * 
+     * @returns {void}
+     */
+    const handleClickedDownloadKMZ = async () => {
         const kmlDocument = new KMLDocument()
         kmlDocument.setTaskPackets(taskData.taskPackets)
 
@@ -166,7 +170,9 @@ export function SettingsPanel(props: Props) {
                                 </div>
                             </div>
                         </div>
-                        <Button className="button-jcc" onClick={handleClickedDownloadKMZ}>Download KMZ</Button>
+                        <div className="settings-card">
+                            <button className="button-jcc" onClick={handleClickedDownloadKMZ}>Download KMZ</button>
+                        </div>
                     </AccordionDetails>
                 </Accordion>
             </div>
