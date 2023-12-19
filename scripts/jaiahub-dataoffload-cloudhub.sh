@@ -14,4 +14,4 @@ CLOUDHUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${jaia_flee
 chmod -R 440 /var/log/jaiabot/bot_offload/*
 
 # use non-s3fs temporary directory
-rsync -r --temp-dir=/var/log/jaiabot --info=progress2 --no-inc-recursive --timeout=15 /var/log/jaiabot/bot_offload/ jaia@[${CLOUDHUB_IP}]:/var/log/jaiabot/bot_offload/
+rsync -r -c --temp-dir=/var/log/jaiabot --info=progress2 --no-inc-recursive --timeout=15 /var/log/jaiabot/bot_offload/ jaia@[${CLOUDHUB_IP}]:/var/log/jaiabot/bot_offload/
