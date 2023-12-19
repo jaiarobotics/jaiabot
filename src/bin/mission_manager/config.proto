@@ -167,10 +167,12 @@ message MissionManager
     // e.g. /var/log/jaiabot/bot/*/
     required string log_dir = 71;
 
-    // Follows the rsync --exclude structure
-    // Currently we allow a single file type to be excluded
-    // Example: data_offload_exclude = "*.goby"
-    optional string data_offload_exclude = 72 [default = ""];
+    enum DownloadFileTypes
+    {
+        GOBY = 1;
+        TASKPACKET = 2;
+    }
+    optional DownloadFileTypes data_offload_exclude = 72;
 
     required int32 hub_start_ip = 73 [default = 10];
 

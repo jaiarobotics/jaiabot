@@ -554,7 +554,7 @@ struct MissionManagerStateMachine
     std::string task_packet_file_name_{""};
     std::string data_time_string_{""};
     int32_t hub_id_{0};
-    std::string data_offload_exclude_{cfg().data_offload_exclude()};
+    std::string data_offload_exclude_{""};
 };
 
 struct PreDeployment
