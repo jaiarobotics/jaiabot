@@ -68,20 +68,18 @@ ansible_playbook {
     }
 }
 
-# Not currently working in GUI
-
-# ansible_playbook {
-#     file: "cloud-update-vfleet.yml" 
-#     name: "[VirtualFleet] Change JaiaBot repository and update all packages"
-#     limit: "localhost"
-#     role: ADVANCED    
-#     input_var {
-#         name: "repo"
-#         display_name: "Repository"
-#         value: "release"
-#         value: "beta"
-#         value: "continuous"
-#         value: "test"
-#     }
-# }
-
+ansible_playbook {
+    file: "cloud-update-vfleet.yml" 
+    name: "[VirtualFleet] Change JaiaBot repository and update all packages"
+    limit: "localhost"
+    role: ADVANCED    
+    input_var {
+        name: "repo"
+        display_name: "Repository"
+        value: "release"
+        value: "beta"
+        value: "continuous"
+        value: "test"
+    }
+    inventory: "/etc/jaiabot/vfleet-inventory.yml"
+}
