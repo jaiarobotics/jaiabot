@@ -71,7 +71,7 @@ ansible_playbook {
 ansible_playbook {
     file: "cloud-update-vfleet.yml" 
     name: "[VirtualFleet] Change JaiaBot repository and update all packages"
-    limit: "localhost"
+    limit: "all"
     role: ADVANCED    
     input_var {
         name: "repo"
