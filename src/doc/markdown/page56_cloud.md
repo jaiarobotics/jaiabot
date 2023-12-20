@@ -57,7 +57,7 @@ The components of the VPC include:
 
 ## Network addresses
 
-The use of the `ip.py` tool (in `jaiabot-rootfs-gen/customization/includes.chroot/etc/jaiabot`) is recommended for determining IP addresses for a given node, id, fleet, etc.
+The use of the `ip.py` tool (in `jaiabot-rootfs-gen/customization/includes.chroot/etc/jaiabot` or `/etc/jaiabot/ip.py` on the hub/bots) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page55_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
@@ -109,9 +109,28 @@ Some examples include:
 | Fleet     | Bot or Hub? | ID  | Fleet VPN Address  |  VirtualFleet VPN Address  |  CloudHub VPN Address  |
 |-----------|-------------|-----|--------------------|--------------------|--------------------|
 | 4        | Bot         | 5   | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
-| 3001      | Bot         | 6   | `fd91:5457:1e5c:bb9::1:6` | `fd6e:cf0d:aefa:bb9::1:6` | `fd0f:77ac:4fdf:bb9::1:6` |
-| 235       | Hub         | 574 | `fd91:5457:1e5c:eb::0:23e` | `fd6e:cf0d:aefa:eb::0:23e` | `fd0f:77ac:4fdf:eb::0:23e` |
+| 250      | Bot         | 6   | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
+| 10       | Hub         | 20 | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
+| 15       | Hub (CloudHub)        | 30 | `fd91:5457:1e5c:f::1e` | `ffd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
 
+You can generate the values for the table above yourself using:
+```
+ip.py addr --fleet_id 4 --node bot --node_id 5 --net fleet_vpn --ipv6
+ip.py addr --fleet_id 4 --node bot --node_id 5 --net vfleet_vpn --ipv6
+ip.py addr --fleet_id 4 --node bot --node_id 5 --net cloudhub_vpn --ipv6
+
+ip.py addr --fleet_id 250 --node bot --node_id 6 --net fleet_vpn --ipv6
+ip.py addr --fleet_id 250 --node bot --node_id 6 --net vfleet_vpn --ipv6
+ip.py addr --fleet_id 250 --node bot --node_id 6 --net cloudhub_vpn --ipv6
+
+ip.py addr --fleet_id 10 --node hub --node_id 20 --net fleet_vpn --ipv6
+ip.py addr --fleet_id 10 --node hub --node_id 20 --net vfleet_vpn --ipv6
+ip.py addr --fleet_id 10 --node hub --node_id 20 --net cloudhub_vpn --ipv6
+
+ip.py addr --fleet_id 15 --node hub --node_id 30 --net fleet_vpn --ipv6
+ip.py addr --fleet_id 15 --node hub --node_id 30 --net vfleet_vpn --ipv6
+ip.py addr --fleet_id 15 --node hub --node_id 30 --net cloudhub_vpn --ipv6
+```
 
 ## AWS tags
 
@@ -141,6 +160,18 @@ Some examples include:
 	+ jaia_node_id: Bot ID or Hub ID
 	+ jaia_node_type: "bot" or "hub"
 
-## Provisioning
+## Usage
 
-The VPC and CloudHub are created by a bash script 
+Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, one can open a web-browser as usual to JCC, etc.
+
+For fleet1, these would be:
+```
+# /etc/hosts
+fd6e:cf0d:aefa:2::1 hub1-virtualfleet1
+fd0f:77ac:4fdf:2::1e cloudhub-fleet1
+```
+
+- http://cloudhub-fleet1 for CloudHub JCC (remote command and monitoring of real fleet).
+- http://cloudhub-fleet1:9091 for CloudHub Jaiabot Fleet Upgrade and Configuration (for updating CloudHub itself, starting/stopping of the VirtualFleet).
+- http://hub1-virtualfleet1 for the VirtualFleet JCC (command and monitoring of Virtual Fleet).
+- http://hub1-virtualfleet1:9091 for the VirtualFleet Jaiabot Fleet Upgrade and Configuration (for updating the VirtualFleet).
