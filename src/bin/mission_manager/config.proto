@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
