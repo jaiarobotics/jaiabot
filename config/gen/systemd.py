@@ -194,6 +194,13 @@ except:
     common_macros['user'] = os.environ['USER']
     common_macros['group'] = os.environ['USER']
 
+# if user/group resolve to root, hardcode them to 'jaia' to avoid privileged execution
+# this can happen in some upgrade scenarios
+# TODO: Debug why this happens and when (Ansible playbook on local?)
+if common_macros['user'] == 'root':
+    common_macros['user'] = 'jaia'
+    common_macros['group'] = 'jaia'
+    
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
