@@ -27,7 +27,7 @@ popd > /dev/null
 
 # Start server
 pushd server > /dev/null
-    ${BUILD_DIR}/python/venv/bin/python3 ./app.py $1 &
+    ${BUILD_DIR}/python/venv/bin/python3 ./app.py -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
 # Build Command Control

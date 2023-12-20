@@ -209,4 +209,4 @@ def get_drift_map():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=True)
+    app.run(host='0.0.0.0', port=40001, debug=False)
