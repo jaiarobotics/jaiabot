@@ -11,7 +11,7 @@ BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 # Build the venv
 pushd ../python > /dev/null
     ./build_venv.sh ${BUILD_DIR}/python
-popd
+popd > /dev/null
 
 # Start server
 pushd server > /dev/null

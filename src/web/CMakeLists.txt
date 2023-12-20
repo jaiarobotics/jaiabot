@@ -28,7 +28,9 @@ set(command_control_outdir ${project_SHARE_DIR}/jaiabot/web/command_control/dist
 add_custom_command(OUTPUT ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/command_control/build.sh
   ARGS ${command_control_outdir}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/command_control
   COMMENT "Running command_control build.sh"
+  DEPENDS npm_depdendencies
   )
 add_custom_target(command_control
   ALL
