@@ -15,7 +15,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHA
 set(pyjaia_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaia)
 add_custom_command(OUTPUT ${pyjaia_outdir}/dccl/option_extensions_pb2.py
   COMMAND ./build_messages.sh
-  ARGS ${pyjaia_outdir} ${CMAKE_CURRENT_BINARY_DIR}/proto_include ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR}
+  ARGS ${CMAKE_SOURCE_DIR} ${pyjaia_outdir}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia
   COMMENT "Running pyjaia build_messages.sh"
   )
