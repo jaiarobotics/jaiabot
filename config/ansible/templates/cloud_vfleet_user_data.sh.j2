@@ -16,7 +16,7 @@ EOF
 ## Set up VPN
 VIRTUALFLEET_VPN_SERVER_CIDR_64="fd6e:cf0d:aefa"
 
-VFLEET_VPN=wg_jaia_vfleet{{ cloud_env_vars.jaia_fleet_index }}
+VFLEET_VPN=wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}
 cat <<EOF > /etc/wireguard/${VFLEET_VPN}.conf
 {% include 'wireguard_client.conf.j2' %}
 EOF
