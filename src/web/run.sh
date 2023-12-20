@@ -28,7 +28,9 @@ ln -s $(pwd)/jed ${BUILD_DIR}/jed
 
 ## copy the webpack.config.js file to the intermediate build directory, so webpack can import from node_modules
 COMMAND_CONTROL_BUILD_DIR=${BUILD_DIR}/command_control
+mkdir -p ${COMMAND_CONTROL_BUILD_DIR}
 
 pushd command_control > /dev/null
-    ./build.sh ${COMMAND_CONTROL_BUILD_DIR}
+    echo 🟢 Building JCC into ${COMMAND_CONTROL_BUILD_DIR}
+    webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress
 popd > /dev/null

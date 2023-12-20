@@ -10,19 +10,19 @@ pushd ..
     ./install_dependencies.sh
 popd
 
+BUILD_DIR="$(pwd)/../../../build/web_dev/"
+
 # Build messages and install pyjaia
-pushd ../../python/pyjaia
-    ./build_messages.sh
-    python3 -m pip install ./
+pushd ../../python/ > /dev/null
+    ./build_venv.sh ${BUILD_DIR}/python
+popd > /dev/null
+
+# Build client
+pushd client
+    ./build.sh ${BUILD_DIR}/jdv
 popd
 
 # Start server
 pushd server
-    ./jaiabot_data_vision.py -p 40011 -l INFO $@ &
-popd
-
-# Build client
-pushd client
-    npm install --no-audit
-    npm run test
+    ./jaiabot_data_vision.py -a ${BUILD_DIR} -p 40011 -l INFO $@ &
 popd
