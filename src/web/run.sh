@@ -32,5 +32,5 @@ mkdir -p ${COMMAND_CONTROL_BUILD_DIR}
 
 pushd command_control > /dev/null
     echo 🟢 Building JCC into ${COMMAND_CONTROL_BUILD_DIR}
-    webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress
+    webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress --stats minimal
 popd > /dev/null

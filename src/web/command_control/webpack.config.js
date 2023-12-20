@@ -33,7 +33,6 @@ module.exports = (env, argv) => {
     {
       // name: 'client',
       target : 'web',
-      stats : 'errors-only',
       devtool : 'eval-source-map',
       entry : [ 'babel-polyfill', path.resolve(__dirname, 'client/index.js') ],
       resolve : {
@@ -103,7 +102,7 @@ module.exports = (env, argv) => {
       ],
       optimization : optimizationConfig,
       performance : {hints : false},
-      stats : 'minimal'
+      stats : 'errors-only'
     },
   ]
 

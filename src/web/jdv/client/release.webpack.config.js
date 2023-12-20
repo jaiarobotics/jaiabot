@@ -32,6 +32,7 @@ module.exports = (env, argv) => {
       path : env.TARGET_DIR,
       filename : 'bundle.js',
     },
-    stats: "minimal"
+    stats: "errors-only",
+    performance : {hints : false},
   };
 }
