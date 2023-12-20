@@ -119,10 +119,10 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
     switch (cfg().data_offload_exclude())
     {
         case config::MissionManager::GOBY:
-            this->machine().set_data_offload_exclude("*.goby");
+            this->machine().set_data_offload_exclude(" '*.goby'");
             break;
         case config::MissionManager::TASKPACKET:
-            this->machine().set_data_offload_exclude("*.taskpacket");
+            this->machine().set_data_offload_exclude(" '*.taskpacket'");
             break;
         default: this->machine().set_data_offload_exclude(""); break;
     }
