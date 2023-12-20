@@ -27,5 +27,5 @@ pushd client
     BUILD_JDV=${BUILD_DIR}/jdv
     echo "🟢 Building jdv into ${BUILD_JDV}"
 
-    webpack --mode production --config ./test.webpack.config.js --env TARGET_DIR=${BUILD_JDV} --progress
+    webpack --mode production --config ./release.webpack.config.js --env TARGET_DIR=${BUILD_JDV} --watch --progress
 popd
