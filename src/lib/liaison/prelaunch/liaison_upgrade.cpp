@@ -241,7 +241,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
                         if (playbook.output_var.count(facts_el.key()))
                             results[host].output_vars[facts_el.key()] =
                                 facts_el.value().is_string() ? facts_el.value().get<std::string>()
-                                                             : facts_el.value().dump();
+                                                             : facts_el.value().dump(2);
                     }
                 }
             }
