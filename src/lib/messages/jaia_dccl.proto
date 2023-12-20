@@ -6,7 +6,6 @@ import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
-import "jaiabot/messages/imu.proto";
 
 package jaiabot.protobuf;
 

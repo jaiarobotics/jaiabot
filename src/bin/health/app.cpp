@@ -28,6 +28,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "system_thread.h"
 
 using goby::glog;

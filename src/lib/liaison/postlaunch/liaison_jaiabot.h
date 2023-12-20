@@ -20,7 +20,6 @@
 #include "jaiabot/messages/salinity.pb.h"
 
 #include "config.pb.h"
-#include "jaiabot/messages/feather.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 
 namespace jaiabot

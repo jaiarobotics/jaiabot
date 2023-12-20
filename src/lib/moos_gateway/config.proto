@@ -1,7 +1,6 @@
 syntax = "proto2";
 
 import "goby/moos/protobuf/moos_gateway_config.proto";
-import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
