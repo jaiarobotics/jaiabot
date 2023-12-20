@@ -2,8 +2,6 @@
 - name: Create new VirtualFleet EC2 instances (and delete any old ones)
   hosts: localhost
   gather_facts: yes
-  vars_files:
-    - vars/vfleet_nodes.yml
   vars:
     warp: 5
     instance_type: t3a.small
@@ -12,6 +10,8 @@
     server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
 
   tasks:
+    - include_tasks: tasks/cloud-gen-node-map.yml
+
     - name: Read cloud.env
       include_tasks: tasks/cloud-read-env.yml
       tags: read
@@ -97,7 +97,8 @@
         wait: false
         state: present
       loop: "{{ node_map }}"
-#      no_log: true
+      # Avoid writing private Wireguard keys into the log
+      no_log: true
       register: ec2_instances
         
     - name: Update peer blocks in WireGuard config

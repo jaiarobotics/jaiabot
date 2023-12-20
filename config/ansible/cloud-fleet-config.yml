@@ -2,9 +2,9 @@
 - name: Run fleet-config
   hosts: localhost
   gather_facts: no
-  vars_files:
-    - vars/vfleet_nodes.yml
   tasks:
+    - include_tasks: tasks/cloud-gen-node-map.yml
+
     - name: Read cloud.env
       include_tasks: tasks/cloud-read-env.yml
       tags: read
