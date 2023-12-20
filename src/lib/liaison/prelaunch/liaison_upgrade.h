@@ -78,6 +78,7 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 
             boost::asio::io_service io;
             std::future<std::string> stdout;
+            std::future<std::string> stderr;
             boost::process::child process;
             std::thread io_thread;
         };

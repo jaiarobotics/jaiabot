@@ -171,7 +171,17 @@ void jaiabot::LiaisonUpgrade::loop()
             else
             {
                 playbook.last_log = playbook.pdata->stdout.get();
-                playbook.log_resource->set_last_log(playbook.last_log);
+
+                if (!playbook.last_log.empty())
+                {
+                    playbook.log_resource->set_last_log(playbook.last_log);
+                }
+                else
+                {
+                    nlohmann::json j_stderr;
+                    j_stderr["stderr"] = playbook.pdata->stderr.get();
+                    playbook.log_resource->set_last_log(j_stderr.dump(2));
+                }
 
                 try
                 {
@@ -317,7 +327,7 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
               pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
               playbook_file, "-e", input_vars, boost::process::std_in.close(), "-l",
               pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
-              boost::process::std_out > stdout, io,
+              boost::process::std_out > stdout, boost::process::std_err > stderr, io,
               boost::process::env["ANSIBLE_CONFIG"] = cfg.ansible_config()),
       io_thread([this]() { io.run(); })
 {
