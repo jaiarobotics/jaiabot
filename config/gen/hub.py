@@ -99,12 +99,17 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 
 
-if common.app == 'gobyd':    
+if common.app == 'gobyd':
+    if hub_index == cloudhub_index:
+        required_clients=''
+    else:
+        required_clients='required_client: "goby_intervehicle_portal"'
+
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
-                                     required_clients='required_client: "goby_intervehicle_portal"'))
+                                     required_clients=required_clients))
 elif common.app == 'goby_intervehicle_portal':    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
