@@ -27,12 +27,12 @@ import { createDivePacketFeature, createDriftPacketFeature } from './shared/Task
 import * as Layers from './shared/Layers'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
-
+import { downloadBlobToFile, downloadToFile } from './shared/Utilities';
 
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
-import { LogTaskPacket, LogCommand } from './Log';
-import { KMLDocument } from './KMZExport';
+import { LogTaskPacket, LogCommand } from './shared/LogMessages';
+import { KMLDocument } from './shared/KMZExport';
 import OpenFileDialog from './OpenFileDialog';
 
 import { Buffer } from 'buffer';
@@ -112,16 +112,6 @@ interface ActiveGoal {
 
 function arrayFrom(location: GeographicCoordinate) {
     return [location.lon, location.lat]
-}
-
-
-function DownloadFile(name: string, data: BlobPart) {
-    let a = document.createElement("a");
-    if (typeof a.download !== "undefined") a.download = name;
-    a.href = URL.createObjectURL(new Blob([data], {
-        type: "application/octet-stream"
-    }));
-    a.dispatchEvent(new MouseEvent("click"));
 }
 
 
@@ -683,10 +673,10 @@ export default class JaiaMap {
 
     exportKml() {
         const kmz = new KMLDocument()
-        kmz.task_packets = this.task_packets
+        kmz.setTaskPackets(this.task_packets)
 
         kmz.getKMZ().then((kml) => {
-            DownloadFile('map.kmz', kml)
+            downloadBlobToFile('map.kmz', kml)
         })
         .catch((reason) => {
             CustomAlert.presentAlert({text: `Error: ${reason}`})
