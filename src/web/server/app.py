@@ -46,7 +46,7 @@ jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), rea
 app = Flask(__name__)
 
 ####### Static files
-jcc: str = os.path.join(args.appRoot, 'command_control')
+jcc: str = os.path.join(args.appRoot, 'jcc')
 jed = os.path.join(args.appRoot, 'jed')
 
 @app.route('/<path>', methods=['GET'])
