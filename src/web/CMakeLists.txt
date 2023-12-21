@@ -1,6 +1,3 @@
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_cockpit_extension DESTINATION ${project_SHARE_DIR}/jaiabot/jaia_cockpit_extension)
-
-
 ###############################################################################
 # Install npm dependencies into the jaiabot/build/<arch>/intermediate/web directory
 #   npm will look here for the required packages for both jdv and jcc
