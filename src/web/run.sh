@@ -14,7 +14,7 @@ pushd ../python > /dev/null
 popd > /dev/null
 
 # Start server
-pushd server > /dev/null
+pushd jcc/server > /dev/null
     ${BUILD_DIR}/python/venv/bin/python3 ./app.py -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
