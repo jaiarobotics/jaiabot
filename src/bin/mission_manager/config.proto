@@ -169,8 +169,9 @@ message MissionManager
 
     enum DownloadFileTypes
     {
-        GOBY = 1;
-        TASKPACKET = 2;
+        NONE = 1;
+        GOBY = 2;
+        TASKPACKET = 3;
     }
     optional DownloadFileTypes data_offload_exclude = 72;
 

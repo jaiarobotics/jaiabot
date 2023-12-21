@@ -124,6 +124,7 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
         case config::MissionManager::TASKPACKET:
             this->machine().set_data_offload_exclude(" '*.taskpacket'");
             break;
+        case config::MissionManager::NONE: this->machine().set_data_offload_exclude(""); break;
         default: this->machine().set_data_offload_exclude(""); break;
     }
 }
