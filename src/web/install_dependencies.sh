@@ -3,7 +3,7 @@
 # Where is your package.json?
 PACKAGE_JSON_DIR=$1
 
-echo 🟢 Installing npm dependencies in $(pwd) \(sorry, ts-loader needs them there\)
+echo 🟢 Installing npm dependencies in ${PACKAGE_JSON_DIR}
 
 pushd ${PACKAGE_JSON_DIR} > /dev/null
     # Shut up unless there's an error!
