@@ -1,4 +1,5 @@
-import {Log, LogCommand, LogTaskPacket} from "./Log"
+import { LogCommand, LogTaskPacket } from "./shared/LogMessages"
+import { Log } from "./Log";
 import download from "downloadjs"
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
