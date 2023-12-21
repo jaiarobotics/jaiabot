@@ -42,7 +42,7 @@ liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_loa
 # omit so we don't shutdown the real system on a timeout
 vfleet_shutdown_times=''
 if common.is_vfleet:
-    vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 60 }'
+    vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 300 }'
     
     
 verbosities = \

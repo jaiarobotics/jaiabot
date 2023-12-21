@@ -55,8 +55,8 @@ message HubManager
         // used by VirtualHub to shut down system after idle (no commands received)
         // to avoid running up EC2 costs unexpectedly
         required int32 shutdown_after_last_command_seconds = 1 [default = 3600];
-        // delay shutting down hub after shutting down bots to let comms messages get through
-        required int32 hub_shutdown_delay_seconds = 2 [default = 60];
+        // delay shutting down hub after this time since last BotStatus message
+        required int32 hub_shutdown_delay_seconds = 2 [default = 300];
     }
     optional VirtualFleetData vfleet = 20;
         
