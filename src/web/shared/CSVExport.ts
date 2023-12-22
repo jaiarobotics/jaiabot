@@ -19,7 +19,6 @@ function isoString(tMicroseconds: number | undefined): string {
 /**
  * Converts an array of task packets into the CSV file format as a string.
  *
- * @async
  * @param {(TaskPacket | LogTaskPacket)[]} taskPackets The task packets to
  * include in the CSV file.
  * @returns {string} The CSV file contents as a string.
