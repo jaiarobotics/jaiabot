@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 
 import WptToggle from './WptToggle'
 import { taskData } from './TaskPackets'
+import { KMLDocument } from './shared/KMZExport'
+import { downloadBlobToFile } from './shared/Utilities'
 
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
@@ -62,6 +64,26 @@ export function SettingsPanel(props: Props) {
             updatedOpenAccordionTabs.push(accordionTab)
             setOpenAccordionTabs(updatedOpenAccordionTabs)
         }
+    }
+
+    /**
+     * Prepares a KML document for download
+     * 
+     * @returns {void}
+     */
+    const handleClickedDownloadKMZ = async () => {
+        const kmlDocument = new KMLDocument()
+        kmlDocument.setTaskPackets(taskData.taskPackets)
+
+        let fileDate = new Date()
+        // Use the date of the first task packet, if present
+        if (taskData.taskPackets[0]?.start_time !== undefined) {
+            fileDate = new Date(taskData.taskPackets[0].start_time / 1e3)
+        }
+
+        const dateString = fileDate.toISOString()
+
+        downloadBlobToFile(`taskPackets-${dateString}.kmz`, await kmlDocument.getKMZ())
     }
     
     return (
@@ -147,7 +169,10 @@ export function SettingsPanel(props: Props) {
                                     <Icon path={mdiSendVariant} title='Get Task Packets'/>
                                 </div>
                             </div>
-                        </div>   
+                        </div>
+                        <div className="settings-card">
+                            <button className="button-jcc" onClick={handleClickedDownloadKMZ}>Download KMZ</button>
+                        </div>
                     </AccordionDetails>
                 </Accordion>
             </div>
