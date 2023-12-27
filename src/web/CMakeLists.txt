@@ -16,6 +16,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${CMAKE_
   ARGS ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Installing npm depdendencies for web apps"
   )
+
 add_custom_target(npm_depdendencies
   ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
@@ -25,15 +26,19 @@ add_custom_target(npm_depdendencies
 
 
 set(command_control_outdir ${project_SHARE_DIR}/jaiabot/web/command_control/dist/client)
+
 add_custom_command(OUTPUT ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/command_control/build.sh
-  ARGS ${command_control_outdir}
-  COMMENT "Running command_control build.sh"
+  COMMAND webpack
+  ARGS --mode development --config ./webpack.config.js --output-path dist/client --stats errors-only
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/command_control
+  COMMENT "Building command_control"
   )
+
 add_custom_target(command_control
   ALL
   DEPENDS ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
   )
+
 add_dependencies(command_control npm_depdendencies)
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

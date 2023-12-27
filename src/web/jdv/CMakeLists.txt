@@ -6,9 +6,10 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/favicon.png DESTINATION ${jdv_
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/index.html DESTINATION ${jdv_client_outdir})
 
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/client/build.sh
-  ARGS ${jdv_client_outdir}
-  COMMENT "Running jdv build.sh"
+  COMMAND webpack
+  ARGS --mode development --config ./release.webpack.config.js --output-path ${jdv_client_outdir} --stats errors-only
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/client
+  COMMENT "Building jdv"
   DEPENDS npm_depdendencies
   )
 
