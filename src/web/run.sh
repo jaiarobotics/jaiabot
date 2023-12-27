@@ -24,7 +24,7 @@ ln -s $(pwd)/jed ${BUILD_DIR}/jed
 
 # Build Command Control
 ## Install pre-requisites
-./install_dependencies.sh
+./install_dependencies.sh ./
 
 ## copy the webpack.config.js file to the intermediate build directory, so webpack can import from node_modules
 COMMAND_CONTROL_BUILD_DIR=${BUILD_DIR}/command_control

@@ -6,9 +6,7 @@ set -e
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 # Install the dependency packages
-pushd ..
-    ./install_dependencies.sh
-popd
+../install_dependencies.sh ../
 
 BUILD_DIR="$(pwd)/../../../build/web_dev/"
 
