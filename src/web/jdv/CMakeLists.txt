@@ -7,7 +7,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/index.html DESTINATION ${jdv_c
 
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   COMMAND webpack
-  ARGS --mode development --config ./release.webpack.config.js --output-path ${jdv_client_outdir} --stats errors-only
+  ARGS --mode production --config ./release.webpack.config.js --output-path ${jdv_client_outdir} --stats errors-only
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/client
   COMMENT "Building jdv"
   DEPENDS npm_depdendencies

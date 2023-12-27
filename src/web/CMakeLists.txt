@@ -29,7 +29,7 @@ set(command_control_outdir ${project_SHARE_DIR}/jaiabot/web/command_control/dist
 
 add_custom_command(OUTPUT ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
   COMMAND webpack
-  ARGS --mode development --config ./webpack.config.js --output-path dist/client --stats errors-only
+  ARGS --mode production --config ./webpack.config.js --output-path dist/client --stats errors-only
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/command_control
   COMMENT "Building command_control"
   )
