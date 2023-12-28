@@ -185,9 +185,7 @@ export function SettingsPanel(props: Props) {
                             </div>
                         </div>
                         <Button onClick={handleDownloadCSV} className='button-jcc'>Download CSV</Button>
-                        <div className="settings-card">
-                            <button className="button-jcc" onClick={handleClickedDownloadKMZ}>Download KMZ</button>
-                        </div>
+                        <Button onClick={handleClickedDownloadKMZ} className='button-jcc'>Download KMZ</Button>
                     </AccordionDetails>
                 </Accordion>
             </div>
