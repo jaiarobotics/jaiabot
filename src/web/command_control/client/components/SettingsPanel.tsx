@@ -13,7 +13,10 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
 import { mdiSendVariant } from '@mdi/js'
+import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
+import { downloadToFile } from './shared/Utilities'
+import { getCSV, getCSVFilename } from './shared/CSVExport'
 
 interface Props {
     taskPacketsTimeline: {[key: string]: string | boolean}
@@ -86,6 +89,17 @@ export function SettingsPanel(props: Props) {
         downloadBlobToFile(`taskPackets-${dateString}.kmz`, await kmlDocument.getKMZ())
     }
     
+    
+    /**
+     * Event handler for the CSV dowload button.  Creates the CSV file and initiates
+     * the download.
+     *
+    **/
+    const handleDownloadCSV = async (event: React.MouseEvent<HTMLButtonElement>) => {
+        const csvFilename = getCSVFilename(taskData.taskPackets)
+        downloadToFile(await getCSV(taskData.taskPackets), 'text/csv', csvFilename)
+    }
+
     return (
         <div className="settings-outer-container">
 			<div className="panel-heading">Settings</div>
@@ -170,9 +184,8 @@ export function SettingsPanel(props: Props) {
                                 </div>
                             </div>
                         </div>
-                        <div className="settings-card">
-                            <button className="button-jcc" onClick={handleClickedDownloadKMZ}>Download KMZ</button>
-                        </div>
+                        <Button onClick={handleDownloadCSV} className='button-jcc'>Download CSV</Button>
+                        <Button onClick={handleClickedDownloadKMZ} className='button-jcc'>Download KMZ</Button>
                     </AccordionDetails>
                 </Accordion>
             </div>
