@@ -1,4 +1,3 @@
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jed DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/jaia_portal.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/missions.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
@@ -35,6 +34,8 @@ add_custom_target(command_control
   DEPENDS ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
   )
 add_dependencies(command_control npm_depdendencies)
+
+add_subdirectory(jed)
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 

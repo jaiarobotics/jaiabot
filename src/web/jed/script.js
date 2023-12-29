@@ -998,3 +998,23 @@ function takeControl(evt) {
     headers : {clientId : clientId}
   }).then((response) => response.json())
 }
+
+// Add event handlers
+const clickHandlers = [
+  ['helpButton', 'click', helpButtonOnClick],
+  ['helpPaneCloseButton', 'click', helpButtonOnClick],
+  ['LEDButton', 'click', LEDButtonOnClick],
+  ['LEDOffButton', 'click', LEDButtoffOnClick],
+  ['takeControlButton', 'click', takeControl],
+  ['diveButton', 'click', diveButtonOnClick],
+  ['deadMansSwitch', 'mousedown', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'touchstart', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'mouseup', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'mouseleave', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchend', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchcancel', onMouseUpDeadMansSwitch]
+]
+
+for (const clickHandler of clickHandlers) {
+  el(clickHandler[0]).addEventListener(clickHandler[1], clickHandler[2])
+}
