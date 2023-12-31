@@ -17,6 +17,11 @@ logger.setLevel(logging.INFO)
 
 
 def plotDrifts(driftsList: List[List["Drift"]]):
+    """Use plotly to show the interpolated drift points.  Only used for debugging purposes.
+
+    Args:
+        driftsList (List[List[Drift]]): A list containing lists of Drifts to plot on separate plots.
+    """
     import plotly.graph_objects as go
     plots = [go.Scatter(x=[drift.location.lon for drift in drifts], y=[drift.location.lat for drift in drifts], mode='markers') for drifts in driftsList]    
     fig = go.Figure(data=plots)
@@ -24,6 +29,24 @@ def plotDrifts(driftsList: List[List["Drift"]]):
 
 
 def fmod(x: float, min: float, max: float):
+    """Returns a float modulus of x within the range [min, max].  In other words, if x is between min and max, it returns x.
+    Otherwise, it wraps x back into the [min, max] range.
+
+    Args:
+        x (float): The input value.
+        min (float): Minimum of the range to wrap within.
+        max (float): Maximum of the range to wrap within.
+
+    Returns:
+        float: The input value, wrapped within the [min, max] range.
+
+    Examples:
+        `fmod(2.3, 2, 3) == 2.3`
+
+        `fmod(1.6, 2.0, 4.0) == 3.6`
+
+        `fmod(3.05, -1, 3) == -0.95`
+    """
     delta = max - min
     n = (x - min) / delta
 
@@ -73,6 +96,7 @@ class LatLon:
     def rhumb_destination(self, distance: float, bearing: float):
         x = measurement.rhumb_destination(Point([self.lon, self.lat]), distance, bearing, {'units': 'm'})
         return LatLon.fromList(x.get('geometry').get('coordinates'))
+    
 
 @dataclass
 class Drift:
@@ -256,6 +280,14 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
 
 
 def taskPacketsToDrifts(taskPackets: List[Dict]):
+    """Gets a list of Drift objects from a list of TaskPacket dictionaries
+
+    Args:
+        taskPackets (list[Dict]): A list of input TaskPacket dictionaries.
+
+    Returns:
+        list[Drift]: A list of Drift objects from the input task packets, if any are present, (otherwise an empty list)
+    """
     drifts: List[Drift] = []
 
     for taskPacket in taskPackets:
@@ -278,6 +310,14 @@ def taskPacketsToDrifts(taskPackets: List[Dict]):
 
 
 def driftsToGeoJSON(drifts: List[Drift]):
+    """Produces a GeoJSON string representing an input list of Drift objects
+
+    Args:
+        drifts (List[Drift]): The input list of Drift objects to process.
+
+    Returns:
+        str: A GeoJSON string representing the input drifts.
+    """
     features = []
     for drift in drifts:
         # as points
@@ -302,6 +342,14 @@ def driftsToGeoJSON(drifts: List[Drift]):
 
 
 def taskPacketsToDriftMarkersGeoJSON(taskPackets: List[Dict]):
+    """Produces a GeoJSON string representing the drifts and interpolated drifts from an input list of TaskPacket dictionaries
+
+    Args:
+        taskPackets (List[Dict]): A list of TaskPacket dictionaries to process into GeoJSON.
+
+    Returns:
+        str: A GeoJSON string representing the drifts and interpolated drifts present in the input list of TaskPacket dictionaries.
+    """
     drifts = taskPacketsToDrifts(taskPackets)
     interpolatedDrifts = getInterpolatedDrifts(drifts)
     return driftsToGeoJSON(interpolatedDrifts)
