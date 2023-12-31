@@ -1,12 +1,12 @@
 from typing import *
 from dataclasses import *
-from scipy.spatial import Delaunay
 from turfpy import measurement
 from copy import deepcopy
 from pprint import pprint
 from geojson import Point, Feature, LineString, FeatureCollection
 
 import numpy as np
+import scipy.spatial
 import math
 import random
 import geojson
@@ -31,6 +31,22 @@ def fmod(x: float, min: float, max: float):
         return min + (n - math.floor(n)) * delta
     else:
         return x
+
+
+def clamp(value: float, minimum: float, maximum: float):
+    """Clamps the input value between a minimum and maximum value
+
+    Args:
+        value (float): Input value to clamp
+        minimum (float): Minimum allowable value to return
+        maximum (float): Maximum allowable value to return
+
+    Returns:
+        float: The clamped value, equivalent to `min(maximum, max(minimum, value))`
+    """
+
+    return min(maximum, max(minimum, value))
+
 
 @dataclass
 class LatLon:
@@ -65,22 +81,22 @@ class Drift:
     heading: float = 0.0
 
     def interpolateTo(self, other: "Drift", distance: float, units: str='km'):
+        """Interpolate between this Drift and another drift, a certain distance toward the other drift
+
+        Args:
+            other (Drift): The destination drift to interpolate toward
+            distance (float): Distance along the rhumb line to the destination drift
+            units (str, optional): Units of the distance. Defaults to 'km'.
+
+        Returns:
+            Drift: The interpolated drift
+        """
 
         lineString = LineString([self.location.list(), other.location.list()])
         lineLength = measurement.length(lineString, units=units)
         otherWeight = distance / lineLength
-        ourWeight = 1 - otherWeight
+        return self.interpolateToFraction(other, otherWeight)
 
-        newFeature = measurement.along(lineString, dist=distance, unit=units)
-        newLocation = LatLon.fromList(newFeature.get('geometry').get('coordinates'))
-
-        newDrift = Drift(
-            location=newLocation, 
-            speed=ourWeight * self.speed + otherWeight * other.speed,
-            heading=fmod(ourWeight * self.heading + otherWeight * other.heading, 0, 360))
-        
-        return newDrift
-    
     def interpolateToFraction(self, other: "Drift", otherWeight: float):
         """Interpolate between self and another Drift object by a certain fraction
 
@@ -89,7 +105,7 @@ class Drift:
             otherWeight (float): Linear fraction the other drift object interpolate to
 
         Returns:
-            _type_: A drift object that's interpolated between self andthe other drift object
+            Drift: A drift object that's interpolated between self andthe other drift object
         """
         lineString = LineString([self.location.list(), other.location.list()])
         lineLength = measurement.length(lineString)
@@ -103,7 +119,55 @@ class Drift:
             speed=ourWeight * self.speed + otherWeight * other.speed,
             heading=fmod(ourWeight * (self.heading or 0.0) + otherWeight * (other.heading or 0.0), 0, 360))
 
-def getInterpolatedDrifts(drifts: List[Drift], delta=50):
+
+def getDelaunayTriangulation(locations: List[LatLon]):
+    """Gets a Delaunay triangulation of a set of locations
+
+    Args:
+        locations (List[LatLon]): A list of locations of the points to triangulate.
+
+    Raises:
+        Exception: When a valid Delaunay triangulation could not be constructed, even after random joggling.
+
+    Returns:
+        scipy.spatial.Delaunay: A Delaunay triangulation object for the mesh.
+    """
+
+    JOGGLE_DEGREES = 1e-6
+    MAX_RETRIES = 1
+
+    meshPoints2d = [location.list() for location in locations]
+    tryNumber = 1
+    
+    while True:
+        try:
+            tri = scipy.spatial.Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
+            return tri
+        except scipy.spatial._qhull.QhullError as e:
+            # This can happen in the case of duplicate points, colinear points, etc.
+            #   We can retry with joggled points.
+            if tryNumber > MAX_RETRIES:
+                # Too many tries, give up
+                raise e
+            
+            # Joggle the inputs by 1e-6 degrees
+            for pt in meshPoints2d:
+                pt[0] += random.uniform(-JOGGLE_DEGREES, JOGGLE_DEGREES)
+                pt[1] += random.uniform(-JOGGLE_DEGREES, JOGGLE_DEGREES)
+
+        tryNumber += 1
+
+
+def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
+    """Interpolates between a list of input drifts, with a specified minimum resolution distance.
+
+    Args:
+        drifts (list[Drift]): The list of drifts to interpolate between.
+        resolutionDistance (float, optional): The target resolution distance between the resulting interpolated drift locations (in meters). Defaults to 50 meters.
+
+    Returns:
+        list[Drift]: The resulting list of interpolated drifts, including the original set of drifts.
+    """
 
     MAX_INTERPOLATION_POINTS = 5
 
@@ -114,11 +178,12 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
     outputDrifts: List[Drift] = deepcopy(drifts)
 
     if len(drifts) == 2:
-        # Just interpolate along a line
+        # If we only have two points, then just interpolate along a line
         lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
         lineLength = measurement.length(lineString, units='m')
 
-        nPoints = min(math.ceil(lineLength / delta), MAX_INTERPOLATION_POINTS)
+        # We need at least 1 point, or we get division by zero
+        nPoints = clamp(math.ceil(lineLength / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
         actualDelta = lineLength / nPoints
 
         for pointIndex in range(1, nPoints):
@@ -126,14 +191,15 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
 
         return outputDrifts
     
-    # Get the Delaney triangles
-    meshPoints2d = [drift.location.list() for drift in drifts]
-    tri = Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
-
-    def div(a: float, b: float):
-        if a == 0:
-            return 1
-        return math.ceil(a / b)
+    # If we have a network of 3 or more points, then we calculate a set of 
+    #   Delauney triangles to use as our mesh to interpolate between
+    try:
+        tri = getDelaunayTriangulation([drift.location for drift in drifts])
+    except Exception as e:
+        logging.warning(f'Could not generate Delaunay triangulation')
+        logging.warning(e.with_traceback)
+        # If unsuccessful, we'll log a warning and just return the original points
+        return outputDrifts
 
     # Fill triangles with interpolated drifts
     vertexIndices: List[int]
@@ -145,7 +211,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
         vertexDrifts = [drifts[i] for i in vertexIndices]
         a = vertexDrifts[0].location.distanceTo(vertexDrifts[1].location)
         a1 = vertexDrifts[0].location.distanceTo(vertexDrifts[2].location)
-        aDiv = min(div(min(a, a1), delta), MAX_INTERPOLATION_POINTS)
+        aDiv = clamp(math.ceil(min(a, a1) / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
 
         for rowIndex in range(1, aDiv):
             # Loop through rows from vertex 0 to vertex 1/2
@@ -153,7 +219,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
             endDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[2], (rowIndex / aDiv))
 
             b = startDrift.location.distanceTo(endDrift.location)
-            bDiv = min(div(b, delta), MAX_INTERPOLATION_POINTS)
+            bDiv = clamp(math.ceil(b / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
 
             for ptIndex in range(1, bDiv):
                 newDrift = startDrift.interpolateToFraction(endDrift, ptIndex / bDiv)
@@ -177,7 +243,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
     for edge in edges:
         edgeDrifts = [drifts[i] for i in edge]
         d = edgeDrifts[0].location.distanceTo(edgeDrifts[1].location)
-        dDiv = min(div(d, delta), MAX_INTERPOLATION_POINTS)
+        dDiv = clamp(math.ceil(d / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
 
         for i in range(1, dDiv):
             newDrift = edgeDrifts[0].interpolateToFraction(edgeDrifts[1], i / dDiv)
@@ -242,8 +308,14 @@ def taskPacketsToDriftMarkersGeoJSON(taskPackets: List[Dict]):
 
 
 if __name__ == '__main__':
-    import json, os
+    # Test triangulation of duplicate locations
+    drifts = [
+        Drift(location=LatLon(lat=43.01, lon=-76), speed=1, heading=3),
+        Drift(location=LatLon(lat=43, lon=-76), speed=1, heading=2),
+        Drift(location=LatLon(lat=43, lon=-76), speed=1, heading=2),
+        Drift(location=LatLon(lat=43, lon=-76), speed=1, heading=2),
+        Drift(location=LatLon(lat=43, lon=-76), speed=1, heading=2),
+        Drift(location=LatLon(lat=43, lon=-76), speed=1, heading=2)
+    ]
 
-    taskPackets = [json.loads(line) for line in open('/var/log/jaiabot/bot_offload/test.taskpacket')]
-
-    open(os.path.expanduser('~/test.geojson'), 'w').write(taskPacketsToDriftMarkersGeoJSON(taskPackets=taskPackets))
+    pprint(getInterpolatedDrifts(drifts))
