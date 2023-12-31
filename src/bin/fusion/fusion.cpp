@@ -228,11 +228,17 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
             if (att.has_heading())
             {
-                auto magneticDeclination = wmm.magneticDeclination(
-                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                const double MEAN_SOLAR_YEAR = 365.24219 * 24 * 60 * 60;
+                const double UNIX_EPOCH_YEAR = 1970;
+                double year = double(time(NULL)) / MEAN_SOLAR_YEAR + UNIX_EPOCH_YEAR;
+
+                auto magneticDeclination =
+                    wmm.magneticDeclination(latest_node_status_.global_fix().lon(),
+                                            latest_node_status_.global_fix().lat(), year);
                 glog.is_debug2() &&
                     glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                         << "  Magnetic declination: " << magneticDeclination << endl;
+                         << "  Magnetic declination: " << magneticDeclination
+                         << "  Year: " << std::setprecision(10) << year << endl;
                 auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
                 heading = corrected_heading(heading);
