@@ -4,7 +4,7 @@ Description=Backup the date to a file when we have a valid date time ntp
 [Service]
 User=root
 Group=root
-ExecStart=/usr/bin/$exe $args
+ExecStart=$jaiabot_bin_dir/$exe $args
 
 [Install]
 WantedBy=multi-user.target

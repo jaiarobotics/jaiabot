@@ -9,6 +9,7 @@ import EngineeringPanel from './EngineeringPanel'
 import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
+import ContactInfoPanel from './ContactInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
@@ -18,6 +19,7 @@ import { HubOrBot } from './HubOrBot'
 import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
+import { ContactLayers } from './ContactLayers'
 import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
@@ -41,8 +43,9 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, ContactStatus } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
+import LayerGroup from 'ol/layer/Group';
 
 
 // OpenLayers
@@ -106,7 +109,8 @@ export enum PanelType {
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
 	RALLY_POINT = 'RALLY_POINT',
 	TASK_PACKET = 'TASK_PACKET',
-	SETTINGS = 'SETTINGS'
+	SETTINGS = 'SETTINGS',
+	CONTACT_INFO = 'CONTACT_INFO'
 }
 
 export enum Mode {
@@ -150,7 +154,7 @@ interface State {
 		runNum: number,
 		botId: number,
 	},
-
+	contactClickedInfo: ContactStatus,
 	goalBeingEdited: {
 		goal?: Goal,
 		goalIndex?: number,
@@ -233,6 +237,7 @@ export default class CommandControl extends React.Component {
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	botLayers: BotLayers
 	hubLayers: HubLayers
+	contactLayers: ContactLayers
 	oldPodStatus?: PodStatus
 	missionPlans?: CommandList = null
 	taskPackets: TaskPacket[]
@@ -255,6 +260,7 @@ export default class CommandControl extends React.Component {
 			podStatus: {
 				bots: {},
 				hubs: {},
+				contacts: {},
 				controllingClientId: null
 			},
 			podStatusVersion: 0,
@@ -293,6 +299,12 @@ export default class CommandControl extends React.Component {
 			flagClickedInfo: {
 				runNum: -1,
 				botId: -1
+			},
+			contactClickedInfo: {
+				location: {
+					lat: 0,
+					lon: 0
+				}
 			},
 			goalBeingEdited: {},
 
@@ -452,6 +464,7 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
+		this.contactLayers = new ContactLayers(map)
 
 		const viewport = document.getElementById(this.mapDivId)
 		map.setTarget(this.mapDivId)
@@ -504,10 +517,12 @@ export default class CommandControl extends React.Component {
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
+				this.contactLayers.update(this.state.podStatus?.contacts)
 				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
 				this.updateBotCourseOverGroundLayer()
 				this.updateBotHeadingLayer()
+				this.updateContactTrailCircles()
 				playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
 		}
 
@@ -1526,6 +1541,29 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * Updates the circles denoting the contact trail radii (radius and nm_radius)
+	 * 
+	 * @returns {void}
+	 */
+	updateContactTrailCircles() {
+		const contacts = Object.values(this.state.podStatus.contacts)
+
+		const source = layers.contactTrailCirclesLayer.getSource()
+		let features = []
+		source.clear()
+
+		for (const contact of contacts) {
+			if (contact?.location) {
+				const feature = new Feature(new Point(getMapCoordinate(contact?.location, map)))
+				feature.set('contact', contact)
+				features.push(feature)
+			}
+		}
+
+		source.addFeatures(features)
+	}
+
+	/**
 	 * Updates the layer showing the currently running missions on the bots.
 	 */
 	updateActiveMissionLayer() {
@@ -1771,7 +1809,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'hub', 'wpt', 'line', 'contact']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -1832,6 +1870,19 @@ export default class CommandControl extends React.Component {
 
 				this.setState({ flagClickedInfo }, () => {
 					this.setVisiblePanel(PanelType.RUN_INFO)	
+				})
+
+				return false
+			}
+
+			// Clicked on contact
+			const isContact = feature.get('type') === 'contact'
+			if (isContact) {
+				const contactFeature = feature.get('contact')
+				const contactClickedInfo = contactFeature
+
+				this.setState({ contactClickedInfo }, () => {
+					this.setVisiblePanel(PanelType.CONTACT_INFO)	
 				})
 
 				return false
@@ -3473,6 +3524,16 @@ export default class CommandControl extends React.Component {
 						runNum={this.state.flagClickedInfo.runNum}
 						botId={this.state.flagClickedInfo.botId}
 						deleteRun={this.deleteSingleRun.bind(this)}
+					/>
+				)
+				break
+			case PanelType.CONTACT_INFO:
+				visiblePanelElement = (
+					<ContactInfoPanel
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						contact={this.state.contactClickedInfo}
+						botIds={this.getBotIdList()} 
+						api={this.api}
 					/>
 				)
 				break

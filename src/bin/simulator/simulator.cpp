@@ -36,6 +36,7 @@
 #include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/util/sci.h>
 #include <goby/util/seawater.h>
+
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"

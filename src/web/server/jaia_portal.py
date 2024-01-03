@@ -65,6 +65,9 @@ class Interface:
     # MetaData
     metadata = {}
 
+    # Contacts
+    contacts = {}
+
     # Path to taskpacket files
     taskPacketPath = '/var/log/jaiabot/bot_offload/'
     # Data from taskpacket files
@@ -169,6 +172,11 @@ class Interface:
             if msg.HasField('device_metadata'):
                 metadata = protobufMessageToDict(msg.device_metadata)
                 self.metadata = metadata
+
+            if msg.HasField('contact_update'):
+                contact_update = protobufMessageToDict(msg.contact_update)
+                contact_id = contact_update['contact']
+                self.contacts[contact_id] = contact_update
                 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -367,11 +375,11 @@ class Interface:
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
-
         status = {
             'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
             'bots': self.bots,
+            'contacts': self.contacts,
             'messages': self.messages
         }
 

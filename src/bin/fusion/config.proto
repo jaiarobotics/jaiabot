@@ -100,4 +100,7 @@ message Fusion
 
     // Dive states to send node status based on published depth values
     repeated jaiabot.protobuf.MissionState diving_states = 49;
+
+    required string bot_gpsd_device = 50;  // gpsd device for bot itself
+
 }

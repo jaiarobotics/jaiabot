@@ -7,9 +7,12 @@ import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
 import * as Styles from './shared/Styles'
+import { Geometry } from 'ol/geom'
 
 
 export class Layers {
+
+    layerGroupArray: (LayerGroup | VectorLayer<VectorSource<Geometry>>)[] = [];
 
     missionLayerSource = new VectorSource()
 
@@ -100,6 +103,15 @@ export class Layers {
         zIndex: 998
     })
 
+    contactTrailCirclesLayer = new VectorLayer({
+        properties: {
+            title: 'Contact Trail Circles'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
+    })
+
     
     /**
      * Layer group for mission-related layers
@@ -117,7 +129,8 @@ export class Layers {
             this.courseOverGroundLayer,
             this.headingLayer,
             this.hubCommsLimitCirclesLayer,
-            this.waypointCircleLayer
+            this.waypointCircleLayer,
+            this.contactTrailCirclesLayer
         ]
     })
     
@@ -157,21 +170,26 @@ export class Layers {
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
 
+    addLayerGroup(layer: (LayerGroup | VectorLayer<VectorSource<Geometry>>)) {
+        this.layerGroupArray.push(layer)
+    }
+
     getAllLayers() {
-        return [
-            this.baseLayerGroup,
-            this.chartLayerGroup,
-            this.measurementLayerGroup,
-            this.graticuleLayer,
-            this.missionLayerGroup,
-            this.dragAndDropVectorLayer,
-        ]
+        return this.layerGroupArray 
     }
 
     constructor() {
         // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
         this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
+        this.contactTrailCirclesLayer.setStyle(Styles.contactTrailCircleStyle)
+
+        this.addLayerGroup(this.baseLayerGroup);
+        this.addLayerGroup(this.chartLayerGroup);
+        this.addLayerGroup(this.measurementLayerGroup);
+        this.addLayerGroup(this.graticuleLayer);
+        this.addLayerGroup(this.missionLayerGroup);
+        this.addLayerGroup(this.dragAndDropVectorLayer);
     }
 }
 

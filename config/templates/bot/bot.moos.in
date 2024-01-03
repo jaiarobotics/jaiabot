@@ -28,7 +28,7 @@ ProcessConfig = pHelmIvP
 
   behaviors  = $bhv_file
   domain     = course:0:359:360
-  domain     = speed:0:4:41
+  domain     = speed:0:3:31
   domain     = depth:0:200:201
 }
 

@@ -3,6 +3,7 @@ initialize   JAIABOT_WAYPOINT_ACTIVE = false
 initialize   JAIABOT_STATIONKEEP_ACTIVE = false
 initialize   JAIABOT_CONSTANTHEADING_ACTIVE = false
 initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
+initialize   JAIABOT_TRAIL_ACTIVE = false
 
 Behavior = BHV_Waypoint
 { 
@@ -91,4 +92,29 @@ Behavior = BHV_ConstantSpeed
   speed       = 1            // default
   peakwidth   = 0            // default
   summitdelta = 0            // default
+}
+
+
+Behavior = BHV_Trail
+{
+   name         = jaiabot_trail
+   pwt          = 100                                 // default
+   condition    = JAIABOT_TRAIL_ACTIVE = true
+   updates      = JAIABOT_TRAIL_UPDATES
+
+   duration     = no-time-limit
+   extrapolate  = true // If true, contact position is extrapolated from last position and trajectory.
+   decay        = 60,120 // Time interval during which extrapolated position slows to a halt.
+
+   // The distance (in meters) from the trail position that will result in the behavior ``cutting range to the trail position, and inside of which will result in the behavior ``shadowing the contact. 
+   radius       = 5 // default, meters 
+   nm_radius    = 20
+
+   // will be updated with JAIABOT_TRAIL_UPDATES
+   contact      = PLACEHOLDER
+
+   // set by updates
+   // trail_angle = ...
+   // trail_angle_type =  ...
+   // trail_range =  ...           
 }

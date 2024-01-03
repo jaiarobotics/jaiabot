@@ -138,6 +138,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
+liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_load.pb.cfg.in')
 
 
 if common.app == 'gobyd':    
@@ -178,7 +179,7 @@ elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
                                      interprocess_block = interprocess_common,
                                      http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
-                                     load_protobufs=''))
+                                     load_protobufs=liaison_load_block))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
@@ -227,7 +228,8 @@ elif common.app == 'jaiabot_fusion':
                                      bot_id=bot_index,
                                      fusion_in_simulation=is_simulation(),
                                      bot_status_period=bot_status_period,
-                                     imu_detection_solution=imu_detection_solution))
+                                     imu_detection_solution=imu_detection_solution,
+                                     bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
@@ -257,8 +259,7 @@ elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.bot.gpsd_port(node_id),
-                                     gpsd_device=common.bot.gpsd_device(node_id)))
+                                     gpsd_port=common.bot.gpsd_port(node_id)))
 elif common.app == 'gpsd':
     print('-S {} -N {}'.format(common.bot.gpsd_port(node_id), common.bot.gpsd_device(node_id)))
 elif common.app == 'moos':
