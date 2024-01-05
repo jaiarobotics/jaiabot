@@ -1,25 +1,30 @@
-import { LogTaskPacket } from "./Log"
-import JSZip from 'jszip';
-import * as Styles from './shared/Styles'
-import { DriftPacket } from "./shared/JAIAProtobuf";
+import JSZip from 'jszip'
 
+import { LogTaskPacket } from "./LogMessages"
+import { DriftPacket, TaskPacket } from "./JAIAProtobuf"
+import * as Styles from './Styles'
 
 /**
- * Returns an array of strings, containing the KML code for each feature in a task packet
+ * Generates the KML code for each feature in a task packet
  *
- * @param {LogTaskPacket} taskPacket The task packet to process into KML features
- * @returns {Promise<string[]>} A promise for the array of strings for each KML feature in `taskPacket`
+ * @param {TaskPacket | LogTaskPacket} taskPacket The task packet to process into KML features
+ * @returns {Promise<string[]>} A promise for an array of strings for each KML feature in `taskPacket`
  */
-async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
-    var placemarks: string[] = []
+async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket) {
+    let placemarks = []
 
-    if (taskPacket._scheme_ != 1) {
+    if ('_scheme_' in taskPacket && taskPacket._scheme_ !== 1) {
         return []
     }
 
     const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
-    const date = new Date(taskPacket._utime_ / 1e3)
-    const dateString = formatter.format(date)
+
+    let startTimeString = 'Unknown'
+    if (taskPacket.start_time !== undefined) {
+        const startTime = new Date(taskPacket.start_time / 1e3)
+        startTimeString = formatter.format(startTime)
+    }
+
     const bot_id = taskPacket.bot_id
 
     // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
@@ -59,7 +64,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                 <description>
                     <h2>Dive</h2>
                     Bot-ID: ${bot_id}<br />
-                    Time: ${dateString}<br />
+                    Start: ${startTimeString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
                     Duration-to-GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
@@ -94,7 +99,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
         const driftDescription = `
             <h2>Drift</h2>
             Bot-ID: ${bot_id}<br />
-            Start: ${dateString}<br />
+            Start: ${startTimeString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
             Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
@@ -129,13 +134,37 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     return placemarks
 }
 
-
+/**
+ * A KML/KMZ document
+ *
+ * @class KMLDocument
+ * @typedef {KMLDocument}
+ */
 export class KMLDocument {
-    task_packets: LogTaskPacket[] = []
+    #taskPackets: (TaskPacket | LogTaskPacket)[]
 
     constructor() {
+        this.#taskPackets = []
     }
 
+    /**
+     * Sets the task packets for the KML document
+     * 
+     * @param {(TaskPacket | LogTaskPacket)[]} taskPackets Task packets to be used in KML document 
+     * @returns {void}
+     */
+    setTaskPackets(taskPackets: (TaskPacket | LogTaskPacket)[]) {
+        this.#taskPackets = taskPackets
+    }
+
+    /**
+     * Gets the array of task packets used in the KML
+     * 
+     * @returns {(TaskPacket | LogTaskPacket)[]} The array of task packets used in the KML
+     */
+    getTaskPackets() {
+        return this.#taskPackets
+    }
     
     /**
      * Returns a KML string representing the KML document
@@ -143,23 +172,24 @@ export class KMLDocument {
      * @returns {Promise<string>} the KML document as a string
      */
     async getKML() {
-        var placemarksKml = ''
+        let placemarksKML = ''
 
-        for (const task_packet of this.task_packets) {
-            const taskPacketKml = await taskPacketToKMLPlacemarks(task_packet)
-            placemarksKml += taskPacketKml
+        for (const taskPacket of this.#taskPackets) {
+            const taskPacketKML = await taskPacketToKMLPlacemarks(taskPacket)
+            placemarksKML += taskPacketKML
         }
 
-        return `
-        <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
-            <Document>
-                ${placemarksKml}
-            </Document>
-        </kml>
-        `
+        return (
+            `
+            <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
+                <Document>
+                    ${placemarksKML}
+                </Document>
+            </kml>
+            `
+        )
     }
 
-    
     /**
      * Returns a Blob representing the KML document as a KMZ file
      *
@@ -183,5 +213,4 @@ export class KMLDocument {
         
         return await zip.generateAsync({type:"blob"})
     }
-
 }

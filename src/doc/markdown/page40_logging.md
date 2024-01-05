@@ -1,18 +1,15 @@
 # Logging
-
 On-board logging is performed using the `goby_logger` application, which logs every message published on the Goby3 interprocess layer to a binary `.goby` log file.
 
 This log file can be converted in post-processing to several formats for use by data processing tools.
-## Log generation
 
+## Log generation
 When `goby_logger ` is run (e.g. in simulation using the auv.launch script in `jaiabot-configuration`, see [Configuration](page30_configuration.md)), it writes a file (e.g. `auv0_29971128T082058.goby`) to the log directory (`/tmp/jaia-logs/bot/0` in the simulator for bot0, where `/tmp/jaia-logs` can be changed in the preseed.goby in `jaiabot-configuration`).
 
 ## Log processing
-
 After the mission is complete, the `.goby` log can be copied off the vehicle (e.g. using rsync) and processed.
 
 ### Debug text log
-
 The Goby log can be converted into a text file version of all the publications (for visual inspection and debugging) using
 
 ```
@@ -22,7 +19,6 @@ goby_log_tool --input_file bot0_29971128T082058.goby --format DEBUG_TEXT
 which writes `bot0_29971128T082058.txt` by default (override by setting `--output_file`). This file can be inspected by any standard text viewer or editor.
 
 ### HDF5 file
-
 An [HDF5](https://www.hdfgroup.org/solutions/hdf5/) file suitable for use in MATLAB, Octave, etc. can be generated using:
 
 ```
@@ -53,12 +49,13 @@ All the HDF5 data are loaded using the group name followed by the Protobuf type 
 ```
 goby__middleware__frontseat__node_status.goby_middleware_frontseat_protobuf_NodeStatus.speed.over_ground
 ```
+
 is the HDF5 format for:
 
-- Goby group: goby::middleware::frontseat::node_status
-- (Protobuf) type: goby.middleware.frontseat.protobuf.NodeStatus
-- (Protobuf) field: speed [Message]
-    - over_ground [double]
+* Goby group: goby::middleware::frontseat::node_status
+* (Protobuf) type: goby.middleware.frontseat.protobuf.NodeStatus
+* (Protobuf) field: speed [Message]
+    * over_ground [double]
 
 This simple `.m` file will plot the vehicle's position in latitude/longitude for the entire mission:
 

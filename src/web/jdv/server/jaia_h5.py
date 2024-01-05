@@ -69,7 +69,7 @@ class JaiaH5FileSet:
         try:
             h5File = self.h5Files[0]
         except IndexError:
-            None
+            return None
 
         # Get duration of the first log, if the h5 file exists
         try:
@@ -90,8 +90,8 @@ class JaiaH5FileSet:
                 if h5Path.is_file():
                     try:
                         h5Files.append(h5py.File(h5FileName))
-                    except BlockingIOError as e:
-                        logging.warning(f'While trying to open {h5FileName}, exception occured: {e}')
+                    except (BlockingIOError, OSError) as e:
+                        logging.debug(f'While trying to open {h5FileName}, exception occured: {e}')
                     continue
 
                 # h5 file doesn't exist
@@ -118,7 +118,11 @@ class JaiaH5FileSet:
                     raise e
 
                 # Add the generated or existing h5 file
-                h5Files.append(h5py.File(h5FileName))
+                try:
+                    h5Files.append(h5py.File(h5FileName))
+                except (OSError) as e:
+                    logging.debug(f'{e}: while opening {h5FileName}')
+                    continue
 
         self.h5Files = h5Files
 

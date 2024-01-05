@@ -24,3 +24,5 @@ add_custom_target(pyjaia_messages
   ALL
   DEPENDS ${pyjaia_outdir}/dccl/option_extensions_pb2.py jaiabot_messages
   )
+
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

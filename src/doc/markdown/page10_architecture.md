@@ -49,6 +49,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `jaiabot_web_portal`: Interface between Goby3 and the Flask web server on the hub.
 
 #### Potential future jaiabot project inclusion
+
 - `jaiabot_power`: Power management and circuit control.
 - `jaiabot_lights`: Light control (perhaps part of `jaiabot_power` instead?).
 - `jaiabot_payload_interface`: Pluggable interface for different payload data feeds to be logged.
