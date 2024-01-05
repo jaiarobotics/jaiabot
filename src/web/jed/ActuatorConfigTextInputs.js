@@ -33,7 +33,6 @@ class ActuatorConfigTextInputs {
     }
 
     update() {
-        console.log(this.fields)
         for (const field of this.fields) {
             field.inputElement.value = this._config[field.name]
         }
