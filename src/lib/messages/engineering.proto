@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/bounds.proto";
 
 package jaiabot.protobuf;
 
@@ -187,4 +188,8 @@ message Engineering
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];
+
+    // For calibration/configuration of Arduino motor/rudder bounds
+    optional Bounds bounds = 101;
+
 }
