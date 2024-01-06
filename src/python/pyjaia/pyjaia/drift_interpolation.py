@@ -201,13 +201,25 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
     
     outputDrifts: List[Drift] = deepcopy(drifts)
 
+    def interpolationPointCount(length: float):
+        """Calculate the count of interpolated points along a ling of specified length.
+
+        Args:
+            length (float): Total length of the line.
+
+        Returns:
+            int: Count of interpolated points on the line.
+        """
+        return int(clamp(math.ceil(lineLength / resolutionDistance), 1, MAX_INTERPOLATION_POINTS))
+
+
     if len(drifts) == 2:
         # If we only have two points, then just interpolate along a line
         lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
         lineLength = measurement.length(lineString, units='m')
 
         # We need at least 1 point, or we get division by zero
-        nPoints = clamp(math.ceil(lineLength / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
+        nPoints = interpolationPointCount(lineLength)
         actualDelta = lineLength / nPoints
 
         for pointIndex in range(1, nPoints):
@@ -235,7 +247,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
         vertexDrifts = [drifts[i] for i in vertexIndices]
         a = vertexDrifts[0].location.distanceTo(vertexDrifts[1].location)
         a1 = vertexDrifts[0].location.distanceTo(vertexDrifts[2].location)
-        aDiv = clamp(math.ceil(min(a, a1) / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
+        aDiv = interpolationPointCount(min(a, a1))
 
         for rowIndex in range(1, aDiv):
             # Loop through rows from vertex 0 to vertex 1/2
@@ -243,7 +255,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
             endDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[2], (rowIndex / aDiv))
 
             b = startDrift.location.distanceTo(endDrift.location)
-            bDiv = clamp(math.ceil(b / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
+            bDiv = interpolationPointCount(b)
 
             for ptIndex in range(1, bDiv):
                 newDrift = startDrift.interpolateToFraction(endDrift, ptIndex / bDiv)
@@ -267,7 +279,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
     for edge in edges:
         edgeDrifts = [drifts[i] for i in edge]
         d = edgeDrifts[0].location.distanceTo(edgeDrifts[1].location)
-        dDiv = clamp(math.ceil(d / resolutionDistance), 1, MAX_INTERPOLATION_POINTS)
+        dDiv = interpolationPointCount(d)
 
         for i in range(1, dDiv):
             newDrift = edgeDrifts[0].interpolateToFraction(edgeDrifts[1], i / dDiv)
