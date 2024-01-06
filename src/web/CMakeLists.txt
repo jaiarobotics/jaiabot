@@ -51,7 +51,7 @@ add_custom_target(jcc
   DEPENDS ${jcc_out_dir}/client.js npm_dependencies
   )
 
-# Copy the JCC server
+# Copy the jcc server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
 # Copy jed
@@ -66,7 +66,7 @@ if(build_jdv)
   add_subdirectory(jdv)
 endif()
 
-option(install_jcc_apache "Install JCC Apache site" ON)
+option(install_jcc_apache "Install jcc Apache site" ON)
 if(install_jcc_apache)
   install(FILES jcc.conf DESTINATION /etc/apache2/sites-available)
 endif()
