@@ -51,6 +51,14 @@ button:active {
     border-right: 1px solid #000;
 }
 
+.cal-right-col {
+    grid-column: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 0 0 30px;
+}
+
 .motor-rudder-cal-btns {
     display: flex;
     flex-direction: column;

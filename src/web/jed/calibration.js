@@ -30,6 +30,9 @@ class CalibrationApp {
         this.queryButton = byId('query-engineering-status')
         this.queryButton.addEventListener('click', this.queryEngineeringStatus.bind(this))
 
+        this.startIMUCalButton = byId('start-imu-cal-btn')
+        this.startIMUCalButton.addEventListener('click', this.startIMUCalibration.bind(this))
+
         this.lastEngineeringStatusTime = 0
     }
 
@@ -98,6 +101,28 @@ class CalibrationApp {
         }
 
         api.sendEngineeringCommand(engineeringCommand, true)
+    }
+
+    startIMUCalibration() {
+        const botId = botDropdown.getSelectedBotId()
+        if (botId === null || botId === "0") {
+            alert("Please select a bot first.")
+            return
+        }
+
+        if (!api.inControl) {
+            alert("We are not in control yet. Please press 'Take Control' if you'd like to take control.")
+            return
+        }
+
+        const engineeringCommand = {
+            bot_id: botId,
+            imu_cal: {
+                run_cal: true
+            }
+        }
+        api.sendEngineeringCommand(engineeringCommand, true)
+        alert(`Sending calibration command to Bot ${botId}...`)
     }
 
 }
