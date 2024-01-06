@@ -12,7 +12,7 @@ class CalibrationApp {
             motor: {
                 forwardStart: 1600,
                 reverseStart: 1400,
-                max_reverse: 1320
+                maxReverse: 1320
             },
             rudder: {
                 upper: 1100,

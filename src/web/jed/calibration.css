@@ -1,17 +1,14 @@
-body {
-    font-size: large;
-}
-
 button {
-    padding: 10pt;
-    margin: 10pt;
-    /* width: 140pt;
-    height: 40pt; */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px;
+    border-radius: 12px;
+    border-width: 0px;
+
     background-color: lightskyblue;
     font-size: large;
-    border-radius: 16pt;
-    border-width: 0pt;
-    vertical-align: middle;
 }
 
 button:hover {
@@ -22,45 +19,47 @@ button:active {
     background-color: darkgray;
 }
 
-.config-slider-background {
-    display: block;
-    width: 90%;
-    height: 50pt;
-    background-color: lightgray;
-    position: relative;
+.cal-section {
+    display: grid;
+    /* Smallest compatable viewport: iPad Mini in its vertical position */
+    grid-template-columns: 350px 350px;
+    justify-content: center;
+    row-gap: 30px;
+    margin: 50px 0 100px 0;
 }
 
-.config-slider-handle {
-    left: 0pt;
-    top: 0pt;
-    width: 100pt;
-    height: 25pt;
-    text-align: center;
-    display: block;
-    position: absolute;
-    user-select: none;
+.cal-section h2,
+.cal-section h3 {
+    margin: 0;
 }
 
-.config-slider-line {
-    left: 0pt;
-    top: 0pt;
-    width: 2pt;
-    height: 50pt;
-    background-color: darkgreen;
-    position: absolute;
+.cal-section h2 {
+    grid-column: 1 / 3;
+    justify-self: center;
 }
 
-.config-slider-text {
-    left: -50pt;
-    top: 0pt;
-    width: 100pt;
-    background-color: darkgreen;
-    color: white;
-    position: absolute;
+.cal-section h3 {
+    margin-bottom: 10px;
+}
+
+.cal-left-col {
+    grid-column: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 30px 0 0;
+    border-right: 1px solid #000;
+}
+
+.motor-rudder-cal-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 input {
     font-size: large;
+    width: 120px;
 }
 
 td {

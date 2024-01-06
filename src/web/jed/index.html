@@ -154,58 +154,67 @@
       </table>
     </div>
 
-    <div>
+    <section class="cal-section">
+      
       <h2>Calibration</h2>
-      <h3>Motor</h3>
-      <div id="motor-bounds-config">
-        <table>
-          <tbody>
-            <tr>
-              <td>max_reverse</td>
-              <td><input id="max_reverse" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>reverseStart</td>
-              <td><input id="reverseStart" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>forwardStart</td>
-              <td><input id="forwardStart" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <h3>Rudder</h3>
-      <div id="rudder-bounds-config">
-        <table>
-          <tbody>
-            <tr>
-              <td>upper</td>
-              <td><input id="upper" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>center</td>
-              <td><input id="center" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>lower</td>
-              <td><input id="lower" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <button id="submit-config">Submit These Motor & Rudder Bounds</button>
-      <button id="query-engineering-status">Retrieve Current Motor & Rudder Bounds</button>
-      <img src=""></img>
-    </div>
 
-    <div class="helpPane hidden" id="helpPane">
-      <button id="helpCloseButton" class="close">✖️</button>
-      <image src="helpPane.png">
-    </div>
+      <section class="cal-left-col">
+        
+        <section class="motor-cal-section">
+          <h3>Motor</h3>
+          <div id="motor-bounds-config">
+            <table>
+              <tbody>
+                <tr>
+                  <td>Forward Start:</td>
+                  <td><input id="forwardStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Reverse Start:</td>
+                  <td><input id="reverseStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Max Reverse: </td>
+                  <td><input id="maxReverse" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </section>
+      
+      <section class="rudder-cal-section">
+        <h3>Rudder</h3>
+        <div id="rudder-bounds-config">
+          <table>
+            <tbody>
+              <tr>
+                <td>Upper:</td>
+                <td><input id="upper" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Center:</td>
+                <td><input id="center" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Lower:</td>
+                <td><input id="lower" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="motor-rudder-cal-btns">
+        <button id="submit-config">Submit These Motor & Rudder Bounds</button>
+        <button id="query-engineering-status">Retrieve Current Motor & Rudder Bounds</button>
+      </section>
+      
+    </section>
+
+    <section class="cal-right-col"></section>
+
+  </section>
 
   </body>
-
   <script src="script.js" type="module"></script>
-
 </html>
