@@ -104,34 +104,34 @@ class Drift:
     speed: float = 0.0
     heading: float = 0.0
 
-    def interpolateTo(self, other: "Drift", distance: float, units: str='km'):
+    def interpolateTo(self, destinationDrift: "Drift", distance: float, units: str='km'):
         """Interpolate between this Drift and another drift, a certain distance toward the other drift
 
         Args:
-            other (Drift): The destination drift to interpolate toward
+            destinationDrift (Drift): The destination drift to interpolate toward
             distance (float): Distance along the rhumb line to the destination drift
             units (str, optional): Units of the distance. Defaults to 'km'.
 
         Returns:
-            Drift: The interpolated drift
+            Drift: A drift object that's interpolated between self and the destinationDrift drift object
         """
 
-        lineString = LineString([self.location.list(), other.location.list()])
+        lineString = LineString([self.location.list(), destinationDrift.location.list()])
         lineLength = measurement.length(lineString, units=units)
         otherWeight = distance / lineLength
-        return self.interpolateToFraction(other, otherWeight)
+        return self.interpolateToFraction(destinationDrift, otherWeight)
 
-    def interpolateToFraction(self, other: "Drift", otherWeight: float):
+    def interpolateToFraction(self, destinationDrift: "Drift", otherWeight: float):
         """Interpolate between self and another Drift object by a certain fraction
 
         Args:
-            other (Drift): The other drift object
+            destinationDrift (Drift): The other drift object
             otherWeight (float): Linear fraction the other drift object interpolate to
 
         Returns:
-            Drift: A drift object that's interpolated between self andthe other drift object
+            Drift: A drift object that's interpolated between self and the destinationDrift drift object
         """
-        lineString = LineString([self.location.list(), other.location.list()])
+        lineString = LineString([self.location.list(), destinationDrift.location.list()])
         lineLength = measurement.length(lineString)
         ourWeight = 1 - otherWeight
 
@@ -140,8 +140,8 @@ class Drift:
 
         return Drift(
             location=newLocation, 
-            speed=ourWeight * self.speed + otherWeight * other.speed,
-            heading=fmod(ourWeight * (self.heading or 0.0) + otherWeight * (other.heading or 0.0), 0, 360))
+            speed=ourWeight * self.speed + otherWeight * destinationDrift.speed,
+            heading=fmod(ourWeight * (self.heading or 0.0) + otherWeight * (destinationDrift.heading or 0.0), 0, 360))
 
 
 def getDelaunayTriangulation(locations: List[LatLon]):
