@@ -222,7 +222,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
     except Exception as e:
         logging.warning(f'Could not generate Delaunay triangulation')
         logging.warning(e.with_traceback)
-        # If unsuccessful, we'll log a warning and just return the original points
+        # Return input set of drifts only
         return outputDrifts
 
     # Fill triangles with interpolated drifts
