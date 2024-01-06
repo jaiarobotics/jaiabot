@@ -218,7 +218,6 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
         lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
         lineLength = measurement.length(lineString, units='m')
 
-        # We need at least 1 point, or we get division by zero
         nPoints = interpolationPointCount(lineLength)
         actualDelta = lineLength / nPoints
 
