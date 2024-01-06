@@ -57,15 +57,15 @@ def fmod(x: float, min: float, max: float):
 
 
 def clamp(value: float, minimum: float, maximum: float):
-    """Clamps the input value between a minimum and maximum value
+    """Clamps the input value between a minimum and maximum value.
 
     Args:
-        value (float): Input value to clamp
-        minimum (float): Minimum allowable value to return
-        maximum (float): Maximum allowable value to return
+        value (float): Input value to clamp.
+        minimum (float): Minimum allowable value to return.
+        maximum (float): Maximum allowable value to return.
 
     Returns:
-        float: The clamped value, equivalent to `min(maximum, max(minimum, value))`
+        float: The clamped value, equivalent to `min(maximum, max(minimum, value))`.
     """
 
     return min(maximum, max(minimum, value))
@@ -105,15 +105,15 @@ class Drift:
     heading: float = 0.0
 
     def interpolateTo(self, destinationDrift: "Drift", distance: float, units: str='km'):
-        """Interpolate between this Drift and another drift, a certain distance toward the other drift
+        """Interpolate between this Drift and another drift, a certain distance toward the other drift.
 
         Args:
-            destinationDrift (Drift): The destination drift to interpolate toward
-            distance (float): Distance along the rhumb line to the destination drift
+            destinationDrift (Drift): The destination drift to interpolate toward.
+            distance (float): Distance along the rhumb line to the destination drift.
             units (str, optional): Units of the distance. Defaults to 'km'.
 
         Returns:
-            Drift: A drift object that's interpolated between self and the destinationDrift drift object
+            Drift: A drift object that's interpolated between self and the destinationDrift drift object.
         """
 
         lineString = LineString([self.location.list(), destinationDrift.location.list()])
@@ -122,14 +122,14 @@ class Drift:
         return self.interpolateToFraction(destinationDrift, otherWeight)
 
     def interpolateToFraction(self, destinationDrift: "Drift", otherWeight: float):
-        """Interpolate between self and another Drift object by a certain fraction
+        """Interpolate between self and another Drift object by a certain fraction.
 
         Args:
-            destinationDrift (Drift): The other drift object
-            otherWeight (float): Linear fraction the other drift object interpolate to
+            destinationDrift (Drift): The other drift object.
+            otherWeight (float): Linear fraction the other drift object interpolate to.
 
         Returns:
-            Drift: A drift object that's interpolated between self and the destinationDrift drift object
+            Drift: A drift object that's interpolated between self and the destinationDrift drift object.
         """
         lineString = LineString([self.location.list(), destinationDrift.location.list()])
         lineLength = measurement.length(lineString)
@@ -145,7 +145,7 @@ class Drift:
 
 
 def getDelaunayTriangulation(locations: List[LatLon]):
-    """Gets a Delaunay triangulation of a set of locations
+    """Gets a Delaunay triangulation of a set of locations.
 
     Args:
         locations (List[LatLon]): A list of locations of the points to triangulate.
@@ -280,13 +280,13 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
 
 
 def taskPacketsToDrifts(taskPackets: List[Dict]):
-    """Gets a list of Drift objects from a list of TaskPacket dictionaries
+    """Gets a list of Drift objects from a list of TaskPacket dictionaries.
 
     Args:
         taskPackets (list[Dict]): A list of input TaskPacket dictionaries.
 
     Returns:
-        list[Drift]: A list of Drift objects from the input task packets, if any are present, (otherwise an empty list)
+        list[Drift]: A list of Drift objects from the input task packets, if any are present, (otherwise an empty list).
     """
     drifts: List[Drift] = []
 
@@ -310,7 +310,7 @@ def taskPacketsToDrifts(taskPackets: List[Dict]):
 
 
 def driftsToGeoJSON(drifts: List[Drift]):
-    """Produces a GeoJSON string representing an input list of Drift objects
+    """Produces a GeoJSON string representing an input list of Drift objects.
 
     Args:
         drifts (List[Drift]): The input list of Drift objects to process.
@@ -342,7 +342,7 @@ def driftsToGeoJSON(drifts: List[Drift]):
 
 
 def taskPacketsToDriftMarkersGeoJSON(taskPackets: List[Dict]):
-    """Produces a GeoJSON string representing the drifts and interpolated drifts from an input list of TaskPacket dictionaries
+    """Produces a GeoJSON string representing the drifts and interpolated drifts from an input list of TaskPacket dictionaries.
 
     Args:
         taskPackets (List[Dict]): A list of TaskPacket dictionaries to process into GeoJSON.
