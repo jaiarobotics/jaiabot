@@ -169,7 +169,7 @@ def getDelaunayTriangulation(locations: List[LatLon]):
             return tri
         except scipy.spatial._qhull.QhullError as e:
             # This can happen in the case of duplicate points, colinear points, etc.
-            #   We can retry with joggled points.
+            # We can retry with joggled points.
             if tryNumber > MAX_RETRIES:
                 # Too many tries, give up
                 raise e
