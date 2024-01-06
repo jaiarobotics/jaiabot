@@ -16,6 +16,7 @@ set(pyjaia_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaia)
 add_custom_command(OUTPUT ${pyjaia_outdir}/dccl/option_extensions_pb2.py
   COMMAND ./build_messages.sh
   ARGS ${pyjaia_outdir} ${CMAKE_CURRENT_BINARY_DIR}/proto_include ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR}
+  DEPENDS jaiabot_messages
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia
   COMMENT "Running pyjaia build_messages.sh"
   )
@@ -23,3 +24,5 @@ add_custom_target(pyjaia_messages
   ALL
   DEPENDS ${pyjaia_outdir}/dccl/option_extensions_pb2.py jaiabot_messages
   )
+
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

@@ -136,7 +136,6 @@ interface State {
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
 	lastBotCount: number,
-	areBotsLoadedJCC: boolean,
 
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
@@ -261,7 +260,6 @@ export default class CommandControl extends React.Component {
 			podStatusVersion: 0,
 			botExtents: {},
 			lastBotCount: 0,
-			areBotsLoadedJCC: false,
 
 			missionParams: {
 				'missionType': 'lines',
@@ -536,11 +534,6 @@ export default class CommandControl extends React.Component {
 		// Update the map layers panel, if needed
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
-		}
-
-		if (!this.state.areBotsLoadedJCC && Object.keys(this.state.podStatus?.bots).length > 0) {
-			this.initRCDivesStorage(Object.keys(this.state.podStatus.bots))
-			this.setState({ areBotsLoadedJCC: true })
 		}
 	}
 
@@ -2421,7 +2414,7 @@ export default class CommandControl extends React.Component {
 
 		this.state.remoteControlInterval = setInterval(() => {
 				this.api.postEngineeringPanel(this.state.remoteControlValues);
-			}, 100)
+			}, 500)
 	}
 
 	clearRemoteControlInterval() {
@@ -2456,17 +2449,23 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	initRCDivesStorage(botIds: string[]) {
-		let newRCDives = cloneDeep(this.state.rcDives)
-		for (let botId of botIds) {
-			newRCDives[Number(botId)] = {
-				maxDepth: '',
-				depthInterval: '',
-				holdTime: '',
-				driftTime: ''
+	/**
+	 * Used to initialize the RC dive parameters in state
+	 * 
+	 * @param {number} botId Used to find the bot's dive parameters
+	 * @returns {void}
+	 */
+	initRCDivesParams(botId: number) {
+		if (botId !== undefined) {
+			let newRCDives = cloneDeep(this.state.rcDives)
+				newRCDives[botId] = {
+				maxDepth: '10',
+				depthInterval: '10',
+				holdTime: '0',
+				driftTime: '10'
 			}
+			this.setState({ rcDives: newRCDives })
 		}
-		this.setState({ rcDives: newRCDives })
 	}
 
 	setRCDiveParams(diveParams: {[param: string]: string}) {
@@ -3221,6 +3220,7 @@ export default class CommandControl extends React.Component {
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
 					setRCDiveParameters={this.setRCDiveParams.bind(this)}
+					initRCDivesParams={this.initRCDivesParams.bind(this)}
 				/>
 			)
 		}
