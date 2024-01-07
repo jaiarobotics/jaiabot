@@ -47,7 +47,7 @@ app = Flask(__name__)
 
 ####### Static files
 jcc: str = os.path.join(args.appRoot, 'jcc')
-jed = os.path.join(args.appRoot, 'jed')
+jed: str = os.path.join(args.appRoot, 'jed')
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path: str):
