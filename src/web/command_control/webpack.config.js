@@ -27,10 +27,7 @@ const optimizationConfig = {
 module.exports = (env, argv) => {
   webpackOptions =
       [
-        // Client
-        // ================================================================
         {
-          // name: 'client',
           target : 'web',
           stats : 'errors-only',
           devtool : 'eval-source-map',
