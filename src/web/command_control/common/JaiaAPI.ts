@@ -172,7 +172,7 @@ export class JaiaAPI {
   takeControl() { return this.post('jaia/take-control', null) }
 
   postEngineering(engineeringCommand: Engineering) {
-    return this.post('jaia/pid-command', engineeringCommand)
+    return this.post('jaia/engineering-command', engineeringCommand)
   }
 
   postMissionFilesCreate(descriptor: any) {
