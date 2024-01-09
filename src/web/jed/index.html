@@ -215,7 +215,14 @@
 
       <section class="imu-cal-section">
         <h3>IMU</h3>
-        <button id="start-imu-cal-btn">Start IMU Calibration</button>
+        <div class="imu-cal-inner-container">
+          <div class="imu-cal-info">
+            <div class="imu-cal-label">Current IMU Calibration:</div>
+            <div class="imu-cal-data" id="imu-cal-current">N/A</div>
+          </div>
+          <button id="imu-cal-start-btn">Start IMU Calibration</button>
+          <div class="imu-cal-state">In Progress...</div>
+        </div>
       </section>
 
     </section>

@@ -59,6 +59,30 @@ button:active {
     padding: 0 0 0 30px;
 }
 
+.imu-cal-inner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.imu-cal-info {
+    display: flex;
+    gap: 15px;
+}
+
+.imu-cal-label,
+.imu-cal-data {
+    font-size: large;
+}
+
+#imu-cal-start-btn {
+    width: fit-content;
+}
+
+.imu-cal-state {
+    font-size: large;
+}
+
 .motor-rudder-cal-btns {
     display: flex;
     flex-direction: column;

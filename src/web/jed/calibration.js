@@ -30,7 +30,7 @@ class CalibrationApp {
         this.queryButton = byId('query-engineering-status')
         this.queryButton.addEventListener('click', this.queryEngineeringStatus.bind(this))
 
-        this.startIMUCalButton = byId('start-imu-cal-btn')
+        this.startIMUCalButton = byId('imu-cal-start-btn')
         this.startIMUCalButton.addEventListener('click', this.startIMUCalibration.bind(this))
 
         this.lastEngineeringStatusTime = 0
@@ -44,6 +44,7 @@ class CalibrationApp {
 
         const thisBot = status.bots[botDropdown.getSelectedBotId()]
         if (thisBot == null) return
+        this.updateIMUCurrentCalibration(thisBot["calibration_status"])
 
         const engineering_status = thisBot.engineering
         if (engineering_status == null) return
@@ -125,6 +126,15 @@ class CalibrationApp {
         alert(`Sending calibration command to Bot ${botId}...`)
     }
 
+    updateIMUCurrentCalibration(currentCalibration) {
+        const calibrationValues = [1, 2, 3]
+        let element = document.getElementById("imu-cal-current")
+        if (calibrationValues.includes(currentCalibration)) {
+            element.textContent = currentCalibration
+        } else {
+            element.textContent = "N/A"
+        }
+    }
 }
 
 export const calibrationApp = new CalibrationApp()
