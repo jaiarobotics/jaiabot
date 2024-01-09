@@ -21,7 +21,7 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     feature.setProperties({
         'type': 'dive',
         'id': Math.random(),
-        'depthAchieved': Number(dive.depth_achieved?.toFixed(2)), // (m)
+        'taskPacket': task_packet,
         'diveRate': Number(dive.dive_rate?.toFixed(2)), // (m/s)
         'bottomDive': dive.bottom_dive,
         'botId': task_packet.bot_id,

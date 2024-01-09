@@ -41,7 +41,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, DivePacket } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
@@ -1857,13 +1857,14 @@ export default class CommandControl extends React.Component {
 					this.unselectAllTaskPackets()
 				}
 
-				const diveFeature = feature.get('features')[0]				
+				const diveFeature = feature.get('features')[0]
+				const taskPacket = diveFeature.get('taskPacket') as TaskPacket
 				const startTime = new Date(diveFeature.get('startTime') / 1000)
 				const endTime = new Date(diveFeature.get('endTime') / 1000)
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
 					bot_id: {value: diveFeature.get('botId'), units: ''},
-					depth_achieved: {value: diveFeature.get('depthAchieved'), units: 'm'},
+					depth_achieved: {value: taskPacket.dive?.depth_achieved?.toFixed(2) ?? '?', units: 'm'},
 					dive_rate: {value: diveFeature.get('diveRate'), units: 'm/s'},
 					bottom_dive: {value: diveFeature.get('bottomDive') ? 'Yes': 'No', units: ''},
 					start_time: {value: startTime.toLocaleString(), units: ''},
