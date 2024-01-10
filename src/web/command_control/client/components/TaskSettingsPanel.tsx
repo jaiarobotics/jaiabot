@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate, ListenParameters } from './shared/JAIAProtobuf';
 import { GlobalSettings, Save } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { Button, FormControl, MenuItem } from '@mui/material';
@@ -98,6 +98,20 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
+    function onChangeListenDepthParameter(evt: React.ChangeEvent<HTMLInputElement>) {
+        const target = evt.target as any
+        const key = target.name as (keyof ListenParameters)
+        const value = Number(target.value)
+
+        var newTask = deepcopy(task)
+        newTask.listen[key] = value
+
+        GlobalSettings.listenParameters[key] = value
+        Save(GlobalSettings.listenParameters)
+
+        props.onChange(newTask)
+    }
+
     // For selecting target for constant heading task type    
     function selectOnMapClicked() {
         const { map, location } = props
@@ -169,6 +183,7 @@ function TaskOptionsPanel(props: Props) {
     let dive = task.dive
     let surface_drift = task.surface_drift
     let constant_heading = task.constant_heading
+    let listen = task.listen
 
     switch(task.type) {
         case TaskType.NONE:
@@ -219,6 +234,33 @@ function TaskOptionsPanel(props: Props) {
                 if (speed == null || time == null) return null;
                 else return speed * time;
             }
+            return null
+        case TaskType.LISTEN:
+            return (
+                <div id="ListenDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Depth</td>
+                                <td className="input-row depth"><input type="number" step="1" className="NumberInput" name="listen_depth" defaultValue={listen.listen_depth} onChange={onChangeListenDepthParameter} disabled={!props?.isEditMode} />m</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )
+        case TaskType.BOTTOM_DIVE:
+            return (
+                <div id="TestDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Drift Time</td>
+                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )
     
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
@@ -291,6 +333,13 @@ export function TaskSettingsPanel(props: Props) {
             case TaskType.SURFACE_DRIFT:
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
+            case TaskType.BOTTOM_DIVE:
+                newTask.dive = deepcopy(GlobalSettings.diveParameters)
+                newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
+                break;
+            case TaskType.LISTEN:
+                newTask.listen = deepcopy(GlobalSettings.listenParameters)
+                break;
         }
 
         props.onChange(newTask)
@@ -307,6 +356,7 @@ export function TaskSettingsPanel(props: Props) {
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
+                <MenuItem value={"LISTEN"}>Listen</MenuItem>
             </Select>
             {TaskOptionsPanel(props)}
         </FormControl>

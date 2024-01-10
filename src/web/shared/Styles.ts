@@ -22,6 +22,7 @@ const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const taskConstantHeading = require('./taskConstantHeading.svg') as string
+const taskListen = require('./taskListen.svg') as string
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const satellite = require('./satellite.svg') as string
@@ -315,6 +316,7 @@ function getGoalSrc(taskType: TaskType | null) {
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
         'CONSTANT_HEADING': taskConstantHeading,
+        'LISTEN': taskListen,
         'NONE': taskNone       
     }
 

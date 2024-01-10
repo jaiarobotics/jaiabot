@@ -13,6 +13,9 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
     JAIA_BUILD_NPROC=`nproc`
 fi
 
+echo "******************************************************************"
+echo "$(dirname $0)"
+
 script_dir=$(dirname $0)
 
 ARCH=$(dpkg --print-architecture)
