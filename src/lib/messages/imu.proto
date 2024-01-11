@@ -59,10 +59,9 @@ message IMUData
 
     enum CalibrationState
     {
-        NOT_CALIBRATED = 1;
-        IN_PROGRESS = 2;
-        COMPLETE = 3;
-        FAILED = 4;
+        IN_PROGRESS = 1;
+        COMPLETE = 2;
+        FAILED = 3;
     }
     optional CalibrationState calibration_state = 5;
 
