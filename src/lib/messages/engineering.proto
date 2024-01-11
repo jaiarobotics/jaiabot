@@ -154,8 +154,6 @@ message IMUCalibration
     };
 
     optional bool run_cal = 1 [default = false];
-    optional bool cal_complete = 2 [default = false];
-    optional bool cal_failed = 3 [default = false];
 }
 
 message Engineering

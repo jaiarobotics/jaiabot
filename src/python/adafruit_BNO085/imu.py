@@ -37,8 +37,8 @@ class IMUReading:
     linear_acceleration_world: Vector3
     gravity: Vector3
     calibration_status: int
+    calibration_state: str
     quaternion: Quaternion
-    calibration_complete: bool
 
 class IMU:
     def setup(self):
@@ -75,8 +75,8 @@ class IMU:
         if reading.calibration_status is not None:
             imu_data.calibration_status = reading.calibration_status
 
-        if reading.calibration_complete is not None:
-            imu_data.calibration_complete = reading.calibration_complete
+        if reading.calibration_state is not None:
+            imu_data.calibration_state = reading.calibration_state
 
         return imu_data
     
@@ -112,15 +112,12 @@ class Adafruit(IMU):
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
 
                 self.is_setup = True
-
-                # set the initial calibration status
                 self.calibration_status = None
+                self.calibration_state = "NOT_CALIBRATED"
                 # set the duration for checking calibration (seconds)
                 self.wait_to_check_calibration_duration = 1
                 # set the initial time for checking calibration
                 self.check_calibration_time = time.time()
-                self.is_calibrating = None
-                self.calibration_complete = None
 
             except Exception as error:
                 self.is_setup = False
@@ -137,6 +134,7 @@ class Adafruit(IMU):
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
             calibration_status = self.calibration_status
+            calibration_state = self.calibration_state
 
             self.checkCalibration()
            
@@ -166,15 +164,14 @@ class Adafruit(IMU):
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
                         calibration_status=calibration_status,
-                        quaternion=quaternion,
-                        calibration_complete=self.calibration_complete)
+                        calibration_state=calibration_state,
+                        quaternion=quaternion)
 
         except Exception as error:
             log.warning("Error trying to get data!")
 
     def startCalibration(self):
-        self.calibration_complete = False 
-        self.is_calibrating = True
+        self.calibration_state = "IN_PROGRESS"
         self.calibration_good_at = None
         self.sensor.begin_calibration()
 
@@ -186,7 +183,7 @@ class Adafruit(IMU):
                 # new calibration status
                 self.calibration_status = self.sensor.calibration_status
 
-                if self.is_calibrating:
+                if self.calibration_state == "IN_PROGRESS":
                     logging.debug("Calibrating imu")
                     if not self.calibration_good_at and self.calibration_status > 2:
                         self.calibration_good_at = time.monotonic()
@@ -195,10 +192,10 @@ class Adafruit(IMU):
                         logging.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
-                        self.is_calibrating = False
-                        self.calibration_complete = True
+                        self.calibration_state = "COMPLETE"
             except Exception as error:
                 log.warning("Error trying to get calibration status!")
+                self.calibration_state = "FAILED"
             self.check_calibration_time = time.time()  # Reset the start time
         else:
             logging.debug("Waiting To Check Calibration")

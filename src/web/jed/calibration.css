@@ -79,10 +79,6 @@ button:active {
     width: fit-content;
 }
 
-.imu-cal-state {
-    font-size: large;
-}
-
 .motor-rudder-cal-btns {
     display: flex;
     flex-direction: column;

@@ -42,9 +42,15 @@ class CalibrationApp {
         const selected_bot_id = botDropdown.getSelectedBotId()
         if (selected_bot_id == null) return
 
-        const thisBot = status.bots[botDropdown.getSelectedBotId()]
-        if (thisBot == null) return
-        this.updateIMUCurrentCalibration(thisBot["calibration_status"])
+            const thisBot =
+                status
+                    .bots[botDropdown.getSelectedBotId()] if (thisBot ==
+                                                              null) return this
+                    .updateIMUCurrentCalibration(
+                        thisBot["calibration_status"]) this
+                    .updateIMUCalibrationState(
+                        thisBot["calibration_state"]) this
+                    .updateIMUCalibrationBtn(thisBot["calibration_state"])
 
         const engineering_status = thisBot.engineering
         if (engineering_status == null) return
@@ -123,7 +129,7 @@ class CalibrationApp {
             }
         }
         api.sendEngineeringCommand(engineeringCommand, true)
-        alert(`Sending calibration command to Bot ${botId}...`)
+        console.log('Engineering Command Sent:', engineeringCommand)
     }
 
     updateIMUCurrentCalibration(currentCalibration) {
@@ -134,6 +140,28 @@ class CalibrationApp {
         } else {
             element.textContent = "N/A"
         }
+    }
+
+    updateIMUCalibrationState(calibrationState) {
+      const statesNotDisplayed = [ "NOT_CALIBRATED" ]
+          // Avoid displaying a state that does not enhance the UX
+          if (statesNotDisplayed.includes(calibrationState)) {
+        return
+      }
+      let element = document.getElementById('imu-cal-state')
+      element.textContent = `${calibrationState}...`
+    }
+
+    updateIMUCalibrationBtn(calibrationState) {
+      let element = document.getElementById("imu-cal-start-btn")
+      if (calibrationState === "IN_PROGRESS") {
+        element.disabled = true;
+        element.style.opacity = 0.9
+      }
+      else {
+        element.disabled = false;
+        element.style.opacity = 1
+      }
     }
 }
 

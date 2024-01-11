@@ -57,23 +57,31 @@ message IMUData
 
     optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional bool bot_rolled_over = 5 [default = false];
+    enum CalibrationState
+    {
+        NOT_CALIBRATED = 1;
+        IN_PROGRESS = 2;
+        COMPLETE = 3;
+        FAILED = 4;
+    }
+    optional CalibrationState calibration_state = 5;
 
-    optional double significant_wave_height = 6 [(dccl.field) = {units {
+    optional bool bot_rolled_over = 6 [default = false];
+
+    optional double significant_wave_height = 7 [(dccl.field) = {units {
             derived_dimensions: "length"
             system: "si"
             }}
         ];
 
     // For bottom characterization
-    optional double max_acceleration = 7
+    optional double max_acceleration = 8
         [(dccl.field) = {units {
             derived_dimensions: "acceleration"
             system: "si"
             }}
         ];
     
-    optional bool calibration_complete = 8;
 }
 
 message IMUIssue
