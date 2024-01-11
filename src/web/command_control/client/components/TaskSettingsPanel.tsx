@@ -248,19 +248,6 @@ function TaskOptionsPanel(props: Props) {
                     </table>
                 </div>
             )
-        case TaskType.BOTTOM_DIVE:
-            return (
-                <div id="TestDiv">
-                    <table className="TaskParametersTable">
-                        <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            )
     
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
@@ -331,10 +318,6 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
             case TaskType.SURFACE_DRIFT:
-                newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
-                break;
-            case TaskType.BOTTOM_DIVE:
-                newTask.dive = deepcopy(GlobalSettings.diveParameters)
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
             case TaskType.LISTEN:
