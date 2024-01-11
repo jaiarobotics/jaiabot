@@ -627,6 +627,7 @@ export enum TaskType {
     STATION_KEEP = "STATION_KEEP",
     SURFACE_DRIFT = "SURFACE_DRIFT",
     CONSTANT_HEADING = "CONSTANT_HEADING",
+    LISTEN = "LISTEN"
 }
 
 export interface DiveParameters {
@@ -645,11 +646,16 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number
 }
 
+export interface ListenParameters {
+    listen_depth?: number
+}
+
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
+    listen?: ListenParameters
 }
 
 export enum MissionStart {
