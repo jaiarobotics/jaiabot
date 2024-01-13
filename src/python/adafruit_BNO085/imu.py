@@ -20,14 +20,9 @@ log = logging.getLogger('imu')
 try:
     uart = serial.Serial("/dev/ttyAMA0", 3000000)
     physical_device_available = True
-except ModuleNotFoundError:
-    log.warning('ModuleNotFoundError, so physical device not available')
+except Exception as e:
+    log.warning(f'Physical device not available: {e}')
     physical_device_available = False
-except NotImplementedError:
-    log.warning('NotImplementedError, so physical device not available')
-    physical_device_available = False
-except serial.serialutil.SerialException:
-    log.warning('SerialException, so physical device not available')
 
 
 @dataclass
