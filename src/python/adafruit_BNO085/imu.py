@@ -12,6 +12,7 @@ import adafruit_bno08x
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
+from threading import *
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
@@ -67,12 +68,14 @@ class IMU:
         imu_data.gravity.z = reading.gravity.z
 
         if reading.calibration_status is not None:
-            imu_data.calibration_status = reading.calibration_status
+            # only send the mag cal
+            imu_data.calibration_status = reading.calibration_status[3]
 
         return imu_data
 
 
 class Adafruit(IMU):
+    _lock: Lock
 
     def __init__(self):
         log.info('Device: Adafruit')
@@ -83,7 +86,10 @@ class Adafruit(IMU):
 
         self.is_setup = False
 
-    def setup(self):
+        self._lock = Lock()
+
+    def _setup(self):
+        """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
                 log.warning('We are not setup')
@@ -114,10 +120,15 @@ class Adafruit(IMU):
                 self.is_setup = False
                 log.warning("Error trying to setup driver!")
             
+    def setup(self):
+        """Thread-safe setup function.  Call to setup the IMU."""
+        with self._lock:
+            self._setup()
 
-    def takeReading(self):
+    def _takeReading(self):
+        """Thread unsafe takeReading function.  Only used internally."""
         if not self.is_setup:
-            self.setup()
+            self._setup()
 
         try:
             quat_x, quat_y, quat_z, quat_w = self.sensor.quaternion
@@ -168,34 +179,52 @@ class Adafruit(IMU):
                         quaternion=quaternion)
 
         except Exception as error:
-            log.warning("Error trying to get data!")
+            log.warning(f"Error trying to get data: {error}")
+
+    def takeReading(self):
+        """Thread-safe takeReading function.  Call to take a reading.
+
+
+        Returns:
+            IMUReading | None: An IMUReading object, if the reading was successful, otherwise None.
+        """
+        with self._lock:
+            return self._takeReading()
     
 
 class Simulator(IMU):
     wave_frequency: float
     wave_height: float
 
+    _lock: Lock
+
     def __init__(self, wave_frequency: float=1, wave_height: float=1):
         log.info('Device: Simulator')
 
         self.wave_frequency = wave_frequency
         self.wave_height = wave_height
+        self._lock = Lock()
 
-    def setup(self):
+    def _setup(self):
         pass
 
+    def setup(self):
+        with self._lock:
+            self._setup()
+
     def takeReading(self) -> IMUReading:
-        t = datetime.datetime.now().timestamp()
-        a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
-        linear_acceleration = Vector3(0, 0, a_z)
+        with self._lock:
+            t = datetime.datetime.now().timestamp()
+            a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
+            linear_acceleration = Vector3(0, 0, a_z)
 
-        quaternion = Quaternion(1, 0, 0, 0)
-        linear_acceleration_world = quaternion.apply(linear_acceleration)
+            quaternion = Quaternion(1, 0, 0, 0)
+            linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-        return IMUReading(orientation=quaternion.to_euler_angles(), 
-                        linear_acceleration=linear_acceleration,
-                        linear_acceleration_world=linear_acceleration_world,
-                        gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
-                        calibration_status=(3, 3, 3, 3),
-                        quaternion=quaternion)
+            return IMUReading(orientation=quaternion.to_euler_angles(), 
+                            linear_acceleration=linear_acceleration,
+                            linear_acceleration_world=linear_acceleration_world,
+                            gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
+                            calibration_status=(3, 3, 3, 3),
+                            quaternion=quaternion)
 
