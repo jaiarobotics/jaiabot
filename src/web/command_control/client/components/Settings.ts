@@ -82,7 +82,6 @@ export interface MapSettings {
 
 
 export let GlobalSettings = {
-
     // Default dive parameters when creating a new dive task
     diveParameters: Load<DiveParameters>('diveParameters', {
         max_depth: 10,
@@ -95,9 +94,9 @@ export let GlobalSettings = {
         drift_time: 10
     }),
 
-    //Default depth parameter for echo task
-    listenParameters: Load<ListenParameters>('echoParameters', {
-        listen_depth: 3
+    // Default depth parameter (in meters) for Listen task
+    listenParameters: Load<ListenParameters>('listenParameters', {
+        listen_depth: 0
     }),
 
     constantHeadingParameters: Load<ConstantHeadingParameters>('constantHeadingParameters', {

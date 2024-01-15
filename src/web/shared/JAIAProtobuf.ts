@@ -647,7 +647,7 @@ export interface ConstantHeadingParameters {
 }
 
 export interface ListenParameters {
-    listen_depth?: number
+    listen_depth: number
 }
 
 export interface MissionTask {
