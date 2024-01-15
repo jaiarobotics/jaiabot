@@ -5,9 +5,10 @@ import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
-import { colorNameToHex } from './Color'
+import { colorNameToHex } from './Color';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
+declare var require : any;
 const driftMapIcon = require('./driftMapIcon.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const start = require('./start.svg') as string
@@ -22,7 +23,6 @@ const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const taskConstantHeading = require('./taskConstantHeading.svg') as string
-const taskListen = require('./taskListen.svg') as string 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const satellite = require('./satellite.svg') as string
@@ -316,7 +316,6 @@ function getGoalSrc(taskType: TaskType | null) {
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
         'CONSTANT_HEADING': taskConstantHeading,
-        'LISTEN': taskListen,
         'NONE': taskNone       
     }
 
