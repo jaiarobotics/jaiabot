@@ -1,0 +1,64 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package jaiabot.config;
+
+message Tool
+{
+    option (goby.msg).cfg = {
+        tool_mode: true
+        show_auto_help: true
+        show_auto_help_usage: false
+        exit_after_auto_help: false
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia help [action]\"\n"
+                           "Provides detailed usage information on the provided action.\n"
+                           "Example: \"jaia help log\" provides help in the 'log' action\n"
+                           "\n"
+                           "You can also override the help command line flag used by running, for example, \"jaia help -hh log\" to pass \"-hh\" to \"jaia log\" in order to show advanced command line options"
+
+        }];
+        log = 1 [(goby.ev).cfg = {
+            short_help_msg: "Manage goby log files",
+            external_command: "jaia_log_tool"
+        }];
+    }
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position: 1, cli_short: "A", action: HIDDEN }
+        }
+    ];
+}
