@@ -263,14 +263,7 @@ message BotStatus
 
     optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
-    enum CalibrationState
-    {
-        NOT_CALIBRATED = 1;
-        IN_PROGRESS = 2;
-        COMPLETE = 3;
-        FAILED = 4;
-    }
-    optional CalibrationState calibration_state = 59;
+    optional IMUCalibrationState calibration_state = 59;
 
     optional double hdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 

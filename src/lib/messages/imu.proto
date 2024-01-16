@@ -19,6 +19,12 @@ message IMUCommand
     required IMUCommandType type = 1;
 }
 
+enum IMUCalibrationState
+{
+        IN_PROGRESS = 1;
+        COMPLETE = 2;
+}
+
 message IMUData
 {
     message EulerAngles {
@@ -57,13 +63,7 @@ message IMUData
 
     optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
 
-    enum CalibrationState
-    {
-        IN_PROGRESS = 1;
-        COMPLETE = 2;
-        FAILED = 3;
-    }
-    optional CalibrationState calibration_state = 5;
+    optional IMUCalibrationState calibration_state = 5;
 
     optional bool bot_rolled_over = 6 [default = false];
 

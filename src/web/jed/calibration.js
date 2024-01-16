@@ -129,18 +129,22 @@ class CalibrationApp {
     }
 
     updateIMUCurrentCalibration(currentCalibration) {
-        const calibrationValues = [1, 2, 3]
         let element = document.getElementById("imu-cal-current")
-        if (calibrationValues.includes(currentCalibration)) {
-            element.textContent = currentCalibration
-        } else {
-            element.textContent = "N/A"
-        }
+        element.textContent = currentCalibration
     }
 
     updateIMUCalibrationState(calibrationState) {
-      let element = document.getElementById('imu-cal-state')
-      element.textContent = `${calibrationState}...`
+        let element = document.getElementById('imu-cal-state')
+        switch (calibrationState) {
+            case "IN_PROGRESS":
+                element.textContent = "IMU Calibration In Progress..."
+                break
+            case "COMPLETE":
+                element.textContent = "IMU Calibration Complete"
+                break
+            default:
+                element.textContent = ""
+        }
     }
 
     updateIMUCalibrationBtn(calibrationState) {

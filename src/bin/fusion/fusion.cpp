@@ -309,9 +309,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
         if (imu_data.has_calibration_state())
         {
-            latest_bot_status_.set_calibration_state(
-                static_cast<jaiabot::protobuf::BotStatus_CalibrationState>(
-                    imu_data.calibration_state()));
+            latest_bot_status_.set_calibration_state(imu_data.calibration_state());
         }
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
