@@ -25,7 +25,7 @@ button:active {
     grid-template-columns: 350px 350px;
     justify-content: center;
     row-gap: 30px;
-    margin: 50px 0 100px 0;
+    margin: 50px 0 50px 0;
 }
 
 .cal-section h2,
