@@ -82,13 +82,9 @@ jaiabot::apps::Tool::Tool()
                 {
                     switch (action_for_help)
                     {
-                        case jaiabot::config::Tool::log:
-                            throw(goby::Exception("jaia log not yet implemented"));
-                            break;
-
-                        case jaiabot::config::Tool::status:
-                            throw(goby::Exception("jaia status not yet implemented"));
-                            break;
+                            // case jaiabot::config::Tool::log:
+                            //     throw(goby::Exception("jaia log not yet implemented"));
+                            //     break;
 
                         case jaiabot::config::Tool::version:
                             tool_helper.help<jaiabot::apps::VersionTool>(action_for_help);
@@ -108,13 +104,9 @@ jaiabot::apps::Tool::Tool()
                 }
                 break;
 
-            case jaiabot::config::Tool::log:
-                throw(goby::Exception("jaia log not yet implemented"));
-                break;
-
-            case jaiabot::config::Tool::status:
-                throw(goby::Exception("jaia status not yet implemented"));
-                break;
+                // case jaiabot::config::Tool::log:
+                //     throw(goby::Exception("jaia log not yet implemented"));
+                //     break;
 
             case jaiabot::config::Tool::version:
                 tool_helper.run_subtool<jaiabot::apps::VersionTool>();

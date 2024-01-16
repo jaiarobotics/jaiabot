@@ -42,16 +42,16 @@ message Tool
             short_help_msg: "Print usage information",
             full_help_msg: "Usage: \"jaia help [action]\"\n"
                            "Provides detailed usage information on the provided action.\n"
-                           "Example: \"jaia help log\" provides help in the 'log' action\n"
-                           "\n"
-                           "You can also override the help command line flag used by running, for example, \"jaia help -hh log\" to pass \"-hh\" to \"jaia log\" in order to show advanced command line options"
+                           "Example: \"jaia help version\" provides help in the 'version' action"
 
         }];
-        log = 1 [(goby.ev).cfg = {
-            short_help_msg: "Manage Jaia (goby) log files",
-        }];
+        // log = 1 [(goby.ev).cfg = {
+        //     short_help_msg: "Manage Jaia (goby) log files",
+        // }];
         status = 2 [(goby.ev).cfg = {
             short_help_msg: "Status of Jaia services",
+            external_command: "jaiabot-status"
+            full_help_msg: "Runs jaiabot-status to display status of Jaiabot services" 
         }];
         ctl = 3 [(goby.ev).cfg = {
             short_help_msg: "Control Jaia services",
