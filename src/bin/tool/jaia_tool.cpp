@@ -87,7 +87,9 @@ jaiabot::apps::Tool::Tool()
                             //     break;
 
                         case jaiabot::config::Tool::version:
-                            tool_helper.help<jaiabot::apps::VersionTool>(action_for_help);
+                            tool_helper.help<jaiabot::apps::VersionTool,
+                                             jaiabot::apps::VersionToolConfigurator>(
+                                action_for_help);
                             break;
 
                         case jaiabot::config::Tool::ctl:
@@ -109,7 +111,8 @@ jaiabot::apps::Tool::Tool()
                 //     break;
 
             case jaiabot::config::Tool::version:
-                tool_helper.run_subtool<jaiabot::apps::VersionTool>();
+                tool_helper.run_subtool<jaiabot::apps::VersionTool,
+                                        jaiabot::apps::VersionToolConfigurator>();
                 break;
 
             case jaiabot::config::Tool::ctl:

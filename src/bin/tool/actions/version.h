@@ -31,6 +31,28 @@ namespace jaiabot
 {
 namespace apps
 {
+class VersionToolConfigurator
+    : public goby::middleware::ProtobufConfigurator<jaiabot::config::VersionTool>
+{
+  public:
+    VersionToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::VersionTool>(argc, argv)
+    {
+        auto& cfg = mutable_cfg();
+        // no explicit versions implies all versions
+        if (cfg.display_version_size() == 0)
+        {
+            for (int i = jaiabot::config::VersionTool::Version_MIN,
+                     n = jaiabot::config::VersionTool::Version_MAX;
+                 i <= n; ++i)
+            {
+                if (jaiabot::config::VersionTool::Version_IsValid(i))
+                    cfg.add_display_version(static_cast<jaiabot::config::VersionTool::Version>(i));
+            }
+        }
+    }
+};
+
 class VersionTool : public goby::middleware::Application<jaiabot::config::VersionTool>
 {
   public:

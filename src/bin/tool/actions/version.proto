@@ -28,10 +28,34 @@ package jaiabot.config;
 
 message VersionTool
 {
-    option (goby.msg).cfg = {
-        tool_mode: true
-    };
-
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Version
+    {
+        jaiabot = 1;
+        goby = 2;
+        moos = 3;
+        raspi = 4;
+        image = 5;
+    }
+    repeated Version display_version = 10 [(goby.field) = {
+        description: "Versions to display. If none are selected, all versions are displayed.",
+        cfg { position: -1, cli_short: "d" }
+    }];
+
+    enum Format
+    {
+        protobuf = 1;
+        json = 2;
+        text = 3;
+    }
+
+    optional Format format = 11 [
+        default = text,
+        (goby.field) = {
+            description: "Desired output format",
+            cfg { cli_short: "f" }
+        }
+    ];
 }
