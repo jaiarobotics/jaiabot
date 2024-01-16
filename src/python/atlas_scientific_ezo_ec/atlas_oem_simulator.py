@@ -75,7 +75,7 @@ class AtlasOEM:
         self._calibrationTable[value - 2] = self._calibration
 
     def calibrationRequest(self):
-        return self._calibrationRequest
+        return 0
 
 
     # Calibration confirmation
