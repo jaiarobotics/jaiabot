@@ -109,7 +109,7 @@ class CalibrationApp {
 
     startIMUCalibration() {
         const botId = botDropdown.getSelectedBotId()
-        if (botId === null || botId === "0") {
+        if (botId === "0") {
             alert("Please select a bot first.")
             return
         }

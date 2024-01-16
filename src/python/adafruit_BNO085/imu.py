@@ -160,7 +160,8 @@ class Adafruit(IMU):
 
             quaternion = Quaternion.from_tuple(quaternion)
             orientation = quaternion.to_euler_angles()
-            orientation.heading = (orientation.heading + 90) % 360 # even after consulting the docs, we're still off by 90 degrees!
+            # even after consulting the docs, we're still off by 90 degrees!
+            orientation.heading = (orientation.heading + 90) % 360
             linear_acceleration = Vector3(*linear_acceleration)
             linear_acceleration_world = quaternion.apply(linear_acceleration)
             gravity = Vector3(*gravity)
@@ -201,7 +202,8 @@ class Adafruit(IMU):
                         self.calibration_state = CalibrationState.COMPLETE
             except Exception as error:
                 log.warning("Error trying to get calibration status!")
-            self.check_calibration_time = time.time()  # Reset the start time
+            # reset the start time
+            self.check_calibration_time = time.time()
         else:
             logging.debug("Waiting To Check Calibration")
 
@@ -229,7 +231,8 @@ class Simulator(IMU):
         return IMUReading(orientation=quaternion.to_euler_angles(), 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
-                        gravity=Vector3(0.03, 0.03, 9.8), # we need to use 0.03, to avoid looking like a common glitch that gets filtered
+                        # we need to use 0.03, to avoid looking like a common glitch that gets filtered
+                        gravity=Vector3(0.03, 0.03, 9.8),
                         calibration_status=(3, 3, 3, 3),
                         quaternion=quaternion)
 
