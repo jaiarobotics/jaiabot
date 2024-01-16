@@ -30,9 +30,7 @@ message Tool
 {
     option (goby.msg).cfg = {
         tool_mode: true
-        show_auto_help: true
-        show_auto_help_usage: false
-        exit_after_auto_help: false
+        has_help_action: true
     };
 
     optional goby.middleware.protobuf.AppConfig app = 1
@@ -50,8 +48,24 @@ message Tool
 
         }];
         log = 1 [(goby.ev).cfg = {
-            short_help_msg: "Manage goby log files",
-            external_command: "jaia_log_tool"
+            short_help_msg: "Manage Jaia (goby) log files",
+        }];
+        status = 2 [(goby.ev).cfg = {
+            short_help_msg: "Status of Jaia services",
+        }];
+        ctl = 3 [(goby.ev).cfg = {
+            short_help_msg: "Control Jaia services",
+            full_help_msg: "This action is a wrapper for 'systemctl [<service>: defaults to jaiabot.service]': use jaia ctl --help for full details\n"
+                           "\n"
+                           "Common commands:\n"
+                           "  jaia ctl restart: Restart all jaiabot services\n"
+                           "  jaia ctl stop: Stop all jaiabot services\n"
+                           "  jaia ctl start: Start all jaiabot services\n"
+                           "  jaia ctl <command> <service>: Run command on a specific service, e.g.,\n"
+                           "    jaia ctl restart jaiabot_goby_gps: Restart GPS service"
+        }];
+        version = 4 [(goby.ev).cfg = {
+            short_help_msg: "Jaia version (metadata)",
         }];
     }
     optional Action action = 2 [
