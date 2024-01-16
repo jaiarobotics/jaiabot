@@ -4,6 +4,10 @@
   font-family: Sans-Serif;
 }
 
+#body {
+  padding: 3px;
+}
+
 div {
   font-size: 12pt;
 }
