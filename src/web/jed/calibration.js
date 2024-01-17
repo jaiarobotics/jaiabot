@@ -12,10 +12,7 @@ class CalibrationApp {
             motor: {
                 forwardStart: 1600,
                 reverseStart: 1400,
-                max_reverse: 1320,
-                throttle_zero_net_buoyancy: -35,
-                throttle_dive: -40,
-                throttle_ascent: 25
+                maxReverse: 1320
             },
             rudder: {
                 upper: 1100,
@@ -86,8 +83,6 @@ class CalibrationApp {
                 rudder: this.rudderConfigControl.getConfig()
             }
         }
-
-        console.log(engineeringCommand)
 
         api.sendEngineeringCommand(engineeringCommand, true)
     }
