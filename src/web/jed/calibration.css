@@ -1,0 +1,68 @@
+body {
+    font-size: large;
+}
+
+button {
+    padding: 10pt;
+    margin: 10pt;
+    /* width: 140pt;
+    height: 40pt; */
+    background-color: lightskyblue;
+    font-size: large;
+    border-radius: 16pt;
+    border-width: 0pt;
+    vertical-align: middle;
+}
+
+button:hover {
+    background-color: lightgray;
+}
+
+button:active {
+    background-color: darkgray;
+}
+
+.config-slider-background {
+    display: block;
+    width: 90%;
+    height: 50pt;
+    background-color: lightgray;
+    position: relative;
+}
+
+.config-slider-handle {
+    left: 0pt;
+    top: 0pt;
+    width: 100pt;
+    height: 25pt;
+    text-align: center;
+    display: block;
+    position: absolute;
+    user-select: none;
+}
+
+.config-slider-line {
+    left: 0pt;
+    top: 0pt;
+    width: 2pt;
+    height: 50pt;
+    background-color: darkgreen;
+    position: absolute;
+}
+
+.config-slider-text {
+    left: -50pt;
+    top: 0pt;
+    width: 100pt;
+    background-color: darkgreen;
+    color: white;
+    position: absolute;
+}
+
+input {
+    font-size: large;
+}
+
+td {
+    font-size: large;
+}
