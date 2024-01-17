@@ -11,6 +11,10 @@ class ActuatorConfigTextInputs {
         this.rootElement = byId(elementId)
 
         this.fields = []
+        this._config = {}
+
+        this.setConfig(initialConfig)
+
         for (const inputElement of this.rootElement.getElementsByClassName('actuator-input')) {
             this.fields.push({
                 name: inputElement.id,
@@ -23,18 +27,20 @@ class ActuatorConfigTextInputs {
                 event.target.value = clamp(value, MICRO_MIN, MICRO_MAX)
             })
         }
-
-        this.setConfig(initialConfig)
     }
 
     setConfig(config) {
-        this._config = config
+        for (const key of Object.keys(config)) {
+            this._config[key] = config[key]
+        }
         this.update()
     }
 
     update() {
         for (const field of this.fields) {
-            field.inputElement.value = this._config[field.name]
+            if (field.inputElement !== undefined && field.inputElement.value !== undefined) {
+                field.inputElement.value = this._config[field.name]
+            }
         }
     }
 
