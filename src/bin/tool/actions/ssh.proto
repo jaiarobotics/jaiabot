@@ -46,8 +46,10 @@ message SshTool
         wlan = 0;
         fleet_vpn = 1;
         vfleet_vpn = 2;
-        cloudhub_vpn = 3;    
+        cloudhub_vpn = 3;
     }
-    
+
     optional Net net = 3 [default = wlan];
+
+    optional bool ipv6 = 4 [default = false];
 }

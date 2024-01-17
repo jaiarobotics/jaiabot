@@ -15,6 +15,6 @@ jaiabot::apps::CtlTool::CtlTool()
 
     execvp(c_args[0], c_args.data());
     // If execvp returns, there was an error
-    std::cerr << "ERROR executing systemctl" << std::endl;
+    goby::glog.is_die() && goby::glog << "ERROR executing systemctl" << std::endl;
     quit(0);
 }

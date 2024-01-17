@@ -16,6 +16,7 @@ add_executable(${APP}
 
 target_link_libraries(${APP}
   goby
-  jaiabot_messages)
+  jaiabot_messages
+  )
 
 project_install_bin(${APP})
