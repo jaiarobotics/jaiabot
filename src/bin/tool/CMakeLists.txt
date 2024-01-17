@@ -4,12 +4,14 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   config.proto
   actions/version.proto
   actions/ctl.proto
+  actions/ssh.proto
   )
 
 add_executable(${APP}
   jaia_tool.cpp
   actions/version.cpp
   actions/ctl.cpp
+  actions/ssh.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

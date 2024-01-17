@@ -20,27 +20,39 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-syntax = "proto2";
-import "goby/middleware/protobuf/app_config.proto";
-import "goby/protobuf/option_extensions.proto";
+#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_SSH_H
+#define JAIABOT_SRC_BIN_TOOL_ACTIONS_SSH_H
 
-package jaiabot.config;
+#include "goby/middleware/application/interface.h"
 
-message CtlTool
+#include "actions/ssh.pb.h"
+
+namespace jaiabot
 {
-    option (goby.msg).cfg = {
-        tool_mode: true
-        has_help_action: true
-    };
+namespace apps
+{
+class SshToolConfigurator : public goby::middleware::ProtobufConfigurator<jaiabot::config::SshTool>
+{
+  public:
+    SshToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::SshTool>(argc, argv)
+    {
+        auto& cfg = mutable_cfg();
+    }
+};
 
-    optional goby.middleware.protobuf.AppConfig app = 1
-        [(goby.field) = { cfg { action: DEVELOPER } }];
+class SshTool : public goby::middleware::Application<jaiabot::config::SshTool>
+{
+  public:
+    SshTool();
+    ~SshTool() override {}
 
-    optional string action = 2 [
-        default = "--help",
-        (goby.field) = {
-            description: "The action this tool should take [can omit --action if 1st parameter]",
-            cfg { position: 1 }
-        }
-    ];
-}
+  private:
+    void run() override { assert(false); }
+
+  private:
+};
+
+} // namespace apps
+} // namespace jaiabot
+#endif

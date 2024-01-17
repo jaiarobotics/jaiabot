@@ -26,40 +26,28 @@ import "goby/protobuf/option_extensions.proto";
 
 package jaiabot.config;
 
-message VersionTool
+message SshTool
 {
     option (goby.msg).cfg = {
-        suppress_shortcuts: true
+        tool_mode: true
+        has_help_action: false
     };
 
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
-    enum Version
-    {
-        jaiabot = 1;
-        goby = 2;
-        moos = 3;
-        raspi = 4;
-        image = 5;
-    }
-    repeated Version display_version = 10 [(goby.field) = {
-        description: "Versions to display. If none are selected, all versions are displayed.",
-        cfg { position: -1, cli_short: "d" }
+    required string host = 2 [(goby.field) = {
+        description: "The host to log into (e.g. b4f2 or h1f3)",
+        cfg { position: 1 }
     }];
 
-    enum Format
+    enum Net
     {
-        protobuf = 1;
-        json = 2;
-        text = 3;
+        wlan = 0;
+        fleet_vpn = 1;
+        vfleet_vpn = 2;
+        cloudhub_vpn = 3;    
     }
-
-    optional Format format = 11 [
-        default = text,
-        (goby.field) = {
-            description: "Desired output format",
-            cfg { cli_short: "f" }
-        }
-    ];
+    
+    optional Net net = 3 [default = wlan];
 }

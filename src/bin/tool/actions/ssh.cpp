@@ -1,11 +1,13 @@
 #include "goby/middleware/application/tool.h"
 
-#include "ctl.h"
+#include "ssh.h"
 
-jaiabot::apps::CtlTool::CtlTool()
+jaiabot::apps::SshTool::SshTool()
 {
-    std::vector<std::string> args{"systemctl"};
-    args.push_back(app_cfg().action());
+    std::vector<std::string> args{"ssh"};
+
+    std::string host_ip = app_cfg().host(); // todo - translate from shortcut using ip.py
+    args.push_back(host_ip);
 
     for (const auto& cli_extra : app_cfg().app().tool_cfg().extra_cli_param())
         args.push_back(cli_extra);
@@ -15,6 +17,6 @@ jaiabot::apps::CtlTool::CtlTool()
 
     execvp(c_args[0], c_args.data());
     // If execvp returns, there was an error
-    std::cerr << "ERROR executing systemctl" << std::endl;
+    std::cerr << "ERROR executing ssh" << std::endl;
     quit(0);
 }

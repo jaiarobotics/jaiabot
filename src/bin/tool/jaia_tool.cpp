@@ -25,6 +25,7 @@
 #include <goby/middleware/application/tool.h>
 
 #include "actions/ctl.h"
+#include "actions/ssh.h"
 #include "actions/version.h"
 #include "config.pb.h"
 
@@ -98,6 +99,12 @@ jaiabot::apps::Tool::Tool()
                                     action_for_help);
                             break;
 
+                        case jaiabot::config::Tool::ssh:
+                            tool_helper
+                                .help<jaiabot::apps::SshTool, jaiabot::apps::SshToolConfigurator>(
+                                    action_for_help);
+                            break;
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -119,6 +126,12 @@ jaiabot::apps::Tool::Tool()
                 tool_helper
                     .run_subtool<jaiabot::apps::CtlTool, jaiabot::apps::CtlToolConfigurator>();
                 break;
+
+            case jaiabot::config::Tool::ssh:
+                tool_helper
+                    .run_subtool<jaiabot::apps::SshTool, jaiabot::apps::SshToolConfigurator>();
+                break;
+
             default:
                 throw(goby::Exception("Action was expected to be handled by external tool"));
                 break;
