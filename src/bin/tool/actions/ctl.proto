@@ -28,8 +28,9 @@ package jaiabot.config;
 
 message CtlTool
 {
-    option (goby.msg).cfg = {
-        tool_mode: true
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
         has_help_action: true
     };
 
@@ -40,7 +41,7 @@ message CtlTool
         default = "--help",
         (goby.field) = {
             description: "The action this tool should take [can omit --action if 1st parameter]",
-            cfg { position: 1 }
+            cfg { position: { enable: true } }
         }
     ];
 }

@@ -28,8 +28,9 @@ package jaiabot.config;
 
 message Tool
 {
-    option (goby.msg).cfg = {
-        tool_mode: true
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
         has_help_action: true
     };
 
@@ -51,7 +52,7 @@ message Tool
         status = 2 [(goby.ev).cfg = {
             short_help_msg: "Status of Jaia services",
             external_command: "jaiabot-status"
-            full_help_msg: "Runs jaiabot-status to display status of Jaiabot services" 
+            full_help_msg: "Runs jaiabot-status to display status of Jaiabot services"
         }];
         ctl = 3 [(goby.ev).cfg = {
             short_help_msg: "Control Jaia services",
@@ -70,7 +71,7 @@ message Tool
         ssh = 5 [(goby.ev).cfg = {
             short_help_msg: "Use SSH to login to jaiabots and hubs",
             full_help_msg: "This action is a wrapper for 'ssh' that can take shortcut names for jaia hosts\n"
-            "Command line options before the host name are processed by 'jaia ssh', and command line options after the host name are passed unmodified to ssh"
+                           "Command line options before the host name are processed by 'jaia ssh', and command line options after the host name are passed unmodified to ssh"
                            "\n"
                            "Example commands:\n"
                            "  jaia ssh b4f10: SSH into bot4 on fleet10\n"
@@ -78,13 +79,12 @@ message Tool
                            "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
                            "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
         }];
-
     }
     optional Action action = 2 [
         default = help,
         (goby.field) = {
             description: "The action this tool should take [can omit --action if 1st parameter]",
-            cfg { position: 1, cli_short: "A", action: HIDDEN }
+            cfg { position { enable: true }, cli_short: "A", action: HIDDEN }
         }
     ];
 }

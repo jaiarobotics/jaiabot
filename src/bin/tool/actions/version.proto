@@ -28,8 +28,10 @@ package jaiabot.config;
 
 message VersionTool
 {
-    option (goby.msg).cfg = {
-        suppress_shortcuts: true
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: false
+        has_help_action: false
     };
 
     optional goby.middleware.protobuf.AppConfig app = 1
@@ -45,7 +47,7 @@ message VersionTool
     }
     repeated Version display_version = 10 [(goby.field) = {
         description: "Versions to display. If none are selected, all versions are displayed.",
-        cfg { position: -1, cli_short: "d" }
+        cfg { position: { enable: true, max_count: -1 }, cli_short: "d" }
     }];
 
     enum Format
