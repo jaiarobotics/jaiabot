@@ -11,10 +11,6 @@ button {
     font-size: large;
 }
 
-button:hover {
-    background-color: lightgray;
-}
-
 button:active {
     background-color: darkgray;
 }

@@ -406,10 +406,6 @@ button.close {
   background-color: lightgray;
 }
 
-button:hover {
-  background-color: azure;
-}
-
 input.manualOrPidButton:hover {
   background-color: azure;
   border: 2pt solid darkgray
