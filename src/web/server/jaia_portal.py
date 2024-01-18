@@ -456,7 +456,8 @@ class Interface:
         combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
         # Filter out duplicates with dict comprehenson, then convert to list
         unique_task_packets = list(
-            {f"{task_packet['bot_id']}-{task_packet['start_time']}": task_packet for task_packet in combined_task_packets}.values()
+            {f"{task_packet['bot_id']}-{self.round_task_packet_time(task_packet['start_time'])}": task_packet
+                for task_packet in combined_task_packets}.values()
         ) 
 
         return unique_task_packets
@@ -465,9 +466,22 @@ class Interface:
         total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
         # Use set constructor to eliminate duplicate TaskPackets
         count = len(
-            set(map(lambda task_packet: f'{task_packet["bot_id"]}-{task_packet["start_time"]}', total_combined_task_packets))
+            set(map(
+                lambda task_packet: f'{task_packet["bot_id"]}-{self.round_task_packet_time(task_packet["start_time"])}', total_combined_task_packets
+            ))
         )
         return count 
+    
+    def round_task_packet_time(self, task_packet_time):
+        """Rounds a TaskPacket time to closest multiple of ten seconds
+        Args:
+            task_packet_time (int | str): UNIX timestamp of TaskPacket time
+        Returns:
+            int: TaskPacket time rounded in the tens of seconds
+        """
+        microseconds_factor = 1_000_000
+        time_seconds = int(task_packet_time) / microseconds_factor
+        return round(time_seconds / 10) * 10
 
     # Contour map
 
