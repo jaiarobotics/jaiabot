@@ -75,7 +75,7 @@ message Tool
                            "\n"
                            "Example commands:\n"
                            "  jaia ssh b4f10: SSH into bot4 on fleet10\n"
-                           "  jaia ssh h1f1: SSH into hub4 on fleet1\n"
+                           "  jaia ssh h1f2: SSH into hub1 on fleet2\n"
                            "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
                            "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
         }];
