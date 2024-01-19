@@ -7,7 +7,7 @@ sudo apt-get install git
 git clone https://github.com/jaiarobotics/jaiabot
 ```
 2. Run the setup scripts
-
+```
 cd /path/to/jaiabot/scripts
 ./setup-tools-build.sh
 ./setup-tools-runtime.sh
