@@ -75,6 +75,8 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 wave_analyzer.startSamplingForBottomCharacterization()
             elif command.type == IMUCommand.STOP_BOTTOM_TYPE_SAMPLING:
                 wave_analyzer.stopSamplingForBottomCharacterization()
+            elif command.type == IMUCommand.START_CALIBRATION:
+                imu.startCalibration()
 
         except Exception as e:
             traceback.print_exc()
