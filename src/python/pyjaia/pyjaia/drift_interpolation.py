@@ -201,7 +201,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
     
     outputDrifts: List[Drift] = deepcopy(drifts)
 
-    def interpolationPointCount(length: float):
+    def interpolationPointCount(lineLength: float):
         """Calculate the count of interpolated points along a ling of specified length.
 
         Args:
