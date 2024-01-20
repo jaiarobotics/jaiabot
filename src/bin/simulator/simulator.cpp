@@ -238,7 +238,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
             dive_depth_ = last_setpoints_.dive_depth_with_units();
 
         // Use an eggshell function for the seafloor depth (for testing contours)
-        const auto k = sim_cfg_.seafloor_wavelength_with_units() / 2 * PI;
+        const auto k = 2 * PI / sim_cfg_.seafloor_wavelength_with_units();
         const auto seafloor_depth =
             sim_cfg_.seafloor_depth_with_units() +
             sim_cfg_.seafloor_amplitude_with_units() * sin(k * x) * sin(k * y);
