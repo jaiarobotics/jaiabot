@@ -237,8 +237,14 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         if (dive_depth_ > last_setpoints_.dive_depth_with_units())
             dive_depth_ = last_setpoints_.dive_depth_with_units();
 
-        if (dive_depth_ > sim_cfg_.seafloor_depth_with_units())
-            dive_depth_ = sim_cfg_.seafloor_depth_with_units();
+        // Use an eggshell function for the seafloor depth (for testing contours)
+        const auto seafloor_depth = sim_cfg_.seafloor_depth_with_units() +
+                                    sim_cfg_.seafloor_amplitude_with_units() *
+                                        sin(x / sim_cfg_.seafloor_wavelength_with_units()) *
+                                        sin(y / sim_cfg_.seafloor_wavelength_with_units());
+
+        if (dive_depth_ > seafloor_depth)
+            dive_depth_ = seafloor_depth;
 
         depth = dive_depth_;
 
