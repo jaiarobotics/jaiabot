@@ -256,7 +256,15 @@ void writeToActuators()
   // If we want to go forward faster
   if (motor_target > motor_neutral && motor_target > motor_tracked)
   {
-      motor_tracked += min(motor_target - motor_tracked, motor_max_step_forward_faster);
+      // Skips ramping between neutral and where the motor starts spinning
+      if (motor_tracked < motor_min_forward)
+      {
+          motor_tracked = motor_min_forward;
+      }
+      else
+      {
+          motor_tracked += min(motor_target - motor_tracked, motor_max_step_forward_faster);
+      }
       motor_actual = motor_forward_clamp(motor_tracked, motor_min_forward);
   }
   // If we want to go forward slower (including stopping)
@@ -276,7 +284,15 @@ void writeToActuators()
   // If we are going reverse and we are trying to go faster
   else if (motor_target < motor_neutral && motor_target < motor_tracked)
   {
-      motor_tracked -= min(motor_tracked - motor_target, motor_max_step_reverse_faster);
+      // Skips ramping between neutral and where the motor starts spinning
+      if (motor_tracked > motor_min_reverse)
+      {
+          motor_tracked = motor_min_reverse;
+      }
+      else
+      {
+          motor_tracked -= min(motor_tracked - motor_target, motor_max_step_reverse_faster);
+      }
       motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
 
