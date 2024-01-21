@@ -607,7 +607,7 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     }
 
     let text
-    if (dive.bottom_dive == true && dive.depth_achieved != null) {
+    if (dive.bottom_dive && dive.depth_achieved !== undefined) {
         text = dive.depth_achieved.toFixed(1)
     }
     else {
