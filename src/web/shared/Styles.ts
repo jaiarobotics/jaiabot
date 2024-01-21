@@ -602,16 +602,13 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     // Depth text
     const taskPacket = feature.get('taskPacket') as TaskPacket
     const dive = taskPacket.dive as DivePacket
-    if (dive == null) {
+    if (!dive) {
         return null
     }
 
-    let text
+    let text = ""
     if (dive.bottom_dive && dive.depth_achieved !== undefined) {
         text = dive.depth_achieved.toFixed(1)
-    }
-    else {
-        text = ''
     }
 
     // Icon color
