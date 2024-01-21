@@ -263,11 +263,13 @@ message BotStatus
 
     optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional IMUCalibrationState calibration_state = 59;
 
-    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional double hdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 data_offload_percentage = 61 [
+    optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional int32 data_offload_percentage = 62 [
         (dccl.field) = {
             min: 0
             max: 100
@@ -275,7 +277,7 @@ message BotStatus
         }
     ];
 
-    optional int32 wifi_link_quality_percentage = 62 [
+    optional int32 wifi_link_quality_percentage = 63 [
         (dccl.field) = {
             min: 0
             max: 100
