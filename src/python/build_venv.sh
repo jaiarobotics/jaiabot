@@ -1,6 +1,14 @@
 #!/bin/bash
 
+set -e
+
 TARGET_DIR=$1
+
+if [ -z "$TARGET_DIR" ]; then
+    echo "Usage: $0 TARGET_DIR"
+    exit 1
+fi
+
 JAIA_DIR="$(pwd)/../../"
 
 # Build the venv

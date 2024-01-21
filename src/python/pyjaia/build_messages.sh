@@ -18,9 +18,9 @@ PROTO_INCLUDE="${JAIABOT_DIR}/build/intermediate/proto_include/"
 mkdir -p ${PROTO_INCLUDE}
 
 rm -f ${PROTO_INCLUDE}/goby
-ln -sf /usr/include/goby ${PROTO_INCLUDE}
+ln -sf ${GOBY_DIR:-/usr/include/goby} ${PROTO_INCLUDE}/goby
 rm -f ${PROTO_INCLUDE}/dccl
-ln -sf /usr/include/dccl ${PROTO_INCLUDE}
+ln -sf ${DCCL_DIR:-/usr/include/dccl} ${PROTO_INCLUDE}/dccl
 rm -f ${PROTO_INCLUDE}/jaiabot
 ln -sf "${JAIABOT_DIR}/src/lib" ${PROTO_INCLUDE}/jaiabot
 
