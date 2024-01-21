@@ -22,6 +22,7 @@ interface Props {
     botId: number
     goalIndex: number
     goal: Goal
+    originalGoal: Goal
     map: Map
     runList: MissionInterface
     runNumber: number
@@ -42,7 +43,6 @@ interface State {
 export class GoalSettingsPanel extends React.Component {
     props: Props
     state: State
-    oldGoal: Goal
     autoScrollTimeout: number
 
     constructor(props: Props) {
@@ -56,7 +56,6 @@ export class GoalSettingsPanel extends React.Component {
                 'lon': false
             }
         }
-        this.oldGoal = deepcopy(props.goal)
         this.autoScrollTimeout = 30 // ms
     }
 
@@ -87,16 +86,16 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     cancelClicked() {
-        const { goal } = this.props
+        const { goal, originalGoal } = this.props
 
-        if (goal) {
+        if (goal && originalGoal) {
             // Clear this goal
             Object.keys(goal).forEach((key: keyof Goal) => {
                 delete goal[key]
             })
 
             // Copy items from our backup copy of the goal
-            Object.assign(goal, this.oldGoal)
+            Object.assign(goal, originalGoal)
         }
 
         this.props.setVisiblePanel(PanelType.NONE)

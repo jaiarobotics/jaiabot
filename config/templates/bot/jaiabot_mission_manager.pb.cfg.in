@@ -98,4 +98,4 @@ $subscribe_to_hub_on_start
 
 # Waypoint Transit Behavior Updates
 waypoint_with_no_task_slip_radius: 15 # (default = 15)
-waypoint_with_task_slip_radius: 5 # (default = 5)
+waypoint_with_task_slip_radius: 7 # (default = 5)
