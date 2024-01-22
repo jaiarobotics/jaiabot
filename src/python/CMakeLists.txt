@@ -16,6 +16,7 @@ set(pyjaia_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaia)
 add_custom_command(OUTPUT ${pyjaia_outdir}/dccl/option_extensions_pb2.py
   COMMAND ./build_messages.sh
   ARGS ${CMAKE_SOURCE_DIR} ${pyjaia_outdir}
+  DEPENDS jaiabot_messages
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia
   COMMENT "Running pyjaia build_messages.sh"
   )

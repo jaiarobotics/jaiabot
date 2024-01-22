@@ -110,7 +110,7 @@ def postAllRecover():
     response = jaia_interface.post_all_recover(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/pid-command', methods=['POST'])
+@app.route('/jaia/engineering-command', methods=['POST'])
 def postPidCommand():
     jaia_interface.post_engineering_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})

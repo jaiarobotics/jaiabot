@@ -115,13 +115,17 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
     goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
     timeout_stop_ = timeout_start + timeout_duration;
 
-    if (cfg().data_offload_only_task_packet_file())
+    // update which files are excluded from data offload
+    switch (cfg().data_offload_exclude())
     {
-        glog.is_debug1() && glog << "Create a task packet file and only offload that file"
-                                 << "to hub (ignore sending goby files)" << std::endl;
-
-        // Extra exclusions for rsync
-        this->machine().set_data_offload_exclude(" '*.goby'");
+        case config::MissionManager::GOBY:
+            this->machine().set_data_offload_exclude(" '*.goby'");
+            break;
+        case config::MissionManager::TASKPACKET:
+            this->machine().set_data_offload_exclude(" '*.taskpacket'");
+            break;
+        case config::MissionManager::NONE: this->machine().set_data_offload_exclude(""); break;
+        default: this->machine().set_data_offload_exclude(""); break;
     }
 }
 
@@ -332,7 +336,7 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        if (cfg().data_offload_only_task_packet_file())
+        if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
         {
             // Convert to json string
             std::string json_string;
@@ -1408,7 +1412,7 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().data_offload_only_task_packet_file())
+    if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
     {
         // Reset if recovered
         // If bot is activated again and more task packets

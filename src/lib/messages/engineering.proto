@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/bounds.proto";
 
 package jaiabot.protobuf;
 
@@ -146,6 +147,15 @@ message BottomDepthSafetyParams
     ];
 }
 
+message IMUCalibration
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool run_cal = 1 [default = false];
+}
+
 message Engineering
 {
     /*
@@ -185,6 +195,12 @@ message Engineering
 
     optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
 
+    optional IMUCalibration imu_cal = 18;
+
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];
+
+    // For calibration/configuration of Arduino motor/rudder bounds
+    optional Bounds bounds = 101;
+
 }
