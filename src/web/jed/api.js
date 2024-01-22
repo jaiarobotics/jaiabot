@@ -60,6 +60,7 @@ class JaiaAPI {
     .then((response) => response.json())
     .then((status) => {
       this.inControl = (status.controllingClientId == this.clientId || status.controllingClientId == null)
+      this.setControlBorder()
       return status
     })
     .catch((e) => {
@@ -73,6 +74,15 @@ class JaiaAPI {
       method : 'POST',
       headers : this.headers
     }).then((response) => response.json())
+  }
+
+  setControlBorder() {
+    let body = document.getElementById('body')
+    if (this.inControl) {
+      body.style.border = 'none'
+    } else {
+      body.style.border = '3px solid red'
+    }
   }
 
 }
