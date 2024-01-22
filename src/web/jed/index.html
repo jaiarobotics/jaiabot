@@ -8,6 +8,7 @@
 
     <title>JaiaBot Engineer & Debug</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="calibration.css">
     <link rel="icon" type="image/x-icon" href="/favicon.png">
 
   </head>
@@ -21,24 +22,105 @@
       </div>
       <div id="warningStatus"></div>
       <div>
-        <button id="helpButton" onclick="helpButtonOnClick()">⌨️</button>
-        <button id="LEDButton" onclick="LEDButtonOnClick()">LED:🟢</button>
-        <button id="LEDOffButton" onclick="LEDButtoffOnClick()">LED:❌</button>
+        <button id="helpOpenButton">⌨️</button>
+        <button id="LEDOnButton">LED:🟢</button>
+        <button id="LEDOffButton">LED:❌</button>
       </div>
     </div>
 
     <div class="row">
-      <div>
-        <button id="takeControlButton" onclick="takeControl()">Take Control</button>
-        <label for="botSelect">Bot:</label>
-        <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;">
-        </select>
-        <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
-        <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
-        <a href="/">Jaia Command & Control</a>
-        <div id="loggingStatus"></div>
-      </div>
+        <div class="bot-meta-container">
+          <div class="bot-select-container">
+            <label for="botSelect">Bot:</label>
+            <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;"></select>
+          </div>
+          <button id="take-control">Take Control</button>
+          <a href="/">Jaia Command & Control</a>
+          <div id="loggingStatus"></div>
+        </div>
     </div>
+
+    <section class="cal-section">
+      
+      <h2>Calibration</h2>
+
+      <section class="cal-left-col">
+
+        <section class="imu-cal-section">
+          <h3>IMU (BNO085)</h3>
+          <div class="imu-cal-inner-container">
+            <div class="imu-cal-info">
+              <div class="imu-cal-label">Current IMU Calibration:</div>
+              <div class="imu-cal-data" id="imu-cal-current">0</div>
+            </div>
+            <button id="imu-cal-start-btn">Start IMU Calibration</button>
+            <div id="imu-cal-state" class="imu-cal-state"></div>
+          </div>
+        </section>
+  
+      </section>
+
+      <section class="cal-right-col">
+        
+        <section class="motor-cal-section">
+          <h3>Motor</h3>
+          <div id="motor-bounds-config">
+            <table>
+              <tbody>
+                <tr>
+                  <td>Forward Start:</td>
+                  <td><input id="forwardStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Reverse Start:</td>
+                  <td><input id="reverseStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Max Reverse: </td>
+                  <td><input id="max_reverse" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </section>
+      
+      <section class="rudder-cal-section">
+        <h3>Rudder</h3>
+        <div id="rudder-bounds-config">
+          <table>
+            <tbody>
+              <tr>
+                <td>Upper:</td>
+                <td><input id="upper" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Center:</td>
+                <td><input id="center" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Lower:</td>
+                <td><input id="lower" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="motor-rudder-cal-btns">
+        <button id="submit-config">Submit These Motor & Rudder Bounds</button>
+        <button id="query-engineering-status">Retrieve Current Motor & Rudder Bounds</button>
+      </section>
+      
+    </section>
+
+  </section>
+
+  <div class="row">
+    <div>
+      <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
+      <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
+    </div>
+  </div>
 
 <!-- Dive Panels     -->
     
@@ -62,7 +144,7 @@
   </div>
 
   <div style="width: 100pt">
-    <button id="diveButton" onclick="diveButtonOnClick()">🤿 Dive</button>
+    <button id="diveButton">🤿 Dive</button>
   </div>
 </div>
 
@@ -88,13 +170,7 @@
       </div>
 
       <div style="display: flex; flex-direction: column; justify-content: center; width: 100pt">
-        <div id="deadMansSwitch" 
-             onmousedown="onMouseDownDeadMansSwitch(this)" 
-             onmouseup="onMouseUpDeadMansSwitch(this)" 
-             onmouseleave="onMouseUpDeadMansSwitch(this)" 
-             ontouchstart="onMouseDownDeadMansSwitch(this)" 
-             ontouchend="onMouseUpDeadMansSwitch(this)"
-             ontouchcancel="onMouseUpDeadMansSwitch(this)">DEAD MAN'S SWITCH</div>
+        <div id="deadMansSwitch">DEAD MAN'S SWITCH</div>
       </div>
     </div>
 
@@ -158,10 +234,11 @@
       </table>
     </div>
 
-    <div class="helpPane hidden" id="helpPane"><button onclick="helpButtonOnClick()" class="close">✖️</button></button><image src="helpPane.png"></div>
+  <div class="helpPane hidden" id="helpPane">
+    <button id="helpCloseButton" class="close">✖️</button>
+    <image src="helpPane.png">
+  </div>
 
   </body>
-
-    <script src="script.js"></script>
-
+  <script src="script.js" type="module"></script>
 </html>
