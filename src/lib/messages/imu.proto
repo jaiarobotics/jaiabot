@@ -13,9 +13,16 @@ message IMUCommand
         STOP_WAVE_HEIGHT_SAMPLING = 2;
         START_BOTTOM_TYPE_SAMPLING = 3;
         STOP_BOTTOM_TYPE_SAMPLING = 4;
+        START_CALIBRATION = 5;
     }
 
     required IMUCommandType type = 1;
+}
+
+enum IMUCalibrationState
+{
+        IN_PROGRESS = 1;
+        COMPLETE = 2;
 }
 
 message IMUData
@@ -54,31 +61,26 @@ message IMUData
     optional Acceleration linear_acceleration = 2;
     optional Acceleration gravity = 3;
 
-    message CalibrationStatus {
-        optional int32 sys = 1 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 gyro = 2 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 accel = 3 [(dccl.field) = { min: 0 max: 3 }];
-        optional int32 mag = 4 [(dccl.field) = { min: 0 max: 3 }];
-    }
+    optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional CalibrationStatus calibration_status = 4;
+    optional IMUCalibrationState calibration_state = 5;
 
-    optional bool bot_rolled_over = 5 [default = false];
+    optional bool bot_rolled_over = 6 [default = false];
 
-    optional double significant_wave_height = 6 [(dccl.field) = {units {
+    optional double significant_wave_height = 7 [(dccl.field) = {units {
             derived_dimensions: "length"
             system: "si"
             }}
         ];
 
     // For bottom characterization
-    optional double max_acceleration = 7
+    optional double max_acceleration = 8
         [(dccl.field) = {units {
             derived_dimensions: "acceleration"
             system: "si"
             }}
         ];
-
+    
 }
 
 message IMUIssue
@@ -92,6 +94,8 @@ message IMUIssue
         REBOOT_BOT = 4;
         REPORT_IMU = 5;
         RESTART_IMU_PY = 6;
+        REBOOT_BNO085_IMU = 7;
+        REBOOT_BNO085_IMU_AND_RESTART_IMU_PY = 8;
     }
 
     required SolutionType solution = 1;

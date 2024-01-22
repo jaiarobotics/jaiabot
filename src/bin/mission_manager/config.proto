@@ -48,14 +48,20 @@ message MissionManager
     // (this gives the vehicle time to begin diving)
     optional double detect_bottom_logic_init_timeout = 29
         [default = 15, (dccl.field).units = { base_dimensions: "T" }];
+
+    // detect bottom logic timeout in seconds. Used to determine 
+    // when we should start determining we reached bottom in powered descent logic.
+    // (this gives the vehicle time to begin diving after a hold)
+    optional double detect_bottom_logic_after_hold_timeout = 30
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
     
     // acceptable eps when dive depth is considered reached (in meters)
-    optional double dive_depth_eps = 30
+    optional double dive_depth_eps = 31
         [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
 
     // bottoming timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bottom has been hit
-    optional double bottoming_timeout = 31
+    optional double bottoming_timeout = 32
         [default = 3, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)
@@ -161,9 +167,13 @@ message MissionManager
     // e.g. /var/log/jaiabot/bot/*/
     required string log_dir = 71;
 
-    // Set to true if we want to not send goby files to hub during offload,
-    // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 72 [default = false];
+    enum DownloadFileTypes
+    {
+        NONE = 1;
+        GOBY = 2;
+        TASKPACKET = 3;
+    }
+    optional DownloadFileTypes data_offload_exclude = 72;
 
     required int32 hub_start_ip = 73 [default = 10];
 
@@ -191,4 +201,10 @@ message MissionManager
     // timeout for when to stop logging if in failed state
     optional int32 failed_startup_log_timeout = 85
         [default = 300, (dccl.field).units = { base_dimensions: "T" }];
+
+    // used to update transitting to waypoint to allow more overshoot
+    optional int32 waypoint_with_no_task_slip_radius = 86 [default = 15];
+
+    // used to update transitting to waypoint to allow less overshoot
+    optional int32 waypoint_with_task_slip_radius = 87 [default = 5];
 }

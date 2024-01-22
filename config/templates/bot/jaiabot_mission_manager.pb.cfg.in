@@ -28,6 +28,7 @@ pitch_to_determine_dive_prep_vertical: 70 # (optional) (default=70) Degrees
 dive_eps_to_determine_diving: 0.3 # (optional) (default=0.3) Meters
 dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
 detect_bottom_logic_init_timeout: 15 # (optional) (default=15) Seconds
+detect_bottom_logic_after_hold_timeout: 5 # (optional) (default=5) Seconds
 bottoming_timeout: 3 # (optional) (default=3) Seconds
 powered_descent_timeout: 60 # (default=60) Seconds
 bot_not_rising_timeout: 6 # (optional) (default=6) Seconds
@@ -60,7 +61,8 @@ data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 log_dir: "$log_dir" # (required)
 hub_start_ip: 10 # (required)
 class_b_network: "10.23" # (required)
-data_offload_only_task_packet_file: false # (optional)
+# data_offload_exclude options: (NONE, GOBY, TASKPACKET)
+data_offload_exclude: NONE # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
@@ -93,3 +95,7 @@ imu_restart_seconds: 10 # (default = 10)
 
 # If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
 $subscribe_to_hub_on_start
+
+# Waypoint Transit Behavior Updates
+waypoint_with_no_task_slip_radius: 15 # (default = 15)
+waypoint_with_task_slip_radius: 7 # (default = 5)

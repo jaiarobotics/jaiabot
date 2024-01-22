@@ -1,0 +1,21 @@
+[Unit]
+Description=$description
+
+Requires=network-online.target
+After=network-online.target
+
+Requires=var-log.mount
+After=var-log.mount
+
+[Service]
+User=$user
+Group=$group
+
+EnvironmentFile=$env_file
+ExecStart=$bin_dir/$exe -C '$gen goby_liaison_prelaunch' $extra_flags
+$extra_service
+WorkingDirectory=$ansible_dir
+
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+jaiabot_packages:
+  - jaiabot-apps
+  - jaiabot-arduino
+  - jaiabot-config
+  - jaiabot-embedded
+  - jaiabot-python
+  - jaiabot-web
+  - libjaiabot
+  - goby3-apps
+  - goby3-gui
+  - goby3-moos
+  - libgoby3
+  - libgoby3-moos
+  - libdccl4
+  

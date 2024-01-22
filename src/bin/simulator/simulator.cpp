@@ -362,6 +362,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
                                                               si::radians);
         imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                               si::radians);
+        imu_data.set_calibration_status(3);
+        imu_data.set_significant_wave_height(1.5);
+        imu_data.set_max_acceleration(101);
         interprocess().publish<groups::imu>(imu_data);
     }
 

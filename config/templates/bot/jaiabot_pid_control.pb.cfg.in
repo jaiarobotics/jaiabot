@@ -7,7 +7,7 @@ use_throttle_table_for_speed: true
 
 ### Do not change the throttle table unless
 ### You know the consequences (May result in bot hardware failure)
-### The speed value (m/s) is updated in the UI (Wrench button)
+### The speed value is updated in the UI (Wrench button)
 throttle_table { speed: 0 throttle: 0 }
 throttle_table { speed: 5 throttle: 100 }
 

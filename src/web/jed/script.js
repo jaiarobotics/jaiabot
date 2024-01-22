@@ -1,3 +1,9 @@
+import { api, JaiaAPI } from './api.js'
+import { deadMansSwitch } from './deadMansSwitch.js'
+import { updateStatus } from './updateStatus.js'
+import { botDropdown } from './BotDropdown.js'
+import { calibrationApp } from './calibration.js'
+
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
 let warningStatusInner = ""
@@ -6,27 +12,9 @@ let warningStatusInner = ""
 //****** consequences                                                     ******
 let SAFE_BOT_SPEED = 60;
 
-function randomBase57(stringLength) {
-  const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
-
-  var s = ''
-  for (let i = 0; i < stringLength; i++) {
-      s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
-  }
-  return s
-}
-
-
-const clientId = randomBase57(22) // UUID-length
-headers = {
-  'clientId': clientId,
-  'Content-Type': 'application/json'
-}
-var inControl = true
-
 // Gets an element with this id
 function el(id) {
-  element = document.getElementById(id)
+  const element = document.getElementById(id)
   if (!element) {
     console.warn("WARNING: Cannot locate element with id = ", id)
   }
@@ -171,8 +159,8 @@ class AngleSlider {
 
 ////////// Slider class //////////
 
-vertical = 'vertical'
-horizontal = 'horizontal'
+const vertical = 'vertical'
+const horizontal = 'horizontal'
 
 class Slider {
   constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="", stepSize=null, decrementKeys=[], incrementKeys=[], fineStepSize=null) {
@@ -338,23 +326,48 @@ class TabbedSections {
 
 /////////// Throttle and Speed Section //////////
 
-diveTabbedSections = new TabbedSections([new TabbedSection("diveManualButton", "diveManualSection"), new TabbedSection("divePIDButton", "divePIDSection")], 0)
-throttleTabbedSections = new TabbedSections([new TabbedSection("throttleManualButton", "throttleSection"), new TabbedSection("throttlePIDButton", "speedSection")], 0)
-rudderTabbedSections = new TabbedSections([new TabbedSection("rudderManualButton", "rudderSection"), new TabbedSection("rudderPIDButton", "headingSection")], 0)
+const diveTabbedSections = new TabbedSections(
+    [
+      new TabbedSection("diveManualButton", "diveManualSection"),
+      new TabbedSection("divePIDButton", "divePIDSection")
+    ],
+    0)
+const throttleTabbedSections = new TabbedSections(
+    [
+      new TabbedSection("throttleManualButton", "throttleSection"),
+      new TabbedSection("throttlePIDButton", "speedSection")
+    ],
+    0)
+const rudderTabbedSections = new TabbedSections(
+    [
+      new TabbedSection("rudderManualButton", "rudderSection"),
+      new TabbedSection("rudderPIDButton", "headingSection")
+    ],
+    0)
 //elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManualButton", "elevatorsSection"), new TabbedSection("elevatorsPIDButton", "rollSection")], 0)
 
 ////////
 
-diveManualSlider = new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
-divePIDSlider =    new Slider(vertical, "divePID",    0, 100, "Dive Depth",    true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
+const diveManualSlider =
+    new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false,
+               "dive", 2, [ "KeyG" ], [ "KeyT" ])
+const divePIDSlider = new Slider(vertical, "divePID", 0, 100, "Dive Depth",
+                                 true, false, "dive", 2, [ "KeyG" ], [ "KeyT" ])
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10, decrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyS"], incrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyW"], fineStepSize=5)
-speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle", 2, decrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyS"], incrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyW"], fineStepSize=1)
+const throttleSlider = new Slider(
+    vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10,
+    [ DEAD_MANS_SWITCH_KEY, "KeyS" ], [ DEAD_MANS_SWITCH_KEY, "KeyW" ], 5)
+const speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false,
+                               "throttle", 2, [ DEAD_MANS_SWITCH_KEY, "KeyS" ],
+                               [ DEAD_MANS_SWITCH_KEY, "KeyW" ], 1)
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true,
-                          "", 10, [ 'KeyA' ], [ 'KeyD' ])
-headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD', fineStepSize=5)
-headingSlider.onValueChanged = function(angle) {
+const rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true,
+                                true, "", 10, [ 'KeyA' ], [ 'KeyD' ])
+const headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360,
+                                      10, 'KeyA', 'KeyD', 5)
+
+headingSlider.onValueChanged =
+    function(angle) {
   angle_deg = angle / DEG
   sector = Math.floor((angle_deg + 22.5) / 45) % 8
   dirs = [ "N", "NE", "E", "SE", "S", "SW", "W", "NW" ]
@@ -363,12 +376,17 @@ headingSlider.onValueChanged = function(angle) {
   cardinal.innerHTML = dirs[sector]
 }
 
-//portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU'])
-//stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, ['KeyL'], ['KeyO'])
-//rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "", 10, ['KeyQ'], ['KeyE'])
-//pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, ['KeyK'], ['KeyI'])
+// portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port
+// Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU']) stbdElevatorSlider
+// = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true,
+// "elevator", 10, ['KeyL'], ['KeyO']) rollSlider = new Slider(horizontal,
+// "roll", -180, 180, "Roll", true, false, "", 10, ['KeyQ'], ['KeyE'])
+// pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false,
+// "elevator", 10, ['KeyK'], ['KeyI'])
 
-timeoutSlider = new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false, "timeout", stepSize=5, decrementKeys=["KeyV"], incrementKeys=["KeyB"], fineStepSize=1)
+const timeoutSlider =
+    new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false,
+               "timeout", 5, [ "KeyV" ], [ "KeyB" ], 1)
 timeoutSlider.value = 5
 
 /////////// PIDGains form class //////////
@@ -408,7 +426,7 @@ class PIDGains {
     this.submitElement = el(name + '_submit')
     let self = this
 
-               this.submitElement.onclick = function() {
+    this.submitElement.onclick = function() {
       let pid_control = {timeout : 1}
 
       pid_control[self.api_name] = {
@@ -422,7 +440,7 @@ class PIDGains {
         pid_control : pid_control
       }
 
-      sendCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command, true)
     }
   }
 
@@ -440,9 +458,9 @@ class PIDGains {
 
 }
 
-diveGains = new PIDGains('divePID', 'depth')
-speedGains = new PIDGains('speed', 'speed')
-headingGains = new PIDGains('heading', 'heading')
+const diveGains = new PIDGains('divePID', 'depth')
+const speedGains = new PIDGains('speed', 'speed')
+const headingGains = new PIDGains('heading', 'heading')
 //rollGains = new PIDGains('roll', 'roll')
 //pitchGains = new PIDGains('pitch', 'pitch')
 
@@ -483,7 +501,7 @@ function diveButtonOnClick() {
           };
           break;
       }
-      sendCommand(engineering_command)
+      api.sendEngineeringCommand(engineering_command, true)
     }
     else
     {
@@ -491,18 +509,7 @@ function diveButtonOnClick() {
     }
 }
 
-function sendCommand(command) {
-  if (!inControl) return
-
-  fetch('/jaia/pid-command', {method: 'POST', headers: headers, body: JSON.stringify(command)})
-  .then((response) => response.json())
-  .then((response) => {
-    if (response.status != 'ok') {
-      alert(response.message)
-    }
-  })
-
-}
+el('diveButton').addEventListener('click', diveButtonOnClick)
 
 ///////
 
@@ -514,31 +521,6 @@ function selectSection(selectedSection, unselectedSection) {
   el(unselectedSection + "Section").classList.remove("selected")
 }
 
-////////// Dead man's switch / throttle lock ////////
-
-class DeadMansSwitch {
-  static #on = false
-
-  static setOn(_on) {
-    DeadMansSwitch.on = _on
-    el("deadMansSwitch").style.backgroundColor = _on ? "green" : "red"
-
-    el('throttleSlider').disabled = !_on
-    el('speedSlider').disabled = !_on
-
-    if (!_on) {
-      throttleSlider.value = 0
-      speedSlider.value = 0
-    }
-  }
-}
-
-window.onblur = function() {
-  DeadMansSwitch.setOn(false)
-}
-
-DeadMansSwitch.setOn(false)
-
 ////////// LED code //////////
 let LEDSwitchON = false
 
@@ -547,16 +529,22 @@ function LEDButtonOnClick(e) {
   return
 }
 
-function LEDButtoffOnClick(e) {
+document.getElementById('LEDOnButton')
+    .addEventListener('click', LEDButtonOnClick)
+
+function LEDButtonOffClick(e) {
   LEDSwitchON = false
   return
 }
+
+document.getElementById('LEDOffButton')
+    .addEventListener('click', LEDButtonOffClick)
 
 ////////// Setup hotkeys /////////
 
 function keyDown(e) {
   if (e.code == DEAD_MANS_SWITCH_KEY) {
-    DeadMansSwitch.setOn(true)
+    deadMansSwitch.setOn(true)
     return
   }
   else {
@@ -566,7 +554,7 @@ function keyDown(e) {
 
 function keyUp(e) {
   if (e.code == DEAD_MANS_SWITCH_KEY) {
-    DeadMansSwitch.setOn(false)
+    deadMansSwitch.setOn(false)
     return
   }
 }
@@ -634,7 +622,7 @@ function handleKey(key) {
 
 ////////// Setup Centers /////////
 
-rudderCenter = localStorage.getItem("rudderCenter") || 0.0
+var rudderCenter = localStorage.getItem("rudderCenter") || 0.0
 el("rudderSlider").value = rudderCenter
 el("rudderValue").innerHTML = rudderCenter
 
@@ -647,10 +635,10 @@ el("stbdElevatorSlider").value = stbdCenter
 el("stbdElevatorValue").innerHTML = stbdCenter*/
 
 el("rudderCenter").onclick =
-  function(e) {
-    rudderCenter = Number(el("rudderSlider").value)
-    localStorage.setItem("rudderCenter", rudderCenter)
-  }
+    function(e) {
+  rudderCenter = Number(el("rudderSlider").value)
+  localStorage.setItem("rudderCenter", rudderCenter)
+}
 
 /*el("portElevatorCenter").onclick =
   function(e) {
@@ -666,7 +654,7 @@ el("stbdElevatorCenter").onclick =
 
 ////////// Command Sender //////////////
 
-blockSendingUntil = 0
+var blockSendingUntil = 0
 
 function getVisibleCommand() {
 
@@ -674,7 +662,7 @@ function getVisibleCommand() {
     timeout: timeoutSlider.value
   }
 
-  if (DeadMansSwitch.on) {
+  if (deadMansSwitch.on) {
 
     // Throttle
     switch(throttleTabbedSections.activeIndex) {
@@ -767,14 +755,15 @@ function sendVisibleCommand() {
   }
 
   let command = getVisibleCommand()
-  sendCommand(command)
+  api.sendEngineeringCommand(command)
 
   // Get vehicle status
   
-  fetch('/jaia/status', {headers: headers})
-  .then((response) => response.json())
-  .then((response) => {
-    updateStatus(response)
+  api.getStatus()
+  .then((status) => {
+    updateStatus(status)
+    botDropdown.updateWithBots(status.bots)
+    calibrationApp.updateStatus(status)
   })
   .catch((e) => {
     console.error(e)
@@ -783,118 +772,11 @@ function sendVisibleCommand() {
 
 }
 
-const interval = setInterval(sendVisibleCommand, 100);
+// 1 second plus 10 milliseconds, to avoid dropping a lot of engineering commands due to rounding errors
+const interval = setInterval(sendVisibleCommand, 1010);
 
 var hub_location = null
 var oldControllingClientId = ''
-
-// Updates the status element with a status response object
-function updateStatus(status) {
-
-  ///// Is this client in control?
-  inControl = (status.controllingClientId == clientId) || status.controllingClientId == null
-
-  document.getElementById('takeControlButton').style.display = inControl ? 'none' : 'inline'
-
-  const controlClass = inControl ? 'controlling' : 'noncontrolling'
-  document.getElementById('body').setAttribute('class', controlClass)
-
-  //////
-
-  bots = status["bots"]
-  hubs = status["hubs"]
-
-  // For now we just handle one hub
-  hub = hubs[0];
-
-  updateBotSelectDropdown(bots)
-
-  table = el("statusTable")
-  innerHTML =
-      "<tr><th>Bot ID</th><th>Mission State</th><th>Latitude (°)</th><th>Longitude (°)</th><th>Distance (m)</th><th>Depth (m)</th><th>Ground Speed (m/s)</th><th>Course Over Ground (°)</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Temperature (℃)</th><th>Salinity (PSU(ppt))</th><th>Vcc Voltage (V)</th><th>Vcc Current (A)</th><th>5V Current (A)</th><th>Status Age (s)</th><th>Command Age (s)</th></tr>"
-  loggingStatusInnerUp =
-      "<label style='color:black; display: inline-block;'>Bots: "
-  loggingStatusInnerDown =
-      "<label style='color:red; display: inline-block;'>Bots: "
-  loggingStatusInner = ""
-  isLogging = false
-  isNotLogging = false
-
-  let now_us = Date.now() * 1e3
-
-  for (const [botId, bot] of Object.entries(bots)) {
-    console.log(bot)
-
-    loggingStatus = el("loggingStatus")
-
-    // Alert user that data is not being logged
-    if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||
-        bot.missionState == "POST_DEPLOYMENT__IDLE") {
-      loggingStatusInnerDown += bot.bot_id + ", "
-      isNotLogging = true;
-    }
-    else {
-      loggingStatusInnerUp += bot.bot_id + ", "
-      isLogging = true;
-    }
-
-    innerHTML += "<tr>"
-    innerHTML += "<td>" + bot.bot_id + "</td>"
-
-    innerHTML += "<td>" + bot.mission_state + "</td>"
-
-    let bot_location = bot.location || null
-    let hub_location = hub?.location || null
-    innerHTML += "<td>" + (bot.location?.lat?.toFixed(6) || "❌") + "</td>"
-    innerHTML += "<td>" + (bot.location?.lon?.toFixed(6) || "❌") + "</td>"
-
-    d = latlon_distance(bot_location, hub_location)
-    innerHTML += "<td>" + d?.toFixed(1) || "?" + "</td>"
-
-    innerHTML += "<td>" + (bot.depth?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.speed?.over_ground?.toFixed(1) || "?") + "</td>"
-    innerHTML +=
-        "<td>" + (bot.attitude?.course_over_ground?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.heading?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.pitch?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.attitude?.roll?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.temperature?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.salinity?.toFixed(1) || "?") + "</td>"
-
-    innerHTML += "<td>" + (bot.vcc_voltage?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vcc_current?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>"
-
-    innerHTML +=
-        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
-
-    lastCommandTime = bot.last_command_time
-                          ? ((now_us - bot.last_command_time) / 1e6).toFixed(0)
-                          : ""
-    innerHTML += "<td>" + lastCommandTime + "</td>"
-
-    innerHTML += "</tr>"
-  }
-  loggingStatusInnerUp += "Logging Status: Logging</label>"
-  loggingStatusInnerDown +=
-      "Logging Status: Not Logging (Activate For Logging)</label>"
-
-  if (isNotLogging && isLogging) {
-    loggingStatusInner = loggingStatusInnerDown + "<br>" + loggingStatusInnerUp
-  }
-  else if (isNotLogging && !isLogging) {
-    loggingStatusInner = loggingStatusInnerDown
-  }
-  else {loggingStatusInner = loggingStatusInnerUp}
-
-  loggingStatus.innerHTML = loggingStatusInner;
-  table.innerHTML = innerHTML
-  warningStatus = el("warningStatus")
-  warningStatus.innerHTML = warningStatusInner;
-}
 
 function getSelectedBotId() {
   return document.getElementById("botSelect")?.value || "0"
@@ -941,11 +823,12 @@ function updateBotSelectDropdown(bots) {
 
 // Calculate xyz position of lat/lon point
 function xyz(pt) {
-  deg = 3.14159265358 / 180.0
-  r_e = 6.3781e6
-  return [ r_e * Math.cos(pt.lon * deg) * Math.sin(pt.lat * deg), 
-           r_e * Math.sin(pt.lon * deg) * Math.sin(pt.lat * deg),
-           r_e * Math.cos(pt.lat * deg)]
+  const r_e = 6.3781e6
+  return [
+    r_e * Math.cos(pt.lon * DEG) * Math.sin(pt.lat * DEG),
+    r_e * Math.sin(pt.lon * DEG) * Math.sin(pt.lat * DEG),
+    r_e * Math.cos(pt.lat * DEG)
+  ]
 }
 
 
@@ -961,21 +844,22 @@ function latlon_distance(pt1, pt2) {
     return undefined
   }
 
-  xyz1 = xyz(pt1)
-  xyz2 = xyz(pt2)
+  const xyz1 = xyz(pt1)
+  const xyz2 = xyz(pt2)
   return distance(xyz1, xyz2)
 }
 
-function helpButtonOnClick(e) {
+// Event handlers exposed to html
+export function helpButtonOnClick(e) {
   let pane = el('helpPane')
   let classList = pane.classList
   if (classList.contains('hidden')) {
     classList.remove('hidden')
 
     // Put it in the center of the display
-    style = window.getComputedStyle(pane, null)
-    x = (document.body.clientWidth  - parseInt(style.width, 10)) / 2.0
-    y = (document.body.clientHeight - parseInt(style.height, 10)) / 2.0
+    const style = window.getComputedStyle(pane, null)
+    const x = (document.body.clientWidth - parseInt(style.width, 10)) / 2.0
+    const y = (document.body.clientHeight - parseInt(style.height, 10)) / 2.0
     pane.style.left = x + 'px'
     pane.style.top = y + 'px'
   }
@@ -984,17 +868,12 @@ function helpButtonOnClick(e) {
   }
 }
 
-function onMouseDownDeadMansSwitch(evt) {
-  DeadMansSwitch.setOn(true)
-}
+document.getElementById('helpOpenButton')
+    .addEventListener('click', helpButtonOnClick)
+document.getElementById('helpCloseButton')
+    .addEventListener('click', helpButtonOnClick)
 
-function onMouseUpDeadMansSwitch(evt) {
-  DeadMansSwitch.setOn(false)
-}
-
-function takeControl(evt) {
-  fetch('/jaia/take-control', {
-    method : 'POST',
-    headers : {clientId : clientId}
-  }).then((response) => response.json())
-}
+document.getElementById('take-control')
+    .addEventListener('click', () => {
+      api.takeControl()
+    })

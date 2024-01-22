@@ -1,6 +1,7 @@
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 import { deepcopy } from './shared/Utilities';
+import { CustomAlert } from './shared/CustomAlert';
 
 const MAX_RUNS: number = 99
 
@@ -100,7 +101,7 @@ export class Missions {
     static isValidRunNumber(mission: MissionInterface) {
         const isRunNumberLessThanMaxRuns = Object.keys(mission.runs).length < MAX_RUNS
         if (!isRunNumberLessThanMaxRuns) {
-            alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
+            CustomAlert.alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
         }
         return isRunNumberLessThanMaxRuns
     }
@@ -162,6 +163,31 @@ export class Missions {
         }
 
         return mission;
+    }
+
+    /**
+     *  Used as a helper function to duplicate a run of interest
+     * 
+     * @param run The run that is going to be copied
+     * @param mission The mission that contains the run
+     * @returns {void}
+     */
+    static duplicateRun(run: RunInterface, mission: MissionInterface) {
+        const newRun = deepcopy(run)
+        const runId = `run-${mission.runIdIncrement}`
+
+        newRun.id = runId
+        newRun.name = `Run ${mission.runIdIncrement}`
+        newRun.assigned = -1
+        const command = newRun.command
+        if (command) {
+            command.bot_id = null
+        }
+
+        mission.runs[newRun.id] = newRun
+
+        mission.runIdIncrement += 1
+        mission.runIdInEditMode = runId
     }
 
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {

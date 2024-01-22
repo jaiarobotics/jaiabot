@@ -26,7 +26,6 @@ from sqlite3 import OperationalError
 
 
 # Internal Imports
-import jaia
 
 # Setup logging module TODO: Make this all a class and pass logging in from app...
 logLevel = getattr(logging, 'INFO')

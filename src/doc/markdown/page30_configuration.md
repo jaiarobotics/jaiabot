@@ -2,10 +2,10 @@
 
 The jaiabot configuration files can be found in the `jaiabot/config` folder of the repository.
 
-At it's simplest, you can simulate any 10 vehicles at 20x real speed by running:
+At it's simplest, you can simulate any 4 vehicles at 5x real speed by running:
 
 ```
-./generate_all_launch.sh 10 20
+./generate_all_launch.sh 4 5
 ./all.launch
 ```
 
@@ -15,43 +15,9 @@ And type CTRL+C in that terminal to cleanly shutdown after you're done.
 
 The configuration folder is more than simply flat configuration files. Rather, it is a configuration generation tool box that allows for:
 
-- Easy switching from simulation to in-water ("runtime") configuration with minimal changes and maximum overlap of configuration.
-- Reuse of configuration file components for different vehicle ids and eventually types.
-- Reuse of common configuration between bot and hub shared code.
-
-### Directory structure
-
-- `jaiabot/config`
-    - gen: Configuration Generators (in Python3)
-        - `bot.py`: Generator for the AUVs' application configuration
-        - `hub.py`: Generator for the topside applications.
-        - `moos_gen.sh`: Shell script for generating temporary .moos and .bhv files until killed, at which point it cleans up these temporary files. Required since MOOS applications can't read configuration files by process substitution (`<(...) syntax`).
-        - `systemd-local.sh`: A frontend to run the python systemd script in this folder
-        - `systemd.py`:  Generator for setting up systemd daemons to run the software automatically on a platform
-        - `wireguard.py`: Generator for setting up the Wireguard VPN service
-        - common: Generator helper module
-            - `__init__.py`: Module initialization checks and functions.
-            - `comms.py`: Vehicle-to-vehicle or vehicle-to-shore comms configuration parameters
-            - `config.py`: General configuration helper functions
-            - `hub.py`: Topside specific parameters
-            - `origin.py`: Latitude / longitude origin settings for local geodetic conversions.
-            - `sim.py`: Simulation specific parameters (warp factor)
-            - `udp.py`: Sets the udp ports to use. Mostly for our Python scripts to interact with Goby3 apps.
-            - `vehicle.py`: AUV specific parameters
-    - templates: Template files used by the [Python String Template][python-template] class to create the final configuration output.
-        - `*.pb.cfg.in`: Template files that are common (used by both the bots and the hub)
-        - `bot/*.pb.cfg.in`: Template files that are just used by the bots
-        - `etc/*.conf.in`: Template for Wireguard VPN
-        - `hub/*.pb.cfg.in`: Template files that are just used by the hub.
-        - `systemd/*.service.in`: Template files for systemd services to run the system.
-    - launch/simulation:  Mission launch files (simulation only, runtime is managed by `systemd`), launched by the `goby_launch` tool.
-        - `all.launch`: Launch hub and all vehicles by calling bot.launch for each vehicle and hub.launch.
-        - `bot.launch`: Launch a single bot.
-        - `hub.launch`: Launch the hub code (topside).
-        - `generate_all_launch.sh`: Convenience script for regenerating the `all.launch` file with with a certain number of vehicles and set the time warp (multiple of the real wall time that the simulation clock runs). Usage: `./generate_all_launch.sh {n_bots} {warp}`, e.g. for 5 bots at warp 10x: `./generate_all_launch.sh 5 10`
-    - `preseed.goby`: Shell script that is `source`d by the `goby_launch` bash script tool before launching any applications so that all variables that are marked `export` in this script are available to the Python generators and the applications themselves.
-
-[python-template]: https://docs.python.org/3/library/string.html#template-strings
+* Easy switching from simulation to in-water ("runtime") configuration with minimal changes and maximum overlap of configuration.
+* Reuse of configuration file components for different vehicle ids and eventually types.
+* Reuse of common configuration between bot and hub shared code.
 
 ## Implementation: Templates
 
@@ -110,5 +76,3 @@ gobyd <(gen/bot.py gobyd)
 ```
 
 One useful strategy is to comment-out (#) the application that is having trouble from the .launch file, and then run it with the remaining applications. Once those are running, start the application on the command line manually using the commented-out syntax.
-
-

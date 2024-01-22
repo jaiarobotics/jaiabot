@@ -2,8 +2,10 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
-import { randomBase57 } from '../client/components/shared/Utilities';
+import { GeoJSON } from 'ol/format';
+import { Command, Engineering, CommandForHub, TaskPacket } from '../../shared/JAIAProtobuf';
+import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
+import { Geometry } from 'ol/geom';
 
 export class JaiaAPI {
   clientId: string
@@ -73,24 +75,83 @@ export class JaiaAPI {
     return this.hit('GET', endpoint);
   }
 
-  getStatus() { return this.get('jaia/status') }
-
-  getTaskPackets() { 
-    const DAY = 86400000 // Milliseconds
-
-    // Get task packets from the previous 24-hour period
-    const endDate = Date.now()
-    const startDate = endDate - DAY
-
-    const endDateString = new Date(endDate).toISOString()
-    const startDateString = new Date(startDate).toISOString()
-    
-    return this.get(`jaia/task-packets?startDate=${startDateString}&endDate=${endDateString}`) 
-  }
-
   getMetadata() { return this.get('jaia/metadata') }
 
-  getDepthContours() { return this.get('jaia/depth-contours') }
+  getStatus() { return this.get('jaia/status') }
+
+  /**
+   * Queries the server for TaskPackets within a specified range. If no start and end date, the
+   * server defaults to a 14 hour window with the end date set to now
+   * 
+   * @param {string} startDate (optional) sets the lower bound on the TaskPackets displayed 
+   * @param {string} endDate (optional) sets the upper bound on the TaskPackets displayed
+   * @returns {Promise<TaskPacket[]>} array of TaskPackets or error obj
+   * 
+   * @notes
+   * Expected startDate format: yyyy-mm-dd hh:mm
+   * Expected endDate format: yyyy-mm-dd hh:mm 
+   */
+  getTaskPackets(startDate?: string, endDate?: string) { 
+    if (startDate && endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        const endDateStr = convertHTMLStrDateToISO(endDate)
+        return this.get(`jaia/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else if (startDate && !endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        return this.get(`jaia/task-packets?startDate=${startDateStr}`)
+    } else {
+        // Let server set default date values
+        return this.get(`jaia/task-packets`)
+    }
+  }
+
+  getTaskPacketsCount() {
+      return this.get(`jaia/task-packets-count`)
+  }
+
+  getDepthContours(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        const endDateStr = convertHTMLStrDateToISO(endDate)
+      return this.get(`jaia/depth-contours?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else {
+      // Let server set default date values
+      return this.get(`jaia/depth-contours`)
+    }
+  }
+
+  /**
+   * Gets a GeoJSON object with interpolated drift features
+   * 
+   * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation
+   * @param {string} endDate (optional) Set an upper bound of drift packets used for interpolation
+   *
+   * @returns {Feature<Geometry>[] | void} A GeoJSON feature set containing interpolated drift features
+   */
+  getDriftMap(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+      const startDateStr = convertHTMLStrDateToISO(startDate)
+      const endDateStr = convertHTMLStrDateToISO(endDate)
+      return (
+        this.get(`jaia/drift-map?startDate=${startDateStr}&endDate=${endDateStr}`).then((geoJSON) => {
+          const features = new GeoJSON().readFeatures(geoJSON)
+          return features
+        }).catch((err) => {
+          logResReqError('getDriftMap', err)
+        })
+      )
+    } else {
+      // Let server set default date values
+      return (
+        this.get(`jaia/drift-map`).then((geoJSON) => {
+          const features = new GeoJSON().readFeatures(geoJSON)
+          return features
+        }).catch((err) => {
+          logResReqError('getDriftMap', err)
+        })
+      )
+    } 
+  }
 
   allStop() { return this.post('jaia/all-stop') }
 
@@ -111,15 +172,24 @@ export class JaiaAPI {
   takeControl() { return this.post('jaia/take-control', null) }
 
   postEngineering(engineeringCommand: Engineering) {
-    return this.post('jaia/pid-command', engineeringCommand)
+    return this.post('jaia/engineering-command', engineeringCommand)
   }
 
   postMissionFilesCreate(descriptor: any) {
     return this.post('missionfiles/create', descriptor)
   }
+}
 
-  // Gets a JSON response containing a contour map's extent on the map
-  getContourMapBounds() { return this.get('jaia/contour-bounds') }
+/**
+ * Combine console.error and console.log into one function to reduce code repetition
+ * 
+ * @param {string} functionName Used as location input to the error msg to help debug
+ * @param {Error} error Prints the error object to make all debug data visible
+ * @returns {void}
+ */
+function logResReqError(functionName: string, error: Error) {
+  console.error(`${functionName}:`, error)
+  console.log(`${functionName}:`, error)
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), '/', false)
