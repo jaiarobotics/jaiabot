@@ -4,6 +4,10 @@
   font-family: Sans-Serif;
 }
 
+#body {
+  padding: 3px;
+}
+
 div {
   font-size: 12pt;
 }
@@ -253,10 +257,11 @@ button.sliderCenter {
   margin: 10pt;
 }
 
-div.status {
+#status {
   width: 100%;
   height: 100px;
   margin-top: 20pt;
+  margin-bottom: 80pt;
 }
 
 table.status {
@@ -401,10 +406,6 @@ button.close {
   background-color: lightgray;
 }
 
-button:hover {
-  background-color: azure;
-}
-
 input.manualOrPidButton:hover {
   background-color: azure;
   border: 2pt solid darkgray
@@ -418,4 +419,14 @@ input.manualOrPidButton:hover {
   border-style: solid;
   border-width: 3pt;
   border-color: red;
+}
+
+.bot-meta-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#take-control {
+  width: 150px;
 }
