@@ -15,8 +15,7 @@ from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
 
-log_file_path = os.path.expanduser('~/app.log')
-logging.basicConfig(filename=log_file_path, level=logging.DEBUG, filemode="w", format='%(asctime)s %(levelname)10s %(message)s')
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
 
 try:
