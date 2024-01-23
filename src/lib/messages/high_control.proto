@@ -69,5 +69,5 @@ message DesiredSetpoints
 
     optional bool is_helm_constant_course = 2 [default = false];
 
-    optional bool is_init_dive_constant_throttle = 3 [default = false];
+    optional bool is_init_dive_constant_throttle = 3;
 }
