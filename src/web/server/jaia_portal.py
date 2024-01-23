@@ -418,7 +418,7 @@ class Interface:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
     def get_task_packets_subset(self, start_date, end_date):
-        """Selects TaskPackets between provided date bounds
+        """Selects TaskPackets between the provided date bounds
         Args:
             start_date (str): Provides the lower bound
             end_date (str): Provides the upper bound
@@ -450,7 +450,6 @@ class Interface:
         """Gets the count of all TaskPackets
         Returns:
             int: The count of all TaskPackets
-        
         """
         return len(self.all_task_packets)
 
