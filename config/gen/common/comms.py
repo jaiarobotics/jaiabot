@@ -68,17 +68,25 @@ def xbee_mac_slots(node_id):
 
         with open('/etc/jaiabot/xbee.pb.cfg', 'r') as file:
             for line in file:
+                # This is needed in case we have a comment in 
+                # a xbee config file that has bot_id
                 if '#' in line:
                     continue
 
                 if 'bot_id' in line:
                     bot_id_count += 1
 
-        hub_mac_cycle_time=0.3
-        bot_mac_cycle_time=0.1
+        # hubs can currently send commands that are 250 bytes
+        # this can take 150ms
+        hub_mac_cycle_time = 0.3
+        # bots send bot status messages that are ~50 bytes
+        # this can take 30ms
+        bot_mac_cycle_time = 0.1
+        # we found in testing that 4 bots sending bot status 
+        # messages worked as expected
+        max_bots_per_bin = 4
 
-        max_bots_per_bin=4
-        total_bins=math.ceil(bot_id_count / max_bots_per_bin)
+        total_bins = math.ceil(bot_id_count / max_bots_per_bin)
 
         bot_bin = node_id % total_bins
 
