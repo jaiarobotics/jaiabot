@@ -70,6 +70,7 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
+# Milliseconds
 bot_status_period=1000
 
 node_id=common.bot.bot_index_to_node_id(bot_index)
