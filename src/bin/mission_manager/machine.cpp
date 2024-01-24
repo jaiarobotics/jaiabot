@@ -724,11 +724,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     if (is_bot_diving_ || context<Dive>().has_bot_performed_a_hold() || cfg().is_sim())
     {
         setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
-        setpoint_msg.set_is_init_dive_constant_throttle(false);
-    }
-    else
-    {
-        setpoint_msg.set_is_init_dive_constant_throttle(true);
     }
 
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
