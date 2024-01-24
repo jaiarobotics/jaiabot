@@ -172,12 +172,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
+        - "task/change-reverse-start-bound-when-diving-to-match-dive-throttle"  
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
+        - "task/change-reverse-start-bound-when-diving-to-match-dive-throttle"
         
 ## Begin actual config
 version: 2
