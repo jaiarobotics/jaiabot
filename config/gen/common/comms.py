@@ -1,6 +1,8 @@
 from common import is_simulation, is_runtime
 from common import udp
+import common.bot
 import netifaces
+import math
 
 subnet_mask=0xFF00
 
@@ -61,8 +63,38 @@ def wifi_mac_slots(node_id):
     return slots
 
 def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.1 }\n'
-    return slots
+    try:
+        bot_id_count = 0
+
+        with open('/etc/jaiabot/xbee.pb.cfg', 'r') as file:
+            for line in file:
+                if '#' in line:
+                    continue
+
+                if 'bot_id' in line:
+                    bot_id_count += 1
+
+        hub_mac_cycle_time=0.3
+        bot_mac_cycle_time=0.1
+
+        max_bots_per_bin=4
+        total_bins=math.ceil(bot_id_count / max_bots_per_bin)
+
+        bot_bin = node_id % total_bins
+
+        slots = ''
+
+        for bin in range(0, total_bins):
+            slots += 'slot { src: ' + str(xbee_modem_id(0)) + ' slot_seconds: ' + str(hub_mac_cycle_time) + ' }\n'
+
+            if bot_bin == bin and node_id != 0:
+                slots += 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: ' + str(bot_mac_cycle_time) + ' }\n'
+            else:
+                slots += 'slot { src: -1 slot_seconds: ' + str(bot_mac_cycle_time) + ' }\n' 
+        
+        return slots
+    except FileNotFoundError:
+        return ''
 
 def xbee_config():
     try:
