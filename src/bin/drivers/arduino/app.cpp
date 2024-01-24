@@ -33,7 +33,6 @@ using namespace std;
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/version.h"
@@ -86,7 +85,6 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int target_motor_ = 1500;
     int max_reverse_ = 1320;
     int motor_off_ = 1500;
-    bool is_init_dive_constant_throttle_{false};
 
     // Control surfaces
     int rudder_ = 1500;
@@ -306,15 +304,6 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
-
-    interprocess().subscribe<jaiabot::groups::desired_setpoints>(
-        [this](const jaiabot::protobuf::DesiredSetpoints& command) {
-            if (command.has_is_init_dive_constant_throttle())
-            {
-                is_init_dive_constant_throttle_ = command.is_init_dive_constant_throttle();
-                is_settings_ack_ = false;
-            }
-        });
 }
 
 /**
@@ -508,19 +497,7 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
     if (!is_settings_ack_)
     {
         arduino_settings.set_forward_start(bounds_.motor().forwardstart());
-
-        // Check if this is the initial dive throttle
-        // if it is then we want to start at the throttle
-        // dive value found in the bounds file
-        if (!is_init_dive_constant_throttle_)
-        {
-            arduino_settings.set_reverse_start(bounds_.motor().reversestart());
-        }
-        else
-        {
-            arduino_settings.set_reverse_start(
-                calculateMotorMicroseconds(bounds_.motor().throttle_dive()));
-        }
+        arduino_settings.set_reverse_start(bounds_.motor().reversestart());
 
         *arduino_cmd.mutable_settings() = arduino_settings;
     }
