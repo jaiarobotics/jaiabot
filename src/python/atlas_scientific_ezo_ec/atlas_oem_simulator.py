@@ -82,15 +82,12 @@ class AtlasOEM:
     def calibrationConfirmation(self):
         t = self._calibrationTable
 
-        if t[0] is None: # no dry calibration done yet
-            return 0
+        mask = 0
+        for i in range(len(t)):
+            if t[i]:
+                mask |= (1 << i)
 
-        if t[2] is not None and t[3] is not None: # two-point calibration has values
-            return 2
-        if t[1] is not None: # one-point calibration has a value
-            return 1
-        
-        return 0
+        return mask
 
 
     # Temperature Compensation

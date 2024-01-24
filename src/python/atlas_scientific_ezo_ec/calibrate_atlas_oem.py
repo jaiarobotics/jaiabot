@@ -102,7 +102,7 @@ def inputCalibrationMode() -> CalibrationMode:
         CalibrationType: The chosen calibration type.
     """
     while True:
-        print('\nChoose a calibration type by entering its corresponding letter:')
+        print('\nChoose a calibration type:')
         for calibrationMode in calibrationModes:
             print(f'{calibrationMode.selectionLetter}) {calibrationMode.description}')
         
@@ -163,7 +163,7 @@ def doCalibration(calibrationMode: CalibrationMode):
     calibrationStatus = probe.calibrationConfirmation()
     print(f'  Dry calibration: {calibrationStatus & 1 == 1}')
     print(f'  Single-point calibration: {calibrationStatus & 2 == 2}')
-    print(f'  Dual-point low calibration: {calibrationStatus & 4 == 1}')
+    print(f'  Dual-point low calibration: {calibrationStatus & 4 == 4}')
     print(f'  Dual-point high calibration: {calibrationStatus & 8 == 8}')
 
 
