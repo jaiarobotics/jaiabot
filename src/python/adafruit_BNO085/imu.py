@@ -52,7 +52,7 @@ class IMU:
     def takeReading(self):
         return IMUReading()
 
-    def getIMUData(self):
+    def getIMUData(self) -> IMUData:
         """Returns an IMUData protobuf object, suitable for sending over UDP
 
         Returns:
@@ -233,6 +233,7 @@ class Simulator(IMU):
                         linear_acceleration_world=linear_acceleration_world,
                         # we need to use 0.03, to avoid looking like a common glitch that gets filtered
                         gravity=Vector3(0.03, 0.03, 9.8),
-                        calibration_status=(3, 3, 3, 3),
-                        quaternion=quaternion)
+                        calibration_status=3,
+                        quaternion=quaternion,
+                        calibration_state=CalibrationState.COMPLETE)
 
