@@ -27,9 +27,6 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
 
 # Install nvm, npm, and webpack
 curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-# Use lastest version of Node.js
-nvm install node
-nvm use node
 
 export NODE_VERSION=v18.12.1
 export NVM_DIR="$HOME/.nvm"
