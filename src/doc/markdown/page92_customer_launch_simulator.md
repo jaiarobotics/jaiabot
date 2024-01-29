@@ -2,7 +2,7 @@
 Note: The Jaia simulator works __exclusively with Ubuntu 20.04__
 1. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
 ```
-(install git if neededed)
+(install git if needed)
 sudo apt-get install git
 git clone https://github.com/jaiarobotics/jaiabot
 ```
