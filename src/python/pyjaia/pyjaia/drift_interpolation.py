@@ -105,7 +105,7 @@ class Drift:
     heading: float = 0.0
 
     def interpolateTo(self, destinationDrift: "Drift", distance: float, units: str='km'):
-        """Interpolate between this Drift and another drift, a certain distance toward the other drift.
+        """Interpolate between this drift and another drift, a certain distance toward the other drift.
 
         Args:
             destinationDrift (Drift): The destination drift to interpolate toward.
