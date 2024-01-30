@@ -58,6 +58,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (app_config.has_bounds())
     {
         bounds_ = app_config.bounds();
+
+        // Publish for querying
+        interprocess().publish<jaiabot::groups::engineering_status>(bounds_);
     }
 
     if (bounds_.motor().has_throttle_zero_net_buoyancy())

@@ -41,7 +41,7 @@ if "jaia_imu_type" in os.environ:
 if jaia_imu_type == "bno055":
     imu_detection_solution='RESTART_IMU_PY'
 elif jaia_imu_type == 'bno085':
-    imu_detection_solution='RESTART_IMU_PY'
+    imu_detection_solution='REBOOT_BNO085_IMU_AND_RESTART_IMU_PY'
 else:
     imu_detection_solution='RESTART_IMU_PY'
 
@@ -70,7 +70,8 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
-bot_status_period=(bot_index * 10) + 1000
+# Milliseconds
+bot_status_period=1000
 
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
@@ -93,7 +94,7 @@ verbosities = \
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
+  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
