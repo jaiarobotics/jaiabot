@@ -65,11 +65,13 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
+    int calculateMotorMicroseconds(const int& input);
 
     int64_t lastAckTime_;
 
@@ -158,15 +160,20 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                               << std::endl;
 
     // Setup our bounds configuration
-    bounds_ = cfg().bounds();
-
-    if (bounds_.motor().has_max_reverse())
-    {
-        max_reverse_ = bounds_.motor().max_reverse();
-    }
+    setBounds(cfg().bounds());
 
     // Publish to meatadata group to record bounds file used
     interprocess().publish<groups::metadata>(bounds_);
+
+    // Subscribe to engineering commands for:
+    // * bounds config changes
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& engineering) {
+            if (engineering.has_bounds())
+            {
+                setBounds(engineering.bounds());
+            }
+        });
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -300,6 +307,28 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 }
 
 /**
+ * @brief Updates the bounds configuration for the Arduino actuators
+ * 
+ * @param bounds - the new bounds configuration to use
+ */
+void jaiabot::apps::ArduinoDriver::setBounds(const jaiabot::protobuf::Bounds& bounds)
+{
+    bounds_ = bounds;
+
+    glog.is_debug1() && glog << "Setting bounds to " << bounds.ShortDebugString() << endl;
+
+    if (bounds_.motor().has_max_reverse())
+    {
+        max_reverse_ = bounds_.motor().max_reverse();
+    }
+
+    // Publish an engineering_status message, so the current bounds can be queried in engineering_status
+    interprocess().publish<jaiabot::groups::engineering_status>(bounds);
+
+    is_settings_ack_ = false; // Ensures that we re-send our bounds to the Arduino
+}
+
+/**
  * @brief Splits the version major, minor, and patch into a integer vector
  * 
  * @param version - string used to store major, minor, patch (ex: 1.1.1)
@@ -393,11 +422,22 @@ int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lowe
     return microseconds;
 }
 
+/**
+ * @brief Converts motor percentage to microseconds
+ * 
+ * @param input Throttle percentage
+ * @return int Microseconds for the ESC to take in
+ */
+int jaiabot::apps::ArduinoDriver::calculateMotorMicroseconds(const int& input)
+{
+    return motor_off_ + (input / 100.0) * 400;
+}
+
 void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
     if (control_surfaces.has_motor())
     {
-        target_motor_ = motor_off_ + (control_surfaces.motor() / 100.0) * 400;
+        target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
 
         // Do not go lower than max_reverse
         if (target_motor_ < max_reverse_)
@@ -458,6 +498,7 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
     {
         arduino_settings.set_forward_start(bounds_.motor().forwardstart());
         arduino_settings.set_reverse_start(bounds_.motor().reversestart());
+
         *arduino_cmd.mutable_settings() = arduino_settings;
     }
     else if (is_settings_ack_ && is_driver_compatible_)

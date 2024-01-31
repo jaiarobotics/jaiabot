@@ -153,6 +153,7 @@ interface State {
 
 	goalBeingEdited: {
 		goal?: Goal,
+		originalGoal?: Goal
 		goalIndex?: number,
 		botId?: number,
 		runNumber?: number,
@@ -1790,6 +1791,7 @@ export default class CommandControl extends React.Component {
 			if (goal) {
 				const goalBeingEdited = {
 					goal: goal,
+					originalGoal: deepcopy(goal),
 					goalIndex: feature.get('goalIndex'),
 					botId: feature.get('botId'),
 					runNumber: feature.get('runNumber')
@@ -2414,7 +2416,7 @@ export default class CommandControl extends React.Component {
 
 		this.state.remoteControlInterval = setInterval(() => {
 				this.api.postEngineeringPanel(this.state.remoteControlValues);
-			}, 100)
+			}, 500)
 	}
 
 	clearRemoteControlInterval() {
@@ -3483,6 +3485,7 @@ export default class CommandControl extends React.Component {
 						botId={goalBeingEdited?.botId}
 						goalIndex={goalBeingEdited?.goalIndex}
 						goal={goalBeingEdited?.goal}
+						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
 						onChange={() => this.setRunList(this.getRunList())} 

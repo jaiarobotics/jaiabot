@@ -152,6 +152,7 @@ class Interface:
             if msg.HasField('engineering_status'):
                 botEngineering = protobufMessageToDict(msg.engineering_status)
                 self.bots_engineering[botEngineering['bot_id']] = botEngineering
+                pprint(f'Got engineering_status: {botEngineering}')
 
             if msg.HasField('hub_status'):
                 hubStatus = protobufMessageToDict(msg.hub_status)
