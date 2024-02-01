@@ -13,7 +13,7 @@ import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListen
 
 // Style Imports
 import '../style/components/Details.less'
-import { 
+import {
     mdiPlay,
     mdiStop,
     mdiPower,
@@ -22,8 +22,8 @@ import {
     mdiSkipNext,
     mdiDownload,
     mdiRestartAlert,
-    mdiRouterWireless,
-    mdiDatabaseEyeOutline,
+    mdiWrenchCog,
+    mdiChartLine,
     mdiCheckboxMarkedCirclePlusOutline,
     mdiUpdate
 } from '@mdi/js'
@@ -336,7 +336,7 @@ function issueRCCommand(
                 api.postCommand(botMission).then(response => {
                     if (response.message) {
                         error(response.message)
-                    } 
+                    }
                     setRcMode(bot.bot_id, true)
                 })
             })
@@ -354,7 +354,7 @@ async function runRCMode(bot: PortalBotStatus) {
         return null
     }
 
-    let datumLocation = bot?.location 
+    let datumLocation = bot?.location
 
     if (!datumLocation) {
         const warningString = 'RC mode issued, but bot has no location. Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
@@ -387,9 +387,9 @@ function runMission(botId: number, mission: MissionInterface) {
 }
 
 /**
- * Checks if a details button should be disabled 
- * 
- * @param bot 
+ * Checks if a details button should be disabled
+ *
+ * @param bot
  * @returns boolean
  */
 function disableButton(command: CommandInfo, missionState: MissionState, bot?: PortalBotStatus, downloadQueue?: PortalBotStatus[]) {
@@ -406,10 +406,10 @@ function disableButton(command: CommandInfo, missionState: MissionState, bot?: P
     const humanReadableNotAvailable = command.humanReadableNotAvailable
 
     const disableMessage = "The command: " + command.commandType + " cannot be sent because the bot"
-    const disableState = disableMessage + " is in the incorrect state." + 
+    const disableState = disableMessage + " is in the incorrect state." +
         `${humanReadableAvailable !== "" ? '\nAvailable States: ' + humanReadableAvailable + '\n': ''}` +
         `${humanReadableNotAvailable !== "" ? '\States Not Available: ' + humanReadableNotAvailable + '\n': ''}`
-    
+
     if (statesAvailable) {
         for (let stateAvailable of statesAvailable) {
             if (stateAvailable.test(missionState)) {
@@ -427,7 +427,7 @@ function disableButton(command: CommandInfo, missionState: MissionState, bot?: P
             }
         }
     }
-    
+
     if (disableInfo.isDisabled) {
         disableInfo.disableMessage += disableState
     }
@@ -443,9 +443,9 @@ function disableButton(command: CommandInfo, missionState: MissionState, bot?: P
 }
 
 /**
- * Checks if clear run button should be disabled 
- * 
- * @param bot 
+ * Checks if clear run button should be disabled
+ *
+ * @param bot
  * @returns boolean
  */
 function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) {
@@ -475,18 +475,18 @@ function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, comm
 
 
     if (!mission.botsAssignedToRuns[bot.bot_id]) {
-        disableInfo.disableMessage += "The command: " + command.commandType + " cannot be sent because the bot because it does not have a run available\n" 
+        disableInfo.disableMessage += "The command: " + command.commandType + " cannot be sent because the bot because it does not have a run available\n"
         disableInfo.isDisabled = true
     }
 
     if (disableButton(command, missionState).isDisabled) {
-        disableInfo.disableMessage += disableButton(command, missionState).disableMessage 
+        disableInfo.disableMessage += disableButton(command, missionState).disableMessage
         disableInfo.isDisabled = true
     }
 
     const downloadQueueBotIds = downloadQueue.map((bot) => bot.bot_id)
     if (downloadQueueBotIds.includes(bot.bot_id)) {
-        disableInfo.disableMessage += "The command: " + command.commandType + " cannot be sent because the bot because it is in the data offload queue\n" 
+        disableInfo.disableMessage += "The command: " + command.commandType + " cannot be sent because the bot because it is in the data offload queue\n"
         disableInfo.isDisabled = true
     }
 
@@ -512,7 +512,7 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
     let errorElements = errors.map((error) => {
         return <div key={error} className='healthFailed'>{error}</div>
     })
-    
+
     let warnings = bot.warning ?? []
     let warningElements = warnings.map((warning) => {
         return <div key={warning} className='healthDegraded'>{warning}</div>
@@ -651,36 +651,36 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     if (bot?.wifi_link_quality_percentage != undefined) {
         linkQualityPercentage = bot?.wifi_link_quality_percentage
-    } 
+    }
 
     let dataOffloadButton = (
-        <Button className={(disableButton(commands.recover, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
-            onClick={() => { 
+        <Button className={(disableButton(commands.recover, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'}
+            onClick={() => {
                 let disableMessage = disableButton(commands.recover, missionState).disableMessage
 
                 if (!linkQualityPercentage) {
-                    disableMessage += 
+                    disableMessage +=
                         "The command: " + commands.recover.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
                 }
 
-                props.downloadIndividualBot(bot, disableMessage) 
+                props.downloadIndividualBot(bot, disableMessage)
             }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
     )
 
     if (disableButton(commands.recover, missionState).isDisabled) {
-        dataOffloadButton = ( 
-            <Button className={(disableButton(commands.retryDataOffload, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
+        dataOffloadButton = (
+            <Button className={(disableButton(commands.retryDataOffload, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'}
                 onClick={() => {
                     let disableMessage = disableButton(commands.retryDataOffload, missionState).disableMessage
 
                     if (!linkQualityPercentage) {
-                        disableMessage += 
+                        disableMessage +=
                             "The command: " + commands.retryDataOffload.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
                     }
 
-                    props.downloadIndividualBot(bot, disableMessage) 
+                    props.downloadIndividualBot(bot, disableMessage)
                 }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
@@ -696,7 +696,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     // Change message for clicking on map if the bot has a run, but it is not in edit mode
     let clickOnMap = <h3 className='name'>Click on the map to create waypoints</h3>
     const botRun = getBotRun(bot.bot_id, mission.runs) ?? false
-    
+
     if (!disableClearRunButton(bot, mission).isDisabled
         && (botRun && botRun.id !== mission.runIdInEditMode)) {
         clickOnMap = <h3 className='name'>Click edit toggle to create waypoints</h3>
@@ -723,24 +723,24 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     {clickOnMap}
                     <div className='botDetailsToolbar'>
                         <Button
-                            className={disableButton(commands.stop, missionState).isDisabled ? 'inactive button-jcc' : ' button-jcc stopMission'} 
+                            className={disableButton(commands.stop, missionState).isDisabled ? 'inactive button-jcc' : ' button-jcc stopMission'}
                             onClick={() => { issueCommand(api, bot.bot_id, commands.stop, disableButton(commands.stop, missionState).disableMessage, props.setRcMode) }}>
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
                         <Button
-                            className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                            onClick={() => { 
-                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage) 
+                            className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
+                            onClick={() => {
+                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
                             }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
-                        <Button 
+                        <Button
                             className={ disableClearRunButton(bot, mission).isDisabled ? 'inactive button-jcc' : 'button-jcc' }
                             onClick={() => { deleteSingleMission(props.run?.id, disableClearRunButton(bot, mission).disableMessage)}}>
                             <Icon path={mdiDelete} title='Clear Mission'/>
                         </Button>
 
-                        <EditModeToggle 
+                        <EditModeToggle
                             onClick={props.toggleEditMode}
                             runIdInEditMode={props.mission.runIdInEditMode}
                             run={props.run}
@@ -752,8 +752,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                 </div>
                 <div id='botDetailsAccordionContainer' className='accordionParentContainer'>
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.quickLook} 
+                        <Accordion
+                            expanded={isExpanded.quickLook}
                             onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
                             className='accordionContainer'
                         >
@@ -806,8 +806,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </ThemeProvider>
 
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                        expanded={isExpanded.commands} 
+                        <Accordion
+                        expanded={isExpanded.commands}
                         onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
                         className='accordionContainer'
                         >
@@ -819,7 +819,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 <Typography>Commands</Typography>
                             </AccordionSummary>
                             <AccordionDetails className='botDetailsCommands'>
-                                <Button className={disableButton(commands.active, missionState).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                <Button className={disableButton(commands.active, missionState).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                         onClick={() => { issueCommand(api, bot.bot_id, commands.active, disableButton(commands.active, missionState).disableMessage) }}>
                                     <Icon path={mdiCheckboxMarkedCirclePlusOutline} title='System Check'/>
                                 </Button>
@@ -827,26 +827,26 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 <Button
                                     className={
                                         `
-                                        ${disableButton(commands.rcMode, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                        ${disableButton(commands.rcMode, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                         ${props.isRCModeActive(bot?.bot_id) ? 'rc-active' : 'rc-inactive' }
                                         `
-                                    } 
-                                    onClick={async () => { 
-                                        issueRCCommand(api, bot, await runRCMode(bot), props.isRCModeActive, props.setRcMode, disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage) 
+                                    }
+                                    onClick={async () => {
+                                        issueRCCommand(api, bot, await runRCMode(bot), props.isRCModeActive, props.setRcMode, disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage)
                                 }}
                                 >
                                     <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
                                 </Button>
 
-                                <Button className={disableButton(commands.nextTask, missionState).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                <Button className={disableButton(commands.nextTask, missionState).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                             onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask, disableButton(commands.nextTask, missionState).disableMessage) }}>
                                         <Icon path={mdiSkipNext} title='Next Task'/>
                                 </Button>
 
                                 {dataOffloadButton}
 
-                                <Accordion 
-                                    expanded={isExpanded.advancedCommands} 
+                                <Accordion
+                                    expanded={isExpanded.advancedCommands}
                                     onChange={(event, expanded) => {setDetailsExpanded('advancedCommands', expanded)}}
                                     className='accordionContainer'
                                 >
@@ -859,7 +859,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </AccordionSummary>
 
                                     <AccordionDetails>
-                                        <Button className={disableButton(commands.shutdown, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                        <Button className={disableButton(commands.shutdown, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                                 onClick={async () => {
                                                     if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                         (await CustomAlert.confirmAsync(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`, 'Shutdown Bot')) ?
@@ -871,10 +871,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         >
                                             <Icon path={mdiPower} title='Shutdown'/>
                                         </Button>
-                                        <Button className={disableButton(commands.reboot, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                        <Button className={disableButton(commands.reboot, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                                 onClick={async () => {
                                                     if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
-                                                        (await CustomAlert.confirmAsync(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`, 'Reboot Bot')) ? 
+                                                        (await CustomAlert.confirmAsync(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`, 'Reboot Bot')) ?
                                                             issueCommand(api, bot.bot_id, commands.reboot,  disableButton(commands.reboot, missionState, bot, props.downloadQueue).disableMessage) : false;
                                                     } else {
                                                         issueCommand(api, bot.bot_id, commands.reboot,  disableButton(commands.reboot, missionState, bot, props.downloadQueue).disableMessage);
@@ -883,16 +883,16 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         >
                                             <Icon path={mdiRestartAlert} title='Reboot'/>
                                         </Button>
-                                        <Button className={disableButton(commands.restartServices, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                                        <Button className={disableButton(commands.restartServices, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'}
                                                 onClick={async () => {
                                                     if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
-                                                        (await CustomAlert.confirmAsync(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`, 'Restart Bot')) ? 
+                                                        (await CustomAlert.confirmAsync(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`, 'Restart Bot')) ?
                                                             issueCommand(api, bot.bot_id, commands.restartServices, disableButton(commands.restartServices, missionState, bot, props.downloadQueue).disableMessage) : false;
                                                     } else {
                                                         issueCommand(api, bot.bot_id, commands.restartServices,  disableButton(commands.restartServices, missionState, bot, props.downloadQueue).disableMessage);
                                                     }}
                                                 }
-                                                
+
                                         >
                                             <Icon path={mdiRestart} title='Restart Services'/>
                                         </Button>
@@ -903,8 +903,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </ThemeProvider>
 
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.health} 
+                        <Accordion
+                            expanded={isExpanded.health}
                             onChange={(event, expanded) => {setDetailsExpanded('health', expanded)}}
                             className='accordionContainer'
                         >
@@ -926,8 +926,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </ThemeProvider>
 
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.data} 
+                        <Accordion
+                            expanded={isExpanded.data}
                             onChange={(event, expanded) => {setDetailsExpanded('data', expanded)}}
                             className='accordionContainer'
                         >
@@ -942,8 +942,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <AccordionDetails>
 
                                 <ThemeProvider theme={makeAccordionTheme()}>
-                                    <Accordion 
-                                        expanded={isExpanded.gps} 
+                                    <Accordion
+                                        expanded={isExpanded.gps}
                                         onChange={(event, expanded) => {setDetailsExpanded('gps', expanded)}}
                                         className='nestedAccordionContainer accordionContainer'
                                     >
@@ -988,8 +988,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 </ThemeProvider>
 
                                 <ThemeProvider theme={makeAccordionTheme()}>
-                                    <Accordion 
-                                        expanded={isExpanded.imu} 
+                                    <Accordion
+                                        expanded={isExpanded.imu}
                                         onChange={(event, expanded) => {setDetailsExpanded('imu', expanded)}}
                                         className='nestedAccordionContainer accordionContainer'
                                     >
@@ -1016,14 +1016,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                                         <td>{bot?.calibration_status}</td>
                                                     </tr>
                                                 </tbody>
-                                            </table>              
+                                            </table>
                                         </AccordionDetails>
                                     </Accordion>
                                 </ThemeProvider>
 
                                 <ThemeProvider theme={makeAccordionTheme()}>
-                                    <Accordion 
-                                        expanded={isExpanded.sensor} 
+                                    <Accordion
+                                        expanded={isExpanded.sensor}
                                         onChange={(event, expanded) => {setDetailsExpanded('sensor', expanded)}}
                                         className='nestedAccordionContainer accordionContainer'
                                     >
@@ -1050,14 +1050,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                                         <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
                                                     </tr>
                                                 </tbody>
-                                            </table>   
+                                            </table>
                                         </AccordionDetails>
                                     </Accordion>
                                 </ThemeProvider>
 
                                 <ThemeProvider theme={makeAccordionTheme()}>
-                                    <Accordion 
-                                        expanded={isExpanded.power} 
+                                    <Accordion
+                                        expanded={isExpanded.power}
                                         onChange={(event, expanded) => {setDetailsExpanded('power', expanded)}}
                                         className='nestedAccordionContainer accordionContainer'
                                     >
@@ -1088,7 +1088,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                                         <td>{bot.vv_current?.toFixed(prec)} A</td>
                                                     </tr>
                                                 </tbody>
-                                            </table>   
+                                            </table>
                                         </AccordionDetails>
                                     </Accordion>
                                 </ThemeProvider>
@@ -1139,7 +1139,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
 
     let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
     let statusAgeClassName: string
-    
+
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
     } else if (statusAge > 10) {
@@ -1185,8 +1185,8 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 </div>
                 <div id='hubDetailsAccordionContainer'>
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.quickLook} 
+                        <Accordion
+                            expanded={isExpanded.quickLook}
                             onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
                             className='accordionContainer'
                         >
@@ -1236,8 +1236,8 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </ThemeProvider>
 
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.commands} 
+                        <Accordion
+                            expanded={isExpanded.commands}
                             onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
                             className='accordionContainer'
                         >
@@ -1249,15 +1249,15 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                 <Typography>Commands</Typography>
                             </AccordionSummary>
                             <AccordionDetails>
-                                <Button className={' button-jcc'} 
+                                <Button className={' button-jcc'}
                                         onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
                                     <Icon path={mdiPower} title='Shutdown'/>
                                 </Button>
-                                <Button className={' button-jcc'} 
+                                <Button className={' button-jcc'}
                                         onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
                                     <Icon path={mdiRestartAlert} title='Reboot'/>
                                 </Button>
-                                <Button className={' button-jcc'}  
+                                <Button className={' button-jcc'}
                                         onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
                                     <Icon path={mdiRestart} title='Restart Services'/>
                                 </Button>
@@ -1266,8 +1266,8 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </ThemeProvider>
 
                     <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.links} 
+                        <Accordion
+                            expanded={isExpanded.links}
                             onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}
                             className='accordionContainer'
                         >
@@ -1280,8 +1280,8 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                             </AccordionSummary>
                             <AccordionDetails>
                                 <Button
-                                    className={'button-jcc'} 
-                                    onClick={() => {							
+                                    className={'button-jcc'}
+                                    onClick={() => {
                                         const hubId = 10 + hub?.hub_id
                                         const fleetId = getFleetId()
 
@@ -1290,9 +1290,9 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                             // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
                                             const url = `http://10.23.${fleetId}.${hubId}:40010`
                                             window.open(url, '_blank')}}
-                                        }  
+                                        }
                                 >
-                                    <Icon path={mdiDatabaseEyeOutline} title='JDV'/>
+                                    <Icon path={mdiChartLine} title='JDV'/>
                                 </Button>
                                 <Button className="button-jcc" onClick={() => {
                                     const fleetId = getFleetId()
@@ -1302,9 +1302,9 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         window.open(url, '_blank')}}
                                     }
                                 >
-                                    <Icon path={mdiRouterWireless} title="Router"></Icon>
+                                    <Icon path={mdiWrenchCog} title="Router"></Icon>
                                 </Button>
-                                <Button className="button-jcc" onClick={() => 
+                                <Button className="button-jcc" onClick={() =>
                                         {
                                             const hubId = 10 + hub?.hub_id
                                             const fleetId = getFleetId()
