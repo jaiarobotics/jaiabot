@@ -332,7 +332,7 @@ class LogApp extends React.Component {
       LogApi.postConvertIfNeeded(logFilenames).then((response) => {
         if (response.done) {
           self.stopBusyIndicator()
-          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
+          self.setState({chosenLogs: logFilenames, plots: [], mapNeedsRefresh: true, plotNeedsRefresh: true})
         }
         else {
           console.log(`Waiting on conversion of ${logFilenames}`)
