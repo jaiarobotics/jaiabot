@@ -1,6 +1,6 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
-import { DivePacket, Goal, HubStatus, TaskPacket, TaskType } from './JAIAProtobuf'
+import { Goal, HubStatus, TaskType } from './JAIAProtobuf'
 import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
@@ -595,20 +595,13 @@ export function getRallyStyle(rallyFeatureCount: number) {
  * Get a dive packet icon style
  *
  * @param {Feature} feature Dive packet feature
- * @param {?string} [animatedColor="white"] Color of the dive packet icon
+ * @param {string} (Optional) Color of the dive packet icon
  * @returns {Style} Style for this dive packet
  */
 export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
-    // Depth text
-    const taskPacket = feature.get('taskPacket') as TaskPacket
-    const dive = taskPacket.dive as DivePacket
-    if (!dive) {
-        return null
-    }
-
-    let text = ""
-    if (dive.bottom_dive && dive.depth_achieved !== undefined) {
-        text = dive.depth_achieved.toFixed(1)
+    let text = ''
+    if (feature.get('bottomDive') && feature.get('depthAchieved')) {
+        text = feature.get('depthAchieved').toFixed(1)
     }
 
     // Icon color
