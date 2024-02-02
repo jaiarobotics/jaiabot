@@ -31,6 +31,10 @@ fi
 echo "🟢 Building jaiabot apps"
 docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
 
+# Remove old library files
+echo "🟢 Cleaning old library files"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts -t build_system bash -c "./clean-lib-directory.py"
+
 # Define what values to read in the runtime.env
 read_runtime_content=$(cat << 'END_SCRIPT'
 #!/bin/bash
