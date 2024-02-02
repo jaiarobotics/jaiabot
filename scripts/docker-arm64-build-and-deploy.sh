@@ -56,7 +56,10 @@ else
     for var in "$@"
     do
         echo "🟢 Uploading to "$var
-        rsync -zaP --force --relative --exclude node_modules/ ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ${botuser}@"$var":/home/${botuser}/jaiabot/
+        # Sync all directories except for lib
+        rsync -zaP --force --relative --exclude node_modules/ --exclude venv/ ./build/arm64/bin ./build/arm64/include ./build/arm64/share/ ./config ./scripts ${botuser}@"$var":/home/${botuser}/jaiabot/
+        # Sync the lib directory with --delete flag, to keep it clean
+        rsync -zaP --force --relative --delete ./build/arm64/lib ${botuser}@"$var":/home/${botuser}/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
