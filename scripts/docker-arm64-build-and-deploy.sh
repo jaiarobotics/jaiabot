@@ -57,20 +57,20 @@ then
     echo "             -----------"
     echo "Not Deploying as you didn't specify any targets"
 else
-    for var in "$@"
+    for hostname in "$@"
     do
-        echo "🟢 Uploading to "$var
+        echo "🟢 Uploading to "$hostname
         # Sync all directories except for lib
-        rsync -zaP --force --relative --exclude node_modules/ --exclude venv/ ./build/arm64/bin ./build/arm64/include ./build/arm64/share/ ./config ./scripts ${botuser}@"$var":/home/${botuser}/jaiabot/
+        rsync -zaP --force --relative --exclude node_modules/ --exclude venv/ ./build/arm64/bin ./build/arm64/include ./build/arm64/share/ ./config ./scripts ${botuser}@"$hostname":/home/${botuser}/jaiabot/
         # Sync the lib directory with --delete flag, to keep it clean
-        rsync -zaP --force --relative --delete ./build/arm64/lib ${botuser}@"$var":/home/${botuser}/jaiabot/
+        rsync -zaP --force --relative --delete ./build/arm64/lib ${botuser}@"$hostname":/home/${botuser}/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
-            ssh ${botuser}@"$var" "bash -c 'sudo apt-get -y remove "*jaiabot*"'"
+            ssh ${botuser}@"$hostname" "bash -c 'sudo apt-get -y remove "*jaiabot*"'"
             
             # SSH command to execute
-            ssh_command="ssh ${botuser}@$var"
+            ssh_command="ssh ${botuser}@$hostname"
 
             # Run the SSH command with process substitution and pass the script content
             runtime_output=$($ssh_command "bash -s" <<< "$read_runtime_content")
@@ -86,28 +86,37 @@ else
             jaia_imu_type=$(echo "$runtime_output" | awk -F'=' '/jaia_imu_type=/{print $2}')
             jaia_arduino_type=$(echo "$runtime_output" | awk -F'=' '/jaia_arduino_type=/{print $2}')
 
+            echo "🟢 Creating and setting permissons on log dir"
+            # For bots, we only need to create /var/log/jaiabot
+            ssh ${botuser}@"$hostname" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
+
             if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
-                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type --enable'"
+
+                ssh ${botuser}@"$hostname" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type --enable'"
+
             else
-                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led --enable --user_role advanced'"
+
+                ssh ${botuser}@"$hostname" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led --enable --user_role advanced'"
+
+                echo "🟢 Creating and setting permissons on log dir"
+                # For hubs, we need to create /var/log/jaiabot and /var/log/jaiabot/bot_offload
+                ssh ${botuser}@"$hostname" "sudo mkdir -p /var/log/jaiabot/bot_offload && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
+
             fi
 
-            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
-            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
+            ssh ${botuser}@"$hostname" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
+            ssh ${botuser}@"$hostname" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
         fi
 
     	echo "🟢 Creating python virtual environment (venv)"
-        ssh ${botuser}@"$var" "bash -c 'pushd /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; python3 -m pip -q install wheel; python3 -m pip install -q -r requirements.txt; popd;'"
-
-    	echo "🟢 Creating and setting permissons on log dir"
-        ssh ${botuser}@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
+        ssh ${botuser}@"$hostname" "bash -c 'pushd /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; python3 -m pip -q install wheel; python3 -m pip install -q -r requirements.txt; popd;'"
         
         if [ ! -z "$jaiabot_arduino_type" ]; then
-            echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
-            ssh ${botuser}@"$var" "sudo /home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
+            echo "🟢 Loading arduino type $jaiabot_arduino_type on "$hostname
+            ssh ${botuser}@"$hostname" "sudo /home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
         fi
 
-        echo "When you're ready, ssh ${botuser}@${var} and run 'sudo systemctl start jaiabot'"
+        echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"
     done
 fi
 
