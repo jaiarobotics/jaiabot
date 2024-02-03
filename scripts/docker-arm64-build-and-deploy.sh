@@ -67,7 +67,7 @@ else
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
-            ssh ${botuser}@"$var" "bash -c 'sudo apt-get -y remove jaiabot-embedded'"
+            ssh ${botuser}@"$var" "bash -c 'sudo apt-get -y remove "*jaiabot*"'"
             
             # SSH command to execute
             ssh_command="ssh ${botuser}@$var"
