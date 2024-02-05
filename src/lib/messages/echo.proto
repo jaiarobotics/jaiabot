@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message EchoCommand
+{
+    enum EchoCommandType
+    {
+        TAKE_READING = 0;
+    }
+
+    required EchoCommandType type = 1;
+}
+
+message EchoData
+{
+    optional bool device_is_on = 6 [default = false];
+}

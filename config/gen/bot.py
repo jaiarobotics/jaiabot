@@ -91,6 +91,7 @@ verbosities = \
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
@@ -217,6 +218,11 @@ elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
                                      bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
                                      remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
                                      atlas_salinity_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_echo_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_echo_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     echo_report_in_simulation=is_simulation()))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,
