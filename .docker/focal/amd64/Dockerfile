@@ -60,11 +60,13 @@ RUN curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | ba
 
 # NVM Install
 RUN source $NVM_DIR/nvm.sh \
-    && npm install -g npm@9.6.4 \
     && nvm install $NODE_VERSION \
     && nvm use --delete-prefix $NODE_VERSION \
+    && npm install -g npm@9.6.4 \
     && npm i -g webpack webpack-cli
 
 # NVM Post Install Setup
 ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
 ENV PATH $NODE_PATH:$PATH
+
+RUN git config --global --add safe.directory /home/jaia/jaiabot
