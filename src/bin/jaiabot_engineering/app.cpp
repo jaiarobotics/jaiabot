@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"
@@ -297,6 +298,15 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
             protobuf::IMUCommand imu_command;
             imu_command.set_type(protobuf::IMUCommand::START_CALIBRATION);
             interprocess().publish<jaiabot::groups::imu>(imu_command);
+        }
+    }
+    else if (command.has_echo())
+    {
+        if (command.echo().start_echo())
+        {
+            protobuf::EchoCommand echo_command;
+            echo_command.set_type(protobuf::EchoCommand::TURN_ON_DEVICE);
+            interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
     }
 

@@ -156,6 +156,15 @@ message IMUCalibration
     optional bool run_cal = 1 [default = false];
 }
 
+message Echo
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool start_echo = 1 [default = false];
+}
+
 message Engineering
 {
     /*
@@ -196,6 +205,8 @@ message Engineering
     optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
 
     optional IMUCalibration imu_cal = 18;
+
+    optional Echo echo = 19;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

@@ -149,7 +149,7 @@ void jaiabot::apps::EchoDriver::check_last_report(
     if (last_echo_report_time_ + std::chrono::seconds(cfg().echo_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on adafruit_BNO085" << std::endl;
+        glog.is_warn() && glog << "Timeout on echo" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ECHO_DRIVER);

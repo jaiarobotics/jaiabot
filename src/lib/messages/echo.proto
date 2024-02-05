@@ -9,6 +9,7 @@ message EchoCommand
     enum EchoCommandType
     {
         TAKE_READING = 0;
+        TURN_ON_DEVICE = 1;
     }
 
     required EchoCommandType type = 1;
