@@ -57,6 +57,8 @@ def do_port_loop(echo: Echo):
                 else:
                     #log.warning(echoData)
                     sock.sendto(echoData.SerializeToString(), addr)
+            elif command.type == EchoCommand.TURN_ON_DEVICE:
+                echo.turnOnDevice()
 
         except Exception as e:
             traceback.print_exc()

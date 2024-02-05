@@ -90,3 +90,11 @@ class MAI(Echo):
 
         except Exception as error:
             log.warning("Error trying to get data!")
+
+    def turnOnDevice(self):
+        try:
+            # This should turn the echo device on
+            log.info("Test")
+
+        except Exception as error:
+            log.warning("Error trying to get data!")
