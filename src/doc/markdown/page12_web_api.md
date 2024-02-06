@@ -4,10 +4,10 @@
 
 10.23.fleetId.hubId + 10 
 
-Ex: fleetId 10 and hubId: 1
+Ex: fleetId 1 and hubId: 1
 
 ```
-10.23.10.11
+10.23.1.11
 ```
 
 ### Bot Status 
