@@ -33,10 +33,10 @@ API_ENDPOINT = "http://10.23.1.11/jaia/status"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -82,10 +82,10 @@ API_ENDPOINT = "http://10.23.1.11/jaia/task-packets"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -118,10 +118,10 @@ API_ENDPOINT = "http://10.23.1.11/jaia/task-packets-count"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -154,10 +154,10 @@ API_ENDPOINT = "http://10.23.1.11/jaia/metadata"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -200,10 +200,10 @@ data = {'lat': 41.661849, 'lon': -71.273131}
 # data = {'lat': 41.661849, 'lon': -71.273131, 'station_keep_speed': 2}
 # data = {'lat': 41.661849, 'lon': -71.273131, 'transit_speed': 3}
 
-wpt_resp = requests.post(url=API_ENDPOINT, json=data, headers=headers)
+resp = requests.post(url=API_ENDPOINT, json=data, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -224,10 +224,10 @@ API_ENDPOINT = "http://10.23.1.11/jaia/all-stop"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
 
@@ -248,9 +248,9 @@ API_ENDPOINT = "http://10.23.1.11/jaia/all-activate"
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
-pastebin_url = wpt_resp.text
+pastebin_url = resp.text
 print("The pastebin URL is:%s"%pastebin_url)
 ```
