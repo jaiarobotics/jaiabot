@@ -16,6 +16,24 @@ This endpoint will get the current client that is in control of the JCC, the cur
 10.23.1.11/jaia/status
 ```
 
+#### Example Python Script
+
+```
+# importing the requests library
+import requests
+
+API_ENDPOINT_WPT = "http://10.23.1.11/jaia/status"
+
+# define the headers for the request
+headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+
+wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+
+# extracting response text
+pastebin_url = wpt_resp.text
+print("The pastebin URL is:%s"%pastebin_url)
+```
+
 #### Example Output
 
 The current status for hubs and bots (1 hub and 2 bots)
@@ -47,6 +65,24 @@ Timezone: GMT
 10.23.1.11/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
 ```
 
+#### Example Python Script
+
+```
+# importing the requests library
+import requests
+
+API_ENDPOINT_WPT = "http://10.23.1.11/jaia/task-packets"
+
+# define the headers for the request
+headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+
+wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+
+# extracting response text
+pastebin_url = wpt_resp.text
+print("The pastebin URL is:%s"%pastebin_url)
+```
+
 #### Example Output
 
 ```
@@ -63,6 +99,24 @@ This endpoint will get the total number of task packets available.
 
 ```
 10.23.1.11/jaia/task-packets-count
+```
+
+#### Example Python Script
+
+```
+# importing the requests library
+import requests
+
+API_ENDPOINT_WPT = "http://10.23.1.11/jaia/task-packets-count"
+
+# define the headers for the request
+headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+
+wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+
+# extracting response text
+pastebin_url = wpt_resp.text
+print("The pastebin URL is:%s"%pastebin_url)
 ```
 
 #### Example Output
