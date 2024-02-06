@@ -39,7 +39,11 @@ export function BotListPanel(props: Props) {
      */
     function compareByBotIdAndHealth(bot1: BotStatus, bot2: BotStatus) {
         if (faultLevel(bot1.health_state) != faultLevel(bot2.health_state)) {
-            return faultLevel(bot2.health_state) - faultLevel(bot1.health_state)
+            if (faultLevel(bot1.health_state) >= faultLevel(bot2.health_state)) {
+                return bot1.bot_id - bot2.bot_id
+            } else {
+                return bot2.bot_id - bot1.bot_id
+            }
         } else {
             return bot1.bot_id - bot2.bot_id
         }
