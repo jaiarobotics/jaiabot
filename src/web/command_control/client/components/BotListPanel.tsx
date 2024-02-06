@@ -38,7 +38,7 @@ export function BotListPanel(props: Props) {
      *          If multiple bots have the same health, they are sorted numerically.
      */
     function compareByBotIdAndHealth(bot1: BotStatus, bot2: BotStatus) {
-        if (faultLevel(bot1.health_state) != faultLevel(bot2.health_state)) {
+        if (faultLevel(bot1.health_state) == 2 || faultLevel(bot2.health_state) == 2) {
             if (faultLevel(bot1.health_state) >= faultLevel(bot2.health_state)) {
                 return bot1.bot_id - bot2.bot_id
             } else {
