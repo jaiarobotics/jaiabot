@@ -2,12 +2,14 @@
 
 ## IP Address
 
-10.23.fleetId.hubId + 10 
+10.23.fleet_id.hub_id + 10 
 
-Ex: fleetId 1 and hubId: 1
+#### Example
 
 ```
-10.23.1.11
+fleet_id = 1
+hub_id = 1
+ip_address = 10.23.1.11
 ```
 
 ### Bot Status 
