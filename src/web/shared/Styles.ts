@@ -601,7 +601,7 @@ export function getRallyStyle(rallyFeatureCount: number) {
 export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     let text = ''
     if (feature.get('bottomDive') && feature.get('depthAchieved')) {
-        text = feature.get('depthAchieved').toFixed(1)
+        text = `${feature.get('depthAchieved').toFixed(1)}m`
     }
 
     // Icon color
