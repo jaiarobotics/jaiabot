@@ -2,6 +2,7 @@ import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import React = require("react")
 import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
 
+const MICROSECOND_FACTOR = 1_000_000
 
 interface Props {
     podStatus: PodStatus | null
@@ -28,11 +29,23 @@ export function BotListPanel(props: Props) {
         return hub1.hub_id - hub2.hub_id
     }
 
-    function compareByBotId(bot1: BotStatus, bot2: BotStatus) {
-        return bot1.bot_id - bot2.bot_id
+    /**
+     * Returns bots sorted in order of health first (worst - best) then numerically.
+     * If multiple bots have the same health, they are sorted numerically.
+     * @param bot1 Used to get and compare against the health/ID of bot2
+     * @param bot2 Used to get and compare against the health/ID of bot1
+     * @returns Returns bots sorted in order of health first (worst - best), then numerically.
+     *          If multiple bots have the same health, they are sorted numerically.
+     */
+    function compareByBotIdAndHealth(bot1: BotStatus, bot2: BotStatus) {
+        if (faultLevel(bot1.health_state) != faultLevel(bot2.health_state)) {
+            return faultLevel(bot2.health_state) - faultLevel(bot1.health_state)
+        } else {
+            return bot1.bot_id - bot2.bot_id
+        }
     }
 
-    let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotId)
+    let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotIdAndHealth)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
     function BotDiv(bot: PortalBotStatus) {
@@ -42,7 +55,7 @@ export function BotListPanel(props: Props) {
         let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
         let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
-        let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
+        let disconnected = Math.max(0.0, bot.portalStatusAge / MICROSECOND_FACTOR) > 30 ? 'disconnected' : ''
 
         return (
             <div
