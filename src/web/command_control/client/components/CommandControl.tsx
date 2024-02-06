@@ -91,6 +91,7 @@ const POD_STATUS_POLL_INTERVAL = 500
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
+const MICROSECONDS_FACTOR = 1_000_000
 
 interface Props {}
 
@@ -888,6 +889,17 @@ export default class CommandControl extends React.Component {
 
 	getMetadata() {
 		return this.state.metadata
+	}
+
+	/**
+	 * Returns status age of bot
+	 * @param botId Determines which status age to retrieve
+	 * @returns {number} Returns status age of bot
+	 */
+	getBotStatusAge(botId: number) {
+		let bots = this.getPodStatus().bots
+		let statusAge = Math.max(0.0, bots[botId].portalStatusAge / MICROSECONDS_FACTOR)
+		return statusAge
 	}
 
 	toggleBot(bot_id?: number) {
@@ -3006,16 +3018,18 @@ export default class CommandControl extends React.Component {
 	 * @returns {void}
 	 */
 	autoAssignBotsToRuns() {
-        let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
-        let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
-        let botsNotAssigned: number[] = [];
-
+        let podStatusBotIds = Object.keys(this.getPodStatus()?.bots)
+        let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns)
+        let botsNotAssigned: number[] = []
+		let degradedStatusAge = 30
+		
 		// Find the difference between the current botIds available and the bots that are already assigned to get the ones that have not been assigned yet
-        podStatusBotIds.forEach((key) => {
-            if (!botsAssignedToRunsIds.includes(key)) {
-                let id = Number(key);
+        // Excludes any bot with status age > degradedStatusAge
+		podStatusBotIds.forEach((key) => {
+            if (!botsAssignedToRunsIds.includes(key) && this.getBotStatusAge(Number(key)) < degradedStatusAge) {
+                let id = Number(key)
                 if(isFinite(id)) {
-                    botsNotAssigned.push(id);
+                    botsNotAssigned.push(id)
                 }
             }
         })
