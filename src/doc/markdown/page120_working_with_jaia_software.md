@@ -9,8 +9,13 @@
 <a id="launching-the-simulator"></a>
 
 # Launching the Simulator
-Note: The Jaia simulator works __exclusively with Ubuntu 20.04__
+Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
 1. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
+```
+(install git if needed)
+sudo apt install git
+git clone https://github.com/jaiarobotics/jaiabot
+```
 2. Run the setup scripts
 ```
 cd /path/to/jaiabot/scripts
@@ -97,17 +102,7 @@ jaiabot_arduino_type=usb jaiabot_systemd_type=bot ./docker-arm64-build-and-deplo
 # HUB
 jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y (X indicates fleet number and Y indicates hub number plus 10)
 ```
-6. Edit runtime.env
-```
-ssh -i /path/to/key jaia@10.23.X.Y (X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10)
-sudo vi /etc/jaiabot/runtime.env
-```
-
-* Update the bot index to reflect the bot you are deploying the software to
-* Update the fleet index to reflect current fleet configuration
-* Update n_bots to reflect the total number of bots in the fleet
-
-7. Start jaiabot services
+6. Start jaiabot services
 ```
 ssh -i /path/to/key jaia@10.23.X.Y (X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10)
 sudo systemctl start jaiabot (takes about 1 min to start)
