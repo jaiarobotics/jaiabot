@@ -77,7 +77,6 @@ import '../style/CommandControl.less'
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 import { HelpWindow } from './HelpWindow'
-import { stat } from 'fs'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -3013,9 +3012,6 @@ export default class CommandControl extends React.Component {
 	// 
 	// Mission Contoroller Panel Helper Methods (Start)
 	//
-
-	
-
 	/**
 	 * Assign bots to runs in ascending order with one click
 	 * 
