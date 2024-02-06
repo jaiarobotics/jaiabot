@@ -2,7 +2,13 @@
 
 ## IP Address
 
-10.23.fleetid.hubid + 10
+10.23.fleetId.hubId + 10 
+
+Ex: fleetId 10 and hubId: 1
+
+```
+10.23.10.11
+```
 
 ### Bot Status 
 
@@ -22,12 +28,12 @@ This endpoint will get the current client that is in control of the JCC, the cur
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/status"
+API_ENDPOINT = "http://10.23.1.11/jaia/status"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
@@ -46,7 +52,7 @@ The current status for hubs and bots (1 hub and 2 bots)
 
 #### Description
 
-This endpoint will get the all of the task packets available or a subset of taskpackets based off a start date and a end data.
+This endpoint will get the all of the task packets available or a subset of task packets based off a start date and a end data.
 
 #### Example Input
 
@@ -71,12 +77,12 @@ Timezone: GMT
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/task-packets"
+API_ENDPOINT = "http://10.23.1.11/jaia/task-packets"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
@@ -107,12 +113,12 @@ This endpoint will get the total number of task packets available.
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/task-packets-count"
+API_ENDPOINT = "http://10.23.1.11/jaia/task-packets-count"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
@@ -129,12 +135,30 @@ print("The pastebin URL is:%s"%pastebin_url)
 
 #### Description
 
-This endpoint will get the metadata associated with the software that the hub is currently running. The version of the jaiabot, goby, and moos software. It will also include the hubs radio configurations.
+This endpoint will get the metadata associated with the software that the hub is currently running. The version of the jaiabot, goby, and moos software. It will also include the hub's radio configurations.
 
 #### Example Input
 
 ```
 10.23.1.11/jaia/metadata
+```
+
+#### Example Python Script
+
+```
+# importing the requests library
+import requests
+
+API_ENDPOINT = "http://10.23.1.11/jaia/metadata"
+
+# define the headers for the request
+headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
+
+# extracting response text
+pastebin_url = wpt_resp.text
+print("The pastebin URL is:%s"%pastebin_url)
 ```
 
 #### Example Output
@@ -155,26 +179,28 @@ Required data for the single waypoint mission is lat and lon.
 
 Optional:
 * A bot_id, if not included then the waypoint is sent to all the bots
-* A Task for the bot to perform at the waypoint
-* A Speed for the bot, if not include it will use default = {'transit': 2, 'stationkeep_outer': 1.5}
+* A task for the bot to perform at the waypoint
+* A speed for the bot, if not include it will use default = {'transit': 2, 'stationkeep_outer': 1.5}
 
 ```
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/single-waypoint-mission"
+API_ENDPOINT = "http://10.23.1.11/jaia/single-waypoint-mission"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
 data = {'lat': 41.661849, 'lon': -71.273131}
-#data = {'bot_id': 1, 'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2, 'surface_drift_time': 15,'transit_speed': 2.5, 'station_keep_speed': 0.5}
-#data = {'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2, 'surface_drift_time': 15,'transit_speed': 2.5, 'station_keep_speed': 0.5}  
-#data = {'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2,'transit_speed': 2.5, 'station_keep_speed': 0.5}
-#data = {'lat': 41.661849, 'lon': -71.273131, 'surface_drift_time': 15, 'transit_speed': 2.5, 'station_keep_speed': 0.5}
-#data = {'lat': 41.661849, 'lon': -71.273131, 'station_keep_speed': 2}
-#data = {'lat': 41.661849, 'lon': -71.273131, 'transit_speed': 3}
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, json=data, headers=headers)
+
+# data = {'bot_id': 1, 'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2, 'surface_drift_time': 15,'transit_speed': 2.5, 'station_keep_speed': 0.5}
+# data = {'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2, 'surface_drift_time': 15,'transit_speed': 2.5, 'station_keep_speed': 0.5}  
+# data = {'lat': 41.661849, 'lon': -71.273131, 'dive_depth': 2,'transit_speed': 2.5, 'station_keep_speed': 0.5}
+# data = {'lat': 41.661849, 'lon': -71.273131, 'surface_drift_time': 15, 'transit_speed': 2.5, 'station_keep_speed': 0.5}
+# data = {'lat': 41.661849, 'lon': -71.273131, 'station_keep_speed': 2}
+# data = {'lat': 41.661849, 'lon': -71.273131, 'transit_speed': 3}
+
+wpt_resp = requests.post(url=API_ENDPOINT, json=data, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
@@ -193,12 +219,12 @@ This endpoint will send a stop command to all bots that are currently connected 
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/all-stop"
+API_ENDPOINT = "http://10.23.1.11/jaia/all-stop"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
@@ -209,7 +235,7 @@ print("The pastebin URL is:%s"%pastebin_url)
 
 #### Description
 
-This endpoint will send a activate command to all bots that are currently connected to the hub. 
+This endpoint will send an activate command to all bots that are currently connected to the hub. 
 
 #### Example Python Script
 
@@ -217,12 +243,12 @@ This endpoint will send a activate command to all bots that are currently connec
 # importing the requests library
 import requests
 
-API_ENDPOINT_WPT = "http://10.23.1.11/jaia/all-activate"
+API_ENDPOINT = "http://10.23.1.11/jaia/all-activate"
 
 # define the headers for the request
 headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
-wpt_resp = requests.post(url=API_ENDPOINT_WPT, headers=headers)
+wpt_resp = requests.post(url=API_ENDPOINT, headers=headers)
 
 # extracting response text
 pastebin_url = wpt_resp.text
