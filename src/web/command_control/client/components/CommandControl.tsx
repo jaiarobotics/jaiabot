@@ -3000,6 +3000,18 @@ export default class CommandControl extends React.Component {
 	// 
 	// Mission Contoroller Panel Helper Methods (Start)
 	//
+
+	/**
+	 * Return status age of bot with id of botId
+	 * @param botId 
+	 * @returns {number}
+	 */
+	getBotStatusAge(botId: number) {
+		let bots = this.getPodStatus().bots;
+		let statusAge = Math.max(0.0, bots[botId].portalStatusAge / 1e6)
+		return statusAge;
+	}
+
 	/**
 	 * Assign bots to runs in ascending order with one click
 	 * 
@@ -3009,10 +3021,11 @@ export default class CommandControl extends React.Component {
         let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
         let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
         let botsNotAssigned: number[] = [];
-
+		
 		// Find the difference between the current botIds available and the bots that are already assigned to get the ones that have not been assigned yet
-        podStatusBotIds.forEach((key) => {
-            if (!botsAssignedToRunsIds.includes(key)) {
+        // Excludes any bot with status age > 30
+		podStatusBotIds.forEach((key) => {
+            if (!botsAssignedToRunsIds.includes(key) && this.getBotStatusAge(Number(key)) < 30) {
                 let id = Number(key);
                 if(isFinite(id)) {
                     botsNotAssigned.push(id);
@@ -3024,6 +3037,7 @@ export default class CommandControl extends React.Component {
 
         botsNotAssigned.forEach((assignedKey) => {
             for (let runKey in runList.runs) {
+				let bot = runList.runs[runKey];
                 if (runList.runs[runKey].assigned == -1) {
                     // Delete assignment
                     delete runList.botsAssignedToRuns[runList.runs[runKey].assigned]
