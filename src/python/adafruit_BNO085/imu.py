@@ -15,8 +15,7 @@ from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
 
-log_file_path = os.path.expanduser('~/app.log')
-logging.basicConfig(filename=log_file_path, level=logging.DEBUG, filemode="w", format='%(asctime)s %(levelname)10s %(message)s')
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
 
 try:
@@ -83,6 +82,10 @@ class IMU:
         if reading.calibration_state is not None:
             # .value converts enum type to int (which the protobuf side is looking for)
             imu_data.calibration_state = reading.calibration_state.value
+
+        # check if the bot rolled over
+        bot_rolled = int(abs(reading.orientation.roll) > 90)
+        imu_data.bot_rolled_over = bot_rolled
 
         return imu_data
     
