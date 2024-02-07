@@ -1871,7 +1871,7 @@ export default class CommandControl extends React.Component {
 					this.unselectAllTaskPackets()
 				}
 
-				const diveFeature = feature.get('features')[0]				
+				const diveFeature = feature.get('features')[0]
 				const startTime = new Date(diveFeature.get('startTime') / 1000)
 				const endTime = new Date(diveFeature.get('endTime') / 1000)
 				const taskPacketData = {
