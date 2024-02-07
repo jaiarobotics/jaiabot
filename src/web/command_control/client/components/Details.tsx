@@ -24,7 +24,7 @@ import {
     mdiRestartAlert,
     mdiWrenchCog,
     mdiChartLine,
-    mdiWifi,
+    mdiWifiCog,
     mdiCheckboxMarkedCirclePlusOutline
 } from '@mdi/js'
 
@@ -1303,7 +1303,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         window.open(url, '_blank')}}
                                     }
                                 >
-                                    <Icon path={mdiWifi} title="Router"></Icon>
+                                    <Icon path={mdiWifiCog} title="Router"></Icon>
                                 </Button>
                                 <Button className="button-jcc" onClick={() => 
                                         {
