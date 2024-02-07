@@ -10,6 +10,6 @@ output_path='dist'
 
 echo "🟢 Building app package"
 
-webpack --mode development --config ./release.webpack.config.js --output-path $output_path # --display errors-only
+npx webpack --mode development --config ./release.webpack.config.js --output-path $output_path # --display errors-only
 
 echo "✅ Done"
