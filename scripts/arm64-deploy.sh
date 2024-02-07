@@ -12,6 +12,8 @@ popd
 
 sudo apt-get -qq -y remove "*jaiabot*"
 
+jaiabot_version=$(cat ${HOME}/jaiabot/build/arm64/share/version.txt)
+
 source /etc/jaiabot/runtime.env
 
 echo "🟢 Creating and setting permissons on log dir"
@@ -42,3 +44,9 @@ if [ ! -z "$jaiabot_arduino_type" ]; then
     echo "🟢 Loading arduino type $jaiabot_arduino_type on $HOSTNAME"
     sudo ${HOME}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh
 fi
+
+# Deploy version number to the /etc/jaiabot/version file
+echo "🟢 Updating version information to ${jaiabot_version}"
+cp --backup=numbered /etc/jaiabot/version /etc/jaiabot/version.old
+sed "s/^JAIABOT_IMAGE_VERSION=.*$/JAIABOT_IMAGE_VERSION=${jaiabot_version}/g" /etc/jaiabot/version > /etc/jaiabot/version.new
+mv -f /etc/jaiabot/version.new /etc/jaiabot/version
