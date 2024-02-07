@@ -2,6 +2,19 @@
 
 # This script is executed on the remote hub/bot, when using the docker-arm64-build-and-deploy.sh script
 
+echo "🟢 Verifying goby and dccl versions match"
+local_libgoby_version=$(apt show libgoby3 | sed -n 's/^Version: \(.*\)~.*$/\1/p')
+local_libdccl_version=$(apt show libdccl4 | sed -n 's/^Version: \(.*\)~.*$/\1/p')
+echo Local  versions: ${local_libdccl_version} ${local_libgoby_version}
+echo Docker versions: ${docker_libdccl_version} ${docker_libgoby_version}
+
+if [[ ${local_libdccl_version} == ${docker_libdccl_version} && ${local_libgoby_version} == ${docker_libgoby_version} ]]; then
+    echo "✅ They match"
+else
+    echo "❌ Mismatch!  Try running the docker-build-build-system.sh script."
+    exit 1
+fi
+
 echo "🟢 Creating python virtual environment (venv)"
 pushd ${HOME}/jaiabot/build/arm64/share/jaiabot/python
     /usr/bin/python3 -m venv venv/
