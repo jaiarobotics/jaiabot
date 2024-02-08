@@ -323,10 +323,12 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
 
 jaiabot::statechart::inmission::underway::Task::~Task()
 {
-    if (!has_manual_task_)
+    auto task_complete_event = dynamic_cast<const EvTaskComplete*>(triggering_event());
+    // each time we complete a autonomous task - we should increment the goal index
+    // do not increment for other triggering events, such as EvIMURestart or EvGPSFix
+    if (!has_manual_task_ && task_complete_event)
     {
         goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
-        // each time we complete a autonomous task - we should increment the goal index
         context<InMission>().increment_goal_index();
     }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
 
-[env=jaia_mode=simulation,env=jaia_warp=1] goby_launch -P -d100 hub.launch
-[env=jaia_n_bots=3,env=jaia_bot_index=1,env=jaia_mode=simulation,env=jaia_warp=1,env=jaia_electronics_stack=2] goby_launch -P -d100 bot.launch
-[env=jaia_n_bots=3,env=jaia_bot_index=2,env=jaia_mode=simulation,env=jaia_warp=1,env=jaia_electronics_stack=2] goby_launch -P -d100 bot.launch
+[env=jaia_mode=simulation,env=jaia_warp=5] goby_launch -P -d100 hub.launch
+[env=jaia_n_bots=4,env=jaia_bot_index=1,env=jaia_mode=simulation,env=jaia_warp=5,env=jaia_electronics_stack=2] goby_launch -P -d100 bot.launch
+[env=jaia_n_bots=4,env=jaia_bot_index=2,env=jaia_mode=simulation,env=jaia_warp=5,env=jaia_electronics_stack=2] goby_launch -P -d100 bot.launch
+[env=jaia_n_bots=4,env=jaia_bot_index=3,env=jaia_mode=simulation,env=jaia_warp=5,env=jaia_electronics_stack=2] goby_launch -P -d100 bot.launch

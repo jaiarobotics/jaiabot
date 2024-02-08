@@ -23,6 +23,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/dive_debug.proto
   jaiabot/messages/xbee_extensions.proto
   jaiabot/messages/modem_message_extensions.proto
+  jaiabot/messages/simulator.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
