@@ -32,4 +32,8 @@ for i in `seq 1 $((n_bots-1))`; do
     echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_mode=simulation,env=jaia_warp=${warp},env=jaia_electronics_stack=2] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
 
+echo "Setting excutable permissions for all.launch"
+
+chmod 755 ${launchfile}
+
 echo "Generated all.launch with $((n_bots-1)) bots @ warp ${warp}x"

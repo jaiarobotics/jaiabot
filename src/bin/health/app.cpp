@@ -190,8 +190,15 @@ jaiabot::apps::Health::Health()
             {
                 case protobuf::IMUIssue::STOP_BOT: break;
                 case protobuf::IMUIssue::RESTART_IMU_PY:
-                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
-                    restart_imu_py();
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                        restart_imu_py();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
                     break;
                 case protobuf::IMUIssue::REBOOT_BOT: break;
                 case protobuf::IMUIssue::USE_COG: break;
@@ -199,14 +206,29 @@ jaiabot::apps::Health::Health()
                 case protobuf::IMUIssue::REPORT_IMU: break;
                 case protobuf::IMUIssue::RESTART_BOT: break;
                 case protobuf::IMUIssue::REBOOT_BNO085_IMU:
-                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
-                    reboot_bno085_imu();
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
+                        reboot_bno085_imu();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
                     break;
                 case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
-                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
-                                             << std::endl;
-                    reboot_bno085_imu();
-                    restart_imu_py();
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
+                                                 << std::endl;
+                        reboot_bno085_imu();
+                        restart_imu_py();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
+
                     break;
                 default:
                     //TODO Handle Default Case
