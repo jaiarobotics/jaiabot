@@ -14,7 +14,7 @@ PYTHON_OUT_DIR="$2"
 echo "🟢 Building Jaia protobuf python modules"
 
 # Set up PROTO_INCLUDE directory
-PROTO_INCLUDE="${JAIABOT_DIR}/build/intermediate/proto_include/"
+PROTO_INCLUDE="/tmp/proto_include/"
 mkdir -p ${PROTO_INCLUDE}
 
 rm -f ${PROTO_INCLUDE}/goby
@@ -28,3 +28,6 @@ ln -sf "${JAIABOT_DIR}/src/lib" ${PROTO_INCLUDE}/jaiabot
 mkdir -p $PYTHON_OUT_DIR
 
 protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto
+
+# Remove the temporary proto_include directory
+rm -rf ${PROTO_INCLUDE}
