@@ -636,7 +636,7 @@ class LogApp extends React.Component {
 
     deletePlotClicked(plotIndex: number) {
       let {plots} = this.state
-      let newPlots = plots.filter((value, index, array) => { return index != plotIndex })
+      let newPlots = plots.filter((value, index) => { return index != plotIndex })
       this.setState({plots : newPlots})
     }
 
