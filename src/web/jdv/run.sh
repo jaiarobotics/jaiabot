@@ -15,12 +15,12 @@ pushd ../../python/ > /dev/null
     ./build_venv.sh ${BUILD_DIR}/python
 popd > /dev/null
 
-# Build client
-pushd client
-    ./build.sh ${BUILD_DIR}/jdv
-popd
-
 # Start server
 pushd server
     ./jaiabot_data_vision.py -a ${BUILD_DIR} -p 40011 -l INFO $@ &
+popd
+
+# Build client
+pushd client
+    ./build.sh ${BUILD_DIR}/jdv
 popd

@@ -1,10 +1,3 @@
 node_modules
 package-lock.json
-.vscode
-*.log
 dist
-common/version.js
-__pycache__
-test.sh
-goby
-venv/
