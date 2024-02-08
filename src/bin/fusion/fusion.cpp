@@ -230,6 +230,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 const double MEAN_SOLAR_YEAR = 365.24219 * 24 * 60 * 60;
                 const double UNIX_EPOCH_YEAR = 1970;
+                // Calculates current time since epoch (in years) then adds epoch year
                 double year = double(time(NULL)) / MEAN_SOLAR_YEAR + UNIX_EPOCH_YEAR;
 
                 auto magneticDeclination =
