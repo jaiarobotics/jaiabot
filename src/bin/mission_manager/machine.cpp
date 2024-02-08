@@ -1231,6 +1231,22 @@ void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const
         post_event(EvTaskComplete());
 }
 
+// Pause::ReacquireGPS
+jaiabot::statechart::inmission::pause::ReacquireGPS::ReacquireGPS(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+    {
+        // in indoor mode, simply post that we've received a fix
+        // (even though we haven't as there's no GPS)
+        post_event(statechart::EvGPSFix());
+    }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
+}
+
 // Dive::ReacquireGPS
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
     typename StateBase::my_context c)

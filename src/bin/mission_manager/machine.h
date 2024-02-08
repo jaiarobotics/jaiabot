@@ -836,29 +836,14 @@ struct Pause : boost::statechart::state<Pause, InMission, pause::Manual>, AppMet
 
 namespace pause
 {
-// Base class for all Task ReacquireGPS as these do nearly the same thing.
-// "Derived" MUST be a child state of Task
-template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
-struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
-                            Notify<Derived, state, protobuf::SETPOINT_STOP>
+struct ReacquireGPS
+    : boost::statechart::state<ReacquireGPS, Pause>,
+      Notify<ReacquireGPS, protobuf::IN_MISSION__PAUSE__REACQUIRE_GPS, protobuf::SETPOINT_STOP>
 {
-    using StateBase = boost::statechart::state<Derived, Parent>;
-    ReacquireGPSCommon(typename StateBase::my_context c) : StateBase(c)
-    {
-        if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
-        {
-            // in indoor mode, simply post that we've received a fix
-            // (even though we haven't as there's no GPS)
-            this->post_event(statechart::EvGPSFix());
-        }
-        else
-        {
-            this->machine().insert_warning(
-                jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
-        }
-    };
+    using StateBase = boost::statechart::state<ReacquireGPS, Pause>;
 
-    ~ReacquireGPSCommon(){};
+    ReacquireGPS(typename StateBase::my_context c);
+    ~ReacquireGPS(){};
 
     void gps(const EvVehicleGPS& ev)
     {
@@ -896,25 +881,14 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
         }
     }
 
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvGPSFix,
+                                      boost::statechart::deep_history<underway::Abort // default
+                                                                      >>,
+        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>>;
+
   private:
     int gps_fix_check_incr_{0};
-};
-
-struct ReacquireGPS
-    : ReacquireGPSCommon<ReacquireGPS, Pause, protobuf::IN_MISSION__PAUSE__REACQUIRE_GPS>
-{
-    ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSCommon<ReacquireGPS, Pause, protobuf::IN_MISSION__PAUSE__REACQUIRE_GPS>(c)
-    {
-    }
-    ~ReacquireGPS(){};
-
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<
-                             EvGPSFix, boost::statechart::deep_history<underway::Abort // default
-                                                                       >>,
-                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
-                                                              &ReacquireGPSCommon::gps>>;
 };
 
 struct IMURestart
