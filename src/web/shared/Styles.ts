@@ -8,7 +8,6 @@ import { PortalBotStatus } from './PortalStatus';
 import { colorNameToHex } from './Color'
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
-declare var require : any
 const driftMapIcon = require('./driftMapIcon.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const start = require('./start.svg') as string
