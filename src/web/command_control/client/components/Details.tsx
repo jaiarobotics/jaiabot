@@ -676,6 +676,12 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     if (bot?.wifi_link_quality_percentage != undefined) {
         linkQualityPercentage = bot?.wifi_link_quality_percentage
     }
+
+    /** Play Pause Resume Button **/
+
+    let pauseStatesAvailable = /^IN_MISSION__.+$/
+    let pauseState = /^IN_MISSION__PAUSE__MANUAL$/
+    let stopState = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
     
     let playPauseResumeButton = (
         <Button
@@ -687,11 +693,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         </Button>
     )
 
-    let pauseStatesAvailable = /^IN_MISSION__.+$/
-    let pauseState = /^IN_MISSION__PAUSE__MANUAL$/
-    let stopState = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
-
-if (pauseStatesAvailable.test(missionState) && 
+    if (pauseStatesAvailable.test(missionState) && 
         !pauseState.test(missionState) && 
         !stopState.test(missionState)) {
         playPauseResumeButton = (

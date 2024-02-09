@@ -2652,6 +2652,11 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Creates a list of bots that can be added to the download queue
+	 * 
+	 * @returns {PortalBotStatus[]} The list of bots that can be added to download queue
+	 */
 	getDownloadableBots() {
 		const commDest = this.determineAllCommandBots(false, false, false, true, false)
 
@@ -2895,7 +2900,12 @@ export default class CommandControl extends React.Component {
 		return botInfo
 	}
 
-	activateAllClicked(evt: UIEvent) {
+	/**
+	 * Sends the activate command to all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
+	activateAllClicked() {
 		this.takeControl(() => {
 
 			const commDest = this.determineAllCommandBots(false, true, false, false, false)
@@ -2942,6 +2952,11 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Sends a command to stop all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
 	sendStopAll() {
 		this.takeControl(() => {
 
@@ -2972,7 +2987,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Sends a command to pause all bots
+	 * Sends a command to pause all bots that are in the correct state
 	 * 
 	 * @returns {void}
 	 */
@@ -3005,11 +3020,21 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Sends a command to execute/resume runs for all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
 	playClicked(evt: UIEvent) {
 		this.runMissions(this.getRunList(), null);
 	}
 
-	recoverAllClicked(evt: UIEvent) {
+	/**
+	 * Sends a command to recover all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
+	recoverAllClicked() {
 		this.takeControl(() => {
 
 			const commDest = this.determineAllCommandBots(false, false, false, false, false)
