@@ -75,8 +75,8 @@ message Simulator
     optional double seafloor_amplitude = 34
         [(dccl.field) = { units { derived_dimensions: "length" } }, default=5];
 
-    optional double gps_hdop_dropout = 33 [default = 20];
-    optional double gps_pdop_dropout = 34 [default = 20];
+    optional double gps_hdop_dropout = 35 [default = 20];
+    optional double gps_pdop_dropout = 36 [default = 20];
 
     message ScalarSample
     {
