@@ -71,6 +71,10 @@ message Simulator
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
     optional double seafloor_depth = 32
         [(dccl.field) = { units { derived_dimensions: "length" } }];
+    optional double seafloor_wavelength = 33
+        [(dccl.field) = { units { derived_dimensions: "length" } }, default=100];
+    optional double seafloor_amplitude = 34
+        [(dccl.field) = { units { derived_dimensions: "length" } }, default=5];
 
     message ScalarSample
     {
