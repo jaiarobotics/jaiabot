@@ -230,10 +230,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 // The mean solar year, in seconds
                 const double SECONDS_PER_YEAR = 365.24219 * 24 * 60 * 60;
-                // The year of the start of the Unix epoch
                 const double UNIX_EPOCH_YEAR = 1970;
 
-                // Calculates current time since epoch (in years) then adds epoch year
                 double seconds_since_unix_epoch = double(time(NULL));
                 double years_since_unix_epoch = seconds_since_unix_epoch / SECONDS_PER_YEAR;
                 double year = UNIX_EPOCH_YEAR + years_since_unix_epoch;
