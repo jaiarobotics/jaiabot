@@ -57,31 +57,6 @@ namespace middleware = goby::middleware;
 using boost::units::quantity;
 namespace degree = boost::units::degree;
 
-/**
- * Return an egg box function.
- *
- * An egg box function is a periodic function z(x, y), which is periodic and sine-function like along both
- * axes.  See https://mathcurve.com/surfaces.gb/boiteaoeufs/boiteaoeufs.shtml.  It's a useful function for 
- * testing the generated contour maps of the ocean floor, in simulation.
- *
- * @param mean_value Mean value of the returned function.
- * @param amplitude Maximum amplitude of the generated wave crests.
- * @param wavelength Wavelength of the generated waves.
- * @param x x coordinate of the location to sample the function.
- * @param y y coordinate of the location to sample the function.
- * @return Value of the specified egg box function at the point (x, y).
- */
-const quantity<si::length> egg_box_function(const quantity<si::length> mean_value,
-                                            const quantity<si::length> amplitude,
-                                            const quantity<si::length> wavelength,
-                                            const quantity<si::length> x,
-                                            const quantity<si::length> y)
-{
-    // Use an eggshell function for the seafloor depth (for testing contours)
-    const auto k = 2 * PI / wavelength;
-    return mean_value + amplitude * sin(k * x) * sin(k * y);
-}
-
 namespace jaiabot
 {
 namespace apps
@@ -106,6 +81,11 @@ class SimulatorTranslation : public goby::moos::Translator
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
     void process_control_surfaces(const protobuf::ControlSurfaces& control_surfaces);
     void sim_hub_status();
+    quantity<si::length> egg_box_function(const quantity<si::length> mean_value,
+                                          const quantity<si::length> amplitude,
+                                          const quantity<si::length> wavelength,
+                                          const quantity<si::length> x,
+                                          const quantity<si::length> y);
 
   private:
     const config::Simulator& sim_cfg_;
@@ -434,4 +414,27 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
         "DESIRED_ELEVATOR",
         elevator_normalization *
             (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
+}
+
+/**
+ * Generates a seafloor depth value for a given coordinate based on an egg box function.
+ *
+ * An egg box function is a periodic function z(x, y), which is a periodic and sine-function along both
+ * axes. See https://mathcurve.com/surfaces.gb/boiteaoeufs/boiteaoeufs.shtml. It's a useful function for 
+ * testing the generated contour maps of the ocean floor, in simulation.
+ *
+ * @param mean_value Mean value of the returned function
+ * @param amplitude Maximum amplitude of the generated wave crests
+ * @param wavelength Wavelength of the generated waves
+ * @param x x coordinate of the location to sample the function
+ * @param y y coordinate of the location to sample the function
+ * @return Value of the specified egg box function at the point (x, y)
+ */
+quantity<si::length> jaiabot::apps::SimulatorTranslation::egg_box_function(
+    const quantity<si::length> mean_value, const quantity<si::length> amplitude,
+    const quantity<si::length> wavelength, const quantity<si::length> x,
+    const quantity<si::length> y)
+{
+    const auto k = 2 * PI / wavelength;
+    return mean_value + amplitude * sin(k * x) * sin(k * y);
 }
