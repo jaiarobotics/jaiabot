@@ -730,8 +730,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     // Set botLogging based on the result of the pattern match
     botLogging = !isMatch;
 
-    console.log(missionState, "Test msg");
-
     // Return the value of botLogging
     return botLogging.toString().toUpperCase();
   }
