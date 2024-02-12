@@ -595,16 +595,13 @@ export function getRallyStyle(rallyFeatureCount: number) {
  * Get a dive packet icon style
  *
  * @param {Feature} feature Dive packet feature
- * @param {?string} [animatedColor="white"] Color of the dive packet icon
+ * @param {string} (Optional) Color of the dive packet icon
  * @returns {Style} Style for this dive packet
  */
 export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
-    // Depth text
-    let text = feature.get('depthAchieved') ? feature.get('depthAchieved').toFixed(1) : null
-    if (text != null) {
-        text = text + 'm'
-    } else {
-        text = ''
+    let text = ''
+    if (feature.get('bottomDive') && feature.get('depthAchieved')) {
+        text = `${feature.get('depthAchieved').toFixed(1)}m`
     }
 
     // Icon color
@@ -616,7 +613,7 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
             color: color
         }),
         text: new Text({
-            text: String(text),
+            text: text,
             font: '14pt sans-serif',
             fill: new Fill({
                 color: 'white'

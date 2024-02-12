@@ -71,6 +71,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
+    int calculateMotorMicroseconds(const int& input);
 
     int64_t lastAckTime_;
 
@@ -421,11 +422,22 @@ int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lowe
     return microseconds;
 }
 
+/**
+ * @brief Converts motor percentage to microseconds
+ * 
+ * @param input Throttle percentage
+ * @return int Microseconds for the ESC to take in
+ */
+int jaiabot::apps::ArduinoDriver::calculateMotorMicroseconds(const int& input)
+{
+    return motor_off_ + (input / 100.0) * 400;
+}
+
 void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
     if (control_surfaces.has_motor())
     {
-        target_motor_ = motor_off_ + (control_surfaces.motor() / 100.0) * 400;
+        target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
 
         // Do not go lower than max_reverse
         if (target_motor_ < max_reverse_)
@@ -486,6 +498,7 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
     {
         arduino_settings.set_forward_start(bounds_.motor().forwardstart());
         arduino_settings.set_reverse_start(bounds_.motor().reversestart());
+
         *arduino_cmd.mutable_settings() = arduino_settings;
     }
     else if (is_settings_ack_ && is_driver_compatible_)
