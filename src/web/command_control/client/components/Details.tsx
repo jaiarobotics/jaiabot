@@ -23,11 +23,12 @@ import {
     mdiSkipNext,
     mdiDownload,
     mdiRestartAlert,
-    mdiRouterWireless,
-    mdiDatabaseEyeOutline,
-    mdiCheckboxMarkedCirclePlusOutline,
-    mdiUpdate
+    mdiWrenchCog,
+    mdiChartLine,
+    mdiWifiCog,
+    mdiCheckboxMarkedCirclePlusOutline
 } from '@mdi/js'
+
 import { Icon } from '@mdi/react'
 import { ThemeProvider, createTheme } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -1346,7 +1347,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                             window.open(url, '_blank')}}
                                         }  
                                 >
-                                    <Icon path={mdiDatabaseEyeOutline} title='JDV'/>
+                                    <Icon path={mdiChartLine} title='JDV'/>
                                 </Button>
                                 <Button className="button-jcc" onClick={() => {
                                     const fleetId = getFleetId()
@@ -1356,7 +1357,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         window.open(url, '_blank')}}
                                     }
                                 >
-                                    <Icon path={mdiRouterWireless} title="Router"></Icon>
+                                    <Icon path={mdiWifiCog} title="Router"></Icon>
                                 </Button>
                                 <Button className="button-jcc" onClick={() => 
                                         {
@@ -1370,7 +1371,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         }
                                     }
                                 >
-                                    <Icon path={mdiUpdate} title="Upgrade"></Icon>
+                                    <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
                                 </Button>
                             </AccordionDetails>
                         </Accordion>
