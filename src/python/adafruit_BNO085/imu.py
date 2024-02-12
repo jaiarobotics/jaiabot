@@ -74,7 +74,7 @@ class IMU:
 
         if reading.calibration_status is not None:
             # only send the mag cal
-            imu_data.calibration_status = reading.calibration_status[3]
+            imu_data.calibration_status = reading.calibration_status
 
         if reading.calibration_state is not None:
             # .value converts enum type to int (which the protobuf side is looking for)
