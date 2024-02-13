@@ -2708,43 +2708,9 @@ export default class CommandControl extends React.Component {
 				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
-					<Icon path={mdiDownloadMultiple} title="Download All"/>
-				</Button>
-				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-					<Button className="button-jcc active" onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-				))}
 				<Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
-				{(this.state.visiblePanel == PanelType.SETTINGS ? (
-				<Button className="button-jcc active" onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<Icon path={mdiCog} title="Settings"/>
-				</Button>
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.SETTINGS)
-						}}
-					>
-						<Icon path={mdiCog} title="Settings"/>
-					</Button>
-				))}
 				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
 					<Icon path={mdiHelp} title="Help"></Icon>
 				</Button>
@@ -3440,6 +3406,47 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
+		const settingsPanelButton = (this.state.visiblePanel == PanelType.SETTINGS ? (
+			<Button className="button-jcc active" onClick={() => {
+				this.setVisiblePanel(PanelType.NONE)
+			}}
+			>
+				<Icon path={mdiCog} title="Settings" />
+			</Button>
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				this.setVisiblePanel(PanelType.SETTINGS)
+			}}
+			>
+				<Icon path={mdiCog} title="Settings" />
+			</Button>
+		))
+
+		const downloadAllBotsButton = (<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
+			<Icon path={mdiDownloadMultiple} title="Download All" />
+		</Button>
+		)
+
+		const downloadQueueButton = (
+			this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+
+			) : (
+				<Button className="button-jcc" onClick={() => {
+					this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+			)
+
+		)
+
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -3583,6 +3590,12 @@ export default class CommandControl extends React.Component {
 					{engineeringButton}
 
 					{surveyMissionSettingsButton}
+
+					{settingsPanelButton}
+
+					{downloadAllBotsButton}
+
+					{downloadQueueButton}
 					
 					{trackPodButton}
 
