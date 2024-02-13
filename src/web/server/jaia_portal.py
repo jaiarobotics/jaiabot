@@ -46,6 +46,49 @@ def protobufMessageToDict(message):
     return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
 
 
+def filterDuplicateTaskPackets(taskPackets: list[dict]):
+    """Filters duplicate task packets that can occur after data offloading.  This works
+    by indexing the task packets by a (bot_id, reduced_time) tuple, and checking neighboring
+    reduced_time values for duplicates.
+
+    Args:
+        taskPackets (list[dict]): Unfiltered list of task packets.
+    Returns:
+        (list[dict]): Filtered list of task packets.
+    """
+    def reduceTime(time: int):
+        """Does an integer division to give the floored Unix timestamp in seconds.
+
+        Args:
+            time (int): Unix timestamp in microseconds.
+
+        Returns:
+            int: Unix timestamp in seconds, rounded down.
+        """
+
+        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
+        # second, (1 million microseconds)
+        BIN_LENGTH = 1_000_000
+        return int(time // BIN_LENGTH)
+    
+    taskPacketLookup: dict[tuple, dict] = {} # maps (bot_id, reduced_time) to TaskPacket
+
+    for taskPacket in taskPackets:
+        bot_id = taskPacket['bot_id']
+        reducedStartTime = reduceTime(taskPacket['start_time'])
+
+        # Check neighboring bins as well for task packets, just in case start_time was on
+        # the cusp of being rounded up/down
+        if (bot_id, reducedStartTime) in taskPacketLookup or \
+           (bot_id, reducedStartTime - 1) in taskPacketLookup or \
+           (bot_id, reducedStartTime + 1) in taskPacketLookup:
+            continue
+        else:
+            taskPacketLookup[(bot_id, reducedStartTime)] = taskPacket
+        
+    return list(taskPacketLookup.values())
+
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -455,34 +498,16 @@ class Interface:
 
         combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
         # Filter out duplicates with dict comprehenson, then convert to list
-        unique_task_packets = list(
-            {f"{task_packet['bot_id']}-{self.round_task_packet_time(task_packet['start_time'])}": task_packet
-                for task_packet in combined_task_packets}.values()
-        ) 
+        unique_task_packets = filterDuplicateTaskPackets(combined_task_packets)
 
         return unique_task_packets
     
     def get_total_task_packets_count(self):
         total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
         # Use set constructor to eliminate duplicate TaskPackets
-        count = len(
-            set(map(
-                lambda task_packet: f'{task_packet["bot_id"]}-{self.round_task_packet_time(task_packet["start_time"])}', total_combined_task_packets
-            ))
-        )
+        count = len(filterDuplicateTaskPackets(total_combined_task_packets))
         return count 
     
-    def round_task_packet_time(self, task_packet_time):
-        """Rounds a TaskPacket time to closest multiple of ten seconds
-        Args:
-            task_packet_time (int | str): UNIX timestamp of TaskPacket time
-        Returns:
-            int: TaskPacket time rounded in the tens of seconds
-        """
-        microseconds_factor = 1_000_000
-        time_seconds = int(task_packet_time) / microseconds_factor
-        return round(time_seconds / 10) * 10
-
     # Contour map
 
     def get_depth_contours(self, start_date, end_date):
@@ -530,3 +555,4 @@ class Interface:
         self.offloaded_task_packet_dates = (
             [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
         )
+
