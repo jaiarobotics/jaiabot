@@ -2411,7 +2411,18 @@ export default class CommandControl extends React.Component {
 		return this.state.rcModeStatus[botId]
 	}
 
+	/**
+	 * This handles setting the RC mode so that it ends up in a clean state
+	 * 
+	 * @param {number} botId The id used to map the RC mode to a specific bot 
+	 * @param {boolean} rcMode Whether or not the bot is in RC
+	 * @returns {void} 
+	 */
 	setRcMode(botId: number, rcMode: boolean) {
+		if (botId === -1) {
+			return
+		}
+
 		// Clear interval before we set rc mode
 		this.clearRemoteControlInterval()
 
