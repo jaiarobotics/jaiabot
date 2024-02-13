@@ -712,6 +712,23 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         return run?.name ?? 'No Run'
     }
 
+  /**
+   * Checks if bot is logging
+   *
+   * @returns {boolean} The bot logging status
+   */
+  function isBotLogging() {
+    let botLogging = true
+    if (
+        missionState == "PRE_DEPLOYMENT__IDLE" ||
+        missionState == "PRE_DEPLOYMENT__FAILED" ||
+        missionState.startsWith("POST_DEPLOYMENT__")
+    ) {
+        botLogging = false
+    } 
+    return botLogging
+  }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
@@ -799,6 +816,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
                                             <td>{linkQualityPercentage + " %"}</td>
+                                        </tr>
+                                        <tr>
+                                          <td>Data Logging</td>
+                                          <td>{isBotLogging().toString().toUpperCase()}</td>
                                         </tr>
                                     </tbody>
                                 </table>
