@@ -53,27 +53,7 @@ class HubManager : public ApplicationBase
     ~HubManager();
 
   private:
-    void loop() override
-    {
-        latest_hub_status_.set_time_with_units(
-            goby::time::SystemClock::now<goby::time::MicroTime>());
-
-        if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-        {
-            glog.is_warn() && glog << "Timeout on health report" << std::endl;
-            latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
-            latest_hub_status_.clear_error();
-            latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
-        }
-
-        if (latest_hub_status_.IsInitialized())
-        {
-            glog.is_debug1() && glog << "Publishing hub status: "
-                                     << latest_hub_status_.ShortDebugString() << std::endl;
-            interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
-        }
-    }
+    void loop() override;
 
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
     void handle_command(const jaiabot::protobuf::Command& input_command);
@@ -87,6 +67,8 @@ class HubManager : public ApplicationBase
 
     void intervehicle_subscribe(int bot_modem_id);
 
+    void start_dataoffload(int bot_id);
+
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
@@ -95,6 +77,13 @@ class HubManager : public ApplicationBase
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
+
+    // data offload
+    std::unique_ptr<std::thread> offload_thread_;
+    // used by offload_thread_
+    std::atomic<bool> offload_success_{false};
+    std::atomic<bool> offload_complete_{false};
+    std::atomic<uint32_t> data_offload_percentage_{0};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -155,12 +144,39 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
-        });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
+
+void jaiabot::apps::HubManager::loop()
+{
+    latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
+    if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on health report" << std::endl;
+        latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+        latest_hub_status_.clear_error();
+        latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
+    }
+
+    if (latest_hub_status_.IsInitialized())
+    {
+        glog.is_debug1() &&
+            glog << "Publishing hub status: " << latest_hub_status_.ShortDebugString() << std::endl;
+        interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
+    }
+
+    if (offload_complete_)
+    {
+        offload_thread_->join();
+        if (!offload_success_) {}
+        else {}
+    }
+}
 
 void jaiabot::apps::HubManager::handle_subscription_report(
     const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
@@ -546,3 +562,92 @@ void jaiabot::apps::HubManager::handle_hardware_status(
     *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
 }
 
+void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
+{
+    // Inputs to data offload command log dir, bot ip, and extra exclusions for rsync
+    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
+                         std::to_string((cfg().bot_start_ip() + bot_id));
+    std::string offload_command = cfg().data_offload_command() + " " + bot_ip + " 2>&1";
+
+    auto offload_func = [this, offload_command]()
+    {
+        glog.is_debug1() && glog << "Offloading data with command: [" << offload_command << "]"
+                                 << std::endl;
+
+        FILE* pipe = popen(offload_command.c_str(), "r");
+        if (!pipe)
+        {
+            glog.is_warn() && glog << "Error opening pipe to data offload command: "
+                                   << strerror(errno) << std::endl;
+        }
+        else
+        {
+            std::string stdout;
+            std::array<char, 256> buffer;
+            while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
+            {
+                glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
+                                         << std::flush;
+                stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+
+                // Check if the line contains progress information
+                std::string percent_complete_str = "";
+                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
+                size_t pos = percent_complete_str.find("%");
+                if (pos != std::string::npos)
+                {
+                    if (pos >= 3)
+                    {
+                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
+                                                 << std::endl;
+
+                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
+                        data_offload_percentage_ = percent;
+                    }
+                }
+            }
+
+            if (!feof(pipe))
+            {
+                pclose(pipe);
+                glog.is_warn() && glog
+                                      << "Error reading output while executing data offload command"
+                                      << std::endl;
+            }
+            else
+            {
+                int status = pclose(pipe);
+                if (status < 0)
+                {
+                    glog.is_warn() &&
+                        glog << "Error executing data offload command: " << strerror(errno)
+                             << ", output: " << stdout << std::endl;
+                }
+                else
+                {
+                    if (WIFEXITED(status))
+                    {
+                        int exit_status = WEXITSTATUS(status);
+                        if (exit_status == 0)
+                            offload_success_ = true;
+                        else
+                            glog.is_warn() &&
+                                glog << "Error: Offload command returned normally but with "
+                                        "non-zero exit code "
+                                     << exit_status << ", output: " << stdout << std::endl;
+                    }
+
+                    else
+                    {
+                        glog.is_warn() &&
+                            glog << "Error: Offload command exited abnormally. output: " << stdout
+                                 << std::endl;
+                    }
+                }
+            }
+        }
+        offload_complete_ = true;
+    };
+
+    offload_thread_.reset(new std::thread(offload_func));
+}

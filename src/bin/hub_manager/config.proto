@@ -27,7 +27,6 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "jaiabot/messages/xbee_extensions.proto";
 
-
 package jaiabot.config;
 
 message HubManager
@@ -43,10 +42,22 @@ message HubManager
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
     required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
         12;
-    required goby.middleware.protobuf.TransporterConfig engineering_status_sub_cfg =
-        13;
+    required goby.middleware.protobuf.TransporterConfig
+        engineering_status_sub_cfg = 13;
 
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];
     optional int32 health_report_timeout_seconds = 16 [default = 20];
+
+    // data offload
+    required string data_offload_command = 70;
+    optional string log_staging_dir = 71 [
+        default = "/var/log/jaiabot/staging"
+    ];  // dir on bot with data to be offloaded
+    optional string log_dest_dir = 72 [
+        default = "/var/log/jaiabot/bot_offload"
+    ];  // dir on hub for data to be offloaded to
+
+    required int32 bot_start_ip = 73 [default = 100];
+    required string class_b_network = 74 [default = "10.23"];
 }

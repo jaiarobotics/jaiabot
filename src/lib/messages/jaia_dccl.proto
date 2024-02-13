@@ -57,6 +57,8 @@ message Command
         RECOVERED = 30;
         SHUTDOWN = 31;
         RETRY_DATA_OFFLOAD = 32;
+        DATA_OFFLOAD_COMPLETE = 33;
+        DATA_OFFLOAD_FAILED = 34;
 
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;
@@ -262,9 +264,6 @@ message BotStatus
     optional double hdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
     optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
-
-    optional int32 data_offload_percentage = 62
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
     optional int32 wifi_link_quality_percentage = 63
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];

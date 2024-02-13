@@ -49,6 +49,7 @@ enum MissionState
     POST_DEPLOYMENT__DATA_OFFLOAD = 202;
     POST_DEPLOYMENT__IDLE = 203;
     POST_DEPLOYMENT__SHUTTING_DOWN = 204;
+    POST_DEPLOYMENT__FAILED = 205;
 }
 
 message Speeds
@@ -98,8 +99,6 @@ message MissionReport
         precision: 0
         units { base_dimensions: "T" }
     }];
-    optional int32 data_offload_percentage = 15
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
     optional int32 repeat_index = 16
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
 }

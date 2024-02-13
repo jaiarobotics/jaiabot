@@ -43,18 +43,18 @@ message MissionManager
     optional int32 powered_descent_timeout = 28
         [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 
-    // detect bottom logic initial timeout in seconds. Used to determine 
-    // when we should start determining we reached bottom in powered descent logic.
-    // (this gives the vehicle time to begin diving)
+    // detect bottom logic initial timeout in seconds. Used to determine
+    // when we should start determining we reached bottom in powered descent
+    // logic. (this gives the vehicle time to begin diving)
     optional double detect_bottom_logic_init_timeout = 29
         [default = 15, (dccl.field).units = { base_dimensions: "T" }];
 
-    // detect bottom logic timeout in seconds. Used to determine 
-    // when we should start determining we reached bottom in powered descent logic.
-    // (this gives the vehicle time to begin diving after a hold)
+    // detect bottom logic timeout in seconds. Used to determine
+    // when we should start determining we reached bottom in powered descent
+    // logic. (this gives the vehicle time to begin diving after a hold)
     optional double detect_bottom_logic_after_hold_timeout = 30
         [default = 5, (dccl.field).units = { base_dimensions: "T" }];
-    
+
     // acceptable eps when dive depth is considered reached (in meters)
     optional double dive_depth_eps = 31
         [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
@@ -82,7 +82,7 @@ message MissionManager
     // The pdop value to check against to determine gps fix
     optional double gps_pdop_fix = 37 [default = 2.2];
 
-    // number of times to check the gps hdop and pdop 
+    // number of times to check the gps hdop and pdop
     // when in reacquiring gps state after a dive
     optional uint32 total_after_dive_gps_fix_checks = 38 [default = 15];
 
@@ -145,7 +145,8 @@ message MissionManager
     // The power ascent max thottle
     optional double powered_ascent_throttle_max = 57 [default = 60];
 
-    optional double pitch_to_determine_powered_ascent_vertical = 58 [default = 30];
+    optional double pitch_to_determine_powered_ascent_vertical = 58
+        [default = 30];
 
     optional double pitch_to_determine_dive_prep_vertical = 59 [default = 70];
 
@@ -153,19 +154,21 @@ message MissionManager
 
     // The min amount of time to trigger a EvBotNotVertical event
     optional double pitch_angle_min_check_time = 61
-    [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when we consider the bot diving (in meters)
     optional double dive_eps_to_determine_diving = 62
         [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
 
-    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
-    // jaia@hub0:/var/log/jaiabot/bot_offload
-    // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
-    required string data_offload_command = 70;
+    required string data_preoffload_command = 70;
+    required string data_postoffload_command = 71;
 
     // e.g. /var/log/jaiabot/bot/*/
-    required string log_dir = 71;
+    required string log_dir = 72;
+
+    optional string log_staging_dir = 73 [
+        default = "/var/log/jaiabot/staging"
+    ];  // dir on bot with data to be offloaded
 
     enum DownloadFileTypes
     {
@@ -173,11 +176,7 @@ message MissionManager
         GOBY = 2;
         TASKPACKET = 3;
     }
-    optional DownloadFileTypes data_offload_exclude = 72;
-
-    required int32 hub_start_ip = 73 [default = 10];
-
-    required string class_b_network = 74 [default = "10.23"];
+    optional DownloadFileTypes data_offload_exclude = 74;
 
     enum EngineeringTestMode
     {
@@ -195,7 +194,7 @@ message MissionManager
 
     optional jaiabot.protobuf.HubInfo subscribe_to_hub_on_start = 83;
 
-    // Determines if the acceleration is hard or soft 
+    // Determines if the acceleration is hard or soft
     optional double hard_bottom_type_acceleration = 84 [default = 100];
 
     // timeout for when to stop logging if in failed state
