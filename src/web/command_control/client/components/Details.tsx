@@ -135,6 +135,7 @@ const commands: {[key: string]: CommandInfo} = {
         statesAvailable: [
             /^IN_MISSION__PAUSE__MANUAL$/
         ],
+        statesNotAvailable: [],
         humanReadableAvailable: "IN_MISSION__PAUSE__MANUAL",
         humanReadableNotAvailable: ""
     },
