@@ -683,6 +683,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     let pauseStatesAvailable = /^IN_MISSION__.+$/
     let pauseState = /^IN_MISSION__PAUSE__MANUAL$/
     let stopState = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
+    let recoveryState = /^IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP$/
     
     let playPauseResumeButton = (
         <Button
@@ -696,7 +697,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     if (pauseStatesAvailable.test(missionState) && 
         !pauseState.test(missionState) && 
-        !stopState.test(missionState)) {
+        !stopState.test(missionState) &&
+        !recoveryState.test(missionState)) {
         playPauseResumeButton = (
             <Button
                 className='button-jcc' 
