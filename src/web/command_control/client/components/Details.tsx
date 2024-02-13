@@ -712,26 +712,21 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         return run?.name ?? 'No Run'
     }
 
-    /**
-   * Checks if Bot is logging
+  /**
+   * Checks if bot is logging
    *
-   * @param isMatch stores the boolean value after pattern matching
-   * @param botLogging stores the boolean value that is reflected on screen
-   * @returns boolean value
+   * @returns {boolean} The bot logging status
    */
   function isBotLogging() {
-    let botLogging: boolean = false;
-    // Check if missionState matches the pattern
-    const isMatch =
-      missionState == "PRE_DEPLOYMENT__IDLE" ||
-      missionState == "PRE_DEPLOYMENT__FAILED" ||
-      missionState.startsWith("POST_DEPLOYMENT__");
-
-    // Set botLogging based on the result of the pattern match
-    botLogging = !isMatch;
-
-    // Return the value of botLogging
-    return botLogging.toString().toUpperCase();
+    let botLogging = true
+    if (
+        missionState == "PRE_DEPLOYMENT__IDLE" ||
+        missionState == "PRE_DEPLOYMENT__FAILED" ||
+        missionState.startsWith("POST_DEPLOYMENT__")
+    ) {
+        botLogging = false
+    } 
+    return botLogging
   }
 
     return (
@@ -824,7 +819,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         </tr>
                                         <tr>
                                           <td>Data Logging</td>
-                                          <td>{isBotLogging()}</td>
+                                          <td>{isBotLogging().toString().toUpperCase()}</td>
                                         </tr>
                                     </tbody>
                                 </table>
