@@ -3265,51 +3265,6 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
-		const mapLayersButton = (visiblePanel == PanelType.MAP_LAYERS) ? (
-			<Button className="button-jcc active"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MAP_LAYERS)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-		)
-
-		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
-			<div>
-				<div id="measureResult" />
-				<Button
-					className="button-jcc active"
-					onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
-				</Button>
-			</div>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MEASURE_TOOL)
-					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
-					info('Touch map to set first measure point');
-				}}
-			>
-				<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
-			</Button>
-		)
-
-
 		const surveyMissionSettingsButton = ((visiblePanel == PanelType.MISSION_SETTINGS) ? (
 			<Button
 				className="button-jcc active"
@@ -3548,7 +3503,9 @@ export default class CommandControl extends React.Component {
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						trackingTarget={this.state.trackingTarget}
+						visiblePanel={this.state.visiblePanel}
 					/>
 				)
 				break
@@ -3572,10 +3529,6 @@ export default class CommandControl extends React.Component {
 					{downloadAllBotsButton}
 
 					{downloadQueueButton}
-
-					{measureButton}
-
-					{mapLayersButton}
 
 					{settingsPanelButton}
 

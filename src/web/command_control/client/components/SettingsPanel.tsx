@@ -4,6 +4,8 @@ import WptToggle from './WptToggle'
 import { taskData } from './TaskPackets'
 import { KMLDocument } from './shared/KMZExport'
 import { downloadBlobToFile } from './shared/Utilities'
+import { PanelType } from './CommandControl'
+import { info } from '../libs/notifications'
 
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
@@ -12,7 +14,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
-import { mdiMapMarker, mdiSendVariant } from '@mdi/js'
+import { mdiLayersTriple, mdiMapMarker, mdiSendVariant, mdiRuler } from '@mdi/js'
 import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
 import { downloadToFile } from './shared/Utilities'
@@ -27,7 +29,9 @@ interface Props {
     handleKeepEndDateCurrentToggle: () => void
     isTaskPacketsSendBtnDisabled: () => boolean
     setClusterModeStatus: (isOn: boolean) => void
+    setVisiblePanel: (panelType: PanelType) => void
     trackingTarget:string | number | null
+    visiblePanel: PanelType
 }
 
 enum AccordionTabs {
@@ -70,6 +74,49 @@ export function SettingsPanel(props: Props) {
             <Icon path={mdiMapMarker} title="Follow Bots" />
         </Button>
     ))
+
+    const measureButton = (props.visiblePanel == PanelType.MEASURE_TOOL) ? (
+        <div>
+            <div id="measureResult" />
+            <Button
+                className="button-jcc active"
+                onClick={() => {
+                    props.setVisiblePanel(PanelType.NONE)
+                }}
+            >
+                <Icon path={mdiRuler}  title="Measurement Result" />
+            </Button>
+        </div>
+    ) : (
+        <Button
+            className="button-jcc"
+            onClick={() => {
+                props.setVisiblePanel(PanelType.MEASURE_TOOL)
+                this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+                info('Touch map to set first measure point');
+            }}
+        >
+            <Icon path={mdiRuler}  title="Measure Distance" />
+        </Button>
+    )
+    const mapLayersButton = (props.visiblePanel == PanelType.MAP_LAYERS) ? (
+        <Button className="button-jcc active"
+            onClick={() => {
+                this.setVisiblePanel(PanelType.NONE)
+            }}
+        >
+            <Icon path={mdiLayersTriple} title="Map Layers" />
+        </Button>
+
+    ) : (
+        <Button className="button-jcc"
+            onClick={() => {
+                this.setVisiblePanel(PanelType.MAP_LAYERS)
+            }}
+        >
+            <Icon path={mdiLayersTriple} title="Map Layers" />
+        </Button>
+    )
 
 
     const isOpenAccordionTab = (accordionTab: AccordionTabs) => {
@@ -127,7 +174,11 @@ export function SettingsPanel(props: Props) {
         <div className="settings-outer-container">
 			<div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
+ 
             {trackPodButton}
+            {measureButton}
+            {mapLayersButton}
+
                 <Accordion 
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
                     onChange={() => handleAccordionTabClick(AccordionTabs.TaskPackets)}
