@@ -33,8 +33,8 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/echo.pb.h"
-#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/health.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -117,13 +117,12 @@ jaiabot::apps::EchoDriver::EchoDriver()
     // subscribe for engineering commands
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const jaiabot::protobuf::Engineering& command) {
-             // Publish only when we get a query for status
+            // Publish only when we get a query for status
             if (command.query_engineering_status())
             {
                 interprocess().publish<jaiabot::groups::engineering_status>(latest_echo_data);
             }
-         });
-
+        });
 }
 
 void jaiabot::apps::EchoDriver::loop()
