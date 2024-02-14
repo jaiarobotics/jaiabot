@@ -215,20 +215,29 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     /**
+     * Prevents negative values or 0 from being used in data processing
+     * 
+     * @param {number} Value input value to be checked
+     * @returns {number} The value passed or DEFAULT_VALUE
+     */
+    validateNumInput(value: number) {
+        const DEFAULT_VALUE = 1
+        if (value < DEFAULT_VALUE) {
+            return DEFAULT_VALUE
+        }
+        return value
+    }
+
+    /**
      * Updates the point spacing value based on input changes
      * 
      * @param {Event} evt Contains the point spacing value (in meters)
      * @returns {void} 
      */
     changePointSpacing(evt: Event) {
-        const defaultValue = 1
         const element = evt.target as HTMLInputElement
-        const value = Number(element.value)
-        if (value && value >= defaultValue ) {
-            this.props.missionParams.pointSpacing = value
-        } else {
-            this.props.missionParams.pointSpacing = defaultValue
-        }
+        const value = this.validateNumInput(Number(element.value))
+        this.props.missionParams.pointSpacing = value
     }
     
     /**
@@ -238,14 +247,9 @@ export class MissionSettingsPanel extends React.Component {
      * @returns {void} 
      */
     changeLineSpacing(evt: Event) {
-        const defaultValue = 1
         const element = evt.target as HTMLInputElement
-        const value = Number(element.value)
-        if (value && value >= defaultValue ) {
-            this.props.missionParams.lineSpacing = value
-        } else {
-            this.props.missionParams.lineSpacing = defaultValue
-        }
+        const value = this.validateNumInput(Number(element.value))
+        this.props.missionParams.lineSpacing = value
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
