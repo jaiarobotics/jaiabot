@@ -221,6 +221,7 @@ export class MissionSettingsPanel extends React.Component {
      * @returns {number} The value passed or DEFAULT_VALUE
      */
     validateNumInput(value: number) {
+        // Values less than 1 throw errors in the creation of survey missions
         const DEFAULT_VALUE = 1
         if (value < DEFAULT_VALUE) {
             return DEFAULT_VALUE
