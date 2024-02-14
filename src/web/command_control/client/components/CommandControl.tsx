@@ -3336,7 +3336,7 @@ export default class CommandControl extends React.Component {
 
 					this.setState({centerLineString: null})
 
-					info('Touch map to set first survet point');
+					info('Touch map to set first survey point');
 				}}
 			>
 				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
