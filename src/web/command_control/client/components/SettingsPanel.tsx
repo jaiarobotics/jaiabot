@@ -12,7 +12,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
-import { mdiSendVariant } from '@mdi/js'
+import { mdiMapMarker, mdiSendVariant } from '@mdi/js'
 import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
 import { downloadToFile } from './shared/Utilities'
@@ -27,6 +27,7 @@ interface Props {
     handleKeepEndDateCurrentToggle: () => void
     isTaskPacketsSendBtnDisabled: () => boolean
     setClusterModeStatus: (isOn: boolean) => void
+    trackingTarget:string | number | null
 }
 
 enum AccordionTabs {
@@ -48,6 +49,28 @@ export function SettingsPanel(props: Props) {
 
         props.setClusterModeStatus(!props.isClusterModeOn)
     }
+    const trackPodButton = (props.trackingTarget === 'pod' ? (
+        <Button
+            className="button-jcc active"
+            onClick={() => {
+                this.zoomToPod(false);
+                this.trackBot(null);
+            }}
+        >
+            <Icon path={mdiMapMarker} title="Unfollow Bots" />
+        </Button>
+    ) : (
+        <Button
+            className="button-jcc"
+            onClick={() => {
+                this.zoomToPod(true);
+                this.trackBot('pod');
+            }}
+        >
+            <Icon path={mdiMapMarker} title="Follow Bots" />
+        </Button>
+    ))
+
 
     const isOpenAccordionTab = (accordionTab: AccordionTabs) => {
         return openAccordionTabs.includes(accordionTab)
@@ -104,6 +127,7 @@ export function SettingsPanel(props: Props) {
         <div className="settings-outer-container">
 			<div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
+            {trackPodButton}
                 <Accordion 
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
                     onChange={() => handleAccordionTabClick(AccordionTabs.TaskPackets)}

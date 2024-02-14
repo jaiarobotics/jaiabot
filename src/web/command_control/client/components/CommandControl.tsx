@@ -3309,27 +3309,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		)
 
-		const trackPodButton = (trackingTarget === 'pod' ? (
-			<Button 							
-				className="button-jcc active"
-				onClick={() => {
-					this.zoomToPod(false);
-					this.trackBot(null);
-				}} 
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
-			</Button>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.zoomToPod(true);
-					this.trackBot('pod');
-				}}
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
-			</Button>
-		))
 
 		const surveyMissionSettingsButton = ((visiblePanel == PanelType.MISSION_SETTINGS) ? (
 			<Button
@@ -3569,6 +3548,7 @@ export default class CommandControl extends React.Component {
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+						trackingTarget={this.state.trackingTarget}
 					/>
 				)
 				break
@@ -3587,21 +3567,19 @@ export default class CommandControl extends React.Component {
 
 					{missionPanelButton}
 
-					{engineeringButton}
-
 					{surveyMissionSettingsButton}
-
-					{settingsPanelButton}
 
 					{downloadAllBotsButton}
 
 					{downloadQueueButton}
-					
-					{trackPodButton}
 
 					{measureButton}
 
 					{mapLayersButton}
+
+					{settingsPanelButton}
+
+					{engineeringButton}
 
 				</div>
 
