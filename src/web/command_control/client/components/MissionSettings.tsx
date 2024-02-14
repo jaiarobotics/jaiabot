@@ -117,7 +117,7 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            defaultValue={this.state.missionParams.pointSpacing}
+                            defaultValue={this.props.missionParams.pointSpacing}
                             name="pointSpacing"
                             type="number"
                             onChange={this.changePointSpacing.bind(this)}
@@ -128,7 +128,7 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            defaultValue={this.state.missionParams.lineSpacing}
+                            defaultValue={this.props.missionParams.lineSpacing}
                             name="lineSpacing"
                             type="number"
                             onChange={this.changeLineSpacing.bind(this)}
