@@ -10,24 +10,60 @@ class EchoApp {
         this.startEchoButton = byId('echo-start-btn')
         this.startEchoButton.addEventListener('click', this.startEcho.bind(this))
 
-
+        this.stopEchoButton = byId('echo-stop-btn')
+        this.stopEchoButton.addEventListener('click', this.stopEcho.bind(this))
     }
 
-    initCheck(botId) {
+    updateStatus(status) {
+        // Update bounds, if the time is newer on this engineering status
+        const selected_bot_id = botDropdown.getSelectedBotId()
+        if (selected_bot_id == null) return
+
+        const thisBot = status.bots[botDropdown.getSelectedBotId()] 
+        if (thisBot == null)  return
+
+        const engineering_status = thisBot.engineering
+        if (engineering_status == null) return
+
+        if (engineering_status.echo == null) return
+
+        if (engineering_status.echo.is_device_recording == null) return
+
+        this.updateCurrentEchoStatus(engineering_status.echo.is_device_recording) 
+    }
+
+    initCheck() {
+        const botId = botDropdown.getSelectedBotId()
+
         if (botId === "0") {
             alert("Please select a bot first")
-            return
+            return null
         }
 
         if (!api.inControl) {
             alert("We are not in control yet.  Please press 'Take Control' if you'd like to take control.")
-            return
+            return null
+        }
+
+        return botId
+    }
+
+    updateCurrentEchoStatus(currentStatus) {
+        let element = document.getElementById("echo-current")
+        if (currentStatus) {
+            element.textContent = "STARTED"
+        } else {
+            element.textContent = "STOPPED"
         }
     }
 
     queryEchoStatus() {
-        const botId = botDropdown.getSelectedBotId()
-        this.initCheck(botId);
+        const botId = this.initCheck();
+
+        if (botId === null) {
+            // Return early if initCheck failed
+            return; 
+        }
 
         const engineeringCommand = {
             bot_id: botId,
@@ -38,13 +74,38 @@ class EchoApp {
     }
 
     startEcho() {
-        const botId = botDropdown.getSelectedBotId()
-        this.initCheck(botId);
+        console.log("Start Echo");
+
+        const botId = this.initCheck();
+
+        if (botId === null) {
+            // Return early if initCheck failed
+            return; 
+        }
 
         const engineeringCommand = {
             bot_id: botId,
             echo: {
                 start_echo: true
+            }
+        }
+        api.sendEngineeringCommand(engineeringCommand, true)
+    }
+
+    stopEcho() {
+        console.log("Stop Echo");
+
+        const botId = this.initCheck();
+
+        if (botId === null) {
+            // Return early if initCheck failed
+            return; 
+        }
+
+        const engineeringCommand = {
+            bot_id: botId,
+            echo: {
+                stop_echo: true
             }
         }
         api.sendEngineeringCommand(engineeringCommand, true)

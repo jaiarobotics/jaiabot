@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
 try:
-    uart = serial.Serial("/dev/ttyUSB1", 115200)
+    uart = serial.Serial("/dev/ttyAMA3", 115200)
     physical_device_available = True
 except ModuleNotFoundError:
     log.warning('ModuleNotFoundError, so physical device not available')
@@ -23,15 +23,15 @@ except serial.serialutil.SerialException:
     log.warning('SerialException, so physical device not available')
 
 @dataclass
-class EchoReading:
-    device_is_on: bool
+class EchoStatus:
+    is_device_recording: bool
 
 class Echo:
     def setup(self):
         pass
-
-    def takeReading(self):
-        return EchoReading()
+    
+    def getStatus(self):
+        return EchoStatus()
 
     def getEchoData(self):
         """Returns an EchoData protobuf object, suitable for sending over UDP
@@ -40,13 +40,13 @@ class Echo:
             EchoData: the reading as an EchoData
         """
         log.debug('About to take reading')
-        reading = self.takeReading()
+        reading = self.getStatus()
 
         if reading is None:
             return None
 
         echo_data = EchoData()
-        echo_data.device_is_on = reading.device_is_on
+        echo_data.is_device_recording = reading.is_device_recording
 
         return echo_data
 
@@ -72,29 +72,44 @@ class MAI(Echo):
                 log.info('Connected, now lets enable output')
 
                 self.is_setup = True
+                self.is_device_recording = False
 
             except Exception as error:
                 self.is_setup = False
                 log.warning("Error trying to setup driver!")
             
 
-    def takeReading(self):
+    def getStatus(self):
         if not self.is_setup:
             self.setup()
 
         try:
             # This should query the echo device
-            device_is_on = True
+            log.info("Get Status From Echo")
+            self.sensor.write(b'$REC,STATUS')
             
-            return EchoReading(device_is_on=device_is_on)
+            return EchoStatus(is_device_recording=self.is_device_recording)
 
         except Exception as error:
-            log.warning("Error trying to get data!")
+            log.warning("Error trying to get status!")
 
-    def turnOnDevice(self):
+    def startDevice(self):
         try:
-            # This should turn the echo device on
-            log.info("Test")
+            # This should start the echo device
+            log.info("Starting Echo")
+            self.sensor.write(b'$REC,START')
+            self.is_device_recording = True
 
         except Exception as error:
-            log.warning("Error trying to get data!")
+            log.warning("Error trying to start device")
+    
+    def stopDevice(self):
+        try:
+            # This should stop the echo device
+            log.info("Stopping Echo")
+            self.sensor.write(b'$REC,STOP')
+            self.is_device_recording = False
+
+        except Exception as error:
+            log.warning("Error trying to stop device")
+            

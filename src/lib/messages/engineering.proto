@@ -163,6 +163,8 @@ message Echo
     };
 
     optional bool start_echo = 1 [default = false];
+    optional bool stop_echo = 2 [default = false];
+    optional bool is_device_recording = 3 [default = false];
 }
 
 message Engineering

@@ -9,6 +9,7 @@ button {
 
     background-color: lightskyblue;
     font-size: large;
+    width: fit-content;
 }
 
 button:active {
@@ -56,19 +57,19 @@ button:active {
     display: none;
 }
 
-.imu-echo-inner-container {
+.echo-inner-container {
     display: flex;
     flex-direction: column;
     gap: 15px;
 }
 
-.imu-echo-info {
+.echo-info {
     display: flex;
     gap: 15px;
 }
 
-.imu-echo-label,
-.imu-echo-data {
+.echo-label,
+.echo-data {
     font-size: large;
 }
 

@@ -46,6 +46,7 @@ enum Error
     ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL = 33;
     ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER = 34;
     ERROR__FAILED__JAIABOT_ECHO_DRIVER = 35;
+    ERROR__FAILED__PYTHON_JAIABOT_ECHO = 36;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)

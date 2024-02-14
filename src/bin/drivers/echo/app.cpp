@@ -34,6 +34,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -64,6 +65,7 @@ class EchoDriver : public zeromq::MultiThreadApplication<config::EchoDriver>
 
   private:
     goby::time::SteadyClock::time_point last_echo_report_time_{std::chrono::seconds(0)};
+    jaiabot::protobuf::EchoData latest_echo_data;
 };
 
 } // namespace apps
@@ -89,17 +91,16 @@ jaiabot::apps::EchoDriver::EchoDriver()
 
     interthread().subscribe<echo_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
         // Deserialize from the UDP packet
-        jaiabot::protobuf::EchoData echo_data;
-        if (!echo_data.ParseFromString(data.data()))
+        if (!latest_echo_data.ParseFromString(data.data()))
         {
             glog.is_warn() && glog << "Couldn't deserialize EchoData from the UDP packet" << endl;
             return;
         }
 
-        glog.is_debug2() && glog << "Publishing Echo data: " << echo_data.ShortDebugString()
+        glog.is_debug2() && glog << "Publishing Echo data: " << latest_echo_data.ShortDebugString()
                                  << endl;
 
-        interprocess().publish<groups::echo>(echo_data);
+        interprocess().publish<groups::echo>(latest_echo_data);
         last_echo_report_time_ = goby::time::SteadyClock::now();
     });
 
@@ -112,6 +113,17 @@ jaiabot::apps::EchoDriver::EchoDriver()
             glog.is_debug1() && glog << "Sending EchoCommand: " << echo_command.ShortDebugString()
                                      << endl;
         });
+
+    // subscribe for engineering commands
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+             // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                interprocess().publish<jaiabot::groups::engineering_status>(latest_echo_data);
+            }
+         });
+
 }
 
 void jaiabot::apps::EchoDriver::loop()
@@ -119,12 +131,12 @@ void jaiabot::apps::EchoDriver::loop()
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     auto command = jaiabot::protobuf::EchoCommand();
-    command.set_type(jaiabot::protobuf::EchoCommand::TAKE_READING);
+    command.set_type(jaiabot::protobuf::EchoCommand::GET_STATUS);
 
     io_data->set_data(command.SerializeAsString());
     interthread().publish<echo_udp_out>(io_data);
 
-    glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
+    glog.is_debug2() && glog << "Requesting status from python driver" << endl;
 }
 
 void jaiabot::apps::EchoDriver::health(goby::middleware::protobuf::ThreadHealth& health)

@@ -97,6 +97,15 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                     latest_engineering.mutable_bounds()->CopyFrom(bounds);
             });
 
+        // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::EchoData& echo_data) {
+                    if (echo_data.has_is_device_recording()) 
+                    {
+                        latest_engineering.mutable_echo()->set_is_device_recording(echo_data.is_device_recording());
+                    }
+            });
+
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status) {
                 if (engineering_status.has_bot_status_rate())
@@ -302,10 +311,14 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
     }
     else if (command.has_echo())
     {
+        protobuf::EchoCommand echo_command;
         if (command.echo().start_echo())
         {
-            protobuf::EchoCommand echo_command;
-            echo_command.set_type(protobuf::EchoCommand::TURN_ON_DEVICE);
+            echo_command.set_type(protobuf::EchoCommand::START_DEVICE);
+            interprocess().publish<jaiabot::groups::echo>(echo_command);
+        } else if (command.echo().stop_echo())
+        {
+            echo_command.set_type(protobuf::EchoCommand::STOP_DEVICE);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
     }

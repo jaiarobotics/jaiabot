@@ -1126,6 +1126,12 @@ export interface BottomDepthSafetyParams {
     safety_depth?: number
 }
 
+export interface Echo {
+    start_echo?: boolean
+    stop_echo?: boolean
+    is_device_recording?: boolean
+}
+
 export interface Engineering {
     bot_id?: number
     time?: number
@@ -1137,6 +1143,7 @@ export interface Engineering {
     gps_requirements?: GPSRequirements
     rf_disable_options?: RFDisableOptions
     bottom_depth_safety_params?: BottomDepthSafetyParams
+    echo?: Echo
     flag?: number
     bounds?: Bounds
 }

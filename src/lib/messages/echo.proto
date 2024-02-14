@@ -8,8 +8,9 @@ message EchoCommand
 {
     enum EchoCommandType
     {
-        TAKE_READING = 0;
-        TURN_ON_DEVICE = 1;
+        GET_STATUS = 0;
+        START_DEVICE = 1;
+        STOP_DEVICE = 2;
     }
 
     required EchoCommandType type = 1;
@@ -17,5 +18,5 @@ message EchoCommand
 
 message EchoData
 {
-    optional bool device_is_on = 6 [default = false];
+    optional bool is_device_recording = 1 [default = false];
 }
