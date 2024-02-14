@@ -23,7 +23,6 @@ import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
 import { SettingsPanel } from './SettingsPanel'
-import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
 import { SurveyExclusions } from './SurveyExclusions'
@@ -182,11 +181,7 @@ interface State {
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
 
-	surveyPolygonFeature?: OlFeature<Geometry>,
-	surveyPolygonGeoCoords?: Coordinate[],
-	surveyPolygonCoords?: LineString,
 	surveyExclusionCoords?: number[][],
-	surveyPolygonChanged: boolean,
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
 
 	rcModeStatus: {[botId: number]: boolean},
@@ -243,7 +238,6 @@ export default class CommandControl extends React.Component {
 	enabledDownloadStates: string[]
 	interactions: Interactions
 	surveyLines: SurveyLines
-	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
@@ -267,9 +261,10 @@ export default class CommandControl extends React.Component {
 				'missionType': 'lines',
 				'numBots': 4,
 				'numGoals': (MAX_GOALS - 2),
-				'spacing': 30,
-				'orientation': 0,
+				'pointSpacing': 30,
+				'lineSpacing': 30,
 				'rallySpacing': 1,
+				'orientation': 0,
 				'spArea': 0,
 				'spPerimeter': 0,
 				'spRallyStartDist': 0,
@@ -326,11 +321,7 @@ export default class CommandControl extends React.Component {
 				links: false
 			},
 			botDownloadQueue: [],
-	
-			surveyPolygonFeature: null,
-			surveyPolygonGeoCoords: null,
-			surveyPolygonCoords: null,
-			surveyPolygonChanged: false,
+
 			surveyExclusionCoords: null,
 			selectedFeatures: null,
 			centerLineString: null,
@@ -411,7 +402,6 @@ export default class CommandControl extends React.Component {
 		this.fit = this.fit.bind(this)
 
 		this.surveyLines = new SurveyLines(this)
-		this.surveyPolygon = new SurveyPolygon(this)
 		// Survey exclusions
 		this.surveyExclusions = new SurveyExclusions(map, (surveyExclusionCoords: number[][]) => {
 			this.setState({ surveyExclusionCoords })
@@ -529,7 +519,7 @@ export default class CommandControl extends React.Component {
 
 		// Update the mission planning layer whenever relevant state changes
 		const botsChanged = (prevState.podStatus.bots.length !== this.state.podStatus.bots.length)
-		if (stateHasChanged(['surveyPolygonCoords', 'missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionBaseGoal', 'missionPlanningGrid', 'missionEndTask'], false) || botsChanged) {
+		if (stateHasChanged(['missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionBaseGoal', 'missionPlanningGrid', 'missionEndTask'], false) || botsChanged) {
 			this.updateMissionPlanningLayer()
 		}
 
@@ -766,8 +756,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	changeMissionMode() {
-		if (this.state.missionParams.missionType === 'polygon-grid')
-			this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 		if (this.state.missionParams.missionType === 'editing')
 			this.changeInteraction(this.interactions.selectInteraction, 'grab');
 		if (this.state.missionParams.missionType === 'lines')
@@ -778,9 +766,7 @@ export default class CommandControl extends React.Component {
 
 	clearMissionPlanningState() {
 		this.setState({
-			surveyPolygonActive: false,
 			mode: '',
-			surveyPolygonChanged: false,
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			centerLineString: null
@@ -1036,28 +1022,6 @@ export default class CommandControl extends React.Component {
 				onSuccess()
 			})
 		}
-	}
-
-	genMission() {
-		this.takeControl(() => {
-			let botList = [];
-			for (const bot in this.getPodStatus().bots) {
-				botList.push(this.getPodStatus().bots[bot].bot_id)
-			}
-	
-			this.api.postMissionFilesCreate({
-				"bot_list": botList,
-				"sample_spacing": this.state.missionParams.spacing,
-				"mission_type": this.state.missionBaseGoal.task,
-				"orientation": this.state.missionParams.orientation,
-				"home_lon": this.state.homeLocation?.lon,
-				"home_lat": this.state.homeLocation?.lat,
-				"survey_polygon": this.state.surveyPolygonGeoCoords,
-				//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
-			}).then(data => {
-				this.loadMissions(data);
-			})
-		})
 	}
 
 	// 
@@ -1612,7 +1576,6 @@ export default class CommandControl extends React.Component {
 	 * Updates the mission layer features.
 	 * 
 	 * Dependencies: 
-	 * this.state.surveyPolygonCoords,
 	 * this.state.missionPlanningLines,
 	 * this.state.missionPlanningFeature,
 	 * this.state.missionParams,
@@ -1628,17 +1591,10 @@ export default class CommandControl extends React.Component {
 	 * this.isBotSelected()
 	 */
 	updateMissionPlanningLayer() {
-		// Update the mission layer
-		const surveyPolygonColor = '#051d61'
-
-		const surveyPolygonLineStyle = new OlStyle({
-			fill: new OlFillStyle({color: surveyPolygonColor}),
-			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 3.0}),
-		})
-
+		const surveyMissionColor = '#051d61'
 		const surveyPlanLineStyle = new OlStyle({
-			fill: new OlFillStyle({color: surveyPolygonColor}),
-			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 1.0}),
+			fill: new OlFillStyle({color: surveyMissionColor}),
+			stroke: new OlStrokeStyle({color: surveyMissionColor, width: 1.0}),
 		})
 
 		// Place all the mission planning features in this for the missionLayer
@@ -1650,19 +1606,6 @@ export default class CommandControl extends React.Component {
 			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), this.state.startRally?.get('location'), this.state.endRally?.get('location'), missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
 			const planningGridFeatures = featuresFromMissionPlanningGrid(missionPlanningGrid, missionBaseGoal)
 			missionPlanningFeaturesList.push(...planningGridFeatures)
-		}
-
-		if (this.state.surveyPolygonCoords) {
-			let pts = this.state.surveyPolygonCoords.getCoordinates()
-			let transformedSurveyPts = pts.map((pt) => {
-				return getMapCoordinate({lon: pt[0], lat: pt[1]}, map)
-			})
-			let surveyPolygonFeature = new OlFeature({
-					geometry: new OlLineString(transformedSurveyPts),
-					name: "Survey Bounds"
-			})
-			surveyPolygonFeature.setStyle(surveyPolygonLineStyle);
-			missionPlanningFeaturesList.push(surveyPolygonFeature);
 		}
 
 		if (this.state.missionPlanningLines) {
@@ -3090,7 +3033,6 @@ export default class CommandControl extends React.Component {
 				this.changeInteraction();
 				this.setState({
 					mode: Mode.NONE,
-					surveyPolygonChanged: false,
 					missionPlanningGrid: null,
 					missionPlanningLines: null,
 					goalBeingEdited: null,
@@ -3171,7 +3113,7 @@ export default class CommandControl extends React.Component {
 
 		const self = this
 
-		// Add mission generation form to UI if the survey polygon has changed.
+		// Add mission generation form to UI if the survey mission has changed
 		let missionSettingsPanel: ReactElement
 		if (this.state.mode === Mode.MISSION_PLANNING) {
 			missionSettingsPanel = (
@@ -3223,9 +3165,6 @@ export default class CommandControl extends React.Component {
 								// Close panel after applying
 								this.setVisiblePanel(PanelType.NONE)
 							})
-						} else {
-							// Polygon
-							this.genMission()
 						}
 					}}
 					setSelectedRallyPoint={this.setSelectedRallyPoint.bind(this)}
@@ -3388,8 +3327,6 @@ export default class CommandControl extends React.Component {
 					this.setVisiblePanel(PanelType.MISSION_SETTINGS)
 					this.setState({ mode: Mode.MISSION_PLANNING })
 
-					if (this.state.missionParams.missionType === 'polygon-grid')
-						this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 					if (this.state.missionParams.missionType === 'editing')
 						this.changeInteraction(this.interactions.selectInteraction, 'grab');
 					if (this.state.missionParams.missionType === 'lines')
@@ -3399,7 +3336,7 @@ export default class CommandControl extends React.Component {
 
 					this.setState({centerLineString: null})
 
-					info('Touch map to set first polygon point');
+					info('Touch map to set first survet point');
 				}}
 			>
 				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
