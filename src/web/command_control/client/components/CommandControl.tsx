@@ -532,7 +532,7 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map layers panel, if needed
+		// Update the map settings panel, if needed
 		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}

@@ -38,7 +38,7 @@ interface Props {
 
 enum AccordionTabs {
     TaskPackets = 'TASK_PACKETS',
-    MapLayers = 'MAP_LAYERs'
+    MapLayers = 'MAP_LAYERS'
 }
 
 export function SettingsPanel(props: Props) {
