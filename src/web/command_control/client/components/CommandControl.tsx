@@ -1572,23 +1572,11 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
+
 	/**
-	 * Updates the mission layer features.
+	 * Update the map view based on Optimize Mission Planning inputs
 	 * 
-	 * Dependencies: 
-	 * this.state.missionPlanningLines,
-	 * this.state.missionPlanningFeature,
-	 * this.state.missionParams,
-	 * this.state.mode,
-	 * this.state.missionBaseGoal,
-	 * this.state.podStatus,
-	 * this.state.missionPlanningGrid,
-	 * this.missionEndTask
-	 * 
-	 * Calls:
-	 * this.updateMissionPlansFromMissionPlanningGrid(),
-	 * this.featuresFromMissionPlanningGrid(),
-	 * this.isBotSelected()
+	 * @returns {void}
 	 */
 	updateMissionPlanningLayer() {
 		const surveyMissionColor = '#051d61'

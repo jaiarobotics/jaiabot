@@ -117,9 +117,8 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            defaultValue={this.props.missionParams.pointSpacing}
+                            value={this.props.missionParams.pointSpacing}
                             name="pointSpacing"
-                            type="number"
                             onChange={this.changePointSpacing.bind(this)}
                         /> m
                     </div>
@@ -128,9 +127,8 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            defaultValue={this.props.missionParams.lineSpacing}
+                            value={this.props.missionParams.lineSpacing}
                             name="lineSpacing"
-                            type="number"
                             onChange={this.changeLineSpacing.bind(this)}
                         /> m
                     </div>
@@ -217,7 +215,7 @@ export class MissionSettingsPanel extends React.Component {
     /**
      * Prevents negative values or 0 from being used in data processing
      * 
-     * @param {number} Value input value to be checked
+     * @param {number} value Input value to be checked
      * @returns {number} The value passed or DEFAULT_VALUE
      */
     validateNumInput(value: number) {
