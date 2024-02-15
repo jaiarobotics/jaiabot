@@ -20,7 +20,8 @@ export interface MissionParams {
 	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
 	numBots: number,
 	numGoals: number,
-	spacing: number,
+	pointSpacing: number,
+	lineSpacing: number,
 	orientation: number,
 	spArea: number,
 	spPerimeter: number,
@@ -111,8 +112,26 @@ export class MissionSettingsPanel extends React.Component {
 				<div className="panel-heading">Optimize Mission Panel</div>
                 
                 <div className="mission-settings-panel-container">
-                    <div className="mission-settings-input-label">Mission Spacing:</div>
-                    <div className="mission-settings-input-row"><input type="number" name="spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
+
+                    <div className="mission-settings-input-label">Point Spacing:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.pointSpacing}
+                            name="pointSpacing"
+                            onChange={this.changePointSpacing.bind(this)}
+                        /> m
+                    </div>
+
+                    <div className="mission-settings-input-label">Line Spacing:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.lineSpacing}
+                            name="lineSpacing"
+                            onChange={this.changeLineSpacing.bind(this)}
+                        /> m
+                    </div>
 
                     <div className="mission-settings-input-label">Start Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
@@ -193,15 +212,43 @@ export class MissionSettingsPanel extends React.Component {
         )
     }
 
-    changeMissionParameter(evt: Event) {
-        const missionParams = this.state.missionParams
-        const target = evt.target as any
-        const key = target.name
-        const value = target.value as any
+    /**
+     * Prevents negative values or 0 from being used in data processing
+     * 
+     * @param {number} value Input value to be checked
+     * @returns {number} The value passed or DEFAULT_VALUE
+     */
+    validateNumInput(value: number) {
+        // Values less than 1 throw errors in the creation of survey missions
+        const DEFAULT_VALUE = 1
+        if (value < DEFAULT_VALUE) {
+            return DEFAULT_VALUE
+        }
+        return value
+    }
 
-        (missionParams as any)[key] = value
-
-        this.setState({ missionParams })
+    /**
+     * Updates the point spacing value based on input changes
+     * 
+     * @param {Event} evt Contains the point spacing value (in meters)
+     * @returns {void} 
+     */
+    changePointSpacing(evt: Event) {
+        const element = evt.target as HTMLInputElement
+        const value = this.validateNumInput(Number(element.value))
+        this.props.missionParams.pointSpacing = value
+    }
+    
+    /**
+     * Updates the line spacing value based on input changes
+     * 
+     * @param {Event} evt Contains the line spacing value (in meters)
+     * @returns {void} 
+     */
+    changeLineSpacing(evt: Event) {
+        const element = evt.target as HTMLInputElement
+        const value = this.validateNumInput(Number(element.value))
+        this.props.missionParams.lineSpacing = value
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
