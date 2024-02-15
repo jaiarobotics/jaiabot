@@ -97,7 +97,6 @@ function TaskOptionsPanel(props: Props) {
             const v = values[i];
             GlobalSettings.diveParameters[k] = v;
         }
-        Save(GlobalSettings.diveParameters)
 
         GlobalSettings.driftParameters[key] = value
         Save(GlobalSettings.driftParameters)
@@ -194,7 +193,6 @@ function TaskOptionsPanel(props: Props) {
     }
     
     let dive = task.dive
-    // let bottom_dive = task.bottom_dive
     let surface_drift = task.surface_drift
     let constant_heading = task.constant_heading
 

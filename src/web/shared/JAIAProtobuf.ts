@@ -649,7 +649,6 @@ export interface ConstantHeadingParameters {
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
-    // bottom_dive?:DriftParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
 }
