@@ -69,7 +69,8 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
+	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -3345,16 +3346,41 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} title="Settings" />
+				<Icon path={mdiCog} title="Map Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} title="Settings" />
+				<Icon path={mdiCog} title="Map Settings" />
 			</Button>
 		))
+
+		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
+			<div>
+				<div id="measureResult" />
+				<Button
+					className="button-jcc active"
+					onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiRuler}  title="Measurement Result" />
+				</Button>
+			</div>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					this.setVisiblePanel(PanelType.MEASURE_TOOL)
+					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+					info('Touch map to set first measure point');
+				}}
+			>
+				<Icon path={mdiRuler}  title="Measure Distance" />
+			</Button>
+		)
 
 		const downloadAllBotsButton = (<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
 			<Icon path={mdiDownloadMultiple} title="Download All" />
@@ -3495,14 +3521,12 @@ export default class CommandControl extends React.Component {
 			case PanelType.SETTINGS:
 				visiblePanelElement = (
 					<SettingsPanel
-						changeInteraction={this.changeInteraction.bind(this)}
 						taskPacketsTimeline={this.state.taskPacketsTimeline}
 						isClusterModeOn={this.state.isClusterModeOn}
 						handleTaskPacketEditDatesToggle={this.handleTaskPacketEditDatesToggle.bind(this)}
 						handleTaskPacketsTimelineChange={this.handleTaskPacketsTimelineChange.bind(this)}
 						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
-						interactions={this.interactions}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
@@ -3527,17 +3551,12 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
-
 					{surveyMissionSettingsButton}
-
 					{downloadAllBotsButton}
-
 					{downloadQueueButton}
-
 					{settingsPanelButton}
-
+					{measureButton}
 					{engineeringButton}
-
 				</div>
 
 				<div id="botsDrawer">
