@@ -109,7 +109,7 @@ export class MissionSettingsPanel extends React.Component {
 
         return (
             <div className="mission-settings-panel-outer-container">
-				<div className="panel-heading">Mission Settings</div>
+				<div className="panel-heading">Optimize Mission Panel</div>
                 
                 <div className="mission-settings-panel-container">
 
