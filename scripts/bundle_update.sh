@@ -5,6 +5,8 @@
 
 # see also https://npmccallum.gitlab.io/post/foreign-architecture-docker/
 
+set -e -u
+
 DESIRED_PACKAGES="jaiabot-embedded"
 DISTRO="$1"
 SERIES="$2"
