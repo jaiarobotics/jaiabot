@@ -13,6 +13,8 @@ REPO="$2"
 VERSION="$3"
 WORKING_DIR="./build/bundle"
 
+export DEBIAN_FRONTEND=noninteractive
+
 mkdir -p ${WORKING_DIR}
 
 # Bare minimum to allow us to get keys. Do not add anything else
