@@ -37,7 +37,8 @@ interface Props {
 }
 
 enum AccordionTabs {
-    TaskPackets = 'TASK_PACKETS'
+    TaskPackets = 'TASK_PACKETS',
+    MapLayers = 'MAP_LAYERs'
 }
 
 export function SettingsPanel(props: Props) {
@@ -128,9 +129,6 @@ export function SettingsPanel(props: Props) {
                         onClick={() => handleTrackPodToggleClick()}
                     />
                 </div>
-                
-                <div className="map-layers-inner-container" id="mapLayers"></div>
-
                 <Accordion
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
                     onChange={() => handleAccordionTabClick(AccordionTabs.TaskPackets)}
@@ -215,6 +213,23 @@ export function SettingsPanel(props: Props) {
                         <Button onClick={handleClickedDownloadKMZ} className='button-jcc'>Download KMZ</Button>
                     </AccordionDetails>
                 </Accordion>
+                <Accordion
+                    expanded={isOpenAccordionTab(AccordionTabs.MapLayers)}
+                    onChange={() => handleAccordionTabClick(AccordionTabs.MapLayers)}
+                    className='accordionContainer'
+                >
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls='panel1a-content'
+                        id='panel1a-header'
+                    >
+                        <Typography>Map Layers</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails className="settings-accordion-inner-container">
+                        <div className="map-layers-inner-container" id="mapLayers"></div>
+                    </AccordionDetails>
+                </Accordion>
+
             </div>
 
         </div>
