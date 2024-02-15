@@ -20,9 +20,9 @@ export interface MissionParams {
 	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
 	numBots: number,
 	numGoals: number,
-    pointSpacing: number,
-    lineSpacing: number,
-	rallySpacing: number,
+	pointSpacing: number,
+	lineSpacing: number,
+    rallySpacing: number,
 	orientation: number,
 	spArea: number,
 	spPerimeter: number,
