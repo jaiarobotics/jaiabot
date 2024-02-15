@@ -370,8 +370,7 @@ jaiabot::apps::MissionManager::MissionManager()
             }
             if (command.has_bottom_depth_safety_params())
             {
-                jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
-                    command.bottom_depth_safety_params());
+                handle_bottom_dive_safety_params(command.bottom_depth_safety_params());
             }
 
             // Publish only when we get a query for status
@@ -951,6 +950,12 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
     return false;
 }
 
+/**
+ * Passes Safety Return Path (SRP) values to the state machine
+ *  
+ * @param {jaiabot::apps::MissionManager} handle_bottom_dive_safety_params Contains the SRP values
+ * @returns {void} 
+ */
 void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
     jaiabot::protobuf::BottomDepthSafetyParams params)
 {
