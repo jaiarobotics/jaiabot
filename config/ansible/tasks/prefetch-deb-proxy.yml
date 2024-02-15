@@ -1,0 +1,10 @@
+# need to use shell, not apt as this isn't supported yet by the ansible module
+- name: Pre-download hub package upgrade
+  shell: "apt-get -y dist-upgrade --download-only"
+
+# install jaiabot-python to ensure we cache Python wheels
+- name: Pre-install hub Python
+  apt:
+    update_cache: yes
+    name: "jaiabot-python"
+    state: latest
