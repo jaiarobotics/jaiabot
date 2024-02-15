@@ -30,6 +30,20 @@ add_commander_tab: false
             value: "release"
             value: "beta"
             value: "continuous"
+            value: "test"
+        }
+        input_var {
+            name: "mode"
+            display_name: "Delivery Mode"
+            value: "online_with_hub_cache"
+            value: "online"
+            value: "offline"
+        }
+        input_var {
+            name: "version"
+            display_name: "Version Branch"
+            value: "1.y"
+            value: "2.y"
         }
     }
     ansible_playbook {

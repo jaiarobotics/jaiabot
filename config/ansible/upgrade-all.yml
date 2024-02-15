@@ -12,7 +12,7 @@
     # For now we get an error with update-grub on amd64 images due to overlay root
     # Workaround this by move update-grub so it doesn't exist (thus skipping the update-grub step in the kernel postinst)
     - name: Move update-grub
-      shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp"
+      shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp || true"
       when: ansible_architecture == "x86_64"
         
     - name: Upgrade

@@ -2,13 +2,20 @@
 - name: Change JaiaBot repository
   hosts: all
   become: yes
-  gather_facts: no
+  gather_facts: yes
   vars:
     allowed_repos:
       - test
       - continuous
       - release
       - beta
+    allowed_modes:
+      - offline
+      - online
+      - online_with_hub_cache
+    allowed_versions:
+      - 1.y
+      - 2.y
   pre_tasks:
     - name: Check if repo is a valid enumeration
       ansible.builtin.assert:
@@ -16,14 +23,87 @@
           - repo is defined
           - repo in allowed_repos
         fail_msg: "Invalid repo. Allowed values are: {{ allowed_repos | join(', ') }}"
+    - name: Check if mode is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - mode is defined
+          - mode in allowed_modes
+        fail_msg: "Invalid mode. Allowed values are: {{ allowed_modes | join(', ') }}"
+    - name: Check if version is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - version is defined
+          - version in allowed_versions
+        fail_msg: "Invalid version. Allowed values are: {{ allowed_versions | join(', ') }}"
+      when: repo != "test"
   tasks:
-    - name: Comment out all lines
-      ansible.builtin.replace:
-        path: /etc/apt/sources.list.d/jaiabot.list
-        regexp: '^(deb.*)'
-        replace: '#\1'
-    - name: Uncomment test repo lines
-      ansible.builtin.replace:
-        path: /etc/apt/sources.list.d/jaiabot.list
-        regexp: '^#(deb.*/{{ repo }}/.*)'
-        replace: '\1'
+    - include_tasks: tasks/read-debconf.yml
+  
+    - name: Set version to X.y when repo is test
+      set_fact:
+        internal_version: "X.y"
+      when: repo == "test"
+
+    - name: Set version to when repo is not test
+      set_fact:
+        internal_version: "{{ version }}"
+      when: repo != "test"
+      
+    - name: Install apt-cacher-ng (only on hubs)
+      ansible.builtin.apt:
+        name: apt-cacher-ng
+        state: present
+      when: mode == "online_with_hub_cache" and jaiabot_embedded_type == "hub"
+
+    - name: Remove deprecated gobysoft.list
+      ansible.builtin.file:
+        dest: "/etc/apt/sources.list.d/gobysoft.list"
+        state: absent
+
+    - name: Remove deprecated local.list
+      ansible.builtin.file:
+        dest: "/etc/apt/sources.list.d/local.list"
+        state: absent      
+        
+    - name: Set /etc/apt/sources.list.d/jaiabot.list for offline mode
+      ansible.builtin.copy:
+        dest: "/etc/apt/sources.list.d/jaiabot.list"
+        content: |
+          deb [trusted=yes] http://hub0/updates /
+      when: mode == "offline"
+
+    - name: Set /etc/apt/sources.list.d/jaiabot.list for online modes
+      ansible.builtin.copy:
+        dest: "/etc/apt/sources.list.d/jaiabot.list"
+        content: |
+          deb http://packages.jaia.tech/ubuntu/{{ repo }}/{{ internal_version }}/ {{ ansible_distribution_release }}/
+          deb http://packages.jaia.tech/ubuntu/gobysoft/{{ repo }}/{{ internal_version }}/ {{ ansible_distribution_release }}/
+      when: mode == "online" or mode == "online_with_hub_cache"
+
+    - name: Set /etc/pip.conf for offline mode
+      ansible.builtin.copy:
+        dest: "/etc/pip.conf"
+        content: |
+          [global]
+          no-index = true
+          find-links = http://hub0/updates
+      when: mode == "offline"
+
+    - name: Set /etc/pip.conf for non-offline modes
+      ansible.builtin.file:
+        dest: "/etc/pip.conf"
+        state: absent
+      when: mode != "offline"
+
+    - name: Set /etc/apt/apt.conf.d/00aptproxy for hub cache mode
+      ansible.builtin.copy:
+        dest: "/etc/apt/apt.conf.d/00aptproxy"
+        content: |
+          Acquire::http::Proxy "http://hub0:3142";
+      when: mode == "online_with_hub_cache"
+
+    - name: Remove /etc/apt/apt.conf.d/00aptproxy for non hub cache modes
+      ansible.builtin.file:
+        path: "/etc/apt/apt.conf.d/00aptproxy"
+        state: absent
+      when: mode != "online_with_hub_cache"
