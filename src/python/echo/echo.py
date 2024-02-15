@@ -8,11 +8,26 @@ import serial
 import time
 from datetime import datetime
 from threading import *
+import RPi.GPIO as GPIO
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
+def reset_pin():
+    RESET_PIN = 23
+
+    #reset the ECHO boards
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(RESET_PIN, GPIO.OUT)
+    GPIO.output(RESET_PIN, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(RESET_PIN, GPIO.LOW)
+    time.sleep(1)
+    print('board reset')
+
 try:
+    reset_pin()
+
     uart = serial.Serial("/dev/ttyAMA3", 115200)
     physical_device_available = True
 except ModuleNotFoundError:
@@ -102,6 +117,9 @@ class MAI(Echo):
                 self.is_setup = True
                 self.echo_state = EchoState.BOOTING
 
+                self.last_data_time = time.time()
+                self.max_time_without_data = 10
+
             except Exception as error:
                 self.is_setup = False
                 log.warning("Error trying to setup driver!")
@@ -132,9 +150,7 @@ class MAI(Echo):
 
             while True:
                 cc=str(self.sensor.readline().decode('utf-8').strip())
-                print(cc)
                 if cc.startswith('$ECHO'):
-                    print(cc)
                     # Split the string by comma and get the last part
                     state = cc.split(",")[-1]
 
@@ -143,6 +159,13 @@ class MAI(Echo):
 
                     print("State:", state)
                     self.echo_state = state
+                    self.last_data_time = time.time()
+                    break
+                elif time.time() - self.last_data_time >= self.max_time_without_data:
+                    print(cc)
+                    reset_pin()
+                    self.is_setup = False
+                    self.last_data_time = time.time()
                     break
 
             return EchoStatus(echo_state=self.echo_state)
@@ -152,25 +175,26 @@ class MAI(Echo):
 
     def startDevice(self):
         try:
-            # This should start the echo device
-            log.info("Starting Echo")
+            if self.echo_state != EchoState.START:
+                # This should start the echo device
+                log.info("Starting Echo")
+                timeStr = datetime.utcnow().strftime("$GPZDA,%H%M%S.00,%d,%m,%Y,00,00*")
+                timeStr = timeStr.encode('utf-8')
+                self.sendCMD(timeStr)
 
-            timeStr = datetime.utcnow().strftime("$GPZDA,%H%M%S.00,%d,%m,%Y,00,00*")
-            timeStr = timeStr.encode('utf-8')
-            self.sendCMD(timeStr)
-
-            time.sleep(0.1)
-            
-            self.sendCMD(EchoCommands.CMD_START.value)
+                time.sleep(0.01)
+                
+                self.sendCMD(EchoCommands.CMD_START.value)
 
         except Exception as error:
             log.warning("Error trying to start device")
     
     def stopDevice(self):
         try:
-            # This should stop the echo device
-            log.info("Stopping Echo")
-            self.sendCMD(EchoCommands.CMD_STOP.value)
+            if self.echo_state != EchoState.STOP:
+                # This should stop the echo device
+                log.info("Stopping Echo")
+                self.sendCMD(EchoCommands.CMD_STOP.value)
 
         except Exception as error:
             log.warning("Error trying to stop device")
