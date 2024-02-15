@@ -6,7 +6,6 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
-import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
@@ -102,7 +101,6 @@ export enum PanelType {
 	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
-	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
@@ -535,7 +533,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Update the map layers panel, if needed
-		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
+		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
 	}
@@ -3452,12 +3450,6 @@ export default class CommandControl extends React.Component {
 
 			case PanelType.MEASURE_TOOL:
 				visiblePanelElement = null
-				break
-
-			case PanelType.MAP_LAYERS:
-				visiblePanelElement = (
-					<MapLayersPanel />
-				)
 				break
 
 			case PanelType.RUN_INFO:

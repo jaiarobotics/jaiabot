@@ -13,7 +13,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
-import { mdiLayersTriple, mdiMapMarker, mdiSendVariant} from '@mdi/js'
+import { mdiMapMarker, mdiSendVariant} from '@mdi/js'
 import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
 import { downloadToFile } from './shared/Utilities'
@@ -77,27 +77,6 @@ export function SettingsPanel(props: Props) {
         </Button>
     ))
 
- 
-    const mapLayersButton = (props.visiblePanel == PanelType.MAP_LAYERS) ? (
-        <Button className="button-jcc active"
-            onClick={() => {
-                props.setVisiblePanel(PanelType.NONE)
-            }}
-        >
-            <Icon path={mdiLayersTriple} title="Map Layers" />
-        </Button>
-
-    ) : (
-        <Button className="button-jcc"
-            onClick={() => {
-                props.setVisiblePanel(PanelType.MAP_LAYERS)
-            }}
-        >
-            <Icon path={mdiLayersTriple} title="Map Layers" />
-        </Button>
-    )
-
-
     const isOpenAccordionTab = (accordionTab: AccordionTabs) => {
         return openAccordionTabs.includes(accordionTab)
     }
@@ -154,8 +133,8 @@ export function SettingsPanel(props: Props) {
 			<div className="panel-heading">Map Settings</div>
             <div className="settings-inner-container">
  
-            {trackPodButton}
-            {mapLayersButton}
+                {trackPodButton}
+                <div className="map-layers-inner-container" id="mapLayers"></div>
 
                 <Accordion 
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
