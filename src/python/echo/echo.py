@@ -118,8 +118,6 @@ class MAI(Echo):
             self.setup()
         if self.is_setup:
             self.sensor.write(message)
-            # Sleep for 0.1 seconds
-            time.sleep(0.1)
         else:
             log.warning("Device is not set up. Command not sent.")
 
@@ -130,7 +128,7 @@ class MAI(Echo):
         try:
             # This should query the echo device
             log.info("Get Status From Echo")
-            self.sendCMD(EchoCommands.CMD_STATUS)
+            self.sendCMD(EchoCommands.CMD_STATUS.value)
 
             while True:
                 cc=str(self.sensor.readline().decode('utf-8').strip())
@@ -161,7 +159,9 @@ class MAI(Echo):
             timeStr = timeStr.encode('utf-8')
             self.sendCMD(timeStr)
 
-            self.sendCMD(EchoCommands.CMD_START)
+            time.sleep(0.1)
+            
+            self.sendCMD(EchoCommands.CMD_START.value)
 
         except Exception as error:
             log.warning("Error trying to start device")
@@ -170,7 +170,7 @@ class MAI(Echo):
         try:
             # This should stop the echo device
             log.info("Stopping Echo")
-            self.sendCMD(EchoCommands.CMD_STOP)
+            self.sendCMD(EchoCommands.CMD_STOP.value)
 
         except Exception as error:
             log.warning("Error trying to stop device")
