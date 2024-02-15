@@ -3495,17 +3495,21 @@ export default class CommandControl extends React.Component {
 			case PanelType.SETTINGS:
 				visiblePanelElement = (
 					<SettingsPanel
+						changeInteraction={this.changeInteraction.bind(this)}
 						taskPacketsTimeline={this.state.taskPacketsTimeline}
 						isClusterModeOn={this.state.isClusterModeOn}
 						handleTaskPacketEditDatesToggle={this.handleTaskPacketEditDatesToggle.bind(this)}
 						handleTaskPacketsTimelineChange={this.handleTaskPacketsTimelineChange.bind(this)}
 						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
+						interactions={this.interactions}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						trackBot={this.trackBot.bind(this)}
 						trackingTarget={this.state.trackingTarget}
 						visiblePanel={this.state.visiblePanel}
+						zoomToPod={this.zoomToPod.bind(this)}
 					/>
 				)
 				break

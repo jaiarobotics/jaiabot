@@ -6,6 +6,8 @@ import { KMLDocument } from './shared/KMZExport'
 import { downloadBlobToFile } from './shared/Utilities'
 import { PanelType } from './CommandControl'
 import { info } from '../libs/notifications'
+import { Interactions } from './Interactions'
+
 
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
@@ -20,18 +22,25 @@ import '../style/components/SettingsPanel.css'
 import { downloadToFile } from './shared/Utilities'
 import { getCSV, getCSVFilename } from './shared/CSVExport'
 
+import { Interaction } from 'ol/interaction'
+
+
 interface Props {
+    changeInteraction: (newInteraction: Interaction, cursor:string) => void
     taskPacketsTimeline: {[key: string]: string | boolean}
     isClusterModeOn: boolean
     handleTaskPacketEditDatesToggle: () => void
     handleTaskPacketsTimelineChange: (evt: React.ChangeEvent<HTMLInputElement>) => void
     handleSubmitTaskPacketsTimeline: () => void
     handleKeepEndDateCurrentToggle: () => void
+    interactions: Interactions
     isTaskPacketsSendBtnDisabled: () => boolean
     setClusterModeStatus: (isOn: boolean) => void
     setVisiblePanel: (panelType: PanelType) => void
+    trackBot: (id: number | string) => void
     trackingTarget:string | number | null
     visiblePanel: PanelType
+    zoomToPod: (firstMove: boolean) => void
 }
 
 enum AccordionTabs {
@@ -57,8 +66,8 @@ export function SettingsPanel(props: Props) {
         <Button
             className="button-jcc active"
             onClick={() => {
-                this.zoomToPod(false);
-                this.trackBot(null);
+                props.zoomToPod(false);
+                props.trackBot(null);
             }}
         >
             <Icon path={mdiMapMarker} title="Unfollow Bots" />
@@ -67,8 +76,8 @@ export function SettingsPanel(props: Props) {
         <Button
             className="button-jcc"
             onClick={() => {
-                this.zoomToPod(true);
-                this.trackBot('pod');
+                props.zoomToPod(true);
+                props.trackBot('pod');
             }}
         >
             <Icon path={mdiMapMarker} title="Follow Bots" />
@@ -92,7 +101,7 @@ export function SettingsPanel(props: Props) {
             className="button-jcc"
             onClick={() => {
                 props.setVisiblePanel(PanelType.MEASURE_TOOL)
-                this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+                props.changeInteraction(props.interactions.measureInteraction, 'crosshair');
                 info('Touch map to set first measure point');
             }}
         >
@@ -102,7 +111,7 @@ export function SettingsPanel(props: Props) {
     const mapLayersButton = (props.visiblePanel == PanelType.MAP_LAYERS) ? (
         <Button className="button-jcc active"
             onClick={() => {
-                this.setVisiblePanel(PanelType.NONE)
+                props.setVisiblePanel(PanelType.NONE)
             }}
         >
             <Icon path={mdiLayersTriple} title="Map Layers" />
@@ -111,7 +120,7 @@ export function SettingsPanel(props: Props) {
     ) : (
         <Button className="button-jcc"
             onClick={() => {
-                this.setVisiblePanel(PanelType.MAP_LAYERS)
+                props.setVisiblePanel(PanelType.MAP_LAYERS)
             }}
         >
             <Icon path={mdiLayersTriple} title="Map Layers" />
