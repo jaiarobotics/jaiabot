@@ -712,6 +712,23 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         return run?.name ?? 'No Run'
     }
 
+  /**
+   * Checks if bot is logging
+   *
+   * @returns {boolean} The bot logging status
+   */
+  function isBotLogging() {
+    let botLogging = true
+    if (
+        missionState == "PRE_DEPLOYMENT__IDLE" ||
+        missionState == "PRE_DEPLOYMENT__FAILED" ||
+        missionState.startsWith("POST_DEPLOYMENT__")
+    ) {
+        botLogging = false
+    } 
+    return botLogging
+  }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
@@ -799,6 +816,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
                                             <td>{linkQualityPercentage + " %"}</td>
+                                        </tr>
+                                        <tr>
+                                          <td>Data Logging</td>
+                                          <td>{isBotLogging().toString().toUpperCase()}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1179,150 +1200,148 @@ export function HubDetailsComponent(props: HubDetailsProps) {
 
     return (
         <div id='hubDetailsBox'>
+            <div className='titleBar'>
+                <h2 className='name'>{`Hub ${hub?.hub_id}`}</h2>
+                <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
+            </div>
             <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
-                <div className='HorizontalFlexbox'>
-                    <h2 className='name'>{`Hub ${hub?.hub_id}`}</h2>
-                    <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
-                </div>
-                <div id='hubDetailsAccordionContainer'>
-                    <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.quickLook} 
-                            onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
-                            className='accordionContainer'
+                <ThemeProvider theme={makeAccordionTheme()}>
+                    <Accordion 
+                        expanded={isExpanded.quickLook} 
+                        onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
+                        className='accordionContainer'
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls='panel1a-content'
+                            id='panel1a-header'
                         >
-                            <AccordionSummary
-                                expandIcon={<ExpandMoreIcon />}
-                                aria-controls='panel1a-content'
-                                id='panel1a-header'
-                            >
-                                <Typography>Quick Look</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <table>
-                                    <tbody>
-                                        {healthRow(hub, false)}
-                                        <tr>
-                                            <td>Latitude</td>
-                                            <td>{formatLatitude(hub.location?.lat)}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Longitude</td>
-                                            <td>{formatLongitude(hub.location?.lon)}</td>
-                                        </tr>
-                                        <tr className={statusAgeClassName}>
-                                            <td>Status Age</td>
-                                            <td>{statusAge.toFixed(0)} s</td>
-                                        </tr>
-                                        <tr>
-                                            <td>CPU Load Average (1 min)</td>
-                                            <td>{loadAverageOneMin}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>CPU Load Average (5 min)</td>
-                                            <td>{loadAverageFiveMin}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>CPU Load Average (15 min)</td>
-                                            <td>{loadAverageFifteenMin}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Wi-Fi Link Quality</td>
-                                            <td>{linkQualityPercentage + " %"}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </AccordionDetails>
-                        </Accordion>
-                    </ThemeProvider>
+                            <Typography>Quick Look</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <table>
+                                <tbody>
+                                    {healthRow(hub, false)}
+                                    <tr>
+                                        <td>Latitude</td>
+                                        <td>{formatLatitude(hub.location?.lat)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Longitude</td>
+                                        <td>{formatLongitude(hub.location?.lon)}</td>
+                                    </tr>
+                                    <tr className={statusAgeClassName}>
+                                        <td>Status Age</td>
+                                        <td>{statusAge.toFixed(0)} s</td>
+                                    </tr>
+                                    <tr>
+                                        <td>CPU Load Average (1 min)</td>
+                                        <td>{loadAverageOneMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>CPU Load Average (5 min)</td>
+                                        <td>{loadAverageFiveMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>CPU Load Average (15 min)</td>
+                                        <td>{loadAverageFifteenMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Wi-Fi Link Quality</td>
+                                        <td>{linkQualityPercentage + " %"}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
 
-                    <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.commands} 
-                            onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
-                            className='accordionContainer'
+                <ThemeProvider theme={makeAccordionTheme()}>
+                    <Accordion 
+                        expanded={isExpanded.commands} 
+                        onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
+                        className='accordionContainer'
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls='panel1a-content'
+                            id='panel1a-header'
                         >
-                            <AccordionSummary
-                                expandIcon={<ExpandMoreIcon />}
-                                aria-controls='panel1a-content'
-                                id='panel1a-header'
-                            >
-                                <Typography>Commands</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Button className={' button-jcc'} 
-                                        onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
-                                    <Icon path={mdiPower} title='Shutdown'/>
-                                </Button>
-                                <Button className={' button-jcc'} 
-                                        onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
-                                    <Icon path={mdiRestartAlert} title='Reboot'/>
-                                </Button>
-                                <Button className={' button-jcc'}  
-                                        onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
-                                    <Icon path={mdiRestart} title='Restart Services'/>
-                                </Button>
-                            </AccordionDetails>
-                        </Accordion>
-                    </ThemeProvider>
+                            <Typography>Commands</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button className={' button-jcc'} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
+                                <Icon path={mdiPower} title='Shutdown'/>
+                            </Button>
+                            <Button className={' button-jcc'} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
+                                <Icon path={mdiRestartAlert} title='Reboot'/>
+                            </Button>
+                            <Button className={' button-jcc'}  
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
+                                <Icon path={mdiRestart} title='Restart Services'/>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
 
-                    <ThemeProvider theme={makeAccordionTheme()}>
-                        <Accordion 
-                            expanded={isExpanded.links} 
-                            onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}
-                            className='accordionContainer'
+                <ThemeProvider theme={makeAccordionTheme()}>
+                    <Accordion 
+                        expanded={isExpanded.links} 
+                        onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}
+                        className='accordionContainer'
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls='panel1a-content'
+                            id='panel1a-header'
                         >
-                            <AccordionSummary
-                                expandIcon={<ExpandMoreIcon />}
-                                aria-controls='panel1a-content'
-                                id='panel1a-header'
+                            <Typography>Links</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button
+                                className={'button-jcc'} 
+                                onClick={() => {							
+                                    const hubId = 10 + hub?.hub_id
+                                    const fleetId = getFleetId()
+
+                                    if (fleetId != undefined
+                                        && !Number.isNaN(hubId)) {
+                                        // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+                                        const url = `http://10.23.${fleetId}.${hubId}:40010`
+                                        window.open(url, '_blank')}}
+                                    }  
                             >
-                                <Typography>Links</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Button
-                                    className={'button-jcc'} 
-                                    onClick={() => {							
+                                <Icon path={mdiChartLine} title='JDV'/>
+                            </Button>
+                            <Button className="button-jcc" onClick={() => {
+                                const fleetId = getFleetId()
+
+                                if (fleetId != undefined) {
+                                    const url = `http://10.23.${fleetId}.1`
+                                    window.open(url, '_blank')}}
+                                }
+                            >
+                                <Icon path={mdiWifiCog} title="Router"></Icon>
+                            </Button>
+                            <Button className="button-jcc" onClick={() => 
+                                    {
                                         const hubId = 10 + hub?.hub_id
                                         const fleetId = getFleetId()
 
-                                        if (fleetId != undefined
-                                            && !Number.isNaN(hubId)) {
-                                            // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
-                                            const url = `http://10.23.${fleetId}.${hubId}:40010`
-                                            window.open(url, '_blank')}}
-                                        }  
-                                >
-                                    <Icon path={mdiChartLine} title='JDV'/>
-                                </Button>
-                                <Button className="button-jcc" onClick={() => {
-                                    const fleetId = getFleetId()
-
-                                    if (fleetId != undefined) {
-                                        const url = `http://10.23.${fleetId}.1`
-                                        window.open(url, '_blank')}}
-                                    }
-                                >
-                                    <Icon path={mdiWifiCog} title="Router"></Icon>
-                                </Button>
-                                <Button className="button-jcc" onClick={() => 
-                                        {
-                                            const hubId = 10 + hub?.hub_id
-                                            const fleetId = getFleetId()
-
-                                            if (fleetId != undefined) {
-                                                const url = `http://10.23.${fleetId}.${hubId}:9091`
-                                                window.open(url, '_blank')
-                                            }
+                                        if (fleetId != undefined) {
+                                            const url = `http://10.23.${fleetId}.${hubId}:9091`
+                                            window.open(url, '_blank')
                                         }
                                     }
-                                >
-                                    <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
-                                </Button>
-                            </AccordionDetails>
-                        </Accordion>
-                    </ThemeProvider>
-                </div>
+                                }
+                            >
+                                <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
             </div>
         </div>
     )
