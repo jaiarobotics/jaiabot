@@ -40,9 +40,9 @@ dpkg-scanpackages . > Packages
 ## in previous steps)
 apt-get -y install python3-pip
 ### Match the requirements in jaiabot-python.postinst
-pip3 wheel wheel -w .
-# omit ./pyjaia
-pip3 wheel -r <(sed '/pyjaia/d' /jaiabot/src/python/requirements.txt) -w .
+pip3 wheel wheel -w ${WORKING_DIR}
+cd /jaiabot/src/python
+pip3 wheel -r requirements.txt -w ${WORKING_DIR}
 
 # Generate ISO
 apt-get -y install genisoimage

@@ -17,20 +17,20 @@
       - 1.y
       - 2.y
   pre_tasks:
-    - name: Check if repo is a valid enumeration
-      ansible.builtin.assert:
-        that:
-          - repo is defined
-          - repo in allowed_repos
-        fail_msg: "Invalid repo. Allowed values are: {{ allowed_repos | join(', ') }}"
-      when: mode != "offline"
     - name: Check if mode is a valid enumeration
       ansible.builtin.assert:
         that:
           - mode is defined
           - mode in allowed_modes
         fail_msg: "Invalid mode. Allowed values are: {{ allowed_modes | join(', ') }}"
-    - name: Check if version is a valid enumeration
+    - name: Check if repo is a valid enumeration (if needed)
+      ansible.builtin.assert:
+        that:
+          - repo is defined
+          - repo in allowed_repos
+        fail_msg: "Invalid repo. Allowed values are: {{ allowed_repos | join(', ') }}"
+      when: mode != "offline"
+    - name: Check if version is a valid enumeration (if needed)
       ansible.builtin.assert:
         that:
           - version is defined

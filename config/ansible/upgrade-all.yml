@@ -3,6 +3,8 @@
   hosts: all
   become: yes
   gather_facts: yes
+  vars_files:
+    - vars/packages.yml
 
   tasks:
     - name: Remount firmware read-write
@@ -18,17 +20,22 @@
     - include_tasks: tasks/check-deb-proxy.yml      
     - include_tasks: tasks/read-debconf.yml
       
-    # if we're using the hub deb proxy, pull all the packages for the hub first, to ensure the change of cache hits is as high as possible for the bots
-    - name: Pre-download hub package upgrade
-      # need to use shell, not apt as this isn't supported yet by the ansible module
-      shell: "apt-get -y dist-upgrade --download-only"
+      # if we're using the hub deb proxy, pull all the packages for the hub first, to ensure the change of cache hits is as high as possible for the bots
+    - name: Pre-cache hub
+      include_tasks: tasks/prefetch-deb-proxy.yml
       when: using_hub_deb_cache and jaiabot_embedded_type == "hub"      
       
-    - name: Upgrade
+    - name: Install/upgrade jaiabot packages (allowing add/remove packages if necessary)
       apt:
         update_cache: yes
-        upgrade: dist
-
+        name: "{{ jaiabot_packages }}"
+        state: latest        
+      
+    - name: Upgrade remaining system packages (safe upgrade)
+      apt:
+        update_cache: yes
+        upgrade: safe
+        
     - include_tasks: tasks/get-version.yml
 
     - name: Remount firmware read-only
