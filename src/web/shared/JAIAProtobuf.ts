@@ -624,6 +624,7 @@ export interface MissionReport {
 export enum TaskType {
     NONE = "NONE",
     DIVE = "DIVE",
+    BOTTOM_DIVE="BOTTOM_DIVE",
     STATION_KEEP = "STATION_KEEP",
     SURFACE_DRIFT = "SURFACE_DRIFT",
     CONSTANT_HEADING = "CONSTANT_HEADING",
@@ -648,6 +649,7 @@ export interface ConstantHeadingParameters {
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
+    // bottom_dive?:DriftParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
 }

@@ -79,6 +79,33 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
+    function onChangeBottomDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
+        const target = evt.target as HTMLInputElement;
+        const key = target.name as keyof DriftParameters;
+        const value = Number(target.value);
+
+        var newTask = deepcopy(task);
+        newTask.surface_drift[key] = value;
+
+        // Array of dive parameters and fixed values
+        const keys: (keyof DiveParameters)[] = ['depth_interval', 'hold_time', 'max_depth'];
+        const values = [60, 60, 0];
+    
+        // Assigning fixed values to diveParameters
+        for (let i = 0; i < keys.length; i++) {
+            const k = keys[i];
+            const v = values[i];
+            GlobalSettings.diveParameters[k] = v;
+        }
+        Save(GlobalSettings.diveParameters)
+
+        GlobalSettings.driftParameters[key] = value
+        Save(GlobalSettings.driftParameters)
+
+        props.onChange(newTask);
+    }
+    
+
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
@@ -167,6 +194,7 @@ function TaskOptionsPanel(props: Props) {
     }
     
     let dive = task.dive
+    // let bottom_dive = task.bottom_dive
     let surface_drift = task.surface_drift
     let constant_heading = task.constant_heading
 
@@ -193,6 +221,19 @@ function TaskOptionsPanel(props: Props) {
                             <tr className="task-param-container">
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )
+        case TaskType.BOTTOM_DIVE:
+            return (
+                <div id="DiveDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Drift Time</td>
+                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={0} onChange={onChangeBottomDiveParameter} disabled={!props?.isEditMode}/>s</td>
                             </tr>
                         </tbody>
                     </table>
@@ -288,6 +329,10 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.dive = deepcopy(GlobalSettings.diveParameters)
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
+            case TaskType.BOTTOM_DIVE:
+                newTask.dive = deepcopy(GlobalSettings.diveParameters)
+                newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
+                break;
             case TaskType.SURFACE_DRIFT:
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
@@ -304,6 +349,7 @@ export function TaskSettingsPanel(props: Props) {
             <Select onChange={(evt) => onChangeTaskType(evt)} value={props.task?.type ?? "NONE"}>
                 <MenuItem value={"NONE"}>None</MenuItem>
                 <MenuItem value={"DIVE"}>Dive</MenuItem>
+                <MenuItem value={"BOTTOM_DIVE"}>Bottom Dive</MenuItem>
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
