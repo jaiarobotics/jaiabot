@@ -47,15 +47,15 @@ def do_port_loop(echo: Echo):
             log.debug(f'Received command:\n{command}')
 
             # Execute the command
-            if command.type == EchoCommand.GET_STATUS:
+            if command.type == EchoCommand.CMD_STATUS:
                 echoData = echo.getEchoData()
                 if echoData is None:
                     log.warning('getEchoData returned None')
                 else:
                     sock.sendto(echoData.SerializeToString(), addr)
-            elif command.type == EchoCommand.START_DEVICE:
+            elif command.type == EchoCommand.CMD_START:
                 echo.startDevice()
-            elif command.type == EchoCommand.STOP_DEVICE:
+            elif command.type == EchoCommand.CMD_STOP:
                 echo.stopDevice()
 
         except Exception as e:

@@ -23,13 +23,14 @@ class EchoApp {
         if (thisBot == null)  return
 
         const engineering_status = thisBot.engineering
+
         if (engineering_status == null) return
 
         if (engineering_status.echo == null) return
 
-        if (engineering_status.echo.is_device_recording == null) return
+        if (engineering_status.echo.echo_state == null) return
 
-        this.updateCurrentEchoStatus(engineering_status.echo.is_device_recording) 
+        this.updateCurrentEchoStatus(engineering_status.echo.echo_state) 
     }
 
     initCheck() {
@@ -50,11 +51,7 @@ class EchoApp {
 
     updateCurrentEchoStatus(currentStatus) {
         let element = document.getElementById("echo-current")
-        if (currentStatus) {
-            element.textContent = "STARTED"
-        } else {
-            element.textContent = "STOPPED"
-        }
+        element.textContent = currentStatus
     }
 
     queryEchoStatus() {

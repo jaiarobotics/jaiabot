@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
+import "jaiabot/messages/echo.proto";
 
 package jaiabot.protobuf;
 
@@ -164,7 +165,7 @@ message Echo
 
     optional bool start_echo = 1 [default = false];
     optional bool stop_echo = 2 [default = false];
-    optional bool is_device_recording = 3 [default = false];
+    optional EchoState echo_state = 3 [default = BOOTING];
 }
 
 message Engineering

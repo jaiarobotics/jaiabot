@@ -8,15 +8,36 @@ message EchoCommand
 {
     enum EchoCommandType
     {
-        GET_STATUS = 0;
-        START_DEVICE = 1;
-        STOP_DEVICE = 2;
+        CMD_START = 0;
+        CMD_STOP = 1;
+        CMD_STORAGE = 2;
+        CMD_ACK = 3;
+        CMD_STATUS = 4;
+        CMD_CH = 5;
+        CMD_FREQ = 6;
+        CMD_TIME = 7;
+        CMD_VER = 8;
+        CMD_HELP = 9;
     }
 
     required EchoCommandType type = 1;
 }
 
+enum EchoState
+{
+    BOOTING = 0;
+    OCTOSPI = 1;
+    SD_INIT = 2;
+    SD_MOUNT = 3;
+    SD_CREATE = 4;
+    PSSI_EN = 5;
+    READY = 6;
+    START = 7;
+    STOP = 8;
+    RUNNING = 9;
+}
+
 message EchoData
 {
-    optional bool is_device_recording = 1 [default = false];
+    optional EchoState echo_state = 1 [default = BOOTING];
 }

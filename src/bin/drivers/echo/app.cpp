@@ -130,7 +130,7 @@ void jaiabot::apps::EchoDriver::loop()
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     auto command = jaiabot::protobuf::EchoCommand();
-    command.set_type(jaiabot::protobuf::EchoCommand::GET_STATUS);
+    command.set_type(jaiabot::protobuf::EchoCommand::CMD_STATUS);
 
     io_data->set_data(command.SerializeAsString());
     interthread().publish<echo_udp_out>(io_data);
