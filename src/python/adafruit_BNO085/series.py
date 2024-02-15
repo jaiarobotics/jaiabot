@@ -188,13 +188,16 @@ class Series:
     def makeUniform(self, freq: float):
         '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
         newSeries = Series()
+        newSeries.name = self.name
+        newSeries.hovertext = self.hovertext
+
         if len(self.utime) == 0:
             return newSeries
         
         for utime in floatRange(self.utime[0] + 1, self.utime[-1], 1e6 / freq):
             newSeries.utime.append(utime)
             newSeries.y_values.append(self.getValueAtTime(utime, interpolate=True))
-            
+
         return newSeries
 
 

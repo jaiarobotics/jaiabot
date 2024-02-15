@@ -22,6 +22,46 @@ import spectrogram
 from seriesSet import *
 
 
+### Global settings ##
+sampleFreq = 4
+bandPassFilter = cos2Filter(1/30, 1/5, 0.02)
+
+
+def calculateElevationSeries(accelerationSeries: Series):
+    """Calculates the elevation series from an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The acceleration series.
+
+    Returns:
+        Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
+    """
+
+    series = deMean(accelerationSeries)
+    series = trimSeries(series, 10e6, 5e6)
+    series = applyHanningWindow(series)
+    series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
+
+
+def filterAcceleration(accelerationSeries: Series):
+    """Process and filter an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The input acceleration series.
+
+    Returns:
+        Series: The processed and filtered acceleration series.
+    """
+    series = deMean(accelerationSeries)
+    series = trimSeries(series, 10e6, 5e6)
+    series = applyHanningWindow(series)
+    series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
+
+######################
 
 def htmlForWaves(sortedWaveHeights: List[float]):
     html = ''
@@ -54,18 +94,41 @@ def htmlForFilterGraph(filterFunc: Callable[[float], float]):
     return '<h1>Band pass filter</h1>' + fig.to_html(full_html=False, include_plotlyjs='cdn')
 
 
-def processSeries(series: Series, steps: List[ProcessingStep]):
-    for step in steps:
-        series = step(series)
-    return series
+def htmlForChart(charts: List[Series]):
+    htmlString = ''
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    yaxis_titles = []
+    for series in charts:
+        fig.add_trace(go.Scatter(x=series.datetimes(), y=series.y_values, name=series.name))
+        yaxis_titles.append(series.name)
+
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title=','.join(yaxis_titles),
+        legend_title="Legend"
+    )
+
+    htmlString += fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='80%', default_height='60%')
+
+    return htmlString
 
 
-def htmlForCharts(charts: List[List[Series]], waveHeights: List[float], index: int):
+def htmlForDrift(driftIndex: int, drift: SeriesSet):
+    # Calculate filtered acceleration series, elevation series, and wave heights
+    uniformAcceleration = drift.accelerationVertical.makeUniform(sampleFreq)
+    filteredAccelerationSeries = filterAcceleration(uniformAcceleration)
+    filteredAccelerationSeries.name = 'Filtered acceleration'
+
+    elevationSeries = calculateElevationSeries(uniformAcceleration)
+    elevationSeries.name = 'Calculated Elevation'
+    waveHeights = calculateSortedWaveHeights(elevationSeries)
+
     # Header
     htmlString = ''
 
-    htmlString += f'<h1><a id="{index + 1}">Drift #{index + 1}</a></h1>'
-    durationString = formatTimeDelta(charts[0][0].duration())
+    htmlString += f'<h1><a id="{driftIndex + 1}">Drift #{driftIndex + 1}</a></h1>'
+    durationString = formatTimeDelta(drift.acc_x.duration())
     htmlString += f'<h3>Drift duration: {durationString}<h3>'
 
     if len(waveHeights) > 0:
@@ -75,24 +138,12 @@ def htmlForCharts(charts: List[List[Series]], waveHeights: List[float], index: i
     # The wave heights
     htmlString += htmlForWaves(waveHeights)
 
-    figures: List[go.Figure] = []
-
-    for chart in charts:
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-        yaxis_titles = []
-        for series in chart:
-            fig.add_trace(go.Scatter(x=series.datetimes(), y=series.y_values, name=series.name))
-            yaxis_titles.append(series.name)
-
-        fig.update_layout(
-            xaxis_title="Time",
-            yaxis_title=','.join(yaxis_titles),
-            legend_title="Legend"
-        )
-        figures.append(fig)    
-
-    for fig in figures:
-        htmlString += fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='80%', default_height='60%')
+    htmlString += htmlForChart([uniformAcceleration, filteredAccelerationSeries, elevationSeries])
+    htmlString += htmlForChart([drift.grav_x])
+    grav_x_uniform = drift.grav_x.makeUniform(sampleFreq)
+    htmlString += spectrogram.htmlForSpectrogram(grav_x_uniform, fftWindowSeconds=80)
+    htmlString += spectrogram.htmlForSpectrogram(uniformAcceleration, fftWindowSeconds=80)
+    htmlString += spectrogram.htmlForSpectrogram(filteredAccelerationSeries, fftWindowSeconds=80)
 
     return htmlString
 
@@ -116,17 +167,17 @@ def htmlForFFTGraph(series: Series, sampleFreq: float, bandPassFilter: Callable[
     return fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='35%', default_height='40%')
 
 
-def htmlForSummaryTable(seriesList: List[Series], processingSteps: List[ProcessingStep]):
+def htmlForSummaryTable(uniformAccelerations: List[Series]):
     html = '<h1>Summary</h1>'
     html += '<table><tr><td>Drift #</td><td>Duration</td><td>Significant Wave Height</td></tr>'
 
     swhSum = 0.0
     durationSum = 0.0
 
-    for index, series in enumerate(seriesList):
-        filteredSeries = processSeries(series, processingSteps)
-        waveHeights = calculateSortedWaveHeights(filteredSeries)
-        duration = seriesList[index].duration()
+    for index, uniformAcceleration in enumerate(uniformAccelerations):
+        elevation = calculateElevationSeries(uniformAcceleration)
+        waveHeights = calculateSortedWaveHeights(elevation)
+        duration = uniformAcceleration.duration()
         durationString = formatTimeDelta(duration)
 
         if len(waveHeights) == 0:
@@ -165,9 +216,6 @@ cssTag = '<style>' + open('style.css').read() + '</style>'
 
 
 def filterAndPlot(h5FilePath: Path, drifts: List[SeriesSet]):
-    sampleFreq = 4
-    bandPassFilter = cos2Filter(1/30, 1/5, 0.02)
-
     h5FilePath = Path(h5FilePath)
     description = h5FilePath.stem
     htmlFilePath = h5FilePath.parent.joinpath(f'waveAnalysis-{description}-{datetime.now().strftime("%Y%m%dT%H%M%S")}.html')
@@ -175,96 +223,24 @@ def filterAndPlot(h5FilePath: Path, drifts: List[SeriesSet]):
     SWHs = []
 
 
-    # PROCESSING STEPS
-    processToElevationSteps = [
-        deMean,
-        (lambda series: fadeSeries(series, 10e6, 5e6, 5e6)),
-        (lambda series: accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)),
-    ]
-
-    filterAccelerationSteps = [
-        deMean,
-        (lambda series: fadeSeries(series, 10e6, 5e6, 5e6)),
-        (lambda series: filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)),
-    ]
-    ###################
-
-    driftAccelerationSeries: List[Series] = [drift.accelerationVertical.makeUniform(sampleFreq) for drift in drifts]
+    uniformAcceleration: List[Series] = [drift.accelerationVertical.makeUniform(sampleFreq) for drift in drifts]
 
     with open(htmlFilename, 'w') as f:
         f.write('<html><meta charset="utf-8">\n')
 
         f.write(cssTag)
         f.write(f'<h1>{description}</h1>')
-        f.write(htmlForSummaryTable(driftAccelerationSeries, processToElevationSteps))
+        f.write(htmlForSummaryTable(uniformAcceleration))
 
         f.write(htmlForFilterGraph(bandPassFilter))
 
         # Drift altitude and filtered altitude series
         for driftIndex, drift in enumerate(drifts):
-            uniformAcceleration = drift.accelerationVertical.makeUniform(sampleFreq)
-
-            filteredAccelerationSeries = processSeries(uniformAcceleration, filterAccelerationSteps)
-            filteredAccelerationSeries.name = 'Filtered acceleration'
-
-            elevationSeries = processSeries(uniformAcceleration, processToElevationSteps)
-            elevationSeries.name = 'Calculated Elevation'
-
-            charts = [[uniformAcceleration, filteredAccelerationSeries, elevationSeries]]
-
-            charts.append([drift.grav_x])
-            grav_x_series = drift.grav_x.makeUniform(sampleFreq)
-            spectrogram.htmlForSpectrogram(grav_x_series, fftWindowSeconds=80)
-
-            waves = calculateSortedWaveHeights(elevationSeries)
-
-            f.write(htmlForCharts(charts, waves, index=driftIndex))
+            f.write(htmlForDrift(driftIndex, drift))
 
         f.write('</html>\n')
 
     os.system(f'xdg-open {htmlFilename}')
-
-
-def plotSWHVersusWindowDuration(accelerations: List[Series], sampleFreq: float, bandPassFilter: Callable[[float], float]):
-    # Try different time windows
-    def xrange(start, end, delta):
-        val = start
-
-        while val < end:
-            yield val
-            val += delta
-
-    fig = make_subplots()
-
-    for acceleration in accelerations:
-        duration = acceleration.duration().total_seconds()
-
-        windowDurations = list(xrange(10, duration - 15, 5))
-        swhs: List[float] = []
-
-        for windowDuration in windowDurations:
-            processToElevationSteps = [
-                fadeSeries(10e6, (duration - windowDuration - 10) * 1e6, 2e6),
-                getUniformSeries(freq=sampleFreq),
-                accelerationToElevation(sampleFreq=sampleFreq, filterFunc=bandPassFilter),
-            ]
-
-            elevation = processSeries(acceleration, processToElevationSteps)
-            waves = elevation.sortedWaveHeights()
-            swh = significantWaveHeight(waves)
-
-            swhs.append(swh)
-
-        fig.add_trace(go.Scatter(x=windowDurations, y=swhs, name=f'SWH', mode='lines+markers'))
-
-    fig.update_layout(
-        title=f"SWH vs Window Duration",
-        xaxis_title="Window Duration (seconds)",
-        yaxis_title="SWH (meters)",
-        legend_title="Legend"
-    )
-
-    fig.show()
 
 
 def doAnalysis(h5File: h5py.File):
