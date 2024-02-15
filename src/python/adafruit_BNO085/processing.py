@@ -4,6 +4,8 @@ from typing import *
 import numpy
 import statistics
 from math import *
+from dataclasses import dataclass
+
 
 def floatRange(start: float, end: float, delta: float):
     x = start

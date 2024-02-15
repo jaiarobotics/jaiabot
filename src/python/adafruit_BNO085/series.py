@@ -8,8 +8,27 @@ from datetime import *
 import statistics
 
 
+UnixTimeMicroseconds = int
+
+@dataclass
+class TimeRange:
+    start: UnixTimeMicroseconds
+    end: UnixTimeMicroseconds
+
+    def duration(self):
+        return timedelta(microseconds=(self.end - self.start))
+
+
 def utimeToDatetime(utime: float):
     return datetime.fromtimestamp(utime / 1e6)
+
+
+def floatRange(start: float, end: float, delta: float):
+    x = start
+
+    while x < end:
+        yield x
+        x += delta
 
 
 INT32_MAX = (2 << 30) - 1
@@ -152,6 +171,32 @@ class Series:
             return timedelta(0)
         return datetimeList[-1] - datetimeList[0]
     
+
+    def slice(self, timeRange: TimeRange):
+        seriesSlice = Series()
+        seriesSlice.name = self.name
+        seriesSlice.hovertext = self.hovertext
+
+        for index, utime in enumerate(self.utime):
+            if utime >= timeRange.start and utime < timeRange.end:
+                seriesSlice.utime.append(utime)
+                seriesSlice.y_values.append(self.y_values[index])
+
+        return seriesSlice
+
+
+    def makeUniform(self, freq: float):
+        '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
+        newSeries = Series()
+        if len(self.utime) == 0:
+            return newSeries
+        
+        for utime in floatRange(self.utime[0] + 1, self.utime[-1], 1e6 / freq):
+            newSeries.utime.append(utime)
+            newSeries.y_values.append(self.getValueAtTime(utime, interpolate=True))
+            
+        return newSeries
+
 
 
 from h5py import *
