@@ -22,7 +22,6 @@ export interface MissionParams {
 	numGoals: number,
 	pointSpacing: number,
 	lineSpacing: number,
-	rallySpacing: number,
 	orientation: number,
 	spArea: number,
 	spPerimeter: number,
@@ -113,6 +112,7 @@ export class MissionSettingsPanel extends React.Component {
 				<div className="panel-heading">Mission Settings</div>
                 
                 <div className="mission-settings-panel-container">
+
                     <div className="mission-settings-input-label">Point Spacing:</div>
                     <div className="mission-settings-input-row">
                         <input
