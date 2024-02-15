@@ -270,7 +270,6 @@ export default class CommandControl extends React.Component {
 				'numGoals': (MAX_GOALS - 2),
 				'spacing': 30,
 				'orientation': 0,
-				'rallySpacing': 1,
 				'spArea': 0,
 				'spPerimeter': 0,
 				'spRallyStartDist': 0,
