@@ -13,7 +13,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
-import { mdiMapMarker, mdiSendVariant} from '@mdi/js'
+import { mdiSendVariant} from '@mdi/js'
 import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
 import { downloadToFile } from './shared/Utilities'
@@ -55,27 +55,16 @@ export function SettingsPanel(props: Props) {
 
         props.setClusterModeStatus(!props.isClusterModeOn)
     }
-    const trackPodButton = (props.trackingTarget === 'pod' ? (
-        <Button
-            className="button-jcc active"
-            onClick={() => {
-                props.zoomToPod(false);
-                props.trackBot(null);
-            }}
-        >
-            <Icon path={mdiMapMarker} title="Unfollow Bots" />
-        </Button>
-    ) : (
-        <Button
-            className="button-jcc"
-            onClick={() => {
-                props.zoomToPod(true);
-                props.trackBot('pod');
-            }}
-        >
-            <Icon path={mdiMapMarker} title="Follow Bots" />
-        </Button>
-    ))
+
+    const handleTrackPodToggleClick = () => {
+        if (props.trackingTarget === 'pod') {
+            props.zoomToPod(false);
+            props.trackBot(null);
+        } else {
+            props.zoomToPod(true);
+            props.trackBot('pod');
+        }
+    }
 
     const isOpenAccordionTab = (accordionTab: AccordionTabs) => {
         return openAccordionTabs.includes(accordionTab)
@@ -130,13 +119,19 @@ export function SettingsPanel(props: Props) {
 
     return (
         <div className="settings-outer-container">
-			<div className="panel-heading">Map Settings</div>
+            <div className="panel-heading">Map Settings</div>
             <div className="settings-inner-container">
- 
-                {trackPodButton}
+                <div className="settings-card">
+                    <div className="settings-label">Track Pod:</div>
+                    <WptToggle
+                        checked={() => props.trackingTarget === 'pod'}
+                        onClick={() => handleTrackPodToggleClick()}
+                    />
+                </div>
+                
                 <div className="map-layers-inner-container" id="mapLayers"></div>
 
-                <Accordion 
+                <Accordion
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
                     onChange={() => handleAccordionTabClick(AccordionTabs.TaskPackets)}
                     className='accordionContainer'
@@ -151,14 +146,14 @@ export function SettingsPanel(props: Props) {
                     <AccordionDetails className="settings-accordion-inner-container">
                         <div className="settings-card">
                             <div className="settings-label">Clusters:</div>
-                            <WptToggle 
+                            <WptToggle
                                 checked={() => props.isClusterModeOn}
                                 onClick={() => handleClusterToggleClick()}
                             />
                         </div>
                         <div className="settings-card">
                             <div className="settings-label">Edit Dates:</div>
-                            <WptToggle 
+                            <WptToggle
                                 checked={() => props.taskPacketsTimeline.isEditing as boolean}
                                 onClick={() => props.handleTaskPacketEditDatesToggle()}
                             />
@@ -168,51 +163,51 @@ export function SettingsPanel(props: Props) {
                             ${props.taskPacketsTimeline.isEditing ? " visible" : " hidden"}`
                         }>
                             <div className="settings-label">Start Date:</div>
-                            <input 
-                                id="task-packet-start-date" 
-                                type="date" 
-                                value={props.taskPacketsTimeline.startDate as string} 
+                            <input
+                                id="task-packet-start-date"
+                                type="date"
+                                value={props.taskPacketsTimeline.startDate as string}
                                 onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}
                                 max={''}>
                             </input>
-                            <input 
-                                id="task-packet-start-time" 
-                                type="time" 
-                                value={props.taskPacketsTimeline.startTime as string} 
+                            <input
+                                id="task-packet-start-time"
+                                type="time"
+                                value={props.taskPacketsTimeline.startTime as string}
                                 onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
                             </input>
-                            
+
                             <div className="settings-label">End Date:</div>
-                            <input 
-                                id="task-packet-end-date" 
-                                type="date" 
+                            <input
+                                id="task-packet-end-date"
+                                type="date"
                                 value={props.taskPacketsTimeline.endDate as string}
                                 onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
                             </input>
-                            <input 
-                                id="task-packet-end-time" 
+                            <input
+                                id="task-packet-end-time"
                                 type="time"
                                 value={props.taskPacketsTimeline.endTime as string}
                                 onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
                             </input>
-                            
+
                             <div className="task-packet-button-container">
                                 <div className="task-packet-checkbox-container">
-                                    <input 
+                                    <input
                                         type="checkbox"
                                         checked={props.taskPacketsTimeline.keepEndDateCurrent as boolean}
                                         onChange={() => props.handleKeepEndDateCurrentToggle()}>
                                     </input>
                                     <label>Keep End Date Current</label>
                                 </div>
-                                <div 
+                                <div
                                     className={
                                         `settings-send-btn
                                         ${props.isTaskPacketsSendBtnDisabled() ? ' disabled' : ''}`
                                     }
                                     onClick={() => props.handleSubmitTaskPacketsTimeline()}
                                 >
-                                    <Icon path={mdiSendVariant} title='Get Task Packets'/>
+                                    <Icon path={mdiSendVariant} title='Get Task Packets' />
                                 </div>
                             </div>
                         </div>
@@ -221,6 +216,7 @@ export function SettingsPanel(props: Props) {
                     </AccordionDetails>
                 </Accordion>
             </div>
+
         </div>
     )
 }
