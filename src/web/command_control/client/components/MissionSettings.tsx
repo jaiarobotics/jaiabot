@@ -22,7 +22,6 @@ export interface MissionParams {
 	numGoals: number,
 	spacing: number,
 	orientation: number,
-	rallySpacing: number,
 	spArea: number,
 	spPerimeter: number,
 	spRallyStartDist: number,
@@ -112,22 +111,8 @@ export class MissionSettingsPanel extends React.Component {
 				<div className="panel-heading">Optimize Mission Panel</div>
                 
                 <div className="mission-settings-panel-container">
-
-                    <div className="mission-settings-input-label">Mission Edit Mode:</div>
-                    <FormControl sx={{ minWidth: 120 }} size="small">
-                        <Select onChange={(evt: SelectChangeEvent) => this.changeMissionEditMode(evt.target.value)}  value={missionType ?? "editing"}>
-                            <MenuItem value={"lines"}>Lines</MenuItem>
-                        </Select>
-                    </FormControl>
-
                     <div className="mission-settings-input-label">Mission Spacing:</div>
                     <div className="mission-settings-input-row"><input type="number" name="spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
-
-                    <div className="mission-settings-input-label">Rally Point Spacing:</div>
-                    <div className="mission-settings-input-row"><input type="number" name="rally_spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
-
-                    <div className="mission-settings-input-label">Mission Orientation:</div>
-                    <div className="mission-settings-input-row"><input id='missionOrientation' name="orientation" className="mission-settings-num-input" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</div>
 
                     <div className="mission-settings-input-label">Start Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
