@@ -22,7 +22,6 @@ export interface MissionParams {
 	numGoals: number,
 	spacing: number,
 	orientation: number,
-	rallySpacing: number,
 	spArea: number,
 	spPerimeter: number,
 	spRallyStartDist: number,
