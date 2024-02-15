@@ -35,8 +35,8 @@ add_commander_tab: false
         input_var {
             name: "mode"
             display_name: "Delivery Mode"
-            value: "online_with_hub_cache"
             value: "online"
+            value: "online_with_hub_cache"
             value: "offline"
         }
         input_var {

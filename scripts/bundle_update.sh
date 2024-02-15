@@ -9,7 +9,7 @@ set -e -u
 
 DESIRED_PACKAGES="jaiabot-embedded"
 DISTRO="$1"
-SERIES="$2"
+REPO="$2"
 VERSION="$3"
 WORKING_DIR="./build/bundle"
 
@@ -21,7 +21,7 @@ apt-get update && \
     apt-get -y --no-install-recommends install \
             gpg gpg-agent dirmngr
 
-echo -e "deb http://packages.jaia.tech/ubuntu/${SERIES}/${VERSION}/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list && \
+echo -e "deb http://packages.jaia.tech/ubuntu/${REPO}/${VERSION}/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 

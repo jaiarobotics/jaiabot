@@ -14,7 +14,16 @@
     - name: Move update-grub
       shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp || true"
       when: ansible_architecture == "x86_64"
-        
+
+    - include_tasks: tasks/check-deb-proxy.yml      
+    - include_tasks: tasks/read-debconf.yml
+      
+    # if we're using the hub deb proxy, pull all the packages for the hub first, to ensure the change of cache hits is as high as possible for the bots
+    - name: Pre-download hub package upgrade
+      # need to use shell, not apt as this isn't supported yet by the ansible module
+      shell: "apt-get -y dist-upgrade --download-only"
+      when: using_hub_deb_cache and jaiabot_embedded_type == "hub"      
+      
     - name: Upgrade
       apt:
         update_cache: yes
