@@ -25,6 +25,13 @@
     flex-direction: column;
 }
 
+.map-layers-inner-container {
+    margin: 8pt;
+    font-size: 1.1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
 .settings-card {
     display: flex;
     align-items: center;
