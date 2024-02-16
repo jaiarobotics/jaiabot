@@ -1,6 +1,7 @@
 import React from 'react'
 import Map from 'ol/Map'
 import turf from '@turf/turf'
+import WptToggle from './WptToggle'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
@@ -44,6 +45,9 @@ interface Props {
     runList: MissionInterface
     bottomDepthSafetyParams: BottomDepthSafetyParams
     setBottomDepthSafetyParams: (params: BottomDepthSafetyParams) => void
+    isSRPEnabled: boolean
+    setIsSRPEnabled: (isSRPEnabled: boolean) => void
+    deleteSRPInputsFromRuns: () => void
     botList?: {[key: string]: BotStatus}
 
     onClose: () => void
@@ -145,6 +149,24 @@ export class MissionSettingsPanel extends React.Component {
         this.props.setBottomDepthSafetyParams(bottomDepthSafetyParams)
     }
 
+    /**
+     * Switches toggle state and triggers deletion of SRP values (if toggled off)
+     * 
+     * @returns {void}
+     */
+    handleSRPToggleClick() {
+        this.props.setIsSRPEnabled(!this.props.isSRPEnabled)
+        
+        let srpContainer = document.getElementById("srp-container")
+        if (srpContainer === null) {
+            return 
+        }
+
+        if (this.props.isSRPEnabled) {
+            this.props.deleteSRPInputsFromRuns()
+        }
+    }
+
     render() {
         const { map, centerLineString } = this.props
         const missionType = this.state.missionParams?.missionType
@@ -217,46 +239,60 @@ export class MissionSettingsPanel extends React.Component {
 
                     {/* Safety Return Path (SRP) */}
                     <div className="mission-settings-line-break"></div>
-                    <div className="mission-settings-header">Safety Return Path:</div>
-
-                    <div className="mission-settings-input-label">Depth:</div>
-                    <div className="mission-settings-input-row">
-                        <input
-                            className="mission-settings-num-input"
-                            name="safety_depth"
-                            value={this.props.bottomDepthSafetyParams.safety_depth}
-                            onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
-                         /> m
+                    <div className="mission-settings-header">
+                        <div>Safety Return Path:</div>
+                        <WptToggle 
+                            checked={() => this.props.isSRPEnabled}
+                            onClick={() => this.handleSRPToggleClick()}
+                        />
                     </div>
 
-                    <div className="mission-settings-input-label">Heading:</div>
-                    <div className="mission-settings-input-row">
-                        <input
-                            className="mission-settings-num-input"
-                            name="constant_heading"
-                            value={this.props.bottomDepthSafetyParams.constant_heading}
-                            onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
-                         /> deg
-                    </div>
+                    <div
+                        className={
+                            `mission-settings-srp-container 
+                            ${this.props.isSRPEnabled ? 'mission-settings-show' : 'mission-settings-hide'}`
+                        }
+                        id="srp-container"
+                    >
+                        <div className="mission-settings-input-label">Depth:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="safety_depth"
+                                value={this.props.bottomDepthSafetyParams.safety_depth}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> m
+                        </div>
 
-                    <div className="mission-settings-input-label">Time:</div>
-                    <div className="mission-settings-input-row">
-                        <input
-                            className="mission-settings-num-input"
-                            name="constant_heading_time"
-                            value={this.props.bottomDepthSafetyParams.constant_heading_time}
-                            onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
-                         /> s
-                    </div>
+                        <div className="mission-settings-input-label">Heading:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading"
+                                value={this.props.bottomDepthSafetyParams.constant_heading}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> deg
+                        </div>
 
-                    <div className="mission-settings-input-label">Speed:</div>
-                    <div className="mission-settings-input-row">
-                        <input
-                            className="mission-settings-num-input"
-                            name="constant_heading_speed"
-                            value={this.props.bottomDepthSafetyParams.constant_heading_speed}
-                            onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
-                         /> m/s
+                        <div className="mission-settings-input-label">Time:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading_time"
+                                value={this.props.bottomDepthSafetyParams.constant_heading_time}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> s
+                        </div>
+
+                        <div className="mission-settings-input-label">Speed:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading_speed"
+                                value={this.props.bottomDepthSafetyParams.constant_heading_speed}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> m/s
+                        </div>
                     </div>
 
                     <div className="mission-settings-line-break"></div>

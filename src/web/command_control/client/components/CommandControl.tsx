@@ -189,6 +189,7 @@ interface State {
 	surveyPolygonChanged: boolean,
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
 	bottomDepthSafetyParams: BottomDepthSafetyParams,
+	isSRPEnabled: boolean
 
 	rcModeStatus: {[botId: number]: boolean},
 	remoteControlValues: Engineering,
@@ -338,8 +339,9 @@ export default class CommandControl extends React.Component {
 				constant_heading: 0,
 				constant_heading_time: 0,
 				constant_heading_speed: 0,
-				safety_depth: -1
+				safety_depth: 0
 			},
+			isSRPEnabled: false,
 
 			rcModeStatus: {},
 			remoteControlInterval: null,
@@ -3090,6 +3092,30 @@ export default class CommandControl extends React.Component {
 		this.setState({ bottomDepthSafetyParams: updatedParams })
 	}
 
+	/**
+	 * Adds SRP inputs from Optimize Mission Planning to each run
+	 * 
+	 * @returns {void}
+	 */
+	addSRPInputsToRuns() {
+		for (let runKey of Object.keys(this.state.runList.runs)) {
+			let run = this.state.runList.runs[runKey]
+			run.command.plan.bottomDepthSafetyParams = this.state.bottomDepthSafetyParams
+		}
+	}
+
+	/**
+	 * Removes SRP inputs from each run
+	 * 
+	 * @returns {void}
+	 */
+	deleteSRPInputsFromRuns() {
+		for (let runKey of Object.keys(this.state.runList.runs)) {
+			let run = this.state.runList.runs[runKey]
+			delete run.command.plan.bottomDepthSafetyParams
+		}
+	}
+
 	canUseSurveyTool() {
 		// Check that rally points are set
 		if (layers.rallyPointLayer.getSource().getFeatures().length < 2) {
@@ -3097,6 +3123,16 @@ export default class CommandControl extends React.Component {
 			return false
 		}
 		return true
+	}
+
+	/**
+	 * Allows SRP state to be set from other componenets by passing it thorugh props
+	 * 
+	 * @param {boolean} isSRPEnabled Provides new state of SRP toggle
+	 * @returns {void}
+	 */
+	setIsSRPEnabled(isSRPEnabled: boolean) {
+		this.setState({ isSRPEnabled })
 	}
 	// 
 	// Optimize Mission Planning Helper Methods (End)
@@ -3211,6 +3247,9 @@ export default class CommandControl extends React.Component {
 					runList={this.state.runList}
 					bottomDepthSafetyParams={this.state.bottomDepthSafetyParams}
 					setBottomDepthSafetyParams={this.setBottomDepthSafetyParams.bind(this)}
+					isSRPEnabled={this.state.isSRPEnabled}
+					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
+					deleteSRPInputsFromRuns={this.deleteSRPInputsFromRuns.bind(this)}
 					botList={bots}
 					
 					onClose={() => {
@@ -3242,11 +3281,7 @@ export default class CommandControl extends React.Component {
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}
 
-								// Append safety return path (SRP) input to each run
-								for (let runKey of Object.keys(runList.runs)) {
-									let run = runList.runs[runKey]
-									run.command.plan.bottomDepthSafetyParams = this.state.bottomDepthSafetyParams
-								}
+								this.addSRPInputsToRuns()
 
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
