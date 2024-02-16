@@ -1,3 +1,8 @@
+- name: Unmount /var/www/html/updates CD image
+  ansible.builtin.mount:
+    path: /var/www/html/updates
+    state: unmounted
+
 - name: Pre-cache hub Python wheels
   args:
     executable: /bin/bash
@@ -7,7 +12,7 @@
     apt-get -y update
     apt-get -y download jaiabot-python
     dpkg --fsys-tarfile /tmp/jaiabot-python*.deb | tar xOf - ./usr/share/jaiabot/python/requirements.txt > /tmp/requirements.txt
-
+    
     # Ensure /var/www/html/updates is not getting too large
     directory="/var/www/html/updates"
     dir_size=$(du -sm "$directory" | cut -f1)

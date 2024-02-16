@@ -31,5 +31,4 @@
 - name: Disable unneeded squid default service
   ansible.builtin.systemd:
     name: squid.service
-    state: stopped
     enabled: false
