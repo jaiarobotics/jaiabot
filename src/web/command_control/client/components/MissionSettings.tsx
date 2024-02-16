@@ -102,10 +102,10 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     /**
-     * Prevents negative values and characters from being passed as parameters
+     * Prevents negative values, characters, and numbers > max from being passed as parameters
      * 
      * @param {number} value Input value to check
-     * @returns {number} The value itself or 0 if the input is not valid
+     * @returns {number} The value itself, 0, or the max if the input is not valid
      */
     validateBottomDepthSafetyParams(key: string, value: number) {
         if (Number.isNaN(value)) {
@@ -116,6 +116,21 @@ export class MissionSettingsPanel extends React.Component {
         const maxSpeed = 3
         if (key === "constant_heading_speed" && value > maxSpeed) {
             return maxSpeed
+        }
+
+        const maxDegrees = 360
+        if (key === "constant_heading" && value > maxDegrees) {
+            return maxDegrees
+        }
+
+        const maxSeconds = 360
+        if (key === "constant_heading_time" && value > maxSeconds) {
+            return maxSeconds
+        }
+
+        const maxDepth = 60
+        if (key == "safety_depth" && value > maxDepth) {
+            return maxDepth
         }
 
         return value
