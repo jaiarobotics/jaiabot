@@ -1,10 +1,34 @@
-# need to use shell, not apt as this isn't supported yet by the ansible module
 - name: Pre-download hub package upgrade
   shell: "apt-get -y dist-upgrade --download-only"
-
+  args:
+    # need to use shell, not apt as this isn't supported yet by the ansible module
+    warn: false
+  
 # install jaiabot-python to ensure we cache Python wheels
-- name: Pre-install hub Python
-  apt:
-    update_cache: yes
-    name: "jaiabot-python"
-    state: latest
+- name: Pre-cache hub Python wheels
+  args:
+    executable: /bin/bash
+  shell: |
+    # Extract new requirements.txt from .deb package
+    cd /tmp
+    apt-get -y update
+    apt-get -y download jaiabot-python
+    dpkg --fsys-tarfile /tmp/jaiabot-python*.deb | tar xOf - ./usr/share/jaiabot/python/requirements.txt > /tmp/requirements.txt
+
+    # Ensure /var/www/html/updates is not getting too large
+    directory="/var/www/html/updates"
+    dir_size=$(du -sm "$directory" | cut -f1)
+    # megabytes before clearing updates cache
+    threshold=512
+    if [ "$dir_size" -gt "$threshold" ]; then
+        find "$directory" -type f -name '*.whl' -exec rm -rf {} +
+    fi
+    
+    # Cache wheels for later use by apt update/upgrade
+    mkdir -p /var/log/tmp
+    export TMPDIR=/var/log/tmp
+    # ignore /etc/pip.conf, which will not allow us to connect to pypi
+    export PIP_CONFIG_FILE=/dev/null
+    pip3 wheel wheel -w /var/www/html/updates
+    pip3 wheel -r <(sed '/pyjaia/d' /tmp/requirements.txt) -w /var/www/html/updates
+    rm -rf /var/log/tmp

@@ -64,7 +64,7 @@
           deb [trusted=yes] http://hub0/updates /
       when: mode == "offline"
 
-    - name: Set /etc/pip.conf for offline mode
+    - name: Set /etc/pip.conf for offline / hub cache mode
       ansible.builtin.copy:
         dest: "/etc/pip.conf"
         content: |
@@ -72,19 +72,9 @@
           no-index = true
           find-links = http://hub0/updates
           trusted-host = hub0
-      when: mode == "offline"
-
-    - name: Set /etc/pip.conf for online with hub cache mode
-      ansible.builtin.copy:
-        dest: "/etc/pip.conf"
-        content: |
-          [global]
-          find-links = http://hub0/updates          
-          download_cache = /var/www/html/updates
-          trusted-host = hub0
-      when: mode == "online_with_hub_cache"
+      when: mode == "offline" or mode == "online_with_hub_cache"
       
-    - name: Set /etc/pip.conf for non-offline modes
+    - name: Set /etc/pip.conf for online mode
       ansible.builtin.file:
         dest: "/etc/pip.conf"
         state: absent
