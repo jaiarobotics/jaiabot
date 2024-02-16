@@ -25,14 +25,15 @@ def gaussianFilter(minFreq: float, maxFreq: float, k: float):
     return filterFunc
 
 
-def cos2Filter(minFreq: float, maxFreq: float, window: float):
-    min0 = minFreq - window / 2
-    min1 = minFreq + window / 2
+def cos2Filter(minFreq: float, minWindow: float, maxFreq: float, maxWindow: float):
+    min0 = minFreq - minWindow / 2
+    min1 = minFreq + minWindow / 2
 
-    max0 = maxFreq - window / 2
-    max1 = maxFreq + window / 2
+    max0 = maxFreq - maxWindow / 2
+    max1 = maxFreq + maxWindow / 2
 
-    k = pi / window
+    kMin = pi / minWindow
+    kMax = pi / maxWindow
 
     def filterFunc(freq: float):
         if freq <= min0 or freq >= max1:
@@ -41,11 +42,11 @@ def cos2Filter(minFreq: float, maxFreq: float, window: float):
             return 1
         
         if freq > min0 and freq < min1:
-            c = (cos((min1 - freq) * k) + 1) / 2
+            c = (cos((min1 - freq) * kMin) + 1) / 2
             return c * c
         
         if freq > max0 and freq < max1:
-            c = (cos((freq - max0) * k) + 1) / 2
+            c = (cos((freq - max0) * kMax) + 1) / 2
             return c * c
 
     return filterFunc

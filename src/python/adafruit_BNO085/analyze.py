@@ -24,7 +24,42 @@ from seriesSet import *
 
 ### Global settings ##
 sampleFreq = 4
-bandPassFilter = cos2Filter(1/30, 1/5, 0.02)
+bandPassFilter = cos2Filter(1/27, 1/135, 2, 2)
+
+
+def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
+    """Returns true if this data point should be included in analysis.
+
+    Args:
+        missionStateIndex (int): Index into the missionState Series.
+        seriesSet (SeriesSet): The series set to check.
+
+    Returns:
+        bool: Return true if the data at this time should be included in the anlysis.
+    """
+
+    DRIFT = 121
+    if seriesSet.missionState.y_values[missionStateIndex] != DRIFT:
+        # Not in a DIVE state
+        return False
+    
+    blacklist = [
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 2, 48, 20), datetime(2024, 2, 14, 2, 58, 51)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 8, 0), datetime(2024, 2, 14, 4, 18, 55)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 3, 1, 39), datetime(2024, 2, 14, 3, 3, 31)),        
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 3, 7, 30), datetime(2024, 2, 14, 3, 9, 18)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 36, 32), datetime(2024, 2, 14, 4, 40, 0)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 40, 0), datetime(2024, 2, 14, 6, 14, 0)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 13, 7, 18, 39), datetime(2024, 2, 13, 7, 25, 46)),
+    ]
+
+    utime = seriesSet.missionState.utime[missionStateIndex]
+    for timeRange in blacklist:
+        if utime in timeRange:
+            # In a blacklisted TimeRange
+            return False
+        
+    return True
 
 
 def calculateElevationSeries(accelerationSeries: Series):
@@ -37,9 +72,10 @@ def calculateElevationSeries(accelerationSeries: Series):
         Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
     """
 
-    series = deMean(accelerationSeries)
+    series = accelerationSeries
+    series = deMean(series)
     series = trimSeries(series, 10e6, 5e6)
-    series = applyHanningWindow(series)
+    series = fadeSeries(series, fadePeriod=2e6)
     series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
 
     return series
@@ -54,9 +90,11 @@ def filterAcceleration(accelerationSeries: Series):
     Returns:
         Series: The processed and filtered acceleration series.
     """
-    series = deMean(accelerationSeries)
+
+    series = accelerationSeries
+    series = deMean(series)
     series = trimSeries(series, 10e6, 5e6)
-    series = applyHanningWindow(series)
+    series = fadeSeries(series, fadePeriod=2e6)
     series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
 
     return series
@@ -245,7 +283,7 @@ def filterAndPlot(h5FilePath: Path, drifts: List[SeriesSet]):
 
 def doAnalysis(h5File: h5py.File):
     seriesSet = SeriesSet.fromH5File(h5File)
-    drifts = seriesSet.getDrifts()
+    drifts = seriesSet.split(shouldInclude)
 
     filterAndPlot(h5File.filename, drifts)
 

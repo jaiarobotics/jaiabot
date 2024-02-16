@@ -4,36 +4,6 @@ from copy import *
 from datetime import timedelta
 
 
-def getDriftRanges(missionStates: Series):
-    """Gets the index ranges for the dives, given a missionStateSeries.
-
-    Args:
-        missionStateSeries (Series): A series containing the mission states at each instant.
-
-    Returns:
-        List[IndexRange]: A list of IndexRange objects that delineate the dives from the series.
-    """
-    DRIFT = 121
-    ranges: List[TimeRange] = []
-    newRange: TimeRange = None
-
-    for index in range(len(missionStates.utime)):
-        utime = missionStates.utime[index]
-        missionState = missionStates.y_values[index]
-
-        # False if we're not in a DRIFT
-        if missionState == DRIFT:
-            if newRange is None:
-                newRange = TimeRange(start=utime, end=-1)
-        else:
-            if newRange is not None:
-                newRange.end = utime
-                ranges.append(newRange)
-                newRange = None
-
-    return ranges
-
-
 def _readSeries(log: h5py.File, path: str, invalid_values: set=set(), name: str=None, scheme=1):
     series = Series()
 
@@ -90,6 +60,11 @@ class SeriesSet:
 
         self.accelerationVertical = Series()
 
+        self.seriesNames = [
+            'missionState', 'altitude', 'acc_x', 'acc_y', 'acc_z', 'grav_x', 'grav_y', 'grav_z', 'accelerationVertical'
+        ]
+
+
     @staticmethod
     def fromH5File(h5File: h5py.File):
         """Reads a SeriesSet from an h5 file.
@@ -125,11 +100,6 @@ class SeriesSet:
         return seriesSet
 
 
-    def getDrifts(self):
-        driftRanges = getDriftRanges(self.missionState)
-        return [self.slice(driftRange) for driftRange in driftRanges]
-
-
     def slice(self, timeRange: TimeRange):
         subSeriesSet = SeriesSet()
 
@@ -146,3 +116,24 @@ class SeriesSet:
         subSeriesSet.accelerationVertical = self.accelerationVertical.slice(timeRange)
 
         return subSeriesSet
+
+
+    def split(self, shouldInclude: Callable[[int, "SeriesSet"], bool]):
+        timeRanges: List[TimeRange] = []
+        timeRange: TimeRange = None
+
+        for index, utime in enumerate(self.missionState.utime):
+            if shouldInclude(index, self):
+                if timeRange is None:
+                    timeRange = TimeRange(utime, None)
+            else:
+                if timeRange is not None:
+                    timeRange.end = utime
+                    timeRanges.append(timeRange)
+                    timeRange = None
+
+        # The whole thing is included
+        if timeRange is not None and timeRange.end is None:
+            return [self]
+    
+        return [self.slice(timeRange) for timeRange in timeRanges]

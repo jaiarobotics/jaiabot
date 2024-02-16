@@ -17,6 +17,13 @@ class TimeRange:
 
     def duration(self):
         return timedelta(microseconds=(self.end - self.start))
+    
+    @staticmethod
+    def fromDatetimes(start: datetime, end: datetime):
+        return TimeRange(start.timestamp() * 1e6, end.timestamp() * 1e6)
+
+    def __contains__(self, time: UnixTimeMicroseconds):
+        return time > self.start and time < self.end
 
 
 def utimeToDatetime(utime: float):
@@ -67,8 +74,8 @@ class Series:
         self.hovertext = {}
 
     def clear(self):
-        self.utime.clear()
-        self.y_values.clear()
+        self.utime = []
+        self.y_values = []
 
     def cleared(self):
         series = Series()
@@ -201,6 +208,21 @@ class Series:
         return newSeries
 
 
+    def blacklistTimePeriods(self, blacklist: List[TimeRange]):
+        newSeries = copy.deepcopy(self)
+        newSeries.clear()
+
+        for index, utime in enumerate(self.utime):
+            include = True
+            for timeRange in blacklist:
+                if utime in timeRange:
+                    include = False
+                    break
+            if include:
+                newSeries.utime.append(utime)
+                newSeries.y_values.append(self.y_values[index])
+
+        return newSeries
 
 from h5py import *
 
