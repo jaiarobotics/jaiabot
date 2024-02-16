@@ -30,7 +30,11 @@
     max-height: 70vh;
     overflow-y: auto;
 }
-
+.settings-card-container {
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: white;
+}
 .settings-card {
     display: flex;
     align-items: center;

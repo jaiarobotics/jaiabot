@@ -122,12 +122,14 @@ export function SettingsPanel(props: Props) {
         <div className="settings-outer-container">
             <div className="panel-heading">Map Settings</div>
             <div className="settings-inner-container">
-                <div className="settings-card">
-                    <div className="settings-label">Track Pod:</div>
-                    <WptToggle
-                        checked={() => props.trackingTarget === 'pod'}
-                        onClick={() => handleTrackPodToggleClick()}
-                    />
+                <div className="settings-card-container">
+                    <div className="settings-card">
+                        <div className="settings-label">Track Pod:</div>
+                        <WptToggle
+                            checked={() => props.trackingTarget === 'pod'}
+                            onClick={() => handleTrackPodToggleClick()}
+                        />
+                    </div>
                 </div>
                 <Accordion
                     expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
