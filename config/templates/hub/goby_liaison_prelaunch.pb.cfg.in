@@ -43,7 +43,6 @@ add_commander_tab: false
             name: "version"
             display_name: "Version Branch"
             value: "1.y"
-            value: "2.y"
         }
     }
     ansible_playbook {

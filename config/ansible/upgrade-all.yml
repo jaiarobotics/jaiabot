@@ -7,6 +7,10 @@
     - vars/packages.yml
 
   tasks:
+    # First update jaiabot packages
+    - include_tasks: tasks/install-jaiabot.yml
+
+    # Then, handle system upgrade
     - name: Remount firmware read-write
       shell: "mount -o remount,rw /boot/firmware"
 
@@ -17,27 +21,18 @@
       shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp || true"
       when: ansible_architecture == "x86_64"
 
-    - include_tasks: tasks/check-deb-proxy.yml      
-    - include_tasks: tasks/read-debconf.yml
-      
-      # if we're using the hub deb proxy, pull all the packages for the hub first, to ensure the change of cache hits is as high as possible for the bots
-    - name: Pre-cache hub
-      include_tasks: tasks/prefetch-deb-proxy.yml
-      when: using_hub_deb_cache and jaiabot_embedded_type == "hub"      
-      
-    - name: Install/upgrade jaiabot packages (allowing add/remove packages if necessary)
-      apt:
-        update_cache: yes
-        name: "{{ jaiabot_packages }}"
-        state: latest        
-      
+    - name: Pre-download hub package upgrade (hub cache only)
+      shell: "apt-get -y dist-upgrade --download-only"
+      args:
+        # need to use shell, not apt as download-only isn't supported yet by the ansible module
+        warn: false
+      when: using_hub_deb_cache and jaiabot_embedded_type == "hub"
+        
     - name: Upgrade remaining system packages (safe upgrade)
       apt:
         update_cache: yes
         upgrade: safe
         
-    - include_tasks: tasks/get-version.yml
-
     - name: Remount firmware read-only
       shell: "mount -o remount,ro /boot/firmware"
 
@@ -45,6 +40,3 @@
       shell: "mv /usr/sbin/update-grub.tmp /usr/sbin/update-grub"
       when: ansible_architecture == "x86_64"
 
-      
-    # Do not include as it takes a long time if NTP isn't sync'd
-    #- include_tasks: tasks/restart-jaiabot.yml

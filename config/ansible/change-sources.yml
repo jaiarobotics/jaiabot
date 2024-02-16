@@ -70,7 +70,7 @@
         content: |
           [global]
           no-index = true
-          find-links = http://hub0/updates
+          find-links = http://hub0/updates/
           trusted-host = hub0
       when: mode == "offline" or mode == "online_with_hub_cache"
       
