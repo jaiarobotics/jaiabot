@@ -22,7 +22,7 @@
       when: ansible_architecture == "x86_64"
 
     - name: Pre-download hub package upgrade (hub cache only)
-      shell: "apt-get -y dist-upgrade --download-only"
+      shell: "apt-get -y update && apt-get -y dist-upgrade --download-only"
       args:
         # need to use shell, not apt as download-only isn't supported yet by the ansible module
         warn: false
