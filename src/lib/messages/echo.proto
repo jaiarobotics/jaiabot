@@ -41,3 +41,15 @@ message EchoData
 {
     optional EchoState echo_state = 1 [default = BOOTING];
 }
+
+message EchoIssue
+{
+    enum SolutionType
+    {
+        REPORT_ECHO = 0;
+        RESTART_ECHO_PY = 1;
+        REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY = 3;
+    }
+
+    required SolutionType solution = 1;
+}

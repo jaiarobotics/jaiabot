@@ -65,6 +65,7 @@ class EchoDriver : public zeromq::MultiThreadApplication<config::EchoDriver>
 
   private:
     goby::time::SteadyClock::time_point last_echo_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{std::chrono::seconds(0)};
     jaiabot::protobuf::EchoData latest_echo_data;
 };
 
@@ -79,7 +80,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1;
+double loop_freq = 0.5;
 
 jaiabot::apps::EchoDriver::EchoDriver()
     : zeromq::MultiThreadApplication<config::EchoDriver>(loop_freq * si::hertz)
@@ -164,5 +165,16 @@ void jaiabot::apps::EchoDriver::check_last_report(
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ECHO_DRIVER);
+
+        // Wait a certain amount of time before publishing issue
+        if (last_echo_trigger_issue_time_ +
+                std::chrono::seconds(cfg().echo_trigger_issue_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+        {
+            jaiabot::protobuf::EchoIssue echo_issue;
+            echo_issue.set_solution(cfg().echo_issue_solution());
+            interprocess().publish<jaiabot::groups::echo>(echo_issue);
+            last_echo_trigger_issue_time_ = goby::time::SteadyClock::now();
+        }
     }
 }

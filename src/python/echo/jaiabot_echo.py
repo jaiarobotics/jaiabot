@@ -38,20 +38,22 @@ def do_port_loop(echo: Echo):
 
     while True:
 
+        #log.warning("Test")
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         try:
             # Deserialize the message
             command = EchoCommand()
             command.ParseFromString(data)
-            log.debug(f'Received command:\n{command}')
+            log.warning(f'Received command:\n{command}')
 
             # Execute the command
             if command.type == EchoCommand.CMD_STATUS:
-                echoData = echo.getEchoData()
-                if echoData is None:
-                    log.warning('getEchoData returned None')
-                else:
-                    sock.sendto(echoData.SerializeToString(), addr)
+                pass
+                #echoData = echo.getEchoData()
+                #if echoData is None:
+                #    log.warning('getEchoData returned None')
+                #else:
+                #    sock.sendto(echoData.SerializeToString(), addr)
             elif command.type == EchoCommand.CMD_START:
                 echo.startDevice()
             elif command.type == EchoCommand.CMD_STOP:

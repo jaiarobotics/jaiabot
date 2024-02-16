@@ -512,6 +512,14 @@ jaia_firmware = [
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
+     'run_at_boot': False},
+     {'exe': 'jaia_firm_echo_reset_gpio_pin.py',
+     'description': 'Script to reset gpio line for the echo',
+     'template': 'echo-reset-gpio-pin.service.in',
+     'subdir': 'echo',
+     'args': '',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
      'run_at_boot': False}
 ]
 

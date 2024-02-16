@@ -8,26 +8,11 @@ import serial
 import time
 from datetime import datetime
 from threading import *
-import RPi.GPIO as GPIO
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
-def reset_pin():
-    RESET_PIN = 23
-
-    #reset the ECHO boards
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(RESET_PIN, GPIO.OUT)
-    GPIO.output(RESET_PIN, GPIO.HIGH)
-    time.sleep(1)
-    GPIO.output(RESET_PIN, GPIO.LOW)
-    time.sleep(1)
-    print('board reset')
-
 try:
-    reset_pin()
-
     uart = serial.Serial("/dev/ttyAMA3", 115200)
     physical_device_available = True
 except ModuleNotFoundError:
@@ -103,6 +88,7 @@ class MAI(Echo):
             exit(1)
 
         self.is_setup = False
+        self.echo_state = EchoState.BOOTING.value
         self._lock = Lock()
 
     def setup(self):
@@ -112,13 +98,11 @@ class MAI(Echo):
 
                 self.sensor = uart
 
-                log.info('Connected, now lets enable output')
+                log.warning('Connected, now lets enable output')
 
                 self.is_setup = True
-                self.echo_state = EchoState.BOOTING
 
-                self.last_data_time = time.time()
-                self.max_time_without_data = 10
+                log.warning('Connected, Done with setup')
 
             except Exception as error:
                 self.is_setup = False
@@ -135,6 +119,7 @@ class MAI(Echo):
         if not self.is_setup:
             self.setup()
         if self.is_setup:
+            time.sleep(0.01)
             self.sensor.write(message)
         else:
             log.warning("Device is not set up. Command not sent.")
@@ -147,26 +132,24 @@ class MAI(Echo):
             # This should query the echo device
             log.info("Get Status From Echo")
             self.sendCMD(EchoCommands.CMD_STATUS.value)
-
+            
             while True:
                 cc=str(self.sensor.readline().decode('utf-8').strip())
+                log.warning(cc)
                 if cc.startswith('$ECHO'):
                     # Split the string by comma and get the last part
                     state = cc.split(",")[-1]
 
-                    # Convert the last part to an integer
-                    state = int(state)
+                    try:
+                        # Convert the last part to an integer
+                        state = int(state)
+                        log.warning(f'State: {state}')
+                        self.echo_state = state
+                        break
+                    except Exception as error:
+                        log.warning("No state")
+                        #break
 
-                    print("State:", state)
-                    self.echo_state = state
-                    self.last_data_time = time.time()
-                    break
-                elif time.time() - self.last_data_time >= self.max_time_without_data:
-                    print(cc)
-                    reset_pin()
-                    self.is_setup = False
-                    self.last_data_time = time.time()
-                    break
 
             return EchoStatus(echo_state=self.echo_state)
 
@@ -175,26 +158,27 @@ class MAI(Echo):
 
     def startDevice(self):
         try:
-            if self.echo_state != EchoState.START:
+            log.warning("Attempting Starting Echo")
+            if self.echo_state != EchoState.RUNNING.value:    
                 # This should start the echo device
-                log.info("Starting Echo")
+                log.warning("Starting Echo")
                 timeStr = datetime.utcnow().strftime("$GPZDA,%H%M%S.00,%d,%m,%Y,00,00*")
                 timeStr = timeStr.encode('utf-8')
                 self.sendCMD(timeStr)
-
-                time.sleep(0.01)
-                
                 self.sendCMD(EchoCommands.CMD_START.value)
+                self.getStatus()
 
         except Exception as error:
             log.warning("Error trying to start device")
     
     def stopDevice(self):
         try:
-            if self.echo_state != EchoState.STOP:
+            log.warning("Attempting Stopping Echo")
+            if self.echo_state != EchoState.READY.value:
                 # This should stop the echo device
-                log.info("Stopping Echo")
+                log.warning("Stopping Echo")
                 self.sendCMD(EchoCommands.CMD_STOP.value)
+                self.getStatus()
 
         except Exception as error:
             log.warning("Error trying to stop device")

@@ -26,6 +26,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/feather.proto";
 import "goby/middleware/protobuf/udp_config.proto";
+import "jaiabot/messages/echo.proto";
 
 package jaiabot.config;
 
@@ -40,4 +41,6 @@ message EchoDriver
 
     optional int32 echo_report_timeout_seconds = 10 [default = 40];
     optional bool echo_report_in_simulation = 11 [default = true];
+    optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 12 [default = REPORT_ECHO];
+    optional int32 echo_trigger_issue_timeout_seconds = 10 [default = 40];
 }
