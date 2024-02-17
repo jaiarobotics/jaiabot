@@ -48,36 +48,7 @@ class EchoCommands(Enum):
     CMD_VER = b'$REC,VER'
     CMD_HELP = b'$REC,HELP'
 
-@dataclass
-class EchoStatus:
-    echo_state: EchoState
-
 class Echo:
-    def setup(self):
-        pass
-    
-    def getStatus(self):
-        return EchoStatus()
-
-    def getEchoData(self):
-        """Returns an EchoData protobuf object, suitable for sending over UDP
-
-        Returns:
-            EchoData: the reading as an EchoData
-        """
-        log.debug('About to take reading')
-        reading = self.getStatus()
-
-        if reading is None:
-            return None
-
-        echo_data = EchoData()
-        echo_data.echo_state = reading.echo_state
-
-        return echo_data
-
-
-class MAI(Echo):
     _lock: Lock
 
     def __init__(self):
@@ -88,7 +59,7 @@ class MAI(Echo):
             exit(1)
 
         self.is_setup = False
-        self.echo_state = EchoState.BOOTING.value
+        self.echo_state = None
         self._lock = Lock()
 
     def setup(self):
@@ -102,7 +73,9 @@ class MAI(Echo):
 
                 self.is_setup = True
 
-                log.warning('Connected, Done with setup')
+                log.warning('Connected, Done with setup, Get Status')
+
+                self.getStatus()
 
             except Exception as error:
                 self.is_setup = False
@@ -148,15 +121,23 @@ class MAI(Echo):
                         break
                     except Exception as error:
                         log.warning("No state")
-                        #break
-
-
-            return EchoStatus(echo_state=self.echo_state)
+                if 'ERROR' in cc:
+                    self.echo_state = None
 
         except Exception as error:
             log.warning("Error trying to get status!")
 
+    def getState(self):
+        if not self.is_setup:
+            self.setup()
+            
+        log.warning(f'State: {self.echo_state}')
+        return self.echo_state
+
     def startDevice(self):
+        if not self.is_setup:
+            self.setup()
+
         try:
             log.warning("Attempting Starting Echo")
             if self.echo_state != EchoState.RUNNING.value:    
@@ -172,6 +153,9 @@ class MAI(Echo):
             log.warning("Error trying to start device")
     
     def stopDevice(self):
+        if not self.is_setup:
+            self.setup()
+
         try:
             log.warning("Attempting Stopping Echo")
             if self.echo_state != EchoState.READY.value:

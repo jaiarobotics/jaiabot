@@ -39,8 +39,8 @@ message EchoDriver
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
-    optional int32 echo_report_timeout_seconds = 10 [default = 40];
+    optional int32 echo_report_timeout_seconds = 10 [default = 20];
     optional bool echo_report_in_simulation = 11 [default = true];
-    optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 12 [default = REPORT_ECHO];
-    optional int32 echo_trigger_issue_timeout_seconds = 10 [default = 40];
+    optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 12 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
+    optional int32 echo_trigger_issue_timeout_seconds = 13 [default = 20];
 }

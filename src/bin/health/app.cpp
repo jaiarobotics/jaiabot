@@ -230,8 +230,8 @@ jaiabot::apps::Health::Health()
                     break;
                 case protobuf::EchoIssue::REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY:
                     glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
-                    restart_echo_py();
                     reboot_echo();
+                    restart_echo_py();
                     break;
                 default:
                     //TODO Handle Default Case

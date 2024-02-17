@@ -64,8 +64,9 @@ class EchoDriver : public zeromq::MultiThreadApplication<config::EchoDriver>
                            goby::middleware::protobuf::HealthState& health_state);
 
   private:
-    goby::time::SteadyClock::time_point last_echo_report_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_echo_report_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
     jaiabot::protobuf::EchoData latest_echo_data;
 };
 
@@ -80,7 +81,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 0.5;
+double loop_freq = 1;
 
 jaiabot::apps::EchoDriver::EchoDriver()
     : zeromq::MultiThreadApplication<config::EchoDriver>(loop_freq * si::hertz)

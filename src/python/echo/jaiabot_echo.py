@@ -38,7 +38,6 @@ def do_port_loop(echo: Echo):
 
     while True:
 
-        #log.warning("Test")
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         try:
             # Deserialize the message
@@ -47,13 +46,14 @@ def do_port_loop(echo: Echo):
             log.warning(f'Received command:\n{command}')
 
             # Execute the command
-            if command.type == EchoCommand.CMD_STATUS:
-                pass
-                #echoData = echo.getEchoData()
-                #if echoData is None:
-                #    log.warning('getEchoData returned None')
-                #else:
-                #    sock.sendto(echoData.SerializeToString(), addr)
+            if command.type == EchoCommand.CMD_STATUS:  
+                echoData = EchoData()
+                log.warning(f'State: {echo.getState()}')
+                if echo.getState() != None:
+                    echoData.echo_state = echo.getState()
+                    sock.sendto(echoData.SerializeToString(), addr)
+                else:
+                    log.warning("State is None")
             elif command.type == EchoCommand.CMD_START:
                 echo.startDevice()
             elif command.type == EchoCommand.CMD_STOP:
@@ -65,7 +65,7 @@ def do_port_loop(echo: Echo):
 
 if __name__ == '__main__':
     # Setup the sensor
-    echo = MAI()
+    echo = Echo()
 
     # Start the thread that responds to EchoCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[echo])
