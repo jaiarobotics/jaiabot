@@ -43,12 +43,12 @@ def do_port_loop(echo: Echo):
             # Deserialize the message
             command = EchoCommand()
             command.ParseFromString(data)
-            log.warning(f'Received command:\n{command}')
+            log.debug(f'Received command:\n{command}')
 
             # Execute the command
             if command.type == EchoCommand.CMD_STATUS:  
                 echoData = EchoData()
-                log.warning(f'State: {echo.getState()}')
+                log.debug(f'State: {echo.getState()}')
                 if echo.getState() != None:
                     echoData.echo_state = echo.getState()
                     sock.sendto(echoData.SerializeToString(), addr)

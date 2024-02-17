@@ -65,15 +65,15 @@ class Echo:
     def setup(self):
         if not self.is_setup:
             try:
-                log.warning('We are not setup')
+                log.debug('We are not setup')
 
                 self.sensor = uart
 
-                log.warning('Connected, now lets enable output')
+                log.debug('Connected, now lets enable output')
 
                 self.is_setup = True
 
-                log.warning('Connected, Done with setup, Get Status')
+                log.debug('Connected, Done with setup, Get Status')
 
                 self.getStatus()
 
@@ -108,7 +108,7 @@ class Echo:
             
             while True:
                 cc=str(self.sensor.readline().decode('utf-8').strip())
-                log.warning(cc)
+                log.debug(cc)
                 if cc.startswith('$ECHO'):
                     # Split the string by comma and get the last part
                     state = cc.split(",")[-1]
@@ -116,7 +116,7 @@ class Echo:
                     try:
                         # Convert the last part to an integer
                         state = int(state)
-                        log.warning(f'State: {state}')
+                        log.debug(f'State: {state}')
                         self.echo_state = state
                         break
                     except Exception as error:
@@ -131,7 +131,7 @@ class Echo:
         if not self.is_setup:
             self.setup()
             
-        log.warning(f'State: {self.echo_state}')
+        log.debug(f'State: {self.echo_state}')
         return self.echo_state
 
     def startDevice(self):
@@ -139,10 +139,10 @@ class Echo:
             self.setup()
 
         try:
-            log.warning("Attempting Starting Echo")
+            log.debug("Attempting Starting Echo")
             if self.echo_state != EchoState.RUNNING.value:    
                 # This should start the echo device
-                log.warning("Starting Echo")
+                log.debug("Starting Echo")
                 timeStr = datetime.utcnow().strftime("$GPZDA,%H%M%S.00,%d,%m,%Y,00,00*")
                 timeStr = timeStr.encode('utf-8')
                 self.sendCMD(timeStr)
@@ -157,10 +157,10 @@ class Echo:
             self.setup()
 
         try:
-            log.warning("Attempting Stopping Echo")
+            log.debug("Attempting Stopping Echo")
             if self.echo_state != EchoState.READY.value:
                 # This should stop the echo device
-                log.warning("Stopping Echo")
+                log.debug("Stopping Echo")
                 self.sendCMD(EchoCommands.CMD_STOP.value)
                 self.getStatus()
 
