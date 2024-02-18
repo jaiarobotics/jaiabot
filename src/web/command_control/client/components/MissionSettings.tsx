@@ -36,6 +36,7 @@ interface Props {
     missionParams: MissionParams
     missionPlanningGrid: {[key: string]: number[][]}
     missionBaseGoal: Goal,
+    missionStartTask: MissionTask
     missionEndTask: MissionTask,
     rallyFeatures: Feature<Geometry>[]
     startRally: Feature<Geometry>,
@@ -44,7 +45,7 @@ interface Props {
     botList?: {[key: string]: BotStatus}
 
     onClose: () => void
-    onMissionApply: (missionSettings: MissionSettings, startRally: Feature<Geometry>, endRally: Feature<Geometry>) => void
+    onMissionApply: (startRally: Feature<Geometry>, endRally: Feature<Geometry>, missionStartTask: MissionTask, missionEndTask: MissionTask) => void
     onMissionChangeEditMode: () => void
     onTaskTypeChange: () => void
     setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void
@@ -56,7 +57,9 @@ interface Props {
 interface State {
     missionParams: MissionParams
     missionBaseGoal: Goal,
-    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
+    missionStartTask: MissionTask,
+    // This is the final task for bots to do at the last line waypoint
+    missionEndTask: MissionTask
     botList?: {[key: string]: BotStatus}
 }
 
@@ -75,6 +78,7 @@ export class MissionSettingsPanel extends React.Component {
         this.state = {
             missionParams: props.missionParams,
             missionBaseGoal: props.missionBaseGoal,
+            missionStartTask: props.missionStartTask,
             missionEndTask: props.missionEndTask,
             botList: props.botList
         }
@@ -167,6 +171,18 @@ export class MissionSettingsPanel extends React.Component {
                                 missionBaseGoal.task = task
                                 this.setState({ missionBaseGoal })
                             }}
+                        />
+                    </div>
+
+                    <div className="mission-settings-task-container">
+                        <div className="mission-settings-tasks-title">Start Task:</div>
+                        <TaskSettingsPanel 
+                            title="Start Task" 
+                            map={map} 
+                            location={this.props.startRally?.get('location')}
+                            isEditMode={true}
+                            task={this.state.missionStartTask} 
+                            onChange={(missionStartTask) => { this.setState({ missionStartTask })}} 
                         />
                     </div>
 
@@ -288,7 +304,7 @@ export class MissionSettingsPanel extends React.Component {
             endTask: this.state.missionEndTask
         }
 
-        this.props.onMissionApply?.(missionSettings, this.props.startRally, this.props.endRally)
+        this.props.onMissionApply?.(this.props.startRally, this.props.endRally, this.state.missionStartTask, this.state.missionEndTask)
     }
 
     changeMissionBotSelection() {
