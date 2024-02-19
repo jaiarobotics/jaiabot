@@ -354,9 +354,10 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
  * @param {boolean} isActiveGoal Is this goal the active goal for its bot?
  * @param {boolean} isSelected Is this goal selected by the user?
  * @param {boolean} canEdit Is this goal in an editable state?
+ * @param {(boolean | null | undefined)} echoStart Task start echo sensor for this goal
  * @returns {Icon} The Icon style for this goal
  */
-export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean, echoStart: boolean | null | undefined) {
     taskType = taskType ?? TaskType.NONE
     const src = getGoalSrc(taskType)
     const color = getGoalColor(isActiveGoal, isSelected, canEdit)
@@ -420,7 +421,7 @@ export function getGoalStyle(feature: Feature<Point>) {
     const goalIndex = feature.get('goalIndex') as number
     const zIndex = feature.get('zIndex') as number
 
-    let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
+    let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit, goal.task?.start_echo)
 
     const markerStyle = new Style({
         image: icon,
