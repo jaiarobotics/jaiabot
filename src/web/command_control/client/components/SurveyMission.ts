@@ -60,17 +60,21 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
 /**
  * Gets a mission plan from the set of survey mission parameters
  * 
- * @param botIdList 
  * @param rallyStartLocation 
  * @param rallyEndLocation 
- * @param missionParams 
  * @param missionPlanningGrid 
  * @param missionEndTask 
  * @param missionBaseGoal 
  * @returns A CommandList (dictionary mapping botIds to Commands)
  */
-export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: GeographicCoordinate, rallyEndLocation: GeographicCoordinate, 
-    missionParams: MissionParams, missionPlanningGrid: {[key: string]: number[][]}, missionEndTask: MissionTask, missionBaseGoal: Goal) {
+export function getSurveyMissionPlans(
+    rallyStartLocation: GeographicCoordinate, 
+    rallyEndLocation: GeographicCoordinate, 
+    missionPlanningGrid: {[key: string]: number[][]},
+    missionBaseGoal: Goal,
+    missionStartTask: MissionTask,
+    missionEndTask: MissionTask,
+) {
     
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
@@ -90,7 +94,7 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
                 "lat": rallyStartLocation.lat,
                 "lon": rallyStartLocation.lon
             },
-            "task": {"type": TaskType.NONE}
+            "task": missionStartTask
         }
         botGoals.push(botGoal)
 
