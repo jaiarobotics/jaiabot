@@ -47,8 +47,8 @@ def protobufMessageToDict(message):
 
 
 def filterDuplicateTaskPackets(taskPackets: List[dict]):
-    """Filters duplicate task packets that can occur after data offloading.  This works
-    by indexing the task packets by a (bot_id, reduced_time) tuple, and checking neighboring
+    """Filters duplicate task packets that can occur after data offloading. This works
+    by indexing the task packets by a (bot_id, reduced_time) tuple and checking neighboring
     reduced_time values for duplicates.
 
     Args:
@@ -56,22 +56,8 @@ def filterDuplicateTaskPackets(taskPackets: List[dict]):
     Returns:
         (List[dict]): Filtered list of task packets.
     """
-    def reduceTime(time: int):
-        """Does an integer division to give the floored Unix timestamp in seconds.
-
-        Args:
-            time (int): Unix timestamp in microseconds.
-
-        Returns:
-            int: Unix timestamp in seconds, rounded down.
-        """
-
-        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
-        # second, (1 million microseconds)
-        BIN_LENGTH = 1_000_000
-        return int(time // BIN_LENGTH)
-    
-    taskPacketLookup: Dict[tuple, dict] = {} # maps (bot_id, reduced_time) to TaskPacket
+    # Maps (bot_id, reduced_time) to TaskPacket
+    taskPacketLookup: Dict[tuple, dict] = {}
 
     for taskPacket in taskPackets:
         bot_id = taskPacket['bot_id']
@@ -88,6 +74,19 @@ def filterDuplicateTaskPackets(taskPackets: List[dict]):
         
     return list(taskPacketLookup.values())
 
+def reduceTime(time: int):
+        """Does integer division to give the floored Unix timestamp in seconds.
+
+        Args:
+            time (int): Unix timestamp in microseconds.
+
+        Returns:
+            int: Unix timestamp in seconds, rounded down.
+        """
+        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
+        # second, (1 million microseconds)
+        BIN_LENGTH = 1_000_000
+        return int(time) // BIN_LENGTH
 
 class Interface:
     # Dict from hub_id => hubStatus
@@ -509,7 +508,7 @@ class Interface:
         return count 
     
     # Contour map
-
+    
     def get_depth_contours(self, start_date, end_date):
         return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
@@ -555,4 +554,3 @@ class Interface:
         self.offloaded_task_packet_dates = (
             [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
         )
-
