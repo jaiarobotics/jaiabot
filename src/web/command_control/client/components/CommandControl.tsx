@@ -142,6 +142,7 @@ interface State {
 	missionPlanningLines?: any,
 	missionPlanningFeature?: OlFeature<Geometry>,
 	missionBaseGoal: Goal,
+	missionStartTask: MissionTask,
 	missionEndTask: MissionTask,
 
 	runList: MissionInterface,
@@ -277,7 +278,8 @@ export default class CommandControl extends React.Component {
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
 			missionBaseGoal: { task: { type: TaskType.NONE } },
-			missionEndTask: {type: TaskType.NONE},
+			missionStartTask: { type: TaskType.NONE },
+			missionEndTask: { type: TaskType.NONE },
 
 			runList: {
 				id: 'mission-1',
@@ -527,7 +529,10 @@ export default class CommandControl extends React.Component {
 
 		// Update the mission planning layer whenever relevant state changes
 		const botsChanged = (prevState.podStatus.bots.length !== this.state.podStatus.bots.length)
-		if (stateHasChanged(['missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionBaseGoal', 'missionPlanningGrid', 'missionEndTask'], false) || botsChanged) {
+		if (stateHasChanged(
+			['missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionPlanningGrid', 'missionBaseGoal', 'missionStartTask', 'missionEndTask'],
+			 false) || botsChanged
+		) {
 			this.updateMissionPlanningLayer()
 		}
 
@@ -1594,11 +1599,18 @@ export default class CommandControl extends React.Component {
 
 		// Place all the mission planning features in this for the missionLayer
 		const missionPlanningFeaturesList: OlFeature[] = []
-		const { missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
+		const { missionPlanningGrid, missionBaseGoal, missionStartTask, missionEndTask } = this.state
 
 
 		if (missionPlanningGrid) {
-			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), this.state.startRally?.get('location'), this.state.endRally?.get('location'), missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
+			this.missionPlans = getSurveyMissionPlans(
+				this.state.startRally?.get('location'),
+				this.state.endRally?.get('location'), 
+				missionPlanningGrid,
+				missionBaseGoal,
+				missionStartTask, 
+				missionEndTask
+			)
 			const planningGridFeatures = featuresFromMissionPlanningGrid(missionPlanningGrid, missionBaseGoal)
 			missionPlanningFeaturesList.push(...planningGridFeatures)
 		}
@@ -3169,6 +3181,7 @@ export default class CommandControl extends React.Component {
 					missionParams={this.state.missionParams}
 					missionPlanningGrid={this.state.missionPlanningGrid}
 					missionBaseGoal={this.state.missionBaseGoal}
+					missionStartTask={this.state.missionStartTask}
 					missionEndTask={this.state.missionEndTask}
 					rallyFeatures={layers.rallyPointLayer.getSource().getFeatures()}
 					startRally={this.state.startRally}
@@ -3191,15 +3204,22 @@ export default class CommandControl extends React.Component {
 						this.missionPlans = null
 						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
 					}}
-					onMissionApply={(missionSettings: MissionSettings, startRally: OlFeature, endRally: OlFeature) => {
-						this.setState({ missionEndTask: missionSettings.endTask, startRally, endRally })
+					onMissionApply={(startRally: OlFeature, endRally: OlFeature, startTask: MissionTask, endTask: MissionTask) => {
+						this.setState({ startRally, endRally, missionStartTask: startTask, missionEndTask: endTask, })
 
 						if (this.state.missionParams.missionType === 'lines') {
-							const { missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							const { missionPlanningGrid, missionBaseGoal, missionStartTask, missionEndTask } = this.state
 							const rallyStartLocation = startRally.get('location')
 							const rallyEndLocation = endRally.get('location')
 
-							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
+							this.missionPlans = getSurveyMissionPlans(
+								rallyStartLocation,
+								rallyEndLocation,
+								missionPlanningGrid,
+								missionBaseGoal,
+								missionStartTask,
+								missionEndTask
+							)
 
 							let runList = this.getRunList()
 							this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
