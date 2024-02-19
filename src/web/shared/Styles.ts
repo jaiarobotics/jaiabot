@@ -20,6 +20,8 @@ const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
+const taskDiveEcho = require('./taskDiveEcho.svg') as string
+const taskDriftEcho = require('./taskDriftEcho.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const taskConstantHeading = require('./taskConstantHeading.svg') as string
 const taskListen = require('./taskListen.svg') as string 
@@ -310,11 +312,11 @@ export function desiredHeadingArrow(feature: Feature): Style {
  * @param {(TaskType | null)} taskType A task type
  * @returns {string} Icon src for the given task type
  */
-function getGoalSrc(taskType: TaskType | null) {
+function getGoalSrc(taskType: TaskType | null, echoStart: boolean | null | undefined) {
     const srcMap: {[key: string]: string} = {
-        'DIVE': taskDive,
+        'DIVE': echoStart ? taskDiveEcho: taskDive,
         'STATION_KEEP': taskStationKeep,
-        'SURFACE_DRIFT': taskDrift,
+        'SURFACE_DRIFT': echoStart ? taskDriftEcho : taskDrift,
         'CONSTANT_HEADING': taskConstantHeading,
         'LISTEN': taskListen,
         'NONE': taskNone       
@@ -359,7 +361,7 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
  */
 export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean, echoStart: boolean | null | undefined) {
     taskType = taskType ?? TaskType.NONE
-    const src = getGoalSrc(taskType)
+    const src = getGoalSrc(taskType, echoStart)
     const color = getGoalColor(isActiveGoal, isSelected, canEdit)
 
     return new Icon({
