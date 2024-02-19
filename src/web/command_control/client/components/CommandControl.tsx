@@ -3249,7 +3249,6 @@ export default class CommandControl extends React.Component {
 					setBottomDepthSafetyParams={this.setBottomDepthSafetyParams.bind(this)}
 					isSRPEnabled={this.state.isSRPEnabled}
 					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
-					deleteSRPInputsFromRuns={this.deleteSRPInputsFromRuns.bind(this)}
 					botList={bots}
 					
 					onClose={() => {
@@ -3281,7 +3280,11 @@ export default class CommandControl extends React.Component {
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}
 
-								this.addSRPInputsToRuns()
+								if (this.state.isSRPEnabled) {
+									this.addSRPInputsToRuns()
+								} else {
+									this.deleteSRPInputsFromRuns()
+								}
 
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''

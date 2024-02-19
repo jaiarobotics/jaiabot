@@ -47,7 +47,6 @@ interface Props {
     setBottomDepthSafetyParams: (params: BottomDepthSafetyParams) => void
     isSRPEnabled: boolean
     setIsSRPEnabled: (isSRPEnabled: boolean) => void
-    deleteSRPInputsFromRuns: () => void
     botList?: {[key: string]: BotStatus}
 
     onClose: () => void
@@ -175,10 +174,6 @@ export class MissionSettingsPanel extends React.Component {
         let srpContainer = document.getElementById("srp-container")
         if (srpContainer === null) {
             return 
-        }
-
-        if (this.props.isSRPEnabled) {
-            this.props.deleteSRPInputsFromRuns()
         }
     }
 
