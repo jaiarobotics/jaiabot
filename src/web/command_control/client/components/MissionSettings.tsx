@@ -1,11 +1,13 @@
 import React from 'react'
 import Map from 'ol/Map'
 import turf from '@turf/turf'
+import WptToggle from './WptToggle'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
-import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
+import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
 import { FormControl, MenuItem } from '@mui/material'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
+import { MissionInterface } from './CommandControl'
 import { Geometry } from 'ol/geom'
 import { Feature } from 'ol'
 import { CustomAlert } from './shared/CustomAlert'
@@ -41,6 +43,11 @@ interface Props {
     startRally: Feature<Geometry>,
     endRally: Feature<Geometry>,
     centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+    runList: MissionInterface
+    bottomDepthSafetyParams: BottomDepthSafetyParams
+    setBottomDepthSafetyParams: (params: BottomDepthSafetyParams) => void
+    isSRPEnabled: boolean
+    setIsSRPEnabled: (isSRPEnabled: boolean) => void
     botList?: {[key: string]: BotStatus}
 
     onClose: () => void
@@ -92,6 +99,83 @@ export class MissionSettingsPanel extends React.Component {
     getSortedRallyFeatures() {
         let rallyFeatures = [...this.props.rallyFeatures]
         return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
+    }
+
+    /**
+     * Prevents negative values, characters, and numbers > max from being passed as parameters
+     * 
+     * @param {number} value Input value to check
+     * @returns {number} The value itself, 0, or the max if the input is not valid
+     */
+    validateBottomDepthSafetyParams(key: string, value: number) {
+        if (Number.isNaN(value)) {
+            return 0
+        }
+
+        // Units: (m/s)
+        const maxSpeed = 3
+        if (key === "constant_heading_speed" && value > maxSpeed) {
+            return maxSpeed
+        }
+
+        const maxDegrees = 360
+        if (key === "constant_heading" && value > maxDegrees) {
+            return maxDegrees
+        }
+
+        const maxSeconds = 360
+        if (key === "constant_heading_time" && value > maxSeconds) {
+            return maxSeconds
+        }
+
+        const maxDepth = 60
+        if (key == "safety_depth" && value > maxDepth) {
+            return maxDepth
+        }
+
+        return value
+    }
+
+    /**
+     * Updates the values for safety return path (SRP) based on input changes
+     * 
+     * @param {Event} evt Holds the data used to update the SRP params
+     * @returns {void}
+     */
+    handleBottomDepthSafetyParamChange(evt: Event) {
+        const element = evt.target as HTMLInputElement
+        const value = this.validateBottomDepthSafetyParams(element.name, Number(element.value))
+        let bottomDepthSafetyParams = {...this.props.bottomDepthSafetyParams}
+
+        switch (element.name) {
+            case "constant_heading":
+                bottomDepthSafetyParams.constant_heading = value
+                break
+            case "constant_heading_time":
+                bottomDepthSafetyParams.constant_heading_time = value
+                break
+            case "constant_heading_speed":
+                bottomDepthSafetyParams.constant_heading_speed = value
+                break
+            case "safety_depth":
+                bottomDepthSafetyParams.safety_depth = value
+        }
+
+        this.props.setBottomDepthSafetyParams(bottomDepthSafetyParams)
+    }
+
+    /**
+     * Switches toggle state and triggers deletion of SRP values (if toggled off)
+     * 
+     * @returns {void}
+     */
+    handleSRPToggleClick() {
+        this.props.setIsSRPEnabled(!this.props.isSRPEnabled)
+        
+        let srpContainer = document.getElementById("srp-container")
+        if (srpContainer === null) {
+            return 
+        }
     }
 
     render() {
@@ -180,6 +264,64 @@ export class MissionSettingsPanel extends React.Component {
                             task={this.state.missionEndTask} 
                             onChange={(missionEndTask) => { this.setState({ missionEndTask })}} 
                         />
+                    </div>
+
+                    {/* Safety Return Path (SRP) */}
+                    <div className="mission-settings-line-break"></div>
+                    <div className="mission-settings-header">
+                        <div>Safety Return Path:</div>
+                        <WptToggle 
+                            checked={() => this.props.isSRPEnabled}
+                            onClick={() => this.handleSRPToggleClick()}
+                        />
+                    </div>
+
+                    <div
+                        className={
+                            `mission-settings-srp-container 
+                            ${this.props.isSRPEnabled ? 'mission-settings-show' : 'mission-settings-hide'}`
+                        }
+                        id="srp-container"
+                    >
+                        <div className="mission-settings-input-label">Depth:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="safety_depth"
+                                value={this.props.bottomDepthSafetyParams.safety_depth}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> m
+                        </div>
+
+                        <div className="mission-settings-input-label">Heading:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading"
+                                value={this.props.bottomDepthSafetyParams.constant_heading}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> deg
+                        </div>
+
+                        <div className="mission-settings-input-label">Time:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading_time"
+                                value={this.props.bottomDepthSafetyParams.constant_heading_time}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> s
+                        </div>
+
+                        <div className="mission-settings-input-label">Speed:</div>
+                        <div className="mission-settings-input-row">
+                            <input
+                                className="mission-settings-num-input"
+                                name="constant_heading_speed"
+                                value={this.props.bottomDepthSafetyParams.constant_heading_speed}
+                                onChange={this.handleBottomDepthSafetyParamChange.bind(this)}
+                            /> m/s
+                        </div>
                     </div>
 
                     <div className="mission-settings-line-break"></div>
