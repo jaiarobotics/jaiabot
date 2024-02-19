@@ -46,6 +46,48 @@ def protobufMessageToDict(message):
     return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
 
 
+def filterDuplicateTaskPackets(taskPackets: List[dict]):
+    """Filters duplicate task packets that can occur after data offloading. This works
+    by indexing the task packets by a (bot_id, reduced_time) tuple and checking neighboring
+    reduced_time values for duplicates.
+
+    Args:
+        taskPackets (List[dict]): Unfiltered list of task packets.
+    Returns:
+        (List[dict]): Filtered list of task packets.
+    """
+    # Maps (bot_id, reduced_time) to TaskPacket
+    taskPacketLookup: Dict[tuple, dict] = {}
+
+    for taskPacket in taskPackets:
+        bot_id = taskPacket['bot_id']
+        reducedStartTime = reduceTime(taskPacket['start_time'])
+
+        # Check neighboring bins as well for task packets, just in case start_time was on
+        # the cusp of being rounded up/down
+        if (bot_id, reducedStartTime) in taskPacketLookup or \
+           (bot_id, reducedStartTime - 1) in taskPacketLookup or \
+           (bot_id, reducedStartTime + 1) in taskPacketLookup:
+            continue
+        else:
+            taskPacketLookup[(bot_id, reducedStartTime)] = taskPacket
+        
+    return list(taskPacketLookup.values())
+
+def reduceTime(time: int):
+        """Does integer division to give the floored Unix timestamp in seconds.
+
+        Args:
+            time (int): Unix timestamp in microseconds.
+
+        Returns:
+            int: Unix timestamp in seconds, rounded down.
+        """
+        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
+        # second, (1 million microseconds)
+        BIN_LENGTH = 1_000_000
+        return int(time) // BIN_LENGTH
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -455,22 +497,18 @@ class Interface:
 
         combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
         # Filter out duplicates with dict comprehenson, then convert to list
-        unique_task_packets = list(
-            {f"{task_packet['bot_id']}-{task_packet['start_time']}": task_packet for task_packet in combined_task_packets}.values()
-        ) 
+        unique_task_packets = filterDuplicateTaskPackets(combined_task_packets)
 
         return unique_task_packets
     
     def get_total_task_packets_count(self):
         total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
         # Use set constructor to eliminate duplicate TaskPackets
-        count = len(
-            set(map(lambda task_packet: f'{task_packet["bot_id"]}-{task_packet["start_time"]}', total_combined_task_packets))
-        )
+        count = len(filterDuplicateTaskPackets(total_combined_task_packets))
         return count 
-
+    
     # Contour map
-
+    
     def get_depth_contours(self, start_date, end_date):
         return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
