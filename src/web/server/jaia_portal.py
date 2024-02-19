@@ -46,15 +46,15 @@ def protobufMessageToDict(message):
     return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
 
 
-def filterDuplicateTaskPackets(taskPackets: list[dict]):
+def filterDuplicateTaskPackets(taskPackets: List[dict]):
     """Filters duplicate task packets that can occur after data offloading.  This works
     by indexing the task packets by a (bot_id, reduced_time) tuple, and checking neighboring
     reduced_time values for duplicates.
 
     Args:
-        taskPackets (list[dict]): Unfiltered list of task packets.
+        taskPackets (List[dict]): Unfiltered list of task packets.
     Returns:
-        (list[dict]): Filtered list of task packets.
+        (List[dict]): Filtered list of task packets.
     """
     def reduceTime(time: int):
         """Does an integer division to give the floored Unix timestamp in seconds.
@@ -71,7 +71,7 @@ def filterDuplicateTaskPackets(taskPackets: list[dict]):
         BIN_LENGTH = 1_000_000
         return int(time // BIN_LENGTH)
     
-    taskPacketLookup: dict[tuple, dict] = {} # maps (bot_id, reduced_time) to TaskPacket
+    taskPacketLookup: Dict[tuple, dict] = {} # maps (bot_id, reduced_time) to TaskPacket
 
     for taskPacket in taskPackets:
         bot_id = taskPacket['bot_id']
