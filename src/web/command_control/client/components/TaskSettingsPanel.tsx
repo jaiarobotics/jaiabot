@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, ListenParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
 import { GlobalSettings, Save } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { Button, FormControl, MenuItem } from '@mui/material';
@@ -10,6 +10,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import WptToggle from './WptToggle';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -98,20 +99,6 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
-    function onChangeListenDepthParameter(evt: React.ChangeEvent<HTMLInputElement>) {
-        const target = evt.target as any
-        const key = target.name as (keyof ListenParameters)
-        const value = Number(target.value)
-
-        var newTask = deepcopy(task)
-        newTask.listen[key] = value
-
-        GlobalSettings.listenParameters[key] = value
-        Save(GlobalSettings.listenParameters)
-
-        props.onChange(newTask)
-    }
-
     // For selecting target for constant heading task type    
     function selectOnMapClicked() {
         const { map, location } = props
@@ -179,11 +166,37 @@ function TaskOptionsPanel(props: Props) {
             constant_heading.constant_heading_time = Number(t.toFixed(0))
         })
     }
+
+     /**
+     * Checks to see if what state start_echo is in
+     * 
+     * @returns {void}
+     */
+    function isEchoChecked() {
+        if (task?.start_echo === undefined) {
+            return false
+        }
+        return task.start_echo
+    }
+
+     /**
+     * Switches toggle state for start_echo
+     * 
+     * @returns {void}
+     */
+    function handleEchoCheck() {
+        if (task?.start_echo === undefined) {
+            task["start_echo"] = true
+        } else if (task.start_echo) {
+            task.start_echo = false
+        } else {
+            task.start_echo = true
+        }
+    }
     
     let dive = task.dive
     let surface_drift = task.surface_drift
     let constant_heading = task.constant_heading
-    let listen = task.listen
 
     switch(task.type) {
         case TaskType.NONE:
@@ -209,6 +222,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -224,6 +247,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -234,21 +267,6 @@ function TaskOptionsPanel(props: Props) {
                 if (speed == null || time == null) return null;
                 else return speed * time;
             }
-            
-            return null
-        case TaskType.LISTEN:
-            return (
-                <div id="ListenDiv">
-                    <table className="TaskParametersTable">
-                        <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Depth</td>
-                                <td className="input-row depth"><input type="number" step="1" className="NumberInput" name="listen_depth" defaultValue={listen.listen_depth} onChange={onChangeListenDepthParameter} disabled={!props?.isEditMode} />m</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            )
 
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
@@ -321,9 +339,6 @@ export function TaskSettingsPanel(props: Props) {
             case TaskType.SURFACE_DRIFT:
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
-            case TaskType.LISTEN:
-                newTask.listen = deepcopy(GlobalSettings.listenParameters)
-                break;
         }
 
         props.onChange(newTask)
@@ -340,7 +355,6 @@ export function TaskSettingsPanel(props: Props) {
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
-                <MenuItem value={"LISTEN"}>Listen</MenuItem>
             </Select>
             {TaskOptionsPanel(props)}
         </FormControl>

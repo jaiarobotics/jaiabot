@@ -1,5 +1,5 @@
 // Saving and loading settings from browser's localStorage
-import { ConstantHeadingParameters, DiveParameters, DriftParameters, ListenParameters, Speeds } from "./shared/JAIAProtobuf"
+import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 
 /**
@@ -92,11 +92,6 @@ export let GlobalSettings = {
     // Default drift parameters for dive and drift tasks
     driftParameters: Load<DriftParameters>('driftParameters', {
         drift_time: 10
-    }),
-
-    // Default depth parameter (in meters) for Listen task
-    listenParameters: Load<ListenParameters>('listenParameters', {
-        listen_depth: 0
     }),
 
     constantHeadingParameters: Load<ConstantHeadingParameters>('constantHeadingParameters', {
