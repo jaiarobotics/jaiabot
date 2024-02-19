@@ -191,33 +191,27 @@ def deMean(series: Series):
 
 def calculateSortedWaveHeights(elevationSeries: Series):
     waveHeights: List[float] = []
-    y = elevationSeries.y_values
+    ys = elevationSeries.y_values
 
-    trough = 0
-    peak = 0
+    trough = None
+    peak = None
 
-    direction = 0 # +1 for up, 0 for stationary, -1 for down
+    oldDy = 0
 
     # Find waves
-    for index, y in enumerate(elevationSeries.y_values):
-        oldDirection = direction
+    for index, y in enumerate(ys):
+        if index > 0:
+            dy = y - ys[index - 1]
 
-        if y > 0:
-            direction = 1
-        else:
-            direction = -1
+            if dy > 0 and oldDy <=0:
+                trough = y
+            elif dy < 0 and oldDy >= 0:
+                peak = y
 
-        if direction == -1 and oldDirection == 1:
-            # Moving down below 0 again, so we finished a wave
-            if peak != 0 and trough != 0:
-                waveHeights.append(peak - trough)
-                peak = 0
-                trough = 0
-        
-        if direction == 1:
-            peak = max(y, peak)
-        elif direction == -1:
-            trough = min(y, trough)
+                if trough is not None:
+                    waveHeights.append(peak - trough)
+
+            oldDy = dy
 
     sortedWaveHeights = sorted(waveHeights)
 

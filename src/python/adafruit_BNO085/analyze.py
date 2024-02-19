@@ -24,7 +24,7 @@ from seriesSet import *
 
 ### Global settings ##
 sampleFreq = 4
-bandPassFilter = cos2Filter(1/27, 1/135, 2, 2)
+bandPassFilter = cos2Filter(1/15, 1/120, 2, 2)
 
 
 def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
