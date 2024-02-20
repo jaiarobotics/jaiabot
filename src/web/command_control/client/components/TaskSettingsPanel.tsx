@@ -38,6 +38,7 @@ interface Props {
     isEditMode?: boolean
     scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
+    onDoneClick?: (task?: MissionTask) => void
 }
 
 // TaskOptionsPanel

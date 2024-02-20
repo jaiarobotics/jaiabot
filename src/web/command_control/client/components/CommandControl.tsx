@@ -123,7 +123,7 @@ export interface RunInterface {
 	command: Command,
 }
 
-export interface MissionInterface {
+export interface MissionInterface { 
 	id: string,
 	name: string,
 	runs: {[key: string]: RunInterface},
@@ -1103,6 +1103,49 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * Used to differentiate between a state change and a task/mission change. Called from onDoneClick() in Render(). Calls updateMissionHistory() if the task of a waypoint changes. 
+	 * 
+	 * @param {MissionInterface} mission Provides current mission to test if task type has changed between the previous and latest missions
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Tests to see if there was a change in the type of task for each waypoint. If the done button was pressed in the goal settings panel,
+	 * then the mission history is updated with the new task. This way, the undo button can work as expected. Does not track changes in 
+	 * task parameters, only in task type. 
+	 */
+	taskChangeTester(mission: MissionInterface) {
+		let runList = this.getRunList()
+		let runIdInEditMode = runList.runIdInEditMode
+		let oldGoalType, newGoalType
+
+		let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
+		let newGoals = mission.runs[runIdInEditMode].command.plan.goal
+
+		for (let i = 0; i < newGoals.length - 1; i++) {
+			// Prevents error from popping up if the oldGoalType or newGoalType is undefined or null
+			if (oldGoals[i].task === undefined || oldGoals[i].task === null) {
+				oldGoalType = undefined
+			} else {
+				oldGoalType = oldGoals[i].task.type
+			}
+
+			if (newGoals[i].task === undefined || newGoals[i].task === null) {
+				newGoalType = undefined
+			} else {
+				newGoalType = newGoals[i].task.type
+			}
+
+			// Only update mission history if the task type has changed
+			if (newGoalType !== oldGoalType) {
+				console.log(oldGoalType)
+				console.log(newGoalType)
+				
+				this.updateMissionHistory(mission)
+			}
+		}
+	}
+
+	/**
 	 * @returns Whether any bots are assigned to runs in the current runList
 	 */
 	areBotsAssignedToRuns() {
@@ -1730,7 +1773,7 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
-
+ 
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
@@ -2978,7 +3021,7 @@ export default class CommandControl extends React.Component {
 			info('There is no more history to undo')
 			return
 		}
-
+ 
 		this.missionHistory.pop()
 		this.setRunList(deepcopy(this.missionHistory[this.missionHistory.length - 1]))
 
@@ -3099,6 +3142,7 @@ export default class CommandControl extends React.Component {
 			this.unselectAllTaskPackets()
 		}
 
+		this.taskChangeTester(this.getRunList())
 		this.setState({ visiblePanel: panelType })
 	}
 
@@ -3502,7 +3546,12 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
-						onChange={() => this.setRunList(this.getRunList())} 
+						onChange={() => {
+							this.setRunList(this.getRunList())
+						}}
+						onDoneClick={() => {
+							this.taskChangeTester(this.getRunList())
+						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
 						setRunList={this.setRunList.bind(this)}
