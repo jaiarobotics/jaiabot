@@ -438,7 +438,7 @@ class Interface:
             utime(end_date)
         )
         
-        return self.all_task_packetst[start_index: end_index]
+        return self.all_task_packets[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
         if start_date is None or end_date is None:
