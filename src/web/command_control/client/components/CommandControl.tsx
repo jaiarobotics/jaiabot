@@ -1116,30 +1116,35 @@ export default class CommandControl extends React.Component {
 	taskChangeTester(mission: MissionInterface) {
 		let runList = this.getRunList()
 		let runIdInEditMode = runList.runIdInEditMode
-		let oldGoalType, newGoalType
+		let oldGoalType, newGoalType, newGoal, oldGoal
 
 		let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
 		let newGoals = mission.runs[runIdInEditMode].command.plan.goal
 
-		for (let i = 0; i < newGoals.length - 1; i++) {
+		// Use default parameters depending on which type of task we've switched to
+        
+		for (let i = 0; i < newGoals.length; i++) {
 			// Prevents error from popping up if the oldGoalType or newGoalType is undefined or null
 			if (oldGoals[i].task === undefined || oldGoals[i].task === null) {
+				oldGoal = undefined
 				oldGoalType = undefined
 			} else {
+				oldGoal = oldGoals[i].task
 				oldGoalType = oldGoals[i].task.type
 			}
 
 			if (newGoals[i].task === undefined || newGoals[i].task === null) {
+				newGoal = undefined
 				newGoalType = undefined
 			} else {
+				newGoal = newGoals[i].task
 				newGoalType = newGoals[i].task.type
 			}
 
 			// Only update mission history if the task type has changed
 			if (newGoalType !== oldGoalType) {
-				console.log(oldGoalType)
-				console.log(newGoalType)
-				
+				mission.runs[runIdInEditMode].command.plan.goal[i].task = newGoals[i].task
+				this.setRunList(mission)
 				this.updateMissionHistory(mission)
 			}
 		}
@@ -3142,8 +3147,8 @@ export default class CommandControl extends React.Component {
 			this.unselectAllTaskPackets()
 		}
 
-		this.taskChangeTester(this.getRunList())
 		this.setState({ visiblePanel: panelType })
+		this.taskChangeTester(this.getRunList())
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
@@ -3550,6 +3555,7 @@ export default class CommandControl extends React.Component {
 							this.setRunList(this.getRunList())
 						}}
 						onDoneClick={() => {
+							this.setRunList(this.getRunList())
 							this.taskChangeTester(this.getRunList())
 						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
