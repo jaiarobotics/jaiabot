@@ -57,8 +57,12 @@ gps_after_dive_hdop_fix: 1.3 # (optional) (default=1.3)
 gps_after_dive_pdop_fix: 2.2 # (optional) (default=2.2)
 
 # Data offload
-data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
+data_preoffload_script: "jaiabot-predataoffload.sh" # log_dir staging_dir [additional exclude]
+data_postoffload_script: "jaiabot-postdataoffload.sh" # log_dir staging_dir archive_dir 
 log_dir: "$log_dir" # (required)
+log_staging_dir: "$bot_log_staging_dir"
+log_archive_dir: "$bot_log_archive_dir"
+
 hub_start_ip: 10 # (required)
 class_b_network: "10.23" # (required)
 # data_offload_exclude options: (NONE, GOBY, TASKPACKET)

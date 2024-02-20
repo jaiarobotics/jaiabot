@@ -160,8 +160,8 @@ message MissionManager
     optional double dive_eps_to_determine_diving = 62
         [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
 
-    required string data_preoffload_command = 70;
-    required string data_postoffload_command = 71;
+    required string data_preoffload_script = 70;
+    required string data_postoffload_script = 71;
 
     // e.g. /var/log/jaiabot/bot/*/
     required string log_dir = 72;
@@ -170,13 +170,18 @@ message MissionManager
         default = "/var/log/jaiabot/staging"
     ];  // dir on bot with data to be offloaded
 
+    optional string log_archive_dir = 74 [
+        default = "/var/log/jaiabot/archive"
+    ];  // archived bot data
+
+    
     enum DownloadFileTypes
     {
         NONE = 1;
         GOBY = 2;
         TASKPACKET = 3;
     }
-    optional DownloadFileTypes data_offload_exclude = 74;
+    optional DownloadFileTypes data_offload_exclude = 75;
 
     enum EngineeringTestMode
     {

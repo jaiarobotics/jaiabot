@@ -50,14 +50,9 @@ message HubManager
     optional int32 health_report_timeout_seconds = 16 [default = 20];
 
     // data offload
-    required string data_offload_command = 70;
-    optional string log_staging_dir = 71 [
-        default = "/var/log/jaiabot/staging"
-    ];  // dir on bot with data to be offloaded
-    optional string log_dest_dir = 72 [
-        default = "/var/log/jaiabot/bot_offload"
-    ];  // dir on hub for data to be offloaded to
-
-    required int32 bot_start_ip = 73 [default = 100];
-    required string class_b_network = 74 [default = "10.23"];
+    required string data_offload_script = 20;
+    optional string log_staging_dir = 21 [default = "/var/log/jaiabot/staging"];
+    optional string log_offload_dir = 22 [default = "/var/log/jaiabot/bot_offload"];
+    required int32 bot_start_ip = 23 [default = 100];
+    required string class_b_network = 24 [default = "10.23"];
 }

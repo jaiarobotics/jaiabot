@@ -567,7 +567,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     // Inputs to data offload command log dir, bot ip, and extra exclusions for rsync
     std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
                          std::to_string((cfg().bot_start_ip() + bot_id));
-    std::string offload_command = cfg().data_offload_command() + " " + bot_ip + " 2>&1";
+    std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
+                                  " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
     auto offload_func = [this, offload_command]()
     {

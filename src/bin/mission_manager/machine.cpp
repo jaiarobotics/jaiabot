@@ -1460,12 +1460,14 @@ bool jaiabot::statechart::postdeployment::DataOffload::run_command(CommandType t
     if (type == CommandType::PRE_OFFLOAD)
     {
         human_command_type = "pre-data offload";
-        command = preoffload_command_;
+        command = cfg().data_preoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + this->machine().data_offload_exclude() + " 2>&1";
     }
     else if (type == CommandType::POST_OFFLOAD)
     {
         human_command_type = "post-data offload";
-        command = postoffload_command_;
+        command = cfg().data_postoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + " " + cfg().log_archive_dir() + " 2>&1";
     }
 
     glog.is_debug1() && glog << "Performing " << human_command_type << " with command: [" << command

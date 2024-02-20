@@ -239,28 +239,27 @@ endif()
 
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
-# for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR} COPYONLY)
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
+set(scripts_to_install
+  jaiabot-checkloadavg.py
+  # data offload
+  data-offload/jaiahub-dataoffload.sh
+  data-offload/jaiabot-predataoffload.sh
+  data-offload/jaiabot-postdataoffload.sh
+  # Cockpit scripts
+  jaiabot-update-packages.sh
+  jaiabot-version-status.sh
+  jaiabot-software-group.sh
+  # Firmware scripts
+  jaia_firm_backup_date.sh
+)
 
-# Cockpit scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-update-packages.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-update-packages.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-version-status.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-version-status.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-software-group.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-software-group.sh ${project_BIN_DIR} COPYONLY)
-
-# Firmware scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh ${project_BIN_DIR} COPYONLY)
+# Iterate over each script to install and copy
+foreach(script ${scripts_to_install})
+    install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
+    configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
+endforeach()
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

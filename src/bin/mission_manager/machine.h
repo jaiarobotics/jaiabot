@@ -1914,10 +1914,6 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     };
 
     bool run_command(CommandType type);
-
-  private:
-    std::string preoffload_command_{cfg().data_preoffload_command() + " 2>&1"};
-    std::string postoffload_command_{cfg().data_postoffload_command() + " 2>&1"};
 };
 
 struct Failed : boost::statechart::state<Failed, PostDeployment>,
