@@ -686,6 +686,7 @@ export interface MissionPlan {
     goal?: Goal[]
     recovery?: Recovery
     speeds?: Speeds
+    bottomDepthSafetyParams?: BottomDepthSafetyParams
     fragment_index?: number
     expected_fragments?: number
     repeats?: number
@@ -1126,10 +1127,10 @@ export interface RFDisableOptions {
 }
 
 export interface BottomDepthSafetyParams {
-    constant_heading?: number
-    constant_heading_time?: number
-    constant_heading_speed?: number
-    safety_depth?: number
+    constant_heading: number
+    constant_heading_time: number
+    constant_heading_speed: number
+    safety_depth: number
 }
 
 export interface Engineering {
