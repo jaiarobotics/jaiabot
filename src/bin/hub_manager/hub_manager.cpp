@@ -79,6 +79,9 @@ class HubManager : public ApplicationBase
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 
     // data offload
+    // track bot going into DataOffload state
+    std::map<uint16_t, protobuf::MissionState> latest_bot_mission_state_;
+    std::deque<uint16_t> bots_pending_data_offload_;
     std::unique_ptr<std::thread> offload_thread_;
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
@@ -173,8 +176,21 @@ void jaiabot::apps::HubManager::loop()
     if (offload_complete_)
     {
         offload_thread_->join();
-        if (!offload_success_) {}
-        else {}
+        if (!offload_success_)
+        {
+            // ...
+        }
+        else
+        {
+            //...
+        }
+        offload_thread_.reset();
+    }
+
+    if (!offload_thread_ && !bots_pending_data_offload_.empty())
+    {
+        start_dataoffload(bots_pending_data_offload_.front());
+        bots_pending_data_offload_.pop_front();
     }
 }
 
@@ -306,6 +322,21 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
 
     if (dccl_nav.has_depth())
         node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.depth_with_units());
+
+    // check for data offload
+
+    auto previous_mission_state = latest_bot_mission_state_.count(dccl_nav.bot_id())
+                                      ? latest_bot_mission_state_.at(dccl_nav.bot_id())
+                                      : protobuf::PRE_DEPLOYMENT__STARTING_UP;
+
+    if (dccl_nav.mission_state() == protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
+        previous_mission_state != protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+    {
+        glog.is_debug1() && glog << "Queuing offload for bot " << dccl_nav.bot_id() << std::endl;
+        bots_pending_data_offload_.push_back(dccl_nav.bot_id());
+    }
+
+    latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
 
     // publish for opencpn interface
     if (node_status.IsInitialized())
@@ -564,6 +595,8 @@ void jaiabot::apps::HubManager::handle_hardware_status(
 
 void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
 {
+    glog.is_verbose() && glog << "Starting offload for bot " << bot_id << std::endl;
+
     // Inputs to data offload command log dir, bot ip, and extra exclusions for rsync
     std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
                          std::to_string((cfg().bot_start_ip() + bot_id));
