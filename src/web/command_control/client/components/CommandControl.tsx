@@ -3022,9 +3022,21 @@ export default class CommandControl extends React.Component {
 	//
 	//
 	/**
+	 * Triggers a state update for changes made to the MissionParams
+	 * 
+	 * @param {MissionParams} params Contains the params edited by the operator
+	 * @returns {void} 
+	 */
+	setMissionParams(params: MissionParams) {
+		let updatedParams = {...params}
+		this.setState({ missionParams: updatedParams })
+	}
+
+	/**
 	 * Triggers a state update for changes made to the BottomDepthSafetyParams
 	 * 
-	 * @param {BottomDepthSafetyParams} params Contain the params edited by the operator
+	 * @param {BottomDepthSafetyParams} params Contains the params edited by the operator
+	 * @returns {void}
 	 * 
 	 * @notes
 	 * Keeping the BottomDepthSafetyParams in CommandControl state allows the data to persist
@@ -3179,6 +3191,7 @@ export default class CommandControl extends React.Component {
 				<MissionSettingsPanel
 					map={map}
 					missionParams={this.state.missionParams}
+					setMissionParams={this.setMissionParams.bind(this)}
 					missionPlanningGrid={this.state.missionPlanningGrid}
 					missionBaseGoal={this.state.missionBaseGoal}
 					missionStartTask={this.state.missionStartTask}
