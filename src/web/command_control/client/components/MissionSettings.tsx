@@ -267,7 +267,7 @@ export class MissionSettingsPanel extends React.Component {
                     <div
                         className={
                             `mission-settings-srp-container 
-                            ${this.props.isSRPEnabled && this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`
+                            ${this.props.isSRPEnabled ? 'mission-settings-show' : 'mission-settings-hide'}`
                         }
                         id="srp-container"
                     >
