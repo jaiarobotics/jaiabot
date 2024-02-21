@@ -18,8 +18,88 @@ from filters import *
 from pprint import pprint
 from pathlib import *
 from statistics import *
+import spectrogram
+from seriesSet import *
 
 
+### Global settings ##
+sampleFreq = 4
+bandPassFilter = cos2Filter(1/15, 1/120, 2, 2)
+
+
+def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
+    """Returns true if this data point should be included in analysis.
+
+    Args:
+        missionStateIndex (int): Index into the missionState Series.
+        seriesSet (SeriesSet): The series set to check.
+
+    Returns:
+        bool: Return true if the data at this time should be included in the anlysis.
+    """
+
+    DRIFT = 121
+    if seriesSet.missionState.y_values[missionStateIndex] != DRIFT:
+        # Not in a DIVE state
+        return False
+    
+    blacklist = [
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 2, 48, 20), datetime(2024, 2, 14, 2, 58, 51)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 8, 0), datetime(2024, 2, 14, 4, 18, 55)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 3, 1, 39), datetime(2024, 2, 14, 3, 3, 31)),        
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 3, 7, 30), datetime(2024, 2, 14, 3, 9, 18)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 36, 32), datetime(2024, 2, 14, 4, 40, 0)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 40, 0), datetime(2024, 2, 14, 6, 14, 0)),
+        TimeRange.fromDatetimes(datetime(2024, 2, 13, 7, 18, 39), datetime(2024, 2, 13, 7, 25, 46)),
+    ]
+
+    utime = seriesSet.missionState.utime[missionStateIndex]
+    for timeRange in blacklist:
+        if utime in timeRange:
+            # In a blacklisted TimeRange
+            return False
+        
+    return True
+
+
+def calculateElevationSeries(accelerationSeries: Series):
+    """Calculates the elevation series from an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The acceleration series.
+
+    Returns:
+        Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
+    """
+
+    series = accelerationSeries
+    series = deMean(series)
+    series = trimSeries(series, 10e6, 5e6)
+    series = fadeSeries(series, fadePeriod=2e6)
+    series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
+
+
+def filterAcceleration(accelerationSeries: Series):
+    """Process and filter an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The input acceleration series.
+
+    Returns:
+        Series: The processed and filtered acceleration series.
+    """
+
+    series = accelerationSeries
+    series = deMean(series)
+    series = trimSeries(series, 10e6, 5e6)
+    series = fadeSeries(series, fadePeriod=2e6)
+    series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
+
+######################
 
 def htmlForWaves(sortedWaveHeights: List[float]):
     html = ''
@@ -38,7 +118,7 @@ def htmlForWaves(sortedWaveHeights: List[float]):
 def htmlForFilterGraph(filterFunc: Callable[[float], float]):
     # Band pass filter graph
     fig = go.Figure()
-    periods = numpy.arange(0.1, 25.0, 0.1)
+    periods = numpy.arange(0.1, 40.0, 0.1)
     y = [filterFunc(1/period) for period in periods]
 
     fig.add_trace(go.Scatter(x=periods, y=y, name=f'Filter Coefficient'))
@@ -52,18 +132,41 @@ def htmlForFilterGraph(filterFunc: Callable[[float], float]):
     return '<h1>Band pass filter</h1>' + fig.to_html(full_html=False, include_plotlyjs='cdn')
 
 
-def processSeries(series: Series, steps: List[ProcessingStep]):
-    for step in steps:
-        series = step(series)
-    return series
+def htmlForChart(charts: List[Series]):
+    htmlString = ''
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    yaxis_titles = []
+    for series in charts:
+        fig.add_trace(go.Scatter(x=series.datetimes(), y=series.y_values, name=series.name))
+        yaxis_titles.append(series.name)
+
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title=','.join(yaxis_titles),
+        legend_title="Legend"
+    )
+
+    htmlString += fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='80%', default_height='60%')
+
+    return htmlString
 
 
-def htmlForCharts(charts: List[List[Series]], waveHeights: List[float], index: int):
+def htmlForDrift(driftIndex: int, drift: SeriesSet):
+    # Calculate filtered acceleration series, elevation series, and wave heights
+    uniformAcceleration = drift.accelerationVertical.makeUniform(sampleFreq)
+    filteredAccelerationSeries = filterAcceleration(uniformAcceleration)
+    filteredAccelerationSeries.name = 'Filtered acceleration'
+
+    elevationSeries = calculateElevationSeries(uniformAcceleration)
+    elevationSeries.name = 'Calculated Elevation'
+    waveHeights = calculateSortedWaveHeights(elevationSeries)
+
     # Header
     htmlString = ''
 
-    htmlString += f'<h1><a id="{index + 1}">Drift #{index + 1}</a></h1>'
-    durationString = formatTimeDelta(charts[0][0].duration())
+    htmlString += f'<h1><a id="{driftIndex + 1}">Drift #{driftIndex + 1}</a></h1>'
+    durationString = formatTimeDelta(drift.acc_x.duration())
     htmlString += f'<h3>Drift duration: {durationString}<h3>'
 
     if len(waveHeights) > 0:
@@ -73,24 +176,12 @@ def htmlForCharts(charts: List[List[Series]], waveHeights: List[float], index: i
     # The wave heights
     htmlString += htmlForWaves(waveHeights)
 
-    figures: List[go.Figure] = []
-
-    for chart in charts:
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-        yaxis_titles = []
-        for series in chart:
-            fig.add_trace(go.Scatter(x=series.datetimes(), y=series.y_values, name=series.name))
-            yaxis_titles.append(series.name)
-
-        fig.update_layout(
-            xaxis_title="Time",
-            yaxis_title=','.join(yaxis_titles),
-            legend_title="Legend"
-        )
-        figures.append(fig)    
-
-    for fig in figures:
-        htmlString += fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='80%', default_height='60%')
+    htmlString += htmlForChart([uniformAcceleration, filteredAccelerationSeries, elevationSeries])
+    htmlString += htmlForChart([drift.grav_x])
+    grav_x_uniform = drift.grav_x.makeUniform(sampleFreq)
+    htmlString += spectrogram.htmlForSpectrogram(grav_x_uniform, fftWindowSeconds=80)
+    htmlString += spectrogram.htmlForSpectrogram(uniformAcceleration, fftWindowSeconds=80)
+    htmlString += spectrogram.htmlForSpectrogram(filteredAccelerationSeries, fftWindowSeconds=80)
 
     return htmlString
 
@@ -114,17 +205,17 @@ def htmlForFFTGraph(series: Series, sampleFreq: float, bandPassFilter: Callable[
     return fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='35%', default_height='40%')
 
 
-def htmlForSummaryTable(seriesList: List[Series], processingSteps: List[ProcessingStep]):
+def htmlForSummaryTable(uniformAccelerations: List[Series]):
     html = '<h1>Summary</h1>'
     html += '<table><tr><td>Drift #</td><td>Duration</td><td>Significant Wave Height</td></tr>'
 
     swhSum = 0.0
     durationSum = 0.0
 
-    for index, series in enumerate(seriesList):
-        filteredSeries = processSeries(series, processingSteps)
-        waveHeights = calculateSortedWaveHeights(filteredSeries)
-        duration = seriesList[index].duration()
+    for index, uniformAcceleration in enumerate(uniformAccelerations):
+        elevation = calculateElevationSeries(uniformAcceleration)
+        waveHeights = calculateSortedWaveHeights(elevation)
+        duration = uniformAcceleration.duration()
         durationString = formatTimeDelta(duration)
 
         if len(waveHeights) == 0:
@@ -162,230 +253,45 @@ def formatTimeDelta(td: timedelta):
 cssTag = '<style>' + open('style.css').read() + '</style>'
 
 
-def filterAndPlot(h5FilePath: Path, 
-                  accelerationSeries: Series, 
-                  otherSeriesList: List[Series], 
-                  sampleFreq: float, 
-                  splitFunc: Callable[[Series, int], bool], 
-                  bandPassFilter: Callable[[float], float]):
-    
-    driftAccelerationSeries = getSubSeriesList(accelerationSeries, splitFunc)
-
-    print([series.count() for series in driftAccelerationSeries])
-
-    otherSeriesList = [getSubSeriesList(series, splitFunc) for series in otherSeriesList]
-
+def filterAndPlot(h5FilePath: Path, drifts: List[SeriesSet]):
+    h5FilePath = Path(h5FilePath)
     description = h5FilePath.stem
     htmlFilePath = h5FilePath.parent.joinpath(f'waveAnalysis-{description}-{datetime.now().strftime("%Y%m%dT%H%M%S")}.html')
     htmlFilename = str(htmlFilePath)
     SWHs = []
 
-    # PROCESSING STEPS
-    processToElevationSteps = [
-        deMean,
-        (lambda series: fadeSeries(series, 10e6, 5e6, 5e6)),
-        (lambda series: accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)),
-    ]
 
-    filterAccelerationSteps = [
-        deMean,
-        (lambda series: fadeSeries(series, 10e6, 5e6, 5e6)),
-        (lambda series: filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)),
-    ]
-    ###################
+    uniformAcceleration: List[Series] = [drift.accelerationVertical.makeUniform(sampleFreq) for drift in drifts]
 
     with open(htmlFilename, 'w') as f:
         f.write('<html><meta charset="utf-8">\n')
 
         f.write(cssTag)
         f.write(f'<h1>{description}</h1>')
-        f.write(htmlForSummaryTable(driftAccelerationSeries, processToElevationSteps))
+        f.write(htmlForSummaryTable(uniformAcceleration))
 
         f.write(htmlForFilterGraph(bandPassFilter))
 
         # Drift altitude and filtered altitude series
-        for driftIndex, rawAccelerationSeries in enumerate(driftAccelerationSeries):
-            filteredAccelerationSeries = processSeries(rawAccelerationSeries, filterAccelerationSteps)
-            filteredAccelerationSeries.name = 'Filtered acceleration'
-
-            elevationSeries = processSeries(rawAccelerationSeries, processToElevationSteps)
-            elevationSeries.name = 'Calculated Elevation'
-
-            charts = [[rawAccelerationSeries, filteredAccelerationSeries, elevationSeries]]
-
-            if len(otherSeriesList) > 0:
-                charts.append([series[driftIndex] for series in otherSeriesList])
-
-            waves = calculateSortedWaveHeights(elevationSeries)
-
-            f.write(htmlForCharts(charts, waves, index=driftIndex))
+        for driftIndex, drift in enumerate(drifts):
+            f.write(htmlForDrift(driftIndex, drift))
 
         f.write('</html>\n')
 
     os.system(f'xdg-open {htmlFilename}')
 
-    print('Significant Wave Heights')
-    for i in range(0, len(SWHs)):
-        print(f'Drift {i}: {SWHs[i]:0.2f} m')
-
-
-def plotSWHVersusWindowDuration(accelerations: List[Series], sampleFreq: float, bandPassFilter: Callable[[float], float]):
-    # Try different time windows
-    def xrange(start, end, delta):
-        val = start
-
-        while val < end:
-            yield val
-            val += delta
-
-    fig = make_subplots()
-
-    for acceleration in accelerations:
-        duration = acceleration.duration().total_seconds()
-
-        windowDurations = list(xrange(10, duration - 15, 5))
-        swhs: List[float] = []
-
-        for windowDuration in windowDurations:
-            processToElevationSteps = [
-                fadeSeries(10e6, (duration - windowDuration - 10) * 1e6, 2e6),
-                getUniformSeries(freq=sampleFreq),
-                accelerationToElevation(sampleFreq=sampleFreq, filterFunc=bandPassFilter),
-            ]
-
-            elevation = processSeries(acceleration, processToElevationSteps)
-            waves = elevation.sortedWaveHeights()
-            swh = significantWaveHeight(waves)
-
-            swhs.append(swh)
-
-        fig.add_trace(go.Scatter(x=windowDurations, y=swhs, name=f'SWH', mode='lines+markers'))
-
-    fig.update_layout(
-        title=f"SWH vs Window Duration",
-        xaxis_title="Window Duration (seconds)",
-        yaxis_title="SWH (meters)",
-        legend_title="Legend"
-    )
-
-    fig.show()
-
-
-
-def filterIMUData(ax: Series, ay: Series, az: Series, gx: Series, gy: Series, gz: Series):
-    rax = ax.cleared()
-    ray = ay.cleared()
-    raz = az.cleared()
-
-    rgx = gx.cleared()
-    rgy = gy.cleared()
-    rgz = gz.cleared()
-
-    for i in range(len(ax.y_values)):
-        g = [gx.y_values[i], gy.y_values[i], gz.y_values[i]]
-        a = [ax.y_values[i], ay.y_values[i], az.y_values[i]]
-
-        g_mag_squared = g[0] * g[0] + \
-                        g[1] * g[1] + \
-                        g[2] * g[2] 
-        
-        if g_mag_squared < (8 * 8) or g_mag_squared > (50 * 50):
-            continue
-
-        a_mag_squared = a[0] * a[0] + \
-                       a[1] * a[1] + \
-                       a[2] * a[2]
-
-        if a_mag_squared == 0 or a_mag_squared > (50 * 50):
-            continue
-
-        if abs(g[0]) < 0.02 or abs(g[1]) < 0.02 or abs(g[2]) < 0.02: # Sometimes the gravity components glitch out to 0.01 for no reason
-            continue
-
-        rax.appendPair(ax.get(i))
-        ray.appendPair(ay.get(i))
-        raz.appendPair(az.get(i))
-
-        rgx.appendPair(gx.get(i))
-        rgy.appendPair(gy.get(i))
-        rgz.appendPair(gz.get(i))
-
-    return rax, ray, raz, rgx, rgy, rgz
-
 
 def doAnalysis(h5File: h5py.File):
-    missionStateSeries = readSeriesFromHDF5File(h5File, 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state')
-    altitudeSeries = readSeriesFromHDF5File(h5File, 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/altitude', invalid_values=[None])
-    
-    raw_acc_x = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/x', invalid_values=[None], name='acc.x')
-    raw_acc_y = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/y', invalid_values=[None], name='acc.y')
-    raw_acc_z = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/z', invalid_values=[None], name='acc.z')
+    seriesSet = SeriesSet.fromH5File(h5File)
+    drifts = seriesSet.split(shouldInclude)
 
-    raw_grav_x = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/x', invalid_values=[None], name='grav.x')
-    raw_grav_y = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y', invalid_values=[None], name='grav.y')
-    raw_grav_z = readSeriesFromHDF5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z', invalid_values=[None], name='grav.z')
+    filterAndPlot(h5File.filename, drifts)
 
-    acc_x, acc_y, acc_z, grav_x, grav_y, grav_z = filterIMUData(raw_acc_x, raw_acc_y, raw_acc_z, raw_grav_x, raw_grav_y, raw_grav_z)
-
-    acc_x = filterAcc(acc_x)
-    acc_y = filterAcc(acc_y)
-    acc_z = filterAcc(acc_z)
-
-    grav_x = filterAcc(grav_x)
-    grav_y = filterAcc(grav_y)
-    grav_z = filterAcc(grav_z)
-
-    accelerationSeries = Series()
-    accelerationSeries.name = 'acceleration'
-    accelerationSeries.utime = acc_x.utime
-    for i in range(len(acc_x.utime)):
-        accelerationSeries.y_values.append((acc_x.y_values[i] * grav_x.y_values[i] + 
-                                            acc_y.y_values[i] * grav_y.y_values[i] + 
-                                            acc_z.y_values[i] * grav_z.y_values[i]) / 9.8)
-        
-    otherSeriesList = [
-        raw_acc_x, acc_x,
-        raw_acc_y, acc_y,
-        raw_acc_z, acc_z,
-        raw_grav_x, grav_x,
-        raw_grav_y, grav_y,
-        raw_grav_z, grav_z,
-        # Series(h5File, 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/mode', invalid_values=[None])
-        # Series(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/pitch', invalid_values=[None])
-        # accelerationMagnitudeSeries,
-        # Series(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/x', invalid_values=[None]),
-        # Series(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/y', invalid_values=[None]),
-        # Series(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/z', invalid_values=[None]),
-    ]
-
-    # Here we list time ranges that we know we don't want to use (motorized setup wasn't running, etc)
-    blacklistedTimeRanges = [
-        {
-            'min': datetime.fromisoformat('2023-08-09T14:03:54').timestamp() * 1e6, 
-            'max': datetime.fromisoformat('2023-08-09T14:05:42').timestamp() * 1e6
-        }
-    ]
-
-    def splitFunc(series: Series, index: int):
-        '''Returns True if this point is part of a valid drift'''
-        utime = series.utime[index]
-
-        # False if we're not in a DRIFT
-        if missionStateSeries.getValueAtTime(utime) != 121:
-            return False
-        
-        # False if within a blacklisted time range
-        for r in blacklistedTimeRanges:
-            if utime > r['min'] and utime < r['max']:
-                return False
-
-        return True
-
-    sampleFreq = 4
-    uniformAccelerationSeries = getUniformSeries(freq=sampleFreq)(accelerationSeries)
-    bandPassFilter = gaussianFilter(0.1, 2.0, k=1000)
-    bandPassFilter = cos2Filter(1/15, 2.0, 0.01)
-    filterAndPlot(Path(h5File.filename), uniformAccelerationSeries, otherSeriesList=otherSeriesList, sampleFreq=sampleFreq, splitFunc=splitFunc, bandPassFilter=bandPassFilter)
+    # sampleFreq = 4
+    # uniformAccelerationSeries = getUniformSeries(freq=sampleFreq)(accelerationSeries)
+    # bandPassFilter = gaussianFilter(0.1, 2.0, k=1000)
+    # bandPassFilter = cos2Filter(1/30, 1/5, 0.02)
+    # filterAndPlot(Path(h5File.filename), uniformAccelerationSeries, otherSeriesList=otherSeriesList, sampleFreq=sampleFreq, splitFunc=splitFunc, bandPassFilter=bandPassFilter)
 
 
 if __name__ == '__main__':
