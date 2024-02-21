@@ -188,7 +188,7 @@ export class MissionSettingsPanel extends React.Component {
                         /> m
                     </div>
 
-                    <div className="mission-settings-input-label">Line Spacing:</div>
+                    <div className="mission-settings-input-label">Lane Spacing:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
@@ -236,7 +236,7 @@ export class MissionSettingsPanel extends React.Component {
                     </div>
 
                     <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
-                        <div className="mission-settings-tasks-title">Start Task:</div>
+                        <div className="mission-settings-tasks-title">Start Rally Task:</div>
                         <TaskSettingsPanel 
                             title="Start Task" 
                             map={map} 
@@ -248,7 +248,7 @@ export class MissionSettingsPanel extends React.Component {
                     </div>
 
                     <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
-                        <div className="mission-settings-tasks-title">End Task:</div>
+                        <div className="mission-settings-tasks-title">End Survey Task:</div>
                         <TaskSettingsPanel 
                             title="End Task" 
                             map={map} 
