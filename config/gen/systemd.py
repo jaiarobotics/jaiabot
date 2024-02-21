@@ -106,12 +106,13 @@ elif args.imu_type == 'bno085':
 else:
     jaia_imu_type = IMU_TYPE.NONE
 
+
+jaia_imu_install_type = IMU_TYPE.NONE
+
 if args.imu_install_type == 'embedded':
     jaia_imu_install_type = IMU_INSTALL_TYPE.EMBEDDED
 elif args.imu_install_type == 'retrofit':
     jaia_imu_install_type = IMU_INSTALL_TYPE.RETROFIT
-else:
-    jaia_imu_install_type = IMU_TYPE.NONE
 
 if args.led_type == 'hub_led':
     jaia_led_type = LED_TYPE.HUB_LED
