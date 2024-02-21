@@ -3089,7 +3089,7 @@ export default class CommandControl extends React.Component {
 	 */
 	setIsSRPEnabled(isSRPEnabled: boolean) {
 		let bottomDepthSafetyParams: BottomDepthSafetyParams = {
-			safety_depth: 2,
+			safety_depth: GlobalSettings.srpParameters.safety_depth,
 			constant_heading: GlobalSettings.constantHeadingParameters.constant_heading,
 			constant_heading_time: GlobalSettings.constantHeadingParameters.constant_heading_time,
 			constant_heading_speed: GlobalSettings.constantHeadingParameters.constant_heading_speed

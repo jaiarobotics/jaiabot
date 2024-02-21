@@ -6,6 +6,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
 import { FormControl, MenuItem } from '@mui/material'
+import { GlobalSettings, Save } from './Settings'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { MissionInterface } from './CommandControl'
 import { Geometry } from 'ol/geom'
@@ -174,6 +175,8 @@ export class MissionSettingsPanel extends React.Component {
                 break
             case "safety_depth":
                 bottomDepthSafetyParams.safety_depth = value
+                GlobalSettings.srpParameters.safety_depth = value
+                Save(GlobalSettings.srpParameters)
         }
 
         this.props.setBottomDepthSafetyParams(bottomDepthSafetyParams)

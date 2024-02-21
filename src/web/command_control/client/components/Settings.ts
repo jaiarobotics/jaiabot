@@ -1,5 +1,5 @@
 // Saving and loading settings from browser's localStorage
-import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
+import { ConstantHeadingParameters, SRPParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 
 /**
@@ -99,6 +99,10 @@ export let GlobalSettings = {
         constant_heading: 0,
         constant_heading_speed: 3,
         constant_heading_time: 10
+    }),
+
+    srpParameters: Load<SRPParameters>('srpSafetyDepth', {
+        safety_depth: 1
     }),
 
     // MissionPlan speeds

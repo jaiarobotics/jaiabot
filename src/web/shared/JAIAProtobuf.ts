@@ -645,6 +645,10 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number
 }
 
+export interface SRPParameters {
+    safety_depth: number
+}
+
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
