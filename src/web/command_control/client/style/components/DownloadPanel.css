@@ -1,0 +1,39 @@
+.download-panel-outer-container {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    min-width: 250px;
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #767d7d;
+  
+    z-index: 1;
+  }
+
+  .download-panel-inner-container {
+    margin: 8pt;
+    font-size: 1.1rem;
+
+    /* 66px equals max toolbar height */
+    max-height: calc(95vh - 66px);
+    overflow-y: auto;
+}
+
+.download-panel-accordion-inner-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+  width: 100%;
+  height: auto;
+  justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 2px 16px;
+  background-color: #767d7d;
+  row-gap: 2px;
+}
