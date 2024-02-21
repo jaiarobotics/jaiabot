@@ -55,6 +55,7 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 
@@ -68,6 +69,11 @@ class ARDUINO_TYPE(Enum):
 class IMU_TYPE(Enum):
     BNO055 = 'bno055'
     BNO085 = 'bno085'
+    NONE = 'none'
+
+class IMU_INSTALL_TYPE(Enum):
+    EMBEDDED = 'embedded'
+    RETROFIT = 'retrofit'
     NONE = 'none'
 
 class LED_TYPE(Enum):
@@ -105,6 +111,14 @@ elif args.imu_type == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
 else:
     jaia_imu_type = IMU_TYPE.NONE
+
+
+jaia_imu_install_type = IMU_TYPE.NONE
+
+if args.imu_install_type == 'embedded':
+    jaia_imu_install_type = IMU_INSTALL_TYPE.EMBEDDED
+elif args.imu_install_type == 'retrofit':
+    jaia_imu_install_type = IMU_INSTALL_TYPE.RETROFIT
 
 if args.led_type == 'hub_led':
     jaia_led_type = LED_TYPE.HUB_LED
@@ -174,6 +188,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
+               'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
@@ -507,7 +522,7 @@ jaia_firmware = [
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
      'subdir': 'adafruit_BNO085',
-     'args': '',
+     'args': '--install_type=' + jaia_imu_install_type.value,
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
