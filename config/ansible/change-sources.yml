@@ -77,7 +77,7 @@
       ansible.builtin.lineinfile:
         path: "/etc/hosts"
         regexp: ".*hub{{ hub_id }} *$"
-        line: "10.23.1.{{ (hub_id | int) + 10 }} hub{{ hub_id }}"
+        line: "10.23.{{ jaiabot_embedded_fleet_id }}.{{ (hub_id | int) + 10 }} hub{{ hub_id }}"
       when: mode == "offline" or mode == "online_with_hub_cache"
 
     - name: Set /etc/apt/sources.list.d/jaiabot.list for offline mode
