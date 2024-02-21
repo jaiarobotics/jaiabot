@@ -62,7 +62,7 @@ log_dir: "$log_dir" # (required)
 hub_start_ip: 10 # (required)
 class_b_network: "10.23" # (required)
 # data_offload_exclude options: (NONE, GOBY, TASKPACKET)
-data_offload_exclude: TASKPACKET # (optional)
+data_offload_exclude: NONE # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE

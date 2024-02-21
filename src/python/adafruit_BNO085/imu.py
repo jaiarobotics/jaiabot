@@ -12,6 +12,7 @@ from jaiabot.messages.imu_pb2 import IMUData
 
 import serial
 import time
+from threading import *
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
@@ -21,14 +22,9 @@ try:
     from adafruit_bno08x.uart import BNO08X_UART
     uart = serial.Serial("/dev/ttyAMA0", 3000000)
     physical_device_available = True
-except ModuleNotFoundError:
-    log.warning('ModuleNotFoundError, so physical device not available')
+except Exception as e:
+    log.warning(f'Physical device not available: {e}')
     physical_device_available = False
-except NotImplementedError:
-    log.warning('NotImplementedError, so physical device not available')
-    physical_device_available = False
-except serial.serialutil.SerialException:
-    log.warning('SerialException, so physical device not available')
 
 class CalibrationState(Enum):
     IN_PROGRESS = 1
@@ -77,6 +73,7 @@ class IMU:
         imu_data.gravity.z = reading.gravity.z
 
         if reading.calibration_status is not None:
+            # only send the mag cal
             imu_data.calibration_status = reading.calibration_status
 
         if reading.calibration_state is not None:
@@ -94,6 +91,7 @@ class IMU:
 
 
 class Adafruit(IMU):
+    _lock: Lock
 
     def __init__(self):
         log.info('Device: Adafruit')
@@ -104,7 +102,10 @@ class Adafruit(IMU):
 
         self.is_setup = False
 
-    def setup(self):
+        self._lock = Lock()
+
+    def _setup(self):
+        """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
                 log.warning('We are not setup')
@@ -132,10 +133,15 @@ class Adafruit(IMU):
                 self.is_setup = False
                 log.warning("Error trying to setup driver!")
             
+    def setup(self):
+        """Thread-safe setup function.  Call to setup the IMU."""
+        with self._lock:
+            self._setup()
 
-    def takeReading(self):
+    def _takeReading(self):
+        """Thread unsafe takeReading function.  Only used internally."""
         if not self.is_setup:
-            self.setup()
+            self._setup()
 
         try:
             quat_x, quat_y, quat_z, quat_w = self.sensor.quaternion
@@ -150,16 +156,6 @@ class Adafruit(IMU):
             if None in quaternion or None in linear_acceleration or None in gravity:
                 log.warning("We received None data in the takeReading function")
                 return None
-
-            # this is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
-            def filter(iterable: Iterable[float], threshold: float=50):
-                for value in iterable:
-                    if abs(value) > threshold:
-                        return [0.0] * len(iterable)
-                return iterable
-
-            linear_acceleration = filter(linear_acceleration)
-            gravity = filter(gravity)
 
             quaternion = Quaternion.from_tuple(quaternion)
             orientation = quaternion.to_euler_angles()
@@ -178,7 +174,17 @@ class Adafruit(IMU):
                         quaternion=quaternion)
 
         except Exception as error:
-            log.warning("Error trying to get data!")
+            log.warning(f"Error trying to get data: {error}")
+
+    def takeReading(self):
+        """Thread-safe takeReading function.  Call to take a reading.
+
+
+        Returns:
+            IMUReading | None: An IMUReading object, if the reading was successful, otherwise None.
+        """
+        with self._lock:
+            return self._takeReading()
 
     def startCalibration(self):
         self.calibration_state = CalibrationState.IN_PROGRESS
@@ -214,19 +220,27 @@ class Simulator(IMU):
     wave_frequency: float
     wave_height: float
 
+    _lock: Lock
+
     def __init__(self, wave_frequency: float=1, wave_height: float=1):
         log.info('Device: Simulator')
 
         self.wave_frequency = wave_frequency
         self.wave_height = wave_height
+        self._lock = Lock()
 
-    def setup(self):
+    def _setup(self):
         pass
 
+    def setup(self):
+        with self._lock:
+            self._setup()
+
     def takeReading(self) -> IMUReading:
-        t = datetime.datetime.now().timestamp()
-        a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
-        linear_acceleration = Vector3(0, 0, a_z)
+        with self._lock:
+            t = datetime.datetime.now().timestamp()
+            a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
+            linear_acceleration = Vector3(0, 0, a_z)
 
         quaternion = Quaternion(1, 0, 0, 0)
         linear_acceleration_world = quaternion.apply(linear_acceleration)
@@ -234,9 +248,7 @@ class Simulator(IMU):
         return IMUReading(orientation=quaternion.to_euler_angles(), 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
-                        # we need to use 0.03, to avoid looking like a common glitch that gets filtered
-                        gravity=Vector3(0.03, 0.03, 9.8),
+                        gravity=Vector3(0.0, 0.0, 9.8),
                         calibration_status=3,
                         quaternion=quaternion,
                         calibration_state=CalibrationState.COMPLETE)
-
