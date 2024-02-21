@@ -36,6 +36,7 @@ export interface MissionParams {
 interface Props {
     map: Map
     missionParams: MissionParams
+    setMissionParams: (missionParams: MissionParams) => void
     missionPlanningGrid: {[key: string]: number[][]}
     missionBaseGoal: Goal,
     missionStartTask: MissionTask
@@ -371,15 +372,20 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     /**
-     * Prevents negative values or 0 from being used in data processing
+     * Prevents negative values from being entered by operator
      * 
      * @param {number} value Input value to be checked
      * @returns {number} The value passed or DEFAULT_VALUE
+     * 
+     * @notes
+     * Zero cannot be used in the creation of a survey mission but if 0 cannot display
+     * in the input box it makes it difficult to enter values that don't start with 1.
+     * To balance user experience and the survey mission calculations, there is a final
+     * input check to catch zeros just before the preview is created. (SurveyLines.ts) 
      */
     validateNumInput(value: number) {
-        // Values less than 1 throw errors in the creation of survey missions
-        const DEFAULT_VALUE = 1
-        if (value < DEFAULT_VALUE) {
+        const DEFAULT_VALUE = 0
+        if (value < DEFAULT_VALUE || Number.isNaN(value)) {
             return DEFAULT_VALUE
         }
         return value
@@ -394,7 +400,9 @@ export class MissionSettingsPanel extends React.Component {
     changePointSpacing(evt: Event) {
         const element = evt.target as HTMLInputElement
         const value = this.validateNumInput(Number(element.value))
-        this.props.missionParams.pointSpacing = value
+        let missionParams = {...this.props.missionParams}
+        missionParams.pointSpacing = value
+        this.props.setMissionParams(missionParams)
     }
     
     /**
@@ -406,7 +414,9 @@ export class MissionSettingsPanel extends React.Component {
     changeLineSpacing(evt: Event) {
         const element = evt.target as HTMLInputElement
         const value = this.validateNumInput(Number(element.value))
-        this.props.missionParams.lineSpacing = value
+        let missionParams = {...this.props.missionParams}
+        missionParams.lineSpacing = value
+        this.props.setMissionParams(missionParams)
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {

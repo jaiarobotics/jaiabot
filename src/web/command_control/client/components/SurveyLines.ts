@@ -127,6 +127,8 @@ export class SurveyLines {
                     const geom1 = evt2.target;
                     let { missionParams, surveyExclusionCoords, startRally, endRally } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
+
+                    this.validateSurveySpacingInputs()
         
                     if (stringCoords[0].length >= 2 && startRally && endRally) {
                         let coords = stringCoords.slice(-2);
@@ -252,5 +254,24 @@ export class SurveyLines {
                 OlUnobserveByKey(this.listener);
             }
         )
+    }
+
+    /**
+     * Converts zeros passed as spacing values to ones to prevent the preview from breaking
+     * 
+     * @returns {void}
+     * 
+     * @notes
+     * We know this code needs a refactor as it violates React best practices. This is a
+     * temporary solution to meet an urgent business requirement. 
+     */
+    validateSurveySpacingInputs() {
+        if (this.commandControl.state.missionParams.pointSpacing === 0) {
+            this.commandControl.state.missionParams.pointSpacing = 1
+        }
+
+        if (this.commandControl.state.missionParams.lineSpacing === 0) {
+            this.commandControl.state.missionParams.lineSpacing = 1
+        }
     }
 }
