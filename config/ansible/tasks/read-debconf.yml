@@ -1,0 +1,11 @@
+- name: Capture debconf settings
+  ansible.builtin.shell: debconf-show jaiabot-embedded
+  register: debconf_raw
+  changed_when: False
+
+- name: Parse debconf settings into variables (such as jaiabot_embedded_type == hub)
+  ansible.builtin.set_fact:
+    "{{ item.split(': ')[0] | regex_replace('^\\*?\\s*', '') | regex_replace('[/-]','_') | regex_replace(':','') | trim }}": "{{ item.split(': ')[1] | default('') | trim }}"
+  loop: "{{ debconf_raw.stdout_lines }}"
+  when: 
+    - item | regex_search(':') # Ensure the line contains a colon
