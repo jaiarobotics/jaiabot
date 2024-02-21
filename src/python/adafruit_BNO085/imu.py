@@ -10,8 +10,6 @@ import datetime
 from math import *
 from jaiabot.messages.imu_pb2 import IMUData
 
-import adafruit_bno08x
-from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
 
@@ -19,6 +17,8 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
 
 try:
+    import adafruit_bno08x
+    from adafruit_bno08x.uart import BNO08X_UART
     uart = serial.Serial("/dev/ttyAMA0", 3000000)
     physical_device_available = True
 except ModuleNotFoundError:
@@ -51,7 +51,7 @@ class IMU:
     def takeReading(self):
         return IMUReading()
 
-    def getIMUData(self) -> IMUData:
+    def getIMUData(self):
         """Returns an IMUData protobuf object, suitable for sending over UDP
 
         Returns:

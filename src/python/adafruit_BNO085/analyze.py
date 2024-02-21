@@ -24,7 +24,6 @@ from seriesSet import *
 
 ### Global settings ##
 sampleFreq = 4
-bandPassFilter = cos2Filter(1/15, 1/120, 2, 2)
 
 
 def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
@@ -60,44 +59,6 @@ def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
             return False
         
     return True
-
-
-def calculateElevationSeries(accelerationSeries: Series):
-    """Calculates the elevation series from an input acceleration series.
-
-    Args:
-        accelerationSeries (Series): The acceleration series.
-
-    Returns:
-        Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
-    """
-
-    series = accelerationSeries
-    series = deMean(series)
-    series = trimSeries(series, 10e6, 5e6)
-    series = fadeSeries(series, fadePeriod=2e6)
-    series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
-
-    return series
-
-
-def filterAcceleration(accelerationSeries: Series):
-    """Process and filter an input acceleration series.
-
-    Args:
-        accelerationSeries (Series): The input acceleration series.
-
-    Returns:
-        Series: The processed and filtered acceleration series.
-    """
-
-    series = accelerationSeries
-    series = deMean(series)
-    series = trimSeries(series, 10e6, 5e6)
-    series = fadeSeries(series, fadePeriod=2e6)
-    series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
-
-    return series
 
 ######################
 
@@ -155,10 +116,10 @@ def htmlForChart(charts: List[Series]):
 def htmlForDrift(driftIndex: int, drift: SeriesSet):
     # Calculate filtered acceleration series, elevation series, and wave heights
     uniformAcceleration = drift.accelerationVertical.makeUniform(sampleFreq)
-    filteredAccelerationSeries = filterAcceleration(uniformAcceleration)
+    filteredAccelerationSeries = filterAcceleration(uniformAcceleration, sampleFreq)
     filteredAccelerationSeries.name = 'Filtered acceleration'
 
-    elevationSeries = calculateElevationSeries(uniformAcceleration)
+    elevationSeries = calculateElevationSeries(uniformAcceleration, sampleFreq)
     elevationSeries.name = 'Calculated Elevation'
     waveHeights = calculateSortedWaveHeights(elevationSeries)
 
@@ -186,25 +147,6 @@ def htmlForDrift(driftIndex: int, drift: SeriesSet):
     return htmlString
 
 
-def htmlForFFTGraph(series: Series, sampleFreq: float, bandPassFilter: Callable[[float], float]):
-    # The FFT
-    fft = getFFT(series, sampleFreq)
-
-    fig = make_subplots()
-    fig.add_trace(go.Scatter(x=fft.frequencies, y=[a.real for a in fft.amplitudes], name=f'Real FFT', mode='markers'))
-    fig.add_trace(go.Scatter(x=fft.frequencies, y=[a.imag for a in fft.amplitudes], name=f'Imag FFT', mode='markers'))
-    fig.add_trace(go.Scatter(x=fft.frequencies, y=[bandPassFilter(f) for f in fft.frequencies], name='Filter'))
-    fig.update_layout(
-        title=f"Real FFT",
-        xaxis_title="Frequency (Hz)",
-        yaxis_title="Amplitude (m) or Filter Coefficient",
-        legend_title="Legend"
-    )
-    fig.update_yaxes(type='log', range=[-3, 1])
-
-    return fig.to_html(full_html=False, include_plotlyjs='cdn', default_width='35%', default_height='40%')
-
-
 def htmlForSummaryTable(uniformAccelerations: List[Series]):
     html = '<h1>Summary</h1>'
     html += '<table><tr><td>Drift #</td><td>Duration</td><td>Significant Wave Height</td></tr>'
@@ -213,7 +155,7 @@ def htmlForSummaryTable(uniformAccelerations: List[Series]):
     durationSum = 0.0
 
     for index, uniformAcceleration in enumerate(uniformAccelerations):
-        elevation = calculateElevationSeries(uniformAcceleration)
+        elevation = calculateElevationSeries(uniformAcceleration, sampleFreq)
         waveHeights = calculateSortedWaveHeights(elevation)
         duration = uniformAcceleration.duration()
         durationString = formatTimeDelta(duration)

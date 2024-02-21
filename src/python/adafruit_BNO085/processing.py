@@ -4,7 +4,7 @@ from typing import *
 import numpy
 import statistics
 from math import *
-from dataclasses import dataclass
+from filters import cos2Filter
 
 
 def floatRange(start: float, end: float, delta: float):
@@ -71,6 +71,10 @@ def trimSeries(series: Series, startGap: float, endGap: float=None):
 
     newSeries = deepcopy(series)
     newSeries.clear()
+
+    # Guard against empty series
+    if len(series.utime) < 1:
+        return newSeries
 
     startTimeAbsolute = series.utime[0] + startGap
     endTimeAbsolute = series.utime[-1] - endGap
@@ -226,3 +230,45 @@ def calculateSignificantWaveHeightFromSortedWaveHeights(waveHeights: List[float]
         return 0.0
 
     return statistics.mean(significantWaveHeights)
+
+
+BandPassFilterFunc = Callable[[float], float]
+bandPassFilter = cos2Filter(1/15, 1/120, 2, 2)
+
+
+def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):
+    """Calculates the elevation series from an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The acceleration series.
+
+    Returns:
+        Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
+    """
+
+    series = accelerationSeries
+    series = deMean(series)
+    series = trimSeries(series, 10e6, 5e6)
+    series = fadeSeries(series, fadePeriod=2e6)
+    series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
+
+
+def filterAcceleration(accelerationSeries: Series, sampleFreq: float):
+    """Process and filter an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The input acceleration series.
+
+    Returns:
+        Series: The processed and filtered acceleration series.
+    """
+
+    series = accelerationSeries
+    series = deMean(series)
+    series = trimSeries(series, 10e6, 5e6)
+    series = fadeSeries(series, fadePeriod=2e6)
+    series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    return series
