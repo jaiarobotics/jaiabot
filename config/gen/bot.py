@@ -55,6 +55,11 @@ elif jaia_arduino_type == 'usb':
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
+jaia_data_offload_ignore_type="NONE"
+
+if "jaia_data_offload_ignore_type" in os.environ:
+    jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
+
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
@@ -238,7 +243,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
-                                     fleet_id=fleet_index))
+                                     fleet_id=fleet_index,
+                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
