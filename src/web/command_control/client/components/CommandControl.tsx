@@ -329,10 +329,10 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			centerLineString: null,
 			bottomDepthSafetyParams: {
-				constant_heading: 0,
-				constant_heading_time: 0,
-				constant_heading_speed: 0,
-				safety_depth: 0
+				constant_heading: "0",
+				constant_heading_time: "0",
+				constant_heading_speed: "0",
+				safety_depth: "0"
 			},
 			isSRPEnabled: false,
 
@@ -3053,9 +3053,10 @@ export default class CommandControl extends React.Component {
 	 * @returns {void}
 	 */
 	addSRPInputsToRuns() {
+		const srpInputs = this.getValidSRPInputs()
 		for (let runKey of Object.keys(this.state.runList.runs)) {
 			let run = this.state.runList.runs[runKey]
-			run.command.plan.bottomDepthSafetyParams = this.state.bottomDepthSafetyParams
+			run.command.plan.bottomDepthSafetyParams = srpInputs
 		}
 	}
 
@@ -3070,6 +3071,39 @@ export default class CommandControl extends React.Component {
 			delete run.command.plan.bottomDepthSafetyParams
 		}
 	}
+
+	getValidSRPInputs() {
+		const maxDegrees = 360
+		const maxSeconds = 360
+		const maxSpeed = 3 // (m/s)
+		const maxDepth = 60 // (m)
+
+		let params = {...this.state.bottomDepthSafetyParams}
+
+		params.constant_heading = this.checkSRPInputs(params.constant_heading, maxDegrees)
+		params.constant_heading_time = this.checkSRPInputs(params.constant_heading_time, maxSeconds, true)
+		params.constant_heading_speed = this.checkSRPInputs(params.constant_heading_speed, maxSpeed) 
+		params.safety_depth = this.checkSRPInputs(params.safety_depth, maxDepth)
+
+		this.setState({ bottomDepthSafetyParams: params })
+
+		return params
+	}
+
+	checkSRPInputs(value: string, max: number, removeDecimal?: boolean) {
+		if (Number.isNaN(Number(value))) {
+			return "0"
+		} else if (Number(value) > max) {
+			return max.toString()
+		}
+		
+		if (removeDecimal) {
+			return Number(value).toFixed(0).toString()
+		}
+		return Number(value).toString()
+	}
+
+	
 
 	canUseSurveyTool() {
 		// Check that rally points are set
@@ -3089,10 +3123,10 @@ export default class CommandControl extends React.Component {
 	 */
 	setIsSRPEnabled(isSRPEnabled: boolean) {
 		let bottomDepthSafetyParams: BottomDepthSafetyParams = {
-			safety_depth: GlobalSettings.srpParameters.safety_depth,
-			constant_heading: GlobalSettings.constantHeadingParameters.constant_heading,
-			constant_heading_time: GlobalSettings.constantHeadingParameters.constant_heading_time,
-			constant_heading_speed: GlobalSettings.constantHeadingParameters.constant_heading_speed
+			safety_depth: GlobalSettings.srpParameters.safety_depth.toString(),
+			constant_heading: GlobalSettings.constantHeadingParameters.constant_heading.toString(),
+			constant_heading_time: GlobalSettings.constantHeadingParameters.constant_heading_time.toString(),
+			constant_heading_speed: GlobalSettings.constantHeadingParameters.constant_heading_speed.toString()
 		}
 		this.setState({ bottomDepthSafetyParams, isSRPEnabled })
 	}

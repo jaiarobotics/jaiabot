@@ -1125,10 +1125,10 @@ export interface RFDisableOptions {
 }
 
 export interface BottomDepthSafetyParams {
-    constant_heading: number
-    constant_heading_time: number
-    constant_heading_speed: number
-    safety_depth: number
+    constant_heading: string
+    constant_heading_time: string
+    constant_heading_speed: string
+    safety_depth: string
 }
 
 export interface Engineering {

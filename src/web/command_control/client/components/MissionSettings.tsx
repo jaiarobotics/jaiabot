@@ -118,41 +118,6 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     /**
-     * Prevents negative values, characters, and numbers > max from being passed as parameters
-     * 
-     * @param {number} value Input value to check
-     * @returns {number} The value itself, 0, or the max if the input is not valid
-     */
-    validateBottomDepthSafetyParams(key: string, value: number) {
-        if (Number.isNaN(value)) {
-            return 0
-        }
-
-        // Units: (m/s)
-        const maxSpeed = 3
-        if (key === "constant_heading_speed" && value > maxSpeed) {
-            return maxSpeed
-        }
-
-        const maxDegrees = 360
-        if (key === "constant_heading" && value > maxDegrees) {
-            return maxDegrees
-        }
-
-        const maxSeconds = 360
-        if (key === "constant_heading_time" && value > maxSeconds) {
-            return maxSeconds
-        }
-
-        const maxDepth = 60
-        if (key == "safety_depth" && value > maxDepth) {
-            return maxDepth
-        }
-
-        return value
-    }
-
-    /**
      * Updates the values for safety return path (SRP) based on input changes
      * 
      * @param {Event} evt Holds the data used to update the SRP params
@@ -160,7 +125,7 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleBottomDepthSafetyParamChange(evt: Event) {
         const element = evt.target as HTMLInputElement
-        const value = this.validateBottomDepthSafetyParams(element.name, Number(element.value))
+        const value = element.value
         let bottomDepthSafetyParams = {...this.props.bottomDepthSafetyParams}
 
         switch (element.name) {
@@ -175,8 +140,6 @@ export class MissionSettingsPanel extends React.Component {
                 break
             case "safety_depth":
                 bottomDepthSafetyParams.safety_depth = value
-                GlobalSettings.srpParameters.safety_depth = value
-                Save(GlobalSettings.srpParameters)
         }
 
         this.props.setBottomDepthSafetyParams(bottomDepthSafetyParams)
@@ -192,9 +155,6 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
-        console.log("mpf", this.props.missionPlanningFeature)
-        console.log("mpg", this.props.missionPlanningGrid)
-
         const { map, centerLineString } = this.props
         const missionType = this.state.missionParams?.missionType
         // Get the final location, if available

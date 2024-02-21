@@ -501,10 +501,10 @@ export class PIDGainsPanel extends React.Component {
                     rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
                 },
                 bottom_depth_safety_params: {
-                    constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                    constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                    constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                    safety_depth: getValueOfInput("safety_depth_input")
+                    constant_heading: getValueOfInput("bottom_depth_safety_heading_input").toString(),
+                    constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input").toString(),
+                    constant_heading_time: getValueOfInput("bottom_depth_safety_time_input").toString(),
+                    safety_depth: getValueOfInput("safety_depth_input").toString()
                 }
             }
 
@@ -545,10 +545,10 @@ export class PIDGainsPanel extends React.Component {
                         rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
                     },
                     bottom_depth_safety_params: {
-                        constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                        constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                        constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                        safety_depth: getValueOfInput("safety_depth_input")
+                        constant_heading: getValueOfInput("bottom_depth_safety_heading_input").toString(),
+                        constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input").toString(),
+                        constant_heading_time: getValueOfInput("bottom_depth_safety_time_input").toString(),
+                        safety_depth: getValueOfInput("safety_depth_input").toString()
                     }
                 }
         
