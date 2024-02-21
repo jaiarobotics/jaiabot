@@ -39,6 +39,14 @@
       when:
         - mode != "offline"
         - repo != "test"
+    - name: Check if hub_id is defined
+      ansible.builtin.assert:
+        that:
+          - hub_id is defined
+          - hub_id | int | string == hub_id
+        fail_msg: "Hub ID must be defined and must be an integer"
+      when:
+        - mode != "online"
   tasks:
     - include_tasks: tasks/read-debconf.yml
   
@@ -65,11 +73,18 @@
           deb http://packages.jaia.tech/ubuntu/gobysoft/{{ repo }}/{{ internal_version }}/ {{ ansible_distribution_release }}/
       when: mode == "online" or mode == "online_with_hub_cache"
         
+    - name: Set /etc/hosts for hub entry
+      ansible.builtin.lineinfile:
+        path: "/etc/hosts"
+        regexp: ".*hub{{ hub_id }} *$"
+        line: "10.23.1.{{ (hub_id | int) + 10 }} hub{{ hub_id }}"
+      when: mode == "offline" or mode == "online_with_hub_cache"
+
     - name: Set /etc/apt/sources.list.d/jaiabot.list for offline mode
       ansible.builtin.copy:
         dest: "/etc/apt/sources.list.d/jaiabot.list"
         content: |
-          deb [trusted=yes] http://hub0/updates /
+          deb [trusted=yes] http://hub{{ hub_id }}/updates /
       when: mode == "offline"
 
     - name: Set /etc/pip.conf for offline / hub cache mode
@@ -78,8 +93,8 @@
         content: |
           [global]
           no-index = true
-          find-links = http://hub0/updates/
-          trusted-host = hub0
+          find-links = http://hub{{ hub_id }}/updates/
+          trusted-host = hub{{ hub_id }}
       when: mode == "offline" or mode == "online_with_hub_cache"
       
     - name: Set /etc/pip.conf for online mode
@@ -121,5 +136,5 @@
       ansible.builtin.copy:
         dest: "/etc/apt/apt.conf.d/00aptproxy"
         content: |
-          Acquire::http::Proxy "http://hub0:8000";
+          Acquire::http::Proxy "http://hub{{ hub_id }}:8000";
       when: mode == "online_with_hub_cache"
