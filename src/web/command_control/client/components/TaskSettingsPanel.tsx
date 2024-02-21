@@ -98,7 +98,11 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
-    // For selecting target for constant heading task type    
+    /**
+     * Allows an operator to set constant heading parameters by selecting a point on the map
+     * 
+     * @returns {void}
+     */   
     function selectOnMapClicked() {
         const { map, location } = props
 

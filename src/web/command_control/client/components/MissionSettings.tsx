@@ -112,6 +112,11 @@ export class MissionSettingsPanel extends React.Component {
         return this.props.missionPlanningFeature && this.props.missionPlanningGrid
     }
 
+    /**
+     * Sorts rally points by their assigned number
+     * 
+     * @returns {Feature<Geometry>[]} Sorted array of rally points
+     */
     getSortedRallyFeatures() {
         let rallyFeatures = [...this.props.rallyFeatures]
         return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
@@ -439,6 +444,7 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionEditMode(missionEditMode: string) {
+        // console.log(missionEditMode);
         let {missionParams} = this.state;
 
         if (missionEditMode === missionParams?.missionType) {

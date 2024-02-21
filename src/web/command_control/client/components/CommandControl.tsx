@@ -3072,6 +3072,11 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Passes each SRP field through a check for containing characters or exceeding its max
+	 * 
+	 * @returns {BottomDepthSafetyParams} An updated copy of the SRP inputs
+	 */
 	getValidSRPInputs() {
 		const maxDegrees = 360
 		const maxSeconds = 360
@@ -3090,6 +3095,14 @@ export default class CommandControl extends React.Component {
 		return params
 	}
 
+	/**
+	 * Cleans input by removing characters and limiting it to an upper bound
+	 * 
+	 * @param {string} value Input to be checked
+	 * @param {number} max Provides the upper bound for the value
+	 * @param {boolean} removeDecimal (optional) Removes decimal if proto field expects ints
+	 * @returns {string} The cleaned input
+	 */
 	checkSRPInputs(value: string, max: number, removeDecimal?: boolean) {
 		if (Number.isNaN(Number(value))) {
 			return "0"
