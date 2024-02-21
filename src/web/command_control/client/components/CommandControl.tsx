@@ -3081,13 +3081,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Allows SRP state to be set from other componenets by passing it thorugh props
+	 * Allows SRP state to be set from other componenets by passing it thorugh props.
+	 * Uses local storage to carry over constant heading values for less typing
 	 * 
 	 * @param {boolean} isSRPEnabled Provides new state of SRP toggle
 	 * @returns {void}
 	 */
 	setIsSRPEnabled(isSRPEnabled: boolean) {
-		this.setState({ isSRPEnabled })
+		let bottomDepthSafetyParams: BottomDepthSafetyParams = {
+			safety_depth: 2,
+			constant_heading: GlobalSettings.constantHeadingParameters.constant_heading,
+			constant_heading_time: GlobalSettings.constantHeadingParameters.constant_heading_time,
+			constant_heading_speed: GlobalSettings.constantHeadingParameters.constant_heading_speed
+		}
+		this.setState({ bottomDepthSafetyParams, isSRPEnabled })
 	}
 	// 
 	// Optimize Mission Planning Helper Methods (End)
@@ -3193,6 +3200,7 @@ export default class CommandControl extends React.Component {
 					missionParams={this.state.missionParams}
 					setMissionParams={this.setMissionParams.bind(this)}
 					missionPlanningGrid={this.state.missionPlanningGrid}
+					missionPlanningFeature={this.state.missionPlanningFeature}
 					missionBaseGoal={this.state.missionBaseGoal}
 					missionStartTask={this.state.missionStartTask}
 					missionEndTask={this.state.missionEndTask}

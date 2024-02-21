@@ -163,6 +163,9 @@ function TaskOptionsPanel(props: Props) {
             let rhumbDistance = turf.rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
             let t = rhumbDistance / speed
             constant_heading.constant_heading_time = Number(t.toFixed(0))
+
+            GlobalSettings.constantHeadingParameters = constant_heading
+            Save(GlobalSettings.constantHeadingParameters)
         })
     }
     

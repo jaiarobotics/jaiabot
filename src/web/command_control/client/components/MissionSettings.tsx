@@ -38,6 +38,7 @@ interface Props {
     missionParams: MissionParams
     setMissionParams: (missionParams: MissionParams) => void
     missionPlanningGrid: {[key: string]: number[][]}
+    missionPlanningFeature: Feature<Geometry>,
     missionBaseGoal: Goal,
     missionStartTask: MissionTask
     missionEndTask: MissionTask,
@@ -99,6 +100,15 @@ export class MissionSettingsPanel extends React.Component {
 
     componentDidUpdate() {
         this.onChange?.()
+    }
+
+    /**
+     * Indicates if the preview state is drawn
+     * 
+     * @returns {boolean} Whether or not we finished creating a survey preview
+     */
+    isMissionDrawn() {
+        return this.props.missionPlanningFeature && this.props.missionPlanningGrid
     }
 
     getSortedRallyFeatures() {
@@ -176,14 +186,12 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleSRPToggleClick() {
         this.props.setIsSRPEnabled(!this.props.isSRPEnabled)
-        
-        let srpContainer = document.getElementById("srp-container")
-        if (srpContainer === null) {
-            return 
-        }
     }
 
     render() {
+        console.log("mpf", this.props.missionPlanningFeature)
+        console.log("mpg", this.props.missionPlanningGrid)
+
         const { map, centerLineString } = this.props
         const missionType = this.state.missionParams?.missionType
         // Get the final location, if available
@@ -259,7 +267,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
                         <div className="mission-settings-tasks-title">Start Task:</div>
                         <TaskSettingsPanel 
                             title="Start Task" 
@@ -271,7 +279,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
                         <div className="mission-settings-tasks-title">End Task:</div>
                         <TaskSettingsPanel 
                             title="End Task" 
@@ -285,7 +293,7 @@ export class MissionSettingsPanel extends React.Component {
 
                     {/* Safety Return Path (SRP) */}
                     <div className="mission-settings-line-break"></div>
-                    <div className="mission-settings-header">
+                    <div className={`mission-settings-header ${this.isMissionDrawn() ? 'mission-settings-show-flex' : 'mission-settings-hide'}`}>
                         <div>Safety Return Path:</div>
                         <WptToggle 
                             checked={() => this.props.isSRPEnabled}
@@ -296,7 +304,7 @@ export class MissionSettingsPanel extends React.Component {
                     <div
                         className={
                             `mission-settings-srp-container 
-                            ${this.props.isSRPEnabled ? 'mission-settings-show' : 'mission-settings-hide'}`
+                            ${this.props.isSRPEnabled && this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`
                         }
                         id="srp-container"
                     >
@@ -468,7 +476,6 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionEditMode(missionEditMode: string) {
-        // console.log(missionEditMode);
         let {missionParams} = this.state;
 
         if (missionEditMode === missionParams?.missionType) {
