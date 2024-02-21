@@ -55,15 +55,10 @@ elif jaia_arduino_type == 'usb':
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
+jaia_data_offload_ignore_type="NONE"
+
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
-
-if jaia_data_offload_ignore_type == "goby":
-    jaia_data_offload_ignore_type="GOBY"
-elif jaia_data_offload_ignore_type == 'taskpacket':
-    jaia_data_offload_ignore_type="TASKPACKET"
-else:
-    jaia_data_offload_ignore_type="NONE"
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])

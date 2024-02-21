@@ -86,9 +86,9 @@ class ELECTRONICS_STACK(Enum):
     STACK_3 = '2'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
-    GOBY = 'goby'
-    TASKPACKET = 'taskpacket'
-    NONE = 'none'
+    GOBY = 'GOBY'
+    TASKPACKET = 'TASKPACKET'
+    NONE = 'NONE'
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
@@ -126,12 +126,13 @@ else:
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
 
+
+jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
+
 if args.data_offload_ignore_type == 'goby':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.GOBY
 elif args.data_offload_ignore_type == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
-else:
-    jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
