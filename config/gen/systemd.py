@@ -522,7 +522,7 @@ jaia_firmware = [
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
      'subdir': 'adafruit_BNO085',
-     'args': '--install_type=' + jaia_imu_install_type.value,
+     'args': '--imu_install_type=' + jaia_imu_install_type.value,
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
