@@ -99,7 +99,11 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
-    // For selecting target for constant heading task type    
+    /**
+     * Allows an operator to set constant heading parameters by selecting a point on the map
+     * 
+     * @returns {void}
+     */   
     function selectOnMapClicked() {
         const { map, location } = props
 
@@ -164,6 +168,9 @@ function TaskOptionsPanel(props: Props) {
             let rhumbDistance = turf.rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
             let t = rhumbDistance / speed
             constant_heading.constant_heading_time = Number(t.toFixed(0))
+
+            GlobalSettings.constantHeadingParameters = constant_heading
+            Save(GlobalSettings.constantHeadingParameters)
         })
     }
 
