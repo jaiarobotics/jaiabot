@@ -10,6 +10,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import WptToggle from './WptToggle';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -172,6 +173,33 @@ function TaskOptionsPanel(props: Props) {
             Save(GlobalSettings.constantHeadingParameters)
         })
     }
+
+     /**
+     * Checks to see if what state start_echo is in
+     * 
+     * @returns {void}
+     */
+    function isEchoChecked() {
+        if (task?.start_echo === undefined) {
+            return false
+        }
+        return task.start_echo
+    }
+
+     /**
+     * Switches toggle state for start_echo
+     * 
+     * @returns {void}
+     */
+    function handleEchoCheck() {
+        if (task?.start_echo === undefined) {
+            task["start_echo"] = true
+        } else if (task.start_echo) {
+            task.start_echo = false
+        } else {
+            task.start_echo = true
+        }
+    }
     
     let dive = task.dive
     let surface_drift = task.surface_drift
@@ -201,6 +229,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -216,6 +254,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -226,7 +274,7 @@ function TaskOptionsPanel(props: Props) {
                 if (speed == null || time == null) return null;
                 else return speed * time;
             }
-    
+
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
             // Select on Map button is only present if a location is passed via Props
