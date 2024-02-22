@@ -37,3 +37,12 @@
   background-color: #767d7d;
   row-gap: 2px;
 }
+
+.download-queue-card {
+  display: flex;
+  align-items: center;
+  gap: 45px;
+
+  padding: 9px 18px;
+  background-color: #FFFFFF;
+}

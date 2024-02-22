@@ -21,7 +21,6 @@ import { downloadToFile } from './shared/Utilities'
 import { getCSV, getCSVFilename } from './shared/CSVExport'
 
 // Jaia Imports
-import * as CommandControl from './CommandControl';
 import { PortalBotStatus } from './shared/PortalStatus';
 
 interface Props {
@@ -61,7 +60,6 @@ export default function DownloadPanel(props: Props) {
 
     const handleDownloadAll = async () => {
         await props.processDownloadAllBots();
-        // Further logic
     };
 
     
