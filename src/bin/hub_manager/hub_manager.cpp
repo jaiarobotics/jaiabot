@@ -78,6 +78,9 @@ class HubManager : public ApplicationBase
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 
+    goby::time::MicroTime last_command_timestamp_{0 * boost::units::si::micro *
+                                                  boost::units::si::seconds};
+
     // data offload
     // track bot going into DataOffload state
     std::map<int, protobuf::MissionState> latest_bot_mission_state_;
@@ -452,8 +455,37 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
 
 void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command)
 {
+    glog.is_debug1() && glog << group("main")
+                             << "Received Full Command: " << input_command.ShortDebugString()
+                             << std::endl;
+
     using protobuf::Command;
     auto command = input_command;
+
+    // check that timestamp is unique within DCCL rounding and bump forward by a second
+    // if necessary so that mission manager doesn't reject valid commands
+    // This is only an issue with automated commands and super-human operators who send commands < 1 second apart
+    const int command_time_precision = protobuf::Command::descriptor()
+                                           ->FindFieldByName("time")
+                                           ->options()
+                                           .GetExtension(dccl::field)
+                                           .precision();
+    const double div = std::pow(10, -command_time_precision);
+    const double t1 = last_command_timestamp_.value(),
+                 t2 = command.time_with_units<goby::time::MicroTime>().value();
+    if (static_cast<std::uint64_t>(std::round(t1 / div)) ==
+        static_cast<std::uint64_t>(std::round(t2 / div)))
+    {
+        std::uint64_t t3 = t1 + div;
+        glog.is_debug1() && glog << group("main") << "Command has the same timestamp ("
+                                 << static_cast<std::uint64_t>(t2) << ") as previous command ("
+                                 << static_cast<std::uint64_t>(t1)
+                                 << ") within rounding, fudging new timestamp to: " << t3
+                                 << std::endl;
+        command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
+    }
+    last_command_timestamp_ = command.time_with_units<goby::time::MicroTime>();
+
     std::vector<Command> command_fragments;
 
     //Get the max repeat size from dccl field
@@ -465,10 +497,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     int fragment_index = 0;
     int goal_max_index = 0;
     int goal_index = 0;
-
-    glog.is_debug1() && glog << group("main")
-                             << "Received Full Command: " << input_command.ShortDebugString()
-                             << std::endl;
 
     // Check message type if it is Mission Plan then check the goal size
     // if the goal size is less than the max -> handle as usual
