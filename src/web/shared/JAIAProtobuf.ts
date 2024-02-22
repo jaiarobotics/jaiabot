@@ -1150,25 +1150,6 @@ export interface Echo {
     echo_state?: EchoState
 }
 
-export enum EchoState {
-    BOOTING = 0,
-    OCTOSPI = 1,
-    SD_INIT = 2,
-    SD_MOUNT = 3,
-    SD_CREATE = 4,
-    PSSI_EN = 5,
-    READY = 6,
-    START = 7,
-    STOP = 8,
-    RUNNING = 9
-}
-
-export interface Echo {
-    start_echo?: boolean
-    stop_echo?: boolean
-    echo_state?: EchoState
-}
-
 export interface Engineering {
     bot_id?: number
     time?: number

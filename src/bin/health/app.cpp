@@ -261,29 +261,6 @@ jaiabot::apps::Health::Health()
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::echo>(
-        [this](const jaiabot::protobuf::EchoIssue& echo_issue) {
-            glog.is_debug2() && glog << "Received Echo Issue " << echo_issue.ShortDebugString()
-                                     << std::endl;
-
-            switch (echo_issue.solution())
-            {
-                case protobuf::EchoIssue::REPORT_ECHO: break;
-                case protobuf::EchoIssue::RESTART_ECHO_PY:
-                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
-                    restart_echo_py();
-                    break;
-                case protobuf::EchoIssue::REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY:
-                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
-                    reboot_echo();
-                    restart_echo_py();
-                    break;
-                default:
-                    //TODO Handle Default Case
-                    break;
-            }
-        });
-
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             process_coroner_report(vehicle_health);

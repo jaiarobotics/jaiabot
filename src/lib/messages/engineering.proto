@@ -122,17 +122,6 @@ message Echo
     optional EchoState echo_state = 3 [default = BOOTING];
 }
 
-message Echo
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-
-    optional bool start_echo = 1 [default = false];
-    optional bool stop_echo = 2 [default = false];
-    optional EchoState echo_state = 3 [default = BOOTING];
-}
-
 message Engineering
 {
     /*
