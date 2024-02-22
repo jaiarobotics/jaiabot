@@ -1,5 +1,5 @@
 - name: Capture debconf settings
-  ansible.builtin.shell: debconf-show jaiabot-embedded
+  shell: debconf-show jaiabot-embedded
   register: debconf_raw
   changed_when: False
 
