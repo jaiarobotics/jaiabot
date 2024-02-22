@@ -1,28 +1,26 @@
-# Updating Software On A Jaiabot System
+# Updating Software
 
 ## Router Setup
 
-* Verify your hub router is connected to a hotspot
-* Select your hub router to connect (JAIA-HUB-WIFI-X) (X indicates fleet number)
-* Once connected, open a browser and verfiy that you have a connection
+1. Verify your hub router is connected to a hotspot
+2. Select your hub router to connect (JAIA-HUB-WIFI-X) (X indicates fleet number)
+3. Once connected, open a browser and verfiy that you have a connection
 * If you do not have a connection then follow these next steps:
-  * Log into your hub router:
-    * Open a browser and go to 10.23.X.1 (X indicates fleet number)
-    * Log into the hub router (user: admin, password: admin, or what you have set this up to be)
-    * On the left hand toolbar select the 2.4 GHz WAN connection
-      * Setup a hotspot connection by selecting one that is avaiable
-      * Click the save button
-      * Verify that you have internet connection
-* Once you have connection move onto the next section
+  1. Log into your hub router:
+    2. Open a browser and go to 10.23.X.1 (X indicates fleet number)
+    3. Log into the hub router (user: admin, password: admin, or what you have set this up to be)
+    4. On the left hand toolbar select the 2.4 GHz WAN connection
+    5. Setup a hotspot connection by selecting one that is avaiable
+    6. Click the save button
+    7. Verify that you have internet connection
+4.  Once you have connection move onto the next section
 
-## SSH Into Bots and Hubs
-
+## SSH into Bots and Hubs
 ```
 ssh -i /path/to/key jaia@10.23.X.10Y (X indicates fleet number and Y indicates bot or hub number)
 ```
 
 ## Select Jaiabot Version To Follow
-
 ```
 cat /etc/apt/sources.list.d/jaiabot.list
 ```
@@ -42,8 +40,7 @@ cat /etc/apt/sources.list.d/jaiabot.list
 sudo vi /etc/apt/sources.d/jaiabot.list
 ```
 
-## Update The Jaiabot Packages
-
+## Update Jaiabot Packages
 ```
 sudo mount -o remount,rw /boot/firmware
 sudo apt update
@@ -57,7 +54,5 @@ jaiabot-status
 * Wait for jaiabot services to start back up (about 1 min)
 
 ## Debugging
-
-* Make sure if you are upgrading that you do the entire fleet
-* This will limit any unexpected issues
-* If you get errors during this upgrade process please contact you jaia representative
+* If you are upgrading, make sure to do that for the entire fleet
+* If you get errors during this upgrade process please contact your Jaia representative

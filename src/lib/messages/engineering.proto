@@ -3,6 +3,7 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
 import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
@@ -101,53 +102,6 @@ message RFDisableOptions
     optional int32 rf_disable_timeout_mins = 2 [default = 10, (dccl.field) = { min: 1 max: 255 }];
 }
 
-message BottomDepthSafetyParams
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    
-    optional double constant_heading = 1 [
-        default = 0,
-        (dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }
-    ];
-
-    optional int32 constant_heading_time = 2 [
-        default = 0,
-        (dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { base_dimensions: "T" }
-        }
-    ];
-
-    optional double constant_heading_speed = 3 [
-        default = 2,
-        (dccl.field) = {
-            min: 0,
-            max: 3.0,
-            precision: 1,
-            units { base_dimensions: "LT^-1" }
-        }
-    ];
-
-    optional double safety_depth = 4 [
-        default = -1,
-        (dccl.field) = {
-            min: -1,
-            max: 60,
-            precision: 1,
-            units { base_dimensions: "LT^-1" }
-        }
-    ];
-}
-
 message IMUCalibration
 {
     option (dccl.msg) = {
@@ -155,6 +109,17 @@ message IMUCalibration
     };
 
     optional bool run_cal = 1 [default = false];
+}
+
+message Echo
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool start_echo = 1 [default = false];
+    optional bool stop_echo = 2 [default = false];
+    optional EchoState echo_state = 3 [default = BOOTING];
 }
 
 message Echo
