@@ -80,9 +80,10 @@ class HubManager : public ApplicationBase
 
     // data offload
     // track bot going into DataOffload state
-    std::map<uint16_t, protobuf::MissionState> latest_bot_mission_state_;
-    std::deque<uint16_t> bots_pending_data_offload_;
+    std::map<int, protobuf::MissionState> latest_bot_mission_state_;
+    std::deque<int> bots_pending_data_offload_;
     std::unique_ptr<std::thread> offload_thread_;
+    int current_offload_bot_id_{0};
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
@@ -157,6 +158,40 @@ void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
+    if (offload_thread_)
+    {
+        latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
+        latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
+            data_offload_percentage_);
+
+        if (offload_complete_)
+        {
+            offload_thread_->join();
+            protobuf::Command command;
+            command.set_bot_id(current_offload_bot_id_);
+            // JCC sends timestamps unwarped, so do the same to avoid sending "newer" timestamp than future JCC command
+            command.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
+                goby::time::SystemClock::unwarp(goby::time::SystemClock::now())));
+            if (offload_success_)
+            {
+                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(true);
+                command.set_type(protobuf::Command::DATA_OFFLOAD_COMPLETE);
+            }
+            else
+            {
+                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(false);
+                command.set_type(protobuf::Command::DATA_OFFLOAD_FAILED);
+            }
+            handle_command(command);
+            offload_thread_.reset();
+        }
+    }
+    else if (!offload_thread_ && !bots_pending_data_offload_.empty())
+    {
+        start_dataoffload(bots_pending_data_offload_.front());
+        bots_pending_data_offload_.pop_front();
+    }
+
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
@@ -173,25 +208,7 @@ void jaiabot::apps::HubManager::loop()
         interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
     }
 
-    if (offload_complete_)
-    {
-        offload_thread_->join();
-        if (!offload_success_)
-        {
-            // ...
-        }
-        else
-        {
-            //...
-        }
-        offload_thread_.reset();
-    }
-
-    if (!offload_thread_ && !bots_pending_data_offload_.empty())
-    {
-        start_dataoffload(bots_pending_data_offload_.front());
-        bots_pending_data_offload_.pop_front();
-    }
+    latest_hub_status_.clear_bot_offload();
 }
 
 void jaiabot::apps::HubManager::handle_subscription_report(
@@ -596,10 +613,14 @@ void jaiabot::apps::HubManager::handle_hardware_status(
 void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
 {
     glog.is_verbose() && glog << "Starting offload for bot " << bot_id << std::endl;
+    current_offload_bot_id_ = bot_id;
 
-    // Inputs to data offload command log dir, bot ip, and extra exclusions for rsync
     std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
                          std::to_string((cfg().bot_start_ip() + bot_id));
+
+    if (cfg().use_localhost_for_data_offload())
+        bot_ip = "127.0.0.1";
+
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 

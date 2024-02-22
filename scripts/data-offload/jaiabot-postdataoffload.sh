@@ -38,23 +38,15 @@ else
   echo "Archive directory already exists."
 fi
 
-# Check if there are files available to move to archive directory
-if [ "$(ls -A "${log_dir}")" ]; then
-  echo "Moving log files to archive..."
-  mv "${log_dir}"/* "${archive_dir}"
-  echo "Files moved successfully."
-else
-  echo "No files available to move."
-fi
-
 if [ "$(ls -A "${staging_dir}")" ]; then
   echo "Moving staged log files to archive..."
-  mv "${staging_dir}"/* "${archive_dir}"
+  rsync -aP --remove-source-files "${staging_dir}"/ "${archive_dir}"/
   echo "Files moved successfully."
 else
   echo "No files available to move."
 fi
 
 echo "Removing old log files..."
-# remove all logs older than 7 days
+# remove all logs older than 7 days from both archive (offloaded logs) and log dir (debug logs)
 find "${archive_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   
+find "${log_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   

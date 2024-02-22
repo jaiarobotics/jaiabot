@@ -2873,10 +2873,10 @@ export default class CommandControl extends React.Component {
 			botInfo.poorHealthMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsPoorHealth.length > 1 ? 's': ''}: ` + botInfo.botIdsPoorHealth + " because the health is poor"
 		}
 		if (botInfo.botIdsInIdleState.length !==0) {
-			botInfo.idleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been activated`
+			botInfo.idleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been system checked`
 		}
 		if (botInfo.botIdsNotInIdleState.length !==0) {
-			botInfo.notIdleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been activated`
+			botInfo.notIdleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been system checked`
 		}
 		if (botInfo.botIdsInStoppedState.length !==0) {
 			botInfo.stoppedStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInStoppedState.length > 1 ? 's': ''}: ` + botInfo.botIdsInStoppedState + ` because ${botInfo.botIdsInStoppedState.length > 1 ? 'they have': 'it has'} been stopped`
@@ -2914,10 +2914,10 @@ export default class CommandControl extends React.Component {
 				CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
 			}
 			else {
-				let confirmationText = `Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				let confirmationText = `Click the OK button to system check Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
 					commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage;
 
-				CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
+				CustomAlert.confirm(confirmationText, 'System Check Bots', () => {
 					for (const botId of commDest.botIds) {
 						let c = {
 							bot_id: botId,

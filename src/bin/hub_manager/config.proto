@@ -52,7 +52,9 @@ message HubManager
     // data offload
     required string data_offload_script = 20;
     optional string log_staging_dir = 21 [default = "/var/log/jaiabot/staging"];
-    optional string log_offload_dir = 22 [default = "/var/log/jaiabot/bot_offload"];
-    required int32 bot_start_ip = 23 [default = 100];
-    required string class_b_network = 24 [default = "10.23"];
+    optional string log_offload_dir = 22
+        [default = "/var/log/jaiabot/bot_offload"];
+    optional int32 bot_start_ip = 23 [default = 100];
+    optional string class_b_network = 24 [default = "10.23"];
+    optional bool use_localhost_for_data_offload = 25 [default = false];
 }

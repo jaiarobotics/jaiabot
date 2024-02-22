@@ -31,6 +31,7 @@ message Command
     required uint64 time = 2 [(dccl.field) = {
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
+        precision: -5 // decisecond precision
     }];
 
     enum CommandType
