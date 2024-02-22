@@ -127,6 +127,8 @@ export class SurveyLines {
                     const geom1 = evt2.target;
                     let { missionParams, surveyExclusionCoords, startRally, endRally } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
+
+                    this.validateSurveySpacingInputs()
         
                     if (stringCoords[0].length >= 2 && startRally && endRally) {
                         let coords = stringCoords.slice(-2);
@@ -139,18 +141,18 @@ export class SurveyLines {
 
                         missionParams.orientation = rotationAngle;
                         let botList = Object.keys(commandControl.state.podStatus.bots);        
-                        let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.numGoals)) / 1000;
+                        let maxLineLength = (Number(missionParams.pointSpacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
-                        // Check if user selects length > allowed (bots * spacing), if so make centerLine max length
+                        // Check if user selects length > allowed (numWpts * pointSpacing), if so make centerLine max length
                         let currentCenterLineLength = turf.length(turf.toWgs84(centerLineString));
                         if (currentCenterLineLength >= maxLineLength) {
-                            let rhumbPoint = turf.rhumbDestination(turf.toWgs84(turf.point(stringCoords[0])), maxLineLength-(Number(missionParams.spacing)/1000), rotationAngle)
+                            let rhumbPoint = turf.rhumbDestination(turf.toWgs84(turf.point(stringCoords[0])), maxLineLength-(Number(missionParams.pointSpacing)/1000), rotationAngle)
                             centerLineString = turf.lineString([stringCoords[0], turf.toMercator(rhumbPoint).geometry.coordinates])
                         }
         
                         let centerLineStringWgs84 = turf.toWgs84(centerLineString);        
-                        let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
+                        let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.pointSpacing)/1000)
                         let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
         
         
@@ -158,9 +160,9 @@ export class SurveyLines {
                         this.commandControl.setState({centerLineString: centerLineString})						
                         let currentLineLength = turf.length(centerLine)
         
-                        if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
+                        if (currentLineLength <= maxLineLength-(Number(missionParams.pointSpacing)/1000)) {
                             let offsetLines: any[] = [];
-                            let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((botList.length/2)*0.75))
+                            let lineOffsetStart = -1 * (Number(missionParams.lineSpacing) * ((botList.length/2)*0.75))
                             let nextLineOffset = 0;
                             let currentLineOffset = 0;
         
@@ -172,7 +174,7 @@ export class SurveyLines {
                                 ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
         
                                 offsetLines.push(ol);
-                                nextLineOffset = nextLineOffset + Number(missionParams.spacing)
+                                nextLineOffset = nextLineOffset + Number(missionParams.lineSpacing)
                             })
         
                             let alongLines: any = {};
@@ -252,5 +254,24 @@ export class SurveyLines {
                 OlUnobserveByKey(this.listener);
             }
         )
+    }
+
+    /**
+     * Converts zeros passed as spacing values to ones to prevent the preview from breaking
+     * 
+     * @returns {void}
+     * 
+     * @notes
+     * We know this code needs a refactor as it violates React best practices. This is a
+     * temporary solution to meet an urgent business requirement. 
+     */
+    validateSurveySpacingInputs() {
+        if (this.commandControl.state.missionParams.pointSpacing === 0) {
+            this.commandControl.state.missionParams.pointSpacing = 1
+        }
+
+        if (this.commandControl.state.missionParams.lineSpacing === 0) {
+            this.commandControl.state.missionParams.lineSpacing = 1
+        }
     }
 }
