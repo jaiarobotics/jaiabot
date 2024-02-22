@@ -57,6 +57,7 @@ parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 
 args=parser.parse_args()
@@ -91,10 +92,16 @@ class ELECTRONICS_STACK(Enum):
     STACK_2 = '2'
     STACK_3 = '2'
 
+class BOT_TYPE(Enum):
+    HYDRO = 'hydro'
+    ECHO = 'echo'
+    NONE = 'none'
+
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     GOBY = 'GOBY'
     TASKPACKET = 'TASKPACKET'
     NONE = 'NONE'
+
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
@@ -140,6 +147,12 @@ else:
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
 
+if args.bot_type == 'hydro':
+    jaia_bot_type = BOT_TYPE.HYDRO
+elif args.bot_type == 'echo':
+    jaia_bot_type = BOT_TYPE.ECHO
+else:
+    jaia_bot_type = BOT_TYPE.NONE
 
 jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
 
@@ -190,6 +203,7 @@ subprocess.run('bash -ic "' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
                'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
+               'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
@@ -479,6 +493,27 @@ else:
         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
+
+if jaia_bot_type.value == 'echo':
+    jaiabot_apps_echo = [
+        {'exe': 'jaiabot_echo_driver',
+        'description': 'JaiaBot Echo Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_echo.py',
+        'description': 'JaiaBot MAI Echo Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'echo',
+        'args': '20003',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_echo)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
