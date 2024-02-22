@@ -41,6 +41,7 @@ constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+constexpr goby::middleware::Group echo{"jaiabot::echo"};
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
