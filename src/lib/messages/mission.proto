@@ -263,6 +263,7 @@ message MissionTask
     }
 
     optional ConstantHeadingParameters constant_heading = 4;
+    optional bool start_echo = 5 [default = false];
 }
 
 message MissionPlan

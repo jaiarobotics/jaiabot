@@ -42,13 +42,13 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
             {
                 geometry: new OlMultiPoint(mpg[key]),
                 style: new OlStyle({
-                    image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false)
+                    image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false, missionBaseGoal.task?.start_echo)
                 })
             }
         )
         mpGridFeature.setProperties({'botId': key});
         mpGridFeature.setStyle(new OlStyle({
-            image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false)
+            image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false, missionBaseGoal.task?.start_echo)
         }))
 
         features.push(mpGridFeature);
@@ -151,7 +151,7 @@ export function getSurveyMissionPlans(
 
 
 export function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
-    let iStyle = Styles.createGoalIcon(taskType, false, false, false)
+    let iStyle = Styles.createGoalIcon(taskType, false, false, false, false)
 
     let lineStyle = new OlStyle({
         fill: new OlFillStyle({

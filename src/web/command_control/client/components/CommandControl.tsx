@@ -329,10 +329,10 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			centerLineString: null,
 			bottomDepthSafetyParams: {
-				constant_heading: 0,
-				constant_heading_time: 0,
-				constant_heading_speed: 0,
-				safety_depth: 0
+				constant_heading: "0",
+				constant_heading_time: "0",
+				constant_heading_speed: "0",
+				safety_depth: "0"
 			},
 			isSRPEnabled: false,
 
@@ -3070,9 +3070,21 @@ export default class CommandControl extends React.Component {
 	//
 	//
 	/**
+	 * Triggers a state update for changes made to the MissionParams
+	 * 
+	 * @param {MissionParams} params Contains the params edited by the operator
+	 * @returns {void} 
+	 */
+	setMissionParams(params: MissionParams) {
+		let updatedParams = {...params}
+		this.setState({ missionParams: updatedParams })
+	}
+
+	/**
 	 * Triggers a state update for changes made to the BottomDepthSafetyParams
 	 * 
-	 * @param {BottomDepthSafetyParams} params Contain the params edited by the operator
+	 * @param {BottomDepthSafetyParams} params Contains the params edited by the operator
+	 * @returns {void}
 	 * 
 	 * @notes
 	 * Keeping the BottomDepthSafetyParams in CommandControl state allows the data to persist
@@ -3089,9 +3101,10 @@ export default class CommandControl extends React.Component {
 	 * @returns {void}
 	 */
 	addSRPInputsToRuns() {
+		const srpInputs = this.getValidSRPInputs()
 		for (let runKey of Object.keys(this.state.runList.runs)) {
 			let run = this.state.runList.runs[runKey]
-			run.command.plan.bottomDepthSafetyParams = this.state.bottomDepthSafetyParams
+			run.command.plan.bottomDepthSafetyParams = srpInputs
 		}
 	}
 
@@ -3107,6 +3120,52 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Passes each SRP field through a check for containing characters or exceeding its max
+	 * 
+	 * @returns {BottomDepthSafetyParams} An updated copy of the SRP inputs
+	 */
+	getValidSRPInputs() {
+		const maxDegrees = 360
+		const maxSeconds = 360
+		const maxSpeed = 3 // (m/s)
+		const maxDepth = 60 // (m)
+
+		let params = {...this.state.bottomDepthSafetyParams}
+
+		params.constant_heading = this.checkSRPInputs(params.constant_heading, maxDegrees)
+		params.constant_heading_time = this.checkSRPInputs(params.constant_heading_time, maxSeconds, true)
+		params.constant_heading_speed = this.checkSRPInputs(params.constant_heading_speed, maxSpeed) 
+		params.safety_depth = this.checkSRPInputs(params.safety_depth, maxDepth)
+
+		this.setState({ bottomDepthSafetyParams: params })
+
+		return params
+	}
+
+	/**
+	 * Cleans input by removing characters and limiting it to an upper bound
+	 * 
+	 * @param {string} value Input to be checked
+	 * @param {number} max Provides the upper bound for the value
+	 * @param {boolean} removeDecimal (optional) Removes decimal if proto field expects ints
+	 * @returns {string} The cleaned input
+	 */
+	checkSRPInputs(value: string, max: number, removeDecimal?: boolean) {
+		if (Number.isNaN(Number(value))) {
+			return "0"
+		} else if (Number(value) > max) {
+			return max.toString()
+		}
+		
+		if (removeDecimal) {
+			return Number(value).toFixed(0).toString()
+		}
+		return Number(value).toString()
+	}
+
+	
+
 	canUseSurveyTool() {
 		// Check that rally points are set
 		if (layers.rallyPointLayer.getSource().getFeatures().length < 2) {
@@ -3117,13 +3176,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Allows SRP state to be set from other componenets by passing it thorugh props
+	 * Allows SRP state to be set from other componenets by passing it through props.
+	 * Uses local storage to carry over constant heading values for less typing.
 	 * 
 	 * @param {boolean} isSRPEnabled Provides new state of SRP toggle
 	 * @returns {void}
 	 */
 	setIsSRPEnabled(isSRPEnabled: boolean) {
-		this.setState({ isSRPEnabled })
+		let bottomDepthSafetyParams: BottomDepthSafetyParams = {
+			safety_depth: GlobalSettings.srpParameters.safety_depth.toString(),
+			constant_heading: GlobalSettings.constantHeadingParameters.constant_heading.toString(),
+			constant_heading_time: GlobalSettings.constantHeadingParameters.constant_heading_time.toString(),
+			constant_heading_speed: GlobalSettings.constantHeadingParameters.constant_heading_speed.toString()
+		}
+		this.setState({ bottomDepthSafetyParams, isSRPEnabled })
 	}
 	// 
 	// Optimize Mission Planning Helper Methods (End)
@@ -3228,7 +3294,9 @@ export default class CommandControl extends React.Component {
 				<MissionSettingsPanel
 					map={map}
 					missionParams={this.state.missionParams}
+					setMissionParams={this.setMissionParams.bind(this)}
 					missionPlanningGrid={this.state.missionPlanningGrid}
+					missionPlanningFeature={this.state.missionPlanningFeature}
 					missionBaseGoal={this.state.missionBaseGoal}
 					missionStartTask={this.state.missionStartTask}
 					missionEndTask={this.state.missionEndTask}
@@ -3311,6 +3379,7 @@ export default class CommandControl extends React.Component {
 					remoteControlValues={this.state.remoteControlValues}
 					rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
 					createInterval={this.createRemoteControlInterval.bind(this)}
+					deleteInterval={this.clearRemoteControlInterval.bind(this)}
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
 					setRCDiveParameters={this.setRCDiveParams.bind(this)}
