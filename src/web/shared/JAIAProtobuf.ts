@@ -654,6 +654,7 @@ export interface MissionTask {
     dive?: DiveParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
+    start_echo?: boolean
 }
 
 export enum MissionStart {
