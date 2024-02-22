@@ -272,7 +272,7 @@ export function TaskSettingsPanel(props: Props) {
 
         // Change to NONE
         if (newTaskType == TaskType.NONE) {
-            props.onChange(null)
+            props.onChange(undefined)
             return
         }
 

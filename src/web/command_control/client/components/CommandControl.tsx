@@ -1090,39 +1090,23 @@ export default class CommandControl extends React.Component {
 	 * then the mission history is updated with the new task. This way, the undo button can work as expected. Does not track changes in 
 	 * task parameters, only in task type. 
 	 */
-	taskChangeTester(mission: MissionInterface) {
-		let runList = this.getRunList()
-		let runIdInEditMode = runList.runIdInEditMode
-		let oldGoalType, newGoalType, newGoal, oldGoal
+	taskChangeTester() {
+		let runIdInEditMode = this.getRunList().runIdInEditMode
 
-		let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
-		let newGoals = mission.runs[runIdInEditMode].command.plan.goal
+		// If there exists a run in missionHistory with runIdInEditMode, then continue 
+		if (this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode]) {
+			let oldGoalType, newGoalType
+			let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
+			let newGoals = this.getRunList().runs[runIdInEditMode].command.plan.goal
 
-		// Use default parameters depending on which type of task we've switched to
-        
-		for (let i = 0; i < newGoals.length; i++) {
-			// Prevents error from popping up if the oldGoalType or newGoalType is undefined or null
-			if (oldGoals[i].task === undefined || oldGoals[i].task === null) {
-				oldGoal = undefined
-				oldGoalType = undefined
-			} else {
-				oldGoal = oldGoals[i].task
-				oldGoalType = oldGoals[i].task.type
-			}
+			for (let i = 0; i < newGoals.length; i++) {
+				oldGoalType = oldGoals[i]?.task?.type
+				newGoalType = newGoals[i]?.task?.type
 
-			if (newGoals[i].task === undefined || newGoals[i].task === null) {
-				newGoal = undefined
-				newGoalType = undefined
-			} else {
-				newGoal = newGoals[i].task
-				newGoalType = newGoals[i].task.type
-			}
-
-			// Only update mission history if the task type has changed
-			if (newGoalType !== oldGoalType) {
-				mission.runs[runIdInEditMode].command.plan.goal[i].task = newGoals[i].task
-				this.setRunList(mission)
-				this.updateMissionHistory(mission)
+				// Only update mission history if the task type has changed
+				if (newGoalType !== oldGoalType) {
+					this.updateMissionHistory(this.getRunList())
+				}
 			}
 		}
 	}
@@ -3160,7 +3144,12 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ visiblePanel: panelType })
-		this.taskChangeTester(this.getRunList())
+		this.taskChangeTester()
+		/*
+		if (panelType !== 'RALLY_POINT') {
+			this.taskChangeTester(this.getRunList())
+		}
+		*/
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
@@ -3583,7 +3572,7 @@ export default class CommandControl extends React.Component {
 						}}
 						onDoneClick={() => {
 							this.setRunList(this.getRunList())
-							this.taskChangeTester(this.getRunList())
+							this.taskChangeTester()
 						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
