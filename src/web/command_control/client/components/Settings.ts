@@ -102,7 +102,7 @@ export let GlobalSettings = {
     }),
 
     srpParameters: Load<SRPParameters>('srpSafetyDepth', {
-        safety_depth: 1
+        safety_depth: 2
     }),
 
     // MissionPlan speeds

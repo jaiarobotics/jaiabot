@@ -3128,8 +3128,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Allows SRP state to be set from other componenets by passing it thorugh props.
-	 * Uses local storage to carry over constant heading values for less typing
+	 * Allows SRP state to be set from other componenets by passing it through props.
+	 * Uses local storage to carry over constant heading values for less typing.
 	 * 
 	 * @param {boolean} isSRPEnabled Provides new state of SRP toggle
 	 * @returns {void}

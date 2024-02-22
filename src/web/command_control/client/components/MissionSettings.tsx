@@ -261,7 +261,7 @@ export class MissionSettingsPanel extends React.Component {
 
                     {/* Safety Return Path (SRP) */}
                     <div className="mission-settings-line-break"></div>
-                    <div className={`mission-settings-header ${this.isMissionDrawn() ? 'mission-settings-show-flex' : 'mission-settings-hide'}`}>
+                    <div className="mission-settings-header">
                         <div>Safety Return Path:</div>
                         <WptToggle 
                             checked={() => this.props.isSRPEnabled}
