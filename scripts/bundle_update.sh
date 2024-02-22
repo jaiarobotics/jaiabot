@@ -5,11 +5,15 @@
 
 # see also https://npmccallum.gitlab.io/post/foreign-architecture-docker/
 
+set -e -u
+
 DESIRED_PACKAGES="jaiabot-embedded"
 DISTRO="$1"
-SERIES="$2"
+REPO="$2"
 VERSION="$3"
 WORKING_DIR="./build/bundle"
+
+export DEBIAN_FRONTEND=noninteractive
 
 mkdir -p ${WORKING_DIR}
 
@@ -19,7 +23,7 @@ apt-get update && \
     apt-get -y --no-install-recommends install \
             gpg gpg-agent dirmngr
 
-echo -e "deb http://packages.jaia.tech/ubuntu/${SERIES}/${VERSION}/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list && \
+echo -e "deb http://packages.jaia.tech/ubuntu/${REPO}/${VERSION}/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
@@ -36,10 +40,10 @@ dpkg-scanpackages . > Packages
 
 ## Don't install python3-pip until after the apt-get install download (to ensure all python .deb dependencies are included
 ## in previous steps)
-apt-get -y install python3-pip
+apt-get -y install python3-pip libgdal-dev
 ### Match the requirements in jaiabot-python.postinst
 pip3 wheel wheel -w .
-pip3 wheel -r /jaiabot/src/python/requirements.txt -w .
+pip3 wheel -r <(sed '/pyjaia/d' /jaiabot/src/python/requirements.txt) -w .
 
 # Generate ISO
 apt-get -y install genisoimage
