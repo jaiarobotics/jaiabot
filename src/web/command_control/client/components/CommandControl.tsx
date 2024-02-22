@@ -40,7 +40,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
@@ -142,6 +142,7 @@ interface State {
 	missionPlanningLines?: any,
 	missionPlanningFeature?: OlFeature<Geometry>,
 	missionBaseGoal: Goal,
+	missionStartTask: MissionTask,
 	missionEndTask: MissionTask,
 
 	runList: MissionInterface,
@@ -183,6 +184,8 @@ interface State {
 
 	surveyExclusionCoords?: number[][],
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
+	bottomDepthSafetyParams: BottomDepthSafetyParams,
+	isSRPEnabled: boolean
 
 	rcModeStatus: {[botId: number]: boolean},
 	remoteControlValues: Engineering,
@@ -275,7 +278,8 @@ export default class CommandControl extends React.Component {
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
 			missionBaseGoal: { task: { type: TaskType.NONE } },
-			missionEndTask: {type: TaskType.NONE},
+			missionStartTask: { type: TaskType.NONE },
+			missionEndTask: { type: TaskType.NONE },
 
 			runList: {
 				id: 'mission-1',
@@ -324,6 +328,13 @@ export default class CommandControl extends React.Component {
 			surveyExclusionCoords: null,
 			selectedFeatures: null,
 			centerLineString: null,
+			bottomDepthSafetyParams: {
+				constant_heading: 0,
+				constant_heading_time: 0,
+				constant_heading_speed: 0,
+				safety_depth: 0
+			},
+			isSRPEnabled: false,
 
 			rcModeStatus: {},
 			remoteControlInterval: null,
@@ -518,7 +529,10 @@ export default class CommandControl extends React.Component {
 
 		// Update the mission planning layer whenever relevant state changes
 		const botsChanged = (prevState.podStatus.bots.length !== this.state.podStatus.bots.length)
-		if (stateHasChanged(['missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionBaseGoal', 'missionPlanningGrid', 'missionEndTask'], false) || botsChanged) {
+		if (stateHasChanged(
+			['missionPlanningLines', 'missionPlanningFeature', 'missionParams', 'mode', 'missionPlanningGrid', 'missionBaseGoal', 'missionStartTask', 'missionEndTask'],
+			 false) || botsChanged
+		) {
 			this.updateMissionPlanningLayer()
 		}
 
@@ -1222,7 +1236,6 @@ export default class CommandControl extends React.Component {
 			}
 		})
 	}
-
 	// 
 	// Run Mission (End)
 	// 
@@ -1586,11 +1599,18 @@ export default class CommandControl extends React.Component {
 
 		// Place all the mission planning features in this for the missionLayer
 		const missionPlanningFeaturesList: OlFeature[] = []
-		const { missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
+		const { missionPlanningGrid, missionBaseGoal, missionStartTask, missionEndTask } = this.state
 
 
 		if (missionPlanningGrid) {
-			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), this.state.startRally?.get('location'), this.state.endRally?.get('location'), missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
+			this.missionPlans = getSurveyMissionPlans(
+				this.state.startRally?.get('location'),
+				this.state.endRally?.get('location'), 
+				missionPlanningGrid,
+				missionBaseGoal,
+				missionStartTask, 
+				missionEndTask
+			)
 			const planningGridFeatures = featuresFromMissionPlanningGrid(missionPlanningGrid, missionBaseGoal)
 			missionPlanningFeaturesList.push(...planningGridFeatures)
 		}
@@ -2998,8 +3018,47 @@ export default class CommandControl extends React.Component {
 	// 
 
 	// 
-	// Render Helper Methods and Panels (Start)
-	// 
+	// Optimize Mission Planning Helper Methods (Start)
+	//
+	//
+	/**
+	 * Triggers a state update for changes made to the BottomDepthSafetyParams
+	 * 
+	 * @param {BottomDepthSafetyParams} params Contain the params edited by the operator
+	 * 
+	 * @notes
+	 * Keeping the BottomDepthSafetyParams in CommandControl state allows the data to persist
+	 * even when the panel closes leading to a smoother user experience
+	 */
+	setBottomDepthSafetyParams(params: BottomDepthSafetyParams) {
+		const updatedParams = {...params}
+		this.setState({ bottomDepthSafetyParams: updatedParams })
+	}
+
+	/**
+	 * Adds SRP inputs from Optimize Mission Planning to each run
+	 * 
+	 * @returns {void}
+	 */
+	addSRPInputsToRuns() {
+		for (let runKey of Object.keys(this.state.runList.runs)) {
+			let run = this.state.runList.runs[runKey]
+			run.command.plan.bottomDepthSafetyParams = this.state.bottomDepthSafetyParams
+		}
+	}
+
+	/**
+	 * Removes SRP inputs from each run
+	 * 
+	 * @returns {void}
+	 */
+	deleteSRPInputsFromRuns() {
+		for (let runKey of Object.keys(this.state.runList.runs)) {
+			let run = this.state.runList.runs[runKey]
+			delete run.command.plan.bottomDepthSafetyParams
+		}
+	}
+
 	canUseSurveyTool() {
 		// Check that rally points are set
 		if (layers.rallyPointLayer.getSource().getFeatures().length < 2) {
@@ -3008,6 +3067,19 @@ export default class CommandControl extends React.Component {
 		}
 		return true
 	}
+
+	/**
+	 * Allows SRP state to be set from other componenets by passing it thorugh props
+	 * 
+	 * @param {boolean} isSRPEnabled Provides new state of SRP toggle
+	 * @returns {void}
+	 */
+	setIsSRPEnabled(isSRPEnabled: boolean) {
+		this.setState({ isSRPEnabled })
+	}
+	// 
+	// Optimize Mission Planning Helper Methods (End)
+	// 
 
 	/**
 	 * Switch the visible panel
@@ -3109,11 +3181,17 @@ export default class CommandControl extends React.Component {
 					missionParams={this.state.missionParams}
 					missionPlanningGrid={this.state.missionPlanningGrid}
 					missionBaseGoal={this.state.missionBaseGoal}
+					missionStartTask={this.state.missionStartTask}
 					missionEndTask={this.state.missionEndTask}
 					rallyFeatures={layers.rallyPointLayer.getSource().getFeatures()}
 					startRally={this.state.startRally}
 					endRally={this.state.endRally}
 					centerLineString={this.state.centerLineString}
+					runList={this.state.runList}
+					bottomDepthSafetyParams={this.state.bottomDepthSafetyParams}
+					setBottomDepthSafetyParams={this.setBottomDepthSafetyParams.bind(this)}
+					isSRPEnabled={this.state.isSRPEnabled}
+					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
 					botList={bots}
 					
 					onClose={() => {
@@ -3126,17 +3204,24 @@ export default class CommandControl extends React.Component {
 						this.missionPlans = null
 						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
 					}}
-					onMissionApply={(missionSettings: MissionSettings, startRally: OlFeature, endRally: OlFeature) => {
-						this.setState({ missionEndTask: missionSettings.endTask, startRally, endRally })
+					onMissionApply={(startRally: OlFeature, endRally: OlFeature, startTask: MissionTask, endTask: MissionTask) => {
+						this.setState({ startRally, endRally, missionStartTask: startTask, missionEndTask: endTask, })
 
 						if (this.state.missionParams.missionType === 'lines') {
-							const { missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							const { missionPlanningGrid, missionBaseGoal, missionStartTask, missionEndTask } = this.state
 							const rallyStartLocation = startRally.get('location')
 							const rallyEndLocation = endRally.get('location')
 
-							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
+							this.missionPlans = getSurveyMissionPlans(
+								rallyStartLocation,
+								rallyEndLocation,
+								missionPlanningGrid,
+								missionBaseGoal,
+								missionStartTask,
+								missionEndTask
+							)
 
-							const runList = this.getRunList()
+							let runList = this.getRunList()
 							this.deleteAllRunsInMission(runList, false).then((confirmed: boolean) => {
 								if (!confirmed) return
 
@@ -3144,6 +3229,13 @@ export default class CommandControl extends React.Component {
 									// Mutates runList
 									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 								}
+
+								if (this.state.isSRPEnabled) {
+									this.addSRPInputsToRuns()
+								} else {
+									this.deleteSRPInputsFromRuns()
+								}
+
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
 								this.setRunList(runList)
