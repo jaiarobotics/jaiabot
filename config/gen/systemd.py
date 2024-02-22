@@ -102,6 +102,7 @@ class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     TASKPACKET = 'TASKPACKET'
     NONE = 'NONE'
 
+
 # Set the arduino type based on the argument
 # Used to set the serial port device
 if args.arduino_type == 'spi':
