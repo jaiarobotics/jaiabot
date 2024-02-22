@@ -28,7 +28,9 @@
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
 
+#include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+using jaiabot::protobuf::EchoCommand;
 using jaiabot::protobuf::IMUCommand;
 
 namespace jaiabot
@@ -1305,6 +1307,17 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
         auto imu_command = IMUCommand();
         imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
         this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+
+        // Is this an echo task?
+        bool start_echo_sensor = this->template context<Task>().current_task()->start_echo();
+
+        if (start_echo_sensor)
+        {
+            // Start echo recording
+            auto echo_command = EchoCommand();
+            echo_command.set_type(EchoCommand::CMD_START);
+            this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+        }
     }
 
     ~SurfaceDriftTaskCommon()
@@ -1351,6 +1364,17 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             auto imu_command = IMUCommand();
             imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
             this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+
+            // Is this an echo task?
+            bool stop_echo_sensor = this->template context<Task>().current_task()->start_echo();
+
+            if (stop_echo_sensor)
+            {
+                // Stop echo recording
+                auto echo_command = EchoCommand();
+                echo_command.set_type(EchoCommand::CMD_STOP);
+                this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+            }
         }
     }
 
