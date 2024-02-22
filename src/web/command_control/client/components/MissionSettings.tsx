@@ -6,6 +6,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
 import { FormControl, MenuItem } from '@mui/material'
+import { GlobalSettings, Save } from './Settings'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { MissionInterface } from './CommandControl'
 import { Geometry } from 'ol/geom'
@@ -38,6 +39,7 @@ interface Props {
     missionParams: MissionParams
     setMissionParams: (missionParams: MissionParams) => void
     missionPlanningGrid: {[key: string]: number[][]}
+    missionPlanningFeature: Feature<Geometry>,
     missionBaseGoal: Goal,
     missionStartTask: MissionTask
     missionEndTask: MissionTask,
@@ -101,44 +103,23 @@ export class MissionSettingsPanel extends React.Component {
         this.onChange?.()
     }
 
-    getSortedRallyFeatures() {
-        let rallyFeatures = [...this.props.rallyFeatures]
-        return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
+    /**
+     * Indicates if the preview state is drawn
+     * 
+     * @returns {boolean} Whether or not we finished creating a survey preview
+     */
+    isMissionDrawn() {
+        return this.props.missionPlanningFeature && this.props.missionPlanningGrid
     }
 
     /**
-     * Prevents negative values, characters, and numbers > max from being passed as parameters
+     * Sorts rally points by their assigned number
      * 
-     * @param {number} value Input value to check
-     * @returns {number} The value itself, 0, or the max if the input is not valid
+     * @returns {Feature<Geometry>[]} Sorted array of rally points
      */
-    validateBottomDepthSafetyParams(key: string, value: number) {
-        if (Number.isNaN(value)) {
-            return 0
-        }
-
-        // Units: (m/s)
-        const maxSpeed = 3
-        if (key === "constant_heading_speed" && value > maxSpeed) {
-            return maxSpeed
-        }
-
-        const maxDegrees = 360
-        if (key === "constant_heading" && value > maxDegrees) {
-            return maxDegrees
-        }
-
-        const maxSeconds = 360
-        if (key === "constant_heading_time" && value > maxSeconds) {
-            return maxSeconds
-        }
-
-        const maxDepth = 60
-        if (key == "safety_depth" && value > maxDepth) {
-            return maxDepth
-        }
-
-        return value
+    getSortedRallyFeatures() {
+        let rallyFeatures = [...this.props.rallyFeatures]
+        return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
     }
 
     /**
@@ -149,7 +130,7 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleBottomDepthSafetyParamChange(evt: Event) {
         const element = evt.target as HTMLInputElement
-        const value = this.validateBottomDepthSafetyParams(element.name, Number(element.value))
+        const value = element.value
         let bottomDepthSafetyParams = {...this.props.bottomDepthSafetyParams}
 
         switch (element.name) {
@@ -176,11 +157,6 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleSRPToggleClick() {
         this.props.setIsSRPEnabled(!this.props.isSRPEnabled)
-        
-        let srpContainer = document.getElementById("srp-container")
-        if (srpContainer === null) {
-            return 
-        }
     }
 
     render() {
@@ -212,7 +188,7 @@ export class MissionSettingsPanel extends React.Component {
                         /> m
                     </div>
 
-                    <div className="mission-settings-input-label">Line Spacing:</div>
+                    <div className="mission-settings-input-label">Lane Spacing:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
@@ -259,8 +235,8 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
-                        <div className="mission-settings-tasks-title">Start Task:</div>
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
+                        <div className="mission-settings-tasks-title">Start Rally Task:</div>
                         <TaskSettingsPanel 
                             title="Start Task" 
                             map={map} 
@@ -271,8 +247,8 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
-                        <div className="mission-settings-tasks-title">End Task:</div>
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
+                        <div className="mission-settings-tasks-title">End Survey Task:</div>
                         <TaskSettingsPanel 
                             title="End Task" 
                             map={map} 
