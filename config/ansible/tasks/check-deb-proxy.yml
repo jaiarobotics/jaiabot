@@ -1,0 +1,8 @@
+- name: Check for the existence of /etc/apt/apt.conf.d/00aptproxy
+  ansible.builtin.stat:
+    path: /etc/apt/apt.conf.d/00aptproxy
+  register: apt_proxy_file
+
+- name: Set 'using_cache' variable based on the file existence
+  ansible.builtin.set_fact:
+    using_hub_deb_cache: "{{ apt_proxy_file.stat.exists }}"
