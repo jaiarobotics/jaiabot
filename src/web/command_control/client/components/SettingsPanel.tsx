@@ -41,6 +41,13 @@ enum AccordionTabs {
     MapLayers = 'MAP_LAYERS'
 }
 
+/**
+ * Defines Layout and Functionality of the Settings Panel (Map Settings)
+ *
+ * @param {Props} Props passed from CommandControl
+ * @returns {string} Web content of Settings Panel
+ */
+
 export function SettingsPanel(props: Props) {
     const [openAccordionTabs, setOpenAccordionTabs] = useState([])
 
