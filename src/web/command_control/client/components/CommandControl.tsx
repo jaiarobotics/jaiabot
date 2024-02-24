@@ -6,7 +6,6 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
-import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
@@ -68,7 +67,8 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
+	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -100,7 +100,6 @@ export enum PanelType {
 	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
-	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
@@ -536,8 +535,8 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map layers panel, if needed
-		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
+		// Update the map settings panel, if needed
+		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
 	}
@@ -2664,43 +2663,9 @@ export default class CommandControl extends React.Component {
 				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
-					<Icon path={mdiDownloadMultiple} title="Download All"/>
-				</Button>
-				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-					<Button className="button-jcc active" onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-				))}
 				<Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
-				{(this.state.visiblePanel == PanelType.SETTINGS ? (
-				<Button className="button-jcc active" onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<Icon path={mdiCog} title="Settings"/>
-				</Button>
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.SETTINGS)
-						}}
-					>
-						<Icon path={mdiCog} title="Settings"/>
-					</Button>
-				))}
 				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
 					<Icon path={mdiHelp} title="Help"></Icon>
 				</Button>
@@ -3409,72 +3374,6 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
-		const mapLayersButton = (visiblePanel == PanelType.MAP_LAYERS) ? (
-			<Button className="button-jcc active"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MAP_LAYERS)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-		)
-
-		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
-			<div>
-				<div id="measureResult" />
-				<Button
-					className="button-jcc active"
-					onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
-				</Button>
-			</div>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MEASURE_TOOL)
-					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
-					info('Touch map to set first measure point');
-				}}
-			>
-				<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
-			</Button>
-		)
-
-		const trackPodButton = (trackingTarget === 'pod' ? (
-			<Button 							
-				className="button-jcc active"
-				onClick={() => {
-					this.zoomToPod(false);
-					this.trackBot(null);
-				}} 
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
-			</Button>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.zoomToPod(true);
-					this.trackBot('pod');
-				}}
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
-			</Button>
-		))
-
 		const surveyMissionSettingsButton = ((visiblePanel == PanelType.MISSION_SETTINGS) ? (
 			<Button
 				className="button-jcc active"
@@ -3548,6 +3447,72 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
+		const settingsPanelButton = (this.state.visiblePanel == PanelType.SETTINGS ? (
+			<Button className="button-jcc active" onClick={() => {
+				this.setVisiblePanel(PanelType.NONE)
+			}}
+			>
+				<Icon path={mdiCog} title="Map Settings" />
+			</Button>
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				this.setVisiblePanel(PanelType.SETTINGS)
+			}}
+			>
+				<Icon path={mdiCog} title="Map Settings" />
+			</Button>
+		))
+
+		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
+			<div>
+				<div id="measureResult" />
+				<Button
+					className="button-jcc active"
+					onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiRuler}  title="Measurement Result" />
+				</Button>
+			</div>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					this.setVisiblePanel(PanelType.MEASURE_TOOL)
+					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+					info('Touch map to set first measure point');
+				}}
+			>
+				<Icon path={mdiRuler}  title="Measure Distance" />
+			</Button>
+		)
+
+		const downloadAllBotsButton = (<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
+			<Icon path={mdiDownloadMultiple} title="Download All" />
+		</Button>
+		)
+
+		const downloadQueueButton = (
+			this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+
+			) : (
+				<Button className="button-jcc" onClick={() => {
+					this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+			)
+
+		)
+
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -3593,12 +3558,6 @@ export default class CommandControl extends React.Component {
 
 			case PanelType.MEASURE_TOOL:
 				visiblePanelElement = null
-				break
-
-			case PanelType.MAP_LAYERS:
-				visiblePanelElement = (
-					<MapLayersPanel />
-				)
 				break
 
 			case PanelType.RUN_INFO:
@@ -3670,6 +3629,11 @@ export default class CommandControl extends React.Component {
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						trackBot={this.trackBot.bind(this)}
+						trackingTarget={this.state.trackingTarget}
+						visiblePanel={this.state.visiblePanel}
+						zoomToPod={this.zoomToPod.bind(this)}
 					/>
 				)
 				break
@@ -3687,17 +3651,12 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
-
-					{engineeringButton}
-
 					{surveyMissionSettingsButton}
-					
-					{trackPodButton}
-
+					{downloadAllBotsButton}
+					{downloadQueueButton}
+					{settingsPanelButton}
 					{measureButton}
-
-					{mapLayersButton}
-
+					{engineeringButton}
 				</div>
 
 				<div id="botsDrawer">

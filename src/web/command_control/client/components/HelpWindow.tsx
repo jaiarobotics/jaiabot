@@ -72,6 +72,21 @@ const buttons: ButtonDescriptor[] = [
         description: 'Run the mission as currently edited on the map.'
     },
     {
+        iconPath: mdiArrowULeftTop,
+        name: 'Undo',
+        description: 'Undo the last 10 mission planning actions (excluding Task modifications).'
+    },
+    {
+        iconPath: mdiViewList,
+        name: 'Mission Panel',
+        description: 'Open the Mission Panel, which shows each run in the current mission, and which bots are assigned to which run.  Missions can also be saved, loaded, and cleared from this panel.'
+    },
+    {
+        fontAwesomeIconDefinition: faEdit,
+        name: 'Edit Optimized Mission Survey',
+        description: 'Open the Optimized Mission Survey, which can be used to configure a survey mission, where the pod of Jaiabots will coordinate to survey an area of the map.  The tasks performed at each waypoint in the survey mission can be customized.'
+    },
+    {
         iconPath: mdiDownloadMultiple,
         name: 'Download All',
         description: 'Start downloading log and sensor data from all of the bots to the hub.'
@@ -82,34 +97,9 @@ const buttons: ButtonDescriptor[] = [
         description: 'Open the Download Queue panel, which shows the currently queued data downloads from the bots to the hub.'
     },
     {
-        iconPath: mdiArrowULeftTop,
-        name: 'Undo',
-        description: 'Undo the last 10 mission planning actions (excluding Task modifications).'
-    },
-    {
         iconPath: mdiCog,
-        name: 'Settings',
-        description: 'Open the global Settings panel for Jaia Command & Control.'
-    },
-    {
-        iconPath: mdiViewList,
-        name: 'Mission Panel',
-        description: 'Open the Mission Panel, which shows each run in the current mission, and which bots are assigned to which run.  Missions can also be saved, loaded, and cleared from this panel.'
-    },
-    {
-        fontAwesomeIconDefinition: faWrench,
-        name: 'Engineering Panel',
-        description: 'Open the Engineering Panel, which can be used for low-level control of one or more Jaiabots.'
-    },
-    {
-        fontAwesomeIconDefinition: faEdit,
-        name: 'Edit Optimized Mission Survey',
-        description: 'Open the Optimized Mission Survey, which can be used to configure a survey mission, where the pod of Jaiabots will coordinate to survey an area of the map.  The tasks performed at each waypoint in the survey mission can be customized.'
-    },
-    {
-        fontAwesomeIconDefinition: faMapMarkerAlt,
-        name: 'Follow / Unfollow Bots',
-        description: 'Enable or disable Follow Bots mode, where the map will automatically track the pod of Jaiabots and follow them as they move around.'
+        name: 'Map Settings',
+        description: 'Open the Map Settings panel for Jaia Command & Control.'
     },
     {
         fontAwesomeIconDefinition: faRuler,
@@ -117,9 +107,9 @@ const buttons: ButtonDescriptor[] = [
         description: 'Click two or more points to measure the total distance along a set of line segments.'
     },
     {
-        fontAwesomeIconDefinition: faLayerGroup,
-        name: 'Map Layers',
-        description: 'Open the Map Layers panel, where you can enable and disable the layers on the map.  These layers include base maps, bathymetric charts, mission plans, and measurement data taken with the Jaiabots.'
+        fontAwesomeIconDefinition: faWrench,
+        name: 'Engineering Panel',
+        description: 'Open the Engineering Panel, which can be used for low-level control of one or more Jaiabots.'
     }
 ]
 
