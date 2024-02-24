@@ -384,26 +384,7 @@ jaiabot::apps::MissionManager::MissionManager()
             }
             if (command.has_bottom_depth_safety_params())
             {
-                if (command.bottom_depth_safety_params().has_constant_heading())
-                {
-                    machine_->set_bottom_depth_safety_constant_heading(
-                        command.bottom_depth_safety_params().constant_heading());
-                }
-                if (command.bottom_depth_safety_params().has_constant_heading_speed())
-                {
-                    machine_->set_bottom_depth_safety_constant_heading_speed(
-                        command.bottom_depth_safety_params().constant_heading_speed());
-                }
-                if (command.bottom_depth_safety_params().has_constant_heading_time())
-                {
-                    machine_->set_bottom_depth_safety_constant_heading_time(
-                        command.bottom_depth_safety_params().constant_heading_time());
-                }
-                if (command.bottom_depth_safety_params().has_safety_depth())
-                {
-                    machine_->set_bottom_safety_depth(
-                        command.bottom_depth_safety_params().safety_depth());
-                }
+                handle_bottom_dive_safety_params(command.bottom_depth_safety_params());
             }
 
             // Publish only when we get a query for status
@@ -795,6 +776,16 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 mission_is_feasible = false;
             }
 
+            if (command.plan().has_bottom_depth_safety_params())
+            {
+                handle_bottom_dive_safety_params(command.plan().bottom_depth_safety_params());
+            }
+            else
+            {
+                jaiabot::protobuf::BottomDepthSafetyParams bottom_depth_safety_params;
+                handle_bottom_dive_safety_params(bottom_depth_safety_params);
+            }
+
             if (mission_is_feasible)
             {
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
@@ -942,6 +933,12 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                 *out_command.mutable_plan()->mutable_speeds() = initial_fragment.plan().speeds();
             }
 
+            if (initial_fragment.plan().has_bottom_depth_safety_params())
+            {
+                *out_command.mutable_plan()->mutable_bottom_depth_safety_params() =
+                    initial_fragment.plan().bottom_depth_safety_params();
+            }
+
             if (initial_fragment.plan().has_repeats())
             {
                 out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
@@ -972,6 +969,21 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
         return false;
     }
     return false;
+}
+
+/**
+ * Passes Safety Return Path (SRP) values to the state machine
+ *  
+ * @param {jaiabot::apps::MissionManager} handle_bottom_dive_safety_params Contains the SRP values
+ * @returns {void} 
+ */
+void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
+    jaiabot::protobuf::BottomDepthSafetyParams params)
+{
+    machine_->set_bottom_depth_safety_constant_heading(params.constant_heading());
+    machine_->set_bottom_depth_safety_constant_heading_speed(params.constant_heading_speed());
+    machine_->set_bottom_depth_safety_constant_heading_time(params.constant_heading_time());
+    machine_->set_bottom_safety_depth(params.safety_depth());
 }
 
 bool jaiabot::apps::MissionManager::health_considered_ok(

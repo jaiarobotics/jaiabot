@@ -1,0 +1,34 @@
+- name: Install squid-deb-proxy (only on hubs)
+  ansible.builtin.apt:
+    update_cache: yes
+    name: squid-deb-proxy
+    state: present
+
+- name: Allow access to packages.jaia.tech from proxy
+  ansible.builtin.copy:
+    dest: "/etc/squid-deb-proxy/mirror-dstdomain.acl.d/20-jaia"
+    content: |
+      # network destinations that are allowed by this cache
+      packages.jaia.tech
+
+- name: Reduce squid mem caching
+  ansible.builtin.lineinfile:
+    path: /etc/squid-deb-proxy/squid-deb-proxy.conf
+    regexp: '^cache_mem'
+    line: 'cache_mem 10 MB'
+
+- name: Reduce squid disk cache usage to 1000 MB
+  ansible.builtin.lineinfile:
+    path: /etc/squid-deb-proxy/squid-deb-proxy.conf
+    regexp: '^cache_dir'
+    line: 'cache_dir aufs /var/cache/squid-deb-proxy 1000 16 256'
+    
+- name: Restart squid-deb-proxy service
+  ansible.builtin.systemd:
+    name: squid-deb-proxy.service
+    state: restarted
+
+- name: Disable unneeded squid default service
+  ansible.builtin.systemd:
+    name: squid.service
+    enabled: false
