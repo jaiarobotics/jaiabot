@@ -99,6 +99,9 @@ constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};
 
+// simulator
+constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"};
+
 } // namespace groups
 } // namespace jaiabot
 

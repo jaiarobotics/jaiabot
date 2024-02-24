@@ -202,7 +202,7 @@ jaiabot::statechart::predeployment::Idle::~Idle()
 // Movement::Transit
 jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>(c)
+    : Base(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     int slip_radius = cfg().waypoint_with_no_task_slip_radius();
@@ -238,7 +238,7 @@ jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
 // Recovery::Transit
 jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<Transit, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT>(c)
+    : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -270,8 +270,7 @@ jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()
 // Recovery::StationKeep
 jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, Recovery,
-                        protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>(c)
+    : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -324,10 +323,12 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
 
 jaiabot::statechart::inmission::underway::Task::~Task()
 {
-    if (!has_manual_task_)
+    auto task_complete_event = dynamic_cast<const EvTaskComplete*>(triggering_event());
+    // each time we complete a autonomous task - we should increment the goal index
+    // do not increment for other triggering events, such as EvIMURestart or EvGPSFix
+    if (!has_manual_task_ && task_complete_event)
     {
         goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
-        // each time we complete a autonomous task - we should increment the goal index
         context<InMission>().increment_goal_index();
     }
 
@@ -1252,6 +1253,22 @@ void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const
         post_event(EvTaskComplete());
 }
 
+// Pause::ReacquireGPS
+jaiabot::statechart::inmission::pause::ReacquireGPS::ReacquireGPS(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+    {
+        // in indoor mode, simply post that we've received a fix
+        // (even though we haven't as there's no GPS)
+        post_event(statechart::EvGPSFix());
+    }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
+}
+
 // Dive::ReacquireGPS
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
     typename StateBase::my_context c)
@@ -1279,7 +1296,7 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGP
 // Task::StationKeep
 jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>(c)
+    : Base(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
@@ -1368,8 +1385,7 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::RemoteControl
 // Movement::RemoteControl::StationKeep
 jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, RemoteControl,
-                        protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP>(c)
+    : Base(c)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
         this->machine().mission_plan().speeds().transit_with_units(),
@@ -1457,7 +1473,8 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                               std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
                               this->machine().data_offload_exclude() + " 2>&1");
 
-    auto offload_func = [this]() {
+    auto offload_func = [this]()
+    {
         glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
                                  << "]" << std::endl;
 
