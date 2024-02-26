@@ -36,5 +36,4 @@ echo "Extra files to exclude: ${additional_exclude_files}"
 set -u
 
 # Move files matching desired offload settings to staging dir
-
-rsync -aP --exclude=${additional_exclude_files} --exclude='*.txt*' --exclude="*latest.goby"  --remove-source-files ${log_dir}/ ${staging_dir}/
+find "$log_dir" -type f ! -name '*.txt*' ! -name '*latest.goby' ! -name "${additional_exclude_files}" -exec mv {} "$staging_dir/" \;
