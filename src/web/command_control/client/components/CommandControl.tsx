@@ -216,15 +216,12 @@ interface BotAllCommandInfo {
 	botIdsDownloadNotAvailable?: number[],
 	botIdsInDownloadQueue?: number[],
 	botIdsWifiDisconnected?: number[],
-	botIdsInPauseState?: number[],
-	botIdsPauesNotAvaiable?: number[],
 	idleStateMessage?: string,
 	notIdleStateMessage?: string,
 	stoppedStateMessage?: string,
 	poorHealthMessage?: string,
 	downloadQueueMessage?: string,
 	disconnectedMessage?: string,
-	pauesNotAvaiableMessage?: string
 }
 
 export default class CommandControl extends React.Component {
@@ -1157,7 +1154,7 @@ export default class CommandControl extends React.Component {
 	runMissions(mission: MissionInterface, addRuns: CommandList) {
 		this.takeControl(() => {
 
-			const commDest = this.determineAllCommandBots(true, false, false, false, false)
+			const commDest = this.determineAllCommandBots(true, false, false, false)
 			const botIdsAssignedToRuns: number[] = []
 			const runs = mission.runs
 
@@ -1188,7 +1185,7 @@ export default class CommandControl extends React.Component {
 				notAssignedMessage = "\nNot sending to bot: " + botsNotAssignedToRuns + " because it is not assigned to a run"
 			}
 
-			if (botIdsAssignedToRuns.length === 0 && commDest.botIdsInPauseState.length == 0) {
+			if (botIdsAssignedToRuns.length === 0) {
 				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
 			} 
 			else {
@@ -1196,17 +1193,7 @@ export default class CommandControl extends React.Component {
 				const alertText = `Run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 					commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
 
-				if (botIdsAssignedToRuns.length > 0) {
-					alertText = `Execute this run for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + `\n` 
-				}
-
-				if (commDest.botIdsInPauseState.length > 0) {
-					alertText += `Resume this run for Bot${commDest.botIdsInPauseState.length > 1 ? 's': ''}: ` + commDest.botIdsInPauseState
-				}
-				 
-				alertText += commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
-
-				CustomAlert.confirm(alertText, 'Execute/Resume Run', () => {
+				CustomAlert.confirm(alertText, 'Run Mission', () => {
 					
 					const doExecuteMission = () => {
 						Object.keys(runs).map(key => {
@@ -1243,20 +1230,6 @@ export default class CommandControl extends React.Component {
 					}
 					else {
 						doExecuteMission()
-					}
-
-					for (const botId of commDest.botIdsInPauseState) {
-						let c = {
-							bot_id: botId,
-							type: CommandType.RESUME
-						}
-				
-						console.log(c)
-						this.api.postCommand(c).then(response => {
-							if (response.message) {
-								error(response.message)
-							}
-						})
 					}
 
 				})
@@ -2493,7 +2466,7 @@ export default class CommandControl extends React.Component {
 	async processDownloadAllBots() {
 		this.takeControl(() => {
 
-			const commDest = this.determineAllCommandBots(false, false, false, true, false)
+			const commDest = this.determineAllCommandBots(false, false, false, true)
 			const downloadableBots = this.getDownloadableBots()
 			const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
 
@@ -2620,7 +2593,7 @@ export default class CommandControl extends React.Component {
 	 * @returns {PortalBotStatus[]} The list of bots that can be added to download queue
 	 */
 	getDownloadableBots() {
-		const commDest = this.determineAllCommandBots(false, false, false, true, false)
+		const commDest = this.determineAllCommandBots(false, false, false, true)
 
 		const downloadableBots: PortalBotStatus[] = []
 		const bots = this.getPodStatus().bots
@@ -2685,13 +2658,10 @@ export default class CommandControl extends React.Component {
 					<img src={rallyIcon} />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
-				    <Icon path={mdiStop} title="Stop All Runs" />
+				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				<Button className="button-jcc" onClick={this.sendPauseAll.bind(this)}>
-				    <Icon path={mdiPause} title="Pause All Runs" />
-				</Button>
-				<Button id="missionExecuteResume" className={`button-jcc`} onClick={this.playClicked.bind(this)}>
-					<Icon path={mdiPlay} title="Execute/Resume Run"/>
+				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
 				<Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
@@ -2719,11 +2689,10 @@ export default class CommandControl extends React.Component {
 	 * @param {boolean} sendingDownload Determines output and bots to send the download command to
 	 * @returns {BotAllCommandInfo} The information needed to determin what bots to send the all command to (BotAllCommandInfo interface)
 	 */
-	determineAllCommandBots(sendingMission: boolean, sendingActivate: boolean, sendingStop: boolean, sendingDownload: boolean, sendingPause: boolean) {
+	determineAllCommandBots(sendingMission: boolean, sendingActivate: boolean, sendingStop: boolean, sendingDownload: boolean) {
 		let botInfo: BotAllCommandInfo
 		let stopAvailable: RegExp = /^IN_MISSION__.+$/
 		let stopNotAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
-		let pauseState: RegExp = /^IN_MISSION__PAUSE__MANUAL$/
 		let idleStates: RegExp = /^.+__IDLE$/
 		let failedState: RegExp = /^PRE_DEPLOYMENT__FAILED$/
 		let healthError: RegExp = /^HEALTH__FAILED$/
@@ -2738,8 +2707,6 @@ export default class CommandControl extends React.Component {
 			botIdsDownloadNotAvailable: [],
 			botIdsInDownloadQueue: this.state.botDownloadQueue.map((bot) => bot.bot_id),
 			botIdsWifiDisconnected: [],
-			botIdsInPauseState: [],
-			botIdsPauesNotAvaiable: [],
 			idleStateMessage:  "",
 			notIdleStateMessage: "",
 			stoppedStateMessage: "",
@@ -2780,12 +2747,6 @@ export default class CommandControl extends React.Component {
 				botInfo.botIdsDisconnected.push(bot?.bot_id)
 			} else if (sendingDownload && !bot?.wifi_link_quality_percentage) {
 				botInfo.botIdsWifiDisconnected.push(bot?.bot_id)
-			} else if (sendingMission && pauseState.test(bot?.mission_state)) {
-				botInfo.botIdsInPauseState.push(bot?.bot_id)
-			} else if (sendingPause && (!stopAvailable.test(bot?.mission_state) || 
-						stopNotAvailable.test(bot?.mission_state) || 
-						pauseState.test(bot?.mission_state))) {
-				botInfo.botIdsPauesNotAvaiable.push(bot?.bot_id)
 			} else {
 				// This is the list used to send identify which bots to send the command to
 				botInfo.botIds.push(bot?.bot_id)
@@ -2823,9 +2784,6 @@ export default class CommandControl extends React.Component {
 		if (botInfo.botIdsWifiDisconnected.length !== 0) {
 			botInfo.downloadQueueMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsWifiDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsWifiDisconnected + " the Wi-Fi Link Quality is poor (Check Quick Look in Bot Details)"
 		}
-		if (botInfo.botIdsPauesNotAvaiable.length !==0) {
-			botInfo.pauesNotAvaiableMessage  = `\nThe command cannot be sent to Bot${botInfo.botIdsPauesNotAvaiable.length > 1 ? 's': ''}: ` + botInfo.botIdsPauesNotAvaiable + ` because ${botInfo.botIdsPauesNotAvaiable.length > 1 ? 'they ': 'it '} in the incorrect state`
-		}
 
 		return botInfo
 	}
@@ -2838,16 +2796,16 @@ export default class CommandControl extends React.Component {
 	activateAllClicked() {
 		this.takeControl(() => {
 
-			const commDest = this.determineAllCommandBots(false, true, false, false, false)
+			const commDest = this.determineAllCommandBots(false, true, false, false)
 
 			if (commDest.botIds.length === 0) {
 				CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
 			}
 			else {
-				let confirmationText = `Click the OK button to system check Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				let confirmationText = `Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
 					commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage;
 
-				CustomAlert.confirm(confirmationText, 'System Check Bots', () => {
+				CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
 					for (const botId of commDest.botIds) {
 						let command = {
 							bot_id: botId,
@@ -2889,7 +2847,7 @@ export default class CommandControl extends React.Component {
 	sendStopAll() {
 		this.takeControl(() => {
 
-			const commDest = this.determineAllCommandBots(false, false, true, false, false)
+			const commDest = this.determineAllCommandBots(false, false, true, false)
 
 			if (commDest.botIds.length === 0) {
 				CustomAlert.alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
@@ -2921,12 +2879,6 @@ export default class CommandControl extends React.Component {
 	 * @returns {void}
 	 */
 	playClicked(evt: UIEvent) {
-		if (!this.areBotsAssignedToRuns()) {
-			CustomAlert.alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
-			return
-		}
-
-==== BASE ====
 		this.runMissions(this.getRunList(), null);
 	}
 
@@ -2938,7 +2890,7 @@ export default class CommandControl extends React.Component {
 	recoverAllClicked() {
 		this.takeControl(() => {
 
-			const commDest = this.determineAllCommandBots(false, false, false, false, false)
+			const commDest = this.determineAllCommandBots(false, false, false, false)
 
 			CustomAlert.confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
 				commDest.downloadQueueMessage + commDest.disconnectedMessage, 'Download Data', () => {

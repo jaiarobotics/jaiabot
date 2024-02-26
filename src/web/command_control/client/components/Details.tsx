@@ -16,7 +16,6 @@ import '../style/components/Details.less'
 import { 
     mdiPlay,
     mdiStop,
-    mdiPause,
     mdiPower,
     mdiDelete,
     mdiRestart,
@@ -104,19 +103,6 @@ const commands: {[key: string]: CommandInfo} = {
         humanReadableAvailable: "IN_MISSION__*",
         humanReadableNotAvailable: "IN_MISSION__UNDERWAY__RECOVERY__STOPPED"
     },
-    pause: {
-        commandType: CommandType.PAUSE,
-        description: 'Pause',
-        confirmationButtonText: 'Pause',
-        statesAvailable: [
-            /^IN_MISSION__.+$/
-        ],
-        statesNotAvailable: [
-            /^IN_MISSION__PAUSE__MANUAL$/
-        ],
-        humanReadableAvailable: "IN_MISSION__*",
-        humanReadableNotAvailable: "IN_MISSION__PAUSE__MANUAL"
-    },
     play: {
         commandType: CommandType.START_MISSION,
         description: 'Play mission',
@@ -126,16 +112,6 @@ const commands: {[key: string]: CommandInfo} = {
             /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
         ],
         humanReadableAvailable: "IN_MISSION__*, PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN",
-        humanReadableNotAvailable: ""
-    },
-    resume: {
-        commandType: CommandType.RESUME,
-        description: 'Resume mission',
-        confirmationButtonText: 'Resume Mission',
-        statesAvailable: [
-            /^IN_MISSION__PAUSE__MANUAL$/
-        ],
-        humanReadableAvailable: "IN_MISSION__PAUSE__MANUAL",
         humanReadableNotAvailable: ""
     },
     rcMode: {
@@ -769,7 +745,13 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             onClick={() => { issueCommand(api, bot.bot_id, commands.stop, disableButton(commands.stop, missionState).disableMessage, props.setRcMode) }}>
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
-                        {playPauseResumeButton}
+                        <Button
+                            className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
+                            onClick={() => { 
+                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage) 
+                            }}>
+                            <Icon path={mdiPlay} title='Run Mission'/>
+                        </Button>
                         <Button 
                             className={ disableClearRunButton(bot, mission).isDisabled ? 'inactive button-jcc' : 'button-jcc' }
                             onClick={() => { deleteSingleMission(props.run?.id, disableClearRunButton(bot, mission).disableMessage)}}>
