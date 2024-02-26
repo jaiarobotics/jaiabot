@@ -29,7 +29,7 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     if [ "$(docker image ls build_system_vbox --format='true')" != "true" ];
     then
         echo "🟢 Building the docker build_system_vbox image"
-        docker build -t build_system_vbox .docker/focal/amd64
+        ./scripts/docker-build-build-system.sh
     fi
     
     echo "🟢 Building jaiabot apps"
@@ -44,7 +44,7 @@ else
     if [ "$(docker image ls build_system --format='true')" != "true" ];
     then
         echo "🟢 Building the docker build_system image"
-        docker build -t build_system .docker/focal/arm64
+        ./scripts/docker-build-build-system.sh
     fi
     
     echo "🟢 Building jaiabot apps"
