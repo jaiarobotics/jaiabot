@@ -473,11 +473,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     const double div = std::pow(10, -command_time_precision);
     const double t1 = last_command_timestamp_.value(),
                  t2 = command.time_with_units<goby::time::MicroTime>().value();
-    if (static_cast<std::uint64_t>(std::round(t1 / div)) ==
+    if (static_cast<std::uint64_t>(std::round(t1 / div)) >=
         static_cast<std::uint64_t>(std::round(t2 / div)))
     {
         std::uint64_t t3 = t1 + div;
-        glog.is_debug1() && glog << group("main") << "Command has the same timestamp ("
+        glog.is_debug1() && glog << group("main") << "Command has the same or newer timestamp ("
                                  << static_cast<std::uint64_t>(t2) << ") as previous command ("
                                  << static_cast<std::uint64_t>(t1)
                                  << ") within rounding, fudging new timestamp to: " << t3
@@ -738,5 +738,6 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
         offload_complete_ = true;
     };
 
+    offload_complete_ = false;
     offload_thread_.reset(new std::thread(offload_func));
 }

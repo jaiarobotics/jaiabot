@@ -40,7 +40,7 @@ fi
 
 if [ "$(ls -A "${staging_dir}")" ]; then
   echo "Moving staged log files to archive..."
-  rsync -aP --remove-source-files "${staging_dir}"/ "${archive_dir}"/
+  mv "${staging_dir}"/* "${archive_dir}"/
   echo "Files moved successfully."
 else
   echo "No files available to move."
