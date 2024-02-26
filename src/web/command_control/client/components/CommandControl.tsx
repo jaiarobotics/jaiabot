@@ -1080,13 +1080,14 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Provides current mission to test if task type has changed between the previous and latest missions
+	 * Updates the mission history stack if the task of a waypoint changes.
+	 * 
 	 * @returns {void}
 	 * 
 	 * @notes
-	 * Does not track changes in task parameters, only in task type. 
+	 * Calls updateMissionHistory() in order to update the mission history stack.
 	 */
-	taskChangeTester() {
+	detectTaskChange() {
 		let runIdInEditMode = this.getRunList().runIdInEditMode
 
 		// If there exists a run in missionHistory with runIdInEditMode, then continue 
@@ -3182,7 +3183,7 @@ export default class CommandControl extends React.Component {
 	 * @returns {void}
 	 * 
 	 * @notes
-	 * Calls taskChangeTester() in order to update mission history whenever a new panel is selected. 
+	 * Calls detectTaskChange() in order to update mission history whenever a new panel is selected. 
 	 */
 	setVisiblePanel(panelType: PanelType) {
 		switch (this.state.visiblePanel) {
@@ -3210,7 +3211,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ visiblePanel: panelType })
-		this.taskChangeTester()
+		this.detectTaskChange()
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
@@ -3636,7 +3637,7 @@ export default class CommandControl extends React.Component {
 						}}
 						onDoneClick={() => {
 							this.setRunList(this.getRunList())
-							this.taskChangeTester()
+							this.detectTaskChange()
 						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
