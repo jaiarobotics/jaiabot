@@ -4,10 +4,15 @@
     right: 66px;
 
     min-width: 250px;
+    max-height: calc(95vh - 66px);
+    margin-bottom: 16px;
 
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #767d7d;
-  
+    
+    display: flex;
+    flex-direction: column;
+    
     z-index: 1;
   }
 
@@ -25,11 +30,23 @@
     flex-direction: column;
 }
 
+.map-layers-inner-container {
+    font-size: 1.1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.settings-card-container {
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-bottom: 10px;
+    background-color: white;
+}
 .settings-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 30px;
+    background-color: white;
 }
 
 .settings-card .button-jcc {
