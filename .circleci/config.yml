@@ -180,12 +180,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-
+        - "task/data-pull"
+        
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
+        - "task/data-pull"
         
 ## Begin actual config
 version: 2
