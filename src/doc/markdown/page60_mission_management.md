@@ -194,7 +194,7 @@ The logs are automatically offloaded onto the hub as part of the PostDeployment 
 
 This process is automatically initiated when the vehicle is Recovered (or the user commands "RECOVERED"). The bot is responsible for staging the data required to be offloaded (`jaiabot-predataoffload.sh`), but the hub actually performs the `rsync` based data copy in the `jaiahub-dataoffload.sh` script (so that the bots do not need `ssh` credentials to log into the hub).
 
-After the data are copied, the bot archives the copied logs and deletes old (>7 days) logs using the `jaiabot-postdataoffload.sh` script`.
+After the data are copied, the bot archives the copied logs and deletes old (>7 days) logs using the `jaiabot-postdataoffload.sh` script.
 
 The complete process is diagrammed here:
 
