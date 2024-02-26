@@ -64,7 +64,7 @@ log_staging_dir: "$bot_log_staging_dir"
 log_archive_dir: "$bot_log_archive_dir"
 
 # data_offload_exclude options: (NONE, GOBY, TASKPACKET)
-data_offload_exclude: TASKPACKET # (optional)
+data_offload_exclude: $jaia_data_offload_ignore_type # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE

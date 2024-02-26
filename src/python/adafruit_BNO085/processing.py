@@ -171,7 +171,8 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callab
 
 def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
     '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
-    if len(inputSeries.utime) == 0:
+    if len(inputSeries.utime) < 2:
+        # If there are 0 or 1 data points, we're not going to be able to do the irfft
         return Series()
 
     A = numpy.fft.rfft(inputSeries.y_values)

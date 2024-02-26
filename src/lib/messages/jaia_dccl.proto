@@ -13,7 +13,7 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 179 bytes / 1432 bits
+    Actual maximum size of message: 183 bytes / 1464 bits
         dccl.id head...........................8
         user head..............................0
         body................................1423
@@ -266,8 +266,24 @@ message BotStatus
 
     optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 wifi_link_quality_percentage = 63
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+==== BASE ====
+    optional int32 data_offload_percentage = 62 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
+    optional int32 wifi_link_quality_percentage = 63 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
+==== BASE ====
 }
 
 message DriftPacket
