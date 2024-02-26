@@ -231,6 +231,12 @@ except:
     common_macros['user'] = os.environ['USER']
     common_macros['group'] = os.environ['USER']
 
+# if environment picks up 'root' as user, default to jaia rather than install all services privileged
+if common_macros['user'] == 'root':
+    common_macros['user'] = 'jaia'
+    common_macros['group'] = 'jaia'
+
+    
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
