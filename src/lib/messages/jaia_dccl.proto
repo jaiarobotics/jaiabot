@@ -266,14 +266,8 @@ message BotStatus
 
     optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 wifi_link_quality_percentage = 62 [
-        (dccl.field) = {
-            min: 0
-            max: 100
-            precision: 0
-        }
-    ];
-
+    optional int32 wifi_link_quality_percentage = 62
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 }
 
 message DriftPacket
