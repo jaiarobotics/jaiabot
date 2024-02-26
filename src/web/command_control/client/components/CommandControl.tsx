@@ -1080,15 +1080,11 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Used to differentiate between a state change and a task/mission change. Called from onDoneClick() in Render(). Calls updateMissionHistory() if the task of a waypoint changes. 
-	 * 
-	 * @param {MissionInterface} mission Provides current mission to test if task type has changed between the previous and latest missions
+	 * Provides current mission to test if task type has changed between the previous and latest missions
 	 * @returns {void}
 	 * 
 	 * @notes
-	 * Tests to see if there was a change in the type of task for each waypoint. If the done button was pressed in the goal settings panel,
-	 * then the mission history is updated with the new task. This way, the undo button can work as expected. Does not track changes in 
-	 * task parameters, only in task type. 
+	 * Does not track changes in task parameters, only in task type. 
 	 */
 	taskChangeTester() {
 		let runIdInEditMode = this.getRunList().runIdInEditMode
@@ -3180,9 +3176,13 @@ export default class CommandControl extends React.Component {
 	// 
 
 	/**
-	 * Switch the visible panel
+	 * Switch the visible panel to panelType
 	 * 
-	 * @param panelType The panel type to switch to
+	 * @param {PanelType} panelType The panel type to switch to
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Calls taskChangeTester() in order to update mission history whenever a new panel is selected. 
 	 */
 	setVisiblePanel(panelType: PanelType) {
 		switch (this.state.visiblePanel) {
@@ -3211,11 +3211,6 @@ export default class CommandControl extends React.Component {
 
 		this.setState({ visiblePanel: panelType })
 		this.taskChangeTester()
-		/*
-		if (panelType !== 'RALLY_POINT') {
-			this.taskChangeTester(this.getRunList())
-		}
-		*/
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
