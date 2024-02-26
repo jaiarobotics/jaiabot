@@ -3,7 +3,7 @@
     top: 66px;
     right: 66px;
 
-    min-width: 250px;
+    min-width: 300px;
 
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #767d7d;
@@ -38,11 +38,30 @@
   row-gap: 2px;
 }
 
+/* Download Queue CSS */
+.download-queue-inner-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 8pt 8pt;
+  padding: 12px;
+  background-color: #767d7d;
+  font-size: 1.1rem;
+
+  /* 282.54 = height of rc panel, 66 = height of top toolbar, 58 = height of btm btn container, 12 = margins/paddings */
+  max-height: calc(100vh - (282.54px + 66px + 58px + 14px));
+  overflow-y: auto;
+}
+
 .download-queue-card {
   display: flex;
   align-items: center;
-  gap: 45px;
-
-  padding: 9px 18px;
+  gap: 30px;
+  padding: 9px 12px;
   background-color: #FFFFFF;
+}
+
+.download-queue-empty{
+  font-size: 0.9rem;
+  font-weight: bold;
 }
