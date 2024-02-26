@@ -24,7 +24,7 @@ function isoString(tMicroseconds: number | undefined): string {
  * @returns {string} The CSV file contents as a string.
  */
 export async function getCSV(taskPackets: (TaskPacket | LogTaskPacket)[]) {
-    let csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg)\n'
+    let csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg), significant wave height (m)\n'
     let id = 0
 
     for (const taskPacket of taskPackets) {
@@ -47,7 +47,8 @@ export async function getCSV(taskPackets: (TaskPacket | LogTaskPacket)[]) {
             String(taskPacket.dive?.bottom_dive ?? false),
             taskPacket.dive?.depth_achieved?.toFixed(3) ?? '',
             taskPacket.drift?.estimated_drift?.speed?.toFixed(3) ?? '',
-            taskPacket.drift?.estimated_drift?.heading?.toFixed(3) ?? ''
+            taskPacket.drift?.estimated_drift?.heading?.toFixed(3) ?? '',
+            taskPacket.drift?.significant_wave_height?.toFixed(3) ?? ''
         ]
 
         csvText += rowData.join(',') + '\n'
