@@ -24,7 +24,7 @@ function isoString(tMicroseconds: number | undefined): string {
  * @returns {string} The CSV file contents as a string.
  */
 export async function getCSV(taskPackets: (TaskPacket | LogTaskPacket)[]) {
-    let csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg), significant wave height (m)\n'
+    let csvText = 'id,bot,task,lat,lon,time,bottom dive,depth achieved (m),current strength (m/s),current heading (deg),(beta) significant wave height (m)\n'
     let id = 0
 
     for (const taskPacket of taskPackets) {
