@@ -10,6 +10,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import WptToggle from './WptToggle';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -124,7 +125,11 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
-    // For selecting target for constant heading task type    
+    /**
+     * Allows an operator to set constant heading parameters by selecting a point on the map
+     * 
+     * @returns {void}
+     */   
     function selectOnMapClicked() {
         const { map, location } = props
 
@@ -189,7 +194,37 @@ function TaskOptionsPanel(props: Props) {
             let rhumbDistance = turf.rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
             let t = rhumbDistance / speed
             constant_heading.constant_heading_time = Number(t.toFixed(0))
+
+            GlobalSettings.constantHeadingParameters = constant_heading
+            Save(GlobalSettings.constantHeadingParameters)
         })
+    }
+
+     /**
+     * Checks to see if what state start_echo is in
+     * 
+     * @returns {void}
+     */
+    function isEchoChecked() {
+        if (task?.start_echo === undefined) {
+            return false
+        }
+        return task.start_echo
+    }
+
+     /**
+     * Switches toggle state for start_echo
+     * 
+     * @returns {void}
+     */
+    function handleEchoCheck() {
+        if (task?.start_echo === undefined) {
+            task["start_echo"] = true
+        } else if (task.start_echo) {
+            task.start_echo = false
+        } else {
+            task.start_echo = true
+        }
     }
     
     let dive = task.dive
@@ -220,6 +255,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -248,6 +293,16 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task-label">Start Echo</td>
+                                <td className="input-row dive-time">
+                                    <WptToggle 
+                                        checked={() => isEchoChecked()}
+                                        onClick={() => handleEchoCheck()}
+                                        disabled={() => !props?.isEditMode}
+                                    />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -258,7 +313,7 @@ function TaskOptionsPanel(props: Props) {
                 if (speed == null || time == null) return null;
                 else return speed * time;
             }
-    
+
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
             // Select on Map button is only present if a location is passed via Props

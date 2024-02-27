@@ -62,7 +62,7 @@ log_dir: "$log_dir" # (required)
 hub_start_ip: 10 # (required)
 class_b_network: "10.23" # (required)
 # data_offload_exclude options: (NONE, GOBY, TASKPACKET)
-data_offload_exclude: TASKPACKET # (optional)
+data_offload_exclude: $jaia_data_offload_ignore_type # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
@@ -83,9 +83,8 @@ use_goal_timeout: false # (default = false)
 tpv_history_max: 15 # (default = 15)
 skip_goal_task: false # (default = false)
 include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
-include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
 include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
-include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+include_goal_timeout_states: IN_MISSION__PAUSE__REACQUIRE_GPS
 
 # Bottom depth safety behavior
 min_depth_safety: -1 # (default = -1)

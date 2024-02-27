@@ -46,6 +46,48 @@ def protobufMessageToDict(message):
     return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
 
 
+def filterDuplicateTaskPackets(taskPackets: List[dict]):
+    """Filters duplicate task packets that can occur after data offloading. This works
+    by indexing the task packets by a (bot_id, reduced_time) tuple and checking neighboring
+    reduced_time values for duplicates.
+
+    Args:
+        taskPackets (List[dict]): Unfiltered list of task packets.
+    Returns:
+        (List[dict]): Filtered list of task packets.
+    """
+    # Maps (bot_id, reduced_time) to TaskPacket
+    taskPacketLookup: Dict[tuple, dict] = {}
+
+    for taskPacket in taskPackets:
+        bot_id = taskPacket['bot_id']
+        reducedStartTime = reduceTime(taskPacket['start_time'])
+
+        # Check neighboring bins as well for task packets, just in case start_time was on
+        # the cusp of being rounded up/down
+        if (bot_id, reducedStartTime) in taskPacketLookup or \
+           (bot_id, reducedStartTime - 1) in taskPacketLookup or \
+           (bot_id, reducedStartTime + 1) in taskPacketLookup:
+            continue
+        else:
+            taskPacketLookup[(bot_id, reducedStartTime)] = taskPacket
+        
+    return list(taskPacketLookup.values())
+
+def reduceTime(time: int):
+        """Does integer division to give the floored Unix timestamp in seconds.
+
+        Args:
+            time (int): Unix timestamp in microseconds.
+
+        Returns:
+            int: Unix timestamp in seconds, rounded down.
+        """
+        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
+        # second, (1 million microseconds)
+        BIN_LENGTH = 1_000_000
+        return int(time) // BIN_LENGTH
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -56,32 +98,22 @@ class Interface:
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
-    # List of all TaskPackets received from bots with comms
-    live_task_packets = []
-
     # ClientId that is currently in control
     controllingClientId = None
 
     # MetaData
     metadata = {}
 
-    # Path to taskpacket files
-    taskPacketPath = '/var/log/jaiabot/bot_offload/'
-    # Data from taskpacket files
-    offloaded_task_packet_dates: List[str] = []
-    offloaded_task_packets: List[Dict] = []
+    all_task_packets = []
     offloaded_task_packet_files_prev = -1
     offloaded_task_packet_files_curr = 0
-
-    merge_task_packet_list = []
+    taskPacketPath = '/var/log/jaiabot/bot_offload/'
 
     # Set the initial time for checking for task packet files
     start_task_packet_check_time = now()
 
     # Time between checking for task packet files (10 Seconds)
     task_packet_check_interval = 10_000_000
-
-    check_for_offloaded_task_packets = False
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
@@ -418,7 +450,7 @@ class Interface:
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
-        self.live_task_packets.append(task_packet)
+        self.all_task_packets.append(task_packet)
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -427,50 +459,44 @@ class Interface:
         except IndexError:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
-    def get_task_packets_subset(self, task_packets_list, start_date, end_date):
+    def get_task_packets_subset(self, start_date, end_date):
+        """Selects TaskPackets between the provided date bounds
+        Args:
+            start_date (str): Provides the lower bound
+            end_date (str): Provides the upper bound
+        Returns:
+            list: Subset of TaskPackets between specified dates
+        """
         start_index = bisect.bisect_left(
-            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)), 
+            list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)), 
             utime(start_date)
         )
 
         if end_date == "":
-            return task_packets_list[start_index:]
+            return self.all_task_packets[start_index:]
         
         end_index = bisect.bisect_right(
-            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)),
+            list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)),
             utime(end_date)
         )
-        return task_packets_list[start_index: end_index]
+        
+        return self.all_task_packets[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
         if start_date is None or end_date is None:
-            return self.live_task_packets
+            return []
 
-        offloaded_task_packets_subset = self.get_task_packets_subset(
-            self.offloaded_task_packets, start_date, end_date
-        )
-        live_task_packets_subset = self.get_task_packets_subset(
-            self.live_task_packets, start_date, end_date
-        )
-
-        combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
-        # Filter out duplicates with dict comprehenson, then convert to list
-        unique_task_packets = list(
-            {f"{task_packet['bot_id']}-{task_packet['start_time']}": task_packet for task_packet in combined_task_packets}.values()
-        ) 
-
-        return unique_task_packets
+        return self.get_task_packets_subset(start_date, end_date)
     
     def get_total_task_packets_count(self):
-        total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
-        # Use set constructor to eliminate duplicate TaskPackets
-        count = len(
-            set(map(lambda task_packet: f'{task_packet["bot_id"]}-{task_packet["start_time"]}', total_combined_task_packets))
-        )
-        return count 
+        """Gets the count of all TaskPackets
+        Returns:
+            int: The count of all TaskPackets
+        """
+        return len(self.all_task_packets)
 
     # Contour map
-
+    
     def get_depth_contours(self, start_date, end_date):
         return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
@@ -490,11 +516,17 @@ class Interface:
         return self.metadata
 
     def load_taskpacket_files(self):
+        """Appends TaskPackets from *.taskpacket files in the bot_offload directory 
+           to the list of all TaskPackets. Removes duplicates between offloaded and live
+           TaskPackets and sorts the list by start time.
+        Returns: None
+        """
         self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
 
         if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
-            self.check_for_offloaded_task_packets = True
             self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
+        else:
+            return
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
@@ -502,17 +534,9 @@ class Interface:
             for line in open(filePath):
                 try:
                     taskPacket: Dict = json.loads(line)
-                    self.offloaded_task_packets.append(taskPacket)
+                    self.all_task_packets.append(taskPacket)
                 except json.JSONDecodeError as e:
                     logging.warning(f"Error decoding JSON line: {line} because {e}")
 
-        self.offloaded_task_packets = list(
-            filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
-        )
-        self.offloaded_task_packets = sorted(
-            self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time'])
-        )
-
-        self.offloaded_task_packet_dates = (
-            [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
-        )
+        self.all_task_packets = filterDuplicateTaskPackets(self.all_task_packets)
+        self.all_task_packets.sort(key=lambda taskPacket: int(taskPacket['start_time']))
