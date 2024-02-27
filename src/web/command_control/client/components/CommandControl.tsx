@@ -3488,11 +3488,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		)
 
-		const downloadAllBotsButton = (<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
-			<Icon path={mdiDownloadMultiple} title="Download All" />
-		</Button>
-		)
-
 		const downloadQueueButton = (
 			this.state.visiblePanel == PanelType.DOWNLOAD_PANEL ? (
 				<Button className="button-jcc active" onClick={() => {
@@ -3653,7 +3648,6 @@ export default class CommandControl extends React.Component {
 
 					{missionPanelButton}
 					{surveyMissionSettingsButton}
-					{downloadAllBotsButton}
 					{downloadQueueButton}
 					{settingsPanelButton}
 					{measureButton}
