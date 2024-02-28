@@ -53,6 +53,8 @@ function TaskOptionsPanel(props: Props) {
 
     const [clickingMap, setClickingMap] = useState(false)
 
+    const [isChecked, setIsChecked] = useState(false)
+
     function onChangeDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target as any
         const key = target.name as (keyof DiveParameters)
@@ -81,6 +83,12 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
+    /**
+     * Handles the change event for bottom dive parameters.
+     * 
+     * @param {React.ChangeEvent<HTMLInputElement>} evt The event object containing information about the input change.
+     * @returns {void}
+     */
     function onChangeBottomDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target as HTMLInputElement;
         const key = target.name as keyof DriftParameters;
@@ -104,6 +112,27 @@ function TaskOptionsPanel(props: Props) {
         Save(GlobalSettings.driftParameters)
 
         props.onChange(newTask);
+    }
+
+    /**
+     * Checks if the Bottom dive is currently checked.
+     * 
+     * @returns {boolean} True if Bottom dive is checked, false otherwise.
+     */
+    function isBottomDiveChecked(){
+
+        return isChecked
+    }
+
+    /**
+     * Handles the toggle action for the dive task.
+     * 
+     * @returns {void}
+     */
+    function handleToggle(){
+
+        setIsChecked(!isChecked);
+        
     }
     
 
@@ -238,49 +267,65 @@ function TaskOptionsPanel(props: Props) {
         case TaskType.DIVE:
             return (
                 <div id="DiveDiv">
-                    <table className="TaskParametersTable">
+                    <table>
                         <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Max Depth</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" value={dive.max_depth} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Depth Interval</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" value={dive.depth_interval} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Hold Time</td>
-                                <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" value={dive.hold_time} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />s</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Start Echo</td>
-                                <td className="input-row dive-time">
-                                    <WptToggle 
-                                        checked={() => isEchoChecked()}
-                                        onClick={() => handleEchoCheck()}
+                            <tr>
+                                <td style={{ fontWeight: 'bold' }}>Switch to {isChecked?"Dive":"Bottom Dive"}</td>
+                                <td><WptToggle 
+                                        checked={() => isBottomDiveChecked()}
+                                        onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
+                                        title='Switch to Dive/Bottom Dive'
                                     />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            )
-        case TaskType.BOTTOM_DIVE:
-            return (
-                <div id="DiveDiv">
-                    <table className="TaskParametersTable">
-                        <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={0} onChange={onChangeBottomDiveParameter} disabled={!props?.isEditMode}/>s</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <hr />
+                    {
+                        isChecked?
+
+                        <table className="TaskParametersTable">
+                            <tbody>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Drift Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeBottomDiveParameter} disabled={!props?.isEditMode}/>s</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        :
+                        <table className="TaskParametersTable">
+                            <tbody>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Max Depth</td>
+                                    <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" value={dive.max_depth} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Depth Interval</td>
+                                    <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" value={dive.depth_interval} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Hold Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" value={dive.hold_time} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Drift Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Start Echo</td>
+                                    <td className="input-row dive-time">
+                                        <WptToggle 
+                                            checked={() => isEchoChecked()}
+                                            onClick={() => handleEchoCheck()}
+                                            disabled={() => !props?.isEditMode}
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    }
                 </div>
             )
         case TaskType.STATION_KEEP:
@@ -391,10 +436,6 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.dive = deepcopy(GlobalSettings.diveParameters)
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
-            case TaskType.BOTTOM_DIVE:
-                newTask.dive = deepcopy(GlobalSettings.diveParameters)
-                newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
-                break;
             case TaskType.SURFACE_DRIFT:
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
                 break;
@@ -411,7 +452,6 @@ export function TaskSettingsPanel(props: Props) {
             <Select onChange={(evt) => onChangeTaskType(evt)} value={props.task?.type ?? "NONE"}>
                 <MenuItem value={"NONE"}>None</MenuItem>
                 <MenuItem value={"DIVE"}>Dive</MenuItem>
-                <MenuItem value={"BOTTOM_DIVE"}>Bottom Dive</MenuItem>
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
