@@ -11,6 +11,14 @@ import os
 #
 
 def get_dive_data(directory_path):
+    if not os.path.isabs(directory_path):
+        directory_path = os.path.join(os.getcwd(), directory_path)
+
+    if not os.path.exists(directory_path):
+        print(f'The directory {directory_path} does not exist. Try again.')
+        
+        return
+    
     for filename in os.listdir(directory_path):
         if filename.endswith('.h5'):
             file_path = os.path.join(directory_path, filename)
@@ -33,9 +41,6 @@ def get_dive_data(directory_path):
                 utime = np.array(taskPacket['_utime_'])
                 bot_status_time = np.array(bot_status['_utime_'])
                 bot_id = np.array(bot_status['bot_id'])
-
-                total_dives = 0
-                total_fails = 0
 
                 dive_indices = []
                 false_indices = []
@@ -69,6 +74,8 @@ def get_dive_data(directory_path):
                     avg_fail_batt = sum(fail_battery_percents) / len(fail_battery_percents)
                     failure_rate = len(false_indices) / len(dive_indices) * 100
                 
+                    total_dives = len(dive_indices)
+                    total_fails = len(false_indices)
                     print(f'Total Dives: {total_dives/2}')
                     print(f'Total Fails: {total_fails/2}')
                     print(f'\nFailure rate: {failure_rate:.2f}%\nAverage Failure Water Temp: {avg_fail_temp:.2f}\nAverage Failure Battery Percentage: {avg_fail_batt:.2f}\n')
