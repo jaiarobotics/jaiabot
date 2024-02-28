@@ -143,6 +143,7 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     }
 
     for (auto& playbook : playbooks_) playbook.run_button->disable();
+    playbook.log_button->disable();
 }
 
 void jaiabot::LiaisonUpgrade::set_input_var(int selection_index, Wt::WComboBox* selection,
