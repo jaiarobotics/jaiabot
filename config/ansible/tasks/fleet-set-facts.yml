@@ -1,0 +1,36 @@
+- include_tasks: read-debconf.yml
+
+- name: Fail if CONFIGURE_VIRTUALFLEET is not defined
+  fail:
+    msg: "The variable CONFIGURE_VIRTUALFLEET is not defined"
+  when: CONFIGURE_VIRTUALFLEET is not defined
+
+- name: Mount dev for overlayroot-chroot
+  shell: |
+     mount -o bind /dev/pts /media/root-ro/dev/pts
+  
+- name: Set common facts
+  set_fact:
+    RO_CMD: "overlayroot-chroot sudo -u jaia "
+    RO_ROOT_CMD: "overlayroot-chroot "
+    USE_YUBIKEY: "{{ not (CONFIGURE_VIRTUALFLEET | bool) }}"
+    JAIA_SSH_DIR: "/home/jaia/.ssh"
+
+- name: Set fleet id
+  set_fact:
+    FLEET_ID: "{{ jaiabot_embedded_fleet_id }}" # 10
+  
+- name: Set hub name
+  set_fact:
+    HUB_NAME: "{{ inventory_hostname | replace ('-', '_') }}" # hub1_fleet10
+  when: jaiabot_embedded_type == "hub"
+
+- name: Set bot name
+  set_fact:
+    BOT_NAME: "{{ inventory_hostname | replace ('-', '_') }}" # bot1_fleet10
+  when: jaiabot_embedded_type == "bot"
+
+- name: Setup ssh dest variable
+  set_fact:
+    HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
+  when: jaiabot_embedded_type == "hub"

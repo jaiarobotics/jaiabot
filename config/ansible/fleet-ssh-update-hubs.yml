@@ -1,0 +1,4 @@
+---
+- name: Update Hubs known_hosts with new Bot(s)
+  hosts: hubs
+  
