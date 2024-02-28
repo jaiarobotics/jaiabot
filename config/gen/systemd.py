@@ -231,11 +231,13 @@ except:
     common_macros['user'] = os.environ['USER']
     common_macros['group'] = os.environ['USER']
 
-# if environment picks up 'root' as user, default to jaia rather than install all services privileged
-if common_macros['user'] == 'root':
-    common_macros['user'] = 'jaia'
-    common_macros['group'] = 'jaia'
 
+# if user/group resolve to root, hardcode them to '1000' (first non-privileged user; will be 'jaia' on the standard filesystem) to avoid privileged execution
+# this can happen in some upgrade scenarios
+# TODO: Debug why this happens and when (Ansible playbook on local?)
+if common_macros['user'] == 'root':
+    common_macros['user'] = '1000'
+    common_macros['group'] = '1000'
     
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
