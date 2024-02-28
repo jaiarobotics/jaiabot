@@ -146,6 +146,8 @@ STATECHART_EVENT(EvRCSetpointComplete)
 
 STATECHART_EVENT(EvPause)
 STATECHART_EVENT(EvResume)
+STATECHART_EVENT(EvNoForwardProgress)
+STATECHART_EVENT(EvForwardProgressResolved)
 
 #undef STATECHART_EVENT
 
@@ -194,6 +196,7 @@ namespace pause
 struct IMURestart;
 struct ReacquireGPS;
 struct Manual;
+struct ResolveNoForwardProgress;
 } // namespace pause
 struct Underway;
 namespace underway
@@ -832,6 +835,10 @@ struct Pause : boost::statechart::state<Pause, InMission, pause::Manual>, AppMet
     Pause(typename StateBase::my_context c) : StateBase(c)
     {
         goby::glog.is_debug1() && goby::glog << "Pause" << std::endl;
+
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
     }
     ~Pause() { goby::glog.is_debug1() && goby::glog << "~Pause" << std::endl; }
 };
@@ -931,21 +938,38 @@ struct IMURestart
 };
 
 struct Manual : boost::statechart::state<Manual, Pause>,
-                Notify<Manual, protobuf::IN_MISSION__PAUSE__MANUAL>
+                Notify<Manual, protobuf::IN_MISSION__PAUSE__MANUAL, protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<Manual, Pause>;
-    Manual(typename StateBase::my_context c) : StateBase(c)
-    {
-        protobuf::DesiredSetpoints setpoint_msg;
-        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
-        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
-    }
+    Manual(typename StateBase::my_context c) : StateBase(c) {}
     ~Manual() {}
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvResume,
                                       boost::statechart::deep_history<underway::Abort // default
                                                                       >>>;
+};
+
+struct ResolveNoForwardProgress
+    : boost::statechart::state<ResolveNoForwardProgress, Pause>,
+      Notify<ResolveNoForwardProgress, protobuf::IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<ResolveNoForwardProgress, Pause>;
+    ResolveNoForwardProgress(typename StateBase::my_context c);
+    ~ResolveNoForwardProgress() {}
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvForwardProgressResolved,
+                                      boost::statechart::deep_history<underway::Abort // default
+                                                                      >>,
+        boost::statechart::in_state_reaction<EvLoop, ResolveNoForwardProgress,
+                                             &ResolveNoForwardProgress::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point resume_timeout_;
 };
 
 } // namespace pause
@@ -965,8 +989,9 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
+        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
-        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>>;
+        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
 };
 
 namespace underway

@@ -98,3 +98,9 @@ $subscribe_to_hub_on_start
 # Waypoint Transit Behavior Updates
 waypoint_with_no_task_slip_radius: 15 # (default = 15)
 waypoint_with_task_slip_radius: 7 # (default = 5)
+
+# Resolve no forward progress
+resolve_no_forward_progress_resume_timeout: 10 # seconds - time after going into ResolveNoForwardProgress to resume attempting to move
+resolve_pitch_threshold: 30 # degrees - angle above which the vehicle is assumed to not be making forward progress
+resolve_desired_speed_threshold: 0 # m/s - desired speed above which the vehicle is expected to be making forward progress
+resolve_no_forward_progress_timeout: 15 # seconds - time after desired speed > resolve_desired_speed_threshold but pitch > resolve_vertical_pitch_threshold that triggers EvNoForwardProgress 

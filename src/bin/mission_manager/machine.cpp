@@ -1269,6 +1269,26 @@ jaiabot::statechart::inmission::pause::ReacquireGPS::ReacquireGPS(typename State
     }
 }
 
+// Pause::ResolveNoForwardProgress
+jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::ResolveNoForwardProgress(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point resolve_start = goby::time::SteadyClock::now();
+    auto resume_duration = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+        cfg().resolve_no_forward_progress().resume_timeout_with_units());
+    resume_timeout_ = resolve_start + resume_duration;
+}
+
+void jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+
+    // for now, simply wait a period of time and then resume
+    if (now >= resume_timeout_)
+        post_event(EvForwardProgressResolved());
+}
+
 // Dive::ReacquireGPS
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
     typename StateBase::my_context c)
