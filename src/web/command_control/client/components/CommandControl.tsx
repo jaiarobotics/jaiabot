@@ -121,7 +121,7 @@ export interface RunInterface {
 	command: Command,
 }
 
-export interface MissionInterface {
+export interface MissionInterface { 
 	id: string,
 	name: string,
 	runs: {[key: string]: RunInterface},
@@ -1079,6 +1079,35 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * Updates the mission history stack if the task of a waypoint changes.
+	 * 
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Calls updateMissionHistory() in order to update the mission history stack.
+	 */
+	detectTaskChange() {
+		let runIdInEditMode = this.getRunList().runIdInEditMode
+
+		// If there exists a run in missionHistory with runIdInEditMode, then continue 
+		if (this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode]) {
+			let oldGoalType, newGoalType
+			let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
+			let newGoals = this.getRunList().runs[runIdInEditMode].command.plan.goal
+
+			for (let i = 0; i < newGoals.length; i++) {
+				oldGoalType = oldGoals[i]?.task?.type
+				newGoalType = newGoals[i]?.task?.type
+
+				// Only update mission history if the task type has changed
+				if (newGoalType !== oldGoalType) {
+					this.updateMissionHistory(this.getRunList())
+				}
+			}
+		}
+	}
+
+	/**
 	 * @returns Whether any bots are assigned to runs in the current runList
 	 */
 	areBotsAssignedToRuns() {
@@ -1680,7 +1709,7 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
-
+ 
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
@@ -2927,7 +2956,7 @@ export default class CommandControl extends React.Component {
 			info('There is no more history to undo')
 			return
 		}
-
+ 
 		this.missionHistory.pop()
 		this.setRunList(deepcopy(this.missionHistory[this.missionHistory.length - 1]))
 
@@ -3136,9 +3165,13 @@ export default class CommandControl extends React.Component {
 	// 
 
 	/**
-	 * Switch the visible panel
+	 * Switch the visible panel to panelType
 	 * 
-	 * @param panelType The panel type to switch to
+	 * @param {PanelType} panelType The panel type to switch to
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Calls detectTaskChange() in order to update mission history whenever a new panel is selected. 
 	 */
 	setVisiblePanel(panelType: PanelType) {
 		switch (this.state.visiblePanel) {
@@ -3166,6 +3199,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ visiblePanel: panelType })
+		this.detectTaskChange()
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
@@ -3575,7 +3609,13 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
-						onChange={() => this.setRunList(this.getRunList())} 
+						onChange={() => {
+							this.setRunList(this.getRunList())
+						}}
+						onDoneClick={() => {
+							this.setRunList(this.getRunList())
+							this.detectTaskChange()
+						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
 						setRunList={this.setRunList.bind(this)}
