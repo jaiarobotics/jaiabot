@@ -6,7 +6,7 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
-import DownloadQueue from './DownloadQueue'
+import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
@@ -102,7 +102,7 @@ export enum PanelType {
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
-	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
+	DOWNLOAD_PANEL = 'DOWNLOAD_PANEL',
 	RALLY_POINT = 'RALLY_POINT',
 	TASK_PACKET = 'TASK_PACKET',
 	SETTINGS = 'SETTINGS'
@@ -3522,13 +3522,8 @@ export default class CommandControl extends React.Component {
 			</Button>
 		)
 
-		const downloadAllBotsButton = (<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
-			<Icon path={mdiDownloadMultiple} title="Download All" />
-		</Button>
-		)
-
 		const downloadQueueButton = (
-			this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+			this.state.visiblePanel == PanelType.DOWNLOAD_PANEL ? (
 				<Button className="button-jcc active" onClick={() => {
 					this.setVisiblePanel(PanelType.NONE)
 				}}
@@ -3538,7 +3533,7 @@ export default class CommandControl extends React.Component {
 
 			) : (
 				<Button className="button-jcc" onClick={() => {
-					this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+					this.setVisiblePanel(PanelType.DOWNLOAD_PANEL)
 				}}
 				>
 					<Icon path={mdiProgressDownload} title="Download Queue" />
@@ -3629,12 +3624,13 @@ export default class CommandControl extends React.Component {
 				)
 				break
 
-			case PanelType.DOWNLOAD_QUEUE:
+			case PanelType.DOWNLOAD_PANEL:
 				visiblePanelElement = (
-					<DownloadQueue 
+					<DownloadPanel 
 						downloadableBots={this.state.botDownloadQueue} 
 						removeBotFromQueue={this.removeBotFromQueue.bind(this)}
 						getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
+						processDownloadAllBots ={this.processDownloadAllBots.bind(this)}
 					/>
 				)
 				break
@@ -3692,7 +3688,6 @@ export default class CommandControl extends React.Component {
 
 					{missionPanelButton}
 					{surveyMissionSettingsButton}
-					{downloadAllBotsButton}
 					{downloadQueueButton}
 					{settingsPanelButton}
 					{measureButton}
