@@ -1,0 +1,59 @@
+---
+- name: Gather SSH public key from hubs
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  tasks:
+    - include_tasks: tasks/fleet-set-facts.yml
+
+    - name: Check Yubikey files
+      include_tasks: tasks/fleet-check-yubikey-files.yml
+      when: USE_YUBIKEY
+      
+    - name: Slurp SSH public key
+      ansible.builtin.slurp:
+        src: "/media/root-ro{{ HUB_DEST_KEYFILE }}.pub"
+      register: hub_key_content
+
+    - name: Save SSH public key content in a fact
+      set_fact:
+        hub_ssh_pub_key: "{{ hub_key_content['content'] | b64decode }}"
+      delegate_to: localhost
+
+    - name: Debug SSH public key content
+      debug:
+        var: hub_ssh_pub_key
+
+- name: Distribute SSH public key to bots
+  hosts: bots
+  gather_facts: no
+  become: yes
+  tasks:
+    - include_tasks: tasks/fleet-set-facts.yml
+
+    - name: Remove all overlay files we are going to modify
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /media/root-rw/overlay/etc/jaiabot/ssh/sshd_config
+        - /media/root-rw/overlay/etc/ssh/sshd_config.d/jaia_sshd.conf        
+      
+    - name: Fetch SSH public key content from hostvars
+      set_fact:
+        hub_ssh_pub_key: "{{ hostvars[groups['hubs'][0]]['hub_ssh_pub_key'] }}"
+
+    - name: Remove existing authorized_keys file
+      shell: |
+        {{ RO_ROOT_CMD }} rm -f /etc/jaiabot/ssh/hub_authorized_keys
+        
+    - name: Copy public key
+      shell: |
+        {{ RO_ROOT_CMD }} mkdir -p /etc/jaiabot/ssh
+        {{ RO_ROOT_CMD }} bash -c "echo \"no-touch-required {{ hostvars[item]['hub_ssh_pub_key'] }}\" >> /etc/jaiabot/ssh/hub_authorized_keys"
+      loop: "{{ groups['hubs'] }}"
+
+    - name: Set sshd config
+      shell: |
+        {{ RO_ROOT_CMD }} bash -c "echo \"AuthorizedKeysFile     .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/hub_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys\" > /etc/ssh/sshd_config.d/jaia_sshd.conf"
+        

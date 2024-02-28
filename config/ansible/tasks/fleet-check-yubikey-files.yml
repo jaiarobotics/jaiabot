@@ -1,0 +1,32 @@
+- name: Fail if JAIA_FLEET_CONFIG_YUBIKEYS_DIR is not defined
+  fail:
+    msg: "The variable JAIA_FLEET_CONFIG_YUBIKEYS_DIR is not defined but is required when using Yubikeys"
+  when: JAIA_FLEET_CONFIG_YUBIKEYS_DIR is not defined
+
+- name: Setup ssh src variable
+  set_fact:
+    HUB_SRC_KEYFILE: "{{ JAIA_FLEET_CONFIG_YUBIKEYS_DIR }}/fleet{{ FLEET_ID }}_yubikey/{{ HUB_NAME }}"
+
+- name: Check for YubiKey public key file existence
+  become: no
+  local_action:
+    module: stat
+    path: "{{ HUB_SRC_KEYFILE }}.pub"
+  register: pubkey_stat
+        
+- name: Fail if YubiKey public key file does not exist
+  fail:
+    msg: "YubiKey public key file does not exist: {{ HUB_SRC_KEYFILE }}.pub"
+  when: not pubkey_stat.stat.exists
+
+- name: Check for YubiKey private key file existence
+  become: no
+  local_action:
+    module: stat
+    path: "{{ HUB_SRC_KEYFILE }}"
+  register: privkey_stat
+        
+- name: Fail if YubiKey private key file does not exist
+  fail:
+    msg: "YubiKey private key file does not exist: {{ HUB_SRC_KEYFILE }}"
+  when: not privkey_stat.stat.exists          
