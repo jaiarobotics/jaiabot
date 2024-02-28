@@ -94,37 +94,6 @@ export function SettingsPanel(props: Props) {
         }
     }
 
-    /**
-     * Prepares a KML document for download
-     * 
-     * @returns {void}
-     */
-    const handleClickedDownloadKMZ = async () => {
-        const kmlDocument = new KMLDocument()
-        kmlDocument.setTaskPackets(taskData.taskPackets)
-
-        let fileDate = new Date()
-        // Use the date of the first task packet, if present
-        if (taskData.taskPackets[0]?.start_time !== undefined) {
-            fileDate = new Date(taskData.taskPackets[0].start_time / 1e3)
-        }
-
-        const dateString = fileDate.toISOString()
-
-        downloadBlobToFile(`taskPackets-${dateString}.kmz`, await kmlDocument.getKMZ())
-    }
-    
-    
-    /**
-     * Event handler for the CSV dowload button.  Creates the CSV file and initiates
-     * the download.
-     *
-    **/
-    const handleDownloadCSV = async (event: React.MouseEvent<HTMLButtonElement>) => {
-        const csvFilename = getCSVFilename(taskData.taskPackets)
-        downloadToFile(await getCSV(taskData.taskPackets), 'text/csv', csvFilename)
-    }
-
     return (
         <div className="settings-outer-container">
             <div className="panel-heading">Map Settings</div>
@@ -218,8 +187,6 @@ export function SettingsPanel(props: Props) {
                                 </div>
                             </div>
                         </div>
-                        <Button onClick={handleDownloadCSV} className='button-jcc'>Download CSV</Button>
-                        <Button onClick={handleClickedDownloadKMZ} className='button-jcc'>Download KMZ</Button>
                     </AccordionDetails>
                 </Accordion>
                 <Accordion
