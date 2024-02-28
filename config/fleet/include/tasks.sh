@@ -2,67 +2,92 @@ ANSIBLE_INVENTORY=/tmp/jaiabot-ansible-inventory.yml
 ANSIBLE_VFLEET_INVENTORY=/tmp/jaiabot-ansible-vfleet-inventory.yml
 
 function generate_and_exchange_keys() {
-    local entity_type=$1 # "bot" or "hub"
-    local entity_ids=$2 # BOT_IDS or HUB_IDS
-    local related_entity_type=$3 # opposite of entity_type
-    local related_entity_ids=$4 # opposite of entity_ids
-
-    for ENTITY_ID_QUOTED in ${entity_ids}
+    [[ "${CONFIGURE_VIRTUALFLEET}" == "true" ]] && USE_YUBIKEY=false || USE_YUBIKEY=true
+    
+    for HUB_ID_QUOTED in ${HUB_IDS}
     do
-        ENTITY_ID=$(eval echo $ENTITY_ID_QUOTED)
-        ENTITY_IP=$(eval ${entity_type}_ip ${ENTITY_ID})
+        HUB_ID=$(eval echo $HUB_ID_QUOTED)
+        HUB_IP=$(eval hub_ip ${HUB_ID})
+        [[ "${USE_YUBIKEY}" == "true" ]] && COPY_OR_GENERATE="COPY YUBIKEY" || COPY_OR_GENERATE="GENERATE"
         echo "#############################################################"
-        echo "========= GENERATE SSH KEY PAIR: ${entity_type^^} ${ENTITY_ID} =============="
+        echo "========= ${COPY_OR_GENERATE} SSH KEY PAIR: HUB ${HUB_ID} =============="
         echo "#############################################################"
-        ENTITY_NAME=${entity_type}${ENTITY_ID}_fleet${FLEET_ID}
-        ENTITY_KEYFILE=/home/jaia/.ssh/id_${ENTITY_NAME}
+        HUB_NAME=hub${HUB_ID}_fleet${FLEET_ID}
+        HUB_KEYFILE=/home/jaia/.ssh/id_${HUB_NAME}
+
         # 1. remove any overlay ssh files
         # 2. remove known_hosts file
         # 3. remove old key (if exists)
-        # 4. create new key
-        # 5. set .ssh/config to use key without "-i"
-        $SSH jaia@${ENTITY_IP} \
+        $SSH jaia@${HUB_IP} \
              "rm -f /media/root-rw/overlay/home/jaia/.ssh/*;" \
              $RO_CMD "rm -f /home/jaia/.ssh/known_hosts;" \
-             $RO_CMD "rm -f ${ENTITY_KEYFILE} ${ENTITY_KEYFILE}.pub;" \
-             $RO_CMD "ssh-keygen -t ed25519 -N '' -f ${ENTITY_KEYFILE} -C $ENTITY_NAME;" \
-             $RO_CMD "bash -c \"grep -q IdentityFile\\ ${ENTITY_KEYFILE} /home/jaia/.ssh/config || echo IdentityFile ${ENTITY_KEYFILE} >> /home/jaia/.ssh/config\"; "
+             $RO_CMD "rm -f ${HUB_KEYFILE} ${HUB_KEYFILE}.pub;"
         
-        ENTITY_PUBKEY=$($SSH jaia@${ENTITY_IP} cat /media/root-ro${ENTITY_KEYFILE}.pub)
+        if [[ "$USE_YUBIKEY" == "true" ]]; then
+             # for real fleets, use pre-generated Yubikey
+            YUBI_PUB_KEY="${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID}.pub"
+            YUBI_PRIV_KEY="${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID}"
+            if [[ -z "${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}" || ! -f "${YUBI_PUB_KEY}" || ! -f "${YUBI_PRIV_KEY}" ]]; then
+                echo "ERROR: you must set JAIA_FLEET_CONFIG_YUBIKEYS_DIR to the directory with fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID}[.pub] SSH keys. If these do not exist, generate them first once using the hub yubikey and ssh-keygen -t ed25519-sk -O no-touch-required -f /path/to/ssh/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID} -N \"\""
+                return 1
+            fi
 
-        echo "${entity_type^^} ${ENTITY_ID} Public Key: ${ENTITY_PUBKEY}"
+            # 4. copy keys to hub
+            rsync --rsync-path="$RO_CMD rsync" ${YUBI_PUB_KEY} jaia@${HUB_IP}:${HUB_KEYFILE}.pub
+            rsync --rsync-path="$RO_CMD rsync" ${YUBI_PRIV_KEY} jaia@${HUB_IP}:${HUB_KEYFILE}
+        else
+            # for VirtualFleets, generate ssh key
+            # 4. create new key
+            $SSH jaia@${HUB_IP} \
+                 $RO_CMD "ssh-keygen -t ed25519 -N '' -f ${HUB_KEYFILE} -C $HUB_NAME;" 
+        fi
 
-        for RELATED_ENTITY_ID_QUOTED in ${related_entity_ids}
+        # 5. set .ssh/config to use key without "-i"
+        $SSH jaia@${HUB_IP} \
+             $RO_CMD "bash -c \"grep -q IdentityFile\\ ${HUB_KEYFILE} /home/jaia/.ssh/config || echo IdentityFile ${HUB_KEYFILE} >> /home/jaia/.ssh/config\"; "
+
+        HUB_PUBKEY="$($SSH jaia@${HUB_IP} cat /media/root-ro${HUB_KEYFILE}.pub | cut -d " " -f 1-2) ${HUB_NAME}"
+
+        echo "HUB ${HUB_ID} Public Key: ${HUB_PUBKEY}"
+
+        for BOT_ID_QUOTED in ${BOT_IDS}
         do    
-            RELATED_ENTITY_ID=$(echo $RELATED_ENTITY_ID_QUOTED | xargs)
-            RELATED_ENTITY_IP=$(eval ${related_entity_type}_ip ${RELATED_ENTITY_ID})
+            BOT_ID=$(echo $BOT_ID_QUOTED | xargs)
+            BOT_IP=$(eval bot_ip ${BOT_ID})
 
-            # returns same IP address as RELATED_ENTITY_IP for real fleet, but for virtualbox returns the real 10.23.x.y IP address rather than the ssh config name
-            RELATED_ENTITY_IP_INTERNAL=$(eval ${related_entity_type}_ip ${RELATED_ENTITY_ID} "internal")
+            # returns same IP address as BOT_IP for real fleet, but for virtualbox returns the real 10.23.x.y IP address rather than the ssh config name
+            BOT_IP_INTERNAL=$(eval bot_ip ${BOT_ID} "internal")
             echo "##########################################################"
-            echo "======= UPDATE ${related_entity_type^^} ${RELATED_ENTITY_ID} WITH ${entity_type^^} ${ENTITY_ID} KEY =============="
+            echo "======= UPDATE BOT ${BOT_ID} WITH HUB ${HUB_ID} KEY =============="
             echo "##########################################################"
-            # 1. remove old pub key (if exists) from authorized keys
-            # 2. add new pub key to authorized keys
-            $SSH jaia@${RELATED_ENTITY_IP} \
-                 $RO_CMD "sed -i \"/.* ${ENTITY_NAME}/d\" /home/jaia/.ssh/authorized_keys;" \
-                 $RO_CMD "bash -c \"echo ${ENTITY_PUBKEY} >> /home/jaia/.ssh/authorized_keys\"; "
+
+            YUBIKEY_TOUCH_PREFIX=
+            [[ "$USE_YUBIKEY" == "true" ]] && YUBIKEY_TOUCH_PREFIX="no-touch-required "
+
+            # 1. remove any overlay ssh files
+            # 2. remove old pub key (if exists) from authorized keys
+            # 3. add new pub key to authorized keys            
+            $SSH jaia@${BOT_IP} \
+                 "rm -f /media/root-rw/overlay/home/jaia/.ssh/*;" \
+                 $RO_CMD "sed -i \"/.* ${HUB_NAME}/d\" /home/jaia/.ssh/authorized_keys;" \
+                 $RO_CMD "bash -c \"echo ${YUBIKEY_TOUCH_PREFIX}${HUB_PUBKEY} >> /home/jaia/.ssh/authorized_keys\"; "
 
             echo "OK"
             
             echo "##########################################################"
-            echo "======= UPDATE ${entity_type^^} ${ENTITY_ID} .ssh/known_hosts and /etc/hosts FOR ${related_entity_type^^} ${RELATED_ENTITY_ID}  =============="
+            echo "======= UPDATE HUB ${HUB_ID} .ssh/known_hosts and /etc/hosts FOR BOT ${BOT_ID}  =============="
             echo "##########################################################"           
             # 1. add ip address to known_hosts (to avoid first log-on prompt). Warning - this means we are susceptible to a man-in-the-middle-attack
             # while configuring the fleet, but as this should be done in a controlled environment it should be OK.           
             # 2. add short name (e.g. hub0, bot5) to /etc/hosts
             
             # bot1, hub5, etc.
-            RELATED_ENTITY_SHORTNAME=${related_entity_type}${RELATED_ENTITY_ID}
-            $SSH jaia@${ENTITY_IP} \
-                 $RO_ROOT_CMD "bash -c \"grep -q ${RELATED_ENTITY_SHORTNAME} /etc/hosts || echo ${RELATED_ENTITY_IP_INTERNAL} ${RELATED_ENTITY_SHORTNAME} >> /etc/hosts\"; " \
-                 $RO_CMD "bash -c \"ssh-keyscan -H ${RELATED_ENTITY_IP_INTERNAL} >> /home/jaia/.ssh/known_hosts 2> /dev/null \"; " \
-                 $RO_CMD "bash -c \"ssh-keyscan -H ${RELATED_ENTITY_SHORTNAME} >> /home/jaia/.ssh/known_hosts 2> /dev/null \"; "
+            BOT_SHORTNAME=bot${BOT_ID}
+            $SSH jaia@${HUB_IP} \
+                 "sudo rm -f /media/root-rw/overlay/etc/hosts;" \
+                 $RO_ROOT_CMD "bash -c \"grep -q ${BOT_SHORTNAME} /etc/hosts || echo ${BOT_IP_INTERNAL} ${BOT_SHORTNAME} >> /etc/hosts\"; " \
+                 $RO_CMD "bash -c \"ssh-keyscan -H ${BOT_IP_INTERNAL} >> /home/jaia/.ssh/known_hosts 2> /dev/null \"; " \
+                 $RO_CMD "bash -c \"ssh-keyscan -H ${BOT_SHORTNAME} >> /home/jaia/.ssh/known_hosts 2> /dev/null \"; "
             echo "OK"
 
         done
@@ -71,10 +96,7 @@ function generate_and_exchange_keys() {
 
 function ssh_key_setup() {
     # for all the hubs, create keys, and add them to the bots
-    generate_and_exchange_keys "hub" "${HUB_IDS}" "bot" "${BOT_IDS}"
-
-    # for all the bots, create keys, and add them to the hubs
-    generate_and_exchange_keys "bot" "${BOT_IDS}" "hub" "${HUB_IDS}"
+    generate_and_exchange_keys
 }
 
 function fetch_wireguard_public_keys() {
@@ -247,7 +269,7 @@ EOF
 hubs:
   hosts:
 EOF
-    [[ "$CONFIGURE_VIRTUALBOX" != "true" ]] && rm ${ANSIBLE_VFLEET_INVENTORY}
+    [[ "$CONFIGURE_VIRTUALFLEET" != "true" ]] && rm ${ANSIBLE_VFLEET_INVENTORY}
     perform_action "create_ansible_inventory" "hub" "${HUB_IDS}"
 
     # only need the inventory on the hubs, so only copy it there, to make configuring easier
