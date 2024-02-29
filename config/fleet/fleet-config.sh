@@ -51,6 +51,11 @@ function bot_id_to_last_ip_octet()
 
 run_wt_yesno jaia_is_real_fleet "Real or Virtual fleet" "Is this a real fleet (as opposed to a VirtualBox fleet)?" && CONFIGURE_VIRTUALBOX=false || CONFIGURE_VIRTUALBOX=true
 
+if [[ "${CONFIGURE_VIRTUALFLEET}" != "true" && -z "${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}" ]]; then
+    echo "You must set JAIA_FLEET_CONFIG_YUBIKEYS_DIR to configure a real fleet. Make sure you've sourced setup-fleet-config.sh"
+    exit 1
+fi 
+
 function bot_ip()
 {
     BOT_ID=$1;

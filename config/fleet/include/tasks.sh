@@ -3,15 +3,15 @@ ANSIBLE_VFLEET_INVENTORY=/tmp/jaiabot-ansible-vfleet-inventory.yml
 
 function ssh_key_setup() {
     cd ${ansible_dir}
+
     echo "#################################################################"
     echo "========= fleet-ssh-create-hub-keys.yml =============="
     echo "#################################################################"
-    ansible-playbook fleet-ssh-create-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR}
-
+    ansible-playbook fleet-ssh-create-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
     echo "#################################################################"
     echo "========= fleet-ssh-copy-hub-keys.yml =============="
     echo "#################################################################"
-    ansible-playbook fleet-ssh-copy-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR}
+    ansible-playbook fleet-ssh-copy-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
 
     echo "#################################################################"
     echo "========= fleet-ssh-update-hubs.yml =============="
