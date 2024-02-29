@@ -1059,24 +1059,27 @@ void jaiabot::apps::MissionManager::check_forward_progress()
     const auto& desired_speed_threshold =
         cfg().resolve_no_forward_progress().desired_speed_threshold_with_units();
 
+    bool should_be_making_forward_progress = desired_speed > desired_speed_threshold;
     bool making_forward_progress = pitch < pitch_threshold;
+    bool is_ivp_control = machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM;
     auto now = goby::time::SteadyClock::now();
 
     auto trigger_seconds = goby::time::convert_duration<goby::time::SteadyClock::duration>(
         cfg().resolve_no_forward_progress().trigger_timeout_with_units());
 
-    // bump forward the timeout when not in IVP_HELM Control or when we're making forward progress as expected
-    if (machine_->setpoint_type() != protobuf::SETPOINT_IVP_HELM || making_forward_progress)
+    if (is_ivp_control && should_be_making_forward_progress && !making_forward_progress)
     {
-        glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
-        fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
-    }
-    else
-    {
+        // we're not making forward progress when we should be, check the timeout
         if (now > fwd_progress_data_.no_forward_progress_timeout)
         {
             glog.is_debug2() && glog << "No forward progress detected!" << std::endl;
             machine_->process_event(statechart::EvNoForwardProgress());
         }
+    }
+    else
+    {
+        // otherwise bump forward the timeout
+        glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
+        fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
     }
 }

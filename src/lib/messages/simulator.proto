@@ -36,8 +36,15 @@ message SimulatorCommand
             [(dccl.field) = { units { derived_dimensions: "time" } }];
     }
 
+    message StopForwardProgress
+    {
+        required double duration = 2
+            [(dccl.field) = { units { derived_dimensions: "time" } }];
+    }
+
     oneof command
     {
         GPSDropOut gps_dropout = 1;
+        StopForwardProgress stop_forward_progress = 2;
     }
 }
