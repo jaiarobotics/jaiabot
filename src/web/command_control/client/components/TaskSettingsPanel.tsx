@@ -269,13 +269,13 @@ function TaskOptionsPanel(props: Props) {
                 <div id="DiveDiv">
                     <table>
                         <tbody>
-                            <tr>
-                                <td style={{ fontWeight: 'bold' }}>Switch to {isChecked?"Dive":"Bottom Dive"}</td>
+                            <tr className="task-param-container">
+                                <td className="task-label" style={{ fontWeight: 'bold' }}>Switch to Bottom Dive</td>
                                 <td><WptToggle 
                                         checked={() => isBottomDiveChecked()}
                                         onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
-                                        title='Switch to Dive/Bottom Dive'
+                                        title='Switch to Bottom Dive'
                                     />
                                 </td>
                             </tr>
@@ -290,6 +290,16 @@ function TaskOptionsPanel(props: Props) {
                                 <tr className="task-param-container">
                                     <td className="task-label">Drift Time</td>
                                     <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeBottomDiveParameter} disabled={!props?.isEditMode}/>s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Start Echo</td>
+                                    <td className="input-row dive-time">
+                                        <WptToggle 
+                                            checked={() => isEchoChecked()}
+                                            onClick={() => handleEchoCheck()}
+                                            disabled={() => !props?.isEditMode}
+                                        />
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
