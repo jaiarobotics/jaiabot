@@ -22,7 +22,8 @@ set -e -u
 #       JAIA_FLEET_CONFIG_XBEE_CFG=/path/to/fleet_config
 #       JAIA_FLEET_CONFIG_XBEE_CFG=/path/to/fleet0/xbee.pb.cfg 
 
-script_dir=$(dirname $0)
+script_dir=$(realpath `dirname $0`)
+ansible_dir=$(realpath ${script_dir}/../ansible)
 
 USING_PRESEED=false
 if [[ ! -z "${JAIA_FLEET_CONFIG_PRESEED:-}" && -e "${JAIA_FLEET_CONFIG_PRESEED}" ]]; then
@@ -67,6 +68,28 @@ function hub_ip()
     echo "${HUB_IP}"
 }
 
+function generate_ansible_inventory()
+{
+    local inv=${INVENTORY}
+    echo "bots:" > ${inv}
+    echo "  hosts:" >> ${inv}
+    for id in $BOT_IDS; do
+        id=${id//\"/} # Remove quotes
+        ip=$(eval bot_ip ${id})
+        echo "    bot${id}-fleet${FLEET_ID}:" >> ${inv}
+        echo "      ansible_host: ${ip}" >> ${inv}
+    done
+    echo "hubs:" >> ${inv}
+    echo "  hosts:" >> ${inv}
+    for id in $HUB_IDS; do
+        id=${id//\"/} 
+        ip=$(eval hub_ip ${id})
+        echo "    hub${id}-fleet${FLEET_ID}:" >> ${inv}
+        echo "      ansible_host: ${ip}" >> ${inv}
+    done    
+}
+
+
 SSH="ssh ${JAIA_FLEET_CONFIG_SSH_OPTS:-}"
 # run commands on the read-only underlay as jaia (unprivileged user)
 RO_CMD="sudo overlayroot-chroot sudo -u jaia "
@@ -86,6 +109,11 @@ BOTS=($(seq 0 150))
 run_wt_checklist jaia_bots "Fleet Configuration" "Which bots to configure?" "${BOTS[@]}"
 [ $? -eq 0 ] || exit 1
 BOT_IDS="$WT_CHOICE"
+
+# write local temporary ansible playbook
+INVENTORY=/tmp/jaia-fleet${FLEET_ID}-inventory.yml
+generate_ansible_inventory
+export ANSIBLE_FORCE_COLOR=true
 
 function filter_output()
 {
