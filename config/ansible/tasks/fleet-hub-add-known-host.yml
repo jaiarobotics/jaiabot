@@ -1,0 +1,24 @@
+- name: Set bot name and ID
+  set_fact:
+    BOT_SHORTNAME: "{{ bot_inventory_name | regex_replace('^(.*)-fleet.*$', '\\1') }}"
+    BOT_ID: "{{ bot_inventory_name | regex_replace('^bot([0-9]*)-fleet.*$', '\\1') }}"
+
+- name: Set bot IP
+  set_fact:
+    BOT_IP_INTERNAL: "10.23.{{ FLEET_ID }}.{{ BOT_ID | int + 100 }}"
+   
+- name: Append IP address to /etc/hosts
+  shell: |
+    {{ RO_ROOT_CMD }} bash -c "grep -q {{ BOT_SHORTNAME }} /etc/hosts || echo {{ BOT_IP_INTERNAL }} {{ BOT_SHORTNAME }} >> /etc/hosts"
+
+- name: Scan for bot keys and add to known hosts
+  shell: |
+    known_hosts="/home/jaia/.ssh/known_hosts"
+
+    # Remove old keys
+    {{ RO_CMD }} ssh-keygen -R {{ BOT_IP_INTERNAL }} || true
+    {{ RO_CMD }} ssh-keygen -R {{ BOT_SHORTNAME }} || true
+
+    # Add new keys
+    {{ RO_CMD }} bash -c "ssh-keyscan -H {{ BOT_IP_INTERNAL }} >> ${known_hosts} 2> /dev/null"
+    {{ RO_CMD }} bash -c "ssh-keyscan -H {{ BOT_SHORTNAME }} >> ${known_hosts} 2> /dev/null"

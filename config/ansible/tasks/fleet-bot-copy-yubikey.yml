@@ -1,0 +1,14 @@
+- name: Set facts for Hub
+  set_fact:
+    HUB_NAME: "{{ hub_inventory_name | replace ('-', '_') }}" # hub1_fleet10
+
+- name: Setup ssh dest variable
+  set_fact:
+    HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
+
+- include_tasks: tasks/fleet-copy-yubikey.yml
+
+- name: Append public key to authorized_keys
+  shell: |
+    {{ RO_ROOT_CMD }} mkdir -p /etc/jaiabot/ssh;
+    {{ RO_ROOT_CMD }} bash -c "echo -n 'no-touch-required ' | cat - {{ HUB_DEST_KEYFILE }}.pub >> /etc/jaiabot/ssh/hub_authorized_keys"

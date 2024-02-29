@@ -6,8 +6,12 @@
   when: CONFIGURE_VIRTUALFLEET is not defined
 
 - name: Mount dev for overlayroot-chroot
-  shell: |
-     mount -o bind /dev/pts /media/root-ro/dev/pts
+  ansible.posix.mount:
+    path: /media/root-ro/dev/pts
+    src: /dev/pts
+    opts: bind
+    state: mounted
+    fstype: none    
   
 - name: Set common facts
   set_fact:
@@ -34,3 +38,4 @@
   set_fact:
     HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
   when: jaiabot_embedded_type == "hub"
+

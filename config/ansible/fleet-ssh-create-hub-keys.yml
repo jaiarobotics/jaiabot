@@ -5,14 +5,6 @@
   become: yes
   vars:
     SSH_KEY_TYPE: ed25519
-
-  pre_tasks:
-    - include_tasks: tasks/fleet-set-facts.yml
-
-    - name: Check Yubikey files
-      include_tasks: tasks/fleet-check-yubikey-files.yml
-      when: USE_YUBIKEY
-        
   tasks:    
     - name: Find all files in /media/root-rw/overlay/home/jaia/.ssh/
       ansible.builtin.find:
@@ -26,23 +18,16 @@
         state: absent
       loop: "{{ ssh_files_to_remove.files }}"
 
-    - name: Remove overlay SSH files, known_hosts, and old keys
+    - name: Remove old keys on underlay
       shell: |
-        {{ RO_ROOT_CMD }} rm -f {{ JAIA_SSH_DIR }}/known_hosts;
         {{ RO_CMD }} rm -f {{ HUB_DEST_KEYFILE }} {{ HUB_DEST_KEYFILE }}.pub;
         
     - name: Copy Yubikey (real fleet) or generate new SSH key (virtual fleet)
       block:
-        - name: Copy Yubikey keys to hub
+        - name: Copy yubikey
           when: USE_YUBIKEY
-          synchronize:
-            src: "{{ item.src }}"
-            dest: "{{ item.dest }}"
-            rsync_path: "sudo {{ RO_CMD }} rsync"
-          loop:
-            - { src: "{{ HUB_SRC_KEYFILE }}.pub", dest: "{{ HUB_DEST_KEYFILE }}.pub" }
-            - { src: "{{ HUB_SRC_KEYFILE }}", dest: "{{ HUB_DEST_KEYFILE }}" }
-              
+          include_tasks: tasks/fleet-copy-yubikey.yml
+
         - name: Generate new SSH key for virtual fleet
           when: not USE_YUBIKEY
           shell: |
@@ -50,5 +35,4 @@
         
     - name: Ensure .ssh/config is configured to use the new SSH key
       shell: |
-        {{ RO_CMD }} bash -c "touch /home/jaia/.ssh/config";
-        {{ RO_CMD }} bash -c "touch /home/jaia/.ssh/config; grep -q IdentityFile\\ {{ HUB_DEST_KEYFILE }} /home/jaia/.ssh/config || echo IdentityFile {{ HUB_DEST_KEYFILE }} >> /home/jaia/.ssh/config";
+        {{ RO_CMD }} bash -c "grep -q IdentityFile\\ {{ HUB_DEST_KEYFILE }} /home/jaia/.ssh/config || echo IdentityFile {{ HUB_DEST_KEYFILE }} >> /home/jaia/.ssh/config";

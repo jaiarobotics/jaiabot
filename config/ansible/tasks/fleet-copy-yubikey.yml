@@ -1,0 +1,19 @@
+- name: Check Yubikey files
+  include_tasks: tasks/fleet-check-yubikey-files.yml
+  
+- name: Copy Yubikey public key to destination
+  synchronize:
+    src: "{{ HUB_SRC_KEYFILE }}.pub"
+    dest: "{{ HUB_DEST_KEYFILE }}.pub"
+    rsync_path: "sudo {{ RO_CMD }} rsync"
+
+- name: Copy Yubikey private key to destination
+  synchronize:
+    src: "{{ HUB_SRC_KEYFILE }}"
+    dest: "{{ HUB_DEST_KEYFILE }}"
+    rsync_path: "sudo {{ RO_CMD }} rsync"
+  when: jaiabot_embedded_type == "hub"
+
+- name: Set name for key
+  shell: |
+    {{ RO_CMD }} sed -i 's/\(.* .* \).*/\1{{ HUB_NAME }}/' {{ HUB_DEST_KEYFILE }}.pub
