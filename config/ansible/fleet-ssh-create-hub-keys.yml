@@ -5,6 +5,9 @@
   become: yes
   vars:
     SSH_KEY_TYPE: ed25519
+  pre_tasks:
+    - include_tasks: tasks/fleet-set-facts.yml
+
   tasks:    
     - name: Find all files in /media/root-rw/overlay/home/jaia/.ssh/
       ansible.builtin.find:
