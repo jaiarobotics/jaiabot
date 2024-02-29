@@ -6,8 +6,7 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
-import MapLayersPanel from './MapLayersPanel'
-import DownloadQueue from './DownloadQueue'
+import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
@@ -68,7 +67,8 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
+	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -100,10 +100,9 @@ export enum PanelType {
 	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
-	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
-	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
+	DOWNLOAD_PANEL = 'DOWNLOAD_PANEL',
 	RALLY_POINT = 'RALLY_POINT',
 	TASK_PACKET = 'TASK_PACKET',
 	SETTINGS = 'SETTINGS'
@@ -122,7 +121,7 @@ export interface RunInterface {
 	command: Command,
 }
 
-export interface MissionInterface {
+export interface MissionInterface { 
 	id: string,
 	name: string,
 	runs: {[key: string]: RunInterface},
@@ -536,8 +535,8 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map layers panel, if needed
-		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
+		// Update the map settings panel, if needed
+		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
 	}
@@ -1080,6 +1079,35 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * Updates the mission history stack if the task of a waypoint changes.
+	 * 
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Calls updateMissionHistory() in order to update the mission history stack.
+	 */
+	detectTaskChange() {
+		let runIdInEditMode = this.getRunList().runIdInEditMode
+
+		// If there exists a run in missionHistory with runIdInEditMode, then continue 
+		if (this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode]) {
+			let oldGoalType, newGoalType
+			let oldGoals = this.missionHistory[this.missionHistory.length - 1].runs[runIdInEditMode].command.plan.goal
+			let newGoals = this.getRunList().runs[runIdInEditMode].command.plan.goal
+
+			for (let i = 0; i < newGoals.length; i++) {
+				oldGoalType = oldGoals[i]?.task?.type
+				newGoalType = newGoals[i]?.task?.type
+
+				// Only update mission history if the task type has changed
+				if (newGoalType !== oldGoalType) {
+					this.updateMissionHistory(this.getRunList())
+				}
+			}
+		}
+	}
+
+	/**
 	 * @returns Whether any bots are assigned to runs in the current runList
 	 */
 	areBotsAssignedToRuns() {
@@ -1190,6 +1218,7 @@ export default class CommandControl extends React.Component {
 				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
 			} 
 			else {
+
 				const alertText = `Run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 					commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
 
@@ -1680,7 +1709,7 @@ export default class CommandControl extends React.Component {
 		} else {
 			run = runs[botsAssignedToRuns[botId]]
 		}
-
+ 
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
@@ -2587,6 +2616,11 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Creates a list of bots that can be added to the download queue
+	 * 
+	 * @returns {PortalBotStatus[]} The list of bots that can be added to download queue
+	 */
 	getDownloadableBots() {
 		const commDest = this.determineAllCommandBots(false, false, false, true)
 
@@ -2658,43 +2692,9 @@ export default class CommandControl extends React.Component {
 				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
-					<Icon path={mdiDownloadMultiple} title="Download All"/>
-				</Button>
-				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-					<Button className="button-jcc active" onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-						}}
-					>
-						<Icon path={mdiProgressDownload} title="Download Queue"/>
-					</Button>
-				))}
 				<Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
-				{(this.state.visiblePanel == PanelType.SETTINGS ? (
-				<Button className="button-jcc active" onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<Icon path={mdiCog} title="Settings"/>
-				</Button>
-				) : (
-					<Button className="button-jcc" onClick={() => {
-						this.setVisiblePanel(PanelType.SETTINGS)
-						}}
-					>
-						<Icon path={mdiCog} title="Settings"/>
-					</Button>
-				))}
 				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
 					<Icon path={mdiHelp} title="Help"></Icon>
 				</Button>
@@ -2711,11 +2711,12 @@ export default class CommandControl extends React.Component {
 
 	/**
 	 * This is a helper function for determining which bots to send an all command to
-	 * @param sendingMission determines output and bot bots to send the mission command to
-	 * @param sendingActivate determines output and bot bots to send the acivate command to
-	 * @param sendingStop determines output and bot bots to send the stop command to
-	 * @param sendingDownload determines output and bot bots to send the download command to
-	 * @returns The information needed to determin what bots to send the all command to (BotAllCommandInfo interface)
+	 * 
+	 * @param {boolean} sendingMission Determines output and bots to send the mission command to
+	 * @param {boolean} sendingActivate Determines output and bots to send the acivate command to
+	 * @param {boolean} sendingStop Determines output and bots to send the stop command to
+	 * @param {boolean} sendingDownload Determines output and bots to send the download command to
+	 * @returns {BotAllCommandInfo} The information needed to determin what bots to send the all command to (BotAllCommandInfo interface)
 	 */
 	determineAllCommandBots(sendingMission: boolean, sendingActivate: boolean, sendingStop: boolean, sendingDownload: boolean) {
 		let botInfo: BotAllCommandInfo
@@ -2740,7 +2741,7 @@ export default class CommandControl extends React.Component {
 			stoppedStateMessage: "",
 			poorHealthMessage: "",
 			downloadQueueMessage:  "",
-			disconnectedMessage: ""
+			disconnectedMessage: "",
 		}
 
 		for (const bot of Object.values(this.getPodStatus().bots)) {
@@ -2757,6 +2758,8 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
+			// These if/else block handles which botIds are avaiable for the command that the operator wants 
+			// to send to the fleet
 			if (sendingMission && (idleStates.test(bot?.mission_state) || failedState.test(bot?.mission_state))) {
 				botInfo.botIdsInIdleState.push(bot?.bot_id)
 			} else if (sendingActivate && (!idleStates.test(bot?.mission_state) && !failedState.test(bot?.mission_state))) {
@@ -2771,9 +2774,10 @@ export default class CommandControl extends React.Component {
 				// Do not allow a bot in the incorrect state in the queue
 			} else if (bot?.isDisconnected) {
 				botInfo.botIdsDisconnected.push(bot?.bot_id)
-		    } else if (sendingDownload && !bot?.wifi_link_quality_percentage) {
+			} else if (sendingDownload && !bot?.wifi_link_quality_percentage) {
 				botInfo.botIdsWifiDisconnected.push(bot?.bot_id)
 			} else {
+				// This is the list used to send identify which bots to send the command to
 				botInfo.botIds.push(bot?.bot_id)
 			}
 		}
@@ -2785,35 +2789,40 @@ export default class CommandControl extends React.Component {
 		botInfo.botIdsNotInIdleState.sort()
 		botInfo.botIdsInStoppedState.sort()
 
-		if (botInfo.botIdsPoorHealth.length !==0) {
+		if (botInfo.botIdsPoorHealth.length !== 0) {
 			botInfo.poorHealthMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsPoorHealth.length > 1 ? 's': ''}: ` + botInfo.botIdsPoorHealth + " because the health is poor"
 		}
-		if (botInfo.botIdsInIdleState.length !==0) {
+		if (botInfo.botIdsInIdleState.length !== 0) {
 			botInfo.idleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been activated`
 		}
-		if (botInfo.botIdsNotInIdleState.length !==0) {
+		if (botInfo.botIdsNotInIdleState.length !== 0) {
 			botInfo.notIdleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been activated`
 		}
-		if (botInfo.botIdsInStoppedState.length !==0) {
+		if (botInfo.botIdsInStoppedState.length !== 0) {
 			botInfo.stoppedStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInStoppedState.length > 1 ? 's': ''}: ` + botInfo.botIdsInStoppedState + ` because ${botInfo.botIdsInStoppedState.length > 1 ? 'they have': 'it has'} been stopped`
 		}
-		if (botInfo.botIdsInDownloadQueue.length !==0) {
+		if (botInfo.botIdsInDownloadQueue.length !== 0) {
 			botInfo.downloadQueueMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInDownloadQueue.length > 1 ? 's': ''}: ` + botInfo.botIdsInDownloadQueue + ` because ${botInfo.botIdsInDownloadQueue.length > 1 ? 'they are': 'it is'} in the download queue`
 		}
-		if (botInfo.botIdsDownloadNotAvailable.length !==0) {
+		if (botInfo.botIdsDownloadNotAvailable.length !== 0) {
 			botInfo.downloadQueueMessage += `\nThe command cannot be sent to Bot${botInfo.botIdsDownloadNotAvailable.length > 1 ? 's': ''}: ` + botInfo.botIdsDownloadNotAvailable + ` because ${botInfo.botIdsDownloadNotAvailable.length > 1 ? 'they need': 'it needs'} to be in one of these states: ${this.enabledDownloadStates}`
 		}
-		if (botInfo.botIdsDisconnected.length !==0) {
+		if (botInfo.botIdsDisconnected.length !== 0) {
 			botInfo.disconnectedMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsDisconnected + " because the status age is greater than 30"
 		}
-		if (botInfo.botIdsWifiDisconnected.length !==0) {
+		if (botInfo.botIdsWifiDisconnected.length !== 0) {
 			botInfo.downloadQueueMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsWifiDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsWifiDisconnected + " the Wi-Fi Link Quality is poor (Check Quick Look in Bot Details)"
 		}
 
 		return botInfo
 	}
 
-	activateAllClicked(evt: UIEvent) {
+	/**
+	 * Sends the activate command to all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
+	activateAllClicked() {
 		this.takeControl(() => {
 
 			const commDest = this.determineAllCommandBots(false, true, false, false)
@@ -2827,13 +2836,12 @@ export default class CommandControl extends React.Component {
 
 				CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
 					for (const botId of commDest.botIds) {
-						let c = {
+						let command = {
 							bot_id: botId,
 							type: CommandType.ACTIVATE
 						}
-				
-						console.log(c)
-						this.api.postCommand(c).then(response => {
+
+						this.api.postCommand(command).then(response => {
 							if (response.message) {
 								error(response.message)
 							}
@@ -2860,6 +2868,11 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * Sends a command to stop all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
 	sendStopAll() {
 		this.takeControl(() => {
 
@@ -2872,12 +2885,12 @@ export default class CommandControl extends React.Component {
 				commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage, 'Stop All Bots', () => {
 
 					for (const botId of commDest.botIds) {
-						let c = {
+						let command = {
 							bot_id: botId,
 							type: CommandType.STOP
 						}
 				
-						this.api.postCommand(c).then(response => {
+						this.api.postCommand(command).then(response => {
 							if (response.message) {
 								error(response.message)
 							}
@@ -2889,16 +2902,21 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Sends a command to execute/resume runs for all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
 	playClicked(evt: UIEvent) {
-		if (!this.areBotsAssignedToRuns()) {
-			CustomAlert.alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
-			return
-		}
-
 		this.runMissions(this.getRunList(), null);
 	}
 
-	recoverAllClicked(evt: UIEvent) {
+	/**
+	 * Sends a command to recover all bots that are in the correct state
+	 * 
+	 * @returns {void}
+	 */
+	recoverAllClicked() {
 		this.takeControl(() => {
 
 			const commDest = this.determineAllCommandBots(false, false, false, false)
@@ -2907,13 +2925,12 @@ export default class CommandControl extends React.Component {
 				commDest.downloadQueueMessage + commDest.disconnectedMessage, 'Download Data', () => {
 
 				for (const botId of commDest.botIds) {
-					let c = {
+					let command = {
 						bot_id: botId,
 						type: CommandType.RECOVERED
 					}
-			
-					console.log(c)
-					this.api.postCommand(c).then(response => {
+
+					this.api.postCommand(command).then(response => {
 						if (response.message) {
 							error(response.message)
 						}
@@ -2939,7 +2956,7 @@ export default class CommandControl extends React.Component {
 			info('There is no more history to undo')
 			return
 		}
-
+ 
 		this.missionHistory.pop()
 		this.setRunList(deepcopy(this.missionHistory[this.missionHistory.length - 1]))
 
@@ -3148,9 +3165,13 @@ export default class CommandControl extends React.Component {
 	// 
 
 	/**
-	 * Switch the visible panel
+	 * Switch the visible panel to panelType
 	 * 
-	 * @param panelType The panel type to switch to
+	 * @param {PanelType} panelType The panel type to switch to
+	 * @returns {void}
+	 * 
+	 * @notes
+	 * Calls detectTaskChange() in order to update mission history whenever a new panel is selected. 
 	 */
 	setVisiblePanel(panelType: PanelType) {
 		switch (this.state.visiblePanel) {
@@ -3178,6 +3199,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.setState({ visiblePanel: panelType })
+		this.detectTaskChange()
 	}
 
 	setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
@@ -3386,72 +3408,6 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
-		const mapLayersButton = (visiblePanel == PanelType.MAP_LAYERS) ? (
-			<Button className="button-jcc active"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MAP_LAYERS)
-				}}
-			>
-				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-			</Button>
-		)
-
-		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
-			<div>
-				<div id="measureResult" />
-				<Button
-					className="button-jcc active"
-					onClick={() => {
-						this.setVisiblePanel(PanelType.NONE)
-					}}
-				>
-					<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
-				</Button>
-			</div>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.setVisiblePanel(PanelType.MEASURE_TOOL)
-					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
-					info('Touch map to set first measure point');
-				}}
-			>
-				<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
-			</Button>
-		)
-
-		const trackPodButton = (trackingTarget === 'pod' ? (
-			<Button 							
-				className="button-jcc active"
-				onClick={() => {
-					this.zoomToPod(false);
-					this.trackBot(null);
-				}} 
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
-			</Button>
-		) : (
-			<Button
-				className="button-jcc"
-				onClick={() => {
-					this.zoomToPod(true);
-					this.trackBot('pod');
-				}}
-			>
-				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
-			</Button>
-		))
-
 		const surveyMissionSettingsButton = ((visiblePanel == PanelType.MISSION_SETTINGS) ? (
 			<Button
 				className="button-jcc active"
@@ -3525,6 +3481,67 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
+		const settingsPanelButton = (this.state.visiblePanel == PanelType.SETTINGS ? (
+			<Button className="button-jcc active" onClick={() => {
+				this.setVisiblePanel(PanelType.NONE)
+			}}
+			>
+				<Icon path={mdiCog} title="Map Settings" />
+			</Button>
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				this.setVisiblePanel(PanelType.SETTINGS)
+			}}
+			>
+				<Icon path={mdiCog} title="Map Settings" />
+			</Button>
+		))
+
+		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
+			<div>
+				<div id="measureResult" />
+				<Button
+					className="button-jcc active"
+					onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiRuler}  title="Measurement Result" />
+				</Button>
+			</div>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					this.setVisiblePanel(PanelType.MEASURE_TOOL)
+					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+					info('Touch map to set first measure point');
+				}}
+			>
+				<Icon path={mdiRuler}  title="Measure Distance" />
+			</Button>
+		)
+
+		const downloadQueueButton = (
+			this.state.visiblePanel == PanelType.DOWNLOAD_PANEL ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+
+			) : (
+				<Button className="button-jcc" onClick={() => {
+					this.setVisiblePanel(PanelType.DOWNLOAD_PANEL)
+				}}
+				>
+					<Icon path={mdiProgressDownload} title="Download Queue" />
+				</Button>
+			)
+
+		)
+
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -3572,12 +3589,6 @@ export default class CommandControl extends React.Component {
 				visiblePanelElement = null
 				break
 
-			case PanelType.MAP_LAYERS:
-				visiblePanelElement = (
-					<MapLayersPanel />
-				)
-				break
-
 			case PanelType.RUN_INFO:
 				visiblePanelElement = (
 					<RunInfoPanel
@@ -3598,7 +3609,13 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
-						onChange={() => this.setRunList(this.getRunList())} 
+						onChange={() => {
+							this.setRunList(this.getRunList())
+						}}
+						onDoneClick={() => {
+							this.setRunList(this.getRunList())
+							this.detectTaskChange()
+						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
 						setRunList={this.setRunList.bind(this)}
@@ -3607,12 +3624,13 @@ export default class CommandControl extends React.Component {
 				)
 				break
 
-			case PanelType.DOWNLOAD_QUEUE:
+			case PanelType.DOWNLOAD_PANEL:
 				visiblePanelElement = (
-					<DownloadQueue 
+					<DownloadPanel 
 						downloadableBots={this.state.botDownloadQueue} 
 						removeBotFromQueue={this.removeBotFromQueue.bind(this)}
 						getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
+						processDownloadAllBots ={this.processDownloadAllBots.bind(this)}
 					/>
 				)
 				break
@@ -3647,6 +3665,11 @@ export default class CommandControl extends React.Component {
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						trackBot={this.trackBot.bind(this)}
+						trackingTarget={this.state.trackingTarget}
+						visiblePanel={this.state.visiblePanel}
+						zoomToPod={this.zoomToPod.bind(this)}
 					/>
 				)
 				break
@@ -3664,17 +3687,11 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
-
-					{engineeringButton}
-
 					{surveyMissionSettingsButton}
-					
-					{trackPodButton}
-
+					{downloadQueueButton}
+					{settingsPanelButton}
 					{measureButton}
-
-					{mapLayersButton}
-
+					{engineeringButton}
 				</div>
 
 				<div id="botsDrawer">

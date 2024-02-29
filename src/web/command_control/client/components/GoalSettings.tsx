@@ -6,7 +6,7 @@ import WptToggle from './WptToggle';
 import { Goal } from './shared/JAIAProtobuf';
 import { CustomAlert } from './shared/CustomAlert';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
-import { MissionInterface, PanelType} from './CommandControl';
+import { MissionInterface, PanelType } from './CommandControl';
 import { deepcopy, adjustAccordionScrollPosition } from './shared/Utilities'
 
 import { Icon } from '@mdi/react'
@@ -27,6 +27,7 @@ interface Props {
     runList: MissionInterface
     runNumber: number
     onChange: () => void
+    onDoneClick: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
     setRunList: (runList: MissionInterface) => void
@@ -83,6 +84,7 @@ export class GoalSettingsPanel extends React.Component {
     doneClicked() {
         this.props.setMoveWptMode(false, `run-${this.props.runNumber}`, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
+        this.props.onDoneClick()
     }
 
     cancelClicked() {
@@ -251,6 +253,10 @@ export class GoalSettingsPanel extends React.Component {
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
+                        }}
+                        onDoneClick={task => {
+                            goal.task = task
+                            this.props.onDoneClick?.()
                         }}
                     />
                     <div className="goal-settings-line-break"></div>
