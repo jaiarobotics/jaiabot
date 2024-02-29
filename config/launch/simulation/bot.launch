@@ -12,7 +12,7 @@ gobyd <(../../gen/bot.py gobyd)
 goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
 jaiabot_simulator <(../../gen/bot.py jaiabot_simulator)
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
-jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n -zzz
+jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
