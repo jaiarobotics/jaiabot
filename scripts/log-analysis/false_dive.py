@@ -74,10 +74,10 @@ def get_dive_data(directory_path):
                     avg_fail_batt = sum(fail_battery_percents) / len(fail_battery_percents)
                     failure_rate = len(false_indices) / len(dive_indices) * 100
                 
-                    total_dives = len(dive_indices)
-                    total_fails = len(false_indices)
-                    print(f'Total Dives: {total_dives/2}')
-                    print(f'Total Fails: {total_fails/2}')
+                    total_dives = (int)(len(dive_indices)/2)
+                    total_fails = (int)(len(false_indices)/2)
+                    print(f'Total Dives: {total_dives}')
+                    print(f'Total Fails: {total_fails}')
                     print(f'\nFailure rate: {failure_rate:.2f}%\nAverage Failure Water Temp: {avg_fail_temp:.2f}\nAverage Failure Battery Percentage: {avg_fail_batt:.2f}\n')
                 else: 
                     print("NO FAILED DIVES\n")
