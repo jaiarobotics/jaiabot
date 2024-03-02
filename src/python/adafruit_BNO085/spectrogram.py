@@ -8,14 +8,20 @@ from datetime import *
 
 
 def htmlForSpectrogram(series: Series, fftWindowSeconds: float=40.0):
+    if series.duration().seconds == 0:
+        return '<p>Spectrogram:  duration is 0</p>'
+
     # fs = sampling frequency
     fs = len(series.utime) / series.duration().seconds
-    print(f'fs = {fs}')
     # N = Number of point in the fft
     N = int(fftWindowSeconds * fs)
     # w = data window
     w = signal.blackman(N)
-    freqs, bins, Pxx = signal.spectrogram(np.array(series.y_values), fs, window = w, nfft=N)
+    try:
+        freqs, bins, Pxx = signal.spectrogram(np.array(series.y_values), fs, window = w, nfft=N)
+    except Exception as e:
+        print(e)
+        return f'<p>Spectrogram exception: {e}</p>'
 
     binTimes = [datetime.fromtimestamp(series.utime[0] / 1e6 + binSeconds) for binSeconds in bins]
 

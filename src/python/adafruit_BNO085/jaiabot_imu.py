@@ -19,7 +19,7 @@ parser.add_argument('port', metavar='port', type=int, help='port to publish orie
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-parser.add_argument('-f', dest='frequency', default=8, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=8)')
+parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 args = parser.parse_args()
 
 logging.warning(args)
@@ -59,6 +59,8 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 if imuData is None:
                     log.warning('getIMUData returned None')
                 else:
+                    wave_analyzer.addIMUData(imuData)
+
                     if wave_analyzer._sampling_for_wave_height:
                         imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
 

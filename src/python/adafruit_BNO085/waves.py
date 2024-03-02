@@ -12,12 +12,19 @@ from time import sleep
 from copy import deepcopy
 from numpy.linalg import lstsq
 import logging
+from jaiabot.messages.imu_pb2 import IMUData
 
 from series import *
 from processing import *
 from filters import *
 
+import csv
+
 log = logging.getLogger('jaiabot_imu')
+
+
+def magnitude(v):
+    return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
 
 
 class Analyzer:
@@ -31,8 +38,11 @@ class Analyzer:
 
     max_acceleration_magnitude = 0.0
 
-    imu: IMU
     sample_interval: float
+
+    # Whether to dump the raw data to a file when significant wave height is calculated
+    # (for debugging)
+    dump_to_file_flag: bool
 
     _thread: Thread
     _sampling_for_wave_height = False
@@ -40,48 +50,32 @@ class Analyzer:
     _lock = Lock()
 
 
-    def __init__(self, imu: IMU, sample_frequency: float):
+    def __init__(self, imu: IMU, sample_frequency: float, dump_to_file_flag: bool=False):
         log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_interval = 1 / sample_frequency
 
-        self.imu = imu
+        self.dump_to_file_flag = dump_to_file_flag
 
-        def run():
-            # Need to look into why this is triggering exceptions
-            log.debug("Not executing sample loop because it causes exceptions")
-            self._sampleLoop()
+    def addIMUData(self, imuData: any):
+        if imuData is None:
+            return
+        
+        if self._sampling_for_wave_height:
+            utime = datetime.utcnow().timestamp() * 1e6
+            acc = imuData.linear_acceleration
 
-        self._thread = Thread(target=run, name='acceleration-sampler')
-        self._thread.daemon = True
-        self._thread.start()
+            self.linear_acceleration_x.append(utime, acc.x)
+            self.linear_acceleration_y.append(utime, acc.y)
+            self.linear_acceleration_z.append(utime, acc.z)
 
-    def _sampleLoop(self):
-        dt = self.sample_interval
+            self.gravity_x.append(utime, imuData.gravity.x)
+            self.gravity_y.append(utime, imuData.gravity.y)
+            self.gravity_z.append(utime, imuData.gravity.z)
 
-        while True:
-            sleep(dt)
-
-            with self._lock:
-
-                if self._sampling_for_wave_height or self._sampling_for_bottom_characterization:
-                    reading = self.imu.takeReading()
-
-                    if reading is not None:
-                        if self._sampling_for_wave_height:
-                            utime = datetime.utcnow().timestamp() * 1e6
-
-                            self.linear_acceleration_x.append(utime, reading.linear_acceleration.x)
-                            self.linear_acceleration_y.append(utime, reading.linear_acceleration.y)
-                            self.linear_acceleration_z.append(utime, reading.linear_acceleration.z)
-
-                            self.gravity_x.append(utime, reading.gravity.x)
-                            self.gravity_y.append(utime, reading.gravity.y)
-                            self.gravity_z.append(utime, reading.gravity.z)
-
-                        if self._sampling_for_bottom_characterization:
-                            acceleration_magnitude = reading.linear_acceleration.magnitude()
-                            self.max_acceleration_magnitude = max(acceleration_magnitude, self.max_acceleration_magnitude)
+        if self._sampling_for_bottom_characterization:
+            acceleration_magnitude = magnitude(acc)
+            self.max_acceleration_magnitude = max(acceleration_magnitude, self.max_acceleration_magnitude)
 
     # Wave Height
     def clearAccelerationSeries(self):
@@ -101,6 +95,9 @@ class Analyzer:
 
     def stopSamplingForWaveHeight(self):
         with self._lock:
+            if self.dump_to_file_flag:
+                self.dumpToFile()
+
             self.clearAccelerationSeries()
             self._sampling_for_wave_height = False
 
@@ -127,6 +124,23 @@ class Analyzer:
     def debug(self):
         print(self.getSignificantWaveHeight())
 
+    def dumpToFile(self):
+        date_string = datetime.now().isoformat()
+        csv_filename = os.path.expanduser(f'/var/log/jaiabot/swh-debug-{date_string}.csv')
+        with open(csv_filename, 'w') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            for i in range(len(self.linear_acceleration_x.utime)):
+                line = [
+                    self.linear_acceleration_x.utime[i],
+                    self.linear_acceleration_x.y_values[i],
+                    self.linear_acceleration_y.y_values[i],
+                    self.linear_acceleration_z.y_values[i],
+                    self.gravity_x.y_values[i],
+                    self.gravity_y.y_values[i],
+                    self.gravity_z.y_values[i]
+                ]
+                csv_writer.writerow(line)
+
 
 def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series, sampleFreq: float):
     # Get the vertical acceleration series
@@ -150,11 +164,35 @@ def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, 
 
 
 if __name__ == '__main__':
-    imu = Simulator(wave_frequency=0.33, wave_height=0.35)
-    analyzer = Analyzer(imu=imu, sample_frequency=8)
+    # imu = Simulator(wave_frequency=0.33, wave_height=0.35)
+    # analyzer = Analyzer(imu=imu, sample_frequency=4)
 
-    analyzer.startSamplingForWaveHeight()
+    # analyzer.startSamplingForWaveHeight()
 
-    while True:
-        print(analyzer.getSignificantWaveHeight())
-        sleep(1)
+    # while True:
+    #     print(analyzer.getSignificantWaveHeight())
+    #     sleep(1)
+    import sys
+    import h5py
+    from seriesSet import SeriesSet
+    from analyze import shouldInclude
+
+    analyzer = Analyzer(imu=None, sample_frequency=4)
+
+    for h5Path in sys.argv[1:]:
+        h5File = h5py.File(h5Path)
+        print()
+        print(h5File.filename)
+
+        seriesSet = SeriesSet.fromH5File(h5File)
+        drifts = seriesSet.split(shouldInclude)
+
+        for drift in drifts:
+            analyzer.linear_acceleration_x = drift.acc_x
+            analyzer.linear_acceleration_y = drift.acc_y
+            analyzer.linear_acceleration_z = drift.acc_z
+            analyzer.gravity_x = drift.grav_x
+            analyzer.gravity_y = drift.grav_y
+            analyzer.gravity_z = drift.grav_z
+
+            print('Significant wave height = ', analyzer.getSignificantWaveHeight())
