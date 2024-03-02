@@ -151,7 +151,7 @@ if __name__ == '__main__':
         imu = Adafruit()
 
     # Setup the wave analysis thread
-    analyzer = Analyzer(imu, args.frequency)
+    analyzer = Analyzer(imu, args.frequency, dump_to_file_flag=True)
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
