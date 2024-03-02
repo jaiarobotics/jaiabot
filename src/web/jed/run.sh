@@ -17,4 +17,4 @@ pushd ../server
 popd
 
 # Build jed
-webpack --mode production --watch
+webpack --mode production --watch --stats minimal
