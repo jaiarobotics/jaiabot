@@ -28,6 +28,7 @@ add_custom_command(OUTPUT ${command_control_outdir}/client.js ${command_control_
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/command_control/build.sh
   ARGS ${command_control_outdir}
   COMMENT "Running command_control build.sh"
+  DEPENDS npm_depdendencies
   )
 add_custom_target(command_control
   ALL

@@ -2,6 +2,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/adafruit_BNO055 DESTINATION ${project_SHAR
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/adafruit_BNO085 DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/arduino DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/atlas_scientific_ezo_ec DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/echo DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/gps DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/h5 DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/led_button DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
@@ -16,6 +17,7 @@ set(pyjaia_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaia)
 add_custom_command(OUTPUT ${pyjaia_outdir}/dccl/option_extensions_pb2.py
   COMMAND ./build_messages.sh
   ARGS ${pyjaia_outdir} ${CMAKE_CURRENT_BINARY_DIR}/proto_include ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR}
+  DEPENDS jaiabot_messages
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia
   COMMENT "Running pyjaia build_messages.sh"
   )

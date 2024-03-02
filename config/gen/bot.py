@@ -41,7 +41,7 @@ if "jaia_imu_type" in os.environ:
 if jaia_imu_type == "bno055":
     imu_detection_solution='RESTART_IMU_PY'
 elif jaia_imu_type == 'bno085':
-    imu_detection_solution='RESTART_IMU_PY'
+    imu_detection_solution='REBOOT_BNO085_IMU_AND_RESTART_IMU_PY'
 else:
     imu_detection_solution='RESTART_IMU_PY'
 
@@ -54,6 +54,11 @@ elif jaia_arduino_type == 'usb':
     jaia_arduino_dev_location="/dev/ttyUSB0"
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
+
+jaia_data_offload_ignore_type="NONE"
+
+if "jaia_data_offload_ignore_type" in os.environ:
+    jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])
@@ -70,7 +75,8 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
-bot_status_period=(bot_index * 10) + 1000
+# Milliseconds
+bot_status_period=1000
 
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
@@ -90,10 +96,11 @@ verbosities = \
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
+  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
@@ -216,6 +223,11 @@ elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
                                      bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
                                      remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
                                      atlas_salinity_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_echo_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_echo_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     echo_report_in_simulation=is_simulation()))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,
@@ -237,7 +249,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
-                                     fleet_id=fleet_index))
+                                     fleet_id=fleet_index,
+                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
