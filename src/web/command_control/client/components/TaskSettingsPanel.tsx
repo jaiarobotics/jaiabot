@@ -90,12 +90,14 @@ function TaskOptionsPanel(props: Props) {
      * @returns {void}
      */
     function onChangeBottomDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
-        const target = evt.target as HTMLInputElement;
-        const key = target.name as keyof DriftParameters;
+        const target = evt.target as any;
+        const key = target.name as (keyof DriftParameters)
         const value = Number(target.value);
 
         var newTask = deepcopy(task);
         newTask.surface_drift[key] = value;
+        GlobalSettings.driftParameters[key] = value
+        Save(GlobalSettings.driftParameters)
 
         // Array of dive parameters and fixed values
         const keys: (keyof DiveParameters)[] = ['depth_interval', 'hold_time', 'max_depth'];
@@ -107,9 +109,7 @@ function TaskOptionsPanel(props: Props) {
             const v = values[i];
             GlobalSettings.diveParameters[k] = v;
         }
-
-        GlobalSettings.driftParameters[key] = value
-        Save(GlobalSettings.driftParameters)
+        Save(GlobalSettings.diveParameters)
 
         props.onChange(newTask);
     }
@@ -129,7 +129,7 @@ function TaskOptionsPanel(props: Props) {
 
     /**
      * Handles the toggle action for the dive task.
-     * Also calls onChangeBottomDiveParameter function to set default values.
+     * Also calls sets default values for diveparameters.
      * 
      * @returns {void}
      */
@@ -144,7 +144,25 @@ function TaskOptionsPanel(props: Props) {
         }
 
         if(task.bottom_dive){
-            onChangeBottomDiveParameter
+
+        var newTask = deepcopy(task);
+        newTask.surface_drift['drift_time'] = surface_drift.drift_time;
+        GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
+        Save(GlobalSettings.driftParameters)
+        props.onChange(newTask);
+
+        // Array of dive parameters and fixed values
+        const keys: (keyof DiveParameters)[] = ['depth_interval', 'hold_time', 'max_depth'];
+        const values = [60, 60, 0];
+    
+        // Assigning fixed values to diveParameters
+        for (let i = 0; i < keys.length; i++) {
+            const k = keys[i];
+            const v = values[i];
+            GlobalSettings.diveParameters[k] = v;
+        }
+        Save(GlobalSettings.diveParameters)
+
         }
         
     }
