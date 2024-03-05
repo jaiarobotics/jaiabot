@@ -121,17 +121,31 @@ function TaskOptionsPanel(props: Props) {
      */
     function isBottomDiveChecked(){
 
-        return isChecked
+        if (task?.bottom_dive === undefined) {
+            return false
+        }
+        return task.bottom_dive
     }
 
     /**
      * Handles the toggle action for the dive task.
+     * Also calls onChangeBottomDiveParameter function to set default values.
      * 
      * @returns {void}
      */
     function handleToggle(){
 
-        setIsChecked(!isChecked);
+        if (task?.bottom_dive === undefined) {
+            task["bottom_dive"] = true
+        } else if (task.bottom_dive) {
+            task.bottom_dive = false
+        } else {
+            task.bottom_dive = true
+        }
+
+        if(task.bottom_dive){
+            onChangeBottomDiveParameter
+        }
         
     }
     
@@ -283,7 +297,7 @@ function TaskOptionsPanel(props: Props) {
                     </table>
                     <hr />
                     {
-                        isChecked?
+                        task.bottom_dive?
 
                         <table className="TaskParametersTable">
                             <tbody>
