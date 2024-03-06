@@ -1,3 +1,4 @@
 node_modules
 package-lock.json
 dist
+command_control/typescript/
