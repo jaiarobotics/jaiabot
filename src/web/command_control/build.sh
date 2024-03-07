@@ -1,13 +1,8 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-set -e
+OUTPUT_DIR=$1
 
-pushd "$DIR"
+mkdir -p ${OUTPUT_DIR}
 
-output_path='dist/client'
-[[ ! -z "$1" ]] && output_path="$1"
-
-echo "🟢 JCC:  Building app package"
-npx webpack --mode development --config ./webpack.config.js --output-path $output_path # --display errors-only
-echo "✅ Done"
+echo 🟢 Building JCC into ${OUTPUT_DIR}
+npx webpack --mode production --env OUTPUT_DIR=${OUTPUT_DIR}
