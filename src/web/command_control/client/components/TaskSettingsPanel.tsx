@@ -39,6 +39,7 @@ interface Props {
     isEditMode?: boolean
     scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
+    onDoneClick?: (task?: MissionTask) => void
 }
 
 // TaskOptionsPanel
@@ -309,7 +310,15 @@ function TaskOptionsPanel(props: Props) {
     }
 }
 
-
+/**
+ * Panel dropdown to select the task of a waypoint
+ * 
+ * @param props 
+ * @returns {void}
+ * 
+ * @notes
+ * If no task is selected or the task is changed back to 'None', then the TaskType returns 'Undefined'.
+ */
 export function TaskSettingsPanel(props: Props) {
     /**
      * Updates the Task input options based on the type of Task selected
@@ -326,7 +335,7 @@ export function TaskSettingsPanel(props: Props) {
 
         // Change to NONE
         if (newTaskType == TaskType.NONE) {
-            props.onChange(null)
+            props.onChange(undefined)
             return
         }
 
