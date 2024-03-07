@@ -32,5 +32,5 @@ ln -s $(pwd)/jed ${BUILD_DIR}/jed
 
     pushd command_control > /dev/null
         echo 🟢 Building JCC into ${COMMAND_CONTROL_BUILD_DIR}
-        webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress
+        npx webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress
     popd > /dev/null

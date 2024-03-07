@@ -13,7 +13,7 @@ file(GLOB_RECURSE jdv_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_C
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${intermediate_web_dir})
 
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
-  COMMAND webpack
+  COMMAND npx webpack
   ARGS --mode production --config ./release.webpack.config.js --env TARGET_DIR=${jdv_client_outdir}
   WORKING_DIRECTORY ${intermediate_web_dir}/jdv/client
   COMMENT "Building jdv"

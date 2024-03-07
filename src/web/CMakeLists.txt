@@ -40,7 +40,7 @@ file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAK
 set(jcc_out_dir ${project_SHARE_DIR}/jaiabot/web/jcc/client)
 
 add_custom_command(OUTPUT ${jcc_out_dir}/client.js
-  COMMAND webpack
+  COMMAND npx webpack
   ARGS --mode production --env OUTPUT_DIR=${jcc_out_dir}
   WORKING_DIRECTORY ${intermediate_web_dir}/command_control/
   COMMENT "Building jcc"
