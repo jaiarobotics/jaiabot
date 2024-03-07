@@ -1,11 +1,4 @@
 build/*
-arm64_build/*
-.vscode
-*~
-cmake_install.cmake
-CMakeFiles
-CMakeCache.txt
-__pycache__
-.DS_Store
-.idea
 config/launch/simulation/all.launch
+__pycache__
+.vscode

@@ -340,6 +340,7 @@ export default class JaiaMap {
 
     // Set the array of paths
     setMapDict(botIdToMapSeries: {[key: string]: number[][]}) {
+        this.timeRange = null
         this.botIdToMapSeries = botIdToMapSeries
         this.updatePath()
     }

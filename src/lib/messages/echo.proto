@@ -1,0 +1,55 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message EchoCommand
+{
+    enum EchoCommandType
+    {
+        CMD_START = 0;
+        CMD_STOP = 1;
+        CMD_STORAGE = 2;
+        CMD_ACK = 3;
+        CMD_STATUS = 4;
+        CMD_CH = 5;
+        CMD_FREQ = 6;
+        CMD_TIME = 7;
+        CMD_VER = 8;
+        CMD_HELP = 9;
+    }
+
+    required EchoCommandType type = 1;
+}
+
+enum EchoState
+{
+    BOOTING = 0;
+    OCTOSPI = 1;
+    SD_INIT = 2;
+    SD_MOUNT = 3;
+    SD_CREATE = 4;
+    PSSI_EN = 5;
+    READY = 6;
+    START = 7;
+    STOP = 8;
+    RUNNING = 9;
+}
+
+message EchoData
+{
+    optional EchoState echo_state = 1 [default = BOOTING];
+}
+
+message EchoIssue
+{
+    enum SolutionType
+    {
+        REPORT_ECHO = 0;
+        RESTART_ECHO_PY = 1;
+        REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY = 3;
+    }
+
+    required SolutionType solution = 1;
+}
