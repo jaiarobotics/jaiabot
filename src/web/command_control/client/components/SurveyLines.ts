@@ -170,8 +170,11 @@ export class SurveyLines {
                                 let ol = deepcopy(centerLine);
                                 currentLineOffset = lineOffsetStart + nextLineOffset
         
-                                ol.properties['botId'] = i;  
-                                 ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
+                                ol.properties['botId'] = i; //JAIAB-872: This was originally set to a real botId
+                                //setting them all to to -1 or changing the property name to anything other
+                                //than 'botId' resulted in only one run generated.  Not sure how this code 
+                                //interacts with other elements
+                                ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
         
                                 offsetLines.push(ol);
                                 nextLineOffset = nextLineOffset + Number(missionParams.lineSpacing)

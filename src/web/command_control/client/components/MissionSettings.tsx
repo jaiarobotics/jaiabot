@@ -97,6 +97,11 @@ export class MissionSettingsPanel extends React.Component {
         this.onChange = props.onChange
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
         this.onTaskTypeChange = props.onTaskTypeChange
+
+        //Initialize the number of runs to the number of bots
+        this.props.missionParams.numRuns = Object.keys(this.props.botList).length
+
+
     }
 
     componentDidUpdate() {
