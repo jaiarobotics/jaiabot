@@ -131,7 +131,7 @@ export function getSurveyMissionPlans(
         botGoals.push(botGoal)
 
         let command: Command = {
-            bot_id: -1,  //TODO JAR bit of a hack, not sure how this and SurveyLines.ts:174 sync
+            bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {

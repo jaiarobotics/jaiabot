@@ -202,10 +202,10 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            value={this.props.missionParams.numRuns} //TODO JAR -May need different parameter for this
-                            name="numRuns" //TODO JAR
+                            value={this.props.missionParams.numRuns}
+                            name="numRuns"
                             onChange={this.changeRunCount.bind(this)}
-                        /> m
+                        />
                     </div>
 
                     <div className="mission-settings-input-label">Start Rally:</div>
