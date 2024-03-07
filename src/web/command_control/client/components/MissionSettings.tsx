@@ -21,7 +21,7 @@ export interface MissionSettings {
 
 export interface MissionParams {
 	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
-	numBots: number,
+	numRuns: number,
 	numGoals: number,
 	pointSpacing: number,
 	lineSpacing: number,
@@ -97,6 +97,11 @@ export class MissionSettingsPanel extends React.Component {
         this.onChange = props.onChange
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
         this.onTaskTypeChange = props.onTaskTypeChange
+
+        //Initialize the number of runs to the number of bots
+        this.props.missionParams.numRuns = Object.keys(this.props.botList).length
+
+
     }
 
     componentDidUpdate() {
@@ -196,6 +201,16 @@ export class MissionSettingsPanel extends React.Component {
                             name="lineSpacing"
                             onChange={this.changeLineSpacing.bind(this)}
                         /> m
+                    </div>
+
+                    <div className="mission-settings-input-label">Number of Runs:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.numRuns}
+                            name="numRuns"
+                            onChange={this.changeRunCount.bind(this)}
+                        />
                     </div>
 
                     <div className="mission-settings-input-label">Start Rally:</div>
@@ -340,7 +355,9 @@ export class MissionSettingsPanel extends React.Component {
                 
                 <div className="mission-settings-button-container">
                     <button className="mission-settings-btn" onClick={() => this.props.onClose()}>Cancel</button>
-                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} onClick={this.applyMissionClicked.bind(this)} disabled={!this.props.missionPlanningGrid}>Apply</button>
+                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} 
+                            onClick={this.applyMissionClicked.bind(this)} 
+                            disabled={!this.props.missionPlanningGrid}>Apply</button>
                 </div>
 
             </div>
@@ -393,6 +410,22 @@ export class MissionSettingsPanel extends React.Component {
         let missionParams = {...this.props.missionParams}
         missionParams.lineSpacing = value
         this.props.setMissionParams(missionParams)
+    }
+
+    /**
+     * Updates the number of runs value based on input changes
+     * 
+     * @param {Event} evt Contains the number of runs value
+     * @returns {void} 
+     */
+    changeRunCount(evt: Event) {
+        const element = evt.target as HTMLInputElement
+        const value = this.validateNumInput(Number(element.value))
+        
+        let missionParams = {...this.props.missionParams}
+        missionParams.numRuns = value
+        this.props.setMissionParams(missionParams)
+        
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
