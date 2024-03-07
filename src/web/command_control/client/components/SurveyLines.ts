@@ -140,7 +140,8 @@ export class SurveyLines {
                         }
 
                         missionParams.orientation = rotationAngle;
-                        let botList = Object.keys(commandControl.state.podStatus.bots);        
+                        let numRuns = Number(missionParams.numRuns);   
+        //TODO JAR this is where it is getting the bots in the pod -- Changed to NumRuns
                         let maxLineLength = (Number(missionParams.pointSpacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
@@ -162,20 +163,21 @@ export class SurveyLines {
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.pointSpacing)/1000)) {
                             let offsetLines: any[] = [];
-                            let lineOffsetStart = -1 * (Number(missionParams.lineSpacing) * ((botList.length/2)*0.75))
+                            let lineOffsetStart = -1 * (Number(missionParams.lineSpacing) * (numRuns/2*0.75))
                             let nextLineOffset = 0;
                             let currentLineOffset = 0;
-        
-                            botList.forEach(bot => {
+        //TODO JAR Need to modify this based on number of runs, need to understand how the ol.properties are used.
+                            for(let i = 0; i < numRuns; i++){
                                 let ol = deepcopy(centerLine);
                                 currentLineOffset = lineOffsetStart + nextLineOffset
         
-                                ol.properties['botId'] = bot;
+                                ol.properties['botId'] = -1;  //leave undefined
+        //TODO JAR what does botId get set to if undefined?
                                 ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
         
                                 offsetLines.push(ol);
                                 nextLineOffset = nextLineOffset + Number(missionParams.lineSpacing)
-                            })
+                            }
         
                             let alongLines: any = {};
                             let alongPoints: {[key: string]: number[][]} = {};
