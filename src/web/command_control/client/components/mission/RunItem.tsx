@@ -1,4 +1,3 @@
-
 import React, { ChangeEvent } from 'react';
 
 import Accordion from '@mui/material/Accordion';
@@ -20,6 +19,7 @@ import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 import '../../style/components/RunItem.less'
+import WptToggle from '../WptToggle'
 
 type RunItemProps = {
     botIds: number[]
@@ -35,10 +35,30 @@ type RunItemProps = {
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
 
-type RunItemState = {}
+type RunItemState = {
+    showWpt: boolean;
+}
+
+// interface State {
+//     showWpt: boolean;
+// }
 
 export default class RunItem extends React.Component<RunItemProps, RunItemState> {
-    nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+    nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']   
+
+    state: RunItemState = {
+        showWpt: false,
+    };
+
+    isWptToggled(){
+        return this.state.showWpt
+    }
+
+    toggleWpt(){
+        this.setState(prevState => ({
+            showWpt: !prevState.showWpt
+        }));
+    }
 
     makeAccordionTheme() {
         return createTheme({
@@ -161,6 +181,56 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         <div>
                             {repeatsInput}
                         </div>
+
+                        <WptToggle 
+                        checked={() => this.isWptToggled()}
+                        onClick={() => this.toggleWpt()}
+                        title="Show Wpts"
+                        label="Show Wpts"
+                        />
+
+                        {
+                            this.state.showWpt && 
+                            <table className="table-container">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Wpt Id
+                                    </th>
+                                    <th>
+                                        Lat
+                                    </th>
+                                    <th>
+                                        Lon
+                                    </th>
+                                    <th>
+                                        Task
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {
+                                    this.props.run.command.plan.goal.map((item,index)=>(
+                                        <tr key={index}>
+                                        <td>
+                                            {index + 1}
+                                        </td>
+                                        <td>
+                                            {item.location.lat.toFixed(5)}
+                                        </td>
+                                        <td>
+                                            {item.location.lon.toFixed(5)}
+                                        </td>   
+                                        <td>
+                                            {item.task?.type?item.task.type:"None"}
+                                        </td>
+                                    </tr>
+                                    ))
+                                }
+                            </tbody>
+                        </table>
+                        }
+                        
                     </AccordionDetails>
                 </Accordion>
             </ThemeProvider>
