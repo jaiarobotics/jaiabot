@@ -25,6 +25,8 @@ add_custom_target(npm_dependencies
 
 ###############################################################################
 
+file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/command_control/*)
+file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/shared/*)
 
 ###############################################################################
 # Copy the jcc source code to the build/<arch>/intermediate/web/jcc directory
