@@ -1,6 +1,8 @@
 ARG distro=focal
 FROM --platform=linux/amd64 ubuntu:$distro
 ARG distro=focal
+ARG repo=release
+ARG version=1.y
 
 SHELL ["/bin/bash", "-c"]
 
@@ -28,7 +30,7 @@ RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
         >> /etc/apt/sources.list
 
 # Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
-RUN echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ ${distro}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/release/1.y/ ${distro}/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+RUN echo -e "deb http://packages.jaia.tech/ubuntu/${repo}/${version}/ ${distro}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${repo}/${version}/ ${distro}/" >> /etc/apt/sources.list.d/jaiabot_${repo}_${version}.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 

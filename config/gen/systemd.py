@@ -231,6 +231,14 @@ except:
     common_macros['user'] = os.environ['USER']
     common_macros['group'] = os.environ['USER']
 
+
+# if user/group resolve to root, hardcode them to '1000' (first non-privileged user; will be 'jaia' on the standard filesystem) to avoid privileged execution
+# this can happen in some upgrade scenarios
+# TODO: Debug why this happens and when (Ansible playbook on local?)
+if common_macros['user'] == 'root':
+    common_macros['user'] = '1000'
+    common_macros['group'] = '1000'
+    
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
@@ -299,6 +307,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data offload script
      'runs_on': Type.HUB,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
@@ -337,6 +346,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
