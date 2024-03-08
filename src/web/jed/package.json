@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "JaiaBot Engineering & Debugging",
   "private": true,
-  "scripts": {
-    "release": "webpack --config release.webpack.config.js"
-  },
   "keywords": [],
   "author": "Jaia Robotics, Inc.",
   "license": "",
