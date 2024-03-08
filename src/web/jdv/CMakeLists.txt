@@ -12,6 +12,10 @@ file(GLOB_RECURSE jdv_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_C
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${intermediate_web_dir})
 
+file(GLOB_RECURSE jdv_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/client/src/*)
+file(GLOB jdv_dist_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/*)
+file(GLOB jdv_other_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/client/*)
+
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   COMMAND npx webpack
   ARGS --mode production --config ./release.webpack.config.js --env TARGET_DIR=${jdv_client_outdir} --stats errors-only
@@ -22,7 +26,7 @@ add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
 
 add_custom_target(jdv
   ALL
-  DEPENDS ${jdv_client_outdir}/bundle.js
+  DEPENDS npm_dependencies ${jdv_client_outdir}/bundle.js
   )
 
 install(DIRECTORY ${jdv_outdir} DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
