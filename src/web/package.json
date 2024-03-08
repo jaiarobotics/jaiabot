@@ -21,7 +21,6 @@
         "ol-layerswitcher": "^4.1.0",
         "package.json": "^2.0.1",
         "plotly.js-dist": "^2.16.4",
-        "react-gamepad": "file:command_control/client/libs/react-gamepad",
         "react-joystick-component": "^6.1.0",
         "reset-css": "^5.0.1",
         "resolve-cwd": "^3.0.0",

@@ -131,7 +131,7 @@ export function getSurveyMissionPlans(
         botGoals.push(botGoal)
 
         let command: Command = {
-            bot_id: Number(key),
+            bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {

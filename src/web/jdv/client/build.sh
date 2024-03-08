@@ -1,15 +1,9 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 set -e
 
-pushd "$DIR"
+TARGET_DIR=$1
 
-output_path='dist'
-[[ ! -z "$1" ]] && output_path="$1"
+echo "🟢 Building jdv into ${TARGET_DIR}"
 
-echo "🟢 Building app package"
-
-npx webpack --mode development --config ./release.webpack.config.js --output-path $output_path # --display errors-only
-
-echo "✅ Done"
+npx webpack --mode production --config ./release.webpack.config.js --env TARGET_DIR=${TARGET_DIR} --watch --progress

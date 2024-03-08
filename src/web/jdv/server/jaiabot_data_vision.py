@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
 parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
+parser.add_argument("-a", dest="appRoot", type=str, default="../../../../build/web_dev", help="Location from which to serve web app")
 args = parser.parse_args()
 
 # Setup logging module
@@ -50,7 +51,7 @@ def JSONErrorResponse(msg):
     return JSONResponse(obj)
 
 ####### Static files
-root = '../client/dist'
+root = os.path.join(args.appRoot, 'jdv')
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
