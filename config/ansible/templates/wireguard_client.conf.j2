@@ -1,0 +1,19 @@
+[Interface]
+PrivateKey = {{ private_vpn_keys[item.node_type][item.node_id] }}
+
+# this client's VPN IP address
+Address = {{ vpn_ipv6_addresses[item.node_type][item.node_id] }}/128
+
+[Peer]
+# Server public key (from /etc/wireguard/publickey on server)
+PublicKey = {{ cloud_env_vars.jaia_cloudhub_wg_pubkey }}
+
+# Allowed private IPs
+AllowedIPs = {{ virtualfleet_vpn_server_network }}
+
+# Server IP and port
+Endpoint = {{ ansible_eth0.ipv6[0].address }}:51820
+
+# Keep connection alive (required for behind NAT routers)
+PersistentKeepalive = 52
+

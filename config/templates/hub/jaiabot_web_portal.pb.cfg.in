@@ -3,6 +3,7 @@ $interprocess_block
 
 udp_config {
     bind_port: 40000
+    ipv6: true
 }
 
 #udp_customer_config {

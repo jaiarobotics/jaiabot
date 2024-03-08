@@ -1,0 +1,8 @@
+---
+- import_playbook: change-sources.yml
+- import_playbook: install.yml
+- hosts: all
+  tasks:
+    - name: Reboot all
+      reboot:
+      become: yes

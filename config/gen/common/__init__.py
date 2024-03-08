@@ -38,6 +38,15 @@ def is_simulation():
 def is_runtime():
     return jaia_mode == Mode.RUNTIME
 
+is_vfleet=False
+datasource_file = "/var/lib/cloud/instance/datasource"
+try:
+    with open(datasource_file) as f:
+        line = f.readlines()
+        if is_simulation() and "DataSourceEc2Local" in line[0]:
+            is_vfleet=True
+except FileNotFoundError:
+    pass
 
 class CommsMode(Enum):
      WIFI = "wifi"

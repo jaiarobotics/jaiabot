@@ -1,0 +1,7 @@
+- name: Add hub to node_map
+  set_fact:
+    node_map: "{{ node_map | default([]) + [{'node_type': 'hub', 'node_id': '1'}] }}"
+- name: Add bots to node_map
+  set_fact:
+    node_map: "{{ node_map + [{'node_type': 'bot', 'node_id': item | string}] }}"
+  with_sequence: start=1 end="{{ n_bots }}"

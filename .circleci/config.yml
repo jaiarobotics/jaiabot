@@ -186,7 +186,7 @@ filter-template-non-master: &filter-template-non-master
     branches:
       ignore:
         - "1.y"
-        
+
 ## Begin actual config
 version: 2
 workflows:

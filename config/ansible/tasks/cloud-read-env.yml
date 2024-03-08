@@ -1,0 +1,15 @@
+- name: Read /etc/jaiabot/cloud.env
+  shell: "cat /etc/jaiabot/cloud.env | grep -v '^#' | grep -v '^$'"
+  register: cloud_env_output
+  tags: read
+
+- name: Set facts from cloud.env
+  set_fact:
+    cloud_env_vars: "{{ cloud_env_vars | default({}) | combine({ item.split('=', 1)[0]: (item.split('=', 1)[1] | default('')) }) }}"
+  loop: "{{ cloud_env_output.stdout_lines }}"
+  tags: read
+
+- name: Set derived facts using cloud.env
+  set_fact:
+    jaia_customer_no_quotes: "{{ cloud_env_vars.jaia_aws_customer | regex_replace('^\"|\"$', '') }}"
+  tags: read
