@@ -14,7 +14,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${intermediate_web_dir})
 
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   COMMAND npx webpack
-  ARGS --mode production --config ./release.webpack.config.js --env TARGET_DIR=${jdv_client_outdir}
+  ARGS --mode production --config ./release.webpack.config.js --env TARGET_DIR=${jdv_client_outdir} --stats errors-only
   WORKING_DIRECTORY ${intermediate_web_dir}/jdv/client
   COMMENT "Building jdv"
   DEPENDS npm_dependencies ${jdv_src_files}
