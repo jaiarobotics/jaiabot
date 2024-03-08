@@ -42,13 +42,13 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
             {
                 geometry: new OlMultiPoint(mpg[key]),
                 style: new OlStyle({
-                    image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false)
+                    image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false, missionBaseGoal.task?.start_echo)
                 })
             }
         )
         mpGridFeature.setProperties({'botId': key});
         mpGridFeature.setStyle(new OlStyle({
-            image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false)
+            image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false, missionBaseGoal.task?.start_echo)
         }))
 
         features.push(mpGridFeature);
@@ -60,67 +60,24 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
 /**
  * Gets a mission plan from the set of survey mission parameters
  * 
- * @param botIdList 
  * @param rallyStartLocation 
  * @param rallyEndLocation 
- * @param missionParams 
  * @param missionPlanningGrid 
  * @param missionEndTask 
  * @param missionBaseGoal 
  * @returns A CommandList (dictionary mapping botIds to Commands)
  */
-export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: GeographicCoordinate, rallyEndLocation: GeographicCoordinate, 
-    missionParams: MissionParams, missionPlanningGrid: {[key: string]: number[][]}, missionEndTask: MissionTask, missionBaseGoal: Goal) {
+export function getSurveyMissionPlans(
+    rallyStartLocation: GeographicCoordinate, 
+    rallyEndLocation: GeographicCoordinate, 
+    missionPlanningGrid: {[key: string]: number[][]},
+    missionBaseGoal: Goal,
+    missionStartTask: MissionTask,
+    missionEndTask: MissionTask,
+) {
     
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
-
-    /**
-     * Assign rally point coordinates to each botId in a list
-     * 
-     * @param botIdList List of botIds
-     * @param centerCoordinate Center coordinate of rally points 
-     * @param rotationAngle Angle along which to space rally points for each bot
-     * @param rallySpacing Spacing between rally points (meters)
-     * @returns Mapping from bot_id to rally point coordinates
-     */
-    function findRallySeparation(botIdList: number[], centerCoordinate: GeographicCoordinate, rotationAngle: number, rallySpacing: number) {
-        botIdList = deepcopy(botIdList)
-
-        // Bot rally point separation scheme
-        let rallyPoints: {[key: number]: number[]} = {};
-        let center = [centerCoordinate.lon, centerCoordinate.lat];
-        let radius = rallySpacing/1000;
-        if (botIdList.length >= 3) {
-            // We can use a circle to separate the bots
-            let options = {steps: botIdList.length};
-            let circle = turf.circle(center, radius, options);
-            let circleRallyPointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0])));
-            circleRallyPointsBasic.forEach(p => {
-                rallyPoints[Number(botIdList.pop())] = p
-            })
-        } else {
-            // Alternative to using a circle for bot separation
-            let rhumbDestinationPoints: number[][][] = [];
-            let nextRadius = 0;
-            botIdList.forEach(bot => {
-                rhumbDestinationPoints.push(turf.coordAll(turf.rhumbDestination(turf.point(center), nextRadius, rotationAngle-90)));
-                nextRadius = nextRadius + radius;
-            })
-            rhumbDestinationPoints.forEach(p => {
-                rallyPoints[Number(botIdList.pop())] = p[0]
-            })
-        }
-        return rallyPoints
-    }
-
-    // Bot rally point separation scheme
-    let rallyStartPoints = findRallySeparation(botIdList, rallyStartLocation, missionParams.orientation, missionParams.rallySpacing);
-    // console.log('rallyStartPoints');
-    // console.log(rallyStartPoints);
-    let rallyFinishPoints = findRallySeparation(botIdList, rallyEndLocation, missionParams.orientation, missionParams.rallySpacing);
-    // console.log('rallyFinishPoints');
-    // console.log(rallyFinishPoints);
 
     let mpg = missionPlanningGrid;
     let mpgKeys = Object.keys(mpg);
@@ -134,10 +91,10 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
         // Rally Point Goals
         let botGoal: Goal = {
             "location": {
-                "lat": rallyStartPoints[botId][1],
-                "lon": rallyStartPoints[botId][0]
+                "lat": rallyStartLocation.lat,
+                "lon": rallyStartLocation.lon
             },
-            "task": {"type": TaskType.NONE}
+            "task": missionStartTask
         }
         botGoals.push(botGoal)
 
@@ -164,8 +121,8 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
         // Home Goals
         botGoal = {
             "location": {
-                "lat": rallyFinishPoints[botId][1],
-                "lon": rallyFinishPoints[botId][0]
+                "lat": rallyEndLocation.lat,
+                "lon": rallyEndLocation.lon
             },
             "task": {
                 type: TaskType.NONE
@@ -174,7 +131,7 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
         botGoals.push(botGoal)
 
         let command: Command = {
-            bot_id: Number(key),
+            bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {
@@ -194,7 +151,7 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
 
 
 export function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
-    let iStyle = Styles.createGoalIcon(taskType, false, false, false)
+    let iStyle = Styles.createGoalIcon(taskType, false, false, false, false)
 
     let lineStyle = new OlStyle({
         fill: new OlFillStyle({

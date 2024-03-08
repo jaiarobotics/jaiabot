@@ -6,7 +6,7 @@ import WptToggle from './WptToggle';
 import { Goal } from './shared/JAIAProtobuf';
 import { CustomAlert } from './shared/CustomAlert';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
-import { MissionInterface, PanelType} from './CommandControl';
+import { MissionInterface, PanelType } from './CommandControl';
 import { deepcopy, adjustAccordionScrollPosition } from './shared/Utilities'
 
 import { Icon } from '@mdi/react'
@@ -22,10 +22,12 @@ interface Props {
     botId: number
     goalIndex: number
     goal: Goal
+    originalGoal: Goal
     map: Map
     runList: MissionInterface
     runNumber: number
     onChange: () => void
+    onDoneClick: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
     setRunList: (runList: MissionInterface) => void
@@ -42,7 +44,6 @@ interface State {
 export class GoalSettingsPanel extends React.Component {
     props: Props
     state: State
-    oldGoal: Goal
     autoScrollTimeout: number
 
     constructor(props: Props) {
@@ -56,7 +57,6 @@ export class GoalSettingsPanel extends React.Component {
                 'lon': false
             }
         }
-        this.oldGoal = deepcopy(props.goal)
         this.autoScrollTimeout = 30 // ms
     }
 
@@ -84,19 +84,20 @@ export class GoalSettingsPanel extends React.Component {
     doneClicked() {
         this.props.setMoveWptMode(false, `run-${this.props.runNumber}`, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
+        this.props.onDoneClick()
     }
 
     cancelClicked() {
-        const { goal } = this.props
+        const { goal, originalGoal } = this.props
 
-        if (goal) {
+        if (goal && originalGoal) {
             // Clear this goal
             Object.keys(goal).forEach((key: keyof Goal) => {
                 delete goal[key]
             })
 
             // Copy items from our backup copy of the goal
-            Object.assign(goal, this.oldGoal)
+            Object.assign(goal, originalGoal)
         }
 
         this.props.setVisiblePanel(PanelType.NONE)
@@ -252,6 +253,10 @@ export class GoalSettingsPanel extends React.Component {
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
+                        }}
+                        onDoneClick={task => {
+                            goal.task = task
+                            this.props.onDoneClick?.()
                         }}
                     />
                     <div className="goal-settings-line-break"></div>
