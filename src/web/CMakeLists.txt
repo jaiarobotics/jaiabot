@@ -15,7 +15,7 @@ add_custom_command(OUTPUT ${intermediate_web_dir}/package-lock.json ${intermedia
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${intermediate_web_dir}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json
-  COMMENT "Installing npm depdendencies for web apps"
+  COMMENT "Installing npm dependencies for web apps"
   )
 
 add_custom_target(npm_dependencies
@@ -54,10 +54,9 @@ add_custom_target(jcc
 # Copy the jcc server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
-# Copy jed
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jed DESTINATION ${project_SHARE_DIR}/jaiabot/web)
-
 ###############################################################################
+
+add_subdirectory(jed)
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
