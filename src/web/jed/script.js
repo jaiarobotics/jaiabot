@@ -870,12 +870,34 @@ export function helpButtonOnClick(e) {
   }
 }
 
-document.getElementById('helpOpenButton')
-    .addEventListener('click', helpButtonOnClick)
-document.getElementById('helpCloseButton')
-    .addEventListener('click', helpButtonOnClick)
+function takeControl(evt) {
+  api.takeControl()
+}
 
-document.getElementById('take-control')
-    .addEventListener('click', () => {
-      api.takeControl()
-    })
+function onMouseDownDeadMansSwitch(evt) {
+  deadMansSwitch.setOn(true)
+}
+
+function onMouseUpDeadMansSwitch(evt) {
+  deadMansSwitch.setOn(false)
+}
+
+// Add event handlers
+const clickHandlers = [
+  ['helpOpenButton', 'click', helpButtonOnClick],
+  ['helpCloseButton', 'click', helpButtonOnClick],
+  ['LEDOnButton', 'click', LEDButtonOnClick],
+  ['LEDOffButton', 'click', LEDButtonOnClick],
+  ['take-control', 'click', takeControl],
+  ['diveButton', 'click', diveButtonOnClick],
+  ['deadMansSwitch', 'mousedown', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'mouseup', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'mouseleave', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchstart', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'touchend', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchcancel', onMouseUpDeadMansSwitch]
+]
+
+for (const clickHandler of clickHandlers) {
+  el(clickHandler[0]).addEventListener(clickHandler[1], clickHandler[2])
+}
