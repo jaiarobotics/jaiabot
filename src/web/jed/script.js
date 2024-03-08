@@ -891,9 +891,9 @@ const clickHandlers = [
   ['take-control', 'click', takeControl],
   ['diveButton', 'click', diveButtonOnClick],
   ['deadMansSwitch', 'mousedown', onMouseDownDeadMansSwitch],
-  ['deadMansSwitch', 'touchstart', onMouseDownDeadMansSwitch],
   ['deadMansSwitch', 'mouseup', onMouseUpDeadMansSwitch],
   ['deadMansSwitch', 'mouseleave', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchstart', onMouseDownDeadMansSwitch],
   ['deadMansSwitch', 'touchend', onMouseUpDeadMansSwitch],
   ['deadMansSwitch', 'touchcancel', onMouseUpDeadMansSwitch]
 ]
