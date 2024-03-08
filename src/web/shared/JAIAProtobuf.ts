@@ -574,12 +574,9 @@ export enum MissionState {
     PRE_DEPLOYMENT__READY = "PRE_DEPLOYMENT__READY",
     IN_MISSION__UNDERWAY__REPLAN = "IN_MISSION__UNDERWAY__REPLAN",
     IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT",
-    IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT",
-    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS",
-    IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = "IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART",
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = "IN_MISSION__UNDERWAY__TASK__STATION_KEEP",
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT",
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS",
@@ -596,9 +593,10 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = "IN_MISSION__UNDERWAY__RECOVERY__TRANSIT",
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = "IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP",
     IN_MISSION__UNDERWAY__RECOVERY__STOPPED = "IN_MISSION__UNDERWAY__RECOVERY__STOPPED",
-    IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS",
-    IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART = "IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART",
     IN_MISSION__UNDERWAY__ABORT = "IN_MISSION__UNDERWAY__ABORT",
+    IN_MISSION__PAUSE__IMU_RESTART = "IN_MISSION__PAUSE__IMU_RESTART",
+    IN_MISSION__PAUSE__REACQUIRE_GPS = "IN_MISSION__PAUSE__REACQUIRE_GPS",
+    IN_MISSION__PAUSE__MANUAL = "IN_MISSION__PAUSE__MANUAL",
     POST_DEPLOYMENT__RECOVERED = "POST_DEPLOYMENT__RECOVERED",
     POST_DEPLOYMENT__DATA_PROCESSING = "POST_DEPLOYMENT__DATA_PROCESSING",
     POST_DEPLOYMENT__DATA_OFFLOAD = "POST_DEPLOYMENT__DATA_OFFLOAD",
@@ -645,11 +643,16 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number
 }
 
+export interface SRPParameters {
+    safety_depth: number
+}
+
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
+    start_echo?: boolean
 }
 
 export enum MissionStart {
@@ -680,6 +683,7 @@ export interface MissionPlan {
     goal?: Goal[]
     recovery?: Recovery
     speeds?: Speeds
+    bottomDepthSafetyParams?: BottomDepthSafetyParams
     fragment_index?: number
     expected_fragments?: number
     repeats?: number
@@ -925,6 +929,8 @@ export enum CommandType {
     NEXT_TASK = "NEXT_TASK",
     RETURN_TO_HOME = "RETURN_TO_HOME",
     STOP = "STOP",
+    PAUSE = "PAUSE",
+    RESUME = "RESUME",
     REMOTE_CONTROL_SETPOINT = "REMOTE_CONTROL_SETPOINT",
     REMOTE_CONTROL_TASK = "REMOTE_CONTROL_TASK",
     REMOTE_CONTROL_RESUME_MOVEMENT = "REMOTE_CONTROL_RESUME_MOVEMENT",
@@ -1120,10 +1126,29 @@ export interface RFDisableOptions {
 }
 
 export interface BottomDepthSafetyParams {
-    constant_heading?: number
-    constant_heading_time?: number
-    constant_heading_speed?: number
-    safety_depth?: number
+    constant_heading: string
+    constant_heading_time: string
+    constant_heading_speed: string
+    safety_depth: string
+}
+
+export enum EchoState {
+    BOOTING = 0,
+    OCTOSPI = 1,
+    SD_INIT = 2,
+    SD_MOUNT = 3,
+    SD_CREATE = 4,
+    PSSI_EN = 5,
+    READY = 6,
+    START = 7,
+    STOP = 8,
+    RUNNING = 9
+}
+
+export interface Echo {
+    start_echo?: boolean
+    stop_echo?: boolean
+    echo_state?: EchoState
 }
 
 export interface Engineering {
@@ -1137,6 +1162,7 @@ export interface Engineering {
     gps_requirements?: GPSRequirements
     rf_disable_options?: RFDisableOptions
     bottom_depth_safety_params?: BottomDepthSafetyParams
+    echo?: Echo
     flag?: number
     bounds?: Bounds
 }

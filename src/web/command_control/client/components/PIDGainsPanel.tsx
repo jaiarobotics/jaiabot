@@ -351,82 +351,26 @@ export class PIDGainsPanel extends React.Component {
                             <tbody>
                                 <tr>
                                     <td key="safety_depth_label">Current Depth Safety (m)</td>
-                                    <td key="safety_depth">
+                                    <td key="safety_depth" style={{maxWidth: "80px"}} >
                                         {engineering?.bottom_depth_safety_params?.safety_depth  ?? "-"}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td key="current_bottom_depth_safety_heading_label">Current Depth Safety Heading (deg)</td>
-                                    <td key="current_bottom_depth_safety_heading">
+                                    <td key="current_bottom_depth_safety_heading" style={{maxWidth: "80px"}} >
                                         {engineering?.bottom_depth_safety_params?.constant_heading  ?? "-"}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td key="current_bottom_depth_safety_time_label">Current Depth Safety Time (s)</td>
-                                    <td key="current_bottom_depth_safety_time">
+                                    <td key="current_bottom_depth_safety_time" style={{maxWidth: "80px"}} >
                                         {engineering?.bottom_depth_safety_params?.constant_heading_time  ?? "-"}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed</td>
-                                    <td key="current_bottom_depth_safety_speed">
+                                    <td key="current_bottom_depth_safety_speed" style={{maxWidth: "80px"}} >
                                         {engineering?.bottom_depth_safety_params?.constant_heading_speed  ?? "-"}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td key="safety_depth_label">Update Depth Safety (m)</td>
-                                    <td>
-                                        <input style={{maxWidth: "80px"}} 
-                                            type="number" 
-                                            id="safety_depth_input" 
-                                            name="safety_depth_input" 
-                                            defaultValue={engineering?.bottom_depth_safety_params?.safety_depth ?? "-"} 
-                                            min="-1"
-                                            max="60"
-                                            step="any"
-                                        />
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td key="bottom_depth_safety_heading_label">Update Depth Safety Heading (deg)</td>
-                                    <td>
-                                        <input style={{maxWidth: "80px"}} 
-                                            type="number" 
-                                            id="bottom_depth_safety_heading_input" 
-                                            name="bottom_depth_safety_heading_input" 
-                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading ?? "-"} 
-                                            min="0"
-                                            max="360"
-                                            step="1"
-                                        />
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td key="bottom_depth_safety_time_label">Update Depth Safety Time (s)</td>
-                                    <td>
-                                        <input style={{maxWidth: "80px"}} 
-                                            type="number" 
-                                            id="bottom_depth_safety_time_input" 
-                                            name="bottom_depth_safety_time_input" 
-                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading_time ?? "-"} 
-                                            min="0"
-                                            max="360"
-                                            step="1"
-                                        />
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed</td>
-                                    <td>
-                                        <input style={{maxWidth: "80px"}} 
-                                            type="number" 
-                                            id="bottom_depth_safety_speed_input" 
-                                            name="bottom_depth_safety_speed_input" 
-                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading_speed ?? "-"} 
-                                            min="0"
-                                            max="3"
-                                            step="any"
-                                        />
                                     </td>
                                 </tr>
                             </tbody>
@@ -532,7 +476,7 @@ export class PIDGainsPanel extends React.Component {
     {
         this.props.control(() => {
             let botId = getValueOfInput("pid_gains_bot_selector")
-            info("Submit BotStatusRate for botId: " + botId)
+            info("Submit updated requirements for botId: " + botId)
 
             let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
             
@@ -555,12 +499,6 @@ export class PIDGainsPanel extends React.Component {
                 },
                 rf_disable_options: {
                     rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
-                },
-                bottom_depth_safety_params: {
-                    constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                    constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                    constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                    safety_depth: getValueOfInput("safety_depth_input")
                 }
             }
 
@@ -574,7 +512,7 @@ export class PIDGainsPanel extends React.Component {
     {
         this.props.control(() => {
             let botId = getValueOfInput("pid_gains_bot_selector")
-            info("Submit BotStatusRate for All Bots: ")
+            info("Submit updated requirements for All Bots: ")
 
             let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
             
@@ -599,12 +537,6 @@ export class PIDGainsPanel extends React.Component {
                     },
                     rf_disable_options: {
                         rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
-                    },
-                    bottom_depth_safety_params: {
-                        constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                        constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                        constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                        safety_depth: getValueOfInput("safety_depth_input")
                     }
                 }
         
