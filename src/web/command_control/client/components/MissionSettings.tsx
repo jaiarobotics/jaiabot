@@ -6,6 +6,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
 import { FormControl, MenuItem } from '@mui/material'
+import { GlobalSettings, Save } from './Settings'
 import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { MissionInterface } from './CommandControl'
 import { Geometry } from 'ol/geom'
@@ -20,7 +21,7 @@ export interface MissionSettings {
 
 export interface MissionParams {
 	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
-	numBots: number,
+	numRuns: number,
 	numGoals: number,
 	pointSpacing: number,
 	lineSpacing: number,
@@ -36,7 +37,9 @@ export interface MissionParams {
 interface Props {
     map: Map
     missionParams: MissionParams
+    setMissionParams: (missionParams: MissionParams) => void
     missionPlanningGrid: {[key: string]: number[][]}
+    missionPlanningFeature: Feature<Geometry>,
     missionBaseGoal: Goal,
     missionStartTask: MissionTask
     missionEndTask: MissionTask,
@@ -94,50 +97,34 @@ export class MissionSettingsPanel extends React.Component {
         this.onChange = props.onChange
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
         this.onTaskTypeChange = props.onTaskTypeChange
+
+        //Initialize the number of runs to the number of bots
+        this.props.missionParams.numRuns = Object.keys(this.props.botList).length
+
+
     }
 
     componentDidUpdate() {
         this.onChange?.()
     }
 
-    getSortedRallyFeatures() {
-        let rallyFeatures = [...this.props.rallyFeatures]
-        return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
+    /**
+     * Indicates if the preview state is drawn
+     * 
+     * @returns {boolean} Whether or not we finished creating a survey preview
+     */
+    isMissionDrawn() {
+        return this.props.missionPlanningFeature && this.props.missionPlanningGrid
     }
 
     /**
-     * Prevents negative values, characters, and numbers > max from being passed as parameters
+     * Sorts rally points by their assigned number
      * 
-     * @param {number} value Input value to check
-     * @returns {number} The value itself, 0, or the max if the input is not valid
+     * @returns {Feature<Geometry>[]} Sorted array of rally points
      */
-    validateBottomDepthSafetyParams(key: string, value: number) {
-        if (Number.isNaN(value)) {
-            return 0
-        }
-
-        // Units: (m/s)
-        const maxSpeed = 3
-        if (key === "constant_heading_speed" && value > maxSpeed) {
-            return maxSpeed
-        }
-
-        const maxDegrees = 360
-        if (key === "constant_heading" && value > maxDegrees) {
-            return maxDegrees
-        }
-
-        const maxSeconds = 360
-        if (key === "constant_heading_time" && value > maxSeconds) {
-            return maxSeconds
-        }
-
-        const maxDepth = 60
-        if (key == "safety_depth" && value > maxDepth) {
-            return maxDepth
-        }
-
-        return value
+    getSortedRallyFeatures() {
+        let rallyFeatures = [...this.props.rallyFeatures]
+        return rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
     }
 
     /**
@@ -148,7 +135,7 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleBottomDepthSafetyParamChange(evt: Event) {
         const element = evt.target as HTMLInputElement
-        const value = this.validateBottomDepthSafetyParams(element.name, Number(element.value))
+        const value = element.value
         let bottomDepthSafetyParams = {...this.props.bottomDepthSafetyParams}
 
         switch (element.name) {
@@ -175,11 +162,6 @@ export class MissionSettingsPanel extends React.Component {
      */
     handleSRPToggleClick() {
         this.props.setIsSRPEnabled(!this.props.isSRPEnabled)
-        
-        let srpContainer = document.getElementById("srp-container")
-        if (srpContainer === null) {
-            return 
-        }
     }
 
     render() {
@@ -211,7 +193,7 @@ export class MissionSettingsPanel extends React.Component {
                         /> m
                     </div>
 
-                    <div className="mission-settings-input-label">Line Spacing:</div>
+                    <div className="mission-settings-input-label">Lane Spacing:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
@@ -219,6 +201,16 @@ export class MissionSettingsPanel extends React.Component {
                             name="lineSpacing"
                             onChange={this.changeLineSpacing.bind(this)}
                         /> m
+                    </div>
+
+                    <div className="mission-settings-input-label">Number of Runs:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.numRuns}
+                            name="numRuns"
+                            onChange={this.changeRunCount.bind(this)}
+                        />
                     </div>
 
                     <div className="mission-settings-input-label">Start Rally:</div>
@@ -258,8 +250,8 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
-                        <div className="mission-settings-tasks-title">Start Task:</div>
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
+                        <div className="mission-settings-tasks-title">Start Rally Task:</div>
                         <TaskSettingsPanel 
                             title="Start Task" 
                             map={map} 
@@ -270,8 +262,8 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-task-container">
-                        <div className="mission-settings-tasks-title">End Task:</div>
+                    <div className={`mission-settings-task-container ${this.isMissionDrawn() ? 'mission-settings-show' : 'mission-settings-hide'}`}>
+                        <div className="mission-settings-tasks-title">End Survey Task:</div>
                         <TaskSettingsPanel 
                             title="End Task" 
                             map={map} 
@@ -363,7 +355,9 @@ export class MissionSettingsPanel extends React.Component {
                 
                 <div className="mission-settings-button-container">
                     <button className="mission-settings-btn" onClick={() => this.props.onClose()}>Cancel</button>
-                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} onClick={this.applyMissionClicked.bind(this)} disabled={!this.props.missionPlanningGrid}>Apply</button>
+                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} 
+                            onClick={this.applyMissionClicked.bind(this)} 
+                            disabled={!this.props.missionPlanningGrid}>Apply</button>
                 </div>
 
             </div>
@@ -371,15 +365,20 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     /**
-     * Prevents negative values or 0 from being used in data processing
+     * Prevents negative values from being entered by operator
      * 
      * @param {number} value Input value to be checked
      * @returns {number} The value passed or DEFAULT_VALUE
+     * 
+     * @notes
+     * Zero cannot be used in the creation of a survey mission but if 0 cannot display
+     * in the input box it makes it difficult to enter values that don't start with 1.
+     * To balance user experience and the survey mission calculations, there is a final
+     * input check to catch zeros just before the preview is created. (SurveyLines.ts) 
      */
     validateNumInput(value: number) {
-        // Values less than 1 throw errors in the creation of survey missions
-        const DEFAULT_VALUE = 1
-        if (value < DEFAULT_VALUE) {
+        const DEFAULT_VALUE = 0
+        if (value < DEFAULT_VALUE || Number.isNaN(value)) {
             return DEFAULT_VALUE
         }
         return value
@@ -394,7 +393,9 @@ export class MissionSettingsPanel extends React.Component {
     changePointSpacing(evt: Event) {
         const element = evt.target as HTMLInputElement
         const value = this.validateNumInput(Number(element.value))
-        this.props.missionParams.pointSpacing = value
+        let missionParams = {...this.props.missionParams}
+        missionParams.pointSpacing = value
+        this.props.setMissionParams(missionParams)
     }
     
     /**
@@ -406,7 +407,25 @@ export class MissionSettingsPanel extends React.Component {
     changeLineSpacing(evt: Event) {
         const element = evt.target as HTMLInputElement
         const value = this.validateNumInput(Number(element.value))
-        this.props.missionParams.lineSpacing = value
+        let missionParams = {...this.props.missionParams}
+        missionParams.lineSpacing = value
+        this.props.setMissionParams(missionParams)
+    }
+
+    /**
+     * Updates the number of runs value based on input changes
+     * 
+     * @param {Event} evt Contains the number of runs value
+     * @returns {void} 
+     */
+    changeRunCount(evt: Event) {
+        const element = evt.target as HTMLInputElement
+        const value = this.validateNumInput(Number(element.value))
+        
+        let missionParams = {...this.props.missionParams}
+        missionParams.numRuns = value
+        this.props.setMissionParams(missionParams)
+        
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {

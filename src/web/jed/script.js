@@ -3,6 +3,7 @@ import { deadMansSwitch } from './deadMansSwitch.js'
 import { updateStatus } from './updateStatus.js'
 import { botDropdown } from './BotDropdown.js'
 import { calibrationApp } from './calibration.js'
+import { echoApp } from './echo.js'
 
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
@@ -764,6 +765,7 @@ function sendVisibleCommand() {
     updateStatus(status)
     botDropdown.updateWithBots(status.bots)
     calibrationApp.updateStatus(status)
+    echoApp.updateStatus(status)
   })
   .catch((e) => {
     console.error(e)
@@ -868,12 +870,34 @@ export function helpButtonOnClick(e) {
   }
 }
 
-document.getElementById('helpOpenButton')
-    .addEventListener('click', helpButtonOnClick)
-document.getElementById('helpCloseButton')
-    .addEventListener('click', helpButtonOnClick)
+function takeControl(evt) {
+  api.takeControl()
+}
 
-document.getElementById('take-control')
-    .addEventListener('click', () => {
-      api.takeControl()
-    })
+function onMouseDownDeadMansSwitch(evt) {
+  deadMansSwitch.setOn(true)
+}
+
+function onMouseUpDeadMansSwitch(evt) {
+  deadMansSwitch.setOn(false)
+}
+
+// Add event handlers
+const clickHandlers = [
+  ['helpOpenButton', 'click', helpButtonOnClick],
+  ['helpCloseButton', 'click', helpButtonOnClick],
+  ['LEDOnButton', 'click', LEDButtonOnClick],
+  ['LEDOffButton', 'click', LEDButtonOnClick],
+  ['take-control', 'click', takeControl],
+  ['diveButton', 'click', diveButtonOnClick],
+  ['deadMansSwitch', 'mousedown', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'mouseup', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'mouseleave', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchstart', onMouseDownDeadMansSwitch],
+  ['deadMansSwitch', 'touchend', onMouseUpDeadMansSwitch],
+  ['deadMansSwitch', 'touchcancel', onMouseUpDeadMansSwitch]
+]
+
+for (const clickHandler of clickHandlers) {
+  el(clickHandler[0]).addEventListener(clickHandler[1], clickHandler[2])
+}

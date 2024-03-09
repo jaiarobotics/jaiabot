@@ -476,7 +476,7 @@ export class PIDGainsPanel extends React.Component {
     {
         this.props.control(() => {
             let botId = getValueOfInput("pid_gains_bot_selector")
-            info("Submit BotStatusRate for botId: " + botId)
+            info("Submit updated requirements for botId: " + botId)
 
             let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
             
@@ -499,12 +499,6 @@ export class PIDGainsPanel extends React.Component {
                 },
                 rf_disable_options: {
                     rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
-                },
-                bottom_depth_safety_params: {
-                    constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                    constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                    constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                    safety_depth: getValueOfInput("safety_depth_input")
                 }
             }
 
@@ -518,7 +512,7 @@ export class PIDGainsPanel extends React.Component {
     {
         this.props.control(() => {
             let botId = getValueOfInput("pid_gains_bot_selector")
-            info("Submit BotStatusRate for All Bots: ")
+            info("Submit updated requirements for All Bots: ")
 
             let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
             
@@ -543,12 +537,6 @@ export class PIDGainsPanel extends React.Component {
                     },
                     rf_disable_options: {
                         rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
-                    },
-                    bottom_depth_safety_params: {
-                        constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
-                        constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
-                        constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
-                        safety_depth: getValueOfInput("safety_depth_input")
                     }
                 }
         

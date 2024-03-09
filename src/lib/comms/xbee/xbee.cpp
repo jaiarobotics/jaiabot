@@ -441,15 +441,15 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     // We need to send bypass command if we are
     // are using the new radio.
-    // (Need a delay of 3 seconds between the bypass commands)
+    // (Need a delay of 5 seconds between the bypass commands)
     // Old radio still functions the same.
     write("\r");
 
-    sleep(3);
+    sleep(5);
 
     write("b");
 
-    sleep(3);
+    sleep(5);
 
     write("+++");
 

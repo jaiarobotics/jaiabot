@@ -127,6 +127,8 @@ export class SurveyLines {
                     const geom1 = evt2.target;
                     let { missionParams, surveyExclusionCoords, startRally, endRally } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
+
+                    this.validateSurveySpacingInputs()
         
                     if (stringCoords[0].length >= 2 && startRally && endRally) {
                         let coords = stringCoords.slice(-2);
@@ -138,7 +140,7 @@ export class SurveyLines {
                         }
 
                         missionParams.orientation = rotationAngle;
-                        let botList = Object.keys(commandControl.state.podStatus.bots);        
+                        let numRuns = Number(missionParams.numRuns);   
                         let maxLineLength = (Number(missionParams.pointSpacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
@@ -160,20 +162,23 @@ export class SurveyLines {
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.pointSpacing)/1000)) {
                             let offsetLines: any[] = [];
-                            let lineOffsetStart = -1 * (Number(missionParams.lineSpacing) * ((botList.length/2)*0.75))
+                            let lineOffsetStart = -1 * (Number(missionParams.lineSpacing) * (numRuns/2*0.75))
                             let nextLineOffset = 0;
                             let currentLineOffset = 0;
         
-                            botList.forEach(bot => {
+                            for(let i = 0; i < numRuns; i++){
                                 let ol = deepcopy(centerLine);
                                 currentLineOffset = lineOffsetStart + nextLineOffset
         
-                                ol.properties['botId'] = bot;
+                                ol.properties['botId'] = i; //JAIAB-872: This was originally set to a real botId
+                                //setting them all to to -1 or changing the property name to anything other
+                                //than 'botId' resulted in only one run generated.  Not sure how this code 
+                                //interacts with other elements
                                 ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
         
                                 offsetLines.push(ol);
                                 nextLineOffset = nextLineOffset + Number(missionParams.lineSpacing)
-                            })
+                            }
         
                             let alongLines: any = {};
                             let alongPoints: {[key: string]: number[][]} = {};
@@ -252,5 +257,24 @@ export class SurveyLines {
                 OlUnobserveByKey(this.listener);
             }
         )
+    }
+
+    /**
+     * Converts zeros passed as spacing values to ones to prevent the preview from breaking
+     * 
+     * @returns {void}
+     * 
+     * @notes
+     * We know this code needs a refactor as it violates React best practices. This is a
+     * temporary solution to meet an urgent business requirement. 
+     */
+    validateSurveySpacingInputs() {
+        if (this.commandControl.state.missionParams.pointSpacing === 0) {
+            this.commandControl.state.missionParams.pointSpacing = 1
+        }
+
+        if (this.commandControl.state.missionParams.lineSpacing === 0) {
+            this.commandControl.state.missionParams.lineSpacing = 1
+        }
     }
 }

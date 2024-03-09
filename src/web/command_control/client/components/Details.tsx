@@ -652,7 +652,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     if (bot?.wifi_link_quality_percentage != undefined) {
         linkQualityPercentage = bot?.wifi_link_quality_percentage
-    } 
+    }
 
     let dataOffloadButton = (
         <Button className={(disableButton(commands.recover, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
