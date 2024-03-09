@@ -39,7 +39,7 @@ def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
 
     DRIFT = 121
     if seriesSet.missionState.y_values[missionStateIndex] != DRIFT:
-        # Not in a DIVE state
+        # Not in a DRIFT state
         return False
     
     blacklist = [
