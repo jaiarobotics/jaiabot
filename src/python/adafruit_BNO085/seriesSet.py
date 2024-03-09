@@ -2,6 +2,7 @@ import h5py
 from series import *
 from copy import *
 from datetime import timedelta
+from jaia_h5 import *
 
 
 def _readSeries(log: h5py.File, path: str, invalid_values: set=set(), name: str=None, scheme=1):
