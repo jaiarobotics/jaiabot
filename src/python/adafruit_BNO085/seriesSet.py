@@ -5,6 +5,13 @@ from datetime import timedelta
 from jaia_h5 import *
 
 
+def get_root_item_path(path, root_item=''):
+    '''Get the path to a root_item associated with that path'''
+    components = path.split('/')
+    components = components[:2] + [root_item]
+    return '/'.join(components)
+
+
 def _readSeries(log: h5py.File, path: str, invalid_values: set=set(), name: str=None, scheme=1):
     series = Series()
 

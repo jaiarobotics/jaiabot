@@ -26,23 +26,12 @@ class TimeRange:
         return time > self.start and time < self.end
 
 
-def utimeToDatetime(utime: float):
-    return datetime.fromtimestamp(utime / 1e6)
-
-
 def floatRange(start: float, end: float, delta: float):
     x = start
 
     while x < end:
         yield x
         x += delta
-
-
-def get_root_item_path(path, root_item=''):
-    '''Get the path to a root_item associated with that path'''
-    components = path.split('/')
-    components = components[:2] + [root_item]
-    return '/'.join(components)
 
 
 @dataclass
@@ -135,28 +124,6 @@ class Series:
         fig = px.line(x=self.datetimes(), y=self.y_values, markers=True)
         fig.show()
 
-    def getSubSeriesList(self, filterFunc: Callable[[float, float], bool]):
-        '''Returns a list of subseries, where the filterFunc returns true for each (utime, y_value) pair.  When it returns false, a series will end, and when it returns true again a new series will start.'''
-        subseries: list[Series] = []
-
-        newSeries = Series()
-        newSeries.name = self.name
-
-        for index in range(len(self.utime)):
-
-            shouldInclude = filterFunc(self.utime[index], self.y_values[index])
-
-            if shouldInclude:
-                newSeries.utime.append(self.utime[index])
-                newSeries.y_values.append(self.y_values[index])
-            else:
-                if len(newSeries.utime) > 0:
-                    subseries.append(newSeries)
-                    newSeries = Series()
-                    newSeries.name = self.name
-
-        return subseries
-
     def duration(self):
         datetimeList = self.datetimes()
         if len(datetimeList) < 1:
@@ -189,23 +156,6 @@ class Series:
         for utime in floatRange(self.utime[0] + 1, self.utime[-1], 1e6 / freq):
             newSeries.utime.append(utime)
             newSeries.y_values.append(self.getValueAtTime(utime, interpolate=True))
-
-        return newSeries
-
-
-    def blacklistTimePeriods(self, blacklist: List[TimeRange]):
-        newSeries = copy.deepcopy(self)
-        newSeries.clear()
-
-        for index, utime in enumerate(self.utime):
-            include = True
-            for timeRange in blacklist:
-                if utime in timeRange:
-                    include = False
-                    break
-            if include:
-                newSeries.utime.append(utime)
-                newSeries.y_values.append(self.y_values[index])
 
         return newSeries
 
