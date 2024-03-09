@@ -7,28 +7,6 @@ from math import *
 from filters import cos2Filter
 
 
-def floatRange(start: float, end: float, delta: float):
-    x = start
-
-    while x < end:
-        yield x
-        x += delta
-
-
-def resampleSeries(series: Series, freq: float):
-    '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
-    newSeries = deepcopy(series)
-    newSeries.clear()
-
-    if len(series.utime) == 0:
-        return newSeries
-    
-    for utime in floatRange(series.utime[0] + 1, series.utime[-1], 1e6 / freq):
-        newSeries.utime.append(utime)
-        newSeries.y_values.append(series.getValueAtTime(utime, interpolate=True))
-    return newSeries
-
-
 def fadeSeries(series: Series, fadePeriod: float=2e6):
     '''Slice and fade a series in and out.  Times are in microseconds.'''
 
