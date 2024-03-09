@@ -6,23 +6,21 @@ set -e
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 # Install the dependency packages
-pushd ..
-    ./install_dependencies.sh
-popd
+../install_dependencies.sh ../
+
+BUILD_DIR="$(pwd)/../../../build/web_dev/"
 
 # Build messages and install pyjaia
-pushd ../../python/pyjaia
-    ./build_messages.sh
-    python3 -m pip install ./
-popd
+pushd ../../python/ > /dev/null
+    ./build_venv.sh ${BUILD_DIR}/python
+popd > /dev/null
 
 # Start server
 pushd server
-    ./jaiabot_data_vision.py -p 40011 -l INFO $@ &
+    ./jaiabot_data_vision.py -a ${BUILD_DIR} -p 40011 -l INFO $@ &
 popd
 
 # Build client
 pushd client
-    npm install --no-audit
-    npm run test
+    ./build.sh ${BUILD_DIR}/jdv
 popd

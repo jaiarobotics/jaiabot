@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
 import Button from '@mui/material/Button'
-import Gamepad from 'react-gamepad'
+const { Gamepad } = require('../libs/react-gamepad')
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput'
 import { Icon } from '@mdi/react'
@@ -23,6 +23,7 @@ interface Props {
 	remoteControlValues: Engineering,
 	rcDiveParameters: { [diveParam: string]: string },
 	createInterval: () => void,
+	deleteInterval: () => void,
 	weAreInControl: () => boolean,
 	weHaveInterval: () => boolean,
 	setRCDiveParameters: (diveParams: {[param: string]: string} ) => void,
@@ -330,9 +331,17 @@ export default class RCControllerPanel extends React.Component {
 		this.props.setRCDiveParameters(diveParams)
 	}
 
+	/**
+	 * Clears the interval to send RC commands and sends a dive task
+	 * 
+	 * returns {void}
+	 */
 	handleDiveButtonClick() {
 		const diveParametersNum: { [diveParam: string]: number } = {}
 		const driftParametersNum: { [driftParam: string]: number } = {}
+
+		// delete interval so the bot does not receive engineering commands
+		this.props.deleteInterval()
 
 		for (const key of Object.keys(this.props.rcDiveParameters)) {
 			if (key === 'driftTime') {
