@@ -12,15 +12,12 @@ from datetime import timedelta, datetime
 import sys
 from typing import *
 from math import *
-from copy import deepcopy
 from processing import *
 from filters import *
-from pprint import pprint
 from pathlib import *
 from statistics import *
 import spectrogram
 from seriesSet import *
-
 
 ### Global settings ##
 sampleFreq = 4

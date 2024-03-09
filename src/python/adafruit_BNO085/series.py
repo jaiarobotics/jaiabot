@@ -45,17 +45,6 @@ def get_root_item_path(path, root_item=''):
     return '/'.join(components)
 
 
-def significantWaveHeight(waveHeights: List[float]):
-    if len(waveHeights) == 0:
-        return 0.0
-
-    sortedWaveHeights = sorted(waveHeights)
-    N = floor(len(sortedWaveHeights) * 2 / 3)
-    significantWaveHeights = sortedWaveHeights[N:]
-
-    return statistics.mean(significantWaveHeights)
-
-
 @dataclass
 class Series:
     name: str

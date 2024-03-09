@@ -222,13 +222,22 @@ def calculateSortedWaveHeights(elevationSeries: Series):
 
     return sortedWaveHeights
 
-def calculateSignificantWaveHeightFromSortedWaveHeights(waveHeights: List[float]):
+
+def significantWaveHeight(waveHeights: List[float]):
+    """Returns for the significant wave height from an unsorted list of wave heights.
+
+    Args:
+        waveHeights (List[float]): Unsorted list of wave heights.
+
+    Returns:
+        float: The significant wave height (mean of the tallest 2/3 of the waves).
+    """
+    if len(waveHeights) == 0:
+        return 0.0
+
     sortedWaveHeights = sorted(waveHeights)
     N = floor(len(sortedWaveHeights) * 2 / 3)
     significantWaveHeights = sortedWaveHeights[N:]
-
-    if len(significantWaveHeights) == 0:
-        return 0.0
 
     return statistics.mean(significantWaveHeights)
 
