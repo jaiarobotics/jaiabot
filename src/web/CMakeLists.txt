@@ -3,7 +3,6 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.py DESTINATION ${project_SHARE_
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/jaia_portal.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/missions.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.wsgi DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_cockpit_extension DESTINATION ${project_SHARE_DIR}/jaiabot/jaia_cockpit_extension)
 
 
 ###############################################################################
