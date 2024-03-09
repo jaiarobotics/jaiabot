@@ -7,8 +7,16 @@ from math import *
 from filters import cos2Filter
 
 
-def fadeSeries(series: Series, fadePeriod: float=2e6):
-    '''Slice and fade a series in and out.  Times are in microseconds.'''
+def applyHannWindow(series: Series, fadePeriod: float=2e6):
+    """Apply a Hann window to the start and end of the series.
+
+    Args:
+        series (Series): Input series.
+        fadePeriod (float, optional): Time period (in microseconds), for the Hann window to move from 0 to 1. Defaults to 2e6.
+
+    Returns:
+        Series: The resulting Hann-windowed series.
+    """
 
     newSeries = deepcopy(series)
 
@@ -70,28 +78,17 @@ def trimSeries(series: Series, startGap: float, endGap: float=None):
     return newSeries
 
 
-def applyHanningWindow(series: Series):
-    """Applies a Hanning Window to the series.
+def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
+    """Applies a frequency filter to a series.
 
     Args:
-        series (Series): The input series.
+        inputSeries (Series): Input series.
+        sampleFreq (float): Sampling frequency (Hz).
+        filterFunc (Callable[[float], float]): A function that takes a frequency, and returns a gain coefficient to apply to that frequency.
 
     Returns:
-        Series: The input series, with a Hanning window applied.
+        Series: The resulting filtered frequency.
     """
-    t0 = series.utime[0]
-    totalDuration = series.utime[-1] - series.utime[0]
-    newSeries = deepcopy(series)
-
-    for i in range(len(newSeries.utime)):
-        utime = newSeries.utime[i]
-        newSeries.y_values[i] *= (0.5 * (1 - cos((utime - t0) * 2 * pi / totalDuration)))
-
-    return newSeries
-
-
-def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
-    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
     if len(inputSeries.utime) == 0:
         return Series()
 
@@ -121,7 +118,17 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callab
 
 
 def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
-    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
+    """Converts a uniform acceleration series to a uniform elevation series, by applying a frequency filter and double-integrating.
+
+    Args:
+        inputSeries (Series): Uniform series of acceleration values (m/s^2).
+        sampleFreq (float): Sampling frequency (Hz).
+        filterFunc (Callable[[float], float]): A function that takes a frequency, and returns a gain coefficient to apply to that frequency.
+
+    Returns:
+        Series: The resulting elevation series.
+    """
+
     if len(inputSeries.utime) < 2:
         # If there are 0 or 1 data points, we're not going to be able to do the irfft
         return Series()
@@ -160,6 +167,14 @@ def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: 
 
 
 def deMean(series: Series):
+    """De-means a series.
+
+    Args:
+        series (Series): The input series.
+
+    Returns:
+        Series: The de-meaned series (subtract the mean value from every point in the series).
+    """
     newSeries = Series()
 
     if len(series.utime) == 0:
@@ -173,6 +188,14 @@ def deMean(series: Series):
 
 
 def calculateSortedWaveHeights(elevationSeries: Series):
+    """Gets a sorted list of wave heights from an input elevation series.
+
+    Args:
+        elevationSeries (Series): Input elevation series.
+
+    Returns:
+        list[float]: A sorted list of wave heights.
+    """
     waveHeights: List[float] = []
     ys = elevationSeries.y_values
 
@@ -202,7 +225,7 @@ def calculateSortedWaveHeights(elevationSeries: Series):
 
 
 def significantWaveHeight(waveHeights: List[float]):
-    """Returns for the significant wave height from an unsorted list of wave heights.
+    """Returns the significant wave height from an unsorted list of wave heights.
 
     Args:
         waveHeights (List[float]): Unsorted list of wave heights.
@@ -236,7 +259,7 @@ def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):
 
     series = accelerationSeries
     series = trimSeries(series, 10e6, 5e6)
-    series = fadeSeries(series, fadePeriod=2e6)
+    series = applyHannWindow(series, fadePeriod=2e6)
     series = deMean(series)
     series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
 
@@ -255,7 +278,7 @@ def filterAcceleration(accelerationSeries: Series, sampleFreq: float):
 
     series = accelerationSeries
     series = trimSeries(series, 10e6, 5e6)
-    series = fadeSeries(series, fadePeriod=2e6)
+    series = applyHannWindow(series, fadePeriod=2e6)
     series = deMean(series)
     series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
 
