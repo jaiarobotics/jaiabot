@@ -22,10 +22,21 @@ class Series:
     y_values: list
     hovertext: Dict[int, str]
 
-    def __init__(self, log=None, path=None, scheme=1, invalid_values=set()) -> None:
+
+    def __init__(self, name: str = None) -> None:
+        self.name = name or ''
         self.utime = []
         self.y_values = []
         self.hovertext = {}
+
+
+    @staticmethod
+    def loadFromH5File(log=None, path=None, scheme=1, invalid_values=set()) -> "Series":
+        series = Series()
+
+        series.utime = []
+        series.y_values = []
+        series.hovertext = {}
 
         if log:
             try:
@@ -33,20 +44,22 @@ class Series:
                 _scheme__array = log[get_root_item_path(path, '_scheme_')]
                 path_array = log[path]
 
-                series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-                series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
+                s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+                s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
-                self.utime, schemes, self.y_values = zip(*series)
+                series.utime, schemes, series.y_values = zip(*s)
             except (ValueError, KeyError):
                 logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
-                self.utime = []
-                self.schemes = []
-                self.y_values = []
-                self.hovertext = {}
+                series.utime = []
+                series.schemes = []
+                series.y_values = []
+                series.hovertext = {}
 
                 return
 
-            self.hovertext = h5_get_enum_map(log[path]) or {}
+            series.hovertext = h5_get_enum_map(log[path]) or {}
+
+        return series
 
     def append(self, other_series: 'Series'):
         r = copy.copy(self)
