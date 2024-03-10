@@ -6,14 +6,7 @@ import logging
 import copy
 import bisect
 from typing import *
-from h5_tools import *
-
-
-def get_root_item_path(path, root_item=''):
-    '''Get the path to a root_item associated with that path'''
-    components = path.split('/')
-    components = components[:2] + [root_item]
-    return '/'.join(components)
+from pyjaia.h5_tools import *
 
 
 @dataclass

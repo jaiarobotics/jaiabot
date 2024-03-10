@@ -7,7 +7,7 @@ import csv
 import io
 import datetime
 import base64
-from h5_tools import *
+from pyjaia.h5_tools import *
 
 
 MOOS_MESSAGE_PATH = '/jaiabot::moos/jaiabot.protobuf.MOOSMessage'
