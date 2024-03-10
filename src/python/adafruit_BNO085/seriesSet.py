@@ -1,8 +1,7 @@
 import h5py
-from series import *
+from pyjaia.series import *
 from copy import *
 from datetime import timedelta
-from jaia_h5 import *
 from pyjaia.h5_tools import *
 
 
@@ -43,7 +42,7 @@ def _readSeries(log: h5py.File, path: str, invalid_values: set=set(), name: str=
 
             return series
 
-        series.hovertext = h5_get_hovertext(log[path]) or {}
+        series.hovertext = h5_get_enum_map(log[path]) or {}
 
     return series
 

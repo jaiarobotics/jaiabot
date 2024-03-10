@@ -6,9 +6,9 @@ import bisect
 from typing import *
 from datetime import *
 import statistics
-from time_range import *
 
-from pyjaia.h5_tools import *
+from .time_range import *
+from .h5_tools import *
 
 
 def floatRange(start: float, end: float, delta: float):
@@ -33,8 +33,8 @@ class Series:
         self.hovertext = {}
 
     @staticmethod
-    def loadFromH5File(log=None, path=None, scheme=1, invalid_values=set()) -> "Series":
-        series = Series()
+    def loadFromH5File(log=None, path=None, scheme=1, invalid_values=set(), name="Untitled") -> "Series":
+        series = Series(name)
 
         series.utime = []
         series.y_values = []
@@ -63,7 +63,7 @@ class Series:
 
         return series
 
-    def append(self, other_series: 'Series'):
+    def extend(self, other_series: 'Series'):
         r = copy.copy(self)
         r.utime += list(other_series.utime)
         r.y_values += list(other_series.y_values)

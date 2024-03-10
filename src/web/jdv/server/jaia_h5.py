@@ -1,7 +1,8 @@
 from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
 from objects import jaialog_get_object_list
-from series import Series, h5_get_series
+from pyjaia.series import *
+from pyjaia.h5_tools import *
 from threading import Lock
 
 import h5py
@@ -284,7 +285,7 @@ class JaiaH5FileSet:
 
             for log in self.h5Files:
                 try:
-                    series = series.append(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
+                    series = series.extend(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
                 except KeyError as e:
                     logging.warn(e)
                     continue

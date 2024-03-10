@@ -1,5 +1,5 @@
 from copy import deepcopy
-from series import Series
+from pyjaia.series import Series
 from typing import *
 import numpy
 import statistics

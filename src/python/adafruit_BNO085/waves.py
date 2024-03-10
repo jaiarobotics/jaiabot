@@ -14,7 +14,7 @@ from numpy.linalg import lstsq
 import logging
 from jaiabot.messages.imu_pb2 import IMUData
 
-from series import *
+from pyjaia.series import *
 from processing import *
 from filters import *
 

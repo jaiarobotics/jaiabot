@@ -1,6 +1,6 @@
 from math import *
 from copy import *
-from series import Series
+from pyjaia.series import Series
 
 
 def brickWallFilter(minFreq: float, maxFreq: float):
