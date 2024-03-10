@@ -9,6 +9,7 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 ../install_dependencies.sh ../
 
 BUILD_DIR="$(pwd)/../../../build/web_dev/"
+CLIENT_DIR="${BUILD_DIR}/jdv"
 
 # Build messages and install pyjaia
 pushd ../../python/ > /dev/null
@@ -22,5 +23,5 @@ popd
 
 # Build client
 pushd client
-    ./build.sh ${BUILD_DIR}/jdv
+    npx webpack --mode production --config ./release.webpack.config.js --env TARGET_DIR=${CLIENT_DIR} --watch
 popd
