@@ -284,7 +284,7 @@ class JaiaH5FileSet:
 
             for log in self.h5Files:
                 try:
-                    series += Series(log=log, path=path, scheme=1, invalid_values=invalid_values)
+                    series = series.append(Series(log=log, path=path, scheme=1, invalid_values=invalid_values))
                 except KeyError as e:
                     logging.warn(e)
                     continue

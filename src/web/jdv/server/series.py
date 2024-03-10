@@ -48,7 +48,7 @@ class Series:
 
             self.hovertext = h5_get_enum_map(log[path]) or {}
 
-    def __add__(self, other_series: 'Series'):
+    def append(self, other_series: 'Series'):
         r = copy.copy(self)
         r.utime += list(other_series.utime)
         r.y_values += list(other_series.y_values)
