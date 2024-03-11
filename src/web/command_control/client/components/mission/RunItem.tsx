@@ -39,10 +39,6 @@ type RunItemState = {
     showWpt: boolean;
 }
 
-// interface State {
-//     showWpt: boolean;
-// }
-
 export default class RunItem extends React.Component<RunItemProps, RunItemState> {
     nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']   
 
