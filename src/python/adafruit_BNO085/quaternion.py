@@ -1,8 +1,10 @@
+# Standard modules
 from dataclasses import dataclass
-from vector3 import Vector3
-from orientation import Orientation
 from math import *
 
+# Jaia modules
+from orientation import Orientation
+from vector3 import Vector3
 
 
 @dataclass

@@ -5,11 +5,9 @@ import socket
 import traceback
 import logging
 from math import *
-from orientation import Orientation
 from imu import *
 from waves import Analyzer
 from threading import Thread
-from dataclasses import dataclass
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
 
@@ -21,8 +19,6 @@ parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate 
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 args = parser.parse_args()
-
-logging.warning(args)
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('jaiabot_imu')
@@ -148,6 +144,7 @@ if __name__ == '__main__':
     if args.simulator:
         imu = Simulator(wave_frequency=0.5, wave_height=1)
     else:
+        from adafruit_imu import Adafruit
         imu = Adafruit()
 
     # Setup the wave analysis thread
