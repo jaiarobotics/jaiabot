@@ -50,7 +50,8 @@ class Series:
                 s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
                 series.utime, schemes, series.y_values = zip(*s)
-            except (ValueError, KeyError):
+            except (ValueError, KeyError) as e:
+                logging.warning(f'Exception: {e}')
                 logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
                 series.utime = []
                 series.schemes = []

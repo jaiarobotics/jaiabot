@@ -184,7 +184,7 @@ if __name__ == '__main__':
         print()
         print(h5File.filename)
 
-        seriesSet = SeriesSet.fromH5File(h5File)
+        seriesSet = SeriesSet.loadFromH5File(h5File)
         drifts = seriesSet.split(shouldInclude)
 
         for drift in drifts:

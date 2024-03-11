@@ -221,7 +221,7 @@ def filterAndPlot(h5FilePath: Path, drifts: List[SeriesSet]):
 
 
 def doAnalysis(h5File: h5py.File):
-    seriesSet = SeriesSet.fromH5File(h5File)
+    seriesSet = SeriesSet.loadFromH5File(h5File)
     drifts = seriesSet.split(shouldInclude)
 
     filterAndPlot(h5File.filename, drifts)
