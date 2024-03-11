@@ -123,6 +123,7 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             command: Missions.commandWithWaypoints(botId, locations),
+            showTableOfWaypoints: true,
         }
         mission.runIdIncrement = incr;
         mission.runIdInEditMode = 'run-' + String(incr);
@@ -151,6 +152,7 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             command: commandWithGoals(botId, deepcopy(goals)),
+            // showTableOfWaypoints: true,
         }
         mission.runIdIncrement = incr;
         mission.runIdInEditMode = 'run-' + String(incr);

@@ -119,6 +119,7 @@ export interface RunInterface {
 	name: string,
 	assigned: number,
 	command: Command,
+	showTableOfWaypoints?: boolean,
 }
 
 export interface MissionInterface { 

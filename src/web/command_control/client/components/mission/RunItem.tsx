@@ -36,8 +36,9 @@ type RunItemProps = {
 }
 
 type RunItemState = {
-    showWpt: boolean;
+showWpt: boolean;
 }
+
 
 export default class RunItem extends React.Component<RunItemProps, RunItemState> {
     nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']   
@@ -47,7 +48,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
     };
 
     isWptToggled(){
-        return this.state.showWpt
+        return this.props.run.showTableOfWaypoints
     }
 
     toggleWpt(){
@@ -186,7 +187,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         />
 
                         {
-                            this.state.showWpt && 
+                            this.props.run.showTableOfWaypoints && 
                             <table className="table-container">
                             <thead>
                                 <tr>
