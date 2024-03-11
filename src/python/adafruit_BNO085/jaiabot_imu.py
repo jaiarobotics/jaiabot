@@ -45,7 +45,6 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
-        imuData = imu.getIMUData()
         try:
             # Deserialize the message
             command = IMUCommand()
@@ -54,11 +53,12 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
-                imuData = imu.getIMUData()
-                #print(imuData)
-                if imuData is None:
-                    log.warning('getIMUData returned None')
+                reading = imu.takeReading()
+
+                if reading is None:
+                    log.warning('takeReading() returned None')
                 else:
+                    imuData = reading.convertToIMUData()
                     wave_analyzer.addIMUData(imuData)
 
                     if wave_analyzer._sampling_for_wave_height:
@@ -67,8 +67,8 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                     if wave_analyzer._sampling_for_bottom_characterization:
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
-                    #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
+
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
             elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
