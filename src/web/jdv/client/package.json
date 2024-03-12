@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "private": true,
-  "scripts": {
-    "test": "webpack --config test.webpack.config.js",
-    "release": "webpack --config release.webpack.config.js"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC"

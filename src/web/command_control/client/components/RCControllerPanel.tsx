@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
 import Button from '@mui/material/Button'
-import Gamepad from 'react-gamepad'
+const { Gamepad } = require('../libs/react-gamepad')
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput'
 import { Icon } from '@mdi/react'

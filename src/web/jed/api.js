@@ -2,11 +2,11 @@ class JaiaAPI {
 
   constructor() {
       function randomBase57(stringLength) {
-          const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+          const base57Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
         
           var s = ''
           for (let i = 0; i < stringLength; i++) {
-              s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+              s = s.concat(base57Chars[Math.floor(Math.random() * base57Chars.length)])
           }
           return s
       }

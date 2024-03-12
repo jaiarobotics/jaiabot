@@ -262,7 +262,7 @@ export default class CommandControl extends React.Component {
 
 			missionParams: {
 				'missionType': 'lines',
-				'numBots': 4,
+				'numRuns': 4,
 				'numGoals': (MAX_GOALS - 2),
 				'pointSpacing': 30,
 				'lineSpacing': 30,
