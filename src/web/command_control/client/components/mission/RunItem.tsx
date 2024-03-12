@@ -33,29 +33,34 @@ type RunItemProps = {
     addDuplicateRun: (run: RunInterface) => void
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    toggleShowTableOfWaypoints: (runId: string) => void
 }
 
 type RunItemState = {
-showWpt: boolean;
 }
 
 
 export default class RunItem extends React.Component<RunItemProps, RunItemState> {
-    nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']   
+    nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
 
-    state: RunItemState = {
-        showWpt: false,
-    };
-
+    /**
+     * Checks if the table of waypoints is currently shown.
+     * 
+     * @returns {boolean} True if the table of waypoints is shown, false otherwise.
+     */
     isWptToggled(){
-        return this.props.run.showTableOfWaypoints
+        return this.props.run.showTableOfWaypoints;
     }
 
+    /**
+     * Toggles the display state of the table of waypoints.
+     * 
+     * @returns {void}
+     */
     toggleWpt(){
-        this.setState(prevState => ({
-            showWpt: !prevState.showWpt
-        }));
+        this.props.toggleShowTableOfWaypoints(this.props.runIdInEditMode);
     }
+
 
     makeAccordionTheme() {
         return createTheme({

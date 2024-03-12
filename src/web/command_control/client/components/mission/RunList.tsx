@@ -19,6 +19,7 @@ type RunListProps = {
     addDuplicateRun: (run: RunInterface) => void
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    toggleShowTableOfWaypoints: (runId: string) => void
 }
 
 type RunListState = {
@@ -82,6 +83,7 @@ export default class RunList extends React.Component<RunListProps, RunListState>
                                 addDuplicateRun={this.props.addDuplicateRun}
                                 deleteSingleRun={this.props.deleteSingleRun}
                                 toggleEditMode={this.props.toggleEditMode}
+                                toggleShowTableOfWaypoints={this.props.toggleShowTableOfWaypoints}
                             />
                         </React.Fragment>
                     )
