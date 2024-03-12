@@ -1,4 +1,4 @@
-export interface HubOrBot {
-	type: 'hub' | 'bot',
+export interface FleetOrHubOrBot {
+	type: 'fleet' | 'hub' | 'bot',
 	id: number
 }

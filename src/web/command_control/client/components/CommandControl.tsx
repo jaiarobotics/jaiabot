@@ -13,7 +13,7 @@ import { Layers, layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
-import { HubOrBot } from './HubOrBot'
+import { FleetOrHubOrBot } from './HubOrBot'
 import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
@@ -38,7 +38,7 @@ import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared
 import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
-import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { BotDetailsComponent, HubDetailsComponent, FleetDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps, FleetDetailsProps } from './Details'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
@@ -161,7 +161,7 @@ interface State {
 	},
 
 	selectedFeatures?: OlCollection<OlFeature>,
-	selectedHubOrBot?: HubOrBot,
+	selectedFleetOrHubOrBot?: FleetOrHubOrBot,
 	measureFeature?: OlFeature,
 	rallyCounter: number,
 	reusableRallyNums: number[],
@@ -175,7 +175,7 @@ interface State {
 	homeLocation?: GeographicCoordinate,
 
 	visiblePanel: PanelType,
-	detailsBoxItem?: HubOrBot,
+	detailsBoxItem?: FleetOrHubOrBot,
 	detailsExpanded: DetailsExpandedState,
 	botDownloadQueue: PortalBotStatus[],
 	loadMissionPanel?: ReactElement,
@@ -295,7 +295,7 @@ export default class CommandControl extends React.Component {
 			},
 			goalBeingEdited: {},
 
-			selectedHubOrBot: null,
+			selectedFleetOrHubOrBot: null,
 			measureFeature: null,
 			rallyCounter: 1,
 			reusableRallyNums: [],
@@ -502,9 +502,9 @@ export default class CommandControl extends React.Component {
 
 		// Update layers derived from the podStatus
 		if (prevState.podStatusVersion !== this.state.podStatusVersion ||
-			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
-				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
-				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
+			prevState.selectedFleetOrHubOrBot !== this.state.selectedFleetOrHubOrBot) {
+				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedFleetOrHubOrBot)
+				this.botLayers.update(this.state.podStatus.bots, this.state.selectedFleetOrHubOrBot)
 				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
 				this.updateBotCourseOverGroundLayer()
@@ -514,7 +514,7 @@ export default class CommandControl extends React.Component {
 
 		// If we select another bot, we need to re-render the mission layer to re-color the mission lines
 		// If the podStatus changes, the active_goals may have changed or a bot could be added, so re-do missionLayer
-		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot ||
+		if (prevState.selectedFleetOrHubOrBot !== this.state.selectedFleetOrHubOrBot ||
 			prevState.runListVersion !== this.state.runListVersion ||
 			prevState.podStatusVersion !== this.state.podStatusVersion) {
 				this.updateMissionLayer()
@@ -902,7 +902,7 @@ export default class CommandControl extends React.Component {
 
 	toggleBot(bot_id?: number) {
 		if (!bot_id || this.isBotSelected(bot_id)) {
-			this.unselectHubOrBot()
+			this.unselectFleetOrHubOrBot()
 		} else {
 			this.selectBot(bot_id)
 		}
@@ -910,9 +910,17 @@ export default class CommandControl extends React.Component {
 
 	toggleHub(id: number) {
 		if (this.isHubSelected(id)) {
-			this.unselectHubOrBot()
+			this.unselectFleetOrHubOrBot()
 		} else {
 			this.selectHub(id)
+		}
+	}
+
+	toggleFleet(id: number) {
+		if (this.isFleetSelected(id)) {
+			this.unselectFleetOrHubOrBot()
+		} else {
+			this.selectFleet(id)
 		}
 	}
 
@@ -928,50 +936,73 @@ export default class CommandControl extends React.Component {
 		this.toggleHub(hub_id)
 	}
 
+	didClickFleet(fleet_id: number) {
+		this.toggleFleet(fleet_id)
+	}
+
 	selectBot(id: number) {
 		this.clearRemoteControlInterval();
-		const hubOrBot = {type: "bot", id: id}
-		this.setState({selectedHubOrBot: hubOrBot, detailsBoxItem: hubOrBot})
+		const fleetOrHubOrBot = {type: "bot", id: id}
+		this.setState({selectedFleetOrHubOrBot: fleetOrHubOrBot, detailsBoxItem: fleetOrHubOrBot})
 	}
 
 	selectHub(id: number) {
 		this.clearRemoteControlInterval();
-		const hubOrBot = {type: "hub", id: id}
-		this.setState({selectedHubOrBot: hubOrBot, detailsBoxItem: hubOrBot})
+		const fleetOrHubOrBot = {type: "hub", id: id}
+		this.setState({selectedFleetOrHubOrBot: fleetOrHubOrBot, detailsBoxItem: fleetOrHubOrBot})
+	}
+
+	selectFleet(id: number) {
+		this.clearRemoteControlInterval()
+		const fleetOrHubOrBot = {type: "fleet", id: id}
+		this.setState({selectedFleetOrHubOrBot: fleetOrHubOrBot, detailsBoxItem: fleetOrHubOrBot})
 	}
 
 	selectedBotId() {
-		const { selectedHubOrBot } = this.state
-		if (!selectedHubOrBot || selectedHubOrBot.type != "bot") return null
+		const { selectedFleetOrHubOrBot } = this.state
+		if (!selectedFleetOrHubOrBot || selectedFleetOrHubOrBot.type != "bot") return null
 		else {
-			return selectedHubOrBot.id
+			return selectedFleetOrHubOrBot.id
 		}
 	}
 
 	selectedHubId() {
-		const { selectedHubOrBot } = this.state
-		if (!selectedHubOrBot || selectedHubOrBot.type != "hub") return null
+		const { selectedFleetOrHubOrBot } = this.state
+		if (!selectedFleetOrHubOrBot || selectedFleetOrHubOrBot.type != "hub") return null
 		else {
-			return selectedHubOrBot.id
+			return selectedFleetOrHubOrBot.id
 		}
 	}
 
-	unselectHubOrBot() {
-		this.setState({selectedHubOrBot: null, detailsBoxItem: null})
+	selectedFleetId() {
+		const { selectedFleetOrHubOrBot } = this.state
+		if (!selectedFleetOrHubOrBot || selectedFleetOrHubOrBot.type != "fleet") return null
+		else {
+			return selectedFleetOrHubOrBot.id
+		}
+	}
+
+	unselectFleetOrHubOrBot() {
+		this.setState({selectedFleetOrHubOrBot: null, detailsBoxItem: null})
 	}
 
 	isBotSelected(bot_id: number) {
-		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
+		const { selectedFleetOrHubOrBot } = this.state
+		return selectedFleetOrHubOrBot && selectedFleetOrHubOrBot.type == "bot" && selectedFleetOrHubOrBot.id == bot_id
 	}
 
 	isHubSelected(hub_id: number) {
-		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
+		const { selectedFleetOrHubOrBot } = this.state
+		return selectedFleetOrHubOrBot && selectedFleetOrHubOrBot.type == "hub" && selectedFleetOrHubOrBot.id == hub_id
+	}
+
+	isFleetSelected(fleet_id: number) {
+		const { selectedFleetOrHubOrBot } = this.state
+		return selectedFleetOrHubOrBot && selectedFleetOrHubOrBot.type == "fleet" && selectedFleetOrHubOrBot.id == fleet_id
 	}
 
 	getFleetId() {
-		return this.state.podStatus?.hubs[this.state?.selectedHubOrBot.id]?.fleet_id
+		return this.state.podStatus?.hubs[this.state?.selectedFleetOrHubOrBot.id]?.fleet_id
 	}
 
 	getBotIdList() {
@@ -3370,6 +3401,20 @@ export default class CommandControl extends React.Component {
 		}
 
 		switch (detailsBoxItem?.type) {
+			case 'fleet':
+				const fleetDetailsProps: FleetDetailsProps = {
+					pod: podStatus,
+					hub: hubs?.[this.selectedHubId()],
+					bot: bots?.[this.selectedBotId()],
+					api: this.api,
+					isExpanded: this.state.detailsExpanded,
+					setDetailsExpanded: this.setDetailsExpanded.bind(this),
+					getFleetId: this.getFleetId.bind(this),
+					takeControl: this.takeControl.bind(this),
+					closeWindow: closeDetails.bind(this),
+				}
+				detailsBox = <FleetDetailsComponent {...fleetDetailsProps} />
+				break
 			case 'hub':
 				const hubDetailsProps: HubDetailsProps = {
 					hub: hubs?.[this.selectedHubId()],
@@ -3561,7 +3606,7 @@ export default class CommandControl extends React.Component {
 					deleteSingleRun={this.deleteSingleRun.bind(this)}
 					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
 					toggleEditMode={this.toggleEditMode.bind(this)}
-					unSelectHubOrBot={this.unselectHubOrBot.bind(this)}
+					unSelectHubOrBot={this.unselectFleetOrHubOrBot.bind(this)}
 					setRunList={this.setRunList.bind(this)}
 					updateMissionHistory={this.updateMissionHistory.bind(this)}
 					/>
@@ -3695,12 +3740,15 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<BotListPanel podStatus={this.getPodStatus()} 
+					<BotListPanel 
+						podStatus={this.getPodStatus()} 
 						selectedBotId={this.selectedBotId()}
 						selectedHubId={this.selectedHubId()}
+						selectedFleetId={this.selectedFleetId()}
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
-						didClickHub={this.didClickHub.bind(this)} />
+						didClickHub={this.didClickHub.bind(this)}
+						didClickFleet={this.didClickFleet.bind(this)} />
 				</div>
 
 				{detailsBox}

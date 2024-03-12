@@ -7,9 +7,10 @@ import { Missions } from './Missions'
 import { GlobalSettings } from './Settings';
 import { error, warning, info} from '../libs/notifications';
 import { MissionInterface, RunInterface } from './CommandControl';
-import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
+import { PortalHubStatus, PortalBotStatus, PodStatus } from './shared/PortalStatus'
 import { Command, CommandType, HubCommandType, BotStatus, MissionState, HubStatus } from './shared/JAIAProtobuf';
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
+import { BotListPanel } from './BotListPanel';
 
 // Style Imports
 import '../style/components/Details.less'
@@ -1342,6 +1343,49 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
+            </div>
+        </div>
+    )
+}
+
+export interface FleetDetailsProps { 
+    pod: PodStatus,
+    hub: HubStatus,
+    bot: PortalBotStatus,
+    api: JaiaAPI,
+    isExpanded: DetailsExpandedState,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
+    getFleetId: () => number
+    closeWindow: () => void,
+    takeControl: (onSuccess: () => void) => void,
+}
+
+export function FleetDetailsComponent(props: FleetDetailsProps) {
+    const pod = props.pod
+    const hub = props.hub
+    const bot = props.bot
+    const api = props.api
+    const isExpanded = props.isExpanded
+    const setDetailsExpanded = props.setDetailsExpanded
+    const getFleetId = props.getFleetId
+    const closeWindow = props.closeWindow
+    const takeControl = props.takeControl
+
+    const numBots = Object.keys(pod.bots).length
+    const fleetId = getFleetId()
+
+    useEffect(() => {
+        addDropdownListener('accordionContainer', 'fleetDetailsAccordionContainer', 30)
+    }, [])
+    
+    return (
+        <div id='hubDetailsBox'>
+            <div className='titleBar'>
+                <h2 className='name'>Fleet {fleetId}</h2>
+                <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
+            </div>
+            <div>
+                <h3>Bots Connected: {numBots}</h3>
             </div>
         </div>
     )

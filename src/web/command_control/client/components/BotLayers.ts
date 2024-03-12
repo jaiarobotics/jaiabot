@@ -5,7 +5,7 @@ import Feature from "ol/Feature"
 import { Map } from "ol"
 import { Point } from "ol/geom"
 
-import { HubOrBot } from "./HubOrBot"
+import { FleetOrHubOrBot } from "./HubOrBot"
 import { PortalBotStatus } from "./shared/PortalStatus"
 import { createGPSMarker } from "./shared/Marker"
 import { getMapCoordinate } from "./shared/Utilities"
@@ -43,7 +43,7 @@ export class BotLayers {
 		delete this.layers[bot_id]
 	}
 
-	update(bots: {[key: string]: PortalBotStatus}, selectedHubOrBot: HubOrBot) {
+	update(bots: {[key: string]: PortalBotStatus}, selectedHubOrBot: FleetOrHubOrBot) {
 		const botExtents: {[key: number]: number[]} = {};
 
 		// This needs to be synchronized somehow?

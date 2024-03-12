@@ -1,15 +1,18 @@
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import React = require("react")
 import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
+import { faU } from "@fortawesome/free-solid-svg-icons"
 
 
 interface Props {
     podStatus: PodStatus | null
     selectedBotId: number | null
     selectedHubId: number | null
+    selectedFleetId: number | null
     trackedBotId: string | number | null
     didClickBot: (bot_id: number) => void
     didClickHub: (hub_id: number) => void
+    didClickFleet: (fleet_id: number) => void
 }
 
 
@@ -80,9 +83,33 @@ export function BotListPanel(props: Props) {
         );
     }
 
+    function FleetDiv(fleet: HubStatus) {
+        let key = 'fleet-' + fleet.fleet_id
+        var bothubClass = 'fleet-item'
 
+        let faultLevelClass = 'faultLevel' + faultLevel(fleet.health_state)
+        let selected = fleet.fleet_id == props.selectedFleetId ? 'selected' : ''
+
+        return (
+            <div 
+                key={key}
+                onClick={
+                    () => props.didClickFleet(fleet.fleet_id)
+                }
+                className={`${bothubClass} ${faultLevelClass} ${selected}`}
+            >
+                <span>F-</span>
+                <span>{fleet.fleet_id}</span>
+            </div>
+        )
+    }
+
+    
     return (
         <div id="botsList">
+            {
+                hubs.map(FleetDiv)
+            }
             {
                 hubs.map(HubDiv)
             }

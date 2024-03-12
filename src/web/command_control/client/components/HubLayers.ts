@@ -4,7 +4,7 @@ import VectorSource from "ol/source/Vector"
 import { Collection } from "ol"
 import LayerGroup from "ol/layer/Group"
 import { PortalHubStatus } from "./shared/PortalStatus"
-import { HubOrBot } from "./HubOrBot"
+import { FleetOrHubOrBot } from "./HubOrBot"
 import { getMapCoordinate } from "./shared/Utilities"
 import { Point } from "ol/geom"
 import { Feature } from "ol"
@@ -59,7 +59,7 @@ export class HubLayers {
      * @param {HubOrBot} selectedHubOrBot - an object to determine if a hub id is selected so we can update state accordingly
      * @returns {void}
      */
-    update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
+    update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: FleetOrHubOrBot) {
         for (let hubId in hubs) {
             let hub = hubs[hubId];
     

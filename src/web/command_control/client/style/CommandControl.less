@@ -182,6 +182,23 @@ td {
         text-align: center;
         vertical-align: middle;
       }
+
+      .fleet-item {
+        .unselectable;
+        cursor: pointer;
+        display: inline-block;
+        border: 1px solid white;
+        .bgcolor(@good-color);
+        border-radius: 20pt;
+        font-size: 17pt;
+        height: 50px;
+        line-height: 38pt;
+        width: 50px;
+        margin: @layout-margin-px / 2;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+      }
       
       // The order of these matters
       > div.bot-item.tracked {
@@ -206,11 +223,16 @@ td {
       > div.hub-item.selected {
         outline: 5px solid @selected-color;
       }
+
+      > div.fleet-item.selected {
+        outline: 5px solid @selected-color;
+      }
     }
   }
 
   #botDetailsBox,
-  #hubDetailsBox {
+  #hubDetailsBox,
+  #fleetDetailsBox {
     position: absolute;
     background-color: @overlay-background;
     top: 0pt;
@@ -1272,7 +1294,8 @@ div.closeButton {
 /******** CSS Accordion ********************/
 
 #botDetailsAccordionContainer,
-#hubDetailsAccordionContainer {
+#hubDetailsAccordionContainer,
+#fleetDetailsAccordionContainer {
   overflow-y: auto;
 }
 
