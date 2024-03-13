@@ -3,34 +3,62 @@
 import numpy as np
 import h5py
 import os
+import sys
 from datetime import datetime
-#import pytz
+import pytz
 from math import sin, cos, atan, sqrt, radians, asin
 
+"""Directions: 
 
-# Currently, this program loops through each .h5 file in the directory defined in DIRECTORY_PATH and keeps track of the time a bot is in transit mode, and it's distance travelled while in transit mode. 
-# The parameters for these are defined below in TIME_TOLERANCE and DIST_TOLERANCE. Updating these will adjust how we define a "false transit".
-TIME_TOLERANCE = 10
-DIST_TOLERANCE = 5
+    Navigate to the directory containing this file, run ./false_transit.py followed by the file path
+    to your .h5 files in the terminal (e.g. './false_dive.py ~/path/to/.h5_directory/').
+
+"""
 MICROSECOND_FACTOR = 1_000_000
+
+# Update TIME_TOLERANCE or DIST_TOLERANCE to change parameters
+TIME_TOLERANCE = 10 # Seconds
+DIST_TOLERANCE = 5  # Meters
 
 class Point: 
     def __init__(self, lat, lon):
+        """Used to keep track of the location of a bot
+        
+        Args:
+            lat (Float): Latitude of the bot
+            lon (Float): Longitude of the bot
+            
+        Returns:
+            None.
+        """
         self.lat = lat
         self.lon = lon
 
-# Converts utime into EST
-#def utime_to_realtime(utime):
- #   dt = datetime.utcfromtimestamp(utime).replace(tzinfo=pytz.UTC)
-  #  desired_tz = pytz.timezone('America/New_York')
-   # dt = dt.astimezone(desired_tz)
+def utime_to_realtime(utime):
+    """Converts a utime into a readable datetime in EST. Change desired_tz to update timezone.
+    
+    Args:
+        utime (int): Utime to be converted
+    
+    Returns:
+        datetime: Converted utime in EST"""
+    dt = datetime.utcfromtimestamp(utime).replace(tzinfo=pytz.UTC)
+    desired_tz = pytz.timezone('America/New_York')
+    dt = dt.astimezone(desired_tz)
 
-    #return dt
+    return dt
 
-# Takes in two Points and uses Haversine formula to return the distance between them in meters
 def get_distance(point1, point2):
-    # Earth's radius (km)
-    R = 6371
+    """Finds the distance between two points on the Earth's surface using the Haversine Formula.
+    
+    Args:
+        point1 (Point): The point (lat/lon) of a bot at a certain time
+        point2 (Point): The point (lat/lon) of a bot at a different time
+        
+    Returns:
+        int: Distance between the two points in meters
+    """
+    R = 6371 # Earth's radius (km)
     lat1 = point1.lat
     lon1 = point1.lon
     lat2 = point2.lat
@@ -40,23 +68,39 @@ def get_distance(point1, point2):
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    
     a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-
     a = min(1, a)
     c = 2 * asin(sqrt(a))
 
-    return round(R * c * 1000)
+    return round(R * c * 1000) # Haversine formula
 
 
 # Outputs list of Pitches, Times, and the Mission States of a bot when it experiences a false transit
 # From the time a Transit command is sent, the bot has 5 seconds (defined as the global variable TOLERANCE) before
 # the transit is output as a failure.
-def get_transit_data(DIRECTORY_PATH):
-    for filename in os.listdir(DIRECTORY_PATH):
-        if filename.endswith('.h5'):
-            filepath = os.path.join(DIRECTORY_PATH, filename)
+def get_transit_data(directory_path):
+    """Opens each .h5 file in the given directory path and interprets data. Finds and returns the distance travelled 
+       and time of any false transit. 
+    
+    Args:
+        directory_path (str): Path to the users' directory containing the .h5 files in question
+        
+    Returns:
+        None.
+    """
+    if not os.path.isabs(directory_path):
+        directory_path = os.path.join(os.getcwd(), directory_path)
 
+    if not os.path.exists(directory_path):
+        print(f'The directory {directory_path} does not exist. Try again.')
+        return
+    
+    has_h5 = False
+    for filename in os.listdir(directory_path):
+        if filename.endswith('.h5'):
+            filepath = os.path.join(directory_path, filename)
+
+            has_h5 = True
             num_transits = 0
             num_false_transits = 0
 
@@ -105,16 +149,19 @@ def get_transit_data(DIRECTORY_PATH):
                     # If the state is 'in transit' (transit = 110), time passed has exceeded the tolerance, and the bot hasn't moved outside of the tolerance zone
                     if states[i] == 110 and states[i + 2*TIME_TOLERANCE] == 110 and time_difference == TIME_TOLERANCE and dist_travelled < DIST_TOLERANCE:
                         num_false_transits += 1
-                        print(f'False Transit {num_false_transits}: Distance Travelled: {dist_travelled}m')
+                        print(f'False Transit {num_false_transits}: Distance Travelled: {dist_travelled}m, {utime_to_realtime(cur_utime)}')
                         i += 2*TIME_TOLERANCE
                     else:
                         i += 1
 
             print(f'Num transits: {num_transits}, Num false transits: {num_false_transits}, False Transit Rate: {num_false_transits / num_transits * 100:.2f}%\n\n')
 
+    if not has_h5:
+        print(f'No .h5 files found in {directory_path}')
+        
 def main():
-    DIRECTORY_PATH = input("Enter the filepath to the directory containing the data files (.h5): ")
-    get_transit_data(DIRECTORY_PATH)
+    directory_path = sys.argv[1]
+    get_transit_data(directory_path)
 
 if __name__ == "__main__":
     main()
