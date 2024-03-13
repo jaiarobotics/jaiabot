@@ -19,6 +19,7 @@ from processing import *
 from filters import *
 
 import csv
+import os
 
 log = logging.getLogger('jaiabot_imu')
 
