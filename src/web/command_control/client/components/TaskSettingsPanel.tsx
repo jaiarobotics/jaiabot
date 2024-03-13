@@ -84,37 +84,6 @@ function TaskOptionsPanel(props: Props) {
     }
 
     /**
-     * Handles the change event for bottom dive parameters.
-     * 
-     * @param {React.ChangeEvent<HTMLInputElement>} evt The event object containing information about the input change.
-     * @returns {void}
-     */
-    function onChangeBottomDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
-        const target = evt.target as any;
-        const key = target.name as (keyof DriftParameters)
-        const value = Number(target.value);
-
-        var newTask = deepcopy(task);
-        newTask.surface_drift[key] = value;
-        GlobalSettings.driftParameters[key] = value
-        Save(GlobalSettings.driftParameters)
-
-        // Array of dive parameters and fixed values
-        const keys: (keyof DiveParameters)[] = ['depth_interval', 'hold_time', 'max_depth'];
-        const values = [60, 60, 0];
-    
-        // Assigning fixed values to diveParameters
-        for (let i = 0; i < keys.length; i++) {
-            const k = keys[i];
-            const v = values[i];
-            GlobalSettings.diveParameters[k] = v;
-        }
-        Save(GlobalSettings.diveParameters)
-
-        props.onChange(newTask);
-    }
-
-    /**
      * Checks if the Bottom dive is currently checked.
      * 
      * @returns {boolean} True if Bottom dive is checked, false otherwise.
@@ -144,25 +113,15 @@ function TaskOptionsPanel(props: Props) {
         }
 
         if(task.bottom_dive){
-
-        var newTask = deepcopy(task);
+        let newTask = deepcopy(task);
         newTask.surface_drift['drift_time'] = surface_drift.drift_time;
-        GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
-        Save(GlobalSettings.driftParameters)
+
+        // Set dive parameters individually
+        newTask.dive['depth_interval'] = 60;
+        newTask.dive['hold_time'] = 60;
+        newTask.dive['max_depth'] = 0;
+
         props.onChange(newTask);
-
-        // Array of dive parameters and fixed values
-        const keys: (keyof DiveParameters)[] = ['depth_interval', 'hold_time', 'max_depth'];
-        const values = [60, 60, 0];
-    
-        // Assigning fixed values to diveParameters
-        for (let i = 0; i < keys.length; i++) {
-            const k = keys[i];
-            const v = values[i];
-            GlobalSettings.diveParameters[k] = v;
-        }
-        Save(GlobalSettings.diveParameters)
-
         }
         
     }
@@ -321,7 +280,7 @@ function TaskOptionsPanel(props: Props) {
                             <tbody>
                                 <tr className="task-param-container">
                                     <td className="task-label">Drift Time</td>
-                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeBottomDiveParameter} disabled={!props?.isEditMode}/>s</td>
+                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode}/>s</td>
                                 </tr>
                                 <tr className="task-param-container">
                                     <td className="task-label">Start Echo</td>
