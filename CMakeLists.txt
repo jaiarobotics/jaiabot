@@ -250,16 +250,6 @@ configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR}
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
 configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
 
-# Cockpit scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-update-packages.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-update-packages.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-version-status.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-version-status.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-software-group.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-software-group.sh ${project_BIN_DIR} COPYONLY)
-
 # Firmware scripts
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
 configure_file(${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh ${project_BIN_DIR} COPYONLY)
