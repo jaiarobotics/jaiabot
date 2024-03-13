@@ -74,10 +74,6 @@ def get_distance(point1, point2):
 
     return round(R * c * 1000) # Haversine formula
 
-
-# Outputs list of Pitches, Times, and the Mission States of a bot when it experiences a false transit
-# From the time a Transit command is sent, the bot has 5 seconds (defined as the global variable TOLERANCE) before
-# the transit is output as a failure.
 def get_transit_data(directory_path):
     """Opens each .h5 file in the given directory path and interprets data. Finds and returns the distance travelled 
        and time of any false transit. 
