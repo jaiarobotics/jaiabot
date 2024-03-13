@@ -96,3 +96,22 @@ class SeriesSet:
             return [self]
     
         return [self.slice(timeRange) for timeRange in timeRanges]
+
+
+def isInDriftState(missionStateIndex: int, seriesSet: "SeriesSet"):
+    """Returns true if this data point is in a DRIFT state.
+
+    Args:
+        missionStateIndex (int): Index into the missionState Series.
+        seriesSet (SeriesSet): The series set to check.
+
+    Returns:
+        bool: Return true if the bot is drifting at this point in the SeriesSet.
+    """
+
+    DRIFT = 121
+    if seriesSet.missionState.y_values[missionStateIndex] != DRIFT:
+        # Not in a DRIFT state
+        return False
+    
+    return True

@@ -6,7 +6,7 @@ import traceback
 import logging
 from math import *
 from imu import *
-from waves import Analyzer
+from acceleration_analyzer import AccelerationAnalyzer
 from threading import Thread
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
@@ -25,7 +25,7 @@ log = logging.getLogger('jaiabot_imu')
 log.setLevel(args.logging_level)
 
 
-def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
+def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     # Create socket
     port = args.port
     if port is None:
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         imu = Adafruit()
 
     # Setup the wave analysis thread
-    analyzer = Analyzer(imu, args.frequency, dump_to_file_flag=True)
+    analyzer = AccelerationAnalyzer(imu, args.frequency, dump_to_file_flag=True)
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])

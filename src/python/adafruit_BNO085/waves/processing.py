@@ -4,7 +4,7 @@ from typing import *
 import numpy
 import statistics
 from math import *
-from filters import cos2Filter
+from .filters import cos2Filter
 
 
 def applyHannWindow(series: Series, fadePeriod: float=2e6):
@@ -283,3 +283,24 @@ def filterAcceleration(accelerationSeries: Series, sampleFreq: float):
     series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
 
     return series
+
+def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series, sampleFreq: float):
+    # Get the vertical acceleration series
+    acc_vertical = Series()
+    acc_vertical.name = 'acc_vertical'
+    acc_vertical.utime = acc_x.utime
+
+    for i in range(len(acc_x.utime)):
+        acc_vertical.y_values.append((acc_x.y_values[i] * g_x.y_values[i] + 
+                                      acc_y.y_values[i] * g_y.y_values[i] + 
+                                      acc_z.y_values[i] * g_z.y_values[i]) / 9.8)
+        
+    # Get a uniformly-sampled series (for our FFT)
+    uniformVerticalAcceleration = acc_vertical.makeUniform(freq=sampleFreq)
+
+    elevation = calculateElevationSeries(uniformVerticalAcceleration, sampleFreq)
+    waveHeights = calculateSortedWaveHeights(elevation)
+    swh = significantWaveHeight(waveHeights)
+
+    return swh
+

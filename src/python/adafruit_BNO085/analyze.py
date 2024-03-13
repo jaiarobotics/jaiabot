@@ -12,12 +12,12 @@ from datetime import timedelta, datetime
 import sys
 from typing import *
 from math import *
-from processing import *
-from filters import *
+from waves.processing import *
+from waves.filters import *
 from pathlib import *
 from statistics import *
 import spectrogram
-from seriesSet import *
+from series_set import *
 
 ### Global settings ##
 sampleFreq = 4
@@ -34,11 +34,9 @@ def shouldInclude(missionStateIndex: int, seriesSet: "SeriesSet"):
         bool: Return true if the data at this time should be included in the anlysis.
     """
 
-    DRIFT = 121
-    if seriesSet.missionState.y_values[missionStateIndex] != DRIFT:
-        # Not in a DRIFT state
+    if not isInDriftState(missionStateIndex, seriesSet):
         return False
-    
+
     blacklist = [
         TimeRange.fromDatetimes(datetime(2024, 2, 14, 2, 48, 20), datetime(2024, 2, 14, 2, 58, 51)),
         TimeRange.fromDatetimes(datetime(2024, 2, 14, 4, 8, 0), datetime(2024, 2, 14, 4, 18, 55)),

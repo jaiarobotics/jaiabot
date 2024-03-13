@@ -15,20 +15,20 @@ import logging
 from jaiabot.messages.imu_pb2 import IMUData
 
 from pyjaia.series import *
-from processing import *
-from filters import *
+from waves.processing import *
+from waves.filters import *
 
 import csv
 import os
 
-log = logging.getLogger('jaiabot_imu')
+logger = logging.getLogger('jaiabot_imu')
 
 
 def magnitude(v):
     return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
 
 
-class Analyzer:
+class AccelerationAnalyzer:
     linear_acceleration_x = Series('acc.x')
     linear_acceleration_y = Series('acc.y')
     linear_acceleration_z = Series('acc.z')
@@ -52,7 +52,7 @@ class Analyzer:
 
 
     def __init__(self, imu: IMU, sample_frequency: float, dump_to_file_flag: bool=False):
-        log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
+        logger.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_frequency = sample_frequency
 
@@ -143,27 +143,6 @@ class Analyzer:
                 csv_writer.writerow(line)
 
 
-def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series, sampleFreq: float):
-    # Get the vertical acceleration series
-    acc_vertical = Series()
-    acc_vertical.name = 'acc_vertical'
-    acc_vertical.utime = acc_x.utime
-
-    for i in range(len(acc_x.utime)):
-        acc_vertical.y_values.append((acc_x.y_values[i] * g_x.y_values[i] + 
-                                      acc_y.y_values[i] * g_y.y_values[i] + 
-                                      acc_z.y_values[i] * g_z.y_values[i]) / 9.8)
-        
-    # Get a uniformly-sampled series (for our FFT)
-    uniformVerticalAcceleration = acc_vertical.makeUniform(freq=sampleFreq)
-
-    elevation = calculateElevationSeries(uniformVerticalAcceleration, sampleFreq)
-    waveHeights = calculateSortedWaveHeights(elevation)
-    swh = significantWaveHeight(waveHeights)
-
-    return swh
-
-
 if __name__ == '__main__':
     # imu = Simulator(wave_frequency=0.33, wave_height=0.35)
     # analyzer = Analyzer(imu=imu, sample_frequency=4)
@@ -175,10 +154,9 @@ if __name__ == '__main__':
     #     sleep(1)
     import sys
     import h5py
-    from seriesSet import SeriesSet
-    from analyze import shouldInclude
+    from series_set import *
 
-    analyzer = Analyzer(imu=None, sample_frequency=4)
+    analyzer = AccelerationAnalyzer(imu=None, sample_frequency=4)
 
     for h5Path in sys.argv[1:]:
         h5File = h5py.File(h5Path)
@@ -186,7 +164,7 @@ if __name__ == '__main__':
         print(h5File.filename)
 
         seriesSet = SeriesSet.loadFromH5File(h5File)
-        drifts = seriesSet.split(shouldInclude)
+        drifts = seriesSet.split(isInDriftState)
 
         for drift in drifts:
             analyzer.linear_acceleration_x = drift.acc_x
