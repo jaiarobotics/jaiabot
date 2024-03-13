@@ -142,7 +142,6 @@ message BotStatus
     {
         HYDRO = 1;
         ECHO = 2;
-        PRIME = 3;
     }
     required BotType bot_type = 7;
 
