@@ -38,7 +38,7 @@ class Analyzer:
 
     max_acceleration_magnitude = 0.0
 
-    sample_interval: float
+    sample_frequency: float
 
     # Whether to dump the raw data to a file when significant wave height is calculated
     # (for debugging)
@@ -53,7 +53,7 @@ class Analyzer:
     def __init__(self, imu: IMU, sample_frequency: float, dump_to_file_flag: bool=False):
         log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
-        self.sample_interval = 1 / sample_frequency
+        self.sample_frequency = sample_frequency
 
         self.dump_to_file_flag = dump_to_file_flag
 
@@ -103,7 +103,7 @@ class Analyzer:
 
     def getSignificantWaveHeight(self):
         with self._lock:
-            swh = calculateSignificantWaveHeight(self.linear_acceleration_x, self.linear_acceleration_y, self.linear_acceleration_z, self.gravity_x, self.gravity_y, self.gravity_z, 1.0 / self.sample_interval)
+            swh = calculateSignificantWaveHeight(self.linear_acceleration_x, self.linear_acceleration_y, self.linear_acceleration_z, self.gravity_x, self.gravity_y, self.gravity_z, self.sample_frequency)
         return swh
 
     # Bottom characterization
