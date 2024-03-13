@@ -60,9 +60,10 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
-bot_type="HYDRO"
-if "jaia_bot_type" in os.environ:
-    bot_type=os.environ["jaia_bot_type"]
+bot_type = os.environ["jaia_bot_type"]
+
+if bot_type == "NONE":
+    bot_type = "HYDRO"
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])
