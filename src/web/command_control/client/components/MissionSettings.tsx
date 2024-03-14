@@ -1,7 +1,7 @@
 import React from 'react'
 import Map from 'ol/Map'
 import turf from '@turf/turf'
-import WptToggle from './WptToggle'
+import JaiaToggle from './JaiaToggle'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, BottomDepthSafetyParams, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
@@ -278,7 +278,7 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-line-break"></div>
                     <div className="mission-settings-header">
                         <div>Safety Return Path:</div>
-                        <WptToggle 
+                        <JaiaToggle 
                             checked={() => this.props.isSRPEnabled}
                             onClick={() => this.handleSRPToggleClick()}
                         />
