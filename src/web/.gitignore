@@ -1,5 +1,5 @@
 node_modules
 package-lock.json
 dist
-command_control/typescript
+jcc/typescript
 jdv/client/typescript
