@@ -28,7 +28,7 @@ const AmberSwitch = styled(Switch)(({ theme }) => ({
     }        
 }))
 
-export default function WptToggle(props: Props) {
+export default function JaiaToggle(props: Props) {
     return (
         <FormGroup>
             <FormControlLabel 
