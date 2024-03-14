@@ -631,6 +631,7 @@ export interface DiveParameters {
     max_depth?: number
     depth_interval?: number
     hold_time?: number
+    bottom_dive?: boolean
 }
 
 export interface DriftParameters {
@@ -653,7 +654,6 @@ export interface MissionTask {
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
     start_echo?: boolean
-    bottom_dive?: boolean
 }
 
 export enum MissionStart {
