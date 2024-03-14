@@ -19,7 +19,7 @@ import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 import '../../style/components/RunItem.less'
-import WptToggle from '../WptToggle'
+import JaiaToggle from '../JaiaToggle'
 
 type RunItemProps = {
     botIds: number[]
@@ -184,7 +184,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                             {repeatsInput}
                         </div>
 
-                        <WptToggle 
+                        <JaiaToggle 
                         checked={() => this.isWptToggled()}
                         onClick={() => this.toggleWpt()}
                         title="Show Wpts"
