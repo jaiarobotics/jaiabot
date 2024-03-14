@@ -1154,13 +1154,13 @@ export default class CommandControl extends React.Component {
 		return null
 	}
 
-	/**
-	 * Toggle the visibility of the waypoints table for a specific run.
-	 * 
-	 * @param {string} runId The unique identifier of the run.
-	 * 
-	 * @returns {void}
-	 */
+    /**
+     * Toggle the visibility of the waypoints table for a specific run.
+     * 
+     * @param {string} runId The unique identifier of the run.
+     * 
+     * @returns {void}
+     */
     toggleShowTableOfWaypoints = (runId: string) => {
 		// Get the current run list
 		const runList = this.getRunList();
