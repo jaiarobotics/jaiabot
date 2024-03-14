@@ -58,7 +58,7 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
      * @returns {void}
      */
     toggleWpt(){
-        this.props.toggleShowTableOfWaypoints(this.props.runIdInEditMode);
+        this.props.toggleShowTableOfWaypoints(this.props.run.id);
     }
 
 
