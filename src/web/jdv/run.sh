@@ -16,11 +16,11 @@ pushd ../../python/ > /dev/null
 popd > /dev/null
 
 # Start server
-pushd server
+pushd server > /dev/null
     ./jaiabot_data_vision.py -a ${BUILD_DIR} -p 40011 -l INFO $@ &
-popd
+popd > /dev/null
 
 # Build client
-pushd client
-    ./build.sh ${BUILD_DIR}/jdv
-popd
+pushd client > /dev/null
+    npx webpack --mode production --config ./release.webpack.config.js --env TARGET_DIR=${BUILD_DIR} --stats errors-only --watch
+popd > /dev/null
