@@ -6,9 +6,11 @@ from pyjaia.h5_tools import *
 
 
 class SeriesSet:
+    """All of the series that are relevant to calculating significant wave heights.
+    """
+
     def __init__(self):
         self.missionState = Series()
-        self.altitude = Series()
         self.acc_x = Series()
         self.acc_y = Series()
         self.acc_z = Series()
@@ -18,10 +20,6 @@ class SeriesSet:
         self.grav_z = Series()
 
         self.accelerationVertical = Series()
-
-        self.seriesNames = [
-            'missionState', 'altitude', 'acc_x', 'acc_y', 'acc_z', 'grav_x', 'grav_y', 'grav_z', 'accelerationVertical'
-        ]
 
 
     @staticmethod
@@ -38,7 +36,6 @@ class SeriesSet:
 
         # Get the full series
         seriesSet.missionState = Series.loadFromH5File(h5File, 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state')
-        seriesSet.altitude = Series.loadFromH5File(h5File, 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/altitude', invalid_values=[None])
         
         seriesSet.acc_x = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/x', invalid_values=[None], name='acc.x')
         seriesSet.acc_y = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/y', invalid_values=[None], name='acc.y')
@@ -63,7 +60,6 @@ class SeriesSet:
         subSeriesSet = SeriesSet()
 
         subSeriesSet.missionState = self.missionState.slice(timeRange)
-        subSeriesSet.altitude = self.altitude.slice(timeRange)
         subSeriesSet.acc_x = self.acc_x.slice(timeRange)
         subSeriesSet.acc_y = self.acc_y.slice(timeRange)
         subSeriesSet.acc_z = self.acc_z.slice(timeRange)

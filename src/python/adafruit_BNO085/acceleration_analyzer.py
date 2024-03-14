@@ -15,6 +15,7 @@ import logging
 from jaiabot.messages.imu_pb2 import IMUData
 
 from pyjaia.series import *
+from waves import doAnalysis
 from waves.processing import *
 from waves.filters import *
 
@@ -24,18 +25,18 @@ import os
 logger = logging.getLogger('jaiabot_imu')
 
 
+def dotProduct(a, b):
+    return a.x * b.x + \
+           a.y * b.y + \
+           a.z * b.z
+
+
 def magnitude(v):
     return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
 
 
 class AccelerationAnalyzer:
-    linear_acceleration_x = Series('acc.x')
-    linear_acceleration_y = Series('acc.y')
-    linear_acceleration_z = Series('acc.z')
-
-    gravity_x = Series('g.x')
-    gravity_y = Series('g.y')
-    gravity_z = Series('g.z')
+    vertical_acceleration = Series('vertical_acceleration')
 
     max_acceleration_magnitude = 0.0
 
@@ -66,13 +67,8 @@ class AccelerationAnalyzer:
             utime = datetime.utcnow().timestamp() * 1e6
             acc = imuData.linear_acceleration
 
-            self.linear_acceleration_x.append(utime, acc.x)
-            self.linear_acceleration_y.append(utime, acc.y)
-            self.linear_acceleration_z.append(utime, acc.z)
-
-            self.gravity_x.append(utime, imuData.gravity.x)
-            self.gravity_y.append(utime, imuData.gravity.y)
-            self.gravity_z.append(utime, imuData.gravity.z)
+            vertical_acceleration = dotProduct(imuData.linear_acceleration, imuData.gravity) / magnitude(imuData.gravity)
+            self.vertical_acceleration.append(utime, vertical_acceleration)
 
         if self._sampling_for_bottom_characterization:
             acceleration_magnitude = magnitude(acc)
@@ -80,13 +76,7 @@ class AccelerationAnalyzer:
 
     # Wave Height
     def clearAccelerationSeries(self):
-        self.linear_acceleration_x.clear()
-        self.linear_acceleration_y.clear()
-        self.linear_acceleration_z.clear()
-
-        self.gravity_x.clear()
-        self.gravity_y.clear()
-        self.gravity_z.clear()
+        self.vertical_acceleration.clear()
 
 
     def startSamplingForWaveHeight(self):
@@ -104,7 +94,8 @@ class AccelerationAnalyzer:
 
     def getSignificantWaveHeight(self):
         with self._lock:
-            swh = calculateSignificantWaveHeight(self.linear_acceleration_x, self.linear_acceleration_y, self.linear_acceleration_z, self.gravity_x, self.gravity_y, self.gravity_z, self.sample_frequency)
+            drift = doAnalysis(self.vertical_acceleration, self.sample_frequency)
+            swh = drift.significantWaveHeight
         return swh
 
     # Bottom characterization
@@ -154,9 +145,11 @@ if __name__ == '__main__':
     #     sleep(1)
     import sys
     import h5py
-    from series_set import *
+    from waves.series_set import *
 
-    analyzer = AccelerationAnalyzer(imu=None, sample_frequency=4)
+    sampleFreq = 4.0
+
+    analyzer = AccelerationAnalyzer(imu=None, sample_frequency=sampleFreq)
 
     for h5Path in sys.argv[1:]:
         h5File = h5py.File(h5Path)
@@ -164,14 +157,11 @@ if __name__ == '__main__':
         print(h5File.filename)
 
         seriesSet = SeriesSet.loadFromH5File(h5File)
-        drifts = seriesSet.split(isInDriftState)
+        driftSeriesSets = seriesSet.split(isInDriftState)
 
-        for drift in drifts:
-            analyzer.linear_acceleration_x = drift.acc_x
-            analyzer.linear_acceleration_y = drift.acc_y
-            analyzer.linear_acceleration_z = drift.acc_z
-            analyzer.gravity_x = drift.grav_x
-            analyzer.gravity_y = drift.grav_y
-            analyzer.gravity_z = drift.grav_z
-
-            print('Significant wave height = ', analyzer.getSignificantWaveHeight())
+        ####
+            
+        for seriesSet in driftSeriesSets:
+            analyzer.vertical_acceleration = seriesSet.accelerationVertical
+            swh = analyzer.getSignificantWaveHeight()
+            print(f'SWH = {swh}')

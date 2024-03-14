@@ -17,7 +17,7 @@ from waves.filters import *
 from pathlib import *
 from statistics import *
 import spectrogram
-from series_set import *
+from waves.series_set import *
 
 ### Global settings ##
 sampleFreq = 4
