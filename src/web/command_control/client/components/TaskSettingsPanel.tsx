@@ -10,7 +10,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import WptToggle from './WptToggle';
+import JaiaToggle from './JaiaToggle';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -233,7 +233,7 @@ function TaskOptionsPanel(props: Props) {
                             <tr className="task-param-container">
                                 <td className="task-label">Start Echo</td>
                                 <td className="input-row dive-time">
-                                    <WptToggle 
+                                    <JaiaToggle 
                                         checked={() => isEchoChecked()}
                                         onClick={() => handleEchoCheck()}
                                         disabled={() => !props?.isEditMode}
@@ -258,7 +258,7 @@ function TaskOptionsPanel(props: Props) {
                             <tr className="task-param-container">
                                 <td className="task-label">Start Echo</td>
                                 <td className="input-row dive-time">
-                                    <WptToggle 
+                                    <JaiaToggle 
                                         checked={() => isEchoChecked()}
                                         onClick={() => handleEchoCheck()}
                                         disabled={() => !props?.isEditMode}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-import WptToggle from './WptToggle'
+import JaiaToggle from './JaiaToggle'
 import { taskData } from './TaskPackets'
 import { KMLDocument } from './shared/KMZExport'
 import { downloadBlobToFile } from './shared/Utilities'
@@ -101,7 +101,7 @@ export function SettingsPanel(props: Props) {
                 <div className="settings-card-container">
                     <div className="settings-card">
                         <div className="settings-label">Track Pod:</div>
-                        <WptToggle
+                        <JaiaToggle
                             checked={() => props.trackingTarget === 'pod'}
                             onClick={() => handleTrackPodToggleClick()}
                         />
@@ -122,14 +122,14 @@ export function SettingsPanel(props: Props) {
                     <AccordionDetails className="settings-accordion-inner-container">
                         <div className="settings-card">
                             <div className="settings-label">Clusters:</div>
-                            <WptToggle
+                            <JaiaToggle
                                 checked={() => props.isClusterModeOn}
                                 onClick={() => handleClusterToggleClick()}
                             />
                         </div>
                         <div className="settings-card">
                             <div className="settings-label">Edit Dates:</div>
-                            <WptToggle
+                            <JaiaToggle
                                 checked={() => props.taskPacketsTimeline.isEditing as boolean}
                                 onClick={() => props.handleTaskPacketEditDatesToggle()}
                             />

@@ -21,6 +21,7 @@ type MissionControllerProps = {
     unSelectHubOrBot: () => void
     setRunList: (mission: MissionInterface) => void
     updateMissionHistory: (mission: MissionInterface) => void
+    toggleShowTableOfWaypoints: (runId: string) => void
 }
 
 type MissionControllerState = {}
@@ -89,6 +90,7 @@ export default class MissionControllerPanel extends React.Component<MissionContr
                     toggleEditMode={this.props.toggleEditMode}
                     setRunList={this.props.setRunList}
                     updateMissionHistory={this.props.updateMissionHistory}
+                    toggleShowTableOfWaypoints={this.props.toggleShowTableOfWaypoints}
                 />
             </div>
         )

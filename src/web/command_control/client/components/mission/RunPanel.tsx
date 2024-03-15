@@ -17,6 +17,7 @@ type RunPanelProps = {
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     setRunList: (runList: MissionInterface) => void
     updateMissionHistory: (mission: MissionInterface) => void
+    toggleShowTableOfWaypoints: (runId: string) => void
 }
 
 type RunPanelState = {}
@@ -76,6 +77,7 @@ export default class RunPanel extends React.Component<RunPanelProps, RunPanelSta
                 unSelectHubOrBot={this.props.unSelectHubOrBot}
                 addDuplicateRun={this.addDuplicateRun.bind(this)}
                 toggleEditMode={this.props.toggleEditMode}
+                toggleShowTableOfWaypoints={this.props.toggleShowTableOfWaypoints}
             />
         )
     }
