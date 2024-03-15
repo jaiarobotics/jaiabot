@@ -16,7 +16,7 @@ from math import sin, cos, atan, sqrt, radians, asin
 """
 MICROSECOND_FACTOR = 1_000_000
 
-# Update TIME_TOLERANCE or DIST_TOLERANCE to change parameters
+# Update TIME_TOLERANCE or DIST_TOLERANCE to change acceptable parameters
 TIME_TOLERANCE = 10 # Seconds
 DIST_TOLERANCE = 5  # Meters
 
@@ -42,7 +42,7 @@ def utime_to_realtime(utime):
     
     Returns:
         datetime: Converted utime in EST"""
-    dt = datetime.utcfromtimestamp(utime).replace(tzinfo=pytz.UTC)
+    dt = datetime.datetime.fromtimestamp(utime, datetime.timezone.utc)    
     desired_tz = pytz.timezone('America/New_York')
     dt = dt.astimezone(desired_tz)
 
