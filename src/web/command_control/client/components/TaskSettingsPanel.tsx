@@ -122,8 +122,6 @@ function TaskOptionsPanel(props: Props) {
         //Add drift & bottom dive to global settings and local storage
         GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
         Save(GlobalSettings.driftParameters)
-        GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
-        Save(GlobalSettings.diveParameters)
 
         // Remove parameters from dive
         delete newTask.dive.depth_interval
@@ -132,6 +130,10 @@ function TaskOptionsPanel(props: Props) {
 
         props.onChange(newTask);
         }
+
+        //Add bottom dive to local storage
+        GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
+        Save(GlobalSettings.diveParameters)
         
     }
     
