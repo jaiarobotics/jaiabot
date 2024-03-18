@@ -61,9 +61,12 @@ function TaskOptionsPanel(props: Props) {
         const value = Number(target.value)
     
         var newTask = deepcopy(task)
-        newTask.dive[key] = value
-    
-        GlobalSettings.diveParameters[key] = value
+
+        if (key === 'depth_interval' || key === 'max_depth' || key === 'hold_time') {
+            newTask.dive[key] = value;
+            GlobalSettings.diveParameters[key] = value;
+        }
+        
         Save(GlobalSettings.diveParameters)
 
         props.onChange(newTask)
@@ -116,7 +119,7 @@ function TaskOptionsPanel(props: Props) {
         let newTask = deepcopy(task);
         newTask.surface_drift['drift_time'] = surface_drift.drift_time;
 
-        //Add drift & bottom dive to global task and local storage
+        //Add drift & bottom dive to global settings and local storage
         GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
         Save(GlobalSettings.driftParameters)
         GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
