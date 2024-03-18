@@ -90,10 +90,10 @@ function TaskOptionsPanel(props: Props) {
      */
     function isBottomDiveChecked(){
 
-        if (task?.bottom_dive === undefined) {
+        if (dive?.bottom_dive === undefined) {
             return false
         }
-        return task.bottom_dive
+        return dive.bottom_dive
     }
 
     /**
@@ -104,22 +104,28 @@ function TaskOptionsPanel(props: Props) {
      */
     function handleToggle(){
 
-        if (task?.bottom_dive === undefined) {
-            task["bottom_dive"] = true
-        } else if (task.bottom_dive) {
-            task.bottom_dive = false
+        if (dive?.bottom_dive === undefined) {
+            dive["bottom_dive"] = true
+        } else if (dive.bottom_dive) {
+            dive.bottom_dive = false
         } else {
-            task.bottom_dive = true
+            dive.bottom_dive = true
         }
 
-        if(task.bottom_dive){
+        if(dive.bottom_dive){
         let newTask = deepcopy(task);
         newTask.surface_drift['drift_time'] = surface_drift.drift_time;
 
-        // Set dive parameters individually
-        newTask.dive['depth_interval'] = 60;
-        newTask.dive['hold_time'] = 60;
-        newTask.dive['max_depth'] = 0;
+        //Add drift & bottom dive to global task and local storage
+        GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
+        Save(GlobalSettings.driftParameters)
+        GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
+        Save(GlobalSettings.diveParameters)
+
+        // Remove parameters from dive
+        delete newTask.dive.depth_interval
+        delete newTask.dive.hold_time
+        delete newTask.dive.max_depth
 
         props.onChange(newTask);
         }
@@ -274,7 +280,7 @@ function TaskOptionsPanel(props: Props) {
                     </table>
                     <hr />
                     {
-                        task.bottom_dive?
+                        dive.bottom_dive?
 
                         <table className="TaskParametersTable">
                             <tbody>
