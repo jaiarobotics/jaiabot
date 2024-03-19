@@ -58,4 +58,3 @@ export function downloadCSV(plots: Plot[], tRange: number[]) {
     link.click()
     document.body.removeChild(link)
   }
-
