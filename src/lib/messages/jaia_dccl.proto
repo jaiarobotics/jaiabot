@@ -138,6 +138,12 @@ message BotStatus
     optional goby.middleware.protobuf.HealthState health_state = 4;
     repeated Error error = 5 [(dccl.field).max_repeat = 5];
     repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
+    enum BotType
+    {
+        HYDRO = 1;
+        ECHO = 2;
+    }
+    required BotType bot_type = 7;
 
     optional GeographicCoordinate location = 10;
 

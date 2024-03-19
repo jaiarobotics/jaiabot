@@ -119,6 +119,7 @@ export interface RunInterface {
 	name: string,
 	assigned: number,
 	command: Command,
+	showTableOfWaypoints: boolean,
 }
 
 export interface MissionInterface { 
@@ -1152,6 +1153,33 @@ export default class CommandControl extends React.Component {
 		}
 		return null
 	}
+
+    /**
+     * Toggle the visibility of the waypoints table for a specific run.
+     * 
+     * @param {string} runId The unique identifier of the run.
+     * 
+     * @returns {void}
+     */
+    toggleShowTableOfWaypoints = (runId: string) => {
+		// Get the current run list
+		const runList = this.getRunList();
+	
+		// Create a copy of the runs object
+		const updatedRuns = { ...runList.runs };
+	
+		// Toggle the showTableOfWaypoints property for the specified runId
+		if (updatedRuns[runId]) {
+			updatedRuns[runId].showTableOfWaypoints = !updatedRuns[runId].showTableOfWaypoints;
+		}
+	
+		// Create a new run list object with the updated runs
+		const updatedRunList = { ...runList, runs: updatedRuns };
+	
+		// Update the run list in the state
+		this.setRunList(updatedRunList);
+	}
+
 	// 
 	// Run List Methods (End)
 	// 
@@ -3564,6 +3592,7 @@ export default class CommandControl extends React.Component {
 					unSelectHubOrBot={this.unselectHubOrBot.bind(this)}
 					setRunList={this.setRunList.bind(this)}
 					updateMissionHistory={this.updateMissionHistory.bind(this)}
+					toggleShowTableOfWaypoints={this.toggleShowTableOfWaypoints.bind(this)}
 					/>
 				)
 				break
