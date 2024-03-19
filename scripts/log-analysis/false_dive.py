@@ -84,23 +84,25 @@ def get_dive_data(directory_path: str):
                 bot_status = file['jaiabot::bot_status;0/jaiabot.protobuf.BotStatus']
 
                 # Specific data lists of each group
-                depth_achieved = np.array(task_packet['dive/depth_achieved'])
-                utime = np.array(task_packet['_utime_'])
-                scheme = np.array(task_packet['_scheme_'])
+                depths_achieved = np.array(task_packet['dive/depth_achieved'])
+                utimes = np.array(task_packet['_utime_'])
+                schemes = np.array(task_packet['_scheme_'])
                 bot_id = np.array(bot_status['bot_id'])
 
                 false_utimes = []
                 dive_count = 0
                 false_dive_count = 0
 
-                for i in range(len(depth_achieved)):
-                    if scheme[i] == 2:
+                for i in range(len(depths_achieved)):
+                    # Check to see if we're looking at data from scheme 1 or 2 
+                    # Data from each scheme is logged at the same time, so without differentiating we end up with duplicates of each data point 
+                    if schemes[i] == 2:
                         continue
                     
                     dive_count += 1
-                    if depth_achieved[i] < 1:
+                    if depths_achieved[i] < 1:
                         false_dive_count += 1
-                        false_utimes.append(utime[i])
+                        false_utimes.append(utimes[i])
 
                 file.close()
 

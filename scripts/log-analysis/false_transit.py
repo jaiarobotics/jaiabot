@@ -113,6 +113,8 @@ def get_transit_data(directory_path):
 
                 print(f'BOT ID: {bot_id[0]}\n')
                 
+                # Loops through all state to get the total number of transits that occured
+                # If there is a transit state (110) and then a state change, a transit is detected
                 i = 0
                 while i < len(states) - 2*TIME_TOLERANCE:
                     if states[i] == 110:
@@ -139,10 +141,7 @@ def get_transit_data(directory_path):
                     cur_utime = round(utimes[i + 2*TIME_TOLERANCE] / MICROSECOND_FACTOR)
                     time_difference = cur_utime - initial_utime
 
-                    
-                        
-
-                    # If the state is 'in transit' (transit = 110), time passed has exceeded the tolerance, and the bot hasn't moved outside of the tolerance zone
+                    # If the state is 'in transit' (transit = 110), time passed has exceeded the tolerance, and the bot hasn't moved outside of the tolerance zone, we've detected a false transit
                     if states[i] == 110 and states[i + 2*TIME_TOLERANCE] == 110 and time_difference == TIME_TOLERANCE and dist_travelled < DIST_TOLERANCE:
                         num_false_transits += 1
                         print(f'False Transit {num_false_transits}: Distance Travelled: {dist_travelled}m, {utime_to_realtime(cur_utime)}')
