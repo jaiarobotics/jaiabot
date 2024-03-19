@@ -39,19 +39,6 @@ def print_data(false_utimes: list[int], dive_count: int, false_dive_count: int, 
         print("NO FALSE DIVES.")
         print(f'COMPLETED {dive_count} DIVES.\n')
 
-
-def test_time_stamps(utime_1: int, utime_2: int):
-    """Tests two different utimes to ensure they aren't within the same second. 
-    
-    Args: 
-        utime_1 (int): First utime to compare against. Is converted to a date and time.
-        utime_2 (int): Second utime to compare against. Is converted to a date and time. 
-    Returns:
-        Bool: True if the two utimes represent the same date/time (to the second), false if they do not. 
-    """
-    return round(utime_1 / MICROSECONDS_FACTOR) == round(utime_2 / MICROSECONDS_FACTOR)
-
-
 def utime_to_realtime(utime: int):
     """Converts utime into a readable date/time.
     
@@ -99,21 +86,21 @@ def get_dive_data(directory_path: str):
                 # Specific data lists of each group
                 depth_achieved = np.array(task_packet['dive/depth_achieved'])
                 utime = np.array(task_packet['_utime_'])
+                scheme = np.array(task_packet['_scheme_'])
                 bot_id = np.array(bot_status['bot_id'])
 
                 false_utimes = []
                 dive_count = 0
                 false_dive_count = 0
 
-                i = 0
-                while i < len(depth_achieved):
-                    if not test_time_stamps(utime[i], utime[i - 1]):
-                        dive_count += 1
-
-                    if depth_achieved[i] < 1 and not test_time_stamps(utime[i], utime[i - 1]):
+                for i in range(len(depth_achieved)):
+                    if scheme[i] == 2:
+                        continue
+                    
+                    dive_count += 1
+                    if depth_achieved[i] < 1:
                         false_dive_count += 1
                         false_utimes.append(utime[i])
-                    i += 1
 
                 file.close()
 
