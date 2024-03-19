@@ -10,7 +10,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import WptToggle from './WptToggle';
+import JaiaToggle from './JaiaToggle';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -52,8 +52,6 @@ function TaskOptionsPanel(props: Props) {
     if (task == null) return;
 
     const [clickingMap, setClickingMap] = useState(false)
-
-    const [isChecked, setIsChecked] = useState(false)
 
     function onChangeDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target as any
@@ -273,7 +271,7 @@ function TaskOptionsPanel(props: Props) {
                         <tbody>
                             <tr className="task-param-container">
                                 <td className="task-label" style={{ fontWeight: 'bold' }}>Switch to Bottom Dive</td>
-                                <td><WptToggle 
+                                <td><JaiaToggle 
                                         checked={() => isBottomDiveChecked()}
                                         onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
@@ -296,7 +294,7 @@ function TaskOptionsPanel(props: Props) {
                                 <tr className="task-param-container">
                                     <td className="task-label">Start Echo</td>
                                     <td className="input-row dive-time">
-                                        <WptToggle 
+                                        <JaiaToggle 
                                             checked={() => isEchoChecked()}
                                             onClick={() => handleEchoCheck()}
                                             disabled={() => !props?.isEditMode}
@@ -327,7 +325,7 @@ function TaskOptionsPanel(props: Props) {
                                 <tr className="task-param-container">
                                     <td className="task-label">Start Echo</td>
                                     <td className="input-row dive-time">
-                                        <WptToggle 
+                                        <JaiaToggle 
                                             checked={() => isEchoChecked()}
                                             onClick={() => handleEchoCheck()}
                                             disabled={() => !props?.isEditMode}
@@ -354,7 +352,7 @@ function TaskOptionsPanel(props: Props) {
                             <tr className="task-param-container">
                                 <td className="task-label">Start Echo</td>
                                 <td className="input-row dive-time">
-                                    <WptToggle 
+                                    <JaiaToggle 
                                         checked={() => isEchoChecked()}
                                         onClick={() => handleEchoCheck()}
                                         disabled={() => !props?.isEditMode}
