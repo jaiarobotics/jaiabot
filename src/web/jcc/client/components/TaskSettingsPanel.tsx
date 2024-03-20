@@ -48,6 +48,8 @@ interface Props {
 //   it presents the user with a set of configuration options relevant to that task
 //   type.
 function TaskOptionsPanel(props: Props) {
+
+    var selectHeadingOnMap: boolean = false
     const task = props.task
     if (task == null) return;
 
@@ -101,11 +103,39 @@ function TaskOptionsPanel(props: Props) {
     }
 
     /**
+     * Checks for select heading on map
+     * 
+     * @returns {void}
+     */
+    function isMapHeadingChecked() {
+        if (this.selectHeadingOnMap === undefined) {
+            return false
+        }
+        return this.selectHeadingOnMap
+    }
+    /**
+     * Switches toggle state for select heading on map
+     * 
+     * @returns {void}
+     */
+    function handleHeadingSelectCheck() {
+        //TODO JAR selectOnMapOn was called on the old button push, need to enable that when toggle is true
+        if (this.selectHeadingOnMap === undefined) { 
+            this.selectHeadingOnMap = true
+        } else if (this.selectHeadingOnMap) {
+            this.selectHeadingOnMap = false
+        } else {
+            this.selectHeadingOnMap = true
+        }
+        if (this.selectHeadingOnMap) selectOnMap()
+    }
+
+   /**
      * Allows an operator to set constant heading parameters by selecting a point on the map
      * 
      * @returns {void}
      */   
-    function selectOnMapClicked() {
+    function selectOnMap() {
         const { map, location } = props
 
         if (map == null) {
@@ -258,7 +288,7 @@ function TaskOptionsPanel(props: Props) {
                             <tr className="task-param-container">
                                 <td className="task-label">Start Echo</td>
                                 <td className="input-row dive-time">
-                                    <JaiaToggle 
+                                    <JaiaToggle
                                         checked={() => isEchoChecked()}
                                         onClick={() => handleEchoCheck()}
                                         disabled={() => !props?.isEditMode}
@@ -277,13 +307,19 @@ function TaskOptionsPanel(props: Props) {
             }
 
             const clickingMapClass = clickingMap ? " clicking-map" : ""
-
+//TODO JAR Swap this with a toggle
             // Select on Map button is only present if a location is passed via Props
-            const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked} disabled={!props?.isEditMode}>Select on Map</button> : null
-    
+            //const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked} disabled={!props?.isEditMode}>Select on Map</button> : null
+            const selectOnMapToggle = (props.location != null) ? <JaiaToggle 
+                                       checked={() => isMapHeadingChecked()}
+                                       onClick={handleHeadingSelectCheck}
+                                       disabled={() => !props?.isEditMode}
+                                       /> :
+                                        null
+
             return (
                 <div id="ConstantHeadingDiv">
-                    { selectOnMapButton }
+                    { selectOnMapToggle }
                     <table className="TaskParametersTable">
                         <tbody>
                             <tr className="task-param-container">
