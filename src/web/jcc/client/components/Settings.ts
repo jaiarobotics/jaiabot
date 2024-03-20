@@ -87,7 +87,7 @@ export let GlobalSettings = {
         max_depth: 10,
         depth_interval: 10,
         hold_time: 0,
-        bottom_dive:false
+        bottom_dive: false
     }),
 
     // Default drift parameters for dive and drift tasks
