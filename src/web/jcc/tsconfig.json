@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "declaration": true,
+    "moduleResolution": "node",
+    "outDir": "typescript/",
+    "rootDir": "../../",
+    "jsx": "react",
+    "target": "ES2015",
+    "esModuleInterop": true,
+    "lib": [
+      "ES2021",
+      "dom"
+    ]
+  },
+  "include": [".", "./client/components/shared"],
+}
