@@ -85,9 +85,9 @@ function TaskOptionsPanel(props: Props) {
     }
 
     /**
-     * Checks if the Bottom dive is currently checked.
+     * Checks if the bottom dive is currently checked.
      * 
-     * @returns {boolean} True if Bottom dive is checked, false otherwise.
+     * @returns {boolean} True if bottom dive is checked, false otherwise.
      */
     function isBottomDiveChecked(){
 
@@ -99,7 +99,6 @@ function TaskOptionsPanel(props: Props) {
 
     /**
      * Handles the toggle action for the dive task.
-     * Also calls sets default values for diveparameters.
      * 
      * @returns {void}
      */
@@ -117,7 +116,7 @@ function TaskOptionsPanel(props: Props) {
         let newTask = deepcopy(task);
         newTask.surface_drift['drift_time'] = surface_drift.drift_time;
 
-        //Add drift & bottom dive to global settings and local storage
+        //Save drift to local storage
         GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
         Save(GlobalSettings.driftParameters)
 
@@ -129,7 +128,7 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask);
         }
 
-        //Add bottom dive to local storage
+        //Save bottom dive to local storage
         GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
         Save(GlobalSettings.diveParameters)
         
