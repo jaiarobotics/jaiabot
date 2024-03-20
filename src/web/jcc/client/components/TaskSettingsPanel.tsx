@@ -113,21 +113,31 @@ function TaskOptionsPanel(props: Props) {
             dive.bottom_dive = true
         }
 
-        if(dive.bottom_dive){
-        let newTask = deepcopy(task);
-        newTask.surface_drift['drift_time'] = surface_drift.drift_time;
+        let newTask = deepcopy(task)
 
-        //Add drift & bottom dive to global settings and local storage
-        GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
-        Save(GlobalSettings.driftParameters)
+        if (dive.bottom_dive){
+            
+            newTask.surface_drift['drift_time'] = surface_drift.drift_time
 
-        // Remove parameters from dive
-        delete newTask.dive.depth_interval
-        delete newTask.dive.hold_time
-        delete newTask.dive.max_depth
+            //Add drift & bottom dive to global settings and local storage
+            GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
+            Save(GlobalSettings.driftParameters)
+
+            // Remove parameters from dive
+            delete newTask.dive.depth_interval
+            delete newTask.dive.hold_time
+            delete newTask.dive.max_depth
+            
+        } else {
+            newTask.dive['max_depth'] = GlobalSettings.diveParameters.max_depth
+            newTask.dive['depth_interval'] = GlobalSettings.diveParameters.depth_interval
+            newTask.dive['hold_time'] = GlobalSettings.diveParameters.hold_time
+            newTask.dive['bottom_dive'] = dive.bottom_dive
+
+            newTask.surface_drift['drift_time'] = surface_drift.drift_time
+        }
 
         props.onChange(newTask);
-        }
 
         //Add bottom dive to local storage
         GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
@@ -270,7 +280,7 @@ function TaskOptionsPanel(props: Props) {
                     <table>
                         <tbody>
                             <tr className="task-param-container">
-                                <td className="task-label" style={{ fontWeight: 'bold' }}>Switch to Bottom Dive</td>
+                                <td className="task-label">Bottom Dive</td>
                                 <td><JaiaToggle 
                                         checked={() => isBottomDiveChecked()}
                                         onClick={() => handleToggle()}
@@ -281,7 +291,6 @@ function TaskOptionsPanel(props: Props) {
                             </tr>
                         </tbody>
                     </table>
-                    <hr />
                     {
                         dive.bottom_dive?
 
