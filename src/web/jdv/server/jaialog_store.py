@@ -133,7 +133,6 @@ class JaialogStore:
             log_dir = os.path.expanduser(log_dir)
 
         self.LOG_DIR = str(log_dir)
-        logging.info(f'Log directory: {log_dir}')
         os.makedirs(log_dir, exist_ok=True)
 
         self.log_conversion_manager = log_conversion.LogConversionManager(log_dir)

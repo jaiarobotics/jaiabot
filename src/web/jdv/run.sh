@@ -18,7 +18,7 @@ popd > /dev/null
 
 # Start server
 pushd server > /dev/null
-    ./jaiabot_data_vision.py -a ${WEB_APPS_DIR} -p 40011 -l INFO $@ &
+    ${WEB_APPS_DIR}/python/venv/bin/python3 jaiabot_data_vision.py -a ${WEB_APPS_DIR} -p 40011 -l INFO $@ &
 popd > /dev/null
 
 # Build client
