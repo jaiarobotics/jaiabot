@@ -197,6 +197,7 @@ message MissionTask
                 units { base_dimensions: "T" }
             }
         ];
+        optional bool bottom_dive = 4 [default = false];
     }
 
     // for type == DIVE

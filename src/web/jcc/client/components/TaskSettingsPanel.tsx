@@ -59,9 +59,12 @@ function TaskOptionsPanel(props: Props) {
         const value = Number(target.value)
     
         var newTask = deepcopy(task)
-        newTask.dive[key] = value
-    
-        GlobalSettings.diveParameters[key] = value
+
+        if (key === 'depth_interval' || key === 'max_depth' || key === 'hold_time') {
+            newTask.dive[key] = value;
+            GlobalSettings.diveParameters[key] = value;
+        }
+        
         Save(GlobalSettings.diveParameters)
 
         props.onChange(newTask)
@@ -80,6 +83,67 @@ function TaskOptionsPanel(props: Props) {
 
         props.onChange(newTask)
     }
+
+    /**
+     * Checks if the bottom dive is currently checked.
+     * 
+     * @returns {boolean} True if bottom dive is checked, false otherwise.
+     */
+    function isBottomDiveChecked(){
+
+        if (dive?.bottom_dive === undefined) {
+            return false
+        }
+        return dive.bottom_dive
+    }
+
+    /**
+     * Handles the toggle action for the dive task.
+     * 
+     * @returns {void}
+     */
+    function handleToggle(){
+
+        if (dive?.bottom_dive === undefined) {
+            dive["bottom_dive"] = true
+        } else if (dive.bottom_dive) {
+            dive.bottom_dive = false
+        } else {
+            dive.bottom_dive = true
+        }
+
+        let newTask = deepcopy(task)
+
+        if (dive.bottom_dive){
+            
+            newTask.surface_drift['drift_time'] = surface_drift.drift_time
+
+            //Save drift to local storage
+            GlobalSettings.driftParameters['drift_time'] = surface_drift.drift_time
+            Save(GlobalSettings.driftParameters)
+
+            // Remove parameters from dive
+            delete newTask.dive.depth_interval
+            delete newTask.dive.hold_time
+            delete newTask.dive.max_depth
+            
+        } else {
+            newTask.dive['max_depth'] = GlobalSettings.diveParameters.max_depth
+            newTask.dive['depth_interval'] = GlobalSettings.diveParameters.depth_interval
+            newTask.dive['hold_time'] = GlobalSettings.diveParameters.hold_time
+            newTask.dive['bottom_dive'] = dive.bottom_dive
+
+            newTask.surface_drift['drift_time'] = surface_drift.drift_time
+        }
+
+        props.onChange(newTask);
+
+        //Save bottom dive to local storage
+        GlobalSettings.diveParameters['bottom_dive'] = dive.bottom_dive
+        Save(GlobalSettings.diveParameters)
+        
+    }
+    
 
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target
@@ -212,36 +276,74 @@ function TaskOptionsPanel(props: Props) {
         case TaskType.DIVE:
             return (
                 <div id="DiveDiv">
-                    <table className="TaskParametersTable">
+                    <table>
                         <tbody>
                             <tr className="task-param-container">
-                                <td className="task-label">Max Depth</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" value={dive.max_depth} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Depth Interval</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" value={dive.depth_interval} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Hold Time</td>
-                                <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" value={dive.hold_time} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />s</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
-                            </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Start Echo</td>
-                                <td className="input-row dive-time">
-                                    <JaiaToggle 
-                                        checked={() => isEchoChecked()}
-                                        onClick={() => handleEchoCheck()}
+                                <td className="task-label">Bottom Dive</td>
+                                <td><JaiaToggle 
+                                        checked={() => isBottomDiveChecked()}
+                                        onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
+                                        title='Switch to Bottom Dive'
                                     />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                    {
+                        dive.bottom_dive?
+
+                        <table className="TaskParametersTable">
+                            <tbody>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Drift Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode}/>s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Start Echo</td>
+                                    <td className="input-row dive-time">
+                                        <JaiaToggle 
+                                            checked={() => isEchoChecked()}
+                                            onClick={() => handleEchoCheck()}
+                                            disabled={() => !props?.isEditMode}
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        :
+                        <table className="TaskParametersTable">
+                            <tbody>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Max Depth</td>
+                                    <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" value={dive.max_depth} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Depth Interval</td>
+                                    <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" value={dive.depth_interval} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Hold Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" value={dive.hold_time} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Drift Time</td>
+                                    <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
+                                </tr>
+                                <tr className="task-param-container">
+                                    <td className="task-label">Start Echo</td>
+                                    <td className="input-row dive-time">
+                                        <JaiaToggle 
+                                            checked={() => isEchoChecked()}
+                                            onClick={() => handleEchoCheck()}
+                                            disabled={() => !props?.isEditMode}
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    }
                 </div>
             )
         case TaskType.STATION_KEEP:
