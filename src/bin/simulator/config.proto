@@ -70,13 +70,27 @@ message Simulator
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
     optional double seafloor_depth = 32
         [(dccl.field) = { units { derived_dimensions: "length" } }];
-    optional double seafloor_wavelength = 33
-        [(dccl.field) = { units { derived_dimensions: "length" } }, default=100];
-    optional double seafloor_amplitude = 34
-        [(dccl.field) = { units { derived_dimensions: "length" } }, default=5];
+    optional double seafloor_wavelength = 33 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 100
+    ];
+    optional double seafloor_amplitude = 34 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 5
+    ];
 
     optional double gps_hdop_dropout = 35 [default = 20];
     optional double gps_pdop_dropout = 36 [default = 20];
+
+    // minimum thrust value for forward motion (-100-100 scale)
+    optional double minimum_thrust = 37 [default = 5];
+    optional double pitch_at_rest = 38 [
+        default = 85,
+        (dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }
+    ];
 
     message ScalarSample
     {
