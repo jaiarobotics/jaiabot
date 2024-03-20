@@ -631,6 +631,7 @@ export interface DiveParameters {
     max_depth?: number
     depth_interval?: number
     hold_time?: number
+    bottom_dive?: boolean
 }
 
 export interface DriftParameters {
