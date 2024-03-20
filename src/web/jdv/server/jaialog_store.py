@@ -202,7 +202,7 @@ class JaialogStore:
     
 
     def openLogs(self, logNames: List[str]):
-        logs: [h5py.File] = []
+        logs: List[h5py.File] = []
         for logName in logNames:
             try:
                 logs.append(self.openLog(logName))
@@ -274,6 +274,15 @@ class JaialogStore:
                     task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
                     task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
 
+                    # Delete any fields that are actually not present
+                    for task_packet in task_packets:
+                        task_packet_type = task_packet.get('type', None)
+                        if task_packet_type != 'DIVE':
+                            del(task_packet['dive'])
+                        
+                        if task_packet_type not in ['DIVE', 'SURFACE_DRIFT']:
+                            del(task_packet['drift'])
+
                     results += task_packets
 
         if scheme is not None:
@@ -326,5 +335,27 @@ class JaialogStore:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
-    jaialogStore = JaialogStore('~/jaia_logs_test')
-    pprint(jaialogStore.getTaskPackets(['bot4_fleet1_20230712T182625']))
+    log = h5py.File('/var/log/jaiabot/bot_offload/bot4_fleet14_20240320T154212.h5')
+
+    # Search for Command items
+    for path in log.keys():
+
+        m = TASK_PACKET_RE.match(path)
+        if m is not None:
+            task_packet_group_path = path
+
+            task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
+            task_packets = jaialog_get_object_list(log[task_packet_path], repeated_members={"measurement"})
+
+
+            # Delete any fields that are actually not present
+            for task_packet in task_packets:
+                task_packet_type = task_packet.get('type', None)
+                if task_packet_type != 'DIVE':
+                    del(task_packet['dive'])
+                
+                if task_packet_type not in ['DIVE', 'SURFACE_DRIFT']:
+                    del(task_packet['drift'])
+
+
+            pprint(task_packets)
