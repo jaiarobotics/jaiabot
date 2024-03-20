@@ -1,4 +1,3 @@
-
 import React, { ChangeEvent } from 'react';
 
 import Accordion from '@mui/material/Accordion';
@@ -20,6 +19,7 @@ import { RunInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 import '../../style/components/RunItem.less'
+import JaiaToggle from '../JaiaToggle'
 
 type RunItemProps = {
     botIds: number[]
@@ -33,12 +33,34 @@ type RunItemProps = {
     addDuplicateRun: (run: RunInterface) => void
     deleteSingleRun: (runId: string) => void
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    toggleShowTableOfWaypoints: (runId: string) => void
 }
 
-type RunItemState = {}
+type RunItemState = {
+}
+
 
 export default class RunItem extends React.Component<RunItemProps, RunItemState> {
     nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+
+    /**
+     * Checks if the table of waypoints is currently shown.
+     * 
+     * @returns {boolean} True if the table of waypoints is shown, false otherwise.
+     */
+    isWptToggled(){
+        return this.props.run.showTableOfWaypoints;
+    }
+
+    /**
+     * Toggles the display state of the table of waypoints.
+     * 
+     * @returns {void}
+     */
+    toggleWpt(){
+        this.props.toggleShowTableOfWaypoints(this.props.run.id);
+    }
+
 
     makeAccordionTheme() {
         return createTheme({
@@ -161,6 +183,56 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                         <div>
                             {repeatsInput}
                         </div>
+
+                        <JaiaToggle 
+                        checked={() => this.isWptToggled()}
+                        onClick={() => this.toggleWpt()}
+                        title="Show Wpts"
+                        label="Show Wpts"
+                        />
+
+                        {
+                            this.props.run.showTableOfWaypoints && 
+                            <table className="table-container">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Wpt Id
+                                    </th>
+                                    <th>
+                                        Lat
+                                    </th>
+                                    <th>
+                                        Lon
+                                    </th>
+                                    <th>
+                                        Task
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {
+                                    this.props.run.command.plan.goal.map((item,index)=>(
+                                        <tr key={index}>
+                                        <td>
+                                            {index + 1}
+                                        </td>
+                                        <td>
+                                            {item.location.lat.toFixed(5)}
+                                        </td>
+                                        <td>
+                                            {item.location.lon.toFixed(5)}
+                                        </td>   
+                                        <td>
+                                            {item.task?.type?item.task.type:"None"}
+                                        </td>
+                                    </tr>
+                                    ))
+                                }
+                            </tbody>
+                        </table>
+                        }
+                        
                     </AccordionDetails>
                 </Accordion>
             </ThemeProvider>
