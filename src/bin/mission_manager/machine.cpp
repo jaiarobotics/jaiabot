@@ -1286,7 +1286,14 @@ void jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::loop(const
 
     // for now, simply wait a period of time and then resume
     if (now >= resume_timeout_)
+    {
         post_event(EvForwardProgressResolved());
+    }
+}
+
+jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::~ResolveNoForwardProgress()
+{
+    this->machine().erase_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
 }
 
 // Dive::ReacquireGPS

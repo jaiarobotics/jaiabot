@@ -1074,6 +1074,7 @@ void jaiabot::apps::MissionManager::check_forward_progress()
         {
             glog.is_debug2() && glog << "No forward progress detected!" << std::endl;
             machine_->process_event(statechart::EvNoForwardProgress());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
         }
     }
     else

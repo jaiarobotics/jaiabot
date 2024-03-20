@@ -957,7 +957,7 @@ struct ResolveNoForwardProgress
 {
     using StateBase = boost::statechart::state<ResolveNoForwardProgress, Pause>;
     ResolveNoForwardProgress(typename StateBase::my_context c);
-    ~ResolveNoForwardProgress() {}
+    ~ResolveNoForwardProgress();
 
     void loop(const EvLoop&);
 
