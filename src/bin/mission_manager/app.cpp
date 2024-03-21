@@ -127,7 +127,8 @@ jaiabot::apps::MissionManager::MissionManager()
     for (auto e : cfg().ignore_error()) ignore_errors_.insert(static_cast<protobuf::Error>(e));
 
     interthread().subscribe<jaiabot::groups::state_change>(
-        [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
+        [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair)
+        {
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
 
             if (state_pair.first)
@@ -151,7 +152,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
-        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints) {
+        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints)
+        {
             glog.is_verbose() && glog << "Received DesiredCourse: "
                                       << desired_setpoints.ShortDebugString() << std::endl;
             glog.is_verbose() && glog << "Relaying flag: "
@@ -174,12 +176,15 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
 
                 interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+                fwd_progress_data_.latest_desired_speed = desired_setpoints.speed_with_units();
             }
         });
 
     // subscribe for reports from the pHelmIvP behaviors
     interprocess().subscribe<jaiabot::groups::mission_ivp_behavior_report>(
-        [this](const protobuf::IvPBehaviorReport& report) {
+        [this](const protobuf::IvPBehaviorReport& report)
+        {
             glog.is_debug1() && glog << "IvPBehaviorReport: " << report.ShortDebugString()
                                      << std::endl;
 
@@ -200,14 +205,16 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for latitude (from NodeStatus)
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
-        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
+        {
             latest_lat_ = node_status.global_fix().lat_with_units();
             machine_->set_latest_lat(latest_lat_);
         });
 
     // subscribe for sensor measurements (including pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+        {
             machine_->calculate_pressure_adjusted(pt);
 
             statechart::EvMeasurement ev;
@@ -217,7 +224,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal) {
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
@@ -225,7 +233,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        {
             if (health_considered_ok(vehicle_health))
             {
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
@@ -242,7 +251,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
             current_tpv_ = tpv;
 
             // TODO make sure this meets gps requirements
@@ -251,7 +261,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for GPS data (to reacquire gps)
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
-        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky)
+        {
             glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop()
                                      << ", PDOP: " << sky.pdop() << std::endl;
 
@@ -271,7 +282,8 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 
     interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUData& imu_data) {
+        [this](const jaiabot::protobuf::IMUData& imu_data)
+        {
             glog.is_debug2() && glog << "Received IMU Data " << imu_data.ShortDebugString()
                                      << std::endl;
 
@@ -279,15 +291,18 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 if (imu_data.euler_angles().has_pitch())
                 {
+                    auto pitch = imu_data.euler_angles().pitch_with_units();
                     statechart::EvVehiclePitch ev;
-                    ev.pitch = imu_data.euler_angles().pitch_with_units();
+                    ev.pitch = pitch;
                     machine_->process_event(ev);
+                    fwd_progress_data_.latest_pitch = pitch;
                 }
             }
         });
 
     interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue)
+        {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
                                      << std::endl;
 
@@ -319,17 +334,20 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 
     // Subscribe to IMU data for max_acceleration, for bottom characterization
-    interprocess().subscribe<jaiabot::groups::imu>([this](
-                                                       const jaiabot::protobuf::IMUData& imu_data) {
-        glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString() << std::endl;
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUData& imu_data)
+        {
+            glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString()
+                                     << std::endl;
 
-        machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
-        machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
-    });
+            machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+            machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+        });
 
     // subscribe for engineering commands
     interprocess().subscribe<jaiabot::groups::engineering_command>(
-        [this](const jaiabot::protobuf::Engineering& command) {
+        [this](const jaiabot::protobuf::Engineering& command)
+        {
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
             if (command.has_gps_requirements())
@@ -410,7 +428,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // handle rf disable commands to make sure task packets are not sent
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const jaiabot::protobuf::Engineering& power_rf) {
+        [this](const jaiabot::protobuf::Engineering& power_rf)
+        {
             if (power_rf.has_rf_disable_options())
             {
                 if (power_rf.rf_disable_options().has_rf_disable())
@@ -434,11 +453,12 @@ jaiabot::apps::MissionManager::~MissionManager()
     {
         auto on_command_unsubscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack)
+        {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
         goby::middleware::Subscriber<protobuf::Command> command_subscriber{latest_command_sub_cfg_,
                                                                            on_command_unsubscribed};
 
@@ -461,16 +481,16 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto on_command_subscribed =
         [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-               const goby::middleware::intervehicle::protobuf::AckData& ack) {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
+               const goby::middleware::intervehicle::protobuf::AckData& ack)
+    {
+        glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                 << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                 << std::endl;
+    };
 
     // use vehicle ID as group for command
-    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
-        return goby::middleware::Group(command.bot_id());
-    };
+    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group
+    { return goby::middleware::Group(command.bot_id()); };
 
     latest_command_sub_cfg_ = cfg().command_sub_cfg();
 
@@ -482,7 +502,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
         latest_command_sub_cfg_, do_set_group, on_command_subscribed};
 
     intervehicle().subscribe_dynamic<protobuf::Command>(
-        [this](const protobuf::Command& input_command) {
+        [this](const protobuf::Command& input_command)
+        {
             if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
             {
                 protobuf::Command out_command;
@@ -658,6 +679,8 @@ void jaiabot::apps::MissionManager::loop()
         machine_->set_hub_id(hub_id_);
     }
 
+    check_forward_progress();
+
     machine_->process_event(statechart::EvLoop());
 }
 
@@ -799,6 +822,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvReturnToHome());
             break;
         case protobuf::Command::STOP: machine_->process_event(statechart::EvStop()); break;
+
+        case protobuf::Command::PAUSE: machine_->process_event(statechart::EvPause()); break;
+        case protobuf::Command::RESUME: machine_->process_event(statechart::EvResume()); break;
+
         case protobuf::Command::RECOVERED:
             machine_->process_event(statechart::EvRecovered());
             break;
@@ -1018,4 +1045,42 @@ double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const 
     u = sin((lat2r - lat1r) / 2);
     v = sin((lon2r - lon1r) / 2);
     return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
+
+// To determine no forward progress:
+//    If the vehicle is in the vertical position; pitch > resolve_pitch_threshold  (default 30 deg)
+//    If the vehicle desired speed is > resolve_desired_speed_threshold (default: 0 m/s)
+//    How long to give the vehicle to get to the horizontal position: resolve_no_forward_progress_timeout (default: 15 sec)
+void jaiabot::apps::MissionManager::check_forward_progress()
+{
+    const auto& pitch = fwd_progress_data_.latest_pitch;
+    const auto& pitch_threshold = cfg().resolve_no_forward_progress().pitch_threshold_with_units();
+    const auto& desired_speed = fwd_progress_data_.latest_desired_speed;
+    const auto& desired_speed_threshold =
+        cfg().resolve_no_forward_progress().desired_speed_threshold_with_units();
+
+    bool should_be_making_forward_progress = desired_speed > desired_speed_threshold;
+    bool making_forward_progress = pitch < pitch_threshold;
+    bool is_ivp_control = machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM;
+    auto now = goby::time::SteadyClock::now();
+
+    auto trigger_seconds = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+        cfg().resolve_no_forward_progress().trigger_timeout_with_units());
+
+    if (is_ivp_control && should_be_making_forward_progress && !making_forward_progress)
+    {
+        // we're not making forward progress when we should be, check the timeout
+        if (now > fwd_progress_data_.no_forward_progress_timeout)
+        {
+            glog.is_debug2() && glog << "No forward progress detected!" << std::endl;
+            machine_->process_event(statechart::EvNoForwardProgress());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
+        }
+    }
+    else
+    {
+        // otherwise bump forward the timeout
+        glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
+        fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
+    }
 }

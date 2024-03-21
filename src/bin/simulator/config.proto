@@ -56,13 +56,12 @@ message Simulator
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
-    // Default is to use the hdop value of 1 so bot does not need to reacquire gps
+    // Default is to use the hdop value so bot does not need to reacquire gps
     optional double gps_hdop_rand_max = 27 [default = 1.3];
 
-    // Default is bot simulation
     optional bool is_bot_sim = 28 [default = true];
 
-    // Default is to use the pdop value of 1.5 so bot does not need to reacquire gps
+    // Default is to use the pdop value so bot does not need to reacquire gps
     optional double gps_pdop_rand_max = 29 [default = 2.2];
 
     optional double heading_rand_max = 30 [default = 0];
@@ -71,10 +70,27 @@ message Simulator
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
     optional double seafloor_depth = 32
         [(dccl.field) = { units { derived_dimensions: "length" } }];
-    optional double seafloor_wavelength = 33
-        [(dccl.field) = { units { derived_dimensions: "length" } }, default=100];
-    optional double seafloor_amplitude = 34
-        [(dccl.field) = { units { derived_dimensions: "length" } }, default=5];
+    optional double seafloor_wavelength = 33 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 100
+    ];
+    optional double seafloor_amplitude = 34 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 5
+    ];
+
+    optional double gps_hdop_dropout = 35 [default = 20];
+    optional double gps_pdop_dropout = 36 [default = 20];
+
+    // minimum thrust value for forward motion (-100-100 scale)
+    optional double minimum_thrust = 37 [default = 5];
+    optional double pitch_at_rest = 38 [
+        default = 85,
+        (dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }
+    ];
 
     message ScalarSample
     {

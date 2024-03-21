@@ -2,32 +2,32 @@
 
 set -e
 
-python_outdir='.'
-[[ ! -z "$1" ]] && python_outdir="$1"
-mkdir -p $python_outdir
+# The root of the jaiabot directory tree, where we'll find the source proto files
+JAIABOT_DIR="$1"
 
-PROTO_INCLUDE=/etc/jaiabot/proto_include/
-[[ ! -z "$2" ]] && PROTO_INCLUDE="$2"
+# Where to find the jaiabot .proto source files
+JAIABOT_MESSAGES_DIR="${JAIABOT_DIR}/src/lib/messages/"
 
-GOBY_INCLUDE_DIR=/usr/include
-[[ ! -z "$3" ]] && GOBY_INCLUDE_DIR="$3"
-
-DCCL_INCLUDE_DIR=/usr/include
-[[ ! -z "$4" ]] && DCCL_INCLUDE_DIR="$4"
-
-
-mkdir -p ${PROTO_INCLUDE}    
-
-[[ -e "${PROTO_INCLUDE}/goby" ]] && rm ${PROTO_INCLUDE}/goby
-ln -sf ${GOBY_INCLUDE_DIR}/goby ${PROTO_INCLUDE}/goby
-[[ -e "${PROTO_INCLUDE}/dccl" ]] && rm ${PROTO_INCLUDE}/dccl
-ln -sf ${DCCL_INCLUDE_DIR}/dccl ${PROTO_INCLUDE}/dccl
-mkdir -p ${PROTO_INCLUDE}/jaiabot
-[[ -e "${PROTO_INCLUDE}/jaiabot/messages" ]] && rm ${PROTO_INCLUDE}/jaiabot/messages
-ln -sf $(pwd)/../../lib/messages ${PROTO_INCLUDE}/jaiabot/messages
+# The target directory in which to build the protobuf python files
+PYTHON_OUT_DIR="$2"
 
 echo "🟢 Building Jaia protobuf python modules"
 
-protoc -I${PROTO_INCLUDE} -I/usr/local/include/ --python_out=$python_outdir ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto
+# Set up PROTO_INCLUDE directory
+PROTO_INCLUDE="/tmp/proto_include/"
+mkdir -p ${PROTO_INCLUDE}
 
-echo "✅ Done"
+rm -f ${PROTO_INCLUDE}/goby
+ln -sf ${GOBY_DIR:-/usr/include/goby} ${PROTO_INCLUDE}/goby
+rm -f ${PROTO_INCLUDE}/dccl
+ln -sf ${DCCL_DIR:-/usr/include/dccl} ${PROTO_INCLUDE}/dccl
+rm -f ${PROTO_INCLUDE}/jaiabot
+ln -sf "${JAIABOT_DIR}/src/lib" ${PROTO_INCLUDE}/jaiabot
+
+# Create output directory
+mkdir -p $PYTHON_OUT_DIR
+
+protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto
+
+# Remove the temporary proto_include directory
+rm -rf ${PROTO_INCLUDE}

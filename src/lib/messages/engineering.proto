@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
+import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
@@ -110,6 +111,17 @@ message IMUCalibration
     optional bool run_cal = 1 [default = false];
 }
 
+message Echo
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool start_echo = 1 [default = false];
+    optional bool stop_echo = 2 [default = false];
+    optional EchoState echo_state = 3 [default = BOOTING];
+}
+
 message Engineering
 {
     /*
@@ -150,6 +162,8 @@ message Engineering
     optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
 
     optional IMUCalibration imu_cal = 18;
+
+    optional Echo echo = 19;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

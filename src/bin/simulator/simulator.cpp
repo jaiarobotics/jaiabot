@@ -45,6 +45,7 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
@@ -103,9 +104,11 @@ class SimulatorTranslation : public goby::moos::Translator
     std::normal_distribution<double> salinity_distribution_;
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
     int time_out_sky_{200};
-    double hdop_rand_max_{1};
-    double pdop_rand_max_{1.5};
-    double heading_rand_max_{0};
+
+    goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
+
+    bool making_forward_progress_{false};
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -166,7 +169,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     if (sim_cfg_.is_bot_sim())
     {
         interprocess().subscribe<goby::middleware::groups::datum_update>(
-            [this](const goby::middleware::protobuf::DatumUpdate& datum_update) {
+            [this](const goby::middleware::protobuf::DatumUpdate& datum_update)
+            {
                 geodesy_.reset(new goby::util::UTMGeodesy({datum_update.datum().lat_with_units(),
                                                            datum_update.datum().lon_with_units()}));
                 moos().comms().Notify("USM_RESET", "x=0, y=0, speed=0, heading=0, depth=0");
@@ -178,14 +182,36 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         moos().add_trigger("NAV_SPEED", [this](const CMOOSMsg& msg) { process_nav(msg); });
 
         goby().interprocess().subscribe<groups::desired_setpoints>(
-            [this](const protobuf::DesiredSetpoints& desired_setpoints) {
-                process_desired_setpoints(desired_setpoints);
-            });
+            [this](const protobuf::DesiredSetpoints& desired_setpoints)
+            { process_desired_setpoints(desired_setpoints); });
 
-        interprocess().subscribe<groups::low_control>(
-            [this](const jaiabot::protobuf::LowControl& low_control) {
+        goby().interprocess().subscribe<groups::low_control>(
+            [this](const jaiabot::protobuf::LowControl& low_control)
+            {
                 if (low_control.has_control_surfaces())
                     process_control_surfaces(low_control.control_surfaces());
+            });
+
+        goby().interprocess().subscribe<groups::simulator_command>(
+            [this](const jaiabot::protobuf::SimulatorCommand& command)
+            {
+                switch (command.command_case())
+                {
+                    case jaiabot::protobuf::SimulatorCommand::kGpsDropout:
+                        gps_dropout_end_ =
+                            goby::time::SteadyClock::now() +
+                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                command.gps_dropout().dropout_duration_with_units());
+
+                        break;
+
+                    case jaiabot::protobuf::SimulatorCommand::kStopForwardProgress:
+                        stop_forward_progress_end_ =
+                            goby::time::SteadyClock::now() +
+                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                command.stop_forward_progress().duration_with_units());
+                        break;
+                }
             });
 
         for (const auto& sample : sim_cfg_.sample())
@@ -193,10 +219,6 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             temperature_degC_profile_[sample.depth_with_units()] = sample.temperature();
             salinity_profile_[sample.depth_with_units()] = sample.salinity();
         }
-
-        hdop_rand_max_ = sim_cfg_.gps_hdop_rand_max();
-        pdop_rand_max_ = sim_cfg_.gps_pdop_rand_max();
-        heading_rand_max_ = sim_cfg_.heading_rand_max();
 
         // Seed once
         std::srand(unsigned(std::time(NULL)));
@@ -281,9 +303,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     double heading_error = 0;
 
-    if (heading_rand_max_ != 0)
+    if (sim_cfg_.heading_rand_max() > 0)
     {
-        heading_error = (double)std::rand() / (RAND_MAX)*heading_rand_max_;
+        heading_error = static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.heading_rand_max();
     }
 
     glog.is_verbose() && glog << "Heading Error: " << heading_error << std::endl;
@@ -306,10 +328,14 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     {
         goby::middleware::protobuf::gpsd::SkyView sky;
 
-        double hdop;
-        double pdop;
-        hdop = (double)std::rand() / (RAND_MAX)*hdop_rand_max_;
-        pdop = (double)std::rand() / (RAND_MAX)*pdop_rand_max_;
+        bool is_dropout = goby::time::SteadyClock::now() <= gps_dropout_end_;
+
+        double hdop =
+            is_dropout ? sim_cfg_.gps_hdop_dropout()
+                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_hdop_rand_max();
+        double pdop =
+            is_dropout ? sim_cfg_.gps_pdop_dropout()
+                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_pdop_rand_max();
 
         sky.set_hdop(hdop);
         sky.set_pdop(pdop);
@@ -367,10 +393,13 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     // publish IMUData
     {
         jaiabot::protobuf::IMUData imu_data;
-        imu_data.mutable_euler_angles()->set_pitch_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
-                                                              si::radians);
+        auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+        if (!making_forward_progress_)
+            pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
+
+        imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
         imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                              si::radians);
+                                                             si::radians);
         imu_data.set_calibration_status(3);
         imu_data.set_significant_wave_height(1.5);
         imu_data.set_max_acceleration(101);
@@ -408,7 +437,17 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
     constexpr double rudder_normalization = 1.0;
     constexpr double elevator_normalization = 1.0;
 
-    moos().comms().Notify("DESIRED_THRUST", thrust_normalization * control_surfaces.motor());
+    auto normalized_thrust = thrust_normalization * control_surfaces.motor();
+
+    bool is_no_forward_progress = goby::time::SteadyClock::now() <= stop_forward_progress_end_;
+    making_forward_progress_ = true;
+    if (std::abs(normalized_thrust) < sim_cfg_.minimum_thrust() || is_no_forward_progress)
+    {
+        making_forward_progress_ = false;
+        normalized_thrust = 0;
+    }
+
+    moos().comms().Notify("DESIRED_THRUST", normalized_thrust);
     moos().comms().Notify("DESIRED_RUDDER", rudder_normalization * control_surfaces.rudder());
     moos().comms().Notify(
         "DESIRED_ELEVATOR",
