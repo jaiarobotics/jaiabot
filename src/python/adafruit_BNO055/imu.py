@@ -69,6 +69,10 @@ class IMU:
         # only send the mag cal
         imu_data.calibration_status = reading.calibration_status[3]
 
+        # check if the bot rolled over
+        bot_rolled = int(abs(reading.orientation.roll) > 90)
+        imu_data.bot_rolled_over = bot_rolled
+
         return imu_data
 
 

@@ -2,11 +2,11 @@ class JaiaAPI {
 
   constructor() {
       function randomBase57(stringLength) {
-          const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+          const base57Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
         
           var s = ''
           for (let i = 0; i < stringLength; i++) {
-              s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+              s = s.concat(base57Chars[Math.floor(Math.random() * base57Chars.length)])
           }
           return s
       }
@@ -60,6 +60,7 @@ class JaiaAPI {
     .then((response) => response.json())
     .then((status) => {
       this.inControl = (status.controllingClientId == this.clientId || status.controllingClientId == null)
+      this.setControlBorder()
       return status
     })
     .catch((e) => {
@@ -73,6 +74,15 @@ class JaiaAPI {
       method : 'POST',
       headers : this.headers
     }).then((response) => response.json())
+  }
+
+  setControlBorder() {
+    let body = document.getElementById('body')
+    if (this.inControl) {
+      body.style.border = 'none'
+    } else {
+      body.style.border = '3px solid red'
+    }
   }
 
 }

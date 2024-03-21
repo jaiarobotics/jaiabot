@@ -228,11 +228,21 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
             if (att.has_heading())
             {
-                auto magneticDeclination = wmm.magneticDeclination(
-                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                // The mean solar year, in seconds
+                const double SECONDS_PER_YEAR = 365.24219 * 24 * 60 * 60;
+                const double UNIX_EPOCH_YEAR = 1970;
+
+                double seconds_since_unix_epoch = double(time(NULL));
+                double years_since_unix_epoch = seconds_since_unix_epoch / SECONDS_PER_YEAR;
+                double year = UNIX_EPOCH_YEAR + years_since_unix_epoch;
+
+                auto magneticDeclination =
+                    wmm.magneticDeclination(latest_node_status_.global_fix().lon(),
+                                            latest_node_status_.global_fix().lat(), year);
                 glog.is_debug2() &&
                     glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                         << "  Magnetic declination: " << magneticDeclination << endl;
+                         << "  Magnetic declination: " << magneticDeclination
+                         << "  Year: " << std::setprecision(10) << year << endl;
                 auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
                 heading = corrected_heading(heading);
@@ -258,7 +268,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                                  << imu_data.ShortDebugString() << std::endl;
 
         auto euler_angles = imu_data.euler_angles();
-        auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
         if (euler_angles.has_heading())
@@ -306,6 +315,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         if (imu_data.has_calibration_status())
         {
             latest_bot_status_.set_calibration_status(imu_data.calibration_status());
+        }
+
+        if (imu_data.has_calibration_state())
+        {
+            latest_bot_status_.set_calibration_state(imu_data.calibration_state());
         }
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
@@ -665,7 +679,11 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_local_fix()->set_y(0);
 }
 
-void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
+void jaiabot::apps::Fusion::init_bot_status()
+{
+    latest_bot_status_.set_bot_id(cfg().bot_id());
+    latest_bot_status_.set_bot_type(cfg().bot_type());
+}
 
 void jaiabot::apps::Fusion::loop()
 {

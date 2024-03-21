@@ -9,6 +9,7 @@
     <title>JaiaBot Engineer & Debug</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="calibration.css">
+    <link rel="stylesheet" href="echo.css">
     <link rel="icon" type="image/x-icon" href="/favicon.png">
 
   </head>
@@ -29,18 +30,116 @@
     </div>
 
     <div class="row">
-      <div>
-        <div>
-          <label for="botSelect">Bot:</label>
-          <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;"></select>
+        <div class="bot-meta-container">
+          <div class="bot-select-container">
+            <label for="botSelect">Bot:</label>
+            <select name="botSelect" id="botSelect" style="width:50pt; margin-left: 20pt; margin-right: 40pt;"></select>
+          </div>
           <button id="take-control">Take Control</button>
+          <a href="/">Jaia Command & Control</a>
+          <div id="loggingStatus"></div>
         </div>
-        <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
-        <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
-        <a href="/">Jaia Command & Control</a>
-        <div id="loggingStatus"></div>
-      </div>
     </div>
+
+    <section class="cal-section">
+      
+      <h2>Calibration</h2>
+
+      <section class="cal-left-col">
+
+        <section class="imu-cal-section">
+          <h3>IMU (BNO085)</h3>
+          <div class="imu-cal-inner-container">
+            <div class="imu-cal-info">
+              <div class="imu-cal-label">Current IMU Calibration:</div>
+              <div class="imu-cal-data" id="imu-cal-current">0</div>
+            </div>
+            <button id="imu-cal-start-btn">Start IMU Calibration</button>
+            <div id="imu-cal-state" class="imu-cal-state"></div>
+          </div>
+        </section>
+  
+      </section>
+
+      <section class="cal-right-col">
+        
+        <section class="motor-cal-section">
+          <h3>Motor</h3>
+          <div id="motor-bounds-config">
+            <table>
+              <tbody>
+                <tr>
+                  <td>Forward Start:</td>
+                  <td><input id="forwardStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Reverse Start:</td>
+                  <td><input id="reverseStart" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+                <tr>
+                  <td>Max Reverse: </td>
+                  <td><input id="max_reverse" class="actuator-input" min="1000" max="2000" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </section>
+      
+      <section class="rudder-cal-section">
+        <h3>Rudder</h3>
+        <div id="rudder-bounds-config">
+          <table>
+            <tbody>
+              <tr>
+                <td>Upper:</td>
+                <td><input id="upper" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Center:</td>
+                <td><input id="center" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+              <tr>
+                <td>Lower:</td>
+                <td><input id="lower" class="actuator-input" min="1000" max="2000" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="motor-rudder-cal-btns">
+        <button id="submit-config">Submit These Motor & Rudder Bounds</button>
+        <button id="query-engineering-status">Retrieve Current Motor & Rudder Bounds</button>
+      </section>
+      
+    </section>
+
+  </section>
+
+  <section class="echo-section">
+      
+    <h2>Echo Testing</h2>
+
+    <section class="echo-left-col">
+      <h3>Echo Commands</h3>
+      <div class="echo-inner-container">
+        <div class="echo-info">
+          <div class="echo-label">Current Echo Status:</div>
+          <div class="echo-data" id="echo-current">N/A</div>
+        </div>
+        <button id="echo-start-btn">Start Echo Device</button>
+        <button id="echo-stop-btn">Stop Echo Device</button>
+        <button id="query-echo-status">Query Echo Status</button>
+      </div>
+    </section>
+  </section>
+
+  <div class="row">
+    <div>
+      <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
+      <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
+    </div>
+  </div>
 
 <!-- Dive Panels     -->
     
@@ -154,58 +253,11 @@
       </table>
     </div>
 
-    <div>
-      <h2>Calibration</h2>
-      <h3>Motor</h3>
-      <div id="motor-bounds-config">
-        <table>
-          <tbody>
-            <tr>
-              <td>max_reverse</td>
-              <td><input id="max_reverse" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>reverseStart</td>
-              <td><input id="reverseStart" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>forwardStart</td>
-              <td><input id="forwardStart" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <h3>Rudder</h3>
-      <div id="rudder-bounds-config">
-        <table>
-          <tbody>
-            <tr>
-              <td>upper</td>
-              <td><input id="upper" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>center</td>
-              <td><input id="center" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-            <tr>
-              <td>lower</td>
-              <td><input id="lower" class="actuator-input" min="1000" max="2000" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <button id="submit-config">Submit These Motor & Rudder Bounds</button>
-      <button id="query-engineering-status">Retrieve Current Motor & Rudder Bounds</button>
-      <img src=""></img>
-    </div>
-
-    <div class="helpPane hidden" id="helpPane">
-      <button id="helpCloseButton" class="close">✖️</button>
-      <image src="helpPane.png">
-    </div>
+  <div class="helpPane hidden" id="helpPane">
+    <button id="helpCloseButton" class="close">✖️</button>
+    <image src="helpPane.png">
+  </div>
 
   </body>
-
   <script src="script.js" type="module"></script>
-
 </html>
