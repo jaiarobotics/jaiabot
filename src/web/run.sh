@@ -5,22 +5,32 @@ set -e
 # Kill all descendants if we exit or are killed
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
-# Install pre-requisites
-./install_dependencies.sh
+JAIA_DIR="$(pwd)/../../"
+BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 
-# Build messages and install pyjaia
-pushd ../python/pyjaia
-    ./build_messages.sh
-    python3 -m pip install ./
-popd
+# Build the venv
+pushd ../python > /dev/null
+    ./build_venv.sh ${BUILD_DIR}/python
+popd > /dev/null
 
 # Start server
-pushd server
-    ./app.py $1 &
-popd
+pushd server > /dev/null
+    ${BUILD_DIR}/python/venv/bin/python3 ./app.py -a ${BUILD_DIR} $1 &
+popd > /dev/null
+
+# Symlink jed to the build directory (so we can hot reload)
+rm -rf ${BUILD_DIR}/jed
+ln -s $(pwd)/jed ${BUILD_DIR}/jed
 
 # Build Command Control
-pushd command_control
-    npm install --no-audit
-    npm run test
-popd
+    # Install pre-requisites
+    ./install_dependencies.sh ./
+
+    # Copy the webpack.config.js file to the intermediate build directory, so webpack can import from node_modules
+    COMMAND_CONTROL_BUILD_DIR=${BUILD_DIR}/jcc
+    mkdir -p ${COMMAND_CONTROL_BUILD_DIR}
+
+    pushd jcc > /dev/null
+        echo 🟢 Building JCC into ${COMMAND_CONTROL_BUILD_DIR}
+        npx webpack --mode production --env OUTPUT_DIR=${COMMAND_CONTROL_BUILD_DIR} --watch --progress
+    popd > /dev/null

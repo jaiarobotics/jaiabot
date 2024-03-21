@@ -33,6 +33,8 @@ import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
 
 import './index.css'
 
+const loadingImage = require('./images/loading.gif')
+
 var Plotly = require('plotly.js-dist')
 
 const APP_NAME = "Jaia Data Vision"
@@ -57,8 +59,6 @@ interface State {
   measureResultVisible: boolean
   measureMagnitude: string,
   measureUnit: string,
-  plotNeedsRefresh: boolean
-  mapNeedsRefresh: boolean
   timeFraction: number | null
   t: number | null // Currently selected time
   tMin: number | null // Minimum time for these logs
@@ -95,8 +95,6 @@ class LogApp extends React.Component {
       measureResultVisible: false,
       measureMagnitude: '',
       measureUnit: '',
-      plotNeedsRefresh: false,
-      mapNeedsRefresh: false,
       timeFraction: null,
       t: null, // Currently selected time
       tMin: null, // Minimum time for these logs
@@ -129,7 +127,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
+    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src={loadingImage} className="busy-icon"></img></div> : null
 
 
     return (
@@ -258,8 +256,8 @@ class LogApp extends React.Component {
     this.setState({isSelectingLogs: true})
   }
 
-  componentDidUpdate() {
-    if (this.state.mapNeedsRefresh) {
+  componentDidUpdate(prevProps: LogAppProps, prevState: State) {
+    if (this.state.chosenLogs !== prevState.chosenLogs) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
         const getMapJob = LogApi.getMapData(this.state.chosenLogs).then((botIdToMapSeries) => {
@@ -301,12 +299,11 @@ class LogApp extends React.Component {
       else {
         this.map.clear()
       }
-
-      this.setState({mapNeedsRefresh: false})
     }
     
-    if (this.state.plotNeedsRefresh) {
-      this.refresh_plots()
+    if (this.state.chosenLogs !== prevState.chosenLogs ||
+        this.state.plots !== prevState.plots) {
+      this.refreshPlots()
     }
   }
 
@@ -332,7 +329,7 @@ class LogApp extends React.Component {
       LogApi.postConvertIfNeeded(logFilenames).then((response) => {
         if (response.done) {
           self.stopBusyIndicator()
-          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
+          self.setState({chosenLogs: logFilenames, plots: []})
         }
         else {
           console.log(`Waiting on conversion of ${logFilenames}`)
@@ -367,7 +364,7 @@ class LogApp extends React.Component {
           if (series != null) {
             let plots =
                 this.state.plots 
-                this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
+                this.setState({plots : plots.concat(series)})
           }
         })
         .catch(err => {CustomAlert.presentAlert({text: err})})
@@ -387,7 +384,7 @@ class LogApp extends React.Component {
     }
   }
 
-  refresh_plots() {
+  refreshPlots() {
     if (this.state.plots.length == 0) {
       Plotly.purge(this.plot_div_element)
       return
@@ -521,8 +518,6 @@ class LogApp extends React.Component {
         self.map.updatePath()
       })
     })
-
-    this.setState({plotNeedsRefresh: false})
   }
 
   moosMessagesButton() {
@@ -639,12 +634,12 @@ class LogApp extends React.Component {
 
     addPlotClicked() { this.setState({isPathSelectorDisplayed : true}) }
 
-    clearPlotsClicked() { this.setState({plots : [], plotNeedsRefresh : true}) }
+    clearPlotsClicked() { this.setState({plots : [] }) }
 
     deletePlotClicked(plotIndex: number) {
       let {plots} = this.state
-      plots.splice(plotIndex, 1) 
-      this.setState({plots : plots, plotNeedsRefresh : true})
+      let newPlots = plots.filter((value, index) => { return index != plotIndex })
+      this.setState({plots : newPlots})
     }
 
     loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }

@@ -25,6 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/imu.proto";
 import "dccl/option_extensions.proto";
 
@@ -43,7 +44,9 @@ message Fusion
 
     required int32 bot_id = 10;
 
-    optional int32 health_report_timeout_seconds = 11 [default = 20];
+    required jaiabot.protobuf.BotStatus.BotType bot_type = 11;
+
+    optional int32 health_report_timeout_seconds = 12 [default = 20];
 
     optional int32 init_data_health_timeout_seconds = 15 [default = 20];
 

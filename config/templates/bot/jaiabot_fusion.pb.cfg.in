@@ -2,6 +2,7 @@ $app_block
 $interprocess_block
 
 bot_id: $bot_id
+bot_type: $bot_type
 
 is_sim: $fusion_in_simulation
 
@@ -12,10 +13,7 @@ discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS
-discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
-discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS
-discard_location_states: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
-discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+discard_location_states: IN_MISSION__PAUSE__REACQUIRE_GPS
 
 # IMU Detection
 imu_heading_course_max_diff: 45 # In Degrees
