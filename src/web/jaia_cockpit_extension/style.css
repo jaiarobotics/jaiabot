@@ -1,5 +1,0 @@
-.output {
-    overflow: auto; /* or "scroll" if you want to always show the scrollbar */
-    max-height: 20vh; /* define a max height for the div */
-    margin: 2vh;
-  }

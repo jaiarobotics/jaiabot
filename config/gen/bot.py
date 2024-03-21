@@ -55,6 +55,16 @@ elif jaia_arduino_type == 'usb':
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
+jaia_data_offload_ignore_type="NONE"
+
+if "jaia_data_offload_ignore_type" in os.environ:
+    jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
+
+bot_type = os.environ["jaia_bot_type"]
+
+if bot_type == "NONE":
+    bot_type = "HYDRO"
+
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
@@ -91,6 +101,7 @@ verbosities = \
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
@@ -217,6 +228,11 @@ elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
                                      bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
                                      remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
                                      atlas_salinity_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_echo_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_echo_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     echo_report_in_simulation=is_simulation()))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,
@@ -226,6 +242,7 @@ elif common.app == 'jaiabot_fusion':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
+                                     bot_type=bot_type,
                                      fusion_in_simulation=is_simulation(),
                                      bot_status_period=bot_status_period,
                                      imu_detection_solution=imu_detection_solution))
@@ -238,7 +255,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
-                                     fleet_id=fleet_index))
+                                     fleet_id=fleet_index,
+                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
