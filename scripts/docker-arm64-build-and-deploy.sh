@@ -51,10 +51,8 @@ else
     for remote in "$@"
     do
         echo "🟢 Uploading to "$remote
-        # Sync all directories except for lib
+        # Sync all directories
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./build/arm64/bin ./build/arm64/include ./build/arm64/share/ ./build/arm64/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
-        # # Sync the lib directory with --delete flag, to keep it clean
-        # rsync -za --force --relative --delete ./build/arm64/lib ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
