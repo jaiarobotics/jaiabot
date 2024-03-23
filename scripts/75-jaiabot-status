@@ -24,8 +24,7 @@ systemctl list-units -all "jaiabot*"
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 echo 
 cat /etc/jaiabot/version
-cat /etc/jaiabot/dev_version 2> /dev/null
 echo ""
-echo -n "jaiabot-embedded " && apt-cache show jaiabot-embedded | grep -i version
+cat /etc/jaiabot/software_version
 echo
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"

@@ -58,5 +58,4 @@ if [ ! -z "$jaiabot_arduino_type" ]; then
     sudo ${HOME}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh
 fi
 
-echo "Development version: ${jaiabot_version}" > /etc/jaiabot/dev_version
-echo "Development date:    $(date)" >> /etc/jaiabot/dev_version
+echo "Development version: ${jaiabot_version}, deployed $(date)" > /etc/jaiabot/software_version
