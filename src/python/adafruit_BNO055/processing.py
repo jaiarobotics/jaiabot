@@ -181,8 +181,8 @@ def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: 
     A = numpy.fft.rfft(inputSeries.y_values)
     n = len(A)
 
-    # fft has zero points
-    if n == 0:
+    # fft has 0 or 1 point
+    if n <= 1:
         return Series()
 
     nyquist = sampleFreq / 2
@@ -203,7 +203,6 @@ def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: 
 
         A[index] /= (-(2 * pi * freq) ** 2) # Integrate acceleration to elevation series (integrate a sin curve twice)
 
-    logging.warning(f'FFT length: {len(A)}')
     a = numpy.fft.irfft(A)
     series = Series()
     series.utime = inputSeries.utime[:len(a)]

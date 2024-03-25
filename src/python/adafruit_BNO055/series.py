@@ -6,8 +6,7 @@ import bisect
 from typing import *
 from datetime import *
 import statistics
-
-from plotly.subplots import *
+import numpy
 
 def utimeToDatetime(utime: float):
     return datetime.fromtimestamp(utime / 1e6)
@@ -156,7 +155,9 @@ class Series:
 
     @staticmethod
     def createPlotlyFigure(seriesList: List["Series"]):
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        import plotly.subplots
+
+        fig = plotly.subplots.make_subplots(specs=[[{"secondary_y": True}]])
         yaxis_titles = []
         for series in seriesList:
             fig.add_trace(go.Scatter(x=series.datetimes(), y=series.y_values, name=series.name))
