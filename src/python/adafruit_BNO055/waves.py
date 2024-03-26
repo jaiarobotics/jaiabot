@@ -1,23 +1,20 @@
-from dataclasses import dataclass
 from math import *
 from typing import *
-from scipy.fft import dct, idct
-from numpy import std
-import numpy
-from vector3 import Vector3
-import plotly.express as px
 from imu import *
 from threading import Thread, Lock
 from time import sleep
-from copy import deepcopy
-from numpy.linalg import lstsq
-import logging
 
 from series import *
 from processing import *
 from filters import *
 
+import json
+import logging
+import plotly.express as px
+
 log = logging.getLogger('jaiabot_imu')
+
+DEBUG_PATH = '/var/log/jaiabot/bot/'
 
 
 def isValidReading(reading: IMUReading):
@@ -38,6 +35,8 @@ def isValidReading(reading: IMUReading):
 
 
 class Analyzer:
+    debug_mode = False
+
     linear_acceleration_x = Series('acc.x')
     linear_acceleration_y = Series('acc.y')
     linear_acceleration_z = Series('acc.z')
@@ -110,6 +109,13 @@ class Analyzer:
         self.gravity_z.clear()
 
 
+    def dump_debug(self):
+        '''Dump some debug data to a log file'''
+
+        # Dump debug data
+        swh = calculateSignificantWaveHeight(self.linear_acceleration_x, self.linear_acceleration_y, self.linear_acceleration_z, self.gravity_x, self.gravity_y, self.gravity_z, debug_mode=True)
+
+
     def startSamplingForWaveHeight(self):
         with self._lock:
             self.clearAccelerationSeries()
@@ -117,6 +123,9 @@ class Analyzer:
 
     def stopSamplingForWaveHeight(self):
         with self._lock:
+            if self.debug_mode:
+                self.dump_debug()
+
             self.clearAccelerationSeries()
             self._sampling_for_wave_height = False
 
@@ -144,7 +153,7 @@ class Analyzer:
         print(self.getSignificantWaveHeight())
 
 
-def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series):
+def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series, debug_mode=False):
     # Filter out glitches from the IMU
     acc_x = filterAcc(acc_x)
     acc_y = filterAcc(acc_y)
@@ -184,6 +193,24 @@ def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, 
 
     swh = calculateSignificantWaveHeightFromSortedWaveHeights(sorted_wave_heights)
 
+    if debug_mode:
+        html_path = f'{DEBUG_PATH}/swh_debug_{datetime.now().strftime("%Y-%m-%dT%H%M%S")}.html'
+        fig = Series.createPlotlyFigure([
+            acc_x, acc_y, acc_z,
+            g_x, g_y, g_z,
+            acc_vertical,
+            elev_vertical,
+        ])
+        fig.write_html(html_path)
+        logging.warning(f'Wrote html to {html_path}')
+
+        json_path = f'{DEBUG_PATH}/swh_debug_{datetime.now().strftime("%Y-%m-%dT%H%M%S")}.json'
+        with open(json_path, 'w') as file:
+            json.dump({
+                'sortedWaveHeights': sorted_wave_heights,
+                'significant_wave_height': swh,
+            }, file)
+ 
     return swh
 
 
