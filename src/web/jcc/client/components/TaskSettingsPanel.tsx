@@ -49,10 +49,9 @@ interface Props {
 //   type.
 function TaskOptionsPanel(props: Props) {
 
-    var selectHeadingOnMap: boolean = false
     const task = props.task
     if (task == null) return;
-
+    //track state of click on map toggle
     const [clickingMap, setClickingMap] = useState(false)
 
     function onChangeDiveParameter(evt: React.ChangeEvent<HTMLInputElement>) {
@@ -167,39 +166,12 @@ function TaskOptionsPanel(props: Props) {
     }
 
     /**
-     * Checks for select heading on map
-     * 
-     * @returns {void}
-     */
-    function isMapHeadingChecked() {
-        if (selectHeadingOnMap === undefined) {
-            return false
-        }
-        return selectHeadingOnMap
-    }
-    /**
-     * Switches toggle state for select heading on map
-     * 
-     * @returns {void}
-     */
-    function handleHeadingSelectCheck() {
-        //TODO JAR selectOnMapOn was called on the old button push, need to enable that when toggle is true
-        if (selectHeadingOnMap === undefined) { 
-            selectHeadingOnMap = true
-        } else if (selectHeadingOnMap) {
-            selectHeadingOnMap = false
-        } else {
-            selectHeadingOnMap = true
-        }
-        if (selectHeadingOnMap) selectOnMap()
-    }
-
-   /**
      * Allows an operator to set constant heading parameters by selecting a point on the map
      * 
      * @returns {void}
      */   
     function selectOnMapClicked() {
+
         const { map, location } = props
 
         if (map == null) {
@@ -207,21 +179,30 @@ function TaskOptionsPanel(props: Props) {
             return
         }
 
-        // New layer for the constant heading line preview
+         // New layer for the constant heading line preview
         const source = new VectorSource({wrapX: false});
 
         const vector = new VectorLayer({
           source: source,
         });
         
-        map.addLayer(vector)
-
         // New interaction to get two points
         let draw = new Draw({
             source: source,
             type: 'Point',
             stopClick: true,
         })
+
+        //if just toggling off reset the map
+        if (clickingMap){
+            map.removeLayer(vector)
+            map.removeInteraction(draw)
+            setClickingMap(false)
+            return
+        }
+ 
+        map.addLayer(vector)
+
         draw.stopDown = (handled) => { return handled }
 
         map.addInteraction(draw)
@@ -421,10 +402,14 @@ function TaskOptionsPanel(props: Props) {
 
             return (
                 <div id="ConstantHeadingDiv">
-                    { selectOnMapToggle }
+                    
                     <table className="TaskParametersTable">
                         <tbody>
                             <tr className="task-param-container">
+                                <td className="task-label">Select Heading on Map</td>
+                                { selectOnMapToggle }
+                            </tr>
+                          <tr className="task-param-container">
                                 <td className="task-label">Heading</td>
                                 <td className="input-row"><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={onChangeConstantHeadingParameter} disabled={!props?.isEditMode} />deg</td>
                             </tr>
