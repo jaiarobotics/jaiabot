@@ -176,6 +176,8 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
 
                 interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+                fwd_progress_data_.latest_desired_speed = desired_setpoints.speed_with_units();
             }
         });
 
@@ -289,9 +291,11 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 if (imu_data.euler_angles().has_pitch())
                 {
+                    auto pitch = imu_data.euler_angles().pitch_with_units();
                     statechart::EvVehiclePitch ev;
-                    ev.pitch = imu_data.euler_angles().pitch_with_units();
+                    ev.pitch = pitch;
                     machine_->process_event(ev);
+                    fwd_progress_data_.latest_pitch = pitch;
                 }
             }
         });
@@ -675,6 +679,8 @@ void jaiabot::apps::MissionManager::loop()
         machine_->set_hub_id(hub_id_);
     }
 
+    check_forward_progress();
+
     machine_->process_event(statechart::EvLoop());
 }
 
@@ -1039,4 +1045,42 @@ double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const 
     u = sin((lat2r - lat1r) / 2);
     v = sin((lon2r - lon1r) / 2);
     return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
+
+// To determine no forward progress:
+//    If the vehicle is in the vertical position; pitch > resolve_pitch_threshold  (default 30 deg)
+//    If the vehicle desired speed is > resolve_desired_speed_threshold (default: 0 m/s)
+//    How long to give the vehicle to get to the horizontal position: resolve_no_forward_progress_timeout (default: 15 sec)
+void jaiabot::apps::MissionManager::check_forward_progress()
+{
+    const auto& pitch = fwd_progress_data_.latest_pitch;
+    const auto& pitch_threshold = cfg().resolve_no_forward_progress().pitch_threshold_with_units();
+    const auto& desired_speed = fwd_progress_data_.latest_desired_speed;
+    const auto& desired_speed_threshold =
+        cfg().resolve_no_forward_progress().desired_speed_threshold_with_units();
+
+    bool should_be_making_forward_progress = desired_speed > desired_speed_threshold;
+    bool making_forward_progress = pitch < pitch_threshold;
+    bool is_ivp_control = machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM;
+    auto now = goby::time::SteadyClock::now();
+
+    auto trigger_seconds = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+        cfg().resolve_no_forward_progress().trigger_timeout_with_units());
+
+    if (is_ivp_control && should_be_making_forward_progress && !making_forward_progress)
+    {
+        // we're not making forward progress when we should be, check the timeout
+        if (now > fwd_progress_data_.no_forward_progress_timeout)
+        {
+            glog.is_debug2() && glog << "No forward progress detected!" << std::endl;
+            machine_->process_event(statechart::EvNoForwardProgress());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
+        }
+    }
+    else
+    {
+        // otherwise bump forward the timeout
+        glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
+        fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
+    }
 }

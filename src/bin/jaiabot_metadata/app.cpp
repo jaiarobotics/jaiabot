@@ -28,11 +28,10 @@
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
-#include "jaiabot/messages/metadata.pb.h"
 using namespace jaiabot::protobuf;
 
 #include "jaiabot/groups.h"
-#include "jaiabot/version.h"
+#include "jaiabot/metadata.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -50,9 +49,8 @@ class Metadata : public ApplicationBase
     {
         // Subscribe to MetaData
         interprocess().subscribe<jaiabot::groups::metadata>(
-            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata) {
-                publish_metadata();
-            });
+            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata)
+            { publish_metadata(); });
     }
 
   private:
@@ -70,40 +68,7 @@ int main(int argc, char* argv[])
 
 void jaiabot::apps::Metadata::publish_metadata()
 {
-    // called at frequency passed to SingleThreadApplication (ApplicationBase)
-    auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
-    string jaia_device_name;
-    if (jaia_name_c)
-    {
-        jaia_device_name = string(jaia_name_c);
-    }
-    else
-    {
-        char buffer[256];
-        if (gethostname(buffer, 256) == 0)
-        {
-            jaia_device_name = string(buffer);
-        }
-        else
-        {
-            jaia_device_name = "<No Name>";
-        }
-    }
-
-    DeviceMetadata metadata;
-    metadata.set_name(jaia_device_name);
-    auto& jaiabot_version = *metadata.mutable_jaiabot_version();
-    jaiabot_version.set_major(JAIABOT_VERSION_MAJOR);
-    jaiabot_version.set_minor(JAIABOT_VERSION_MINOR);
-    jaiabot_version.set_patch(JAIABOT_VERSION_PATCH);
-
-#ifdef JAIABOT_VERSION_GITHASH
-    jaiabot_version.set_git_hash(JAIABOT_VERSION_GITHASH);
-    jaiabot_version.set_git_branch(JAIABOT_VERSION_GITBRANCH);
-#endif
-
-    metadata.set_goby_version(goby::VERSION_STRING);
-    metadata.set_moos_version(MOOS_VERSION);
+    DeviceMetadata metadata = jaiabot::metadata();
 
     if (cfg().has_xbee())
     {

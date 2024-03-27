@@ -24,8 +24,6 @@ The goal is to keep the state machine as simple as possible while still supporti
 	- Underway: To be performed while the bot is in the water. (Use Cases: "Mission", "Recovery")
 		+ Movement: Bot is moving to the next Task.
 			* Transit: Bot is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
-			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
-			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* RemoteControl: Bot is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the bot is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current bot location.
 				- Setpoint: Bot is performing a RC setpoint (heading, speed up to a given duration)
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
@@ -33,8 +31,6 @@ The goal is to keep the state machine as simple as possible while still supporti
 				- SurfaceDrift: Bot is drifting while waiting for the next Setpoint.
 			* ...: Can be expanded in the future to allow other types of Movement states as needed
 		+ Task: Bot is performing a sampling, station keeping, or other discrete task.
-			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
-			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* StationKeep: Bot is actively maintaining a position on the surface.
 			* SurfaceDrift: Bot is drifting (propulsor off).
 			* Dive: Bot performs a dive maneuver.
@@ -55,6 +51,11 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* StationKeep: Bot is actively maintaining the recovery location position.
 			* Stopped: Control surfaces are stopped for a safe recovery.
 		+ Replan: Bot has received a new mission and is assessing feasibility. The bot stationkeeps while in this state.
+	- Pause: Vehicle is currently pausing the mission to reinitialize sensors or due to an operator command.
+		* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
+		* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
+		* Manual: Operator has commanded the bot to pause its mission.
+		* ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
 	+ DataProcessing: Does not do anything at the moment. Placeholder for future on-board processing tasks.
@@ -114,6 +115,8 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
+- EvNoForwardProgress: Triggered when bot is in IvP control, desired speed is larger than a threshold (e.g., 0), and the pitch is greater than a threshold (e.g., 30 deg), indicating the bot is not making forward (horizontal) progress.
+- EvForwardProgressResolved: Triggered when the difficulty making forward progress is resolved (currently triggered after a timeout).
 
 #### Internal events
 

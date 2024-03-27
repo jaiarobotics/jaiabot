@@ -50,8 +50,9 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     double deg2rad(const double& deg);
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
-
     void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
+
+    void check_forward_progress();
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
@@ -88,6 +89,16 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     // Store previous command time to ensure it is newer and to ignore duplicates
     uint64_t prev_command_time_{0};
+
+    // Data for determining if we are making forward progress
+    struct ForwardProgressData
+    {
+        boost::units::quantity<boost::units::degree::plane_angle> latest_pitch;
+        boost::units::quantity<boost::units::si::velocity> latest_desired_speed;
+        goby::time::SteadyClock::time_point no_forward_progress_timeout;
+    };
+
+    ForwardProgressData fwd_progress_data_;
 };
 
 } // namespace apps

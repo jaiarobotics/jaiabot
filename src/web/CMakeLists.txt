@@ -36,7 +36,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shared DESTINATION ${intermediate_web_dir}
 file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/jcc/*)
 file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/shared/*)
 
-set(jcc_out_dir ${project_SHARE_DIR}/jaiabot/web/jcc/client)
+set(jcc_out_dir ${project_SHARE_DIR}/jaiabot/web/jcc)
 
 add_custom_command(OUTPUT ${jcc_out_dir}/client.js
   COMMAND npx webpack
