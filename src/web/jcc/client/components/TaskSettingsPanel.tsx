@@ -108,10 +108,10 @@ function TaskOptionsPanel(props: Props) {
      * @returns {void}
      */
     function isMapHeadingChecked() {
-        if (this.selectHeadingOnMap === undefined) {
+        if (selectHeadingOnMap === undefined) {
             return false
         }
-        return this.selectHeadingOnMap
+        return selectHeadingOnMap
     }
     /**
      * Switches toggle state for select heading on map
@@ -120,14 +120,14 @@ function TaskOptionsPanel(props: Props) {
      */
     function handleHeadingSelectCheck() {
         //TODO JAR selectOnMapOn was called on the old button push, need to enable that when toggle is true
-        if (this.selectHeadingOnMap === undefined) { 
-            this.selectHeadingOnMap = true
-        } else if (this.selectHeadingOnMap) {
-            this.selectHeadingOnMap = false
+        if (selectHeadingOnMap === undefined) { 
+            selectHeadingOnMap = true
+        } else if (selectHeadingOnMap) {
+            selectHeadingOnMap = false
         } else {
-            this.selectHeadingOnMap = true
+            selectHeadingOnMap = true
         }
-        if (this.selectHeadingOnMap) selectOnMap()
+        if (selectHeadingOnMap) selectOnMap()
     }
 
    /**
