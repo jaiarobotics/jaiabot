@@ -199,7 +199,7 @@ function TaskOptionsPanel(props: Props) {
      * 
      * @returns {void}
      */   
-    function selectOnMap() {
+    function selectOnMapClicked() {
         const { map, location } = props
 
         if (map == null) {
@@ -413,8 +413,8 @@ function TaskOptionsPanel(props: Props) {
             // Select on Map button is only present if a location is passed via Props
             //const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked} disabled={!props?.isEditMode}>Select on Map</button> : null
             const selectOnMapToggle = (props.location != null) ? <JaiaToggle 
-                                       checked={() => isMapHeadingChecked()}
-                                       onClick={handleHeadingSelectCheck}
+                                       checked={() => clickingMap}
+                                       onClick={selectOnMapClicked}
                                        disabled={() => !props?.isEditMode}
                                        /> :
                                         null
