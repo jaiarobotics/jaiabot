@@ -5,6 +5,6 @@
 goby_logger <(../../gen/bot.py goby_logger)
 
 # IMU sensor
-../../../src/python/adafruit_BNO055/jaiabot_imu.py -s 20000 -l DEBUG
+../../../src/python/adafruit/jaiabot_imu.py -d sim -p 20000 -l DEBUG
 jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)  -vvv
 

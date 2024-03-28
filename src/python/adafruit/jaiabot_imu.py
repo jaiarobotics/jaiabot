@@ -14,10 +14,10 @@ from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
 
 
-parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
-parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
+parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
+parser.add_argument('-d', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
+parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
-parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=4)')
 args = parser.parse_args()
@@ -54,7 +54,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
                 imuData = imu.getIMUData()
-
+                #print(imuData)
                 if imuData is None:
                     log.warning('getIMUData returned None')
                 else:
@@ -64,7 +64,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                     if wave_analyzer._sampling_for_bottom_characterization:
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
-                    log.debug(imuData)
+                    #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
@@ -74,6 +74,8 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 wave_analyzer.startSamplingForBottomCharacterization()
             elif command.type == IMUCommand.STOP_BOTTOM_TYPE_SAMPLING:
                 wave_analyzer.stopSamplingForBottomCharacterization()
+            elif command.type == IMUCommand.START_CALIBRATION:
+                imu.startCalibration()
 
         except Exception as e:
             traceback.print_exc()
@@ -140,9 +142,11 @@ def do_interactive_loop():
 
 if __name__ == '__main__':
     # Setup the sensor
-    if args.simulator:
+    if args.device_type == 'sim':
         imu = Simulator(wave_frequency=0.5, wave_height=1)
-    else:
+    elif args.device_type == 'bno055':
+        imu = AdafruitBNO055()
+    elif args.device_type == 'bno085':
         imu = Adafruit()
 
     # Setup the wave analysis thread

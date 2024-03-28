@@ -19,13 +19,6 @@ from threading import *
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
 
-try:
-    uart = serial.Serial("/dev/ttyAMA0", 3000000)
-    physical_device_available = True
-except Exception as e:
-    log.warning(f'Physical device not available: {e}')
-    physical_device_available = False
-
 class CalibrationState(Enum):
     IN_PROGRESS = 1
     COMPLETE = 2
@@ -39,6 +32,7 @@ class IMUReading:
     calibration_status: int
     calibration_state: CalibrationState
     quaternion: Quaternion
+    angular_velocity: Vector3
 
 class IMU:
     def setup(self):
@@ -72,6 +66,17 @@ class IMU:
         imu_data.gravity.y = reading.gravity.y
         imu_data.gravity.z = reading.gravity.z
 
+        angular_velocity = reading.angular_velocity
+        if angular_velocity is not None:
+            imu_data.angular_velocity.x = angular_velocity.x
+            imu_data.angular_velocity.y = angular_velocity.y
+            imu_data.angular_velocity.z = angular_velocity.z
+
+        imu_data.quaternion.w = reading.quaternion.w
+        imu_data.quaternion.x = reading.quaternion.x
+        imu_data.quaternion.y = reading.quaternion.y
+        imu_data.quaternion.z = reading.quaternion.z
+
         if reading.calibration_status is not None:
             # only send the mag cal
             imu_data.calibration_status = reading.calibration_status
@@ -94,26 +99,16 @@ class Adafruit(IMU):
     _lock: Lock
 
     def __init__(self):
-        log.info('Device: Adafruit')
-
-        if not physical_device_available:
-            log.error('No physical device available')
-            exit(1)
-
         self.is_setup = False
-
         self._lock = Lock()
 
     def _setup(self):
         """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
-                log.warning('We are not setup')
-
+                uart = serial.Serial("/dev/ttyAMA0", 3000000)
                 self.sensor = BNO08X_UART(uart)
-
                 log.info('Connected, now lets enable output')
-
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
@@ -131,7 +126,7 @@ class Adafruit(IMU):
 
             except Exception as error:
                 self.is_setup = False
-                log.warning("Error trying to setup driver!")
+                log.error(f"Adafruit BNO085 setup error: {error}")
             
     def setup(self):
         """Thread-safe setup function.  Call to setup the IMU."""
@@ -157,17 +152,8 @@ class Adafruit(IMU):
                 log.warning("We received None data in the takeReading function")
                 return None
 
-            # this is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
-            def filter(iterable: Iterable[float], threshold: float=50):
-                for value in iterable:
-                    if abs(value) > threshold:
-                        return [0.0] * len(iterable)
-                return iterable
-
-            linear_acceleration = filter(linear_acceleration)
-            gravity = filter(gravity)
-
             quaternion = Quaternion.from_tuple(quaternion)
+            angular_velocity = Vector3(*self.sensor.gyro)
             orientation = quaternion.to_euler_angles()
             # even after consulting the docs, we're still off by 90 degrees!
             orientation.heading = (orientation.heading + 90) % 360
@@ -181,7 +167,8 @@ class Adafruit(IMU):
                         gravity=gravity,
                         calibration_status=calibration_status,
                         calibration_state=calibration_state,
-                        quaternion=quaternion)
+                        quaternion=quaternion,
+                        angular_velocity=angular_velocity)
 
         except Exception as error:
             log.warning(f"Error trying to get data: {error}")
@@ -226,6 +213,78 @@ class Adafruit(IMU):
         else:
             logging.debug("Waiting To Check Calibration")
 
+
+
+class AdafruitBNO055(IMU):
+
+    def __init__(self):
+        self.is_setup = False
+
+    def setup(self):
+        if not self.is_setup:
+            import adafruit_bno055
+            import board
+
+            self.i2c = board.I2C()
+
+            try:
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x28)
+            except ValueError: # From I2CDevice if not on 0x28: ValueError("No I2C device at address: 0x%x" % self.device_address)
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x29)
+            
+            self.sensor.mode = adafruit_bno055.NDOF_MODE
+            self.is_setup = True
+
+            # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
+            self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
+
+    def takeReading(self):
+        if not self.is_setup:
+            self.setup()
+
+        try:
+            quaternion = self.sensor.quaternion
+            euler = self.sensor.euler
+            linear_acceleration = self.sensor.linear_acceleration
+            gravity = self.sensor.gravity
+            calibration_status = self.sensor.calibration_status
+            angular_velocity = self.sensor.gyro
+             
+            if None in quaternion or None in euler or None in linear_acceleration or None in gravity or None  in calibration_status:
+                return None
+            
+            # This is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
+            def filter(iterable: Iterable[float], threshold: float=50):
+                for value in iterable:
+                    if abs(value) > threshold:
+                        return [0.0] * len(iterable)
+                return iterable
+
+            linear_acceleration = filter(linear_acceleration)
+            gravity = filter(gravity)
+
+            quaternion = Quaternion.from_tuple(quaternion)
+            orientation = quaternion.to_euler_angles()
+            orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
+            linear_acceleration = Vector3(*linear_acceleration)
+            linear_acceleration_world = quaternion.apply(linear_acceleration)
+            gravity = Vector3(*gravity)
+            angular_velocity = Vector3(*angular_velocity)
+
+            return IMUReading(orientation=orientation, 
+                        linear_acceleration=linear_acceleration, 
+                        linear_acceleration_world=linear_acceleration_world,
+                        gravity=gravity,
+                        calibration_status=calibration_status[0], # This comes as a tuple
+                        calibration_state=CalibrationState.COMPLETE,
+                        quaternion=quaternion,
+                        angular_velocity=angular_velocity)
+
+        except OSError as e:
+            self.is_setup = False
+            raise e
+
+
 class Simulator(IMU):
     wave_frequency: float
     wave_height: float
@@ -259,5 +318,7 @@ class Simulator(IMU):
                             linear_acceleration=linear_acceleration,
                             linear_acceleration_world=linear_acceleration_world,
                             gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
-                            calibration_status=(3, 3, 3, 3),
-                            quaternion=quaternion)
+                            calibration_state=CalibrationState.COMPLETE,
+                            calibration_status=0,
+                            quaternion=quaternion,
+                            angular_velocity=Vector3(0, 0, 0))
