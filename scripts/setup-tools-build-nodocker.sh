@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Add packages.gobysoft.org mirror to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
 # Update apt
