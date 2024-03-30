@@ -89,7 +89,7 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callab
     Returns:
         Series: The resulting filtered frequency.
     """
-    if len(inputSeries.utime) == 0:
+    if len(inputSeries.utime) < 2:
         return Series()
 
     A = numpy.fft.rfft(inputSeries.y_values)
@@ -244,7 +244,7 @@ def significantWaveHeight(waveHeights: List[float]):
 
 
 BandPassFilterFunc = Callable[[float], float]
-bandPassFilter = cos2Filter(1/15, 1/120, 2, 2)
+bandPassFilter = cos2Filter(1/25, 1/120, 2, 2)
 
 
 def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):

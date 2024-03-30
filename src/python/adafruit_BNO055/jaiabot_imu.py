@@ -17,9 +17,13 @@ from google.protobuf import text_format
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
-parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=4)')
+
+parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
+parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
+parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave frequency (seconds)')
+
 args = parser.parse_args()
 
 logging.warning(args)
@@ -141,7 +145,7 @@ def do_interactive_loop():
 if __name__ == '__main__':
     # Setup the sensor
     if args.simulator:
-        imu = Simulator(wave_frequency=0.5, wave_height=1)
+        imu = Simulator(wave_frequency=1.0 / args.wave_period, wave_height=args.wave_height)
     else:
         imu = Adafruit()
 

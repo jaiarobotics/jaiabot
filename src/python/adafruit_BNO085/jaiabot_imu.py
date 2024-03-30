@@ -15,9 +15,13 @@ from google.protobuf import text_format
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
-parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
+
+parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
+parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
+parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
+
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
@@ -91,11 +95,16 @@ def do_interactive_loop():
         print('''
     Menu
     ====
+              
+    Raw commands:
     [Enter]    Sample the IMU
     [w]        Start sampling for wave height
     [e]        Stop sampling for wave height
     [s]        Start sampling for bottom type
     [d]        Stop sampling for bottom type
+              
+    Other commands:
+    [h]        Significant Wave Height analysis
     
     [x]        Exit
     ''')
@@ -104,6 +113,54 @@ def do_interactive_loop():
 
         if choice == 'x':
             exit()
+        elif choice == 'h':
+            sample_duration = float(input('Sample for how long (seconds)?'))
+            sample_frequency = float(input('Sample at what frequency (Hz)?'))
+            sample_period = 1 / sample_frequency
+
+            start_time = datetime.datetime.now()
+
+            # Start sampling for wave height
+            imuCommand = IMUCommand()
+            imuCommand.type = IMUCommand.START_WAVE_HEIGHT_SAMPLING
+            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+            while True:
+                current_time = datetime.datetime.now()
+                sample_time = (current_time - start_time).total_seconds()
+                if sample_time > sample_duration:
+                    break
+                
+                # Send command to take a reading
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.TAKE_READING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+                try:
+                    # Wait for reading to come back...
+                    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+                    # Deserialize the message
+                    imuData = IMUData()
+                    imuData.ParseFromString(data)
+                    print(f'Took a reading ({sample_time:6.1f}/{sample_duration:6.1f} seconds)', end='\r')
+                except Exception as e:
+                    traceback.print_exc()
+
+                sleep(sample_period)
+
+            # Start sampling for wave height
+            imuCommand = IMUCommand()
+            imuCommand.type = IMUCommand.STOP_WAVE_HEIGHT_SAMPLING
+            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+            print('Results:')
+            print(imuData)
+
+
+
+            continue
+
 
         commandTypeMap = {
             'w': IMUCommand.START_WAVE_HEIGHT_SAMPLING,
@@ -142,13 +199,13 @@ def do_interactive_loop():
 if __name__ == '__main__':
     # Setup the sensor
     if args.simulator:
-        imu = Simulator(wave_frequency=0.5, wave_height=1)
+        imu = Simulator(wave_frequency=1 / args.wave_period, wave_height=args.wave_height)
     else:
         from adafruit_imu import Adafruit
         imu = Adafruit()
 
     # Setup the wave analysis thread
-    analyzer = AccelerationAnalyzer(imu, args.frequency, dump_to_file_flag=True)
+    analyzer = AccelerationAnalyzer(args.frequency, dump_to_file_flag=True)
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])

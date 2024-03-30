@@ -46,13 +46,12 @@ class AccelerationAnalyzer:
     # (for debugging)
     dump_to_file_flag: bool
 
-    _thread: Thread
     _sampling_for_wave_height = False
     _sampling_for_bottom_characterization = False
     _lock = Lock()
 
 
-    def __init__(self, imu: IMU, sample_frequency: float, dump_to_file_flag: bool=False):
+    def __init__(self, sample_frequency: float, dump_to_file_flag: bool=False):
         logger.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_frequency = sample_frequency
@@ -121,15 +120,10 @@ class AccelerationAnalyzer:
         csv_filename = os.path.expanduser(f'/var/log/jaiabot/swh-debug-{date_string}.csv')
         with open(csv_filename, 'w') as csv_file:
             csv_writer = csv.writer(csv_file)
-            for i in range(len(self.linear_acceleration_x.utime)):
+            for i in range(len(self.vertical_acceleration.utime)):
                 line = [
-                    self.linear_acceleration_x.utime[i],
-                    self.linear_acceleration_x.y_values[i],
-                    self.linear_acceleration_y.y_values[i],
-                    self.linear_acceleration_z.y_values[i],
-                    self.gravity_x.y_values[i],
-                    self.gravity_y.y_values[i],
-                    self.gravity_z.y_values[i]
+                    self.vertical_acceleration.utime[i],
+                    self.vertical_acceleration.y_values[i]
                 ]
                 csv_writer.writerow(line)
 
