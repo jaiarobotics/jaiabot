@@ -43,6 +43,7 @@ enum MissionState
     IN_MISSION__PAUSE__IMU_RESTART = 160;
     IN_MISSION__PAUSE__REACQUIRE_GPS = 161;
     IN_MISSION__PAUSE__MANUAL = 162;
+    IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
     POST_DEPLOYMENT__RECOVERED = 200;
     POST_DEPLOYMENT__DATA_PROCESSING = 201;
@@ -196,6 +197,7 @@ message MissionTask
                 units { base_dimensions: "T" }
             }
         ];
+        optional bool bottom_dive = 4 [default = false];
     }
 
     // for type == DIVE

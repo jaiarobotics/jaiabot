@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-# sudo may not be present, if in docker
-apt-get -y update && apt-get -y install sudo
-
-echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
-  apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32 && \
-  apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
-
 # Add packages.gobysoft.org mirror to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
 # Update apt

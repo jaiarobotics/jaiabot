@@ -1,0 +1,90 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package jaiabot.config;
+
+message Tool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
+        has_help_action: true
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia help [action]\"\n"
+                           "Provides detailed usage information on the provided action.\n"
+                           "Example: \"jaia help version\" provides help in the 'version' action"
+
+        }];
+        // log = 1 [(goby.ev).cfg = {
+        //     short_help_msg: "Manage Jaia (goby) log files",
+        // }];
+        status = 2 [(goby.ev).cfg = {
+            short_help_msg: "Status of Jaia services",
+            external_command: "jaiabot-status"
+            full_help_msg: "Runs jaiabot-status to display status of Jaiabot services"
+        }];
+        ctl = 3 [(goby.ev).cfg = {
+            short_help_msg: "Control Jaia services",
+            full_help_msg: "This action is a wrapper for 'systemctl [<service>: defaults to jaiabot.service]': use jaia ctl --help for full details\n"
+                           "\n"
+                           "Common commands:\n"
+                           "  jaia ctl restart: Restart all jaiabot services\n"
+                           "  jaia ctl stop: Stop all jaiabot services\n"
+                           "  jaia ctl start: Start all jaiabot services\n"
+                           "  jaia ctl <command> <service>: Run command on a specific service, e.g.,\n"
+                           "    jaia ctl restart jaiabot_goby_gps: Restart GPS service"
+        }];
+        version = 4 [(goby.ev).cfg = {
+            short_help_msg: "Jaia version (metadata)",
+        }];
+        ssh = 5 [(goby.ev).cfg = {
+            short_help_msg: "Use SSH to login to jaiabots and hubs",
+            full_help_msg: "This action is a wrapper for 'ssh' that can take shortcut names for jaia hosts\n"
+                           "Command line options before the host name are processed by 'jaia ssh', and command line options after the host name are passed unmodified to ssh"
+                           "\n"
+                           "Example commands:\n"
+                           "  jaia ssh b4f10: SSH into bot4 on fleet10\n"
+                           "  jaia ssh h1f2: SSH into hub1 on fleet2\n"
+                           "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
+                           "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
+        }];
+    }
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position { enable: true }, cli_short: "A", action: HIDDEN }
+        }
+    ];
+}
