@@ -93,9 +93,9 @@ class ELECTRONICS_STACK(Enum):
     STACK_3 = '2'
 
 class BOT_TYPE(Enum):
-    HYDRO = 'hydro'
-    ECHO = 'echo'
-    NONE = 'none'
+    HYDRO = 'HYDRO'
+    ECHO = 'ECHO'
+    NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     GOBY = 'GOBY'

@@ -75,3 +75,7 @@ div.busy-overlay {
     background-color: #00000070;
 }
 
+img.busy-icon {
+    width: 150pt;
+    height: 150pt;
+}

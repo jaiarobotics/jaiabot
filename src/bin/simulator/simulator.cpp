@@ -106,6 +106,9 @@ class SimulatorTranslation : public goby::moos::Translator
     int time_out_sky_{200};
 
     goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
+
+    bool making_forward_progress_{false};
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -200,6 +203,13 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
                                 command.gps_dropout().dropout_duration_with_units());
 
+                        break;
+
+                    case jaiabot::protobuf::SimulatorCommand::kStopForwardProgress:
+                        stop_forward_progress_end_ =
+                            goby::time::SteadyClock::now() +
+                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                command.stop_forward_progress().duration_with_units());
                         break;
                 }
             });
@@ -383,8 +393,11 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     // publish IMUData
     {
         jaiabot::protobuf::IMUData imu_data;
-        imu_data.mutable_euler_angles()->set_pitch_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
-                                                              si::radians);
+        auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+        if (!making_forward_progress_)
+            pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
+
+        imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
         imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                              si::radians);
         imu_data.set_calibration_status(3);
@@ -424,7 +437,17 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
     constexpr double rudder_normalization = 1.0;
     constexpr double elevator_normalization = 1.0;
 
-    moos().comms().Notify("DESIRED_THRUST", thrust_normalization * control_surfaces.motor());
+    auto normalized_thrust = thrust_normalization * control_surfaces.motor();
+
+    bool is_no_forward_progress = goby::time::SteadyClock::now() <= stop_forward_progress_end_;
+    making_forward_progress_ = true;
+    if (std::abs(normalized_thrust) < sim_cfg_.minimum_thrust() || is_no_forward_progress)
+    {
+        making_forward_progress_ = false;
+        normalized_thrust = 0;
+    }
+
+    moos().comms().Notify("DESIRED_THRUST", normalized_thrust);
     moos().comms().Notify("DESIRED_RUDDER", rudder_normalization * control_surfaces.rudder());
     moos().comms().Notify(
         "DESIRED_ELEVATOR",

@@ -33,6 +33,8 @@ import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
 
 import './index.css'
 
+const loadingImage = require('./images/loading.gif')
+
 var Plotly = require('plotly.js-dist')
 
 const APP_NAME = "Jaia Data Vision"
@@ -125,7 +127,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="busy-icon"></img></div> : null
+    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src={loadingImage} className="busy-icon"></img></div> : null
 
 
     return (

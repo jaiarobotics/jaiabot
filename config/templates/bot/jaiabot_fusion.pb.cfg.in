@@ -2,6 +2,7 @@ $app_block
 $interprocess_block
 
 bot_id: $bot_id
+bot_type: $bot_type
 
 is_sim: $fusion_in_simulation
 

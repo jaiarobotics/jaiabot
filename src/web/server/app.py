@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from datetime import *
+import os
 
 def parseDate(date):
     if date is None or date == '':
@@ -29,6 +30,7 @@ parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC
 parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
+parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
 args = parser.parse_args()
 
 # Setup logging module
@@ -45,12 +47,12 @@ jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), rea
 app = Flask(__name__)
 
 ####### Static files
-root = '../command_control/dist/client/'
-jed = '../jed/'
+jcc: str = os.path.join(args.appRoot, 'jcc')
+jed: str = os.path.join(args.appRoot, 'jed')
 
 @app.route('/<path>', methods=['GET'])
-def getStaticFile(path):
-    return send_from_directory(root, path)
+def getStaticFile(path: str):
+    return send_from_directory(jcc, path)
 
 @app.route('/', methods=['GET'])
 def getRoot():
