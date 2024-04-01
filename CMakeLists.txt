@@ -253,9 +253,6 @@ set(scripts
     jaiabot-checkloadavg.py
     jaiabot-dataoffload.sh
     jaiahub-dataoffload-cloudhub.sh
-    jaiabot-update-packages.sh # Cockpit script
-    jaiabot-version-status.sh  # Cockpit script
-    jaiabot-software-group.sh  # Cockpit script
     jaia_firm_backup_date.sh   # Firmware script
 )
 
