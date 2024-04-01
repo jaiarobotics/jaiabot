@@ -61,6 +61,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     OUTPUT_VARIABLE PROJECT_REVS_SINCE_TAG)
 
   message("Project Revs Since Tag: ${PROJECT_REVS_SINCE_TAG}")
+
   if(PROJECT_REVS_SINCE_TAG)
     string(STRIP ${PROJECT_REVS_SINCE_TAG} PROJECT_REVS_SINCE_TAG)
   endif()
@@ -123,6 +124,13 @@ get_filename_component(project_BIN_DIR ${project_BUILD_DIR}/bin ABSOLUTE)
 get_filename_component(project_INC_DIR ${project_BUILD_DIR}/include ABSOLUTE)
 get_filename_component(project_SHARE_DIR ${project_BUILD_DIR}/share ABSOLUTE)
 file(MAKE_DIRECTORY ${project_SHARE_DIR})
+get_filename_component(project_INTERMEDIATE_DIR ${project_BUILD_DIR}/intermediate ABSOLUTE)
+file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
+
+# Write the version to a simple text file for scripts to use
+if(PROJECT_VERSION_GITHASH)
+  file(WRITE ${project_SHARE_DIR}/version.txt ${PROJECT_VERSION_GITDESCRIBE})
+endif()
 
 ## set the cmake defaults for libraries and binaries
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH 
@@ -252,16 +260,6 @@ configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR}
 
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
 configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
-
-# Cockpit scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-update-packages.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-update-packages.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-version-status.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-version-status.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-software-group.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-software-group.sh ${project_BIN_DIR} COPYONLY)
 
 # Firmware scripts
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh DESTINATION ${CMAKE_INSTALL_BINDIR})

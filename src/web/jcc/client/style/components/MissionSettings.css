@@ -1,0 +1,126 @@
+.mission-settings-panel-outer-container {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    max-height: calc(95vh - 66px);
+    
+    background-color: rgba(0, 0, 0, 0.7);
+  
+    border: 2px solid #767d7d;
+  
+    z-index: 1;
+}
+
+.mission-settings-panel-container {
+    display: grid;
+    grid-template-columns: max-content min-content;
+    gap: 16px;
+    margin: 8pt 8pt 4pt 8pt;
+    padding: 16px;
+    background-color: #FFFFFF;
+    font-size: 1.1rem;
+
+    /* 66px = height of top toolbar, 58px = height of btm btn container, 57px = measured buffer */
+    max-height: calc(95vh - (66px + 58px + 57px));
+    overflow-y: auto;
+}
+
+.mission-settings-tasks-grid {
+    display: grid;
+    grid-template-columns: max-content min-content;
+    gap: 16px;
+}
+
+.mission-settings-task-container {
+    grid-column: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mission-settings-header {
+    grid-column: 1 / 3;
+    
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-weight: 600;
+}
+
+.mission-settings-tasks-title {
+    margin-top: 6px;
+}
+
+.mission-settings-input-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.mission-settings-input-label {
+    margin-top: 8px;
+}
+
+.mission-settings-num-input {
+    all: unset;
+    width: 75px;
+    border: 1px solid #D1D5DB;
+    border-radius: 3px;
+    padding: 6px;
+}
+
+.mission-settings-srp-container {
+    grid-column: 1 / 3;
+
+    display: grid;
+    grid-template-columns: max-content min-content;
+    gap: 16px;
+}
+
+.mission-settings-button-container {
+    grid-column: 1 / 3;
+  
+    display: flex;
+    justify-content: space-between;
+    background-color: #FFFFFF;
+    margin: 0 8pt 8pt 8pt;
+    padding: 12px 24px;
+}
+  
+.mission-settings-btn {
+    all: unset;
+    background-color: #D1D5DB;
+    color: #000000;
+    padding: 9px 12px;
+    border-radius: 6px;
+    box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+}
+
+.mission-settings-btn:hover {
+    cursor: pointer
+}
+
+.mission-settings-btn.disabled {
+    opacity: 0.5;
+    cursor: auto;
+}
+
+.mission-settings-line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #D1D5DB;
+}
+
+.mission-settings-show {
+   display: grid; 
+}
+
+.mission-settings-show-flex {
+    display: flex; 
+ }
+
+.mission-settings-hide {
+    display: none;
+}

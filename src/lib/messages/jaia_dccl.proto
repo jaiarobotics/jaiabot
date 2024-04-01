@@ -13,11 +13,11 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 179 bytes / 1432 bits
+    Actual maximum size of message: 183 bytes / 1464 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1422
-        padding to full byte...................2
+        body................................1456
+        padding to full byte...................0
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -45,6 +45,8 @@ message Command
         NEXT_TASK = 10;
         RETURN_TO_HOME = 11;
         STOP = 12;
+        PAUSE = 13;
+        RESUME = 14;
 
         // during remote control mission
         REMOTE_CONTROL_SETPOINT = 20;
@@ -132,6 +134,12 @@ message BotStatus
     optional goby.middleware.protobuf.HealthState health_state = 4;
     repeated Error error = 5 [(dccl.field).max_repeat = 5];
     repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
+    enum BotType
+    {
+        HYDRO = 1;
+        ECHO = 2;
+    }
+    required BotType bot_type = 7;
 
     optional GeographicCoordinate location = 10;
 
@@ -205,6 +213,8 @@ message BotStatus
         precision: 0
         units { base_dimensions: "T" }
     }];
+    optional int32 repeat_index = 44
+        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -247,16 +257,18 @@ message BotStatus
     optional double battery_percent = 57
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
-    optional IMUData.CalibrationStatus calibration_status = 58;
+    optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional IMUCalibrationState calibration_state = 59;
 
-    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional double hdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 data_offload_percentage = 61
+    optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional int32 data_offload_percentage = 62
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
-    optional int32 wifi_link_quality_percentage = 62
+    optional int32 wifi_link_quality_percentage = 63
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 }
 

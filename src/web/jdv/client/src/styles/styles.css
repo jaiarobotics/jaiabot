@@ -59,3 +59,23 @@ div.spacer {
 .danger {
     color: red;
 }
+
+div.busy-overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    position: absolute;
+    top: 0pt;
+    right: 0pt;
+    bottom: 0pt;
+    left: 0pt;
+
+    background-color: #00000070;
+}
+
+img.busy-icon {
+    width: 150pt;
+    height: 150pt;
+}

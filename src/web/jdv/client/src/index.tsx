@@ -29,6 +29,11 @@ import { Log } from './Log'
 import { Draw } from 'ol/interaction'
 
 import './styles/styles.css'
+import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
+
+import './index.css'
+
+const loadingImage = require('./images/loading.gif')
 
 var Plotly = require('plotly.js-dist')
 
@@ -43,9 +48,7 @@ function iso_date_to_micros(iso_date_string: string) {
 }
 
 
-interface LogAppProps {
-
-}
+interface LogAppProps {}
 
 
 interface State {
@@ -56,8 +59,6 @@ interface State {
   measureResultVisible: boolean
   measureMagnitude: string,
   measureUnit: string,
-  plotNeedsRefresh: boolean
-  mapNeedsRefresh: boolean
   timeFraction: number | null
   t: number | null // Currently selected time
   tMin: number | null // Minimum time for these logs
@@ -70,7 +71,10 @@ interface State {
   isOpenPlotSetDisplayed: boolean
 
   // Modal busy indicator
-  busyIndicator: boolean
+  isBusy: boolean
+
+  // Custom Alert shown, if any
+  customAlert?: React.JSX.Element
 }
 
 
@@ -79,7 +83,6 @@ class LogApp extends React.Component {
   state: State
   map: JaiaMap
   plot_div_element: any
-  busySemaphore: number = 0
 
   constructor(props: LogAppProps) {
     super(props)
@@ -92,8 +95,6 @@ class LogApp extends React.Component {
       measureResultVisible: false,
       measureMagnitude: '',
       measureUnit: '',
-      plotNeedsRefresh: false,
-      mapNeedsRefresh: false,
       timeFraction: null,
       t: null, // Currently selected time
       tMin: null, // Minimum time for these logs
@@ -104,9 +105,20 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
-
-      busyIndicator: false
+      isBusy: false,
+      customAlert: null
     }
+
+    CustomAlert.setPresenter((props: CustomAlertProps | null) => {
+      if (props == null) {
+        this.setState({customAlert: null})
+        return
+      }
+  
+      this.setState({
+        customAlert: <CustomAlert {...props} ></CustomAlert>
+      })
+    })
   }
 
   render() {
@@ -115,7 +127,7 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="vertical-center"></img></div> : null
+    var busyOverlay = this.state.isBusy? <div className="busy-overlay"><img src={loadingImage} className="busy-icon"></img></div> : null
 
 
     return (
@@ -187,9 +199,9 @@ class LogApp extends React.Component {
           { log_selector }
           {busyOverlay}
 
-        </div>
+          { this.state.customAlert }
 
-        {this.loadingIndicatorIfNeeded()}
+        </div>
 
       </Router>
     )
@@ -205,22 +217,6 @@ class LogApp extends React.Component {
     return <div id="logList" className="padded">
       {chosenLogsElements}
     </div>
-  }
-
-  loadingIndicatorIfNeeded(): React.JSX.Element {
-    if (this.busySemaphore > 0) {
-      return (
-        <div className='vertical flexbox maximized' style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#00000050'}}>
-          <img src = "/favicon.png" className='padded' style={{width: '50pt', height: '50pt'}} />
-          <div style={{textAlign: 'center'}}>
-            Loading
-          </div>
-        </div>
-      )
-    }
-    else {
-      return null
-    }
   }
 
   togglerLayerSwitcher() {
@@ -260,38 +256,42 @@ class LogApp extends React.Component {
     this.setState({isSelectingLogs: true})
   }
 
-  componentDidUpdate() {
-    if (this.state.mapNeedsRefresh) {
+  componentDidUpdate(prevProps: LogAppProps, prevState: State) {
+    if (this.state.chosenLogs !== prevState.chosenLogs) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        const getMapJob = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+        const getMapJob = LogApi.getMapData(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        const getCommandsJob = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsJob = LogApi.getCommands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        const getActiveGoalsJob = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalsJob = LogApi.getActiveGoal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        const getTaskPacketsJob = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsJob = LogApi.getTaskPackets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        const getDepthContoursJob = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursJob = LogApi.getDepthContours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
-        this.startBusyIndicator()
+        // Get the drift interpolations
+        const getDriftInterpolationsJob = LogApi.getDriftInterpolations(this.state.chosenLogs).then((geoJSON) => {
+          this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
+        })
 
-        Promise.allSettled([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob]).finally(() => {
+        this.startBusyIndicator()
+        Promise.all([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob, getDriftInterpolationsJob]).finally(() => {
           this.stopBusyIndicator()
         })
 
@@ -299,12 +299,11 @@ class LogApp extends React.Component {
       else {
         this.map.clear()
       }
-
-      this.setState({mapNeedsRefresh: false})
     }
     
-    if (this.state.plotNeedsRefresh) {
-      this.refresh_plots()
+    if (this.state.chosenLogs !== prevState.chosenLogs ||
+        this.state.plots !== prevState.plots) {
+      this.refreshPlots()
     }
   }
 
@@ -327,17 +326,17 @@ class LogApp extends React.Component {
     function openLogsWhenReady() {
       self.startBusyIndicator()
 
-      LogApi.post_convert_if_needed(logFilenames).then((response) => {
+      LogApi.postConvertIfNeeded(logFilenames).then((response) => {
         if (response.done) {
           self.stopBusyIndicator()
-          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true})
+          self.setState({chosenLogs: logFilenames, plots: []})
         }
         else {
           console.log(`Waiting on conversion of ${logFilenames}`)
           setTimeout(openLogsWhenReady, 1000)
         }
       }).catch((err) => {
-        alert(err)
+        CustomAlert.presentAlert({text: err})
         self.stopBusyIndicator()
       })
     }
@@ -347,11 +346,11 @@ class LogApp extends React.Component {
   }
 
   startBusyIndicator() {
-    this.setState({busyIndicator: true})
+    this.setState({isBusy: true})
   }
 
   stopBusyIndicator() {
-    this.setState({busyIndicator: false})
+    this.setState({isBusy: false})
   }
 
   didSelectPaths(pathArray: string[]) {
@@ -360,15 +359,15 @@ class LogApp extends React.Component {
     this.setState({isPathSelectorDisplayed: false})
     this.startBusyIndicator()
 
-    LogApi.get_series(this.state.chosenLogs, pathArray)
+    LogApi.getSeries(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
                 this.state.plots 
-                this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
+                this.setState({plots : plots.concat(series)})
           }
         })
-        .catch(err => {alert(err)})
+        .catch(err => {CustomAlert.presentAlert({text: err})})
         .finally(() => {
           this.stopBusyIndicator()
         })
@@ -385,7 +384,7 @@ class LogApp extends React.Component {
     }
   }
 
-  refresh_plots() {
+  refreshPlots() {
     if (this.state.plots.length == 0) {
       Plotly.purge(this.plot_div_element)
       return
@@ -400,7 +399,64 @@ class LogApp extends React.Component {
       let hovertext = series.series_y.map(y => series.hovertext?.[y])
 
       // Set the y-axis for this plot
-      layout['yaxis' + (plot_index + 1)] = {title : series.y_axis_title}
+      function wrapLines(text: string, maxLength=30, splitChars=['/', ' ']) {
+        // Get components that include the splitChars
+        var components: string[] = []
+        var newComponent = true
+
+        for (let characterIndex=0; characterIndex < text.length; characterIndex ++) {
+          if (newComponent) {
+            components.push('')
+          }
+
+          const c = text[characterIndex]
+          components[components.length - 1] = components[components.length - 1].concat(c)
+
+          if (splitChars.includes(c)) {
+            newComponent = true
+          }
+          else {
+            newComponent = false
+          }
+        }
+
+        console.log('components')
+        console.log(components)
+
+        // Concat the components, with <br> if necessary
+        var lines: string[] = []
+        var line = ''
+        
+        for (const component of components) {
+          if (component.length > maxLength) {
+            if (line.length > 0) {
+              lines.push(line)
+            }
+            lines.push(component)
+            continue
+          }
+
+          if (line.length + component.length > maxLength) {
+            lines.push(line)
+            line = component
+            continue
+          }
+
+          line = line.concat(component)
+        }
+
+        if (line.length > 0) {
+          lines.push(line)
+        }
+
+        console.log('lines')
+        console.log(lines)
+
+        return lines.join('<br>')
+      }
+
+      const y_axis_title = wrapLines(series.y_axis_title.replaceAll('\n', '<br>'))
+      layout['yaxis' + (plot_index + 1)] = {title : y_axis_title}
 
       // Add to the data array
       let yaxis = 'y' + (plot_index + 1)
@@ -462,8 +518,6 @@ class LogApp extends React.Component {
         self.map.updatePath()
       })
     })
-
-    this.setState({plotNeedsRefresh: false})
   }
 
   moosMessagesButton() {
@@ -479,7 +533,7 @@ class LogApp extends React.Component {
   }
 
   open_moos_messages(time_range: number[]) {
-    LogApi.get_moos(this.state.chosenLogs, time_range)
+    LogApi.getMOOS(this.state.chosenLogs, time_range)
   }
 
   // Plot Section
@@ -553,11 +607,21 @@ class LogApp extends React.Component {
           }
         } /> : null
 
+    let noSelectedSeriesMessage: React.JSX.Element = null
+    if (this.state.chosenLogs.length > 0 && this.state.plots.length == 0) {
+      noSelectedSeriesMessage = 
+        <div className='no-selected-series-message'>
+          No data series selected to plot yet.<br />
+          To plot or export data as CSV, please select one or more series using the <Icon path = {mdiPlus} size = {1} className='button' style = {{ verticalAlign: "middle", backgroundColor: 'lightgray' }}></Icon> button above.
+        </div>
+    }
+
     return (
       <div className="plotcontainer">
         <h2>Plots</h2>{actionBar} {
               pathSelector}<div className = "horizontal flexbox">
           <div id = "plot" className = "plot">
+            { noSelectedSeriesMessage }
           </div>
           <div className="vertical flexbox deleteButtonSection">
             { deleteButtons }
@@ -570,12 +634,12 @@ class LogApp extends React.Component {
 
     addPlotClicked() { this.setState({isPathSelectorDisplayed : true}) }
 
-    clearPlotsClicked() { this.setState({plots : [], plotNeedsRefresh : true}) }
+    clearPlotsClicked() { this.setState({plots : [] }) }
 
     deletePlotClicked(plotIndex: number) {
       let {plots} = this.state
-      plots.splice(plotIndex, 1) 
-      this.setState({plots : plots, plotNeedsRefresh : true})
+      let newPlots = plots.filter((value, index) => { return index != plotIndex })
+      this.setState({plots : newPlots})
     }
 
     loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }
@@ -584,7 +648,7 @@ class LogApp extends React.Component {
       this.didSelectPaths(plotSet)
     }
 
-    savePlotSetClicked() {
+    async savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
 
       if (plotSetName == null) {
@@ -593,8 +657,9 @@ class LogApp extends React.Component {
       }
 
       if (PlotProfiles.exists(plotSetName)) {
-        if (!confirm(`Are you sure you want to overwrite plot set named \"${
-                plotSetName}?`))
+
+        if (!(await CustomAlert.confirmAsync(`Are you sure you want to overwrite plot set named \"${
+                plotSetName}?`, 'Overwrite Plot Set')))
           return
       }
 

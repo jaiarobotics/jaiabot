@@ -43,6 +43,7 @@ constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+constexpr goby::middleware::Group echo{"jaiabot::echo"};
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
@@ -100,6 +101,9 @@ constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 // Bot Comms
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};
+
+// simulator
+constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"};
 
 } // namespace groups
 } // namespace jaiabot

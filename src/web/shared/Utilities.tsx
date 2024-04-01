@@ -72,6 +72,15 @@ export function randomBase57(stringLength: number) {
     return s
 }
 
+
+/**
+ * Starts a browser download of a file with string contents
+ *
+ * @param {string} data Contents written to file
+ * @param {string} mimeType Informs the browser of the type of data being sent
+ * @param {string} fileName Name given to the downloadable file
+ * @returns {void}
+ */
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], {type: mimeType})
 
@@ -84,12 +93,32 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
     document.body.removeChild(link)
 }
 
-// getGeographicCoordinate()
-//   Returns the GeographicCoordinate of an OpenLayers coordinate on a map
-//   
-//   Inputs
-//     coordinate: coordinate to convert
-//     map: an OpenLayers map that the coordinates refer to
+
+/**
+ * Starts a browser download of a file with binary data contents
+ *
+ * @param {string} name Name given to the downloadable file
+ * @param {BlobPart} data Contents written to file
+ * @returns {void}
+ */
+export function downloadBlobToFile(name: string, data: BlobPart) {
+    let a = document.createElement('a')
+    if (a.download !== undefined) {
+        a.download = name;
+    }
+    a.href = URL.createObjectURL(new Blob([data], {
+        type: 'application/octet-stream'
+    }))
+    a.dispatchEvent(new MouseEvent('click'))
+}
+
+/**
+ * Returns the GeographicCoordinate of an OpenLayers coordinate on a map
+ *
+ * @param {Coordinate} coordinate Coordinate to convert
+ * @param {Map} map An OpenLayers map that the coordinates refer to
+ * @returns {GeographicCoordinate} The GeographicCoordinate of the input coordinate
+ */
 export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     const lonLat = toLonLat(coordinate, map.getView().getProjection())
     const geographicCoordinate: GeographicCoordinate = {
@@ -100,12 +129,13 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     return geographicCoordinate
 }
 
-// getMapCoordinate()
-//   Returns the OpenLayers Coordinate of an GeographicCoordinate on a map
-//   
-//   Inputs
-//     coordinate: coordinate to convert
-//     map: an OpenLayers map that the coordinates refer to
+/**
+ * Returns the OpenLayers Coordinate of a GeographicCoordinate on a map
+ *
+ * @param {GeographicCoordinate} coordinate Coordinate to convert
+ * @param {Map} map Provides access to the map's projection
+ * @returns {Coordinate} The OpenLayers coordinate (adj to the map) corresponding to the input coordinate
+ */
 export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
     if (coordinate == null) return null
     return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())
@@ -148,24 +178,39 @@ function handleAccordionDropdownClick(event: Event, targetClassName: string, par
     }, dropdownTimeout)
 }
 
-function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+/**
+ * Scroll a dropdown element into view within its parent element
+ * 
+ * @param {string} parentContainerId - allows us to get dimensions of the parent element
+ * @param dropdownContainer - gives us access to dimensions of the dropdown element
+ * @returns {void}
+ * 
+ * @notes
+ * The dropdown is passed as an HTMLElement to prevent the developer from having to assign ids to
+ * each dropdown element in an accordion
+ */
+export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
     const parentContainer = document.getElementById(parentContainerId)
+
+    if (!parentContainer || !dropdownContainer) {
+        return
+    }
+
     const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
     const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
 
     if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
         const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
         parentContainer.scrollBy({
-            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger
+            // than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
         parentContainer.scrollBy({
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0,
-            behavior: 'smooth'
+            left: 0
         })
     }
 }
@@ -180,6 +225,7 @@ export function formatLength(line: Geometry, map: Map) {
 
 /**
  * Returns a date string in the form yyyy-mm-dd
+ *
  * @param date
  * @returns {string} 
  */
@@ -192,7 +238,9 @@ export function getHTMLDateString(date: Date) {
 
 /**
  * Returns a time string in the form hh:mm 
- * @param date 
+ *
+ * @param date
+ * @returns {string} The time string in the form hh::mm
  */
 export function getHTMLTimeString(date: Date) {
     const hours = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours()
@@ -201,8 +249,13 @@ export function getHTMLTimeString(date: Date) {
 }
 
 /**
- * @param strDate "yyyy-mm-dd hh:mm"
- * @returns ISO str date in GMT
+ * Converts a string date to a cleaned ISO formatted string in UTC time
+ * 
+ * @param {string} strDate date to be converted to UTC in ISO format
+ * @returns {string} ISO formatted date without letters and special chars
+ * 
+ * @notes
+ * Expected strDate format: "yyyy-mm-dd hh:mm"
  * Example return value: "2023-10-18 09:04:00"
  */
 export function convertHTMLStrDateToISO(strDate: string) {

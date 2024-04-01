@@ -1,13 +1,11 @@
 #!/bin/bash
 
-# Install dependencies to current directory, or command-line parameter
-if [[ -z $1 ]]; then
-    NODE_MODULES_DIR="./"
-else
-    NODE_MODULES_DIR=$1
-fi
+# Where is your package.json?
+PACKAGE_JSON_DIR=$1
 
-echo 🟢 Installing npm dependencies to: $NODE_MODULES_DIR
+echo 🟢 Installing npm dependencies in ${PACKAGE_JSON_DIR}
 
-cd $NODE_MODULES_DIR
-npm install --no-audit --quiet
+pushd ${PACKAGE_JSON_DIR} > /dev/null
+    # Shut up unless there's an error!
+    npm install --no-audit --no-progress --silent || npm install --no-audit --no-progress --quiet
+popd > /dev/null

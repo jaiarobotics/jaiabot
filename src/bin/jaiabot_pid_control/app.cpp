@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(1.0 * si::hertz)
 {
     auto app_config = cfg();
 
@@ -58,6 +58,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (app_config.has_bounds())
     {
         bounds_ = app_config.bounds();
+
+        // Publish for querying
+        interprocess().publish<jaiabot::groups::engineering_status>(bounds_);
     }
 
     if (bounds_.motor().has_throttle_zero_net_buoyancy())
@@ -243,7 +246,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             if (arduino_response.has_motor())
             {
                 arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
@@ -254,6 +258,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
 }
 
 void jaiabot::apps::BotPidControl::loop()
+{
+    // Heartbeat publish to arduino to ensure
+    // values are up-to-date
+    publish_low_control();
+}
+
+void jaiabot::apps::BotPidControl::publish_low_control()
 {
     glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
     glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
@@ -636,6 +647,8 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
     {
         led_switch_on = command.led_switch_on();
     }
+
+    publish_low_control();
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -675,6 +688,8 @@ void jaiabot::apps::BotPidControl::handle_command(
         toggleRudderPid(false);
         rudder_ = 0;
     }
+
+    publish_low_control();
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
@@ -723,7 +738,6 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 void jaiabot::apps::BotPidControl::handle_dive_depth(
     const jaiabot::protobuf::DesiredSetpoints& command)
 {
-
     // Depth PID for dive
     if (command.has_dive_depth())
     {

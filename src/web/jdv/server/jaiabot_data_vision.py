@@ -10,25 +10,10 @@ import math
 import jaialog_store
 import moos_messages
 import pyjaia.contours
+import pyjaia.drift_interpolation
 
 from pathlib import *
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
-parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
-parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
-args = parser.parse_args()
-
-# Setup logging module
-logLevel = getattr(logging, args.logLevel.upper())
-logging.basicConfig(level=logLevel)
-logging.getLogger('werkzeug').setLevel('WARN')
-
-# Setup the directory
-jaialogStore = jaialog_store.JaialogStore(args.directory)
-
-app = Flask(__name__)
 
 # Parsing the arguments
 def parseFilenames(input: str):
@@ -47,8 +32,9 @@ def JSONErrorResponse(msg):
     obj = {"error": msg}
     return JSONResponse(obj)
 
-####### Static files
-root = '../client/dist'
+# The flask app
+
+app = Flask(__name__)
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
@@ -63,7 +49,7 @@ def getRoot():
 
 @app.route('/logs', methods=['GET'])
 def getLogs():
-    return JSONResponse(jaialogStore.getLogs())
+    return JSONResponse(jaialogStore.getLogs().to_dict())
 
 @app.route('/convert-if-needed', methods=['POST'])
 def convertLogs():
@@ -152,6 +138,18 @@ def getDepthContours():
     return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
 
 
+@app.route('/interpolated-drifts', methods=['GET'])
+def getInterpolatedDrifts():
+    '''Get a GeoJSON of interpolated drift icons'''
+    log_names = parseFilenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    taskPackets = jaialogStore.getTaskPacketDicts(log_names)
+    return Response(pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(taskPackets))
+
+
 @app.route('/h5', methods=['GET'])
 def getH5():
     '''Download a Jaia HDF5 file'''
@@ -167,5 +165,31 @@ def getH5():
 
 
 if __name__ == '__main__':
-    logging.warning(f'Serving on port {args.port}')
+
+    # Arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
+    parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
+    parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
+    parser.add_argument("-a", dest="appRoot", type=str, default="../../../../build/web_dev", help="Location from which to serve web app")
+    args = parser.parse_args()
+
+    # Setup logging module
+    logLevel = logging.getLevelName(args.logLevel.upper())
+    print(f'==> Logging level: {args.logLevel.upper()}')
+    logging.getLogger('root').setLevel(logLevel)
+    logging.getLogger('werkzeug').setLevel('WARN')
+
+    ####### Static files
+    global root
+    root = os.path.join(args.appRoot, 'jdv')
+
+    # Setup the directory
+    jaialogStore = jaialog_store.JaialogStore(args.directory)
+
+    # Print the URL for browser access
+    logging.info(f'Jaiabot Logs directory:           {os.path.abspath(args.directory)}')
+    logging.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
+    logging.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
+
     app.run(host='0.0.0.0', port=args.port, debug=True)

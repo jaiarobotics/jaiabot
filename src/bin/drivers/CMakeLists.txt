@@ -1,4 +1,6 @@
 add_subdirectory(bluerobotics_pressure_sensor)
 add_subdirectory(adafruit_BNO055)
+add_subdirectory(adafruit_BNO085)
 add_subdirectory(atlas_scientific_ezo_ec)
 add_subdirectory(arduino)
+add_subdirectory(echo)

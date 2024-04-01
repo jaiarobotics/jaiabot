@@ -66,10 +66,12 @@ class IMU:
         imu_data.gravity.y = reading.gravity.y
         imu_data.gravity.z = reading.gravity.z
 
-        imu_data.calibration_status.sys = reading.calibration_status[0]
-        imu_data.calibration_status.gyro = reading.calibration_status[1]
-        imu_data.calibration_status.accel = reading.calibration_status[2]
-        imu_data.calibration_status.mag = reading.calibration_status[3]
+        # only send the mag cal
+        imu_data.calibration_status = reading.calibration_status[3]
+
+        # check if the bot rolled over
+        bot_rolled = int(abs(reading.orientation.roll) > 90)
+        imu_data.bot_rolled_over = bot_rolled
 
         return imu_data
 

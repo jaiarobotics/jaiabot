@@ -18,16 +18,12 @@ enum MissionState
     IN_MISSION__UNDERWAY__REPLAN = 100;
 
     IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = 110;
-    IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS = 111;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 112;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 113;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114;
-    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = 115;
-    IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = 116;
 
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
-    IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = 122;
     IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP = 123;
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 124;
     IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 125;
@@ -37,15 +33,17 @@ enum MissionState
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 129;
     IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = 130;
     IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 131;
-    IN_MISSION__UNDERWAY__TASK__IMU_RESTART = 132;
 
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 140;
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 141;
     IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 142;
-    IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS = 143;
-    IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART = 144;
 
     IN_MISSION__UNDERWAY__ABORT = 150;
+
+    IN_MISSION__PAUSE__IMU_RESTART = 160;
+    IN_MISSION__PAUSE__REACQUIRE_GPS = 161;
+    IN_MISSION__PAUSE__MANUAL = 162;
+    IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
     POST_DEPLOYMENT__RECOVERED = 200;
     POST_DEPLOYMENT__DATA_PROCESSING = 201;
@@ -80,6 +78,53 @@ message Speeds
     ];
 }
 
+message BottomDepthSafetyParams
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    
+    required double constant_heading = 1 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }
+    ];
+
+    required int32 constant_heading_time = 2 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
+
+    required double constant_heading_speed = 3 [
+        default = 2,
+        (dccl.field) = {
+            min: 0,
+            max: 3.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+
+    required double safety_depth = 4 [
+        default = -1,
+        (dccl.field) = {
+            min: -1,
+            max: 60,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+}
+
 message MissionReport
 {
     option (dccl.msg) = {
@@ -103,6 +148,8 @@ message MissionReport
     }];
     optional int32 data_offload_percentage = 15
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional int32 repeat_index = 16
+        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
 }
 
 message MissionTask
@@ -150,6 +197,7 @@ message MissionTask
                 units { base_dimensions: "T" }
             }
         ];
+        optional bool bottom_dive = 4 [default = false];
     }
 
     // for type == DIVE
@@ -202,6 +250,7 @@ message MissionTask
     }
 
     optional ConstantHeadingParameters constant_heading = 4;
+    optional bool start_echo = 5 [default = false];
 }
 
 message MissionPlan
@@ -244,10 +293,10 @@ message MissionPlan
     optional Recovery recovery = 4;
 
     optional Speeds speeds = 5;
-    optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
-    optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
-    optional uint32 repeats = 8
-        [default = 1, (dccl.field) = { min: 1 max: 100 }];
+    optional BottomDepthSafetyParams bottom_depth_safety_params = 6;
+    optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 2 }];
+    optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 3 }];
+    optional uint32 repeats = 9 [default = 1, (dccl.field) = {min: 1 max: 100 }];
 }
 
 message IvPBehaviorUpdate
@@ -267,6 +316,8 @@ message IvPBehaviorUpdate
         optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
+
+        optional int32 slip_radius = 5;
     }
 
     message StationkeepUpdate

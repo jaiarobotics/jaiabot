@@ -23,11 +23,14 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
+#include <fstream>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"
 
 using goby::glog;
@@ -86,6 +89,23 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::PIDControl>(
                 [this](const jaiabot::protobuf::PIDControl& pid_control)
                 { latest_engineering.mutable_pid_control()->CopyFrom(pid_control); });
+
+
+        // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::Bounds& bounds) {
+                    latest_engineering.mutable_bounds()->CopyFrom(bounds);
+            });
+
+        // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::EchoData& echo_data) {
+                if (echo_data.has_echo_state())
+                {
+                    latest_engineering.mutable_echo()->set_echo_state(
+                        echo_data.echo_state());
+                }
+            });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status)
@@ -237,8 +257,6 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
                                      << std::endl;
 
             handle_engineering_command(command);
-            // republish for logging purposes
-            interprocess().publish<jaiabot::groups::engineering_command>(command);
         },
         *groups::engineering_command_this_bot, command_subscriber);
 }
@@ -288,6 +306,40 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
     if (command.query_engineering_status())
     {
         queried_for_status_ = command.query_engineering_status();
+    }
+    else if (command.has_imu_cal())
+    {
+        if (command.imu_cal().run_cal())
+        {
+            protobuf::IMUCommand imu_command;
+            imu_command.set_type(protobuf::IMUCommand::START_CALIBRATION);
+            interprocess().publish<jaiabot::groups::imu>(imu_command);
+        }
+    }
+    else if (command.has_echo())
+    {
+        protobuf::EchoCommand echo_command;
+        if (command.echo().start_echo())
+        {
+            echo_command.set_type(protobuf::EchoCommand::CMD_START);
+            interprocess().publish<jaiabot::groups::echo>(echo_command);
+        }
+        else if (command.echo().stop_echo())
+        {
+            echo_command.set_type(protobuf::EchoCommand::CMD_STOP);
+            interprocess().publish<jaiabot::groups::echo>(echo_command);
+        }
+    }
+
+    // Persist the bounds configuration, if we received one
+    if (command.has_bounds()) {
+        const auto bounds = command.bounds();
+        glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString() << std::endl;
+        auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
+        configFile << bounds.DebugString();
+        configFile.close();
+
+        latest_engineering.mutable_bounds()->CopyFrom(bounds);
     }
 
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands

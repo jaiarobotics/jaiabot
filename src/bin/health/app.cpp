@@ -72,6 +72,9 @@ class Health : public ApplicationBase
         system("systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+    void restart_echo_py() { system("systemctl restart jaiabot_echo_py"); }
+    void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
+    void reboot_echo() { system("systemctl start jaia_firm_echo_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
   private:
@@ -187,9 +190,73 @@ jaiabot::apps::Health::Health()
 
             switch (imu_issue.solution())
             {
+                case protobuf::IMUIssue::STOP_BOT: break;
                 case protobuf::IMUIssue::RESTART_IMU_PY:
-                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
-                    restart_imu_py();
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                        restart_imu_py();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
+                    break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
+                        reboot_bno085_imu();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
+                                                 << std::endl;
+                        reboot_bno085_imu();
+                        restart_imu_py();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
+
+                    break;
+                default:
+                    //TODO Handle Default Case
+                    break;
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::echo>(
+        [this](const jaiabot::protobuf::EchoIssue& echo_issue) {
+            glog.is_debug2() && glog << "Received Echo Issue " << echo_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (echo_issue.solution())
+            {
+                case protobuf::EchoIssue::REPORT_ECHO: break;
+                case protobuf::EchoIssue::RESTART_ECHO_PY:
+                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
+                    restart_echo_py();
+                    break;
+                case protobuf::EchoIssue::REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY:
+                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
+                    reboot_echo();
+                    restart_echo_py();
+                    break;
+                default:
+                    //TODO Handle Default Case
                     break;
             }
         });

@@ -184,7 +184,6 @@ void jaiabot::apps::HubManager::handle_subscription_report(
 
                     managed_bot_modem_ids_.insert(bot_modem_id);
                     intervehicle_subscribe(bot_modem_id);
-
                     break;
                 case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
                     // do nothing as the bot subscriptions no longer persist across restarts
@@ -219,7 +218,6 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
         subscriber_cfg.mutable_intervehicle()->add_publisher_id(id);
-
         goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
             subscriber_cfg,
             intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>);
@@ -249,6 +247,7 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg =
             cfg().engineering_status_sub_cfg();
+
         subscriber_cfg.mutable_intervehicle()->add_publisher_id(id);
 
         goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(
@@ -474,6 +473,12 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             if (command.plan().has_repeats() && fragment_index == 0)
             {
                 command_fragment.mutable_plan()->set_repeats(command.plan().repeats());
+            }
+
+            if (command.plan().has_bottom_depth_safety_params() && fragment_index == 0)
+            {
+                *command_fragment.mutable_plan()->mutable_bottom_depth_safety_params() =
+                    command.plan().bottom_depth_safety_params();
             }
 
             command_fragment.mutable_plan()->set_fragment_index(fragment_index);

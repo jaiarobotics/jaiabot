@@ -12,7 +12,7 @@ message XbeeInfo
 
 message DeviceMetadata
 {
-    required string name = 1;
+    optional string name = 1;
 
     message Version
     {
@@ -23,9 +23,9 @@ message DeviceMetadata
         optional string git_branch = 5;
     }
 
-    required Version jaiabot_version = 2;
-    required string goby_version = 3;
-    required string moos_version = 4;
+    optional Version jaiabot_version = 2;
+    optional string goby_version = 3;
+    optional string moos_version = 4;
 
     // no way yet to get this information, but will keep this as a placeholder
     optional string ivp_version = 5;
@@ -33,7 +33,12 @@ message DeviceMetadata
     optional string xbee_node_id = 6;
     optional string xbee_serial_number = 7;
 
-    optional uint32 intervehicle_api_version = 8;
+    optional string raspi_firmware_version = 8;
+    optional string jaiabot_image_version = 9;
+    optional string jaiabot_image_build_date = 10;
+    optional string jaiabot_image_first_boot_date = 11;
+
+    optional uint32 intervehicle_api_version = 12;
 }
 
 message QueryDeviceMetaData
