@@ -17,6 +17,10 @@ set -e
 
 botuser=jaia
 
+function dockerPackageVersion() {
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system apt show $1 | sed -n 's/^Version: \(.*\)~.*$/\1/p'
+}
+
 script_dir=$(dirname $0)
 
 repo=${jaiabot_repo:-release}
@@ -34,112 +38,63 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     mkdir -p ${build_dir}
 
     image_name=jaia_build_vbox_${distro}_${repo}_${version_lower}
-    
+
     if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
     then
         echo "🟢 Building the docker ${image_name} image"
         ./scripts/docker-build-build-system.sh
     fi
-    
+
     echo "🟢 Building jaiabot apps"
     docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh"
-    
+
 else    
     cd ${script_dir}/..
-    
+
     build_dir=build/arm64
     mkdir -p ${build_dir}
     image_name=jaia_build_${distro}_${repo}_${version_lower}
 
-    
+
     if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
     then
         echo "🟢 Building the docker ${image_name} image"
         ./scripts/docker-build-build-system.sh
     fi
-    
+
     echo "🟢 Building jaiabot apps"
     docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh"
 fi
-    
-# Define what values to read in the runtime.env
-read_runtime_content=$(cat << 'END_SCRIPT'
-#!/bin/bash
 
-# Read the runtime.env file
-source /etc/jaiabot/runtime.env
+# Get goby and dccl versions currently installed into the build image
+docker_libgoby_version=$(dockerPackageVersion libgoby3)
+docker_libdccl_version=$(dockerPackageVersion libdccl4)
 
-# Print the extracted values
-echo "jaia_bot_index=$jaia_bot_index"
-echo "jaia_hub_index=$jaia_hub_index"
-echo "jaia_electronics_stack=$jaia_electronics_stack"
-echo "jaia_fleet_index=$jaia_fleet_index"
-echo "jaia_imu_type=$jaia_imu_type"
-echo "jaia_arduino_type=$jaia_arduino_type"
-echo "jaia_mode=$jaia_mode"
-echo "jaia_warp=$jaia_warp"
-END_SCRIPT
-)
+echo "🟢 Building jaiabot apps"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
+
+# Remove old library files
+echo "🟢 Cleaning old library files"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts -t build_system bash -c "./clean-lib-directory.py"
 
 if [ -z "$1" ]
 then
     echo "             -----------"
     echo "Not Deploying as you didn't specify any targets"
 else
-    for var in "$@"
+    for remote in "$@"
     do
-        echo "🟢 Uploading to "$var
-        rsync -zaP --force --relative --exclude node_modules/ ./${build_dir}/bin ./${build_dir}/lib ./${build_dir}/include ./${build_dir}/share/ ./config ./scripts ${botuser}@"$var":/home/${botuser}/jaiabot/
+        echo "🟢 Uploading to "$remote
+        # Sync all directories
+        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
-        if [ ! -z "$jaiabot_systemd_type" ]; then
-   	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
-            ssh ${botuser}@"$var" "bash -c 'sudo apt-get -y remove jaiabot-embedded'"
-            
-            # SSH command to execute
-            ssh_command="ssh ${botuser}@$var"
+        # Login to the target, and deploy the software
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
 
-            # Run the SSH command with process substitution and pass the script content
-            runtime_output=$($ssh_command "bash -s" <<< "$read_runtime_content")
-
-            echo "$runtime_output"
-
-            # Process the runtime output as needed
-            # Extract the values using awk
-            jaia_bot_index=$(echo "$runtime_output" | awk -F'=' '/jaia_bot_index=/{print $2}')
-            jaia_hub_index=$(echo "$runtime_output" | awk -F'=' '/jaia_hub_index=/{print $2}')
-            jaia_electronics_stack=$(echo "$runtime_output" | awk -F'=' '/jaia_electronics_stack=/{print $2}')
-            jaia_fleet_index=$(echo "$runtime_output" | awk -F'=' '/jaia_fleet_index=/{print $2}')
-            jaia_imu_type=$(echo "$runtime_output" | awk -F'=' '/jaia_imu_type=/{print $2}')
-            jaia_arduino_type=$(echo "$runtime_output" | awk -F'=' '/jaia_arduino_type=/{print $2}')
-            jaia_mode=$(echo "$runtime_output" | awk -F'=' '/jaia_mode=/{print $2}')
-            jaia_warp=$(echo "$runtime_output" | awk -F'=' '/jaia_warp=/{print $2}')
-            jaia_simulation=
-            if [[ "$jaia_mode" == "simulation" ]]; then
-                jaia_simulation="--simulation --warp ${jaia_warp}"
-            fi
-            
-            if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
-                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type $jaia_simulation --enable'"
-            else
-                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced'"
-            fi
-
-            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
-            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
+        if [ ! -z $jaiabot_systemd_type ]; then
+            echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"
         fi
 
-    	echo "🟢 Creating python virtual environment (venv)"
-        ssh ${botuser}@"$var" "bash -c 'pushd /home/${botuser}/jaiabot/${build_dir}/share/jaiabot/python; /usr/bin/python3 -m venv venv; source venv/bin/activate; sudo mkdir -p /var/log/tmp; sudo chown ${botuser} /var/log/tmp; export TMPDIR=/var/log/tmp; python3 -m pip -q install wheel; python3 -m pip install -q -r requirements.txt; sudo rm -rf /var/log/tmp; popd;'"
-
-    	echo "🟢 Creating and setting permissons on log dir"
-        ssh ${botuser}@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
-        
-        if [ ! -z "$jaiabot_arduino_type" ]; then
-            echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
-            ssh ${botuser}@"$var" "sudo /home/${botuser}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
-        fi
-
-        echo "When you're ready, ssh ${botuser}@${var} and run 'sudo systemctl start jaiabot'"
     done
 fi
 

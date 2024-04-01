@@ -683,7 +683,11 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_local_fix()->set_y(0);
 }
 
-void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
+void jaiabot::apps::Fusion::init_bot_status()
+{
+    latest_bot_status_.set_bot_id(cfg().bot_id());
+    latest_bot_status_.set_bot_type(cfg().bot_type());
+}
 
 void jaiabot::apps::Fusion::loop()
 {

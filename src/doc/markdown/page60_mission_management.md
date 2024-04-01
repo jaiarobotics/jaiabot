@@ -55,6 +55,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 		* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 		* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 		* Manual: Operator has commanded the bot to pause its mission.
+        * ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
 	+ DataOffload: Hub is download data from Bot.
@@ -114,6 +115,8 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
+- EvNoForwardProgress: Triggered when bot is in IvP control, desired speed is larger than a threshold (e.g., 0), and the pitch is greater than a threshold (e.g., 30 deg), indicating the bot is not making forward (horizontal) progress.
+- EvForwardProgressResolved: Triggered when the difficulty making forward progress is resolved (currently triggered after a timeout).
 
 #### Internal events
 

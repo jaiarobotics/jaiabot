@@ -211,4 +211,34 @@ message MissionManager
 
     // used to update transitting to waypoint to allow less overshoot
     optional int32 waypoint_with_task_slip_radius = 87 [default = 5];
+
+    message ResolveNoForwardProgress
+    {
+        // time after going into ResolveNoForwardProgress to resume attempting
+        // to move
+        optional int32 resume_timeout = 1
+            [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
+        // angle above which the vehicle is assumed to not be making forward
+        // progress, below which it is
+        optional int32 pitch_threshold = 2 [
+            default = 30,
+            (dccl.field).units = {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        ];
+
+        // desired speed above which the vehicle is expected to be making
+        // forward progress
+        optional int32 desired_speed_threshold = 3
+            [default = 0, (dccl.field).units = { base_dimensions: "LT^-1" }];
+
+        // time after desired speed > desired_speed_threshold but pitch
+        // > pitch_threshold that triggers EvNoForwardProgress
+        optional int32 trigger_timeout = 4
+            [default = 15, (dccl.field).units = { base_dimensions: "T" }];
+    }
+
+    optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
 }

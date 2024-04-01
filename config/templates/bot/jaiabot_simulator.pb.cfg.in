@@ -61,3 +61,5 @@ arduino_config {
     reset_voltage_level: 15.0 # (default = 15.0)
 } 
 
+minimum_thrust: 1  #  normalized 0-100
+pitch_at_rest: 85  #  degrees
