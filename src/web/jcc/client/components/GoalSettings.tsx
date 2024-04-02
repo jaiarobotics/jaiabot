@@ -8,7 +8,8 @@ import { CustomAlert } from './shared/CustomAlert';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { MissionInterface, PanelType } from './CommandControl';
 import { deepcopy, adjustAccordionScrollPosition } from './shared/Utilities'
-
+import EditModeToggle from './EditModeToggle'
+import { RunInterface } from './CommandControl';
 import { Icon } from '@mdi/react'
 import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
@@ -31,6 +32,7 @@ interface Props {
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
     setRunList: (runList: MissionInterface) => void
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => string
     updateMissionHistory: (mission: MissionInterface) => void
 }
 
@@ -114,6 +116,20 @@ export class GoalSettingsPanel extends React.Component {
                 run = testRun
             }
         }
+    }
+
+    /**
+     * Gets and returns the run that the currently selected waypoint is a part of
+     * 
+     * @returns {RunInterface} 
+     */
+    getRun() {
+        let run: RunInterface = null
+        Object.entries(this.props.runList).map(([key, value]) =>
+            run = this.props.runList.runs[`run-${this.props.runNumber}`]
+        )
+
+        return run
     }
 
     getCoordValue(coordType: LatLon, tempValue?: string) {
@@ -227,6 +243,15 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label">Bot:</div>
                     <div className="goal-settings-input">{botId}</div>
+                    <div className="goal-settings-line-break"></div>
+                        <div className="goal-settings-label">Edit Run</div>
+                            <EditModeToggle
+                                onClick={this.props.toggleEditMode}
+                                runIdInEditMode={this.props.runList.runIdInEditMode}
+                                run={this.getRun()}
+                                label=""
+                                title="ToggleEditMode"
+                            />
                     <div className="goal-settings-line-break"></div>
                     <div className={`goal-settings-move-container ${!isEditMode ? 'goal-settings-hide' : ''}`}>
                         <div className="goal-settings-label move-label">Tap To Move</div>

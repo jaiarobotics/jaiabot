@@ -3638,6 +3638,7 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
+						setRunList={this.setRunList.bind(this)}
 						onChange={() => {
 							this.setRunList(this.getRunList())
 						}}
@@ -3647,7 +3648,7 @@ export default class CommandControl extends React.Component {
 						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
-						setRunList={this.setRunList.bind(this)}
+						toggleEditMode={this.toggleEditMode.bind(this)}
 						updateMissionHistory={this.updateMissionHistory.bind(this)}
 					/>
 				)
