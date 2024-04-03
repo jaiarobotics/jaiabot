@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import { SelectChangeEvent } from '@mui/material/Select';
+import { Slider, ThemeProvider, createTheme } from '@mui/material';
 
 import Icon from '@mdi/react'
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
@@ -58,6 +59,15 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
      */
     toggleWpt(){
         this.props.toggleShowTableOfWaypoints(this.props.run.id);
+    }
+
+
+    makeAccordionTheme() {
+        return createTheme({
+            transitions: {
+                create: () => 'none',
+            }
+        })
     }
 
     componentDidMount() {
@@ -122,108 +132,110 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
         )
 
         return (
-            <Accordion 
-                id={`run-accordion-${this.props.run.id.split('-')[1]}`}
-                className="run-accordion"
-                expanded={this.isRunPanelOpen()}
-                onChange={() => this.handleOpenCloseClick()}
-            >
-                <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+            <ThemeProvider theme={this.makeAccordionTheme()}>
+                <Accordion 
+                    id={`run-accordion-${this.props.run.id.split('-')[1]}`}
+                    className="run-accordion"
+                    expanded={this.isRunPanelOpen()}
+                    onChange={() => this.handleOpenCloseClick()}
                 >
-                <div className='runTitleBar'>
-                    <Typography className="title">
-                        {this.props.run.name}
-                    </Typography>
-                    <div className='botName'>
-                        {this.getBotName()}
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
+                    >
+                    <div className='runTitleBar'>
+                        <Typography className="title">
+                            {this.props.run.name}
+                        </Typography>
+                        <div className='botName'>
+                            {this.getBotName()}
+                        </div>
                     </div>
-                </div>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <span className="runItemInfo">
-                        <RunAssignMenu
-                            handleBotSelectionChange={this.handleBotSelectionChange.bind(this)}
-                            run={this.props.run}
-                            botsNotAssigned={this.props.botsNotAssignedToRuns}
-                        />
-                        <Button 
-                            className={'button-jcc missionAccordian'}
-                            onClick={() => this.handleDuplicateRunClick()}
-                        >
-                            <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
-                        </Button>
-                        <Button 
-                            className={`button-jcc missionAccordian`}
-                            onClick={() => this.props.deleteSingleRun(this.props.run.id)}
-                        >
-                            <Icon path={mdiDelete} title="Delete Run"/>
-                        </Button>
-                        <EditModeToggle 
-                            onClick={this.props.toggleEditMode}
-                            runIdInEditMode={this.props.runIdInEditMode}
-                            run={this.props.run}
-                            label="Edit"
-                            title="ToggleEditMode"
-                        />
-                    </span>
-                    <div>
-                        {repeatsInput}
-                    </div>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <span className="runItemInfo">
+                            <RunAssignMenu
+                                handleBotSelectionChange={this.handleBotSelectionChange.bind(this)}
+                                run={this.props.run}
+                                botsNotAssigned={this.props.botsNotAssignedToRuns}
+                            />
+                            <Button 
+                                className={'button-jcc missionAccordian'}
+                                onClick={() => this.handleDuplicateRunClick()}
+                            >
+                                <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
+                            </Button>
+                            <Button 
+                                className={`button-jcc missionAccordian`}
+                                onClick={() => this.props.deleteSingleRun(this.props.run.id)}
+                            >
+                                <Icon path={mdiDelete} title="Delete Run"/>
+                            </Button>
+                            <EditModeToggle 
+                                onClick={this.props.toggleEditMode}
+                                runIdInEditMode={this.props.runIdInEditMode}
+                                run={this.props.run}
+                                label="Edit"
+                                title="ToggleEditMode"
+                            />
+                        </span>
+                        <div>
+                            {repeatsInput}
+                        </div>
 
-                    <JaiaToggle 
-                    checked={() => this.isWptToggled()}
-                    onClick={() => this.toggleWpt()}
-                    title="Show Wpts"
-                    label="Show Wpts"
-                    />
+                        <JaiaToggle 
+                        checked={() => this.isWptToggled()}
+                        onClick={() => this.toggleWpt()}
+                        title="Show Wpts"
+                        label="Show Wpts"
+                        />
 
-                    {
-                        this.props.run.showTableOfWaypoints && 
-                        <table className="table-container">
-                        <thead>
-                            <tr>
-                                <th>
-                                    Wpt Id
-                                </th>
-                                <th>
-                                    Lat
-                                </th>
-                                <th>
-                                    Lon
-                                </th>
-                                <th>
-                                    Task
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {
-                                this.props.run.command.plan.goal.map((item,index)=>(
-                                    <tr key={index}>
-                                    <td>
-                                        {index + 1}
-                                    </td>
-                                    <td>
-                                        {item.location.lat.toFixed(5)}
-                                    </td>
-                                    <td>
-                                        {item.location.lon.toFixed(5)}
-                                    </td>   
-                                    <td>
-                                        {item.task?.type?item.task.type:"None"}
-                                    </td>
+                        {
+                            this.props.run.showTableOfWaypoints && 
+                            <table className="table-container">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Wpt Id
+                                    </th>
+                                    <th>
+                                        Lat
+                                    </th>
+                                    <th>
+                                        Lon
+                                    </th>
+                                    <th>
+                                        Task
+                                    </th>
                                 </tr>
-                                ))
-                            }
-                        </tbody>
-                    </table>
-                    }
-                    
-                </AccordionDetails>
-            </Accordion>
+                            </thead>
+                            <tbody>
+                                {
+                                    this.props.run.command.plan.goal.map((item,index)=>(
+                                        <tr key={index}>
+                                        <td>
+                                            {index + 1}
+                                        </td>
+                                        <td>
+                                            {item.location.lat.toFixed(5)}
+                                        </td>
+                                        <td>
+                                            {item.location.lon.toFixed(5)}
+                                        </td>   
+                                        <td>
+                                            {item.task?.type?item.task.type:"None"}
+                                        </td>
+                                    </tr>
+                                    ))
+                                }
+                            </tbody>
+                        </table>
+                        }
+                        
+                    </AccordionDetails>
+                </Accordion>
+            </ThemeProvider>
         )
     }
 }
