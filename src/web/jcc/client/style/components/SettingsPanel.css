@@ -36,15 +36,17 @@
     overflow-y: auto;
 }
 .settings-card-container {
-    padding-left: 14px;
+    padding-left: 20px;
     padding-right: 20px;
     margin-bottom: 10px;
+    background-color: white;
 }
 .settings-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 30px;
+    background-color: white;
 }
 
 .settings-card .button-jcc {

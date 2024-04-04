@@ -100,7 +100,7 @@ export function SettingsPanel(props: Props) {
             <div className="settings-inner-container">
                 <div className="settings-card-container">
                     <div className="settings-card">
-                        <div className="settings-label" style={{color:'white'}}>Track Pod:</div>
+                        <div className="settings-label">Track Pod:</div>
                         <JaiaToggle
                             checked={() => props.trackingTarget === 'pod'}
                             onClick={() => handleTrackPodToggleClick()}
