@@ -971,7 +971,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.gps} 
                                         onChange={(event, expanded) => {setDetailsExpanded('gps', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1017,7 +1017,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.imu} 
                                         onChange={(event, expanded) => {setDetailsExpanded('imu', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1051,7 +1051,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.sensor} 
                                         onChange={(event, expanded) => {setDetailsExpanded('sensor', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1085,7 +1085,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.power} 
                                         onChange={(event, expanded) => {setDetailsExpanded('power', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
