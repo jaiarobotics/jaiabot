@@ -1968,8 +1968,6 @@ export default class CommandControl extends React.Component {
 	 */
 	toggleEditMode(evt: React.ChangeEvent<HTMLInputElement>, run: RunInterface) {
 		const runList = this.getRunList()
-		//this.state.selectedHubOrBot.type = 'bot'
-		//this.state.selectedHubOrBot.id = run.assigned
 
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
