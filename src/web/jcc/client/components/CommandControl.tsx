@@ -1730,7 +1730,7 @@ export default class CommandControl extends React.Component {
 		if (botId && !runs[botsAssignedToRuns[botId]]?.command) {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
-
+		
 		let run = null
 		if (!botId) {
 			run = runs[this.getRunList().runIdInEditMode]
@@ -1958,11 +1958,19 @@ export default class CommandControl extends React.Component {
 	// Transferring Mission to GUI (End)
 	//
 
-	// 
-	// Bot Edit Mode (Start)
-	//
+	/**
+	 * Called when an EditModeToggle is turned on/off and updates runList.runIdInEditMode to the input run 
+	 * 
+	 * @param {React.ChangeEvent<HTMLInputElement>} evt: Event activating the edit mode toggle  
+	 * @param {RunInterface} run: The run being put into Edit Mode
+	 * 
+	 * @returns None 
+	 */
 	toggleEditMode(evt: React.ChangeEvent<HTMLInputElement>, run: RunInterface) {
 		const runList = this.getRunList()
+		//this.state.selectedHubOrBot.type = 'bot'
+		//this.state.selectedHubOrBot.id = run.assigned
+
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
 		} else {
@@ -1972,6 +1980,11 @@ export default class CommandControl extends React.Component {
 			}
 			runList.runIdInEditMode = ''
 		}
+
+		if (this.state.selectedHubOrBot) {
+			this.state.selectedHubOrBot.id = null
+		}
+
 		this.setRunList(runList)
     }
 
