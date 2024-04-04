@@ -18,6 +18,7 @@ from pyjaia.series import *
 from waves import doAnalysis
 from waves.processing import *
 from waves.filters import *
+from analysis_html import *
 
 import csv
 import os
@@ -36,7 +37,7 @@ def magnitude(v):
 
 
 class AccelerationAnalyzer:
-    vertical_acceleration = Series('vertical_acceleration')
+    vertical_acceleration = Series('Raw Acceleration (m/s^2)')
 
     max_acceleration_magnitude = 0.0
 
@@ -116,16 +117,13 @@ class AccelerationAnalyzer:
         print(self.getSignificantWaveHeight())
 
     def dumpToFile(self):
-        date_string = datetime.now().isoformat()
-        csv_filename = os.path.expanduser(f'/var/log/jaiabot/swh-debug-{date_string}.csv')
-        with open(csv_filename, 'w') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            for i in range(len(self.vertical_acceleration.utime)):
-                line = [
-                    self.vertical_acceleration.utime[i],
-                    self.vertical_acceleration.y_values[i]
-                ]
-                csv_writer.writerow(line)
+        drift = doAnalysis(self.vertical_acceleration, self.sample_frequency)
+
+        date_string = datetime.now().strftime('%Y%m%dT%H%M%S')
+        filename = os.path.expanduser(f'/var/log/jaiabot/swh-debug-{date_string}.html')
+        with open(filename, 'w') as html_file:
+            html_file.write(htmlForDriftObject(drift))
+
 
 
 if __name__ == '__main__':

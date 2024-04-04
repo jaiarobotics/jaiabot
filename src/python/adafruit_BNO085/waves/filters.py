@@ -26,11 +26,11 @@ def gaussianFilter(minFreq: float, maxFreq: float, k: float):
 
 
 def cos2Filter(minFreq: float, minWindow: float, maxFreq: float, maxWindow: float):
-    min0 = minFreq - minWindow / 2
-    min1 = minFreq + minWindow / 2
+    min0 = minFreq - minWindow
+    min1 = minFreq
 
-    max0 = maxFreq - maxWindow / 2
-    max1 = maxFreq + maxWindow / 2
+    max0 = maxFreq
+    max1 = maxFreq + maxWindow
 
     kMin = pi / minWindow
     kMax = pi / maxWindow

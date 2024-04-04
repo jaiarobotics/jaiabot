@@ -244,7 +244,7 @@ def significantWaveHeight(waveHeights: List[float]):
 
 
 BandPassFilterFunc = Callable[[float], float]
-bandPassFilter = cos2Filter(1/25, 1/120, 2, 2)
+bandPassFilter = cos2Filter(1/15, 1/15, 5, 5)
 
 
 def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):
@@ -259,9 +259,10 @@ def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):
 
     series = accelerationSeries
     series = trimSeries(series, 10e6, 5e6)
-    series = applyHannWindow(series, fadePeriod=2e6)
+    series = applyHannWindow(series, fadePeriod=10e6)
     series = deMean(series)
     series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+    series.name = 'Elevation (m)'
 
     return series
 
@@ -278,8 +279,9 @@ def filterAcceleration(accelerationSeries: Series, sampleFreq: float):
 
     series = accelerationSeries
     series = trimSeries(series, 10e6, 5e6)
-    series = applyHannWindow(series, fadePeriod=2e6)
+    series = applyHannWindow(series, fadePeriod=10e6)
     series = deMean(series)
     series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+    series.name = 'Filtered acceleration (m/s^2)'
 
     return series

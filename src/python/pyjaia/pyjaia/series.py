@@ -148,11 +148,25 @@ class Series:
         fig = px.line(x=self.datetimes(), y=self.y_values, markers=True)
         fig.show()
 
-    def duration(self):
+    def duration(self) -> timedelta:
+        """Returns the duration of this time series.
+
+        Returns:
+            timedelta: Total duration of the time series.
+        """
         datetimeList = self.datetimes()
         if len(datetimeList) < 1:
             return timedelta(0)
         return datetimeList[-1] - datetimeList[0]
+    
+
+    def averageSampleFrequency(self) -> float:
+        """Returns the average sample frequency of this series.
+
+        Returns:
+            float: The average sample frequency, in Hertz.
+        """
+        return len(self.utime) / self.duration().total_seconds()
     
 
     def slice(self, timeRange: TimeRange):

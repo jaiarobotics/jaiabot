@@ -7,7 +7,7 @@ from pyjaia.series import Series
 from datetime import *
 
 
-def htmlForSpectrogram(series: Series, fftWindowSeconds: float=40.0):
+def htmlForSpectrogram(series: Series, fftWindowSeconds: float=40.0) -> str:
     if series.duration().seconds == 0:
         return '<p>Spectrogram:  duration is 0</p>'
 
