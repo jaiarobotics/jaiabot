@@ -7,7 +7,7 @@ import logging
 from math import *
 from orientation import Orientation
 from imu import *
-from waves import Analyzer
+from pyjaia.waves.analyzer import Analyzer
 from threading import Thread
 from dataclasses import dataclass
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand

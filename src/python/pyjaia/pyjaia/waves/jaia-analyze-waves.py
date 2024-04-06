@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import h5py
-from series import *
+from pyjaia.waves.series import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
@@ -13,8 +13,8 @@ import sys
 from typing import *
 from math import *
 from copy import deepcopy
-from processing import *
-from filters import *
+from pyjaia.waves.processing import *
+from pyjaia.waves.filters import *
 from pprint import pprint
 from pathlib import *
 from statistics import *
@@ -159,7 +159,17 @@ def formatTimeDelta(td: timedelta):
     return ' '.join(components)
 
 
-cssTag = '<style>' + open('style.css').read() + '</style>'
+cssTag = '''<style>
+    td { 
+        padding: 15pt;
+        border: 1pt solid lightblue
+    }
+
+    td.used {
+        font-weight: bold;
+        background-color: lightcyan;
+    }
+</style>'''
 
 
 def filterAndPlot(h5FilePath: Path, 
@@ -388,8 +398,11 @@ def doAnalysis(h5File: h5py.File):
     filterAndPlot(Path(h5File.filename), uniformAccelerationSeries, otherSeriesList=otherSeriesList, sampleFreq=sampleFreq, splitFunc=splitFunc, bandPassFilter=bandPassFilter)
 
 
-if __name__ == '__main__':
+def main():
     for h5Path in sys.argv[1:]:
         h5File = h5py.File(h5Path)
         doAnalysis(h5File)
 
+
+if __name__ == '__main__':
+    main()

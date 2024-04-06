@@ -23,4 +23,7 @@ setup(name='pyjaia',
           'cmocean',
           'turfpy'
           ],
+        scripts=[
+            'pyjaia/waves/jaia-analyze-waves.py'
+        ]
      )

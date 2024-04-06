@@ -259,5 +259,6 @@ class Simulator(IMU):
                             linear_acceleration=linear_acceleration,
                             linear_acceleration_world=linear_acceleration_world,
                             gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
-                            calibration_status=(3, 3, 3, 3),
+                            calibration_status=3,
+                            calibration_state=CalibrationState.COMPLETE,
                             quaternion=quaternion)

@@ -13,9 +13,9 @@ from copy import deepcopy
 from numpy.linalg import lstsq
 import logging
 
-from series import *
-from processing import *
-from filters import *
+from .series import *
+from .processing import *
+from .filters import *
 
 log = logging.getLogger('jaiabot_imu')
 
@@ -65,6 +65,8 @@ class Analyzer:
         self.imu = imu
 
         def run():
+            # Need to look into why this is triggering exceptions
+            log.debug("Not executing sample loop because it causes exceptions")
             self._sampleLoop()
 
         self._thread = Thread(target=run, name='acceleration-sampler')
