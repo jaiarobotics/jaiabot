@@ -12,13 +12,13 @@ from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
 
 
-parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
-parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
+parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
+parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
+parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 
-parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
@@ -200,11 +200,14 @@ def do_interactive_loop():
 
 if __name__ == '__main__':
     # Setup the sensor
-    if args.simulator:
+    if args.device_type == 'sim':
         imu = Simulator(wave_frequency=1 / args.wave_period, wave_height=args.wave_height)
-    else:
-        from adafruit_imu import Adafruit
-        imu = Adafruit()
+    elif args.device_type == 'bno055':
+        from imu_adafruit_bno055 import *
+        imu = AdafruitBNO055()
+    elif args.device_type == 'bno085':
+        from imu_adafruit_bno085 import *
+        imu = AdafruitBNO085()
 
     # Setup the wave analysis thread
     analyzer = AccelerationAnalyzer(args.frequency, dump_html_flag=args.dump_html_flag)

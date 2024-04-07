@@ -7,6 +7,8 @@ import logging
 import datetime
 from math import *
 from jaiabot.messages.imu_pb2 import IMUData
+from imu import *
+from imu_reading import *
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
@@ -25,61 +27,7 @@ except NotImplementedError:
     physical_device_available = False
 
 
-@dataclass
-class IMUReading:
-    orientation: Orientation
-    linear_acceleration: Vector3
-    linear_acceleration_world: Vector3
-    gravity: Vector3
-    calibration_status: tuple
-    quaternion: Quaternion
-
-
-class IMU:
-    def setup(self):
-        pass
-
-    def takeReading(self):
-        return IMUReading()
-
-    def getIMUData(self):
-        """Returns an IMUData protobuf object, suitable for sending over UDP
-
-        Returns:
-            IMUData: the reading as an IMUData
-        """
-        reading = self.takeReading()
-
-        if reading is None:
-            return None
-
-        imu_data = IMUData()
-        if reading.orientation.heading is not None:
-            imu_data.euler_angles.heading = reading.orientation.heading
-        if reading.orientation.pitch is not None:
-            imu_data.euler_angles.pitch = reading.orientation.pitch
-        if reading.orientation.roll is not None:
-            imu_data.euler_angles.roll = reading.orientation.roll
-
-        imu_data.linear_acceleration.x = reading.linear_acceleration.x
-        imu_data.linear_acceleration.y = reading.linear_acceleration.y
-        imu_data.linear_acceleration.z = reading.linear_acceleration.z
-
-        imu_data.gravity.x = reading.gravity.x
-        imu_data.gravity.y = reading.gravity.y
-        imu_data.gravity.z = reading.gravity.z
-
-        # only send the mag cal
-        imu_data.calibration_status = reading.calibration_status[3]
-
-        # check if the bot rolled over
-        bot_rolled = int(abs(reading.orientation.roll or 0.0) > 90)
-        imu_data.bot_rolled_over = bot_rolled
-
-        return imu_data
-
-
-class Adafruit(IMU):
+class AdafruitBNO055(IMU):
 
     def __init__(self):
         log.info('Device: Adafruit')
@@ -128,6 +76,7 @@ class Adafruit(IMU):
 
             linear_acceleration = filter(linear_acceleration)
             gravity = filter(gravity)
+            angular_velocity = Vector3(*self.sensor.gyro)
 
             quaternion = Quaternion.from_tuple(quaternion)
             orientation = quaternion.to_euler_angles()
@@ -141,39 +90,9 @@ class Adafruit(IMU):
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
                         calibration_status=calibration_status,
-                        quaternion=quaternion)
+                        quaternion=quaternion,
+                        angular_velocity=angular_velocity)
 
         except OSError as e:
             self.is_setup = False
             raise e
-    
-
-class Simulator(IMU):
-    wave_frequency: float
-    wave_height: float
-
-    def __init__(self, wave_frequency: float=1, wave_height: float=1):
-        log.info('Device: Simulator')
-
-        self.wave_frequency = wave_frequency
-        self.wave_height = wave_height
-
-    def setup(self):
-        pass
-
-    def takeReading(self) -> IMUReading:
-        t = datetime.datetime.now().timestamp()
-        a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
-        linear_acceleration = Vector3(0, 0, a_z)
-
-        quaternion = Quaternion(1, 0, 0, 0)
-        orientation = Orientation(None, None, None) # Return None because we don't want to interfere with the jaiabot simulator app, which will use MOOS to generate these
-        linear_acceleration_world = quaternion.apply(linear_acceleration)
-
-        return IMUReading(orientation=orientation, 
-                        linear_acceleration=linear_acceleration,
-                        linear_acceleration_world=linear_acceleration_world,
-                        gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
-                        calibration_status=(3, 3, 3, 3),
-                        quaternion=quaternion)
-

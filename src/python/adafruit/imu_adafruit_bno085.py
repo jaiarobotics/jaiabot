@@ -22,7 +22,7 @@ except Exception as e:
     physical_device_available = False
 
 
-class Adafruit(IMU):
+class AdafruitBNO085(IMU):
     _lock: Lock
 
     def __init__(self):
@@ -91,6 +91,7 @@ class Adafruit(IMU):
                 return None
 
             quaternion = Quaternion.from_tuple(quaternion)
+            angular_velocity = Vector3(*self.sensor.gyro)
             orientation = quaternion.to_euler_angles()
             # even after consulting the docs, we're still off by 90 degrees!
             orientation.heading = (orientation.heading + 90) % 360
@@ -104,7 +105,8 @@ class Adafruit(IMU):
                         gravity=gravity,
                         calibration_status=calibration_status,
                         calibration_state=calibration_state,
-                        quaternion=quaternion)
+                        quaternion=quaternion,
+                        angular_velocity=angular_velocity)
 
         except Exception as error:
             log.warning(f"Error trying to get data: {error}")

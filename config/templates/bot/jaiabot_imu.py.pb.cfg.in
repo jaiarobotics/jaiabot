@@ -1,1 +1,1 @@
--d $imu_simulation_flag $imu_port
+-t $imu_type -p $imu_port

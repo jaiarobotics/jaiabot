@@ -23,6 +23,7 @@ class IMUReading:
     calibration_status: int
     calibration_state: CalibrationState
     quaternion: Quaternion
+    angular_velocity: Vector3
 
 
     def convertToIMUData(self):
@@ -32,9 +33,14 @@ class IMUReading:
             IMUData: the reading as an IMUData
         """
         imu_data = IMUData()
-        imu_data.euler_angles.heading = self.orientation.heading
-        imu_data.euler_angles.pitch = self.orientation.pitch
-        imu_data.euler_angles.roll = self.orientation.roll
+        if self.orientation is not None:
+            imu_data.euler_angles.heading = self.orientation.heading
+            imu_data.euler_angles.pitch = self.orientation.pitch
+            imu_data.euler_angles.roll = self.orientation.roll
+            # check if the bot rolled over
+            imu_data.bot_rolled_over = int(abs(self.orientation.roll) > 90)
+        else:
+            imu_data.bot_rolled_over = False
 
         imu_data.linear_acceleration.x = self.linear_acceleration.x
         imu_data.linear_acceleration.y = self.linear_acceleration.y
@@ -44,6 +50,16 @@ class IMUReading:
         imu_data.gravity.y = self.gravity.y
         imu_data.gravity.z = self.gravity.z
 
+        if self.angular_velocity is not None:
+            imu_data.angular_velocity.x = self.angular_velocity.x
+            imu_data.angular_velocity.y = self.angular_velocity.y
+            imu_data.angular_velocity.z = self.angular_velocity.z
+
+        imu_data.quaternion.w = self.quaternion.w
+        imu_data.quaternion.x = self.quaternion.x
+        imu_data.quaternion.y = self.quaternion.y
+        imu_data.quaternion.z = self.quaternion.z
+
         if self.calibration_status is not None:
             # only send the mag cal
             imu_data.calibration_status = self.calibration_status
@@ -51,9 +67,5 @@ class IMUReading:
         if self.calibration_state is not None:
             # .value converts enum type to int (which the protobuf side is looking for)
             imu_data.calibration_state = self.calibration_state.value
-
-        # check if the bot rolled over
-        bot_rolled = int(abs(self.orientation.roll) > 90)
-        imu_data.bot_rolled_over = bot_rolled
 
         return imu_data

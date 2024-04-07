@@ -54,10 +54,11 @@ class Simulator(IMU):
         quaternion = Quaternion(1, 0, 0, 0)
         linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-        return IMUReading(orientation=quaternion.to_euler_angles(), 
+        return IMUReading(orientation=None, 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=Vector3(0.0, 0.0, 9.8),
+                        calibration_state=CalibrationState.COMPLETE,
                         calibration_status=3,
                         quaternion=quaternion,
-                        calibration_state=CalibrationState.COMPLETE)
+                        angular_velocity=Vector3(0, 0, 0))

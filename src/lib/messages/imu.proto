@@ -81,6 +81,41 @@ message IMUData
             }}
         ];
     
+    message AngularVelocity {
+        optional double x = 1
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+        optional double y = 2
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+        optional double z = 3
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+    }
+
+    optional AngularVelocity angular_velocity = 9;
+
+    message Quaternion {
+        optional double w = 1;
+        optional double x = 2;
+        optional double y = 3;
+        optional double z = 4;
+    }
+
+    optional Quaternion quaternion = 10;
+
 }
 
 message IMUIssue
