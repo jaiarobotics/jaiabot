@@ -45,19 +45,19 @@ class AccelerationAnalyzer:
 
     # Whether to dump the raw data to a file when significant wave height is calculated
     # (for debugging)
-    dump_to_file_flag: bool
+    dump_html_flag: bool
 
     _sampling_for_wave_height = False
     _sampling_for_bottom_characterization = False
     _lock = Lock()
 
 
-    def __init__(self, sample_frequency: float, dump_to_file_flag: bool=False):
+    def __init__(self, sample_frequency: float, dump_html_flag: bool=False):
         logger.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_frequency = sample_frequency
 
-        self.dump_to_file_flag = dump_to_file_flag
+        self.dump_html_flag = dump_html_flag
 
     def addIMUData(self, imuData: any):
         if imuData is None:
@@ -86,7 +86,7 @@ class AccelerationAnalyzer:
 
     def stopSamplingForWaveHeight(self):
         with self._lock:
-            if self.dump_to_file_flag:
+            if self.dump_html_flag:
                 self.dumpToFile()
 
             self.clearAccelerationSeries()

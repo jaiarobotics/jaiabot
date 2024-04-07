@@ -22,6 +22,8 @@ parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate 
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
+parser.add_argument('-d', dest='dump_html_flag', action='store_true', help='Dump SWH analysis as html file in /var/log/jaiabot')
+
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
@@ -205,7 +207,7 @@ if __name__ == '__main__':
         imu = Adafruit()
 
     # Setup the wave analysis thread
-    analyzer = AccelerationAnalyzer(args.frequency, dump_to_file_flag=True)
+    analyzer = AccelerationAnalyzer(args.frequency, dump_html_flag=args.dump_html_flag)
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
