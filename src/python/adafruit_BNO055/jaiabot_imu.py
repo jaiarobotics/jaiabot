@@ -19,11 +19,10 @@ parser.add_argument('port', metavar='port', type=int, help='port to publish orie
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=4)')
-
 parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave frequency (seconds)')
-
+parser.add_argument('-d', dest='debug_mode', action='store_true', help='Dump some debug data for the significant wave height calculation at the end of drifts')
 args = parser.parse_args()
 
 logging.warning(args)
@@ -151,6 +150,7 @@ if __name__ == '__main__':
 
     # Setup the wave analysis thread
     analyzer = Analyzer(imu, args.frequency)
+    analyzer.debug_mode = args.debug_mode
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
