@@ -207,12 +207,13 @@ def calculateSortedWaveHeights(elevationSeries: Series):
     # Find waves
     for index, y in enumerate(ys):
         if index > 0:
-            dy = y - ys[index - 1]
+            previous_y = ys[index - 1]
+            dy = y - previous_y
 
             if dy > 0 and oldDy <=0:
-                trough = y
+                trough = previous_y
             elif dy < 0 and oldDy >= 0:
-                peak = y
+                peak = previous_y
 
                 if trough is not None:
                     waveHeights.append(peak - trough)
