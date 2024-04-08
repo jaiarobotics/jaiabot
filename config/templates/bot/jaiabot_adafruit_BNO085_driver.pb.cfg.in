@@ -4,7 +4,7 @@ $interprocess_block
 udp_config { 
     bind_port: 0
     remote_address: "127.0.0.1"
-    remote_port: 20000
+    remote_port: $imu_port
 }
 
 adafruit_bno085_report_in_simulation: $adafruit_bno085_report_in_simulation
