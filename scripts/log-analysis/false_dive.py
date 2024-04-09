@@ -8,8 +8,8 @@ import pytz
 import datetime
 
 """Directions: 
-    Navigate to the directory containing this file, run ./false_dive.py followed by the file path
-    to your .h5 files in the terminal (e.g. './false_dive.py ~/path/to/.h5_directory/').
+    Navigate to the directory containing this file, run python3 false_dive.py followed by the file path
+    to your .h5 files in the terminal (e.g. 'python3 false_dive.py ~/path/to/.h5_directory/').
 """
 
 MICROSECONDS_FACTOR = 1_000_000
@@ -71,13 +71,51 @@ def get_dive_data(directory_path: str):
         print(f'The directory {directory_path} does not exist. Try again.')
         return
 
-    has_h5 = False
-    for filename in os.listdir(directory_path):
-        if filename.endswith('.h5'):
-            has_h5 = True
-            file_path = os.path.join(directory_path, filename)
+    if os.path.isdir(directory_path):
+        has_h5 = False
+        for filename in os.listdir(directory_path):
+            if filename.endswith('.h5'):
+                has_h5 = True
+                file_path = os.path.join(directory_path, filename)
 
-            with h5py.File(file_path, 'r') as file:
+                with h5py.File(file_path, 'r') as file:
+
+                    # Groups we're interested in
+                    task_packet = file['jaiabot::task_packet;0/jaiabot.protobuf.TaskPacket']
+                    bot_status = file['jaiabot::bot_status;0/jaiabot.protobuf.BotStatus']
+
+                    # Specific data lists of each group
+                    depths_achieved = np.array(task_packet['dive/depth_achieved'])
+                    utimes = np.array(task_packet['_utime_'])
+                    schemes = np.array(task_packet['_scheme_'])
+                    bot_id = np.array(bot_status['bot_id'])
+
+                    false_utimes = []
+                    dive_count = 0
+                    false_dive_count = 0
+
+                    for i in range(len(depths_achieved)):
+                        # Check to see if we're looking at data from scheme 1 or 2 
+                        # Data from each scheme is logged at the same time, so without differentiating we end up with duplicates of each data point 
+                        if schemes[i] == 2:
+                            continue
+                        
+                        dive_count += 1
+                        if depths_achieved[i] < 1:
+                            false_dive_count += 1
+                            false_utimes.append(utimes[i])
+
+                    file.close()
+
+                    print_data(false_utimes, dive_count, false_dive_count, bot_id[0])
+
+        if not has_h5:
+            print(f'No .h5 files found in {directory_path}')
+
+    elif os.path.isfile(directory_path):
+        filename = directory_path
+        if filename.endswith('.h5'):
+            with h5py.File(filename, 'r') as file:
 
                 # Groups we're interested in
                 task_packet = file['jaiabot::task_packet;0/jaiabot.protobuf.TaskPacket']
@@ -107,9 +145,12 @@ def get_dive_data(directory_path: str):
                 file.close()
 
                 print_data(false_utimes, dive_count, false_dive_count, bot_id[0])
-
-    if not has_h5:
-        print(f'No .h5 files found in {directory_path}')
+        
+        else:
+            print("The file must be in .h5 format.")
+    
+    else:
+        print("Try again with a directory or file name.")
 
 def main():
     """Driver function. Calls get_dive_data() with the user input directory path as an argument. 
