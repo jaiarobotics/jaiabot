@@ -1963,7 +1963,6 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @param {React.ChangeEvent<HTMLInputElement>} evt: Event activating the edit mode toggle  
 	 * @param {RunInterface} run: The run being put into Edit Mode
-	 * 
 	 * @returns None 
 	 */
 	toggleEditMode(evt: React.ChangeEvent<HTMLInputElement>, run: RunInterface) {

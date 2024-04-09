@@ -121,11 +121,11 @@ export class GoalSettingsPanel extends React.Component {
     /**
      * Gets and returns the run that the currently selected waypoint is a part of
      * 
-     * @returns {RunInterface} 
+     * @returns {RunInterface} Returns the run that the currently selected wpt is a part of
      */
     getRun() {
         let run: RunInterface = null
-        Object.entries(this.props.runList).map(([key, value]) =>
+        Object.entries(this.props.runList).map(() =>
             run = this.props.runList.runs[`run-${this.props.runNumber}`]
         )
 
@@ -244,7 +244,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label">Bot:</div>
                     <div className="goal-settings-input">{botId}</div>
                     <div className="goal-settings-line-break"></div>
-                        <div className="goal-settings-label">Edit Run</div>
+                        <div className="goal-settings-label move-label">Edit Run</div>
                             <EditModeToggle
                                 onClick={this.props.toggleEditMode}
                                 runIdInEditMode={this.props.runList.runIdInEditMode}
