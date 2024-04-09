@@ -341,8 +341,14 @@ jaiabot::apps::MissionManager::MissionManager()
             glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString()
                                      << std::endl;
 
-            machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
-            machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+            if (imu_data.has_max_acceleration())
+            {
+                machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+            }
+            if (imu_data.has_significant_wave_height())
+            {
+                machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+            }
         });
 
     // subscribe for engineering commands
