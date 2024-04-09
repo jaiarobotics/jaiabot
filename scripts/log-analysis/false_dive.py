@@ -14,7 +14,7 @@ import datetime
 
 MICROSECONDS_FACTOR = 1_000_000
 
-def print_data(false_utimes: list[int], dive_count: int, false_dive_count: int, bot_id: int):
+def print_data(false_utimes, dive_count, false_dive_count, bot_id):
     """Prints the collected data. 
     
     Args:
@@ -55,7 +55,7 @@ def utime_to_realtime(utime: int):
     return dt    
 
 
-def get_dive_data(directory_path: str):
+def get_dive_data(directory_path):
     """Opens each .h5 file within the given directory, handles the data, and locates any false dives within the file. 
     
     Args:
