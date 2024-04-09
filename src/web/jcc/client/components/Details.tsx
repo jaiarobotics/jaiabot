@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useContext } from 'react'
+import { GlobalContext } from '../../../context/GlobalContext';
 
 // Jaia Imports
 import EditModeToggle from './EditModeToggle'
-import { JaiaAPI } from '../../common/JaiaAPI';
 import { Missions } from './Missions'
 import { GlobalSettings } from './Settings';
+import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
 import { error, warning, info} from '../libs/notifications';
 import { MissionInterface, RunInterface } from './CommandControl';
 import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
@@ -40,6 +41,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 // Utility Imports
 import * as turf from '@turf/turf';
 import { CustomAlert } from './shared/CustomAlert';
+
 
 const rcMode = require('../icons/controller.svg') as string
 
@@ -1124,225 +1126,209 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     )
 }
 
-export interface HubDetailsProps {
-    hub: PortalHubStatus,
-    api: JaiaAPI,
-    isExpanded: DetailsExpandedState,
-    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
-    getFleetId: () => number
-    closeWindow: () => void,
-    takeControl: (onSuccess: () => void) => void,
-}
+// export function HubDetailsComponent() {
+//     const global = useContext(GlobalContext)
 
-export function HubDetailsComponent(props: HubDetailsProps) {
-    const hub = props.hub
-    const api = props.api
-    const isExpanded = props.isExpanded
-    const setDetailsExpanded = props.setDetailsExpanded
-    const getFleetId = props.getFleetId
-    const closeWindow = props.closeWindow
-    const takeControl = props.takeControl
+//     useEffect(() => {
+//         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
+//     }, [])
 
-    useEffect(() => {
-        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
-    }, [])
+//     const makeAccordionTheme = () => {
+//         return createTheme({
+//             transitions: {
+//                 create: () => 'none',
+//             }
+//         })
+//     }
 
-    const makeAccordionTheme = () => {
-        return createTheme({
-            transitions: {
-                create: () => 'none',
-            }
-        })
-    }
+    // if (!hub) {
+    //     return (<div></div>)
+    // }
 
-    if (!hub) {
-        return (<div></div>)
-    }
-
-    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
-    let statusAgeClassName: string
+    // let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
+    // let statusAgeClassName: string
     
-    if (statusAge > 30) {
-        statusAgeClassName = 'healthFailed'
-    } else if (statusAge > 10) {
-        statusAgeClassName = 'healthDegraded'
-    }
+    // if (statusAge > 30) {
+    //     statusAgeClassName = 'healthFailed'
+    // } else if (statusAge > 10) {
+    //     statusAgeClassName = 'healthDegraded'
+    // }
 
-    takeControlFunction = takeControl;
+    // takeControlFunction = takeControl;
 
-    let loadAverageOneMin
-    let loadAverageFiveMin
-    let loadAverageFifteenMin
+    // let loadAverageOneMin
+    // let loadAverageFiveMin
+    // let loadAverageFifteenMin
 
-    if (hub.linux_hardware_status?.processor?.loads?.one_min != undefined) {
-        loadAverageOneMin = hub.linux_hardware_status?.processor?.loads?.one_min.toFixed(2)
-    } else {
-        loadAverageOneMin = "N/A"
-    }
+    // if (hub.linux_hardware_status?.processor?.loads?.one_min != undefined) {
+    //     loadAverageOneMin = hub.linux_hardware_status?.processor?.loads?.one_min.toFixed(2)
+    // } else {
+    //     loadAverageOneMin = "N/A"
+    // }
 
-    if (hub.linux_hardware_status?.processor?.loads?.five_min != undefined) {
-        loadAverageFiveMin = hub.linux_hardware_status?.processor?.loads?.five_min.toFixed(2)
-    } else {
-        loadAverageFiveMin = "N/A"
-    }
+    // if (hub.linux_hardware_status?.processor?.loads?.five_min != undefined) {
+    //     loadAverageFiveMin = hub.linux_hardware_status?.processor?.loads?.five_min.toFixed(2)
+    // } else {
+    //     loadAverageFiveMin = "N/A"
+    // }
 
-    if (hub.linux_hardware_status?.processor?.loads?.fifteen_min != undefined) {
-        loadAverageFifteenMin = hub.linux_hardware_status?.processor?.loads?.fifteen_min.toFixed(2)
-    } else {
-        loadAverageFifteenMin = "N/A"
-    }
+    // if (hub.linux_hardware_status?.processor?.loads?.fifteen_min != undefined) {
+    //     loadAverageFifteenMin = hub.linux_hardware_status?.processor?.loads?.fifteen_min.toFixed(2)
+    // } else {
+    //     loadAverageFifteenMin = "N/A"
+    // }
 
-    let linkQualityPercentage = 0;
+    // let linkQualityPercentage = 0;
 
-    if (hub.linux_hardware_status?.wifi?.link_quality_percentage != undefined) {
-        linkQualityPercentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
-    }
+    // if (hub.linux_hardware_status?.wifi?.link_quality_percentage != undefined) {
+    //     linkQualityPercentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
+    // }
 
-    return (
-        <div id='hubDetailsBox'>
-            <div className='titleBar'>
-                <h2 className='name'>{`Hub ${hub?.hub_id}`}</h2>
-                <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
-            </div>
-            <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
-                <ThemeProvider theme={makeAccordionTheme()}>
-                    <Accordion 
-                        expanded={isExpanded.quickLook} 
-                        onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
-                        className='accordionContainer'
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
-                        >
-                            <Typography>Quick Look</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    {healthRow(hub, false)}
-                                    <tr>
-                                        <td>Latitude</td>
-                                        <td>{formatLatitude(hub.location?.lat)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Longitude</td>
-                                        <td>{formatLongitude(hub.location?.lon)}</td>
-                                    </tr>
-                                    <tr className={statusAgeClassName}>
-                                        <td>Status Age</td>
-                                        <td>{statusAge.toFixed(0)} s</td>
-                                    </tr>
-                                    <tr>
-                                        <td>CPU Load Average (1 min)</td>
-                                        <td>{loadAverageOneMin}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>CPU Load Average (5 min)</td>
-                                        <td>{loadAverageFiveMin}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>CPU Load Average (15 min)</td>
-                                        <td>{loadAverageFifteenMin}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Wi-Fi Link Quality</td>
-                                        <td>{linkQualityPercentage + " %"}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </AccordionDetails>
-                    </Accordion>
-                </ThemeProvider>
+    // return (
+    //     <div id='hubDetailsBox'>
+    //         <div className='titleBar'>
+    //             <h2 className='name'>{`Hub ${hub?.hub_id}`}</h2>
+    //             <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
+    //         </div>
+    //         <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
+    //             <ThemeProvider theme={makeAccordionTheme()}>
+    //                 <Accordion 
+    //                     expanded={isExpanded.quickLook} 
+    //                     onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
+    //                     className='accordionContainer'
+    //                 >
+    //                     <AccordionSummary
+    //                         expandIcon={<ExpandMoreIcon />}
+    //                         aria-controls='panel1a-content'
+    //                         id='panel1a-header'
+    //                     >
+    //                         <Typography>Quick Look</Typography>
+    //                     </AccordionSummary>
+    //                     <AccordionDetails>
+    //                         <table>
+    //                             <tbody>
+    //                                 {healthRow(hub, false)}
+    //                                 <tr>
+    //                                     <td>Latitude</td>
+    //                                     <td>{formatLatitude(hub.location?.lat)}</td>
+    //                                 </tr>
+    //                                 <tr>
+    //                                     <td>Longitude</td>
+    //                                     <td>{formatLongitude(hub.location?.lon)}</td>
+    //                                 </tr>
+    //                                 <tr className={statusAgeClassName}>
+    //                                     <td>Status Age</td>
+    //                                     <td>{statusAge.toFixed(0)} s</td>
+    //                                 </tr>
+    //                                 <tr>
+    //                                     <td>CPU Load Average (1 min)</td>
+    //                                     <td>{loadAverageOneMin}</td>
+    //                                 </tr>
+    //                                 <tr>
+    //                                     <td>CPU Load Average (5 min)</td>
+    //                                     <td>{loadAverageFiveMin}</td>
+    //                                 </tr>
+    //                                 <tr>
+    //                                     <td>CPU Load Average (15 min)</td>
+    //                                     <td>{loadAverageFifteenMin}</td>
+    //                                 </tr>
+    //                                 <tr>
+    //                                     <td>Wi-Fi Link Quality</td>
+    //                                     <td>{linkQualityPercentage + " %"}</td>
+    //                                 </tr>
+    //                             </tbody>
+    //                         </table>
+    //                     </AccordionDetails>
+    //                 </Accordion>
+    //             </ThemeProvider>
 
-                <ThemeProvider theme={makeAccordionTheme()}>
-                    <Accordion 
-                        expanded={isExpanded.commands} 
-                        onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
-                        className='accordionContainer'
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
-                        >
-                            <Typography>Commands</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Button className={' button-jcc'} 
-                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
-                                <Icon path={mdiPower} title='Shutdown'/>
-                            </Button>
-                            <Button className={' button-jcc'} 
-                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
-                                <Icon path={mdiRestartAlert} title='Reboot'/>
-                            </Button>
-                            <Button className={' button-jcc'}  
-                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
-                                <Icon path={mdiRestart} title='Restart Services'/>
-                            </Button>
-                        </AccordionDetails>
-                    </Accordion>
-                </ThemeProvider>
+    //             <ThemeProvider theme={makeAccordionTheme()}>
+    //                 <Accordion 
+    //                     expanded={isExpanded.commands} 
+    //                     onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
+    //                     className='accordionContainer'
+    //                 >
+    //                     <AccordionSummary
+    //                         expandIcon={<ExpandMoreIcon />}
+    //                         aria-controls='panel1a-content'
+    //                         id='panel1a-header'
+    //                     >
+    //                         <Typography>Commands</Typography>
+    //                     </AccordionSummary>
+    //                     <AccordionDetails>
+    //                         <Button className={' button-jcc'} 
+    //                                 onClick={() => { issueCommandForHub(jaiaAPI, hub.hub_id, commandsForHub.shutdown) }}>
+    //                             <Icon path={mdiPower} title='Shutdown'/>
+    //                         </Button>
+    //                         <Button className={' button-jcc'} 
+    //                                 onClick={() => { issueCommandForHub(jaiaAPI, hub.hub_id, commandsForHub.reboot) }}>
+    //                             <Icon path={mdiRestartAlert} title='Reboot'/>
+    //                         </Button>
+    //                         <Button className={' button-jcc'}  
+    //                                 onClick={() => { issueCommandForHub(jaiaAPI, hub.hub_id, commandsForHub.restartServices) }}>
+    //                             <Icon path={mdiRestart} title='Restart Services'/>
+    //                         </Button>
+    //                     </AccordionDetails>
+    //                 </Accordion>
+    //             </ThemeProvider>
 
-                <ThemeProvider theme={makeAccordionTheme()}>
-                    <Accordion 
-                        expanded={isExpanded.links} 
-                        onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}
-                        className='accordionContainer'
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
-                        >
-                            <Typography>Links</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Button
-                                className={'button-jcc'} 
-                                onClick={() => {							
-                                    const hubId = 10 + hub?.hub_id
-                                    const fleetId = getFleetId()
+    //             <ThemeProvider theme={makeAccordionTheme()}>
+    //                 <Accordion 
+    //                     expanded={isExpanded.links} 
+    //                     onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}
+    //                     className='accordionContainer'
+    //                 >
+    //                     <AccordionSummary
+    //                         expandIcon={<ExpandMoreIcon />}
+    //                         aria-controls='panel1a-content'
+    //                         id='panel1a-header'
+    //                     >
+    //                         <Typography>Links</Typography>
+    //                     </AccordionSummary>
+    //                     <AccordionDetails>
+    //                         <Button
+    //                             className={'button-jcc'} 
+    //                             onClick={() => {							
+    //                                 const hubId = 10 + hub?.hub_id
+    //                                 const fleetId = getFleetId()
 
-                                    if (fleetId != undefined
-                                        && !Number.isNaN(hubId)) {
-                                        // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
-                                        const url = `http://10.23.${fleetId}.${hubId}:40010`
-                                        window.open(url, '_blank')}}
-                                    }  
-                            >
-                                <Icon path={mdiChartLine} title='JDV'/>
-                            </Button>
-                            <Button className="button-jcc" onClick={() => {
-                                const fleetId = getFleetId()
+    //                                 if (fleetId != undefined
+    //                                     && !Number.isNaN(hubId)) {
+    //                                     // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+    //                                     const url = `http://10.23.${fleetId}.${hubId}:40010`
+    //                                     window.open(url, '_blank')}}
+    //                                 }  
+    //                         >
+    //                             <Icon path={mdiChartLine} title='JDV'/>
+    //                         </Button>
+    //                         <Button className="button-jcc" onClick={() => {
+    //                             const fleetId = getFleetId()
 
-                                if (fleetId != undefined) {
-                                    const url = `http://10.23.${fleetId}.1`
-                                    window.open(url, '_blank')}}
-                                }
-                            >
-                                <Icon path={mdiWifiCog} title="Router"></Icon>
-                            </Button>
-                            <Button className="button-jcc" onClick={() => 
-                                    {
-                                        const hubId = 10 + hub?.hub_id
-                                        const fleetId = getFleetId()
+    //                             if (fleetId != undefined) {
+    //                                 const url = `http://10.23.${fleetId}.1`
+    //                                 window.open(url, '_blank')}}
+    //                             }
+    //                         >
+    //                             <Icon path={mdiWifiCog} title="Router"></Icon>
+    //                         </Button>
+    //                         <Button className="button-jcc" onClick={() => 
+    //                                 {
+    //                                     const hubId = 10 + hub?.hub_id
+    //                                     const fleetId = getFleetId()
 
-                                        if (fleetId != undefined) {
-                                            const url = `http://10.23.${fleetId}.${hubId}:9091`
-                                            window.open(url, '_blank')
-                                        }
-                                    }
-                                }
-                            >
-                                <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
-                            </Button>
-                        </AccordionDetails>
-                    </Accordion>
-                </ThemeProvider>
-            </div>
-        </div>
-    )
-}
+    //                                     if (fleetId != undefined) {
+    //                                         const url = `http://10.23.${fleetId}.${hubId}:9091`
+    //                                         window.open(url, '_blank')
+    //                                     }
+    //                                 }
+    //                             }
+    //                         >
+    //                             <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
+    //                         </Button>
+    //                     </AccordionDetails>
+    //                 </Accordion>
+    //             </ThemeProvider>
+    //         </div>
+    //     </div>
+    // )
+// }

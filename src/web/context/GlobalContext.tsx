@@ -1,4 +1,14 @@
 import { createContext } from 'react';
-import { defaultGlobalContext } from '../default-states/global-context';
 
-export const globalContext = createContext(defaultGlobalContext)
+export interface GlobalContextType {
+    showHubDetails: boolean
+    remoteControlInterval: number
+}
+
+export const globalDefaultContext: GlobalContextType = {
+    showHubDetails: false,
+    remoteControlInterval: 0
+}
+
+export const GlobalContext = createContext(null)
+export const GlobalDispatchContext = createContext(null)

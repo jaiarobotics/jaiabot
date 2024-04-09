@@ -1,4 +1,5 @@
 import React, { MouseEvent, ReactElement, ReactNode } from 'react'
+import { GlobalContext } from '../../../context/GlobalContext'
 
 
 // Jaia Imports
@@ -28,6 +29,7 @@ import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
+import { HubDetailsComponent } from './HubDetails'
 import { Save, GlobalSettings } from './Settings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
@@ -38,7 +40,7 @@ import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared
 import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
-import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from './Details'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
@@ -207,6 +209,10 @@ interface State {
 	customAlert?: ReactNode
 }
 
+interface GlobalContext {
+	showHubDetails: boolean
+}
+
 interface BotAllCommandInfo {
 	botIds?: number[],
 	botIdsInIdleState?: number[],
@@ -228,6 +234,8 @@ interface BotAllCommandInfo {
 export default class CommandControl extends React.Component {
 	props: Props
 	state: State
+	static contextType = GlobalContext
+	context: GlobalContext
 
 	api = jaiaAPI
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
@@ -3398,18 +3406,6 @@ export default class CommandControl extends React.Component {
 		}
 
 		switch (detailsBoxItem?.type) {
-			case 'hub':
-				const hubDetailsProps: HubDetailsProps = {
-					hub: hubs?.[this.selectedHubId()],
-					api: this.api,
-					isExpanded: this.state.detailsExpanded,
-					setDetailsExpanded: this.setDetailsExpanded.bind(this),
-					getFleetId: this.getFleetId.bind(this),
-					takeControl: this.takeControl.bind(this),
-					closeWindow: closeDetails.bind(this),
-				}
-				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
-				break;
 			case 'bot':
 				const botDetailsProps: BotDetailsProps = {
 					bot: bots?.[this.selectedBotId()], 
@@ -3733,6 +3729,8 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				{detailsBox}
+
+				<HubDetailsComponent />
 
 				{rcControllerPanel}
 
