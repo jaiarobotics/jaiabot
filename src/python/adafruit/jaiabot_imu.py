@@ -54,6 +54,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
                 imuData = imu.getIMUData()
+                imuData.imu_type = args.device_type
                 #print(imuData)
                 if imuData is None:
                     log.warning('getIMUData returned None')

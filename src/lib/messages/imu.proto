@@ -116,6 +116,8 @@ message IMUData
 
     optional Quaternion quaternion = 10;
 
+    optional string imu_type = 11;
+
 }
 
 message IMUIssue
