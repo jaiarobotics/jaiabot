@@ -15,10 +15,10 @@ import logging
 from jaiabot.messages.imu_pb2 import IMUData
 
 from pyjaia.series import *
-from waves import doAnalysis
-from waves.processing import *
-from waves.filters import *
-from analysis_html import *
+from . import doAnalysis
+from .processing import *
+from .filters import *
+from .analysis_html import *
 
 import csv
 import os
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     #     sleep(1)
     import sys
     import h5py
-    from waves.series_set import *
+    from .series_set import *
 
     sampleFreq = 4.0
 

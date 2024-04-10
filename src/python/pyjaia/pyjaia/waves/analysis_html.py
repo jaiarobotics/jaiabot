@@ -6,11 +6,11 @@ import numpy
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from waves.drift import Drift
-import spectrogram
+from .drift import Drift
+from .processing import *
+from . import spectrogram
 from pyjaia.series import Series
-from waves import *
-
+from .series_set import SeriesSet
 
 def formatTimeDelta(td: timedelta):
     components = []

@@ -208,8 +208,8 @@ if __name__ == '__main__':
         from imu_adafruit_bno085 import *
         imu = AdafruitBNO085()
 
-    # Setup the wave analysis thread
-    analyzer = AccelerationAnalyzer(args.frequency, dump_html_flag=args.dump_html_flag)
+    # Setup the acceleration analyzer (for wave heights and surface type analysis)
+    analyzer = AccelerationAnalyzer(sample_frequency=4, dump_html_flag=args.dump_html_flag)
 
     # Start the thread that responds to IMUCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
