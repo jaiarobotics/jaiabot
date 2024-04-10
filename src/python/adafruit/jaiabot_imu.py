@@ -144,11 +144,14 @@ def do_interactive_loop():
 if __name__ == '__main__':
     # Setup the sensor
     if args.device_type == 'sim':
+        from imu_simulator import Simulator
         imu = Simulator(wave_frequency=0.5, wave_height=1)
     elif args.device_type == 'bno055':
+        from imu_bno055 import AdafruitBNO055
         imu = AdafruitBNO055()
     elif args.device_type == 'bno085':
-        imu = Adafruit()
+        from imu_bno085 import AdafruitBNO085
+        imu = AdafruitBNO085()
 
     # Setup the wave analysis thread
     analyzer = Analyzer(imu, args.frequency)
