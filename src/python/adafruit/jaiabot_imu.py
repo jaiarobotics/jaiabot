@@ -6,7 +6,7 @@ import traceback
 import logging
 from math import *
 from imu import *
-from acceleration_analyzer import AccelerationAnalyzer
+from pyjaia.waves.acceleration_analyzer import AccelerationAnalyzer
 from threading import Thread
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
@@ -17,7 +17,6 @@ parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')

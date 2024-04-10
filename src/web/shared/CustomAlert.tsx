@@ -47,7 +47,7 @@ export class CustomAlert extends React.Component {
         })
 
         return <div className='fullscreen'>
-            <div className="custom-alert">
+            <div className="custom-alert" style={{ border: this.props.title === 'Warning' ? '3px solid red' : 'none' }}>
                 <div className='title'>{this.props.title ?? 'Alert'}</div>
                 {textDivs}
                 <div className='button-container'>
@@ -86,10 +86,10 @@ export class CustomAlert extends React.Component {
         })
     }
 
-    static confirmAsync(text: string, actionTitle: string): Promise<boolean> {
+    static confirmAsync(text: string, actionTitle: string, title?:string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             presentAlert({
-                title: 'Confirm',
+                title: title?title:'Confirm',
                 text: text,
                 buttons: [
                     {

@@ -85,13 +85,35 @@ class AdafruitBNO055(IMU):
             linear_acceleration_world = quaternion.apply(linear_acceleration)
             gravity = Vector3(*gravity)
 
-            return IMUReading(orientation=orientation, 
+            reading = IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration, 
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
                         calibration_status=calibration_status,
                         quaternion=quaternion,
                         angular_velocity=angular_velocity)
+            
+            def isValidReading(reading: IMUReading):
+                '''Returns True if this reading doesn't contain an obvious glitch in gravity or linear_acceleration'''
+
+                g_mag = reading.gravity.magnitude()
+                a_mag = reading.linear_acceleration.magnitude()
+                if g_mag < 8 or g_mag > 50:
+                    return False
+                
+                if abs(reading.gravity.x) < 0.02 or abs(reading.gravity.y) < 0.02 or abs(reading.gravity.z) < 0.02: # Sometimes the gravity components glitch out to 0.01 for no reason
+                    return False
+                
+                if a_mag == 0 or a_mag > 50:
+                    return False
+
+                return True
+            
+            if isValidReading(reading):
+                return reading
+            else:
+                return None
+
 
         except OSError as e:
             self.is_setup = False
