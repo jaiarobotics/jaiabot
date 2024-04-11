@@ -10,6 +10,7 @@ from pyjaia.waves.acceleration_analyzer import AccelerationAnalyzer
 from threading import Thread
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from google.protobuf import text_format
+import datetime
 
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
