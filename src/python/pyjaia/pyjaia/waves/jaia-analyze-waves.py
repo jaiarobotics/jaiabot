@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import h5py
-from pyjaia.waves.series import *
+from pyjaia.series import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os

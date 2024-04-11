@@ -200,12 +200,13 @@ def do_interactive_loop():
 if __name__ == '__main__':
     # Setup the sensor
     if args.device_type == 'sim':
+        from imu_simulator import Simulator
         imu = Simulator(wave_frequency=1 / args.wave_period, wave_height=args.wave_height)
     elif args.device_type == 'bno055':
-        from imu_adafruit_bno055 import *
+        from imu_bno055 import *
         imu = AdafruitBNO055()
     elif args.device_type == 'bno085':
-        from imu_adafruit_bno085 import *
+        from imu_bno085 import *
         imu = AdafruitBNO085()
 
     # Setup the acceleration analyzer (for wave heights and surface type analysis)

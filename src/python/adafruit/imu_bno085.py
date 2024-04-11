@@ -1,52 +1,25 @@
-#Standard modules
-import logging
+from imu import *
+
+import adafruit_bno08x
+from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
 from threading import Lock
-
-# Jaia modules
-from imu import IMU
-from quaternion import Quaternion
-from vector3 import Vector3
-from imu_reading import *
-
-
-log = logging.getLogger('imu')
-
-try:
-    import adafruit_bno08x
-    from adafruit_bno08x.uart import BNO08X_UART
-    physical_device_available = True
-except Exception as e:
-    log.warning(f'Physical device not available: {e}')
-    physical_device_available = False
-
 
 class AdafruitBNO085(IMU):
     _lock: Lock
 
     def __init__(self):
-        log.info('Device: Adafruit')
-
-        if not physical_device_available:
-            log.error('No physical device available')
-            exit(1)
-
         self.is_setup = False
-
         self._lock = Lock()
 
     def _setup(self):
         """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
-                log.warning('We are not setup')
-
                 uart = serial.Serial("/dev/ttyAMA0", 3000000)
                 self.sensor = BNO08X_UART(uart)
-
                 log.info('Connected, now lets enable output')
-
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
@@ -64,7 +37,7 @@ class AdafruitBNO085(IMU):
 
             except Exception as error:
                 self.is_setup = False
-                log.error("Cannot setup Adafruit driver: {error}")
+                log.error(f"Adafruit BNO085 setup error: {error}")
             
     def setup(self):
         """Thread-safe setup function.  Call to setup the IMU."""
@@ -128,19 +101,19 @@ class AdafruitBNO085(IMU):
 
     def checkCalibration(self):
         if time.time() - self.check_calibration_time >= self.wait_to_check_calibration_duration:
-            logging.debug("Checking Calibration")
+            log.debug("Checking Calibration")
             try:
                 # set the calibration status to save when we are not querying a 
                 # new calibration status
                 self.calibration_status = self.sensor.calibration_status
 
                 if self.calibration_state == CalibrationState.IN_PROGRESS:
-                    logging.debug("Calibrating imu")
+                    log.debug("Calibrating imu")
                     if not self.calibration_good_at and self.calibration_status > 2:
                         self.calibration_good_at = time.monotonic()
-                        logging.debug("Record time of good calibration")
+                        log.debug("Record time of good calibration")
                     if self.calibration_good_at and (time.monotonic() - self.calibration_good_at > 5.0):
-                        logging.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
+                        log.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
                         self.calibration_state = CalibrationState.COMPLETE
@@ -149,6 +122,4 @@ class AdafruitBNO085(IMU):
             # reset the start time
             self.check_calibration_time = time.time()
         else:
-            logging.debug("Waiting To Check Calibration")
-
-
+            log.debug("Waiting To Check Calibration")
