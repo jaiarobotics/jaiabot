@@ -8,11 +8,7 @@ setup(name='pyjaia',
         author='Jaia Robotics',
         author_email='edsanville@gmail.com',
         url='https://www.jaia.tech',
-        packages=[
-            'pyjaia',
-            'dccl', 
-            'goby.middleware.protobuf', 
-            'jaiabot.messages'],
+        packages=find_packages(),
         install_requires=[
             'wheel', 
             'protobuf==3.20.0', 
