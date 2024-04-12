@@ -22,6 +22,7 @@ def parseDate(date):
 # Internal Imports
 import jaia_portal
 import missions
+from geotiffs import GeoTiffs
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -207,6 +208,17 @@ def get_drift_map():
     end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
 
+####### GeoTIFF files
+geoTiff_root = '/usr/share/jaiabot/overlays'
+
+@app.route('/geoTiffs/<path>', methods=['GET'])
+def getGeoTiffFile(path):
+    return send_from_directory(geoTiff_root, path)
+
+@app.route('/geoTiffs', methods=['GET'])
+def listGeoTiffFiles():
+    geoTiffs = GeoTiffs(geoTiff_root)
+    return JSONResponse(obj=geoTiffs.list())
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)

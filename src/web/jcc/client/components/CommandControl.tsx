@@ -9,7 +9,7 @@ import EngineeringPanel from './EngineeringPanel'
 import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import { Layers, layers } from './Layers'
+import { layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
@@ -29,6 +29,7 @@ import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
 import { Save, GlobalSettings } from './Settings'
+import { CustomLayerGroupFactory } from './CustomLayers'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
@@ -47,6 +48,7 @@ import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHT
 import OlMap from 'ol/Map'
 import OlFeature from 'ol/Feature'
 import OlCollection from 'ol/Collection'
+import LayerGroup from 'ol/layer/Group'
 import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
@@ -378,6 +380,9 @@ export default class CommandControl extends React.Component {
 
 		// Map initializations
 		map = createMap()
+		layers.on(CustomLayerGroupFactory.customLayerGroupReady, (customLayerGroup: LayerGroup) => {
+			map.getLayers().insertAt(2, customLayerGroup);
+		})
 		this.interactions = new Interactions(this, map)
 		map.addInteraction(this.interactions.pointerInteraction)
 		map.addInteraction(this.interactions.translateInteraction)

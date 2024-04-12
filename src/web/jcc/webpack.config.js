@@ -35,6 +35,10 @@ module.exports = (env, argv) => {
               [ 'babel-polyfill', path.resolve(__dirname, 'client/index.js') ],
           resolve : {
             extensions : [ '.*', '.js', '.jsx', '.ts', '.tsx' ],
+            alias : {
+              geotiff : path.resolve(
+                  __dirname, '../node_modules/geotiff/dist-module/geotiff.js'),
+            },
           },
           output :
               {path : path.resolve(env.OUTPUT_DIR), filename : 'client.js'},

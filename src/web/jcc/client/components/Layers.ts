@@ -1,12 +1,14 @@
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import LayerGroup from 'ol/layer/Group';
+import { CustomLayerGroupFactory } from './CustomLayers';
 import { createChartLayerGroup } from './ChartLayers';
 import { createBaseLayerGroup } from './BaseLayers';
 import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
 import * as Styles from './shared/Styles'
+import { EventEmitter } from 'events';
 
 
 export class Layers {
@@ -156,8 +158,16 @@ export class Layers {
     dragAndDropVectorLayer = new VectorLayer()
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
+    customLayerGroupFactory: CustomLayerGroupFactory
+    eventEmitter = new EventEmitter()
 
+    customLayerGroupIsReady = (customLayerGroup: LayerGroup) => {
+        this.emit(CustomLayerGroupFactory.customLayerGroupReady, customLayerGroup)
+    }
     getAllLayers() {
+        this.customLayerGroupFactory = new CustomLayerGroupFactory()
+        this.customLayerGroupFactory.on(CustomLayerGroupFactory.customLayerGroupReady, this.customLayerGroupIsReady)
+        this.customLayerGroupFactory.createCustomLayerGroup()
         return [
             this.baseLayerGroup,
             this.chartLayerGroup,
@@ -168,10 +178,18 @@ export class Layers {
         ]
     }
 
+    on(eventName: string, listener: (arg: any) => void): void {
+        this.eventEmitter.on(eventName, listener)
+    }
+    emit(eventName: string, arg: any): void {
+        this.eventEmitter.emit(eventName, arg)
+    }
+
     constructor() {
         // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
         this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
+        this.eventEmitter = new EventEmitter()
     }
 }
 
