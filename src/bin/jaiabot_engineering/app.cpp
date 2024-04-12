@@ -95,6 +95,13 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Bounds& bounds) {
                     latest_engineering.mutable_bounds()->CopyFrom(bounds);
+
+                    glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString()
+                                             << std::endl;
+                    auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
+                    configFile << bounds.DebugString();
+                    configFile.close();
+
             });
 
         // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
@@ -323,17 +330,6 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
             echo_command.set_type(protobuf::EchoCommand::CMD_STOP);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
-    }
-
-    // Persist the bounds configuration, if we received one
-    if (command.has_bounds()) {
-        const auto bounds = command.bounds();
-        glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString() << std::endl;
-        auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
-        configFile << bounds.DebugString();
-        configFile.close();
-
-        latest_engineering.mutable_bounds()->CopyFrom(bounds);
     }
 
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands
