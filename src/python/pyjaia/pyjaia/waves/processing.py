@@ -245,7 +245,7 @@ def significantWaveHeight(waveHeights: List[float]):
 
 
 BandPassFilterFunc = Callable[[float], float]
-bandPassFilter = cos2Filter(1/20, 1/20, 5, 5)
+bandPassFilter = cos2Filter(1/20, 1/100, 5, 5)
 
 
 def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):

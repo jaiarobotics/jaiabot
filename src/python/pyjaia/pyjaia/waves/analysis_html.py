@@ -76,41 +76,6 @@ def htmlForChart(charts: List[Series]) -> str:
     return htmlString
 
 
-def htmlForDrift(driftIndex: int, drift: SeriesSet):
-    # Calculate filtered acceleration series, elevation series, and wave heights
-    sampleFreq = drift.accelerationVertical.averageSampleFrequency()
-    uniformAcceleration = drift.accelerationVertical.makeUniform(sampleFreq)
-    filteredAccelerationSeries = filterAcceleration(uniformAcceleration, sampleFreq)
-    filteredAccelerationSeries.name = 'Filtered acceleration'
-
-    elevationSeries = calculateElevationSeries(uniformAcceleration, sampleFreq)
-    elevationSeries.name = 'Calculated Elevation'
-    waveHeights = calculateSortedWaveHeights(elevationSeries)
-
-    # Header
-    htmlString = ''
-
-    htmlString += f'<h1><a id="{driftIndex + 1}">Drift #{driftIndex + 1}</a></h1>'
-    durationString = formatTimeDelta(drift.acc_x.duration())
-    htmlString += f'<h3>Drift duration: {durationString}<h3>'
-
-    if len(waveHeights) > 0:
-        swh = statistics.mean(waveHeights[floor(len(waveHeights)*2/3):])
-        htmlString += f'<h3>Significant Wave Height: {swh:0.2f}<h3>'
-
-    # The wave heights
-    htmlString += htmlForWaves(waveHeights)
-
-    htmlString += htmlForChart([uniformAcceleration, filteredAccelerationSeries, elevationSeries])
-    htmlString += htmlForChart([drift.grav_x])
-    grav_x_uniform = drift.grav_x.makeUniform(sampleFreq)
-    htmlString += spectrogram.htmlForSpectrogram(grav_x_uniform, fftWindowSeconds=80)
-    htmlString += spectrogram.htmlForSpectrogram(uniformAcceleration, fftWindowSeconds=80)
-    htmlString += spectrogram.htmlForSpectrogram(filteredAccelerationSeries, fftWindowSeconds=80)
-
-    return htmlString
-
-
 def htmlForSummaryTable(uniformAccelerations: List[Series]):
     html = '<h1>Summary</h1>'
     html += '<table><tr><td>Drift #</td><td>Duration</td><td>Significant Wave Height</td></tr>'
@@ -157,12 +122,16 @@ def formatTimeDelta(td: timedelta):
     return ' '.join(components)
 
 
-def htmlForDriftObject(drift: Drift) -> str:
+def htmlForDriftObject(drift: Drift, driftIndex: int=None) -> str:
     # Header
     htmlString: str = ''
 
-    htmlString += f'<h1>Drift Analysis</h1>'
-    durationString = formatTimeDelta(drift.elevation.duration())
+    if driftIndex is not None:
+        htmlString += f'<h1><a id="{driftIndex}">Drift {driftIndex}</a></h1>'
+    else:
+        htmlString += f'<h1>Drift</h1>'
+
+    durationString = formatTimeDelta(drift.rawVerticalAcceleration.duration())
     htmlString += f'<h3>Drift duration: {durationString}<h3>'
 
     if len(drift.waveHeights) > 0:
