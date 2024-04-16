@@ -13,8 +13,8 @@ import pandas as pd
 MICROSECOND_FACTOR = 1_000_000
 
 """Usage:
-    Navigate to the directory containing this file, run python hdop.py followed by the file path
-    to your .h5 files in the terminal (e.g. 'python hdop.py ~/path/to/.h5_directory/').
+    Navigate to the directory containing this file, run python GPS_characterizer.py followed by the file path
+    to your .h5 files in the terminal (e.g. 'python GPS_characterizer.py ~/path/to/.h5_directory/').
 """
 class Point:
     """Holds the latitude and longitude of a given Point object
