@@ -65,10 +65,8 @@ import * as turf from '@turf/turf'
 // Styling
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
-	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
+	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -3453,7 +3451,7 @@ export default class CommandControl extends React.Component {
 					this.setVisiblePanel(PanelType.NONE)
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
+				<Icon path={mdiSquareEditOutline} title="Stop Editing Optimized Mission Survey"></Icon>
 			</Button>
 		) : (
 			<Button
@@ -3481,7 +3479,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first survey point');
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
+				<Icon path={mdiSquareEditOutline} title="Edit Optimized Mission Survey"></Icon>
 			</Button>
 		))
 
@@ -3490,7 +3488,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+				<Icon path={mdiWrench} rotate={90}  title="Engineering Panel" />
 			</Button>
 
 		) : (
@@ -3498,7 +3496,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+				<Icon path={mdiWrench} rotate={90}  title="Engineering Panel" />
 			</Button>
 		))
 
