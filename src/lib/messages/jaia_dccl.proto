@@ -139,7 +139,7 @@ message BotStatus
         HYDRO = 1;
         ECHO = 2;
     }
-    required BotType bot_type = 7;
+    optional BotType bot_type = 7;
 
     optional GeographicCoordinate location = 10;
 
