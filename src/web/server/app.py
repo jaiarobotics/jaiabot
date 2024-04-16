@@ -69,6 +69,14 @@ def JSONResponse(obj: any=None, string: str=None):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
+@app.route('/jaia/status-bots', methods=['GET'])
+def getStatusBots():
+    return JSONResponse(jaia_interface.get_status_bots())
+
+@app.route('/jaia/status-hubs', methods=['GET'])
+def getStatusHubs():
+    return JSONResponse(jaia_interface.get_status_hubs())
+
 @app.route('/jaia/metadata', methods=['GET'])
 def getMetadata():
     return JSONResponse(jaia_interface.get_Metadata())

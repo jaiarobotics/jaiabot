@@ -415,6 +415,20 @@ class Interface:
             pass
 
         return status
+    
+    def get_status_bots(self):
+        """Gets the status for all bots connected to the hub
+        Returns:
+            {[bot_id: int]: BotStatus}: The status for all connected bots
+        """
+        return self.bots
+    
+    def get_status_hubs(self):
+        """Gets the status for all online hubs
+        Returns:
+            {[hub_id: int]: HubStatus}: The status for all online hubs
+        """
+        return self.hubs
 
     def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
