@@ -493,11 +493,6 @@ function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, comm
         disableInfo.isDisabled = true
     }
 
-    if (bot.health_state === 'HEALTH__FAILED') {
-        disableInfo.disableMessage += "The command: " + command.commandType + ' cannot be sent because the bot because it has a health state of "HEALTH__OK" or "HEALTH__DEGRADED\n'
-        disableInfo.isDisabled = true
-    }
-
     return disableInfo
 }
 
@@ -749,8 +744,17 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Button>
                         <Button
                             className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                            onClick={() => { 
-                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage) 
+                            onClick={async () => { 
+                                if(bot.health_state === 'HEALTH__FAILED' && bot.mission_state !== MissionState.PRE_DEPLOYMENT__IDLE && bot.mission_state !== MissionState.PRE_DEPLOYMENT__FAILED)
+                                {
+                                    (await CustomAlert.confirmAsync('Running the command may have severe consequences because the bot is in a failed health state.\n','Confirm','Warning')) ? 
+                                    issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
+                                    :false;
+
+                                }
+                                else{
+                                    issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
+                                }
                             }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
@@ -969,7 +973,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.gps} 
                                         onChange={(event, expanded) => {setDetailsExpanded('gps', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1015,7 +1019,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.imu} 
                                         onChange={(event, expanded) => {setDetailsExpanded('imu', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1049,7 +1053,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.sensor} 
                                         onChange={(event, expanded) => {setDetailsExpanded('sensor', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
@@ -1083,7 +1087,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <Accordion 
                                         expanded={isExpanded.power} 
                                         onChange={(event, expanded) => {setDetailsExpanded('power', expanded)}}
-                                        className='nestedAccordionContainer accordionContainer'
+                                        className='nestedAccordionContainer'
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}

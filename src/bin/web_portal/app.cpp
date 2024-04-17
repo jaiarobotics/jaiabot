@@ -29,6 +29,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/portal.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
@@ -137,7 +138,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     ///////////// INPUT from Client
     interthread().subscribe<web_portal_udp_in>(
-        [this](const goby::middleware::protobuf::IOData& io_data) {
+        [this](const goby::middleware::protobuf::IOData& io_data)
+        {
             glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString()
                                      << endl;
 
@@ -177,7 +179,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to hub statuses from hub manager
     interprocess().subscribe<jaiabot::groups::hub_status>(
-        [this](const jaiabot::protobuf::HubStatus& hub_status) {
+        [this](const jaiabot::protobuf::HubStatus& hub_status)
+        {
             glog.is_debug2() && glog << group("main")
                                      << "Received Hub status: " << hub_status.ShortDebugString()
                                      << endl;
@@ -189,7 +192,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to engineering status messages
     interprocess().subscribe<jaiabot::groups::engineering_status>(
-        [this](const jaiabot::protobuf::Engineering& engineering_status) {
+        [this](const jaiabot::protobuf::Engineering& engineering_status)
+        {
             glog.is_debug1() && glog << "Sending engineering_status to client: "
                                      << engineering_status.ShortDebugString() << endl;
 
@@ -201,7 +205,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to TaskPackets
     interprocess().subscribe<jaiabot::groups::task_packet>(
-        [this](const jaiabot::protobuf::TaskPacket& task_packet) {
+        [this](const jaiabot::protobuf::TaskPacket& task_packet)
+        {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
 
@@ -210,7 +215,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to MetaData
     interprocess().subscribe<jaiabot::groups::metadata>(
-        [this](const jaiabot::protobuf::DeviceMetadata& metadata) {
+        [this](const jaiabot::protobuf::DeviceMetadata& metadata)
+        {
             jaiabot::protobuf::PortalToClientMessage message;
             device_metadata_ = metadata;
         });
@@ -228,16 +234,10 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
         glog.is_debug2() && glog << group("main") << "Sending engineering_command: "
                                  << engineering_command.ShortDebugString() << endl;
 
-        goby::middleware::Publisher<jaiabot::protobuf::Engineering> command_publisher(
-            {}, [](jaiabot::protobuf::Engineering& cmd, const goby::middleware::Group& group) {
-                cmd.set_bot_id(group.numeric());
-            });
-
         intervehicle().publish_dynamic(
             engineering_command,
-            goby::middleware::DynamicGroup(jaiabot::groups::engineering_command,
-                                           engineering_command.bot_id()),
-            command_publisher);
+            intervehicle::engineering_command_group(engineering_command.bot_id()),
+            intervehicle::default_publisher<jaiabot::protobuf::Engineering>);
     }
 
     if (msg.has_command())
@@ -323,10 +323,6 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
     glog.is_debug2() && glog << group("main")
                              << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
-
-    goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group)
-        { cmd.set_bot_id(group.numeric()); });
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command);
 
