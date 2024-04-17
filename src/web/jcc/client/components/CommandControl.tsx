@@ -29,7 +29,7 @@ import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
-import { HubDetailsComponent } from './HubDetails'
+import { HubDetailsComponent } from '../../../components/HubDetails'
 import { Save, GlobalSettings } from './Settings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
@@ -487,6 +487,8 @@ export default class CommandControl extends React.Component {
 		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!')
+
+
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
@@ -3729,7 +3731,7 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				{detailsBox}
-
+	
 				<HubDetailsComponent />
 
 				{rcControllerPanel}

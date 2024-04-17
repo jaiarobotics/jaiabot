@@ -1,28 +1,22 @@
 import React, { useReducer } from 'react'
 import { GlobalContext, GlobalDispatchContext, globalDefaultContext } from '../../context/GlobalContext'
-import { PodContext, PodDispatchContext, podDefaultContext } from '../../context/PodContext'
-import CommandControl from '../client/components/CommandControl'
+import { HubContextProvider } from '../../context/HubContext'
 
-import { jaiaAPI } from '../../jcc/common/JaiaAPI'
+import CommandControl from '../client/components/CommandControl'
 
 import './style/app.css'
 
 export default function App() {
   const [globalState, globalDispatch] = useReducer(globalStateReducer, globalDefaultContext)
-  const [podState, podDispatch] = useReducer(podStateReducer, podDefaultContext)
 
   return (
     <div>
       <GlobalContext.Provider value={globalState}>
         <GlobalDispatchContext.Provider value={globalDispatch}>
-            
-            <PodContext.Provider value={podState}>
-              <PodDispatchContext.Provider value={podDispatch}>
-              
-                <CommandControl />
-
-              </PodDispatchContext.Provider>
-            </PodContext.Provider>
+          
+          <HubContextProvider>
+            <CommandControl />
+          </HubContextProvider>
 
         </GlobalDispatchContext.Provider>
       </GlobalContext.Provider>
@@ -39,16 +33,6 @@ function globalStateReducer(currentState, action) {
     }
     default: {
       throw Error('Unknown action: ' + action.type);
-    }
-  }
-}
-
-function podStateReducer(currentState, action) {
-  switch (action.type) {
-    case 'polled': {
-      return jaiaAPI.getStatus().then((result) => {
-        return result
-      })
     }
   }
 }

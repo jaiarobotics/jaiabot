@@ -1,28 +1,17 @@
-// React
 import React, { useEffect, useContext } from 'react'
-import { GlobalContext, GlobalDispatchContext } from '../../../context/GlobalContext'
-import { PodContext, PodDispatchContext } from '../../../context/PodContext'
+import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
 
+import { addDropdownListener } from '../jcc/client/components/shared/Utilities'
 
-import { addDropdownListener } from './shared/Utilities'
-
-import { ThemeProvider, createTheme } from '@mui/material';
-import { CatchingPokemonSharp } from '@mui/icons-material';
-
+import { ThemeProvider, createTheme } from '@mui/material'
 
 export function HubDetailsComponent() {
     const globalContext = useContext(GlobalContext)
     const globalDispatch = useContext(GlobalDispatchContext)
 
-    const podContext = useContext(PodContext)
-    const podDispatch = useContext(PodDispatchContext)
-
     useEffect(() => {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
-        podDispatch({ type: 'polled' })
     }, [])
-
-    console.log(podContext)
 
     const makeAccordionTheme = () => {
         return createTheme({
