@@ -37,9 +37,11 @@ constexpr int bot0_modem_id{2};
 
 constexpr int bot_id_min{0};
 constexpr int bot_id_max{150};
+constexpr int bot_id_total{bot_id_max - bot_id_min + 1};
 
 constexpr int hub_id_min{0};
 constexpr int hub_id_max{30};
+constexpr int hub_id_total{hub_id_max - hub_id_min + 1};
 
 inline void check_bot_id_bounds(int bot_id)
 {
