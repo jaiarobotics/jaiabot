@@ -34,6 +34,7 @@
 #include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -211,7 +212,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     bot_status_period_ms_ = cfg().bot_status_period_ms();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
-        [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
+        [this](const goby::middleware::protobuf::gpsd::Attitude& att)
+        {
             glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
                                      << std::endl;
 
@@ -263,67 +265,70 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
-        glog.is_debug1() && glog << "Received Attitude update from IMU: "
-                                 << imu_data.ShortDebugString() << std::endl;
-
-        auto euler_angles = imu_data.euler_angles();
-        auto now = goby::time::SteadyClock::now();
-
-        if (euler_angles.has_heading())
+    interprocess().subscribe<groups::imu>(
+        [this](const jaiabot::protobuf::IMUData& imu_data)
         {
-            // Creating temp heading variable
-            auto heading = euler_angles.heading_with_units();
+            glog.is_debug1() && glog << "Received Attitude update from IMU: "
+                                     << imu_data.ShortDebugString() << std::endl;
 
-            // Apply magnetic declination
-            auto magneticDeclination = wmm.magneticDeclination(
-                latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
-            glog.is_debug2() &&
-                glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                     << "  Magnetic declination: " << magneticDeclination << endl;
-            heading = heading + magneticDeclination * degrees;
+            auto euler_angles = imu_data.euler_angles();
+            auto now = goby::time::SteadyClock::now();
 
-            heading = corrected_heading(heading);
+            if (euler_angles.has_heading())
+            {
+                // Creating temp heading variable
+                auto heading = euler_angles.heading_with_units();
 
-            latest_node_status_.mutable_pose()->set_heading_with_units(heading);
-            latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+                // Apply magnetic declination
+                auto magneticDeclination = wmm.magneticDeclination(
+                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                glog.is_debug2() &&
+                    glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
+                         << "  Magnetic declination: " << magneticDeclination << endl;
+                heading = heading + magneticDeclination * degrees;
 
-            last_data_time_[DataType::HEADING] = now;
-        }
+                heading = corrected_heading(heading);
 
-        if (euler_angles.has_pitch())
-        {
-            auto pitch = euler_angles.pitch_with_units();
-            latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
-            latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+                latest_node_status_.mutable_pose()->set_heading_with_units(heading);
+                latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
 
-            // Used to determine if the bot is horizontal
-            detect_bot_horizontal(pitch.value());
+                last_data_time_[DataType::HEADING] = now;
+            }
 
-            last_data_time_[DataType::PITCH] = now;
-        }
+            if (euler_angles.has_pitch())
+            {
+                auto pitch = euler_angles.pitch_with_units();
+                latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
+                latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
-        if (euler_angles.has_roll())
-        {
-            auto roll = euler_angles.roll_with_units();
-            latest_node_status_.mutable_pose()->set_roll_with_units(roll);
-            latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+                // Used to determine if the bot is horizontal
+                detect_bot_horizontal(pitch.value());
 
-            last_data_time_[DataType::ROLL] = now;
-        }
+                last_data_time_[DataType::PITCH] = now;
+            }
 
-        if (imu_data.has_calibration_status())
-        {
-            latest_bot_status_.set_calibration_status(imu_data.calibration_status());
-        }
+            if (euler_angles.has_roll())
+            {
+                auto roll = euler_angles.roll_with_units();
+                latest_node_status_.mutable_pose()->set_roll_with_units(roll);
+                latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
 
-        if (imu_data.has_calibration_state())
-        {
-            latest_bot_status_.set_calibration_state(imu_data.calibration_state());
-        }
-    });
+                last_data_time_[DataType::ROLL] = now;
+            }
+
+            if (imu_data.has_calibration_status())
+            {
+                latest_bot_status_.set_calibration_status(imu_data.calibration_status());
+            }
+
+            if (imu_data.has_calibration_state())
+            {
+                latest_bot_status_.set_calibration_state(imu_data.calibration_state());
+            }
+        });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
@@ -407,7 +412,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+        {
             auto now = goby::time::SteadyClock::now();
 
             last_data_time_[DataType::PRESSURE] = now;
@@ -421,7 +427,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
+        {
             if (pa.has_calculated_depth())
             {
                 latest_node_status_.mutable_global_fix()->set_depth_with_units(
@@ -445,7 +452,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             if (arduino_response.has_thermocouple_temperature_c())
             {
                 latest_bot_status_.set_thermocouple_temperature(
@@ -480,7 +488,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
-        [this](const protobuf::MissionReport& report) {
+        [this](const protobuf::MissionReport& report)
+        {
             latest_bot_status_.set_mission_state(report.state());
 
             if (report.has_active_goal())
@@ -514,24 +523,26 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_repeat_index();
             }
-
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& salinityData) {
+        [this](const jaiabot::protobuf::SalinityData& salinityData)
+        {
             glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
             latest_bot_status_.set_salinity(salinityData.salinity());
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        {
             last_health_report_time_ = goby::time::SteadyClock::now();
             jaiabot::health::populate_status_from_health(latest_bot_status_, vehicle_health);
         });
 
     // subscribe for commands, to set last_command_time
     interprocess().subscribe<jaiabot::groups::engineering_command>(
-        [this](const jaiabot::protobuf::Engineering& command) {
+        [this](const jaiabot::protobuf::Engineering& command)
+        {
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
             if (command.has_bot_status_rate())
@@ -593,7 +604,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
-        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky)
+        {
             if (sky.has_hdop())
             {
                 latest_bot_status_.set_hdop(sky.hdop());
@@ -607,8 +619,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     // check for hub ID change and publish request for all intervehicle subscribers to (re)subscribe
     // as the new hub may not have our subscriptions
     interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
-        [this](
-            const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg) {
+        [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
+        {
             if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission))
             {
                 const auto& hub_info =
@@ -626,7 +638,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     // subscribe for commands from mission manager
     interprocess()
         .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
-            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
+            [this](const jaiabot::protobuf::DesiredSetpoints& command)
+            {
                 switch (command.type())
                 {
                     case jaiabot::protobuf::SETPOINT_STOP: bot_desired_speed_ = 0; break;
@@ -644,7 +657,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        {
             if (hardware_status.has_wifi())
             {
                 if (hardware_status.wifi().is_connected())
@@ -735,7 +749,8 @@ void jaiabot::apps::Fusion::loop()
         {
             glog.is_debug1() && glog << "Publishing queried bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
-            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+            intervehicle().publish<jaiabot::groups::bot_status>(
+                latest_bot_status_, intervehicle::default_publisher<decltype(latest_bot_status_)>);
             latest_engineering_status.set_query_bot_status(false);
         }
 
@@ -747,7 +762,9 @@ void jaiabot::apps::Fusion::loop()
             {
                 glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                          << latest_bot_status_.ShortDebugString() << endl;
-                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+                intervehicle().publish<jaiabot::groups::bot_status>(
+                    latest_bot_status_,
+                    intervehicle::default_publisher<decltype(latest_bot_status_)>);
                 last_bot_status_report_time_ = now;
 
                 // If the rf is disabled and operator enables rf

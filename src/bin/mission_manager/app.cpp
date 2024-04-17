@@ -29,6 +29,7 @@
 
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
@@ -59,8 +60,8 @@ class MissionManagerConfigurator
         auto& cfg = mutable_cfg();
 
         // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
-        groups::hub_command_this_bot.reset(
-            new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
+        groups::hub_command_this_bot.reset(new goby::middleware::DynamicGroup(
+            jaiabot::intervehicle::hub_command_group(cfg.bot_id())));
     }
 };
 } // namespace apps
@@ -494,18 +495,21 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
                                  << std::endl;
     };
 
-    // use vehicle ID as group for command
-    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group
-    { return goby::middleware::Group(command.bot_id()); };
-
     latest_command_sub_cfg_ = cfg().command_sub_cfg();
 
     // set command publisher to the hub that triggered this subscribe
     latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
     latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
 
+    auto hub_command_subscriber_group_func =
+        [](const protobuf::Command& command) -> goby::middleware::Group
+    {
+        return goby::middleware::Group(
+            jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
+    };
+
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-        latest_command_sub_cfg_, do_set_group, on_command_subscribed};
+        latest_command_sub_cfg_, hub_command_subscriber_group_func, on_command_subscribed};
 
     intervehicle().subscribe_dynamic<protobuf::Command>(
         [this](const protobuf::Command& input_command)
