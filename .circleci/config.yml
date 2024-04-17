@@ -75,7 +75,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y 
-          [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install goby3-clang-tool || true
+          [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y goby3-clang-tool dccl4-apps || true
     - run: &run-build
         name: Build
         command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j2
@@ -297,7 +297,8 @@ jobs:
     environment:
       <<: *environment-template-common
       <<: *environment-template-focal
-      
+      <<: *environment-template-amd64
+
   amd64-focal-deb-build:
     <<: *job-template-deb-amd64
     docker: *docker-base-focal
@@ -319,7 +320,8 @@ jobs:
     environment:
       <<: *environment-template-common
       <<: *environment-template-jammy
-      
+      <<: *environment-template-amd64
+
   amd64-jammy-deb-build:
     <<: *job-template-deb-amd64
     docker: *docker-base-jammy

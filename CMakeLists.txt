@@ -86,6 +86,12 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 message(STATUS "Version: ${PROJECT_VERSION}")
 set(PROJECT_SOVERSION "1")
 
+# Intervehicle API version
+
+# increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
+# start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
+set(PROJECT_INTERVEHICLE_API_VERSION 2)
+
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})

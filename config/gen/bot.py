@@ -151,6 +151,13 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
+# IMU driver config
+imu_port = common.udp.imu_port(node_id)
+if is_simulation():
+    imu_simulation_flag = '-s'
+else:
+    imu_simulation_flag = ''
+
 
 if common.app == 'gobyd':    
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
@@ -216,12 +223,14 @@ elif common.app == 'jaiabot_adafruit_BNO055_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     adafruit_bno055_report_in_simulation=is_simulation()))
+                                     adafruit_bno055_report_in_simulation=is_simulation(),
+                                     imu_port=imu_port))
 elif common.app == 'jaiabot_adafruit_BNO085_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     adafruit_bno085_report_in_simulation=is_simulation()))
+                                     adafruit_bno085_report_in_simulation=is_simulation(),
+                                     imu_port=imu_port))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
@@ -316,4 +325,6 @@ else:
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
-                                     jaia_arduino_dev_location=jaia_arduino_dev_location))
+                                     jaia_arduino_dev_location=jaia_arduino_dev_location,
+                                     imu_port=imu_port,
+                                     imu_simulation_flag=imu_simulation_flag))
