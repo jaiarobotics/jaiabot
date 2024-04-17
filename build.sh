@@ -10,7 +10,7 @@ fi
 
 # Allow user to set nproc for their system, if desired
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
-    MEMORY_KB=$(awk '/MemTotal/{print $2}' /proc/meminfo)
+    MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
     MEMORY_PER_PROCESS_KB="2000000"
     MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
     NPROC=`nproc`
