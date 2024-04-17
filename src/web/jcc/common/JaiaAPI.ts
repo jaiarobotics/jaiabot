@@ -79,6 +79,8 @@ export class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
+  getStatusHubs() { return this.get('jaia/status-hubs') }
+
   /**
    * Queries the server for TaskPackets within a specified range. If no start and end date, the
    * server defaults to a 14 hour window with the end date set to now

@@ -1,27 +1,38 @@
-import './style/app.css';
+import React, { useReducer } from 'react'
+import { GlobalContext, GlobalDispatchContext, globalDefaultContext } from '../../context/GlobalContext'
+import { HubContextProvider } from '../../context/HubContext'
 
-import React, {Component} from 'react';
+import CommandControl from '../client/components/CommandControl'
 
-import CommandControl from './components/CommandControl';
+import './style/app.css'
 
-export default class App extends Component {
-  // state = { username: null };
+export default function App() {
+  const [globalState, globalDispatch] = useReducer(globalStateReducer, globalDefaultContext)
 
-  componentDidMount() {
-    /*
-    fetch('/api/getUsername')
-      .then(res => res.json())
-      .then(user => this.setState({ username: user.username }));
-      */
-  }
+  return (
+    <div>
+      <GlobalContext.Provider value={globalState}>
+        <GlobalDispatchContext.Provider value={globalDispatch}>
+          
+          <HubContextProvider>
+            <CommandControl />
+          </HubContextProvider>
 
-  render() {
-    // const { username } = this.state;
-    return (
-      <div>
-        <CommandControl />
-        {/* {username ? <h1>{`Hello ${username}`}</h1> : <h1>Loading.. please wait!</h1>}   */}
-      </div>
-    );
+        </GlobalDispatchContext.Provider>
+      </GlobalContext.Provider>
+    </div>
+  )
+}
+
+function globalStateReducer(currentState, action) {
+  switch (action.type) {
+    case 'closedHubDetails': {
+      const updatedState = {...currentState}
+      updatedState.showHubDetails = true
+      return updatedState
+    }
+    default: {
+      throw Error('Unknown action: ' + action.type);
+    }
   }
 }
