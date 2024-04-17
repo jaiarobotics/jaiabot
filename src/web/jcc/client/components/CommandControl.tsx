@@ -3488,7 +3488,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}} 
 			>
-				<Icon path={mdiWrench} rotate={90}  title="Engineering Panel" />
+				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
 			</Button>
 
 		) : (
@@ -3496,7 +3496,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<Icon path={mdiWrench} rotate={90}  title="Engineering Panel" />
+				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
 			</Button>
 		))
 
@@ -3522,14 +3522,14 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Map Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Map Settings" />
 			</Button>
 		))
 
@@ -3542,7 +3542,7 @@ export default class CommandControl extends React.Component {
 						this.setVisiblePanel(PanelType.NONE)
 					}}
 				>
-					<Icon path={mdiRuler}  title="Measurement Result" />
+					<Icon path={mdiRuler} size={1.3}  title="Measurement Result" />
 				</Button>
 			</div>
 		) : (
@@ -3554,7 +3554,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first measure point');
 				}}
 			>
-				<Icon path={mdiRuler}  title="Measure Distance" />
+				<Icon path={mdiRuler} size={1.3} title="Measure Distance" />
 			</Button>
 		)
 
