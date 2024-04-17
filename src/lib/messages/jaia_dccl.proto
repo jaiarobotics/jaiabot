@@ -82,17 +82,13 @@ message Command
 message CommandForHub
 {
     option (dccl.msg) = {
-        id: 90
-        max_bytes: 250
-        codec_version: 4
         unit_system: "si"
     };
 
-    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
+    required uint32 hub_id = 1;
+    required uint64 time = 2 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
 
     enum HubCommandType
     {
@@ -143,7 +139,7 @@ message BotStatus
         HYDRO = 1;
         ECHO = 2;
     }
-    required BotType bot_type = 7;
+    optional BotType bot_type = 7;
 
     optional GeographicCoordinate location = 10;
 
