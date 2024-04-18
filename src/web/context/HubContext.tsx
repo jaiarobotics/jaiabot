@@ -1,52 +1,39 @@
-import React, { ReactNode } from 'react'
-import { createContext, useEffect, useReducer } from 'react'
-import { HubStatus } from '../utils/protobuf-types'
+import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
+import { PortalHubStatus } from '../jcc/client/components/shared/PortalStatus'
 import { jaiaAPI } from '../jcc/common/JaiaAPI' 
-import { PodStatus } from '../jcc/client/components/shared/PortalStatus'
-
-interface PortalHubStatus extends HubStatus {
-    portalStatusAge: number
-}
+import { isError } from 'lodash'
 
 interface HubContextType {
     hubStatus: PortalHubStatus
-    isExpanded: boolean
 }
 
 interface Action {
-    type: string
+    type: string,
+    hubStatus?: PortalHubStatus 
 }
 
 interface HubContextProviderProps {
     children: ReactNode
 }
 
-const hubDefaultStatus: PortalHubStatus = {
-    portalStatusAge: 0
-}
-
-export const hubDefaultContext: HubContextType = {
-    hubStatus: hubDefaultStatus,
-    isExpanded: false
-}
-
 const HUB_POLL_TIME = 1000 // ms
 
-const HubContext = createContext(null)
-const HubDispatchContext = createContext(null)
+export const HubContext = createContext(null)
+export const HubDispatchContext = createContext(null)
 
 function hubReducer(state: HubContextType, action: Action) {
     switch (action.type) {
         case 'POLLED':
-            console.log('POLLED')
-            return state
+            let updatedState = {...state}
+            updatedState.hubStatus = action.hubStatus
+            return updatedState
         default:
             return state
     }
 }
 
 export function HubContextProvider({ children }: HubContextProviderProps) {
-    const [state, dispatch] = useReducer(hubReducer, hubDefaultContext)
+    const [state, dispatch] = useReducer(hubReducer, null)
 
     useEffect(() => {
         const intervalId = pollHubStatus(dispatch)
@@ -64,11 +51,13 @@ export function HubContextProvider({ children }: HubContextProviderProps) {
 }
 
 function pollHubStatus(dispatch: React.Dispatch<Action>) {
-    return setInterval(() => {
-        jaiaAPI.getStatus().then((response: PodStatus) => {
+    return setInterval(async () => {
+        const response = await jaiaAPI.getStatusHubs()
+        if (!isError(response)) {
             dispatch({
-                type: 'POLLED'
+                type: 'POLLED',
+                hubStatus: response
             })
-        })
+        }
     }, HUB_POLL_TIME)
 }

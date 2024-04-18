@@ -18,6 +18,7 @@ import { HubOrBot } from './HubOrBot'
 import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
+import { HubDetails } from '../../../components/HubDetails'
 import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
@@ -29,7 +30,7 @@ import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
-import { HubDetailsComponent } from '../../../components/HubDetails'
+
 import { Save, GlobalSettings } from './Settings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
@@ -3743,7 +3744,7 @@ export default class CommandControl extends React.Component {
 
 				{detailsBox}
 	
-				<HubDetailsComponent />
+				<HubDetails />
 
 				{rcControllerPanel}
 

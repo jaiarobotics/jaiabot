@@ -5,7 +5,11 @@ import { GeographicCoordinate } from "./JAIAProtobuf"
 import { getLength as OlGetLength } from "ol/sphere"
 import { Geometry} from "ol/geom"
 
-let abs = Math.abs
+const abs = Math.abs
+
+export function convertMicrosecondsToSeconds(microseconds: number) {
+    return microseconds / 1e6
+}
 
 export function formatLatitude(lat: number, prec=5) {
     if (lat == null) {

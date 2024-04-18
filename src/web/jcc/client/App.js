@@ -1,5 +1,5 @@
-import React, { useReducer } from 'react'
-import { GlobalContext, GlobalDispatchContext, globalDefaultContext } from '../../context/GlobalContext'
+import React from 'react'
+import { GlobalContextProvider } from '../../context/GlobalContext'
 import { HubContextProvider } from '../../context/HubContext'
 
 import CommandControl from '../client/components/CommandControl'
@@ -7,32 +7,15 @@ import CommandControl from '../client/components/CommandControl'
 import './style/app.css'
 
 export default function App() {
-  const [globalState, globalDispatch] = useReducer(globalStateReducer, globalDefaultContext)
-
   return (
     <div>
-      <GlobalContext.Provider value={globalState}>
-        <GlobalDispatchContext.Provider value={globalDispatch}>
-          
-          <HubContextProvider>
-            <CommandControl />
-          </HubContextProvider>
+      <GlobalContextProvider>
+        <HubContextProvider>
 
-        </GlobalDispatchContext.Provider>
-      </GlobalContext.Provider>
+          <CommandControl />
+          
+        </HubContextProvider>
+      </GlobalContextProvider> 
     </div>
   )
-}
-
-function globalStateReducer(currentState, action) {
-  switch (action.type) {
-    case 'closedHubDetails': {
-      const updatedState = {...currentState}
-      updatedState.showHubDetails = true
-      return updatedState
-    }
-    default: {
-      throw Error('Unknown action: ' + action.type);
-    }
-  }
 }

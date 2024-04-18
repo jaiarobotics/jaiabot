@@ -1,5 +1,7 @@
+import React, { useContext } from "react"
+import { GlobalContext, GlobalDispatchContext, PodElement } from "../../../context/GlobalContext"
+
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
-import React = require("react")
 import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
 
 
@@ -35,7 +37,7 @@ export function BotListPanel(props: Props) {
     let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotId)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
-    function BotDiv(bot: PortalBotStatus) {
+    function BotTab(bot: PortalBotStatus) {
         var key = 'bot-' + bot.bot_id
         var botClass = 'bot-item'
 
@@ -58,21 +60,32 @@ export function BotListPanel(props: Props) {
 
     }
 
-    function HubDiv(hub: HubStatus) {
+    function HubTab(hub: HubStatus) {
+        const globalContext = useContext(GlobalContext)
+        const globalDispatch = useContext(GlobalDispatchContext)
+
         var key = 'hub-' + hub.hub_id
         var bothubClass = 'hub-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
-        let selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
+        
+        let selected = ''
+        if (globalContext.selectedPodElement !== null 
+            && globalContext.selectedPodElement.type === PodElement.HUB) {
+                selected = 'selected'
+        }
+
+        const handleClick = () => {
+            props.didClickHub(hub.hub_id)
+            globalDispatch({ type: 'CLICKED_HUB_TAB' })
+        }
 
         //For now we are naming HUB, HUB with no id
         //In the future we will have to revisit this
         return (
             <div
                 key={key}
-                onClick={
-                    () => props.didClickHub(hub.hub_id)
-                }
+                onClick={handleClick}
                 className={`${bothubClass} ${faultLevelClass} ${selected}`}
             >
                 {"HUB"} 
@@ -84,10 +97,10 @@ export function BotListPanel(props: Props) {
     return (
         <div id="botsList">
             {
-                hubs.map(HubDiv)
+                hubs.map(HubTab)
             }
             {
-                bots.map(BotDiv)
+                bots.map(BotTab)
             }
         </div>
     )
