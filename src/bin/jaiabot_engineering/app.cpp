@@ -21,6 +21,7 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <goby/middleware/marshalling/protobuf.h>
+#include <google/protobuf/text_format.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
 #include <fstream>
@@ -56,6 +57,7 @@ class JaiabotEngineering : public ApplicationBase
     void loop() override;
 
     void handle_engineering_command(const jaiabot::protobuf::Engineering& command);
+    void handle_bounds_change(const jaiabot::protobuf::Bounds& new_bounds);
     void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
 
     // Engineering state to be published over intervehicle on a regular basis
@@ -95,13 +97,6 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Bounds& bounds) {
                     latest_engineering.mutable_bounds()->CopyFrom(bounds);
-
-                    glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString()
-                                             << std::endl;
-                    auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
-                    configFile << bounds.DebugString();
-                    configFile.close();
-
             });
 
         // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
@@ -338,6 +333,55 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
         }
     }
 
+    if (command.has_bounds())
+    {
+        handle_bounds_change(command.bounds());
+    }
+
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands
     interprocess().publish<jaiabot::groups::engineering_command>(command);
+}
+
+/**
+ * @brief Handles bounds submitted via an Engineering command
+ * 
+ * @param new_bounds - The new submitted bounds message, which will be merged with the existing message (from /etc/jaiabot/bounds.pb.cfg)
+ *
+ */
+void jaiabot::apps::JaiabotEngineering::handle_bounds_change(
+    const jaiabot::protobuf::Bounds& new_bounds)
+{
+    glog.is_debug1() && glog << "Bounds changed: " << new_bounds.ShortDebugString() << std::endl;
+
+    auto existing_bounds = jaiabot::protobuf::Bounds();
+
+    // Read existing bounds, if present
+    auto existing_bounds_file = std::ifstream("/etc/jaiabot/bounds.pb.cfg");
+
+    if (existing_bounds_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/bounds.pb.cfg" << std::endl;
+    }
+    else
+    {
+        std::stringstream existing_bounds_stringstream;
+        existing_bounds_stringstream << existing_bounds_file.rdbuf();
+
+        if (!google::protobuf::TextFormat::ParseFromString(existing_bounds_stringstream.str(),
+                                                           &existing_bounds))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/bounds.pb.cfg"
+                                   << std::endl;
+        }
+    }
+
+    // Merge new bounds
+    auto bounds = jaiabot::protobuf::Bounds();
+    bounds.CopyFrom(existing_bounds);
+    bounds.MergeFrom(new_bounds);
+
+    // Write the bounds configuration file
+    auto bounds_file = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
+    bounds_file << bounds.DebugString();
+    bounds_file.close();
 }
