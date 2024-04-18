@@ -10,6 +10,7 @@ import pytz
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
+import matplotlib.lines as mlines
 import pandas as pd
 
 MICROSECOND_FACTOR = 1_000_000
@@ -190,7 +191,7 @@ def hdop_draw_summaries(summary, data):
 
     #Box-and-whiskers plot to show the distribution and STD of the distances in each bin
     boxplot_data = [data[data['HDOP_bins'] == bin]['Drift'] for bin in hdop_bins]
-    ax1.boxplot(boxplot_data,
+    boxplot = ax1.boxplot(boxplot_data,
                 positions=range(len(summary)),
                 widths=0.6,
                 patch_artist=True,
@@ -211,7 +212,6 @@ def hdop_draw_summaries(summary, data):
         else:
             ax1.annotate('No Data', (i, 1), textcoords="offset points", xytext=(0,10), ha='center')
 
-
     #Add error bars for standard deviation on the box plot
     for i, bin in enumerate(hdop_bins):
         bin_data = data[data['HDOP_bins'] == bin]['Drift']
@@ -223,6 +223,7 @@ def hdop_draw_summaries(summary, data):
             max_percent = summary['Percentage'].max()
             color = get_rgb_from_percentage(percent, min_percent, max_percent)
             ax1.errorbar(i, mean, yerr=std_dev, fmt='o', color=color, ecolor='darkred', elinewidth=2, capsize=4, capthick=2, label='Standard Deviation' if i == 0 else None)
+
 
     #Set labels and title
     ax1.set_xlabel('HDOP Bin')
@@ -237,8 +238,8 @@ def hdop_draw_summaries(summary, data):
     box = mpatches.Patch(color='lightgray', label='Box: Interquartile Range (IQR)')
     median = mpatches.Patch(color='blue', label='Median Line')
     whisker = mpatches.Patch(color='black', label='Whiskers: 1.5 * IQR')
-    flier = mpatches.Patch(color='red', label='Outliers')
-    mean_dot = mpatches.Patch(color='green', label='Mean Distance')
+    flier = mlines.Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgecolor='black', label='Outlier Marker')
+    mean_dot = mlines.Line2D([], [], color='white', marker='o', linestyle='None', markersize=8, markeredgecolor='black', label='Mean / Frequency (Red = Higher Frequency)')
     mean_error_bar = mpatches.Patch(color='darkred', label='Mean ± 1 Std. Dev.')
 
     # Add legend to the plot
@@ -259,30 +260,24 @@ def hdop_draw_summaries(summary, data):
     table.scale(1, 2)
     ax2.axis('off')
 
-    #Display bot path
     graph.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
     plt.tight_layout()
-    #plt.show()
 
     chart.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
-    #plt.show()
     
-    print(final_data.tail())
-    print(final_data['Longitude'].tail())
-    print(final_data['Latitude'].tail())
-    print(final_data['State'].tail())
-
-    print(final_data.shape)
-    print(final_data['Longitude'].shape)
-    print(final_data['Latitude'].shape)
-    print(final_data['State'].shape)
-    
-    scatter = plt.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
+    ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
+    ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
     ax3.set_title(f'Path of Bot {bot_id}\n{filename}')
     ax3.set_xlabel('Longitude')
     ax3.set_ylabel('Latitude')
     ax3.grid(True)
-    #plt.show()
+
+    #Legend for Path Chart
+    bot_path = mpatches.Patch(color='green', label='Bot Status Path')
+    drift_path = mpatches.Patch(color='red', label='Path while drifitng or reacquiring GPS')
+    transit_path = mpatches.Patch(color='blue', label='Path while not in drift')
+
+    ax3.legend(handles=[bot_path, drift_path, transit_path], loc='upper right')
 
     plt.show()
 
@@ -367,6 +362,7 @@ def get_data(directory):
             global hdop_dist
             global pdop_dist
             global final_data
+            global cleaned_bot_data
 
             file_path = os.path.join(directory, filename)
 
@@ -385,6 +381,15 @@ def get_data(directory):
                 bot_utimes = np.array(bot_status['_utime_'])
                 bots_lats = np.array(bot_status['location/lat'])
                 bots_lons = np.array(bot_status['location/lon'])
+                bots_lats_series = pd.Series(bots_lats)
+                bots_lons_series = pd.Series(bots_lons)
+                bots_lats_series = bots_lats_series.rename('bot_lat')
+                bots_lons_series = bots_lons_series.rename('bot_lon')
+                bot_lats_df = bots_lats_series.to_frame()
+                bot_lons_df = bots_lons_series.to_frame()
+                bot_lat_lon_df = bot_lons_df.join(bot_lats_df)
+
+                cleaned_bot_data = bot_lat_lon_df[(bot_lat_lon_df['bot_lon'] != 0.0) & (bot_lat_lon_df['bot_lat'] != 0.0)]
 
                 #TPV data
                 lats = np.array(tpv['location/lat'])
