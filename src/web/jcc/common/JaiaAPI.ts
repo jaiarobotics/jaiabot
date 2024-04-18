@@ -75,6 +75,8 @@ export class JaiaAPI {
     return this.hit('GET', endpoint);
   }
 
+  getClientId() { return this.clientId }
+
   getMetadata() { return this.get('jaia/metadata') }
 
   getStatus() { return this.get('jaia/status') }

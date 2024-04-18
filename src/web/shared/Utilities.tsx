@@ -8,7 +8,10 @@ import { Geometry} from "ol/geom"
 const abs = Math.abs
 
 export function convertMicrosecondsToSeconds(microseconds: number) {
-    return microseconds / 1e6
+    console.log("MICROSECONDS", microseconds)
+    const seconds = microseconds / 1e6
+    console.log("SECONDS", seconds)
+    return seconds
 }
 
 export function formatLatitude(lat: number, prec=5) {

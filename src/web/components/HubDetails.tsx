@@ -1,17 +1,24 @@
+// React //
 import React, { useEffect, useContext } from 'react'
 import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
 import { HubContext } from '../context/HubContext'
 import { HealthStatusLine } from './HealthStatusLine'
 
-import { addDropdownListener } from '../jcc/client/components/shared/Utilities'
-import { convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
+// Utils //
+import { addDropdownListener, convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
+import { CommandInfo, hubCommands, sendHubCommand } from '../utils/commands'
 
+// Styles //
+import Button from '@mui/material/Button'
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import { ThemeProvider, createTheme } from '@mui/material'
+import { Icon } from '@mdi/react'
+import { mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
+
 
 export function HubDetails() {
     const globalContext = useContext(GlobalContext)
@@ -24,6 +31,7 @@ export function HubDetails() {
     }
 
     const hubStatus = hubContext.hubStatus['0']
+    console.log("HUB_STATUS", hubStatus)
 
     useEffect(() => {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
@@ -74,6 +82,11 @@ export function HubDetails() {
             default:
                 return 'N/A'
         }
+    }
+
+    function issueHubCommand(command: CommandInfo) {
+        globalDispatch({ 'type': 'TAKE_CONTROL' })
+        sendHubCommand(hubStatus.hub_id, command)
     }
 
     return (
@@ -130,6 +143,39 @@ export function HubDetails() {
                                     </tr>
                                 </tbody>
                             </table>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
+
+                <ThemeProvider theme={makeAccordionTheme()}>
+                    <Accordion 
+                        expanded={globalContext.hubAccordionStates.commands} 
+                        onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'commands' })}
+                        className='accordionContainer'
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls='panel1a-content'
+                            id='panel1a-header'
+                        >
+                            <Typography>Commands</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button 
+                                className={' button-jcc'} 
+                                onClick={() => { issueHubCommand(hubCommands.shutdown) }}>
+                                    <Icon path={mdiPower} title='Shutdown'/>
+                            </Button>
+                            <Button 
+                                className={' button-jcc'} 
+                                onClick={() => { issueHubCommand(hubCommands.reboot) }}>
+                                    <Icon path={mdiRestartAlert} title='Reboot'/>
+                            </Button>
+                            <Button 
+                                className={' button-jcc'}  
+                                onClick={() => { issueHubCommand(hubCommands.restartServices) }}>
+                                    <Icon path={mdiRestart} title='Restart Services'/>
+                            </Button>
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>

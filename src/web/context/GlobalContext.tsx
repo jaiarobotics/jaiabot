@@ -1,10 +1,15 @@
-import React, { createContext, ReactNode, useReducer } from 'react';
+import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
+import { isError } from 'lodash'
+import { jaiaAPI } from '../jcc/common/JaiaAPI'
+import { CustomAlert } from '../shared/CustomAlert'
 
 export interface GlobalContextType {
+    clientID: string,
+    controllingClientID: string
     selectedPodElement: SelectedPodElement
     showHubDetails: boolean
     hubAccordionStates: HubAccordionStates
-    remoteControlInterval: number
+    isRCMode: boolean
 }
 
 interface SelectedPodElement {
@@ -20,6 +25,7 @@ interface HubAccordionStates {
 
 interface Action {
     type: string,
+    clientID?: string,
     hubAccordionName?: string
 }
 
@@ -39,10 +45,12 @@ const defaultHubAccordionStates = {
 }
 
 export const globalDefaultContext: GlobalContextType = {
+    clientID: '',
+    controllingClientID: '',
     selectedPodElement: null,
     showHubDetails: false,
     hubAccordionStates: defaultHubAccordionStates,
-    remoteControlInterval: 0
+    isRCMode: false
 }
 
 export const GlobalContext = createContext(null)
@@ -51,6 +59,15 @@ export const GlobalDispatchContext = createContext(null)
 function globalReducer(state: GlobalContextType, action: Action) {
     let mutableState = {...state}
     switch (action.type) {
+        case 'SAVED_CLIENT_ID':
+            return saveClientID(mutableState, action.clientID)
+
+        case 'TAKE_CONTROL': 
+            return takeControl(mutableState)
+
+        case 'EXITED_RC_MODE':
+            return exitRCMode(mutableState)
+
         case 'CLOSED_HUB_DETAILS':
             return handleClosedHubDetails(mutableState)
         
@@ -66,6 +83,33 @@ function globalReducer(state: GlobalContextType, action: Action) {
         default:
             return state
     }
+}
+
+function saveClientID(mutableState: GlobalContextType, clientID: string) {
+    mutableState.clientID = clientID
+    return mutableState
+}
+
+async function takeControl(mutableState: GlobalContextType) {
+    const statusMsg = await jaiaAPI.getStatus()
+    if (isError(statusMsg)) {
+        console.error('Error retrieving status message')
+        return mutableState
+    }
+
+    if (mutableState.clientID === statusMsg['controllingClientId']) {
+        return mutableState
+    }
+
+    CustomAlert.confirm('Another client is currently controlling the pod.  Take control?', 'Take Control', () => {
+        jaiaAPI.takeControl()
+        mutableState.controllingClientID = mutableState.clientID
+        return mutableState
+    })
+}
+
+function exitRCMode(mutableState: GlobalContextType) {
+    mutableState.isRCMode = false
 }
 
 function handleClosedHubDetails(mutableState: GlobalContextType) {
@@ -106,10 +150,11 @@ function handleHubAccordionClick(mutableState: GlobalContextType, accordionName:
             hubAccordionStates.quickLook = !hubAccordionStates.quickLook
             break
         case 'commands':
-            hubAccordionStates.commands = !hubAccordionStates
+            hubAccordionStates.commands = !hubAccordionStates.commands
+            console.log(mutableState)
             break
         case 'links':
-            hubAccordionStates.links = !hubAccordionStates
+            hubAccordionStates.links = !hubAccordionStates.links
             break
     }
     return mutableState
@@ -117,6 +162,13 @@ function handleHubAccordionClick(mutableState: GlobalContextType, accordionName:
 
 export function GlobalContextProvider({ children }: GlobalContextProviderProps) {
     const [state, dispatch] = useReducer(globalReducer, globalDefaultContext)
+
+    useEffect(() => {
+        dispatch({
+            type: 'SAVED_CLIENT_ID',
+            clientID: jaiaAPI.getClientId()
+        })
+    }, [])
 
     return (
         <GlobalContext.Provider value={state}>
