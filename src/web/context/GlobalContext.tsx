@@ -62,9 +62,9 @@ function globalReducer(state: GlobalContextType, action: Action) {
         case 'SAVED_CLIENT_ID':
             return saveClientID(mutableState, action.clientID)
 
-        case 'TAKE_CONTROL': 
-            return takeControl(mutableState)
-
+        case 'TAKE_CONTROL_SUCCESS':
+            return handleControlTaken(mutableState)
+            
         case 'EXITED_RC_MODE':
             return exitRCMode(mutableState)
 
@@ -90,22 +90,10 @@ function saveClientID(mutableState: GlobalContextType, clientID: string) {
     return mutableState
 }
 
-async function takeControl(mutableState: GlobalContextType) {
-    const statusMsg = await jaiaAPI.getStatus()
-    if (isError(statusMsg)) {
-        console.error('Error retrieving status message')
-        return mutableState
-    }
-
-    if (mutableState.clientID === statusMsg['controllingClientId']) {
-        return mutableState
-    }
-
-    CustomAlert.confirm('Another client is currently controlling the pod.  Take control?', 'Take Control', () => {
-        jaiaAPI.takeControl()
-        mutableState.controllingClientID = mutableState.clientID
-        return mutableState
-    })
+function handleControlTaken(mutableState: GlobalContextType) {
+    mutableState.controllingClientID = mutableState.clientID
+    console.log(mutableState)
+    return mutableState
 }
 
 function exitRCMode(mutableState: GlobalContextType) {

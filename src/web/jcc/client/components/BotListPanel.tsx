@@ -70,6 +70,7 @@ export function BotListPanel(props: Props) {
         let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
         
         let selected = ''
+        
         if (globalContext.selectedPodElement !== null 
             && globalContext.selectedPodElement.type === PodElement.HUB) {
                 selected = 'selected'

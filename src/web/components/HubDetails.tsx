@@ -6,7 +6,7 @@ import { HealthStatusLine } from './HealthStatusLine'
 
 // Utils //
 import { addDropdownListener, convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
-import { CommandInfo, hubCommands, sendHubCommand } from '../utils/commands'
+import { CommandInfo, hubCommands, sendHubCommand, takeControl } from '../utils/commands'
 
 // Styles //
 import Button from '@mui/material/Button'
@@ -31,7 +31,6 @@ export function HubDetails() {
     }
 
     const hubStatus = hubContext.hubStatus['0']
-    console.log("HUB_STATUS", hubStatus)
 
     useEffect(() => {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
@@ -84,8 +83,14 @@ export function HubDetails() {
         }
     }
 
-    function issueHubCommand(command: CommandInfo) {
-        globalDispatch({ 'type': 'TAKE_CONTROL' })
+    async function issueHubCommand(command: CommandInfo) {
+        const isControlTaken = await takeControl(globalContext.clientID)
+        if (isControlTaken) {
+            console.log('about to dispatch')
+            globalDispatch({
+                type: 'TAKE_CONTROL_SUCCESS'
+            })
+        }
         sendHubCommand(hubStatus.hub_id, command)
     }
 
