@@ -39,7 +39,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams, BotType } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
@@ -133,6 +133,7 @@ interface State {
 	podStatus: PodStatus
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
+	enableEcho: boolean,
 	lastBotCount: number,
 
 	missionParams: MissionParams,
@@ -256,6 +257,7 @@ export default class CommandControl extends React.Component {
 			},
 			podStatusVersion: 0,
 			botExtents: {},
+			enableEcho: false,
 			lastBotCount: 0,
 
 			missionParams: {
@@ -814,6 +816,7 @@ export default class CommandControl extends React.Component {
 
 				this.oldPodStatus = {...this.getPodStatus()}
 				this.setPodStatus(result)
+				this.setPodConfig()
 
 				let messages = result.messages
 
@@ -882,6 +885,15 @@ export default class CommandControl extends React.Component {
 
 	setPodStatus(podStatus: PodStatus) {
 		this.setState({ podStatus, podStatusVersion: this.state.podStatusVersion + 1 })
+	}
+
+	/**
+	 * Saves configurable pod settings in state
+	 * @returns {void}
+	 */
+	setPodConfig() {
+		const enableEcho = this.checkBotTypes(BotType.ECHO)
+		this.setState({ enableEcho })
 	}
 
 	getMetadata() {
@@ -1033,6 +1045,21 @@ export default class CommandControl extends React.Component {
 				onSuccess()
 			})
 		}
+	}
+
+	/**
+	 * Loops through bot status messages searching for a particular bot type
+	 * 
+	 * @param {BotType} type Target bot type
+	 * @returns {boolean} Whether or not the target bot type exists in the pod
+	 */
+	checkBotTypes(type: BotType) {
+		for (let bot of Object.values(this.state.podStatus['bots'])) {
+			if (bot.bot_type !== undefined && bot.bot_type === type) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// 
