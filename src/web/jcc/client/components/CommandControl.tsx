@@ -3346,6 +3346,7 @@ export default class CommandControl extends React.Component {
 					isSRPEnabled={this.state.isSRPEnabled}
 					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
 					botList={bots}
+					enableEcho={this.state.enableEcho}
 					
 					onClose={() => {
 						this.clearMissionPlanningState()
@@ -3673,6 +3674,7 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
+						enableEcho={this.state.enableEcho}
 						setRunList={this.setRunList.bind(this)}
 						onChange={() => {
 							this.setRunList(this.getRunList())
