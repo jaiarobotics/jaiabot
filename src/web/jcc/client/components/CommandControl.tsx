@@ -889,6 +889,7 @@ export default class CommandControl extends React.Component {
 
 	/**
 	 * Saves configurable pod settings in state
+	 * 
 	 * @returns {void}
 	 */
 	setPodConfig() {
