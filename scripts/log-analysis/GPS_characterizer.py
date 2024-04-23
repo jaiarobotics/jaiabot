@@ -4,20 +4,26 @@ import sys
 import os
 import numpy as np 
 import h5py
-from math import *
 import datetime
 import pytz
+import fnmatch 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
 import matplotlib.lines as mlines
 import pandas as pd
+from math import *
+
 
 MICROSECOND_FACTOR = 1_000_000
 
 """Usage:
     Navigate to the directory containing this file, run python GPS_characterizer.py followed by the file path
     to your .h5 files in the terminal (e.g. 'python GPS_characterizer.py ~/path/to/.h5_directory/').
+
+    Flags:
+        -r: (Recursive search) Recursively search through the input file and all its subdirectories to analyze. 
+        -g: (Global) Combine all the data analyzed into a single chart and datasheet. Excludes bot paths.
 """
 class Point:
     """Holds the latitude and longitude of a given Point object
@@ -95,8 +101,15 @@ def get_bot_idx(utime):
     return bot_idx
 
 def get_rgb_from_percentage(percentage, min_percent, max_percent):
-    """
-    Generate colors between blue (0, 0, 255) and red (255, 0, 0) directly in RGB space.
+    """Generate colors between blue (0, 0, 255) and red (255, 0, 0) directly in RGB.
+
+        Args:
+            percentage (float): Percentage of the total drifts that fall in a certain HDOP bin
+            min_percent (float): Smallest percentage of all HDOP bins. Used to normalize percentage
+            max_percent (float): Largest percentage of all HDOP bins. Used to normalize percentage
+
+        Returns:
+        color (tuple of floats): Tuple of three floats between 0 and 1 representing the percentage converted to an RGB value.
     """
     # Normalize the percentage to a range from 0 to 1
     normalized_percentage = (percentage - min_percent) / (max_percent - min_percent) if max_percent > min_percent else 0
@@ -111,7 +124,9 @@ def get_rgb_from_percentage(percentage, min_percent, max_percent):
     green = 0
 
     # Return the color in normalized RGB format
-    return (red / 255, green / 255, blue / 255)
+    color = (red / 255, green / 255, blue / 255)
+
+    return color
 
 
 def utime_to_realtime(utime):
@@ -159,7 +174,7 @@ def get_distance(p1, p2):
 
     return dist #Returns distance jumped in meters
 
-def hdop_draw_summaries(summary, data):
+def hdop_draw_summaries(summary, data, global_data, file_name):
     """Plot the data from each bot into neat and organized Box Plots and charts
     
     Args: 
@@ -186,8 +201,6 @@ def hdop_draw_summaries(summary, data):
 
     #Creating figure for the plots
     graph, (ax1) = plt.subplots(figsize=(20, 10))
-    chart, (ax2) = plt.subplots(figsize=(16,10))    
-    path, (ax3) = plt.subplots(figsize=(16, 10))
 
     #Box-and-whiskers plot to show the distribution and STD of the distances in each bin
     boxplot_data = [data[data['HDOP_bins'] == bin]['Drift'] for bin in hdop_bins]
@@ -203,13 +216,8 @@ def hdop_draw_summaries(summary, data):
                 labels=summary['HDOP_bins'].astype(str))
     
     #If box value would be NaN, then display "No Data" instead
-    for i, (percent, count) in enumerate(zip(summary['Percentage'], summary['count'])):
-        if not boxplot_data[i].empty:
-            """
-            highest_point = max(boxplot_data[i])
-            ax1.annotate(f'{percent:.2f}%', (i, highest_point), textcoords="offset points", xytext=(0,10), ha='center')
-            """
-        else:
+    for i, percent in enumerate(zip(summary['Percentage'], summary['count'])):
+        if boxplot_data[i].empty:
             ax1.annotate('No Data', (i, 1), textcoords="offset points", xytext=(0,10), ha='center')
 
     #Add error bars for standard deviation on the box plot
@@ -249,39 +257,59 @@ def hdop_draw_summaries(summary, data):
     cell_text = []
     custom_cols = ['HDOP Range', 'Average Dist. per Drift (m)', 'Std Dev of Drifts (m)', 'Median Drift', 'Total Surface Drifts', 'Percentage of Total Drifts']
     columns = ['HDOP_bins', 'average_drift', 'std_dev_drift', 'median_drift', 'count', 'Percentage']
+    col_num = len(custom_cols)
+    row_num = 0
     for row in summary.itertuples(index=False):
         row_data = [getattr(row, col) if pd.notna(getattr(row, col)) else '-' for col in columns]
         cell_text.append(row_data)
+        row_num += 1
+
+    fig_width = 20
+    fig_height = 0.4 * row_num
+
+    chart, (ax2) = plt.subplots(figsize=(fig_width, fig_height))    
 
     #Display table
     table = ax2.table(cellText=cell_text, colLabels=custom_cols, loc='center')
     table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 2)
     ax2.axis('off')
 
-    graph.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
+    #Show both path only if not in global mode
+    if not global_data:
+        graph.suptitle(f'Bot {bot_id} HDOP Analysis\n{file_name}', fontsize=16)
+        chart.suptitle(f'Bot {bot_id} HDOP Analysis - {file_name}', fontsize=8)
+
+        #Scatter showing bot path
+        path, (ax3) = plt.subplots(figsize=(16, 10))
+        ax3.set_title(f'Path of Bot {bot_id}\n{file_name}')
+        ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
+        ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
+        ax3.set_xlabel('Longitude')
+        ax3.set_ylabel('Latitude')
+        ax3.grid(True)
+
+        #Legend for Path Chart
+        bot_path = mpatches.Patch(color='green', label='Bot Status Path')
+        drift_path = mpatches.Patch(color='red', label='Path while drifitng or reacquiring GPS')
+        transit_path = mpatches.Patch(color='blue', label='Path while not in drift')
+        ax3.legend(handles=[bot_path, drift_path, transit_path], loc='upper right')
+    else: 
+        graph.suptitle(f'HDOP Analysis\n{file_name}', fontsize=16)
+        chart.suptitle(f'HDOP Analysis - {file_name}', fontsize=10)        
+
+    #Dynamically adjust the cell height for the table
+    cell_height = 1 / (row_num * 1.5)
+    for pos, cell in table.get_celld().items():
+        cell.set_height(cell_height)
+        cell.set_width(1 / col_num)
+
+    table.auto_set_font_size(True)
+    table.scale(1, 1.5)
+
     plt.tight_layout()
-
-    chart.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
-    
-    ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
-    ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
-    ax3.set_title(f'Path of Bot {bot_id}\n{filename}')
-    ax3.set_xlabel('Longitude')
-    ax3.set_ylabel('Latitude')
-    ax3.grid(True)
-
-    #Legend for Path Chart
-    bot_path = mpatches.Patch(color='green', label='Bot Status Path')
-    drift_path = mpatches.Patch(color='red', label='Path while drifitng or reacquiring GPS')
-    transit_path = mpatches.Patch(color='blue', label='Path while not in drift')
-
-    ax3.legend(handles=[bot_path, drift_path, transit_path], loc='upper right')
-
     plt.show()
 
-def get_plot_data():
+def get_plot_data(hdop_dist, pdop_dist, global_data, file_name):
     """Finds and calculates the data necessary for analysis. Calls hdop_draw_summaries().
     
     Args:
@@ -333,9 +361,9 @@ def get_plot_data():
     print(f"HDOP Range: {min_hdop} to {max_hdop}")
     print(f"PDOP Range: {min_pdop} to {max_pdop}")
 
-    hdop_draw_summaries(hdop_summary_per_bin, hdop_data)
+    hdop_draw_summaries(hdop_summary_per_bin, hdop_data, global_data, file_name)
 
-def get_data(directory):
+def get_data(file_list, global_data):
     """Loops through all the .h5 files in a directory and organizes the necessary data for analysis in get_plot_data().
     
     Args:
@@ -345,138 +373,174 @@ def get_data(directory):
         void
     """
     global filename
-    for filename in os.listdir(directory):
-        if filename.endswith('.h5'): 
-            global lats
-            global lons
-            global bots_lats
-            global bots_lons
-            global tpv_utimes
-            global hdops
-            global pdops
-            global nsats
-            global sky_utimes
-            global bot_id
-            global ds_utimes
-            global bot_utimes
-            global hdop_dist
-            global pdop_dist
-            global final_data
-            global cleaned_bot_data
+    if global_data:
+        global all_hdop
+        global all_pdop
+        all_hdop = []
+        all_pdop = []
 
-            file_path = os.path.join(directory, filename)
+    for filename in file_list:
+        global lats
+        global lons
+        global bots_lats
+        global bots_lons
+        global tpv_utimes
+        global hdops
+        global pdops
+        global nsats
+        global sky_utimes
+        global bot_id
+        global ds_utimes
+        global bot_utimes
+        #global hdop_dist
+        #global pdop_dist
+        global final_data
+        global cleaned_bot_data
 
-            with h5py.File(file_path, 'r') as file:
-                tpv = file["/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity"] #Time, Position, Velocity data
-                sky = file["/goby::middleware::groups::gpsd::sky/goby.middleware.protobuf.gpsd.SkyView"] #Sky view data
-                bot_status = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus"] #Bot_status data
-                bot_id = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/bot_id"][0] #Bot ID of the current file
-                desired_setpoints = file["jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints"] #Desired-setpoints data
+        file_path = filename
 
-                #Desried_setpoints data
-                ds_utimes = np.array(desired_setpoints['_utime_'])
 
-                #bot_status data
-                states = np.array(bot_status['mission_state'])
-                bot_utimes = np.array(bot_status['_utime_'])
-                bots_lats = np.array(bot_status['location/lat'])
-                bots_lons = np.array(bot_status['location/lon'])
-                bots_lats_series = pd.Series(bots_lats)
-                bots_lons_series = pd.Series(bots_lons)
-                bots_lats_series = bots_lats_series.rename('bot_lat')
-                bots_lons_series = bots_lons_series.rename('bot_lon')
-                bot_lats_df = bots_lats_series.to_frame()
-                bot_lons_df = bots_lons_series.to_frame()
-                bot_lat_lon_df = bot_lons_df.join(bot_lats_df)
+        print(f'Analysing {filename}')
 
-                cleaned_bot_data = bot_lat_lon_df[(bot_lat_lon_df['bot_lon'] != 0.0) & (bot_lat_lon_df['bot_lat'] != 0.0)]
+        with h5py.File(file_path, 'r') as file:
+            tpv = file["/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity"] #Time, Position, Velocity data
+            sky = file["/goby::middleware::groups::gpsd::sky/goby.middleware.protobuf.gpsd.SkyView"] #Sky view data
+            bot_status = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus"] #Bot_status data
+            bot_id = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/bot_id"][0] #Bot ID of the current file
+            desired_setpoints = file["jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints"] #Desired-setpoints data
 
-                #TPV data
-                lats = np.array(tpv['location/lat'])
-                lons = np.array(tpv['location/lon'])
-                tpv_utimes = np.array(tpv['_utime_'])
+            #Desried_setpoints data
+            ds_utimes = np.array(desired_setpoints['_utime_'])
 
-                #Sky data
-                hdops = np.array(sky['hdop'])
-                pdops = np.array(sky['pdop'])
-                nsats = np.array(sky['nsat'])
-                sky_utimes = np.array(sky['_utime_'])
+            #bot_status data
+            states = np.array(bot_status['mission_state'])
+            bot_utimes = np.array(bot_status['_utime_'])
+            bots_lats = np.array(bot_status['location/lat'])
+            bots_lons = np.array(bot_status['location/lon'])
+            bots_lats_series = pd.Series(bots_lats)
+            bots_lons_series = pd.Series(bots_lons)
+            bots_lats_series = bots_lats_series.rename('bot_lat')
+            bots_lons_series = bots_lons_series.rename('bot_lon')
+            bot_lats_df = bots_lats_series.to_frame()
+            bot_lons_df = bots_lons_series.to_frame()
+            bot_lat_lon_df = bot_lons_df.join(bot_lats_df)
 
-                #Round all utimes to the nearest second
-                ds_utimes = round_utimes(ds_utimes)
-                tpv_utimes = round_utimes(tpv_utimes)
-                sky_utimes = round_utimes(sky_utimes)
-                bot_utimes = round_utimes(bot_utimes)
-                
+            cleaned_bot_data = bot_lat_lon_df[(bot_lat_lon_df['bot_lon'] != 0.0) & (bot_lat_lon_df['bot_lat'] != 0.0)]
+
+            #TPV data
+            lats = np.array(tpv['location/lat'])
+            lons = np.array(tpv['location/lon'])
+            tpv_utimes = np.array(tpv['_utime_'])
+
+            #Sky data
+            hdops = np.array(sky['hdop'])
+            pdops = np.array(sky['pdop'])
+            nsats = np.array(sky['nsat'])
+            sky_utimes = np.array(sky['_utime_'])
+
+            #Round all utimes to the nearest second
+            ds_utimes = round_utimes(ds_utimes)
+            tpv_utimes = round_utimes(tpv_utimes)
+            sky_utimes = round_utimes(sky_utimes)
+            bot_utimes = round_utimes(bot_utimes)
+            
+            hdop_dist = []
+            pdop_dist = []
+
+            #Merge lats, lons, and states
+            lats_series = pd.Series(lats, index=tpv_utimes)
+            lons_series = pd.Series(lons, index=tpv_utimes)
+            states_series = pd.Series(states, index=bot_utimes)
+            
+            states_series.name = 'State'
+            lats_series = lats_series.rename('Latitude')
+            lons_series = lons_series.rename('Longitude')
+
+            lat_df = lats_series.to_frame()
+            lon_df = lons_series.to_frame()
+
+            lat_lon_df = lat_df.join(lon_df, how='outer')
+
+            merged_data = pd.merge_asof(states_series.sort_index(), lat_lon_df.sort_index(), left_index=True, right_index=True, direction='nearest', tolerance=1)
+
+            cleaned_data = merged_data[(merged_data['Latitude'] != 0.0) & (merged_data['Longitude'] != 0.0)]
+            final_data = cleaned_data.drop_duplicates()
+            final_data = final_data.copy()
+            final_data['Color'] = final_data['State'].apply(lambda x: 'red' if x == 111 or x == 114 or x == 115 or x == 121 or x == 122 or x == 128 or x == 129 or x == 143 else 'blue')
+
+
+            #Loop through all tpv values
+            i = 0
+            while i < len(tpv_utimes):
+                bot_idx = get_bot_idx(tpv_utimes[i])
+                if bot_idx >= len(bot_utimes):
+                    break
+
+                #Looks at all SURFACE_DRIFT states (114, 121, 129) and REACQUIRE_GPS states (111, 115, 122, 128, 143)
+                if states[bot_idx] == 111 or states[bot_idx] == 114 or states[bot_idx] == 115 or states[bot_idx] == 121 or states[bot_idx] == 122 or states[bot_idx] == 128 or states[bot_idx] == 129 or states[bot_idx] == 143: 
+                    bot_idx = get_bot_idx(bot_utimes[bot_idx] + 10) #Skip the first 10 seconds of the drift
+                    #bot_idx_plus_1 = get_bot_idx(bot_utimes[bot_idx] + 1)
+                    sky_idx = get_sky_idx(tpv_utimes[i])
+                    new_tpv_index = get_tpv_idx(tpv_utimes[i] + 10) #Skip past the first 10 seconds of the drift
+
+                    if new_tpv_index + 1 < len(tpv_utimes):
+                        p1 = Point(lats[new_tpv_index], lons[new_tpv_index]) #Start point of the drift
+                        p2 = Point(lats[new_tpv_index + 1], lons[new_tpv_index + 1]) #Next point in the drift
+                    else:
+                        break
+
+                    #Filter out bad data
+                    if hdops[sky_idx] == 99.99 or p1.lat == 0.0 or p1.lon == 0.0 or p2.lat == 0.0 or p2.lon == 0.0:
+                        i += 1
+                        continue
+                    
+                    dist = get_distance(p1, p2)
+
+                    #If the distance drifted is greater than the current drift_tolerance, then record the drift
+                    if dist >= drift_tolerance and not global_data:
+                        hdop_dist.append((hdops[sky_idx], dist))
+                        pdop_dist.append((pdops[sky_idx], dist))
+                    elif dist >= drift_tolerance and global_data:
+                        all_hdop.append((hdops[sky_idx], dist))
+                        all_pdop.append((pdops[sky_idx], dist))
+
+                i += 1
+
+            #Calls to display the data neatly and resets data series
+            if len(pdop_dist) and len(hdop_dist) and not global_data:
+                get_plot_data(hdop_dist, pdop_dist, global_data, filename)
                 hdop_dist = []
                 pdop_dist = []
 
-                #Merge lats, lons, and states
-                lats_series = pd.Series(lats, index=tpv_utimes)
-                lons_series = pd.Series(lons, index=tpv_utimes)
-                states_series = pd.Series(states, index=bot_utimes)
-                
-                states_series.name = 'State'
-                lats_series = lats_series.rename('Latitude')
-                lons_series = lons_series.rename('Longitude')
+    if global_data:
+        get_plot_data(all_hdop, all_pdop, global_data, "Global")
+        all_hdop = []
+        all_pdop = []    
 
-                lat_df = lats_series.to_frame()
-                lon_df = lons_series.to_frame()
+def get_files(dir_path, recursive):
+    """Gets all .h5 files in the dir_path if not recursive, and all of its subdirectories if recursive.
+    
+        Args:
+            dir_path (string): Path to the parent directory the user would like to search
+            recurisve (boolean): Whether the user input the -r (recursive) flag in their input
+            
+        Returns: 
+            files (list of strings): List of the paths of each file in the parent directory and/or subdirectory (Based on the value of 'recursive')
+    """
+    files = []
 
-                lat_lon_df = lat_df.join(lon_df, how='outer')
+    #If recursive, look for .h5 files in the current and all sub-directories
+    if recursive:
+        for root, dirnames, filenames in os.walk(dir_path):
+            for filename in fnmatch.filter(filenames, '*.h5'):
+                files.append(os.path.join(root, filename))
+    #If not recursive, then only look for .h5 files in the given directory
+    else:
+        for filename in os.listdir(dir_path):
+            if fnmatch.fnmatch(filename, '*.h5'):
+                files.append(os.path.join(dir_path, filename))
 
-                merged_data = pd.merge_asof(states_series.sort_index(), lat_lon_df.sort_index(), left_index=True, right_index=True, direction='nearest', tolerance=1)
-
-                cleaned_data = merged_data[(merged_data['Latitude'] != 0.0) & (merged_data['Longitude'] != 0.0)]
-                final_data = cleaned_data.drop_duplicates()
-                final_data['Color'] = final_data['State'].apply(lambda x: 'red' if x == 111 or x == 114 or x == 115 or x == 121 or x == 122 or x == 128 or x == 129 or x == 143 else 'blue')
-
-
-                #Loop through all tpv values
-                i = 0
-                while i < len(tpv_utimes):
-                    bot_idx = get_bot_idx(tpv_utimes[i])
-                    if bot_idx >= len(bot_utimes):
-                        break
-
-                    #Looks at all SURFACE_DRIFT states (114, 121, 129) and REACQUIRE_GPS states (111, 115, 122, 128, 143)
-                    if states[bot_idx] == 111 or states[bot_idx] == 114 or states[bot_idx] == 115 or states[bot_idx] == 121 or states[bot_idx] == 122 or states[bot_idx] == 128 or states[bot_idx] == 129 or states[bot_idx] == 143: 
-                        bot_idx = get_bot_idx(bot_utimes[bot_idx] + 10) #Skip the first 10 seconds of the drift
-                        #bot_idx_plus_1 = get_bot_idx(bot_utimes[bot_idx] + 1)
-                        sky_idx = get_sky_idx(tpv_utimes[i])
-                        new_tpv_index = get_tpv_idx(tpv_utimes[i] + 10) #Skip past the first 10 seconds of the drift
-
-                        if new_tpv_index + 1 < len(tpv_utimes):
-                            p1 = Point(lats[new_tpv_index], lons[new_tpv_index]) #Start point of the drift
-                            p2 = Point(lats[new_tpv_index + 1], lons[new_tpv_index + 1]) #Next point in the drift
-                        else:
-                            break
-
-                        #Filter out bad data
-                        if hdops[sky_idx] == 99.99 or p1.lat == 0.0 or p1.lon == 0.0 or p2.lat == 0.0 or p2.lon == 0.0:
-                            i += 1
-                            continue
-                        
-                        dist = get_distance(p1, p2)
-
-                        #If the distance drifted is greater than the current drift_tolerance, then record the drift
-                        if (dist >= drift_tolerance):
-                            hdop_dist.append((hdops[sky_idx], dist))
-                            pdop_dist.append((pdops[sky_idx], dist))
-
-                    """
-                        #Increment past the current drift
-                        i += j
-                    else:
-                        i += 1
-                    """
-                    i += 1
-
-                #Calls to display the data neatly and resets data series
-                if len(pdop_dist) and len(hdop_dist):
-                    get_plot_data()
-                    hdop_dist = []
-                    pdop_dist = []
+    return files
 
 def main():
     global bin_width
@@ -496,6 +560,17 @@ def main():
 
     argc = len(sys.argv)
     input_dir = sys.argv[1]
+    recursive = '-r' in sys.argv
+    global_data = '-g' in sys.argv
+
+    #Prevent the flags from messing up the indices of argv
+    if recursive:
+        sys.argv.remove('-r')
+        argc -= 1
+
+    if global_data:
+        sys.argv.remove('-g')
+        argc -= 1
 
     #Get user input
     if argc >= 3:
@@ -511,7 +586,9 @@ def main():
     if argc == 8:
         nsat_tolerance = int(sys.argv[7])
         
-    get_data(input_dir)
+    file_list = get_files(input_dir, recursive)
+
+    get_data(file_list, global_data)
 
 if __name__ == "__main__":
     main()
