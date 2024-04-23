@@ -39,7 +39,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams, BotType } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
@@ -65,10 +65,8 @@ import * as turf from '@turf/turf'
 // Styling
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
-	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
+	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -135,6 +133,7 @@ interface State {
 	podStatus: PodStatus
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
+	enableEcho: boolean,
 	lastBotCount: number,
 
 	missionParams: MissionParams,
@@ -258,6 +257,7 @@ export default class CommandControl extends React.Component {
 			},
 			podStatusVersion: 0,
 			botExtents: {},
+			enableEcho: false,
 			lastBotCount: 0,
 
 			missionParams: {
@@ -816,6 +816,7 @@ export default class CommandControl extends React.Component {
 
 				this.oldPodStatus = {...this.getPodStatus()}
 				this.setPodStatus(result)
+				this.setPodConfig()
 
 				let messages = result.messages
 
@@ -884,6 +885,16 @@ export default class CommandControl extends React.Component {
 
 	setPodStatus(podStatus: PodStatus) {
 		this.setState({ podStatus, podStatusVersion: this.state.podStatusVersion + 1 })
+	}
+
+	/**
+	 * Saves configurable pod settings in state
+	 * 
+	 * @returns {void}
+	 */
+	setPodConfig() {
+		const enableEcho = this.checkBotTypes(BotType.ECHO)
+		this.setState({ enableEcho })
 	}
 
 	getMetadata() {
@@ -1035,6 +1046,21 @@ export default class CommandControl extends React.Component {
 				onSuccess()
 			})
 		}
+	}
+
+	/**
+	 * Loops through bot status messages searching for a particular bot type
+	 * 
+	 * @param {BotType} type Target bot type
+	 * @returns {boolean} Whether or not the target bot type exists in the pod
+	 */
+	checkBotTypes(type: BotType) {
+		for (let bot of Object.values(this.state.podStatus['bots'])) {
+			if (bot.bot_type !== undefined && bot.bot_type === type) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// 
@@ -3321,6 +3347,7 @@ export default class CommandControl extends React.Component {
 					isSRPEnabled={this.state.isSRPEnabled}
 					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
 					botList={bots}
+					enableEcho={this.state.enableEcho}
 					
 					onClose={() => {
 						this.clearMissionPlanningState()
@@ -3453,7 +3480,7 @@ export default class CommandControl extends React.Component {
 					this.setVisiblePanel(PanelType.NONE)
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
+				<Icon path={mdiSquareEditOutline} title="Stop Editing Optimized Mission Survey"></Icon>
 			</Button>
 		) : (
 			<Button
@@ -3481,7 +3508,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first survey point');
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
+				<Icon path={mdiSquareEditOutline} title="Edit Optimized Mission Survey"></Icon>
 			</Button>
 		))
 
@@ -3490,7 +3517,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
 			</Button>
 
 		) : (
@@ -3498,7 +3525,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
 			</Button>
 		))
 
@@ -3524,14 +3551,14 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Map Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Map Settings" />
 			</Button>
 		))
 
@@ -3544,7 +3571,7 @@ export default class CommandControl extends React.Component {
 						this.setVisiblePanel(PanelType.NONE)
 					}}
 				>
-					<Icon path={mdiRuler}  title="Measurement Result" />
+					<Icon path={mdiRuler} size={1.3}  title="Measurement Result" />
 				</Button>
 			</div>
 		) : (
@@ -3556,7 +3583,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first measure point');
 				}}
 			>
-				<Icon path={mdiRuler}  title="Measure Distance" />
+				<Icon path={mdiRuler} size={1.3} title="Measure Distance" />
 			</Button>
 		)
 
@@ -3648,6 +3675,7 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
+						enableEcho={this.state.enableEcho}
 						setRunList={this.setRunList.bind(this)}
 						onChange={() => {
 							this.setRunList(this.getRunList())

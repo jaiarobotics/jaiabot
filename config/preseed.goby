@@ -8,8 +8,6 @@ if ! which jaiabot_single_thread_pattern > /dev/null; then
     return 1
 fi
 
-[ -z "${jaia_mode}" ] && export jaia_mode=runtime
-
 if [[ "${jaia_mode}" == "simulation" ]]; then
     [ -z "${jaia_log_dir}" ] && export jaia_log_dir=$HOME/jaia-logs
 elif [[ "${jaia_mode}" == "runtime" ]]; then
@@ -28,3 +26,4 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${goby3_lib_dir}:${jaia_lib_dir}
 
 [ -z "${jaia_bot_index}" ] && export jaia_bot_index=0
 [ -z "${jaia_fleet_index}" ] && export jaia_fleet_index=0
+[ -z "${jaia_bot_type}" ] && export jaia_bot_type=HYDRO
