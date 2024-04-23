@@ -758,6 +758,11 @@ export interface DesiredCourse {
     altitude?: number
 }
 
+export enum BotType {
+    HYDRO = "HYDRO",
+    ECHO = "ECHO",
+}
+
 export enum VehicleType {
     UNKNOWN = "UNKNOWN",
     AUV = "AUV",
@@ -985,6 +990,7 @@ export interface BotStatus {
     health_state?: HealthState
     error?: Error[]
     warning?: Warning[]
+    bot_type?: BotType
     location?: GeographicCoordinate
     depth?: number
     attitude?: Attitude
