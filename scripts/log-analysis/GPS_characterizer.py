@@ -400,7 +400,7 @@ def get_data(file_list, global_data):
         file_path = filename
 
 
-        print(f'Analysing {filename}')
+        print(f'Analyzing {filename}')
 
         with h5py.File(file_path, 'r') as file:
             tpv = file["/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity"] #Time, Position, Velocity data
