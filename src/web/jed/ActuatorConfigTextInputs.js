@@ -28,6 +28,10 @@ class ActuatorConfigTextInputs {
     }
 
     setConfig(config) {
+        if (config == null) {
+            console.warn('ActuatorConfigTextinputs: Ignored a <null> config.  If you are in simulator, you can safely ignore this message, as jaiabot_arduino is not running.')
+            return
+        }
         this._config = config
         this.update()
     }
