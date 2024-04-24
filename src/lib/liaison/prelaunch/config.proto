@@ -36,11 +36,13 @@ message UpgradeConfig
     repeated AnsiblePlaybook ansible_playbook = 2;
     required string ansible_inventory = 3;
     required string ansible_config = 4;
-
+    
     // limit hosts to this hub and the bots, since currently we do not have
     // hub<->hub networking
     required string this_hub = 5;
 
+    optional string ansible_playbook_full_path = 6; // if set, this is the full path to the ansible-playbook binary to use, rather than search the $PATH
+    
     optional double check_freq = 10 [default = 10];
 }
 

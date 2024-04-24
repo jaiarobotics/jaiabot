@@ -324,8 +324,10 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
     const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
     const std::string& input_vars)
 
-    : process(boost::process::search_path("ansible-playbook"), "-i",
-              pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
+    : process(cfg.has_ansible_playbook_full_path()
+                  ? boost::filesystem::path(cfg.ansible_playbook_full_path())
+                  : boost::process::search_path("ansible-playbook"),
+              "-i", pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
               playbook_file, "-e", input_vars, boost::process::std_in.close(), "-l",
               pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
               boost::process::std_out > stdout, boost::process::std_err > stderr, io,

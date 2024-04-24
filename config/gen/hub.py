@@ -150,6 +150,13 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
     else:
         vfleet_playbooks=''
+
+    # Cloudhub must use a newer pip venv installed ansible since the packaged version (as of Ubuntu 22.04) does not include the required features for EC2
+    if hub_index == cloudhub_index:
+        ansible_playbook_full_path='ansible_playbook_full_path: "/opt/jaia_cloudhub_venv/bin/ansible-playbook"'
+    else:
+        ansible_playbook_full_path=''
+
         
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
@@ -157,7 +164,8 @@ elif common.app == 'goby_liaison_prelaunch':
                                      this_hub=this_hub,
                                      user_role=user_role,
                                      inventory=inventory,
-                                     vfleet_playbooks=vfleet_playbooks))
+                                     vfleet_playbooks=vfleet_playbooks,
+                                     ansible_playbook_full_path=ansible_playbook_full_path))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
