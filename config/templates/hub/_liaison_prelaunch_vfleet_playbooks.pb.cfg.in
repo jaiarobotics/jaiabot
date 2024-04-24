@@ -83,5 +83,17 @@ ansible_playbook {
         value: "continuous"
         value: "test"
     }
+    input_var {
+        name: "mode"
+        display_name: "Delivery Mode"
+        value: "online"
+        value: "online_with_hub_cache"
+        value: "offline"
+    }
+    input_var {
+        name: "version"
+        display_name: "Version Branch"
+        value: "1.y"
+    }
     inventory: "/etc/jaiabot/vfleet-inventory.yml"
 }
