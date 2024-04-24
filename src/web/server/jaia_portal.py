@@ -537,9 +537,9 @@ class Interface:
         if since_utime is None:
             return self.bot_paths
 
-        bot_paths: Dict[str, List[BotPathPoint]]
+        bot_paths: Dict[str, List[BotPathPoint]] = {}
         for bot_id, bot_path in self.bot_paths.items():
-            start_index = bisect.bisect_right(map(bot_path, lambda point: point.utime), since_utime)
+            start_index = bisect.bisect_right(list(map(lambda point: point.utime, bot_path)), since_utime)
             bot_paths[bot_id] = bot_path[start_index:]
         return bot_paths
 
