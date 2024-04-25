@@ -152,6 +152,15 @@ export class Layers {
         showLabels: true,
         wrapX: false,
     })
+
+    botPathsLayer = new VectorLayer({
+        properties: {
+            title: 'Bot Paths'
+        },
+        source: new VectorSource(),
+        visible: true,
+        zIndex: 998
+    })
     
     dragAndDropVectorLayer = new VectorLayer()
     baseLayerGroup = createBaseLayerGroup()
@@ -165,6 +174,7 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
+            this.botPathsLayer
         ]
     }
 

@@ -10,7 +10,7 @@ import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
-import { jaiaAPI } from '../../common/JaiaAPI'
+import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
 import { HubOrBot } from './HubOrBot'
@@ -85,6 +85,7 @@ const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
 const POD_STATUS_POLL_INTERVAL = 500
+const BOT_PATHS_POLL_INTERVAL = 2_000
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
@@ -242,6 +243,7 @@ export default class CommandControl extends React.Component {
 	surveyLines: SurveyLines
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
+	botPathsPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 	missionHistory: MissionInterface[]
@@ -460,6 +462,7 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
 		this.pollPodStatus()
+		this.pollBotPaths()
 		this.pollMetadata()
 		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
@@ -800,6 +803,35 @@ export default class CommandControl extends React.Component {
 			this.metadataPollId = setInterval(() => this.pollMetadata(), METADATA_POLL_INTERVAL)
 		}
 	}
+
+	pollBotPaths() {
+		this.api.getBotPaths().then(
+			(response) => {
+				if (response.error) {
+					this.hubConnectionError(response.error.message)
+					return
+				}
+
+				if (response.result) {
+					this.updateBotPaths(response.result)
+				}
+			},
+			(err) => {
+				this.hubConnectionError(err.message)
+			}
+		)
+		// Starts polling interval
+		if (!this.botPathsPollId) {
+			this.botPathsPollId = setInterval(() => this.pollBotPaths(), BOT_PATHS_POLL_INTERVAL)
+		}
+	}
+
+	updateBotPaths(botPaths: BotPaths) {
+		let source = layers.botPathsLayer.getSource()
+		source.clear()
+		// Add LineStrings for each bot path here
+	}
+
 
 	pollPodStatus() {
 		this.api.getStatus().then(

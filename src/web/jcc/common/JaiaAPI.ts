@@ -7,6 +7,21 @@ import { Command, Engineering, CommandForHub, TaskPacket } from '../../shared/JA
 import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
 import { Geometry } from 'ol/geom';
 
+
+export interface JaiaError {
+  code?: number
+  message?: string
+}
+
+export type BotPathPoint = [utime: number, lon: number, lat: number]
+export type BotPaths = {[key: string]: BotPathPoint[]}
+
+export interface JaiaResponse<T> {
+  error?: JaiaError
+  result?: T
+}
+
+
 export class JaiaAPI {
   clientId: string
   url: string
@@ -78,6 +93,8 @@ export class JaiaAPI {
   getMetadata() { return this.get('jaia/metadata') }
 
   getStatus() { return this.get('jaia/status') }
+
+  getBotPaths(): Promise<JaiaResponse<BotPaths>> { return this.get('jaia/bot-paths') }
 
   /**
    * Queries the server for TaskPackets within a specified range. If no start and end date, the

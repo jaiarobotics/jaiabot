@@ -89,6 +89,21 @@ def ErrorResponse(status: int, error_message: str, error_code: int=None):
     return Response(json.dumps(responseObject), status=status, mimetype='application/json')
 
 
+def JaiaResponse(result: any):
+    """Returns a response with result.
+
+    Args:
+        result (any): The result.
+
+    Returns:
+        Response: The Flask response object.
+    """
+    responseObject = {
+        'result': result
+    }
+    return Response(json.dumps(responseObject), mimetype='application/json')
+
+
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
@@ -247,7 +262,7 @@ def get_bot_paths():
     except TypeError:
         since_utime = None
     
-    return JSONResponse(jaia_interface.get_bot_paths(since_utime))
+    return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
 if __name__ == '__main__':
