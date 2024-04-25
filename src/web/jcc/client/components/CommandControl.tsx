@@ -1998,14 +1998,9 @@ export default class CommandControl extends React.Component {
 			runList.runIdInEditMode = run?.id
 		} else {
 			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-				this.setVisiblePanel(PanelType.GOAL_SETTINGS)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
 			runList.runIdInEditMode = ''
-		}
-
-		if (this.state.selectedHubOrBot) {
-			this.state.selectedHubOrBot.id = null
 		}
 
 		this.setRunList(runList)
