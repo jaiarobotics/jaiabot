@@ -74,6 +74,7 @@ import '../style/CommandControl.less'
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 import { HelpWindow } from './HelpWindow'
+import { getBotPathColor } from './shared/BotPathColors'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -829,7 +830,22 @@ export default class CommandControl extends React.Component {
 	updateBotPaths(botPaths: BotPaths) {
 		let source = layers.botPathsLayer.getSource()
 		source.clear()
-		// Add LineStrings for each bot path here
+
+		for (const [ bot_id, botPath ] of Object.entries(botPaths)) {
+			const coordinates = botPath.map((botPathPoint) => {
+				return getMapCoordinate({ lon: botPathPoint[1], lat: botPathPoint[2] }, map)
+			})
+			const botPathLineString = new LineString(coordinates)
+			const feature = new Feature(botPathLineString)
+			feature.setStyle(new OlStyle({
+				stroke: new OlStrokeStyle({
+					color: getBotPathColor(Number(bot_id)),
+					width: 3
+				})
+			}))
+
+			source.addFeature(feature)
+		}
 	}
 
 
