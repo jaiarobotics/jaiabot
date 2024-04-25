@@ -94,7 +94,15 @@ export class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
-  getBotPaths(): Promise<JaiaResponse<BotPaths>> { return this.get('jaia/bot-paths') }
+  getBotPaths(since_utime?: number): Promise<JaiaResponse<BotPaths>> { 
+    var url = 'jaia/bot-paths'
+
+    if (since_utime) {
+      url += `?since-utime=${since_utime}`
+    }
+
+    return this.get(url) 
+  }
 
   /**
    * Queries the server for TaskPackets within a specified range. If no start and end date, the

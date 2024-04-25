@@ -248,6 +248,8 @@ export default class CommandControl extends React.Component {
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 	missionHistory: MissionInterface[]
+	lastBotPathPointUtime: number = 0
+	botPathFeatures: {[key: number]: Feature<LineString>} = {}
 
 	constructor(props: Props) {
 		super(props)
@@ -806,7 +808,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	pollBotPaths() {
-		this.api.getBotPaths().then(
+		console.log(this.lastBotPathPointUtime)
+		this.api.getBotPaths(this.lastBotPathPointUtime).then(
 			(response) => {
 				if (response.error) {
 					this.hubConnectionError(response.error.message)
@@ -829,19 +832,32 @@ export default class CommandControl extends React.Component {
 
 	updateBotPaths(botPaths: BotPaths) {
 		let source = layers.botPathsLayer.getSource()
-		source.clear()
 
-		for (const [ bot_id, botPath ] of Object.entries(botPaths)) {
+
+		for (const [ bot_id_string, botPath ] of Object.entries(botPaths)) {
+			if (botPath.length < 1) continue
+
+			const bot_id = Number(bot_id_string)
+
+			this.lastBotPathPointUtime = Math.max(this.lastBotPathPointUtime, botPath[botPath.length - 1][0])
+
 			const coordinates = botPath.map((botPathPoint) => {
 				return getMapCoordinate({ lon: botPathPoint[1], lat: botPathPoint[2] }, map)
 			})
 
-			const feature = new Feature({
-				geometry: new LineString(coordinates),
-				bot_id: Number(bot_id)
-			})
+			if (!(bot_id in this.botPathFeatures)) {
+				const newFeature = new Feature<LineString>({
+					geometry: new LineString([]),
+					bot_id: Number(bot_id)
+				})
 
-			source.addFeature(feature)
+				this.botPathFeatures[bot_id] = newFeature
+				source.addFeature(newFeature)
+			}
+
+			let feature = this.botPathFeatures[bot_id]
+			const oldCoordinates = feature.getGeometry().getCoordinates()
+			feature.getGeometry().setCoordinates(oldCoordinates.concat(coordinates))
 		}
 	}
 

@@ -163,7 +163,6 @@ export class Layers {
         zIndex: 998,
         style: (feature) => {
             const bot_id: number = feature.get('bot_id')
-            console.log(feature)
 
 			return new Style.Style({
 				stroke: new Style.Stroke({
