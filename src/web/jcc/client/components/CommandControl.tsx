@@ -835,14 +835,11 @@ export default class CommandControl extends React.Component {
 			const coordinates = botPath.map((botPathPoint) => {
 				return getMapCoordinate({ lon: botPathPoint[1], lat: botPathPoint[2] }, map)
 			})
-			const botPathLineString = new LineString(coordinates)
-			const feature = new Feature(botPathLineString)
-			feature.setStyle(new OlStyle({
-				stroke: new OlStrokeStyle({
-					color: getBotPathColor(Number(bot_id)),
-					width: 3
-				})
-			}))
+
+			const feature = new Feature({
+				geometry: new LineString(coordinates),
+				bot_id: Number(bot_id)
+			})
 
 			source.addFeature(feature)
 		}

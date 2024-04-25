@@ -7,6 +7,7 @@ import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
 import * as Styles from './shared/Styles'
+import { getBotPathColor } from './shared/BotPathColors';
 
 
 export class Layers {
@@ -159,7 +160,18 @@ export class Layers {
         },
         source: new VectorSource(),
         visible: true,
-        zIndex: 998
+        zIndex: 998,
+        style: (feature) => {
+            const bot_id: number = feature.get('bot_id')
+            console.log(feature)
+
+			return new Style.Style({
+				stroke: new Style.Stroke({
+					color: getBotPathColor(feature.get('bot_id')),
+					width: 3
+				})
+			})
+        }
     })
     
     dragAndDropVectorLayer = new VectorLayer()
