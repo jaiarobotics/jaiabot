@@ -807,6 +807,10 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	
+	/**
+	 * Use JaiaAPI to poll the botPath data.
+	 */
 	pollBotPaths() {
 		console.log(this.lastBotPathPointUtime)
 		this.api.getBotPaths(this.lastBotPathPointUtime).then(
@@ -830,9 +834,14 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	
+	/**
+	 * Update the botPath features on the botPathsLayer.
+	 *
+	 * @param {BotPaths} botPaths The dictionary of bot_id strings to BotPathPoint[] to append to the botPath LineString features.
+	 */
 	updateBotPaths(botPaths: BotPaths) {
 		let source = layers.botPathsLayer.getSource()
-
 
 		for (const [ bot_id_string, botPath ] of Object.entries(botPaths)) {
 			if (botPath.length < 1) continue
