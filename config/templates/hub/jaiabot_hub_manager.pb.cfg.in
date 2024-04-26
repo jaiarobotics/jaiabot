@@ -52,3 +52,6 @@ task_packet_sub_cfg {
 xbee {
     $xbee_config
 }
+
+$vfleet_shutdown_times
+

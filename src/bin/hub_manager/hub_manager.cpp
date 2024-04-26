@@ -54,28 +54,7 @@ class HubManager : public ApplicationBase
     ~HubManager();
 
   private:
-    void loop() override
-    {
-        latest_hub_status_.set_time_with_units(
-            goby::time::SystemClock::now<goby::time::MicroTime>());
-
-        if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-        {
-            glog.is_warn() && glog << "Timeout on health report" << std::endl;
-            latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
-            latest_hub_status_.clear_error();
-            latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
-        }
-
-        if (latest_hub_status_.IsInitialized())
-        {
-            glog.is_debug1() && glog << "Publishing hub status: "
-                                     << latest_hub_status_.ShortDebugString() << std::endl;
-            interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
-        }
-    }
-
+    void loop() override;
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
@@ -88,6 +67,23 @@ class HubManager : public ApplicationBase
 
     void intervehicle_subscribe(int bot_modem_id);
 
+    void update_vfleet_shutdown_time()
+    {
+        // multiply by warp factor so the shutdown delay is actual wall time not sim time
+        vfleet_shutdown_time_ =
+            goby::time::SteadyClock::now() +
+            std::chrono::seconds(cfg().app().simulation().time().warp_factor() *
+                                 cfg().vfleet().shutdown_after_last_command_seconds());
+    }
+
+    void update_vhub_shutdown_time()
+    {
+        // shutdown the hub when we don't get reports for a time
+        vhub_shutdown_time_ = goby::time::SteadyClock::now() +
+                              std::chrono::seconds(cfg().app().simulation().time().warp_factor() *
+                                                   cfg().vfleet().hub_shutdown_delay_seconds());
+    }
+
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
@@ -96,6 +92,12 @@ class HubManager : public ApplicationBase
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
+
+    bool is_virtualhub_;
+    goby::time::SteadyClock::time_point vfleet_shutdown_time_{
+        goby::time::SteadyClock::time_point::max()};
+    goby::time::SteadyClock::time_point vhub_shutdown_time_{
+        goby::time::SteadyClock::time_point::max()};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -106,7 +108,8 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::HubManager>(argc, argv));
 }
 
-jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
+jaiabot::apps::HubManager::HubManager()
+    : ApplicationBase(1 * si::hertz), is_virtualhub_(cfg().has_vfleet())
 {
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
@@ -158,6 +161,10 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
         [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
         { handle_hardware_status(hardware_status); });
+
+    if (is_virtualhub_)
+        update_vfleet_shutdown_time();
+
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -278,10 +285,74 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
     }
 }
 
+void jaiabot::apps::HubManager::loop()
+{
+    latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
+    if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on health report" << std::endl;
+        latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+        latest_hub_status_.clear_error();
+        latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
+    }
+
+    if (latest_hub_status_.IsInitialized())
+    {
+        glog.is_debug1() &&
+            glog << "Publishing hub status: " << latest_hub_status_.ShortDebugString() << std::endl;
+        interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
+    }
+
+    if (is_virtualhub_)
+    {
+        if (goby::time::SteadyClock::now() > vfleet_shutdown_time_)
+        {
+            glog.is_warn() && glog << "Seconds ("
+                                   << cfg().vfleet().shutdown_after_last_command_seconds()
+                                   << ") since last command exceeded, shutting down VirtualFleet "
+                                      "to save on EC2 costs"
+                                   << std::endl;
+
+            for (auto bot_modem_id : managed_bot_modem_ids_)
+            {
+                {
+                    jaiabot::protobuf::Command cmd;
+                    cmd.set_bot_id(jaiabot::comms::bot_id_from_modem_id(bot_modem_id));
+                    cmd.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+                    cmd.set_type(jaiabot::protobuf::Command::STOP);
+                    handle_command(cmd);
+                }
+                {
+                    jaiabot::protobuf::Command cmd;
+                    cmd.set_bot_id(jaiabot::comms::bot_id_from_modem_id(bot_modem_id));
+                    cmd.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+                    cmd.set_type(jaiabot::protobuf::Command::SHUTDOWN_COMPUTER);
+                    handle_command(cmd);
+                }
+            }
+        }
+        if (goby::time::SteadyClock::now() > vhub_shutdown_time_)
+        {
+            glog.is_warn() && glog << "Shutting down this VirtualHub" << std::endl;
+            jaiabot::protobuf::CommandForHub cmd;
+            cmd.set_hub_id(cfg().hub_id());
+            cmd.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+            cmd.set_type(jaiabot::protobuf::CommandForHub::SHUTDOWN_COMPUTER);
+            handle_command_for_hub(cmd);
+        }
+    }
+}
+
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
     glog.is_debug1() && glog << group("bot_nav")
                              << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+
+    // don't shut down the hub while we have bots reporting to us
+    if (is_virtualhub_)
+        update_vhub_shutdown_time();
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
@@ -409,6 +480,9 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
 
 void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command)
 {
+    if (is_virtualhub_)
+        update_vfleet_shutdown_time();
+
     using protobuf::Command;
     auto command = input_command;
     std::vector<Command> command_fragments;
