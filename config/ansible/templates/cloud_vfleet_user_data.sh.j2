@@ -1,0 +1,77 @@
+#!/bin/bash
+
+## Update DNS to avoid timeouts reaching IPv4 servers
+cat <<EOF > /etc/resolv.conf
+nameserver 2606:4700:4700::1111
+nameserver 2001:4860:4860::8888
+EOF
+
+## SSH Keys
+mkdir -p /home/jaia/.ssh
+cat << EOF >> /home/jaia/.ssh/authorized_keys
+{{ server_ssh_pubkey }}
+{{ user_ssh_pubkeys }}
+EOF
+
+## Set up VPN
+VIRTUALFLEET_VPN_SERVER_CIDR_64="fd6e:cf0d:aefa"
+
+VFLEET_VPN=wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}
+cat <<EOF > /etc/wireguard/${VFLEET_VPN}.conf
+{% include 'wireguard_client.conf.j2' %}
+EOF
+
+systemctl enable wg-quick@${VFLEET_VPN}
+
+## Set /etc/network/interfaces for IPv6 only internet
+cat <<EOF > /etc/network/interfaces
+auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet dhcp
+EOF
+
+## Restore default hostname
+hostnamectl set-hostname "jaia-unnamed"
+
+## Preseed jaiabot
+mount -o remount,rw /boot/firmware
+mkdir -p /boot/firmware/jaiabot/init
+cat << EOF | tee /boot/firmware/jaiabot/init/first-boot.preseed
+
+jaia_run_first_boot=true
+jaia_stress_tests=false
+
+########################################################
+# Network
+########################################################
+jaia_disable_ethernet=false
+jaia_configure_wifi=false
+jaia_wifi_ssid=dummy
+jaia_wifi_password=dummy
+
+#########################################################
+# Preseed jaiabot-embedded package debconf queries
+# See jaiabot-embedded.templates from jaiabot-debian 
+# https://github.com/jaiarobotics/jaiabot-debian/blob/1.y/jaiabot-embedded.templates
+# To dump config in the correct format on a bot that is configured use: "debconf-get-selections  | grep jaia"
+#########################################################
+jaia_install_jaiabot_embedded=true
+jaia_embedded_debconf=\$(cat << EOM
+jaiabot-embedded	jaiabot-embedded/fleet_id	select	{{ cloud_env_vars.jaia_fleet_index }}
+jaiabot-embedded	jaiabot-embedded/type	select	{{ item.node_type }}
+jaiabot-embedded	jaiabot-embedded/mode	select	simulation
+jaiabot-embedded	jaiabot-embedded/warp	select	{{ warp }}
+jaiabot-embedded	jaiabot-embedded/bot_id	select	{{ item.node_id }}
+jaiabot-embedded	jaiabot-embedded/hub_id	select	{{ item.node_id }}
+jaiabot-embedded	jaiabot-embedded/arduino_type	select	none
+jaiabot-embedded	jaiabot-embedded/electronics_stack	select	2
+jaiabot-embedded	jaiabot-embedded/led_type	select	none
+EOM
+)
+
+jaia_reboot=true
+
+EOF
+
+systemctl restart first_boot
