@@ -53,7 +53,7 @@ import { Coordinate } from 'ol/coordinate'
 import { Interaction } from 'ol/interaction'
 import { boundingExtent } from 'ol/extent.js';
 import { Feature, MapBrowserEvent } from 'ol'
-import { getLength as OlGetLength } from 'ol/sphere'
+import { getLength as OlGetLength, getDistance as OlGetDistance } from 'ol/sphere'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
 
@@ -76,6 +76,7 @@ import '../style/CommandControl.less'
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 import { HelpWindow } from './HelpWindow'
+import { skip } from 'node:test'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -1214,6 +1215,7 @@ export default class CommandControl extends React.Component {
 			const commDest = this.determineAllCommandBots(true, false, false, false)
 			const botIdsAssignedToRuns: number[] = []
 			const runs = mission.runs
+			const commsRange = 250
 
 			if (addRuns) {
 				Object.keys(addRuns).map(botIndex => {
@@ -1246,29 +1248,79 @@ export default class CommandControl extends React.Component {
 				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
 			} 
 			else {
-
+				const hub = Object.values(this.state.podStatus.hubs)[0]
 				const alertText = `Run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 					commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
 
+				if (hub.location.lat === undefined || hub.location.lon === undefined) {
+					const warningString = "WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub."
+					warning(warningString)
+				}
+
 				CustomAlert.confirm(alertText, 'Run Mission', () => {
-					
-					const doExecuteMission = () => {
-						Object.keys(runs).map(key => {
+					let runSubmitted = false
+
+					const doExecuteMission = async () => {
+						const runKeys = Object.keys(runs)
+						let skippedList = ""
+
+						// Loops through all runs in the mission
+						for (const key of runKeys) {
 							const botIndex = runs[key].assigned;
 							this.setRcMode(botIndex, false)
 							const runId = runs[key].id
-							if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-								this._runMission(runs[key].command)
-								// Turn off edit mode when run starts for completeness
-								if (runs[key].id === this.getRunList().runIdInEditMode) {
-									const runList = this.getRunList()
-									runList.runIdInEditMode = ''
-									this.setRunList(runList)
+							const run = runs[key]
+							const lastWptIdx = run.command.plan.goal.length - 1
+							const lastWptLoc = run.command.plan.goal[lastWptIdx].location
+				
+							// If distance is greater than 250 meters, verify that user understands the last waypoint is out of comms range before sending the run to the bot
+							let distance = OlGetDistance([hub.location.lat, hub.location.lon], [lastWptLoc.lat, lastWptLoc.lon]) 
+							if (distance > commsRange && botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+								const userConfirmed = await new Promise((resolve) => { 
+									// Wait for user to confirm that they know the run will finish out of comms range
+									CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${run.assigned} on ${runId}?`, "Confirm",
+										() => resolve(true),
+										() => resolve(false)
+									) 
+								})
+								
+								if (userConfirmed === true) {
+									this._runMission(runs[key].command)
+									// Turn off edit mode when run starts for completeness
+									if (runs[key].id === this.getRunList().runIdInEditMode) {
+										const runList = this.getRunList()
+										runList.runIdInEditMode = ''
+										this.setRunList(runList)
+									}
+
+									runSubmitted = true
+								} else {
+									skippedList += `${runId}, `
 								}
-							}
-						})
-			
-						success("Submitted missions")
+
+							} else {
+								if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+									this._runMission(runs[key].command)
+									// Turn off edit mode when run starts for completeness
+									if (runs[key].id === this.getRunList().runIdInEditMode) {
+										const runList = this.getRunList()
+										runList.runIdInEditMode = ''
+										this.setRunList(runList)
+									}
+								}
+								
+								runSubmitted = true
+							}	
+						}
+						
+						if (skippedList.length > 0) { 
+							skippedList = skippedList.substring(0, skippedList.length - 2); // Remove trailing comma
+							info(`Skipped ${skippedList}`)
+						}
+
+						if (runSubmitted) {
+							success("Submitted Mission")
+						}
 					}
 
 					if (addRuns) {

@@ -40,6 +40,8 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 // Utility Imports
 import * as turf from '@turf/turf';
 import { CustomAlert } from './shared/CustomAlert';
+import { Coordinate } from 'ol/coordinate'
+import { getDistance as OlGetDistance } from 'ol/sphere'
 
 const rcMode = require('../icons/controller.svg') as string
 
@@ -233,7 +235,6 @@ var takeControlFunction: (onSuccess: ()=>void) => void
 
 function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disableMessage: string, setRcMode?: (botId: number, rcMode: boolean) => void) {
     takeControlFunction(() => {
-
         // Exit if we have a disableMessage
         if (disableMessage !== "") {
             CustomAlert.presentAlert({text: disableMessage})
@@ -274,27 +275,52 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: Command
     })
 }
 
-function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, setRcMode: (botId: number, rcMode: boolean) => void, disableMessage: string) {
+function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, hub: PortalHubStatus, botRun: Command, setRcMode: (botId: number, rcMode: boolean) => void, disableMessage: string) {
     takeControlFunction(() => {
+        const commsRange = 250
+        const lastWptIdx = botRun.plan.goal.length - 1
+        const lastWptLoc = botRun.plan.goal[lastWptIdx].location
+
         // Exit if we have a disableMessage
         if (disableMessage !== "") {
             CustomAlert.alert(disableMessage)
             return
         }
 
-        CustomAlert.confirmAsync("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?', 'Play Run').then((confirmed) => {
+        if (hub.location.lat === undefined || hub.location.lon === undefined) {
+            const warningString = "The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub."
+            warning(warningString)
+        }
+
+        CustomAlert.confirmAsync("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?', 'Play Run').then(async (confirmed) => {
             if (confirmed) {
-                // Set the speed values
-                botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
+                // If distance is greater than 250 meters, verify that user understands the last waypoint is out of comms range before sending the run to the bot
+                let distance = OlGetDistance([hub.location.lat, hub.location.lon], [lastWptLoc.lat, lastWptLoc.lon]) 
+                if (distance > commsRange) {
+                    // Wait for user to confirm that they know the run will finish out of comms range
+                    const userConfirmed = await new Promise((resolve) => { 
+                        CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${bot.bot_id} on its run?`, "Confirm",
+                            () => resolve(true),
+                            () => resolve(false)
+                        ) 
+                    })
+                    
+                    if (userConfirmed === true) {
+                        // Set the speed values
+                        botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
 
-                info('Submitted for Bot: ' + bot.bot_id);
+                        info('Submitted for Bot: ' + bot.bot_id);
 
-                api.postCommand(botRun).then(response => {
-                    if (response.message) {
-                        error(response.message)
+                        api.postCommand(botRun).then(response => {
+                            if (response.message) {
+                                error(response.message)
+                            }
+                            setRcMode(bot.bot_id, false)
+                        })
+                    } else {
+                        info('Run not sent')
                     }
-                    setRcMode(bot.bot_id, false)
-                })
+                }
             }
         })
     })
@@ -746,12 +772,12 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 if(bot.health_state === 'HEALTH__FAILED' && bot.mission_state !== MissionState.PRE_DEPLOYMENT__IDLE && bot.mission_state !== MissionState.PRE_DEPLOYMENT__FAILED)
                                 {
                                     (await CustomAlert.confirmAsync('Running the command may have severe consequences because the bot is in a failed health state.\n','Confirm','Warning')) ? 
-                                    issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
+                                    issueRunCommand(api, bot, hub, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
                                     :false;
 
                                 }
                                 else{
-                                    issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
+                                    issueRunCommand(api, bot, hub, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage)
                                 }
                             }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
