@@ -37,6 +37,7 @@ interface Props {
     task?: MissionTask
     location?: GeographicCoordinate
     isEditMode?: boolean
+    enableEcho: boolean
     scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
     onDoneClick?: (task?: MissionTask) => void
@@ -239,6 +240,31 @@ function TaskOptionsPanel(props: Props) {
         })
     }
 
+    /**
+     * If the pod contains an Echo bot, then a toggle for acoustic functionality will appear in the task settings
+     * 
+     * @returns {ReactComponent} A toggle for controlling the acoustic modem or an empty div for non-Echo pods
+     */
+    function getEchoToggle() {
+        const enableEcho = props.enableEcho
+
+        if (enableEcho) {
+            return (
+                <tr className="task-param-container">
+                    <td className="task-label">Start Echo</td>
+                    <td className="input-row dive-time">
+                        <JaiaToggle 
+                            checked={() => isEchoChecked()}
+                            onClick={() => handleEchoCheck()}
+                            disabled={() => !props?.isEditMode}
+                        />
+                    </td>
+                </tr>
+            )
+        }
+        return <div></div>
+    }
+
      /**
      * Checks to see if what state start_echo is in
      * 
@@ -299,16 +325,7 @@ function TaskOptionsPanel(props: Props) {
                                     <td className="task-label">Drift Time</td>
                                     <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode}/>s</td>
                                 </tr>
-                                <tr className="task-param-container">
-                                    <td className="task-label">Start Echo</td>
-                                    <td className="input-row dive-time">
-                                        <JaiaToggle 
-                                            checked={() => isEchoChecked()}
-                                            onClick={() => handleEchoCheck()}
-                                            disabled={() => !props?.isEditMode}
-                                        />
-                                    </td>
-                                </tr>
+                                {getEchoToggle()}
                             </tbody>
                         </table>
                         :
@@ -330,16 +347,7 @@ function TaskOptionsPanel(props: Props) {
                                     <td className="task-label">Drift Time</td>
                                     <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                                 </tr>
-                                <tr className="task-param-container">
-                                    <td className="task-label">Start Echo</td>
-                                    <td className="input-row dive-time">
-                                        <JaiaToggle 
-                                            checked={() => isEchoChecked()}
-                                            onClick={() => handleEchoCheck()}
-                                            disabled={() => !props?.isEditMode}
-                                        />
-                                    </td>
-                                </tr>
+                                {getEchoToggle()}
                             </tbody>
                         </table>
 
@@ -357,16 +365,7 @@ function TaskOptionsPanel(props: Props) {
                                 <td className="task-label">Drift Time</td>
                                 <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
-                            <tr className="task-param-container">
-                                <td className="task-label">Start Echo</td>
-                                <td className="input-row dive-time">
-                                    <JaiaToggle 
-                                        checked={() => isEchoChecked()}
-                                        onClick={() => handleEchoCheck()}
-                                        disabled={() => !props?.isEditMode}
-                                    />
-                                </td>
-                            </tr>
+                                {getEchoToggle()}
                         </tbody>
                     </table>
                 </div>
