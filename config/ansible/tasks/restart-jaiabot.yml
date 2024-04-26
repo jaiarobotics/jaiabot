@@ -2,9 +2,13 @@
       ansible.builtin.systemd:
         name: jaiabot.service
         state: restarted
-  #  - name: Restart goby_liaison_prelaunch service
-  #    ansible.builtin.systemd:
-  #      name: jaiabot_goby_liaison_standalone.service
-  #      state: restarted
-  #    when: "'hub' in ansible_hostname"
-  
+    - name: Restart goby_liaison_prelaunch service
+      ansible.builtin.systemd:
+        name: jaiabot_goby_liaison_standalone.service
+        state: restarted
+      when: "'hub' in ansible_hostname"
+    - name: Restart Apache webserver
+      ansible.builtin.systemd:
+        name: apache2
+        state: restarted
+      when: "'hub' in ansible_hostname"

@@ -1,0 +1,8 @@
+---
+- name: Check VirtualFleet state
+  hosts: localhost
+  gather_facts: yes
+
+  tasks:
+    - include_tasks: tasks/cloud-read-env.yml
+    - include_tasks: tasks/cloud-check-state.yml
