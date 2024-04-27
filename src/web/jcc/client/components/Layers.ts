@@ -101,7 +101,26 @@ export class Layers {
         zIndex: 998
     })
 
+    botPathsLayer = new VectorLayer({
+        properties: {
+            title: 'Bot Paths'
+        },
+        source: new VectorSource(),
+        visible: true,
+        zIndex: 998,
+        style: (feature) => {
+            const bot_id: number = feature.get('bot_id')
+
+			return new Style.Style({
+				stroke: new Style.Stroke({
+					color: getBotPathColor(feature.get('bot_id')),
+					width: 3
+				})
+			})
+        }
+    })
     
+
     /**
      * Layer group for mission-related layers
      */
@@ -118,7 +137,8 @@ export class Layers {
             this.courseOverGroundLayer,
             this.headingLayer,
             this.hubCommsLimitCirclesLayer,
-            this.waypointCircleLayer
+            this.waypointCircleLayer,
+            this.botPathsLayer
         ]
     })
     
@@ -154,25 +174,6 @@ export class Layers {
         wrapX: false,
     })
 
-    botPathsLayer = new VectorLayer({
-        properties: {
-            title: 'Bot Paths'
-        },
-        source: new VectorSource(),
-        visible: true,
-        zIndex: 998,
-        style: (feature) => {
-            const bot_id: number = feature.get('bot_id')
-
-			return new Style.Style({
-				stroke: new Style.Stroke({
-					color: getBotPathColor(feature.get('bot_id')),
-					width: 3
-				})
-			})
-        }
-    })
-    
     dragAndDropVectorLayer = new VectorLayer()
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
@@ -185,7 +186,6 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
-            this.botPathsLayer
         ]
     }
 
