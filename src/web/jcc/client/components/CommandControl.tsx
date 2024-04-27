@@ -812,7 +812,6 @@ export default class CommandControl extends React.Component {
 	 * Use JaiaAPI to poll the botPath data.
 	 */
 	pollBotPaths() {
-		console.log(this.lastBotPathPointUtime)
 		this.api.getBotPaths(this.lastBotPathPointUtime).then(
 			(response) => {
 				if (response.error) {
