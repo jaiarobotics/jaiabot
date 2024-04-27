@@ -840,8 +840,6 @@ export default class CommandControl extends React.Component {
 	 * @param {BotPaths} botPaths The dictionary of bot_id strings to BotPathPoint[] to append to the botPath LineString features.
 	 */
 	updateBotPaths(botPaths: BotPaths) {
-		let source = layers.botPathsLayer.getSource()
-
 		for (const [ bot_id_string, botPath ] of Object.entries(botPaths)) {
 			if (botPath.length < 1) continue
 
@@ -854,13 +852,15 @@ export default class CommandControl extends React.Component {
 			})
 
 			if (!(bot_id in this.botPathFeatures)) {
+				const newLayer = layers.createNewBotPathLayer(bot_id)
+
 				const newFeature = new Feature<LineString>({
 					geometry: new LineString([]),
 					bot_id: Number(bot_id)
 				})
 
 				this.botPathFeatures[bot_id] = newFeature
-				source.addFeature(newFeature)
+				newLayer.getSource().addFeature(newFeature)
 			}
 
 			let feature = this.botPathFeatures[bot_id]

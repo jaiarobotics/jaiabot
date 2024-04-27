@@ -101,23 +101,11 @@ export class Layers {
         zIndex: 998
     })
 
-    botPathsLayer = new VectorLayer({
+    botPathsGroup = new LayerGroup({
         properties: {
-            title: 'Bot Paths'
+            title: 'Bot Paths',
+            fold: 'close'
         },
-        source: new VectorSource(),
-        visible: true,
-        zIndex: 998,
-        style: (feature) => {
-            const bot_id: number = feature.get('bot_id')
-
-			return new Style.Style({
-				stroke: new Style.Stroke({
-					color: getBotPathColor(feature.get('bot_id')),
-					width: 3
-				})
-			})
-        }
     })
     
 
@@ -138,7 +126,6 @@ export class Layers {
             this.headingLayer,
             this.hubCommsLimitCirclesLayer,
             this.waypointCircleLayer,
-            this.botPathsLayer
         ]
     })
     
@@ -186,6 +173,7 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
+            this.botPathsGroup
         ]
     }
 
@@ -194,6 +182,36 @@ export class Layers {
         this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
     }
+
+    createNewBotPathLayer(bot_id: number) {
+        const newLayer = new VectorLayer({
+            properties: {
+                title: `Bot ${bot_id}`
+            },
+            source: new VectorSource(),
+            visible: true,
+            zIndex: 998,
+            style: new Style.Style({
+                stroke: new Style.Stroke({
+                    color: getBotPathColor(bot_id),
+                    width: 3
+                })
+            })
+        })
+
+        this.botPathsGroup.getLayers().push(newLayer)
+        this.botPathsGroup.getLayersArray().sort((layer1, layer2) => {
+            if (layer1.get('title') < layer2.get('title')) {
+                return -1
+            }
+            else {
+                return 1
+            }
+        })
+
+        return newLayer
+    }
+    
 }
 
 export const layers = new Layers()
