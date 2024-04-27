@@ -6,14 +6,13 @@ set -e
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 # Build messages and install pyjaia
-pushd ../../python/pyjaia
-    ./build_messages.sh
-    python3 -m pip install ./
+pushd ../../python
+    ./build_venv.sh .
 popd
 
 # Start server
 pushd ../server
-    ./app.py $1 &
+    ../../python/venv/bin/python3 ./app.py $1 &
 popd
 
 # Build jed
