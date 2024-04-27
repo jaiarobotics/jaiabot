@@ -101,6 +101,7 @@ export class Layers {
         zIndex: 998
     })
 
+    
     botPathsGroup = new LayerGroup({
         properties: {
             title: 'Bot Paths',
@@ -183,6 +184,13 @@ export class Layers {
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
     }
 
+    
+    /**
+     * Creates a new bot path layer for the given bot_id
+     *
+     * @param {number} bot_id
+     * @returns {VectorLayer} The bot path layer.
+     */
     createNewBotPathLayer(bot_id: number) {
         const newLayer = new VectorLayer({
             properties: {
