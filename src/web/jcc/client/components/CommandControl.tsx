@@ -66,7 +66,7 @@ import * as turf from '@turf/turf'
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
-	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline} from '@mdi/js'
+	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline, mdiMagnifyPlusOutline, mdiMagnifyMinusOutline, mdiRotate3dVariant} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -479,6 +479,35 @@ export default class CommandControl extends React.Component {
 		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!')
+
+		// Search for the Zoom & Reset buttons using classname and assign them new icons.
+		const buttons = document.querySelectorAll('.ol-zoom-in, .ol-zoom-out,.ol-rotate-reset');
+		buttons.forEach(button => {
+		  if (button.classList.contains('ol-zoom-in')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiMagnifyPlusOutline}" />
+			</svg>
+		  `;
+		  } else if (button.classList.contains('ol-zoom-out')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiMagnifyMinusOutline}" />
+			</svg>
+		  `;
+		  }else if (button.classList.contains('ol-rotate-reset')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiRotate3dVariant}" />
+			</svg>
+		  `;
+		  }
+		
+		})
+
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
