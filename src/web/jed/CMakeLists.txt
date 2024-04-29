@@ -6,7 +6,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${intermediate_web_dir})
 
 add_custom_command(OUTPUT ${jed_out_dir}/script.js
   COMMAND npx webpack
-  ARGS --env OUTPUT_DIR=${jed_out_dir} --stats errors-only
+  ARGS --output-path ${jed_out_dir} --stats errors-only
   DEPENDS npm_dependencies ${jed_src_files}
   WORKING_DIRECTORY ${intermediate_web_dir}/jed
   COMMENT "Building jed"
