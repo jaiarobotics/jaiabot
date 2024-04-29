@@ -27,6 +27,7 @@ interface Props {
     map: Map
     runList: MissionInterface
     runNumber: number
+    enableEcho: boolean
     onChange: () => void
     onDoneClick: () => void
     setVisiblePanel: (panelType: PanelType) => void
@@ -274,6 +275,7 @@ export class GoalSettingsPanel extends React.Component {
                         map={this.props.map}
                         location={goal?.location}
                         isEditMode={isEditMode}
+                        enableEcho={this.props.enableEcho}
                         scrollTaskSettingsIntoView={this.scrollTaskSettingsIntoView.bind(this)}
                         onChange={task => {
                             goal.task = task
