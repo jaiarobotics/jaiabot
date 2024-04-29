@@ -116,7 +116,7 @@
     - name: Uncomment /etc/apt/sources.list and /etc/resolv.conf for non-offline modes
       ansible.builtin.replace:
         path: "{{ item }}"
-        regexp: '^#+(.*)'
+        regexp: '^#+( *deb.*)'
         replace: '\1'
       when: mode != "offline" 
       loop:
