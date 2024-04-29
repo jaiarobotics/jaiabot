@@ -1,0 +1,7 @@
+---
+- name: Restart all Jaiabot services
+  hosts: all
+  gather_facts: yes
+  become: yes
+  tasks:    
+    - include_tasks: tasks/restart-jaiabot.yml
