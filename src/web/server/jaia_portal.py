@@ -4,6 +4,8 @@ import bisect
 import socket
 import threading
 import ipaddress
+import itertools
+import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -110,7 +112,7 @@ class Interface:
     bots_engineering = {}
 
     # Dict from bot_id => list of BotPathPoints
-    bot_paths: Dict[str, List[BotPathPoint]] = {}
+    bot_paths: Dict[str, Deque[BotPathPoint]] = {}
 
     # ClientId that is currently in control
     controllingClientId = None
@@ -216,7 +218,7 @@ class Interface:
                 # Add position to bot_paths
                 if msg.bot_status.HasField('location'):
                     bot_location = msg.bot_status.location
-                    bot_path = self.bot_paths.setdefault(str(bot_id), [])
+                    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
 
                     try:
                         last_bot_path_point_time = bot_path[-1].utime
@@ -556,13 +558,12 @@ class Interface:
     # Bot paths
 
     def get_bot_paths(self, since_utime: int=None):
-        if since_utime is None:
-            return self.bot_paths
+        since_utime = since_utime or 0
 
         bot_paths: Dict[str, List[BotPathPoint]] = {}
         for bot_id, bot_path in self.bot_paths.items():
             start_index = bisect.bisect_right(list(map(lambda point: point.utime, bot_path)), since_utime)
-            bot_paths[bot_id] = bot_path[start_index:]
+            bot_paths[bot_id] = list(itertools.islice(bot_path, start_index, None))
         return bot_paths
 
 
