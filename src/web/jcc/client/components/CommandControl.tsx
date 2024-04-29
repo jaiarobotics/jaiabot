@@ -1757,13 +1757,8 @@ export default class CommandControl extends React.Component {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
 		
-		let run = null
-		if (!botId) {
-			run = runs[this.getRunList().runIdInEditMode]
-		} else {
-			run = runs[botsAssignedToRuns[botId]]
-		}
- 
+		let run = runs[runList.runIdInEditMode]
+
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
