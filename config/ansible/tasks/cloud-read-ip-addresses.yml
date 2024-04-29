@@ -1,0 +1,31 @@
+# prereq: node_map and cloud.env read
+
+- name: Initialize IP addresses dict
+  set_fact:
+    vpn_ipv6_addresses: {}
+    wlan_ipv4_addresses: {}
+  tags: read
+      
+- name: Look up IPv6 addresses
+  shell: /etc/jaiabot/ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  register: _vpn_ipv6_addresses
+  loop: "{{ node_map }}"
+  tags: read
+
+- name: Add IPv6 addresses to dictionary
+  set_fact:
+    vpn_ipv6_addresses: "{{ vpn_ipv6_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
+  loop: "{{ _vpn_ipv6_addresses.results }}"
+  tags: read
+  
+- name: Look up WLAN IPv4 addresses
+  shell: /etc/jaiabot/ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_wlan --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv4
+  register: _wlan_ipv4_addresses
+  loop: "{{ node_map }}"
+  tags: read
+
+- name: Add WLAN IPv4 addresses to dictionary
+  set_fact:
+    wlan_ipv4_addresses: "{{ wlan_ipv4_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
+  loop: "{{ _wlan_ipv4_addresses.results }}"
+  tags: read
