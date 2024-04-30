@@ -32,7 +32,7 @@ module.exports = (env, argv) => {
           stats : 'errors-only',
           devtool : 'eval-source-map',
           entry :
-              [ 'babel-polyfill', path.resolve(__dirname, 'client/index.js') ],
+              [ 'babel-polyfill', path.resolve(__dirname, 'jcc/client/index.js') ],
           resolve : {
             extensions : [ '.*', '.js', '.jsx', '.ts', '.tsx' ],
           },
@@ -87,17 +87,17 @@ module.exports = (env, argv) => {
           },
           plugins : [
             new HtmlWebpackPlugin({
-              template : path.resolve(__dirname, 'public/index.html'),
-              favicon : path.resolve(__dirname, 'public/favicon.png')
+              template : path.resolve(__dirname, 'jcc/public/index.html'),
+              favicon : path.resolve(__dirname, 'jcc/public/favicon.png')
             }),
             new CopyWebpackPlugin({
               patterns : [
-                path.resolve(__dirname, 'public/favicon.png'),
-                path.resolve(__dirname, 'public/manifest.json')
+                path.resolve(__dirname, 'jcc/public/favicon.png'),
+                path.resolve(__dirname, 'jcc/public/manifest.json')
               ],
               options : {}
             }),
-            new Dotenv({path : path.resolve(__dirname, `${argv.mode}.env`)}),
+            new Dotenv({path : path.resolve(__dirname, `jcc/${argv.mode}.env`)}),
             new webpack.HotModuleReplacementPlugin()
           ],
           optimization : optimizationConfig,
