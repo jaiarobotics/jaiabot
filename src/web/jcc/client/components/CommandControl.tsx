@@ -1826,13 +1826,8 @@ export default class CommandControl extends React.Component {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
 		
-		let run = null
-		if (!botId) {
-			run = runs[this.getRunList().runIdInEditMode]
-		} else {
-			run = runs[botsAssignedToRuns[botId]]
-		}
- 
+		let run = runs[runList.runIdInEditMode]
+
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
@@ -2067,14 +2062,9 @@ export default class CommandControl extends React.Component {
 			runList.runIdInEditMode = run?.id
 		} else {
 			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-				this.setVisiblePanel(PanelType.GOAL_SETTINGS)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
 			runList.runIdInEditMode = ''
-		}
-
-		if (this.state.selectedHubOrBot) {
-			this.state.selectedHubOrBot.id = null
 		}
 
 		this.setRunList(runList)
