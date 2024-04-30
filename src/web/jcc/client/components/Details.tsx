@@ -289,41 +289,34 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, hub: PortalHubStatu
             CustomAlert.alert(disableMessage)
             return
         }
-        
-        // Checks for hub lat/lon. If none are found, they are set to MAX_SAFE_INTEGER so distance calculation doesn't break
-        if (hub.location.lat === undefined || hub.location.lon === undefined) {
-            hubLon = Number.MAX_SAFE_INTEGER
-            hubLat = Number.MAX_SAFE_INTEGER
-            hubHasPosData = false
-            warning("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.")
-        } else {
-            hubLon = hub.location.lon
-            hubLat = hub.location.lat
-            hubHasPosData = true
-        }
 
         CustomAlert.confirmAsync("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?', 'Play Run').then(async (confirmed) => {
             if (confirmed) {
-                // If distance is greater than 250 meters, verify that user understands the last waypoint is out of comms range before sending the run to the bot
-                let distance = OlGetDistance([hubLon, hubLat], [lastWptLoc.lat, lastWptLoc.lon]) 
-                if (distance > COMMS_RANGE) {
-                    // Wait for user to confirm that they know the run will finish out of comms range
-                    const userConfirmed = await new Promise((resolve) => { 
-                        if (hubHasPosData) {
+                let userConfirmed = null
+                
+                // If the hub doesn't have location data, wait for the user to confirm that this is understood
+                if (hub.location.lat === undefined || hub.location.lon === undefined) {
+                    userConfirmed = await new Promise((resolve) => { 
+                        // Wait for user to confirm that they know the hub has no location data
+                        CustomAlert.confirm("WARNING: The hub does not currently have position data. Is the last waypoint within comms range (250m) of the hub?", "Confirm",
+                            () => resolve(true),
+                            () => resolve(false)
+                        ) 
+                    })
+                } else {
+                    let distance = OlGetDistance([hub.location.lat, hub.location.lon], [lastWptLoc.lat, lastWptLoc.lon]) 
+                    // If last wpt is outside of COMMS_RANGE, alert the user and wait for confirmation
+                    if (distance > COMMS_RANGE) {
+                        userConfirmed = await new Promise((resolve) => { 
                             // Wait for user to confirm that they know the run will finish out of comms range
                             CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${bot.bot_id} on its run?`, "Confirm",
                                 () => resolve(true),
                                 () => resolve(false)
                             ) 
-                        } else {
-                            // Wait for user to confirm that they know the hub has no location data
-                            CustomAlert.confirm("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.", "Confirm",
-                                () => resolve(true),
-                                () => resolve(false)
-                            ) 
-                        }
-                    })
+                        })
+                    }
                     
+                        
                     // If user confirmed any issues, send the run and inform the user that it was sent
                     if (userConfirmed === true) {
                         // Set the speed values

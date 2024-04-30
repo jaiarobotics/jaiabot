@@ -1430,7 +1430,7 @@ export default class CommandControl extends React.Component {
 										) 
 									} else {
 										// Wait for user to confirm that they know the hub has no location data
-										CustomAlert.confirm("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.", "Confirm",
+										CustomAlert.confirm(`WARNING: The hub does not currently have position data. Is the last waypoint of ${runId} within comms range (250m) of the hub?`, "Confirm",
 											() => resolve(true),
 											() => resolve(false)
 										) 
