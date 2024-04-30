@@ -763,7 +763,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     if (
         missionState == "PRE_DEPLOYMENT__IDLE" ||
         missionState == "PRE_DEPLOYMENT__FAILED" ||
-        missionState.startsWith("POST_DEPLOYMENT__")
+        missionState?.startsWith("POST_DEPLOYMENT__")
     ) {
         botLogging = false
     } 
