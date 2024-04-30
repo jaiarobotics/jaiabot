@@ -7,6 +7,12 @@ import logging
 import os
 from datetime import *
 import os
+from http import HTTPStatus
+
+# Internal Imports
+import jaia_portal
+import missions
+
 
 def parseDate(date):
     if date is None or date == '':
@@ -20,9 +26,6 @@ def parseDate(date):
         logging.warning(f'Could not parse date: {date}')
         return None
 
-# Internal Imports
-import jaia_portal
-import missions
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -65,6 +68,42 @@ def JSONResponse(obj: any=None, string: str=None):
         return Response(json.dumps(obj), mimetype='application/json')
     if string is not None:
         return Response(string, mimetype='application/json')
+
+
+def ErrorResponse(status: int, error_message: str, error_code: int=None):
+    """Returns an error response with a message and an error code.
+
+    Args:
+        status (int): The http status code for the response.
+        error_message (str): The error message to return to the client via JSON.
+        error_code (int, optional): The error code to return to the client via JSON. Defaults to None.
+
+    Returns:
+        Response: The Flask response object.
+    """
+    responseObject = {
+        'error': {
+            'message': error_message,
+            'code': error_code
+        }
+    }
+    return Response(json.dumps(responseObject), status=status, mimetype='application/json')
+
+
+def JaiaResponse(result: any):
+    """Returns a response with result.
+
+    Args:
+        result (any): The result.
+
+    Returns:
+        Response: The Flask response object.
+    """
+    responseObject = {
+        'result': result
+    }
+    return Response(json.dumps(responseObject), mimetype='application/json')
+
 
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
@@ -207,6 +246,24 @@ def get_drift_map():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
     end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
+
+
+######## Bot paths
+
+@app.route('/jaia/bot-paths', methods=['GET'])
+def get_bot_paths():
+    since_utime: int
+
+    try:
+        since_utime = int(request.args.get('since-utime'))
+    except ValueError:
+        message = f"{request.url}: since-utime is not a valid integer"
+        logging.warning(message)
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, message, 1)
+    except TypeError:
+        since_utime = None
+    
+    return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
 if __name__ == '__main__':
