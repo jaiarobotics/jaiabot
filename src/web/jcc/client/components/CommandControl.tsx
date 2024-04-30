@@ -74,7 +74,6 @@ import '../style/CommandControl.less'
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 import { HelpWindow } from './HelpWindow'
-import { skip } from 'node:test'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -90,6 +89,8 @@ const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
 const MICROSECONDS_FACTOR = 1_000_000
+const COMMS_RANGE = 250
+
 
 interface Props {}
 
@@ -1229,6 +1230,21 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * Gets the array of all hubs in the pod
+	 * 
+	 * @param {void}
+	 * @returns {PortalHubStatus[]} Array of all hubs
+	 */
+	getHubStatus() {
+		while (!Object.values(this.state.podStatus.hubs)) {
+			warning("No hub found")
+		}
+
+		const hubs = Object.values(this.state.podStatus.hubs)
+		return hubs
+	}
+
+	/**
 	 * Determines which runs in a mission are eligible to start and plays those runs
 	 * 
 	 * @param {MissionInterface} mission Holds the runs 
@@ -1237,11 +1253,10 @@ export default class CommandControl extends React.Component {
 	 */
 	runMissions(mission: MissionInterface, addRuns: CommandList) {
 		this.takeControl(() => {
-
 			const commDest = this.determineAllCommandBots(true, false, false, false)
 			const botIdsAssignedToRuns: number[] = []
 			const runs = mission.runs
-			const commsRange = 250
+			const hub = this.getHubStatus()[0]
 
 			if (addRuns) {
 				Object.keys(addRuns).map(botIndex => {
@@ -1261,7 +1276,6 @@ export default class CommandControl extends React.Component {
 			botIdsAssignedToRuns.sort()
 
 			let botsNotAssignedToRuns = commDest.botIds.filter(id => !botIdsAssignedToRuns.includes(id));
-
 			let notAssignedMessage = ""
 
 			if (botsNotAssignedToRuns.length > 1) {
@@ -1272,15 +1286,23 @@ export default class CommandControl extends React.Component {
 
 			if (botIdsAssignedToRuns.length === 0) {
 				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
-			} 
-			else {
-				const hub = Object.values(this.state.podStatus.hubs)[0]
+			} else {
+				let hubLat: number
+				let hubLon: number
+				let hubHasPosData: boolean
+
 				const alertText = `Run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 					commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
 
+				// Checks for hub lat/lon. If none are found, they are set to MAX_SAFE_INTEGER so distance calculation doesn't break
 				if (hub.location.lat === undefined || hub.location.lon === undefined) {
-					const warningString = "WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub."
-					warning(warningString)
+					hubLon = Number.MAX_SAFE_INTEGER
+					hubLat = Number.MAX_SAFE_INTEGER
+					hubHasPosData = false
+				} else {
+					hubLon = hub.location.lon
+					hubLat = hub.location.lat
+					hubHasPosData = true
 				}
 
 				CustomAlert.confirm(alertText, 'Run Mission', () => {
@@ -1300,16 +1322,25 @@ export default class CommandControl extends React.Component {
 							const lastWptLoc = run.command.plan.goal[lastWptIdx].location
 				
 							// If distance is greater than 250 meters, verify that user understands the last waypoint is out of comms range before sending the run to the bot
-							let distance = OlGetDistance([hub.location.lat, hub.location.lon], [lastWptLoc.lat, lastWptLoc.lon]) 
-							if (distance > commsRange && botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+							let distance = OlGetDistance([hubLat, hubLon], [lastWptLoc.lat, lastWptLoc.lon]) 
+							if (distance > COMMS_RANGE && botIndex !== -1 && commDest.botIds.includes(botIndex)) {
 								const userConfirmed = await new Promise((resolve) => { 
-									// Wait for user to confirm that they know the run will finish out of comms range
-									CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${run.assigned} on ${runId}?`, "Confirm",
-										() => resolve(true),
-										() => resolve(false)
-									) 
+									if (hubHasPosData) {
+										// Wait for user to confirm that they know the run will finish out of comms range
+										CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${run.assigned} on ${runId}?`, "Confirm",
+											() => resolve(true),
+											() => resolve(false)
+										) 
+									} else {
+										// Wait for user to confirm that they know the hub has no location data
+										CustomAlert.confirm("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.", "Confirm",
+											() => resolve(true),
+											() => resolve(false)
+										) 
+									}
 								})
 								
+								// If user confirmed any issues, send the mission
 								if (userConfirmed === true) {
 									this._runMission(runs[key].command)
 									// Turn off edit mode when run starts for completeness
@@ -1339,11 +1370,13 @@ export default class CommandControl extends React.Component {
 							}	
 						}
 						
+						// Inform user that the run was skipped
 						if (skippedList.length > 0) { 
 							skippedList = skippedList.substring(0, skippedList.length - 2); // Remove trailing comma
 							info(`Skipped ${skippedList}`)
 						}
 
+						// Inform user that the run was sent
 						if (runSubmitted) {
 							success("Submitted Mission")
 						}

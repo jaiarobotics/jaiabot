@@ -44,6 +44,7 @@ import { Coordinate } from 'ol/coordinate'
 import { getDistance as OlGetDistance } from 'ol/sphere'
 
 const rcMode = require('../icons/controller.svg') as string
+const COMMS_RANGE = 250
 
 let prec = 2
 
@@ -277,34 +278,53 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: Command
 
 function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, hub: PortalHubStatus, botRun: Command, setRcMode: (botId: number, rcMode: boolean) => void, disableMessage: string) {
     takeControlFunction(() => {
-        const commsRange = 250
         const lastWptIdx = botRun.plan.goal.length - 1
         const lastWptLoc = botRun.plan.goal[lastWptIdx].location
+        let hubLat: number
+        let hubLon: number
+        let hubHasPosData: boolean
 
         // Exit if we have a disableMessage
         if (disableMessage !== "") {
             CustomAlert.alert(disableMessage)
             return
         }
-
+        
+        // Checks for hub lat/lon. If none are found, they are set to MAX_SAFE_INTEGER so distance calculation doesn't break
         if (hub.location.lat === undefined || hub.location.lon === undefined) {
-            const warningString = "The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub."
-            warning(warningString)
+            hubLon = Number.MAX_SAFE_INTEGER
+            hubLat = Number.MAX_SAFE_INTEGER
+            hubHasPosData = false
+            warning("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.")
+        } else {
+            hubLon = hub.location.lon
+            hubLat = hub.location.lat
+            hubHasPosData = true
         }
 
         CustomAlert.confirmAsync("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?', 'Play Run').then(async (confirmed) => {
             if (confirmed) {
                 // If distance is greater than 250 meters, verify that user understands the last waypoint is out of comms range before sending the run to the bot
-                let distance = OlGetDistance([hub.location.lat, hub.location.lon], [lastWptLoc.lat, lastWptLoc.lon]) 
-                if (distance > commsRange) {
+                let distance = OlGetDistance([hubLon, hubLat], [lastWptLoc.lat, lastWptLoc.lon]) 
+                if (distance > COMMS_RANGE) {
                     // Wait for user to confirm that they know the run will finish out of comms range
                     const userConfirmed = await new Promise((resolve) => { 
-                        CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${bot.bot_id} on its run?`, "Confirm",
-                            () => resolve(true),
-                            () => resolve(false)
-                        ) 
+                        if (hubHasPosData) {
+                            // Wait for user to confirm that they know the run will finish out of comms range
+                            CustomAlert.confirm(`WARNING: The last waypoint is out of comms range from the hub. Are you sure you want to send bot ${bot.bot_id} on its run?`, "Confirm",
+                                () => resolve(true),
+                                () => resolve(false)
+                            ) 
+                        } else {
+                            // Wait for user to confirm that they know the hub has no location data
+                            CustomAlert.confirm("WARNING: The hub does not currently have position data. Make sure the last waypoint is not out of comms range from the hub.", "Confirm",
+                                () => resolve(true),
+                                () => resolve(false)
+                            ) 
+                        }
                     })
                     
+                    // If user confirmed any issues, send the run and inform the user that it was sent
                     if (userConfirmed === true) {
                         // Set the speed values
                         botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
