@@ -1,3 +1,4 @@
+import "./calibration.css"
 import { byId } from './domQuery.js' 
 import { api, JaiaAPI } from './api.js'
 import { updateStatus } from './updateStatus.js'
@@ -12,7 +13,10 @@ class CalibrationApp {
             motor: {
                 forwardStart: 1600,
                 reverseStart: 1400,
-                max_reverse: 1320
+                max_reverse: 1320,
+                throttle_zero_net_buoyancy: -35,
+                throttle_dive: -35,
+                throttle_ascent: 25,
             },
             rudder: {
                 upper: 1100,
