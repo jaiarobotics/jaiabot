@@ -19,4 +19,6 @@ pushd ../server
 popd
 
 # Build jed
+# Install pre-requisites
+../install_dependencies.sh ../
 webpack --mode production --output-path ${WEB_DEV_DIR}/jed --watch --stats minimal

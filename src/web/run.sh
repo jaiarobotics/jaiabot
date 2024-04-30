@@ -18,10 +18,6 @@ pushd server > /dev/null
     ${BUILD_DIR}/python/venv/bin/python3 ./app.py -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
-# Symlink jed to the build directory (so we can hot reload)
-rm -rf ${BUILD_DIR}/jed
-ln -s $(pwd)/jed ${BUILD_DIR}/jed
-
 # Build Command Control
     # Install pre-requisites
     ./install_dependencies.sh ./
