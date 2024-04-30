@@ -74,7 +74,6 @@ import '../style/CommandControl.less'
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 import { HelpWindow } from './HelpWindow'
-import { getBotPathColor } from './shared/BotPathColors'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
