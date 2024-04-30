@@ -10,7 +10,7 @@ import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { Layers, layers } from './Layers'
-import { jaiaAPI } from '../../common/JaiaAPI'
+import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
 import { HubOrBot } from './HubOrBot'
@@ -85,6 +85,7 @@ const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
 const POD_STATUS_POLL_INTERVAL = 500
+const BOT_PATHS_POLL_INTERVAL = 2_000
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
@@ -242,9 +243,12 @@ export default class CommandControl extends React.Component {
 	surveyLines: SurveyLines
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
+	botPathsPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 	missionHistory: MissionInterface[]
+	lastBotPathPointUtime: number = 0
+	botPathFeatures: {[key: number]: Feature<LineString>} = {}
 
 	constructor(props: Props) {
 		super(props)
@@ -460,6 +464,7 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
 		this.pollPodStatus()
+		this.pollBotPaths()
 		this.pollMetadata()
 		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
@@ -829,6 +834,69 @@ export default class CommandControl extends React.Component {
 			this.metadataPollId = setInterval(() => this.pollMetadata(), METADATA_POLL_INTERVAL)
 		}
 	}
+
+	
+	/**
+	 * Use JaiaAPI to poll the botPath data.
+	 */
+	pollBotPaths() {
+		this.api.getBotPaths(this.lastBotPathPointUtime).then(
+			(response) => {
+				if (response.error) {
+					this.hubConnectionError(response.error.message)
+					return
+				}
+
+				if (response.result) {
+					this.updateBotPaths(response.result)
+				}
+			},
+			(err) => {
+				this.hubConnectionError(err.message)
+			}
+		)
+		// Starts polling interval
+		if (!this.botPathsPollId) {
+			this.botPathsPollId = setInterval(() => this.pollBotPaths(), BOT_PATHS_POLL_INTERVAL)
+		}
+	}
+
+	
+	/**
+	 * Update the botPath features on the botPathsLayer.
+	 *
+	 * @param {BotPaths} botPaths The dictionary of bot_id strings to BotPathPoint[] to append to the botPath LineString features.
+	 */
+	updateBotPaths(botPaths: BotPaths) {
+		for (const [ bot_id_string, botPath ] of Object.entries(botPaths)) {
+			if (botPath.length < 1) continue
+
+			const bot_id = Number(bot_id_string)
+
+			this.lastBotPathPointUtime = Math.max(this.lastBotPathPointUtime, botPath[botPath.length - 1][0])
+
+			const coordinates = botPath.map((botPathPoint) => {
+				return getMapCoordinate({ lon: botPathPoint[1], lat: botPathPoint[2] }, map)
+			})
+
+			if (!(bot_id in this.botPathFeatures)) {
+				const newLayer = layers.createNewBotPathLayer(bot_id)
+
+				const newFeature = new Feature<LineString>({
+					geometry: new LineString([]),
+					bot_id: Number(bot_id)
+				})
+
+				this.botPathFeatures[bot_id] = newFeature
+				newLayer.getSource().addFeature(newFeature)
+			}
+
+			let feature = this.botPathFeatures[bot_id]
+			const oldCoordinates = feature.getGeometry().getCoordinates()
+			feature.getGeometry().setCoordinates(oldCoordinates.concat(coordinates))
+		}
+	}
+
 
 	pollPodStatus() {
 		this.api.getStatus().then(
