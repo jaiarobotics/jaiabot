@@ -42,6 +42,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
@@ -190,6 +191,18 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             {
                 if (low_control.has_control_surfaces())
                     process_control_surfaces(low_control.control_surfaces());
+            });
+
+        // Subscribe to engineering commands for:
+        // * bounds config changes, so we can bounce the new config back to jaiabot_engineering
+        interprocess().subscribe<jaiabot::groups::engineering_command>(
+            [this](const jaiabot::protobuf::Engineering& engineering) {
+                if (engineering.has_bounds())
+                {
+                    auto bounds = engineering.bounds();
+                    // Publish an engineering_status message, so the current bounds can be queried in engineering_status
+                    interprocess().publish<jaiabot::groups::engineering_status>(bounds);
+                }
             });
 
         goby().interprocess().subscribe<groups::simulator_command>(
