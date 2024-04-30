@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -76,8 +77,8 @@ int main(int argc, char* argv[])
 jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * si::hertz)
 {
     // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
-    groups::engineering_command_this_bot.reset(
-        new goby::middleware::DynamicGroup(jaiabot::groups::engineering_command, cfg().bot_id()));
+    groups::engineering_command_this_bot.reset(new goby::middleware::DynamicGroup(
+        jaiabot::intervehicle::engineering_command_group(cfg().bot_id())));
 
     latest_engineering.set_bot_id(cfg().bot_id());
 
@@ -89,7 +90,6 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                 [this](const jaiabot::protobuf::PIDControl& pid_control) {
                     latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
                 });
-
 
         // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
         interprocess().subscribe<jaiabot::groups::engineering_status>(
@@ -235,7 +235,8 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
     // use vehicle ID as group for command
     auto do_set_group =
         [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
-        return goby::middleware::Group(command.bot_id());
+        return goby::middleware::Group(
+            jaiabot::intervehicle::engineering_command_group(command.bot_id()).numeric());
     };
 
     latest_command_sub_cfg_ = cfg().command_sub_cfg();
@@ -290,7 +291,8 @@ void jaiabot::apps::JaiabotEngineering::loop()
         queried_for_status_ = false;
         glog.is_debug1() && glog << "Publishing latest_engineering over intervehicle(): "
                                  << latest_engineering.ShortDebugString() << std::endl;
-        intervehicle().publish<jaiabot::groups::engineering_status>(latest_engineering);
+        intervehicle().publish<jaiabot::groups::engineering_status>(
+            latest_engineering, intervehicle::default_publisher<protobuf::Engineering>);
     }
 }
 

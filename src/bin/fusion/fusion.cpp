@@ -34,6 +34,7 @@
 #include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -267,49 +268,52 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         glog.is_debug1() && glog << "Received Attitude update from IMU: "
                                  << imu_data.ShortDebugString() << std::endl;
 
-        auto euler_angles = imu_data.euler_angles();
-        auto now = goby::time::SteadyClock::now();
-
-        if (euler_angles.has_heading())
+        if (imu_data.has_euler_angles())
         {
-            // Creating temp heading variable
-            auto heading = euler_angles.heading_with_units();
+            auto euler_angles = imu_data.euler_angles();
+            auto now = goby::time::SteadyClock::now();
 
-            // Apply magnetic declination
-            auto magneticDeclination = wmm.magneticDeclination(
-                latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
-            glog.is_debug2() &&
-                glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                     << "  Magnetic declination: " << magneticDeclination << endl;
-            heading = heading + magneticDeclination * degrees;
+            if (euler_angles.has_heading())
+            {
+                // Creating temp heading variable
+                auto heading = euler_angles.heading_with_units();
 
-            heading = corrected_heading(heading);
+                // Apply magnetic declination
+                auto magneticDeclination = wmm.magneticDeclination(
+                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                glog.is_debug2() &&
+                    glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
+                         << "  Magnetic declination: " << magneticDeclination << endl;
+                heading = heading + magneticDeclination * degrees;
 
-            latest_node_status_.mutable_pose()->set_heading_with_units(heading);
-            latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+                heading = corrected_heading(heading);
 
-            last_data_time_[DataType::HEADING] = now;
-        }
+                latest_node_status_.mutable_pose()->set_heading_with_units(heading);
+                latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
 
-        if (euler_angles.has_pitch())
-        {
-            auto pitch = euler_angles.pitch_with_units();
-            latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
-            latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+                last_data_time_[DataType::HEADING] = now;
+            }
 
-            // Used to determine if the bot is horizontal
-            detect_bot_horizontal(pitch.value());
+            if (euler_angles.has_pitch())
+            {
+                auto pitch = euler_angles.pitch_with_units();
+                latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
+                latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
-            last_data_time_[DataType::PITCH] = now;
-        }
+                // Used to determine if the bot is horizontal
+                detect_bot_horizontal(pitch.value());
 
-        if (euler_angles.has_roll())
-        {
-            auto roll = euler_angles.roll_with_units();
-            latest_node_status_.mutable_pose()->set_roll_with_units(roll);
-            latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+                last_data_time_[DataType::PITCH] = now;
+            }
 
-            last_data_time_[DataType::ROLL] = now;
+            if (euler_angles.has_roll())
+            {
+                auto roll = euler_angles.roll_with_units();
+                latest_node_status_.mutable_pose()->set_roll_with_units(roll);
+                latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+
+                last_data_time_[DataType::ROLL] = now;
+            }
         }
 
         if (imu_data.has_calibration_status())
@@ -514,7 +518,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_repeat_index();
             }
-
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
@@ -735,7 +738,8 @@ void jaiabot::apps::Fusion::loop()
         {
             glog.is_debug1() && glog << "Publishing queried bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
-            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+            intervehicle().publish<jaiabot::groups::bot_status>(
+                latest_bot_status_, intervehicle::default_publisher<decltype(latest_bot_status_)>);
             latest_engineering_status.set_query_bot_status(false);
         }
 
@@ -747,7 +751,9 @@ void jaiabot::apps::Fusion::loop()
             {
                 glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                          << latest_bot_status_.ShortDebugString() << endl;
-                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+                intervehicle().publish<jaiabot::groups::bot_status>(
+                    latest_bot_status_,
+                    intervehicle::default_publisher<decltype(latest_bot_status_)>);
                 last_bot_status_report_time_ = now;
 
                 // If the rf is disabled and operator enables rf

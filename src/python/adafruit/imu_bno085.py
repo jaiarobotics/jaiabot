@@ -1,119 +1,24 @@
-from dataclasses import dataclass
-from enum import Enum
-from orientation import Orientation
-from vector3 import Vector3
-from typing import *
-from quaternion import Quaternion
-import os
-import logging
-import datetime
-from math import *
-from jaiabot.messages.imu_pb2 import IMUData
+from imu import *
 
 import adafruit_bno08x
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
-from threading import *
 
-logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('imu')
-
-try:
-    uart = serial.Serial("/dev/ttyAMA0", 3000000)
-    physical_device_available = True
-except Exception as e:
-    log.warning(f'Physical device not available: {e}')
-    physical_device_available = False
-
-class CalibrationState(Enum):
-    IN_PROGRESS = 1
-    COMPLETE = 2
-
-@dataclass
-class IMUReading:
-    orientation: Orientation
-    linear_acceleration: Vector3
-    linear_acceleration_world: Vector3
-    gravity: Vector3
-    calibration_status: int
-    calibration_state: CalibrationState
-    quaternion: Quaternion
-
-class IMU:
-    def setup(self):
-        pass
-
-    def takeReading(self):
-        return IMUReading()
-
-    def getIMUData(self):
-        """Returns an IMUData protobuf object, suitable for sending over UDP
-
-        Returns:
-            IMUData: the reading as an IMUData
-        """
-        log.debug('About to take reading')
-        reading = self.takeReading()
-
-        if reading is None:
-            return None
-
-        imu_data = IMUData()
-        imu_data.euler_angles.heading = reading.orientation.heading
-        imu_data.euler_angles.pitch = reading.orientation.pitch
-        imu_data.euler_angles.roll = reading.orientation.roll
-
-        imu_data.linear_acceleration.x = reading.linear_acceleration.x
-        imu_data.linear_acceleration.y = reading.linear_acceleration.y
-        imu_data.linear_acceleration.z = reading.linear_acceleration.z
-
-        imu_data.gravity.x = reading.gravity.x
-        imu_data.gravity.y = reading.gravity.y
-        imu_data.gravity.z = reading.gravity.z
-
-        if reading.calibration_status is not None:
-            # only send the mag cal
-            imu_data.calibration_status = reading.calibration_status
-
-        if reading.calibration_state is not None:
-            # .value converts enum type to int (which the protobuf side is looking for)
-            imu_data.calibration_state = reading.calibration_state.value
-
-        # check if the bot rolled over
-        bot_rolled = int(abs(reading.orientation.roll) > 90)
-        imu_data.bot_rolled_over = bot_rolled
-
-        return imu_data
-    
-    def startCalibration(self):
-        pass
-
-
-class Adafruit(IMU):
+class AdafruitBNO085(IMU):
     _lock: Lock
 
     def __init__(self):
-        log.info('Device: Adafruit')
-
-        if not physical_device_available:
-            log.error('No physical device available')
-            exit(1)
-
         self.is_setup = False
-
         self._lock = Lock()
 
     def _setup(self):
         """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
-                log.warning('We are not setup')
-
+                uart = serial.Serial("/dev/ttyAMA0", 3000000)
                 self.sensor = BNO08X_UART(uart)
-
                 log.info('Connected, now lets enable output')
-
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
@@ -131,7 +36,7 @@ class Adafruit(IMU):
 
             except Exception as error:
                 self.is_setup = False
-                log.warning("Error trying to setup driver!")
+                log.error(f"Adafruit BNO085 setup error: {error}")
             
     def setup(self):
         """Thread-safe setup function.  Call to setup the IMU."""
@@ -157,17 +62,8 @@ class Adafruit(IMU):
                 log.warning("We received None data in the takeReading function")
                 return None
 
-            # this is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
-            def filter(iterable: Iterable[float], threshold: float=50):
-                for value in iterable:
-                    if abs(value) > threshold:
-                        return [0.0] * len(iterable)
-                return iterable
-
-            linear_acceleration = filter(linear_acceleration)
-            gravity = filter(gravity)
-
             quaternion = Quaternion.from_tuple(quaternion)
+            angular_velocity = Vector3(*self.sensor.gyro)
             orientation = quaternion.to_euler_angles()
             # even after consulting the docs, we're still off by 90 degrees!
             orientation.heading = (orientation.heading + 90) % 360
@@ -181,7 +77,8 @@ class Adafruit(IMU):
                         gravity=gravity,
                         calibration_status=calibration_status,
                         calibration_state=calibration_state,
-                        quaternion=quaternion)
+                        quaternion=quaternion,
+                        angular_velocity=angular_velocity)
 
         except Exception as error:
             log.warning(f"Error trying to get data: {error}")
@@ -225,40 +122,3 @@ class Adafruit(IMU):
             self.check_calibration_time = time.time()
         else:
             logging.debug("Waiting To Check Calibration")
-
-class Simulator(IMU):
-    wave_frequency: float
-    wave_height: float
-
-    _lock: Lock
-
-    def __init__(self, wave_frequency: float=1, wave_height: float=1):
-        log.info('Device: Simulator')
-
-        self.wave_frequency = wave_frequency
-        self.wave_height = wave_height
-        self._lock = Lock()
-
-    def _setup(self):
-        pass
-
-    def setup(self):
-        with self._lock:
-            self._setup()
-
-    def takeReading(self) -> IMUReading:
-        with self._lock:
-            t = datetime.datetime.now().timestamp()
-            a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
-            linear_acceleration = Vector3(0, 0, a_z)
-
-            quaternion = Quaternion(1, 0, 0, 0)
-            linear_acceleration_world = quaternion.apply(linear_acceleration)
-
-            return IMUReading(orientation=quaternion.to_euler_angles(), 
-                            linear_acceleration=linear_acceleration,
-                            linear_acceleration_world=linear_acceleration_world,
-                            gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
-                            calibration_status=3,
-                            calibration_state=CalibrationState.COMPLETE,
-                            quaternion=quaternion)
