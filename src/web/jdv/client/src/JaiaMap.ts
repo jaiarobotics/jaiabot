@@ -41,6 +41,8 @@ import JSZip from 'jszip';
 import './styles/JaiaMap.css'
 import { CustomAlert } from './shared/CustomAlert';
 
+import { getBotPathColor } from './shared/BotPathColors'
+
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
     if (timestamp_micros == null) {
@@ -351,14 +353,12 @@ export default class JaiaMap {
         // OpenLayers
         this.botPathVectorSource.clear()
 
-        const botLineColorArray = this.getBotLineColorArray()
-
         for (const botIdString in this.botIdToMapSeries) {
             const botId = Number(botIdString)
 
             const ptArray = this.botIdToMapSeries[botIdString]
 
-            const lineColor = botLineColorArray[botId % botLineColorArray.length]
+            const lineColor = getBotPathColor(botId)
 
             const style = new Style({
                 stroke: new Stroke({
@@ -424,26 +424,6 @@ export default class JaiaMap {
             })
         }
 
-    }
-
-    getBotLineColorArray() {
-        var array = []
-        var start = 0
-        var step = 720
-        const cycleCount = 5
-
-        for (let cycle = 0; cycle < cycleCount; cycle++) {
-            for (let hue = start; hue < 360; hue += step) {
-                const color = 'hsl(' + hue + ', 50%, 44%)'
-                array.push(color)
-            }
-
-            step /= 2
-            start = step / 2
-
-        }
-
-        return array
     }
 
     // Commands and markers for bot and goals

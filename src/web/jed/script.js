@@ -1,3 +1,4 @@
+import "./style.css"
 import { api, JaiaAPI } from './api.js'
 import { deadMansSwitch } from './deadMansSwitch.js'
 import { updateStatus } from './updateStatus.js'
