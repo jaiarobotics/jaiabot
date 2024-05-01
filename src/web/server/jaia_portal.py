@@ -4,6 +4,8 @@ import bisect
 import socket
 import threading
 import ipaddress
+import itertools
+import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -23,6 +25,9 @@ from datetime import *
 from math import *
 
 import logging
+
+# Threshold time interval for adding bot locations to the bot_path list (microseconds)
+BOT_PATH_UTIME_THRESHOLD = 2_000_000
 
 
 def now():
@@ -89,6 +94,13 @@ def reduceTime(time: int):
         BIN_LENGTH = 1_000_000
         return int(time) // BIN_LENGTH
 
+
+class BotPathPoint(NamedTuple):
+    utime: int
+    lon: float
+    lat: float
+
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -98,6 +110,9 @@ class Interface:
 
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
+
+    # Dict from bot_id => list of BotPathPoints
+    bot_paths: Dict[str, Deque[BotPathPoint]] = {}
 
     # ClientId that is currently in control
     controllingClientId = None
@@ -199,6 +214,19 @@ class Interface:
 
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
+
+                # Add position to bot_paths
+                if msg.bot_status.HasField('location'):
+                    bot_location = msg.bot_status.location
+                    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
+
+                    try:
+                        last_bot_path_point_time = bot_path[-1].utime
+                    except IndexError:
+                        last_bot_path_point_time = 0
+
+                    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
+                        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
 
                 if msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)
@@ -526,6 +554,18 @@ class Interface:
 
     def get_drift_map(self, start_date, end_date):
         return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(start_date, end_date))
+
+    # Bot paths
+
+    def get_bot_paths(self, since_utime: int=None):
+        since_utime = since_utime or 0
+
+        bot_paths: Dict[str, List[BotPathPoint]] = {}
+        for bot_id, bot_path in self.bot_paths.items():
+            start_index = bisect.bisect_right(list(map(lambda point: point.utime, bot_path)), since_utime)
+            bot_paths[bot_id] = list(itertools.islice(bot_path, start_index, None))
+        return bot_paths
+
 
     # Controlling clientId
 
