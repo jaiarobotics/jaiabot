@@ -464,7 +464,7 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
 		this.pollPodStatus()
-		this.pollBotPaths()
+		//this.pollBotPaths()
 		this.pollMetadata()
 		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
