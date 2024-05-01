@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pyjaia"
 dynamic = ["version"]
 description = "Jaia python utilities"
-license = ""
+license = {text=""}
 authors = [
     { name = "Jaia Robotics", email = "edsanville@gmail.com" },
 ]
@@ -21,6 +21,3 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.jaia.tech"
-
-[project.scripts]
-jaia-analyze-waves = "pyjaia.waves.jaia-analyze-waves:main"
