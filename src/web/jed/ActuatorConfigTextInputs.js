@@ -1,9 +1,6 @@
 import { byId } from "./domQuery.js"
 import { clamp } from "./utils.js"
 
-const MICRO_MIN = 1000
-const MICRO_MAX = 2000
-
 class ActuatorConfigTextInputs {
 
     constructor(elementId, initialConfig) {
@@ -20,7 +17,9 @@ class ActuatorConfigTextInputs {
             // If field loses focus, clamp the value to the acceptable range
             inputElement.addEventListener('blur', (event) => {
                 const value = Number(event.target.value)
-                event.target.value = clamp(value, MICRO_MIN, MICRO_MAX)
+                const min = Number(event.target.min)
+                const max = Number(event.target.max)
+                event.target.value = clamp(value, min, max)
             })
         }
 
@@ -28,6 +27,10 @@ class ActuatorConfigTextInputs {
     }
 
     setConfig(config) {
+        if (config == null) {
+            console.warn('ActuatorConfigTextinputs: Ignored a <null> config.  If you are in simulator, you can safely ignore this message, as jaiabot_arduino is not running.')
+            return
+        }
         this._config = config
         this.update()
     }

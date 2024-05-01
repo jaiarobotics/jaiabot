@@ -88,8 +88,12 @@ def doPlots(h5FilePath: Path, drifts: List[Drift]):
     os.system(f'xdg-open {htmlFilename}')
 
 
-def analyzeFile(h5File: h5py.File, sampleFreq: float):
+def analyzeFile(h5File: h5py.File, sampleFreq: float, glitchy: bool):
     seriesSet = SeriesSet.loadFromH5File(h5File)
+
+    if glitchy:
+        seriesSet.filterGlitches()
+
     driftSeriesSets = seriesSet.split(isInDriftState)
 
     drifts: List[Drift] = []
@@ -102,9 +106,16 @@ def analyzeFile(h5File: h5py.File, sampleFreq: float):
 
 
 def main():
-    for h5Path in sys.argv[1:]:
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--glitchy', action='store_true')
+    parser.add_argument('filenames', nargs='+')
+    args = parser.parse_args()
+
+    for h5Path in args.filenames:
         h5File = h5py.File(h5Path)
-        analyzeFile(h5File, sampleFreq=4)
+        analyzeFile(h5File, sampleFreq=4, glitchy=args.glitchy)
 
 
 if __name__ == '__main__':

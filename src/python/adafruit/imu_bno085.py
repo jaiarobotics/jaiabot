@@ -101,19 +101,19 @@ class AdafruitBNO085(IMU):
 
     def checkCalibration(self):
         if time.time() - self.check_calibration_time >= self.wait_to_check_calibration_duration:
-            log.debug("Checking Calibration")
+            logging.debug("Checking Calibration")
             try:
                 # set the calibration status to save when we are not querying a 
                 # new calibration status
                 self.calibration_status = self.sensor.calibration_status
 
                 if self.calibration_state == CalibrationState.IN_PROGRESS:
-                    log.debug("Calibrating imu")
+                    logging.debug("Calibrating imu")
                     if not self.calibration_good_at and self.calibration_status > 2:
                         self.calibration_good_at = time.monotonic()
-                        log.debug("Record time of good calibration")
+                        logging.debug("Record time of good calibration")
                     if self.calibration_good_at and (time.monotonic() - self.calibration_good_at > 5.0):
-                        log.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
+                        logging.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
                         self.calibration_state = CalibrationState.COMPLETE
@@ -122,4 +122,4 @@ class AdafruitBNO085(IMU):
             # reset the start time
             self.check_calibration_time = time.time()
         else:
-            log.debug("Waiting To Check Calibration")
+            logging.debug("Waiting To Check Calibration")

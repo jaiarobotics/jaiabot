@@ -1,7 +1,7 @@
 $app_block
 
 interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
-http_address: "0.0.0.0"
+http_address: "0::0"
 http_port: $http_port
 
 start_paused: false
@@ -15,7 +15,8 @@ add_commander_tab: false
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
     role: $user_role
 
-    ansible_inventory: "/etc/jaiabot/inventory.yml"
+    $ansible_playbook_full_path
+    ansible_inventory: "$inventory"
     ansible_config: "ansible-liaison.cfg"
     this_hub: "$this_hub"
     ansible_playbook {
@@ -155,4 +156,5 @@ add_commander_tab: false
         confirmation_required: true
     }    
 
+    $vfleet_playbooks
 }
