@@ -417,7 +417,6 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     }
 
     // Publish interprocess for other goby apps
-    glog.is_debug1() && glog << "Publishing taskpacket..." << std::endl;
     interprocess().publish<jaiabot::groups::task_packet>(task_packet);
 }
 
