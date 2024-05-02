@@ -174,7 +174,7 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
-            this.botPathsGroup
+            //this.botPathsGroup
         ]
     }
 
