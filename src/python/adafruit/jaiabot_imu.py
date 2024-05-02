@@ -57,8 +57,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
                 imuData = imu.getIMUData()
-                imuData.imu_type = args.device_type
-                #print(imuData)
+
                 if imuData is None:
                     log.warning('getIMUData returned None')
                 else:
@@ -67,6 +66,8 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
                     if wave_analyzer._sampling_for_bottom_characterization:
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+                    imuData.imu_type = args.device_type
 
                     #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
