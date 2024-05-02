@@ -13,9 +13,9 @@ from copy import deepcopy
 from numpy.linalg import lstsq
 import logging
 
-from series import *
-from processing import *
-from filters import *
+from .series import *
+from .processing import *
+from .filters import *
 
 log = logging.getLogger('jaiabot_imu')
 
