@@ -1,4 +1,5 @@
 #include "jaiabot/intervehicle.h"
+
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
 
