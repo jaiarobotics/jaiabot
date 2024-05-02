@@ -319,7 +319,7 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
     }
 
     task_packet_.set_bot_id(cfg().bot_id());
-    task_packet_.set_start_time(1714596846);
+    task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     glog.is_debug1() && glog << "TASK PACKET: " << task_packet_.DebugString() << std::endl;
     boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);

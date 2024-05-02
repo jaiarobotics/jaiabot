@@ -715,8 +715,6 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         return;
     }
 
-    glog.is_debug1() && glog << "Processing command..." << std::endl;
-
     // Keep track of the previous command time
     prev_command_time_ = command.time();
 
