@@ -159,12 +159,12 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
-        { handle_hardware_status(hardware_status); });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            handle_hardware_status(hardware_status);
+        });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
-
 }
 
 jaiabot::apps::HubManager::~HubManager() {}

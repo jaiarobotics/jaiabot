@@ -138,8 +138,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     ///////////// INPUT from Client
     interthread().subscribe<web_portal_udp_in>(
-        [this](const goby::middleware::protobuf::IOData& io_data)
-        {
+        [this](const goby::middleware::protobuf::IOData& io_data) {
             glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString()
                                      << endl;
 
@@ -179,8 +178,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to hub statuses from hub manager
     interprocess().subscribe<jaiabot::groups::hub_status>(
-        [this](const jaiabot::protobuf::HubStatus& hub_status)
-        {
+        [this](const jaiabot::protobuf::HubStatus& hub_status) {
             glog.is_debug2() && glog << group("main")
                                      << "Received Hub status: " << hub_status.ShortDebugString()
                                      << endl;
@@ -192,8 +190,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to engineering status messages
     interprocess().subscribe<jaiabot::groups::engineering_status>(
-        [this](const jaiabot::protobuf::Engineering& engineering_status)
-        {
+        [this](const jaiabot::protobuf::Engineering& engineering_status) {
             glog.is_debug1() && glog << "Sending engineering_status to client: "
                                      << engineering_status.ShortDebugString() << endl;
 
@@ -205,8 +202,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to TaskPackets
     interprocess().subscribe<jaiabot::groups::task_packet>(
-        [this](const jaiabot::protobuf::TaskPacket& task_packet)
-        {
+        [this](const jaiabot::protobuf::TaskPacket& task_packet) {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
 
@@ -215,8 +211,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to MetaData
     interprocess().subscribe<jaiabot::groups::metadata>(
-        [this](const jaiabot::protobuf::DeviceMetadata& metadata)
-        {
+        [this](const jaiabot::protobuf::DeviceMetadata& metadata) {
             jaiabot::protobuf::PortalToClientMessage message;
             device_metadata_ = metadata;
         });

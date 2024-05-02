@@ -502,8 +502,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
 
     auto hub_command_subscriber_group_func =
-        [](const protobuf::Command& command) -> goby::middleware::Group
-    {
+        [](const protobuf::Command& command) -> goby::middleware::Group {
         return goby::middleware::Group(
             jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
     };

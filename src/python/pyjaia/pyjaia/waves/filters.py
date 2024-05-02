@@ -1,6 +1,6 @@
 from math import *
 from copy import *
-from series import Series
+from .series import Series
 
 
 def brickWallFilter(minFreq: float, maxFreq: float):

@@ -31,7 +31,7 @@ class Simulator(IMU):
             quaternion = Quaternion(1, 0, 0, 0)
             linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-            return IMUReading(orientation=quaternion.to_euler_angles(), 
+            return IMUReading(orientation=None, 
                             linear_acceleration=linear_acceleration,
                             linear_acceleration_world=linear_acceleration_world,
                             gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
