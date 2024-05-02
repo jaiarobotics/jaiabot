@@ -1,10 +1,10 @@
 .settings-outer-container {
     position: absolute;
-    top: 66px;
-    right: 66px;
+    top: 72px;
+    right: 72px;
 
     min-width: 250px;
-    max-height: calc(95vh - 66px);
+    max-height: calc(95vh - 72px);
     margin-bottom: 16px;
 
     background-color: rgba(0, 0, 0, 0.7);

@@ -5,7 +5,6 @@ import React, { MouseEvent, ReactElement, ReactNode } from 'react'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
-import EngineeringPanel from './EngineeringPanel'
 import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
@@ -96,7 +95,6 @@ interface Props {}
 export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
-	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	RUN_INFO = 'RUN_INFO',
@@ -3599,23 +3597,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const engineeringButton = (visiblePanel == PanelType.ENGINEERING ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-			}} 
-			>
-				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.ENGINEERING)
-			}} 
-			>
-				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
-			</Button>
-		))
-
 		const missionPanelButton = (visiblePanel == PanelType.MISSION ? (
 			<Button className="button-jcc active" onClick={() => {
 				this.setVisiblePanel(PanelType.NONE)
@@ -3721,19 +3702,6 @@ export default class CommandControl extends React.Component {
 				)
 				break
 
-			case PanelType.ENGINEERING:
-				visiblePanelElement = (
-					<EngineeringPanel 
-					api={this.api} 
-					bots={bots} 
-					hubs={hubs} 
-					getSelectedBotId={this.selectedBotId.bind(this)}
-					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} 
-					/>
-				)
-				break
-
 			case PanelType.MISSION_SETTINGS:
 				visiblePanelElement = missionSettingsPanel
 				break
@@ -3819,6 +3787,15 @@ export default class CommandControl extends React.Component {
 						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
+
+						// Engineering Accordion Props
+						api={this.api} 
+						bots={bots} 
+						hubs={hubs} 
+						getSelectedBotId={this.selectedBotId.bind(this)}
+						getFleetId={this.getFleetId.bind(this)}
+						control={this.takeControl.bind(this)} 
+
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						trackBot={this.trackBot.bind(this)}
@@ -3844,9 +3821,8 @@ export default class CommandControl extends React.Component {
 					{missionPanelButton}
 					{surveyMissionSettingsButton}
 					{downloadQueueButton}
-					{settingsPanelButton}
 					{measureButton}
-					{engineeringButton}
+					{settingsPanelButton}
 				</div>
 
 				<div id="botsDrawer">

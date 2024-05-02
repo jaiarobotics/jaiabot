@@ -1,9 +1,9 @@
 .mission-settings-panel-outer-container {
     position: absolute;
-    top: 66px;
-    right: 66px;
+    top: 72px;
+    right: 72px;
 
-    max-height: calc(95vh - 66px);
+    max-height: calc(95vh - 72px);
     
     background-color: rgba(0, 0, 0, 0.7);
   

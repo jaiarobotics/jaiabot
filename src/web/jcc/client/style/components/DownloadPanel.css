@@ -1,7 +1,7 @@
 .download-panel-outer-container {
     position: absolute;
-    top: 66px;
-    right: 66px;
+    top: 72px;
+    right: 72px;
 
     min-width: 300px;
 
@@ -16,7 +16,7 @@
     font-size: 1.1rem;
 
     /* 66px equals max toolbar height */
-    max-height: calc(95vh - 66px);
+    max-height: calc(95vh - 72px);
     overflow-y: auto;
 }
 

@@ -1,11 +1,17 @@
 import React, { useState } from 'react'
 
 import JaiaToggle from './JaiaToggle'
+import ScanForBotPanel from './ScanForBotPanel'
+import QueryBotStatusPanel from "./QueryBotStatusPanel"
+import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel'
+import { JaiaAPI } from '../../common/JaiaAPI'
 import { taskData } from './TaskPackets'
-import { KMLDocument } from './shared/KMZExport'
-import { downloadBlobToFile } from './shared/Utilities'
 import { PanelType } from './CommandControl'
+import { PIDGainsPanel } from './PIDGainsPanel'
+import { PortalBotStatus, PortalHubStatus } from './shared/PortalStatus'
 
+
+import Button from '@mui/material/Button'
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -13,11 +19,9 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 
 import { Icon } from '@mdi/react'
+
 import { mdiSendVariant} from '@mdi/js'
-import { Button } from '@mui/material'
 import '../style/components/SettingsPanel.css'
-import { downloadToFile } from './shared/Utilities'
-import { getCSV, getCSVFilename } from './shared/CSVExport'
 
 
 interface Props {
@@ -34,11 +38,20 @@ interface Props {
     trackingTarget:string | number | null
     visiblePanel: PanelType
     zoomToPod: (firstMove: boolean) => void
+
+    // Engineering Accordion Props
+    api: JaiaAPI
+	bots: {[key: number]: PortalBotStatus}
+	hubs: {[key: number]: PortalHubStatus}
+	getSelectedBotId: () => number
+	getFleetId: () => number
+	control: (onSuccess: () => void) => void
 }
 
 enum AccordionTabs {
     TaskPackets = 'TASK_PACKETS',
-    MapLayers = 'MAP_LAYERS'
+    MapLayers = 'MAP_LAYERS',
+    Engineering = 'ENGINEERING'
 }
 
 /**
@@ -96,7 +109,7 @@ export function SettingsPanel(props: Props) {
 
     return (
         <div className="settings-outer-container">
-            <div className="panel-heading">Map Settings</div>
+            <div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
                 <div className="settings-card-container">
                     <div className="settings-card">
@@ -203,6 +216,34 @@ export function SettingsPanel(props: Props) {
                     </AccordionSummary>
                     <AccordionDetails className="settings-accordion-inner-container">
                         <div className="map-layers-inner-container" id="mapLayers"></div>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion
+                    expanded={isOpenAccordionTab(AccordionTabs.Engineering)}
+                    onChange={() => handleAccordionTabClick(AccordionTabs.Engineering)}
+                    className='accordionContainer'
+                >
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls='panel1a-content'
+                        id='panel1a-header'
+                    >
+                        <Typography>Engineering</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails className="settings-accordion-inner-container">
+                        <div id="engineeringPanel">
+                            <div className="panel">
+                                <Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
+                                    JaiaBot Engineer & Debug
+                                </Button>
+                            </div>
+
+                            <PIDGainsPanel bots={props.bots}  control={props.control} api={props.api} />
+
+                            <QueryBotStatusPanel control={props.control} api={props.api} />
+
+                            <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
+                        </div>
                     </AccordionDetails>
                 </Accordion>
 
