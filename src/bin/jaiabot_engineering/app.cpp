@@ -89,9 +89,9 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         // jaiabot_pid_control
         interprocess()
             .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::PIDControl>(
-                [this](const jaiabot::protobuf::PIDControl& pid_control)
-                { latest_engineering.mutable_pid_control()->CopyFrom(pid_control); });
-
+                [this](const jaiabot::protobuf::PIDControl& pid_control) {
+                    latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
+                });
 
         // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
         interprocess().subscribe<jaiabot::groups::engineering_status>(
@@ -110,8 +110,7 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
-            [this](const jaiabot::protobuf::Engineering& engineering_status)
-            {
+            [this](const jaiabot::protobuf::Engineering& engineering_status) {
                 if (engineering_status.has_bot_status_rate())
                 {
                     latest_engineering.set_bot_status_rate(engineering_status.bot_status_rate());
@@ -229,16 +228,15 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
     // Intervehicle subscribe for commands from engineering
     auto on_command_subscribed =
         [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-               const goby::middleware::intervehicle::protobuf::AckData& ack)
-    {
-        glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                 << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                 << std::endl;
-    };
+               const goby::middleware::intervehicle::protobuf::AckData& ack) {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
 
     // use vehicle ID as group for command
-    auto do_set_group = [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group
-    {
+    auto do_set_group =
+        [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
         return goby::middleware::Group(
             jaiabot::intervehicle::engineering_command_group(command.bot_id()).numeric());
     };
@@ -253,8 +251,7 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
         latest_command_sub_cfg_, do_set_group, on_command_subscribed};
 
     intervehicle().subscribe_dynamic<jaiabot::protobuf::Engineering>(
-        [this](const jaiabot::protobuf::Engineering& command)
-        {
+        [this](const jaiabot::protobuf::Engineering& command) {
             glog.is_debug1() && glog << "Engineering Command: " << command.ShortDebugString()
                                      << std::endl;
 
@@ -269,12 +266,11 @@ jaiabot::apps::JaiabotEngineering::~JaiabotEngineering()
     {
         auto on_command_unsubscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack)
-        {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
         goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
             latest_command_sub_cfg_, on_command_unsubscribed};
 

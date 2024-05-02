@@ -11,7 +11,8 @@ setup(name='pyjaia',
       author_email='edsanville@gmail.com',
       url='https://www.jaia.tech',
       packages=[
-          'pyjaia', 
+          'pyjaia',
+          'pyjaia.waves',
           'dccl', 
           'goby.middleware.protobuf', 
           'jaiabot.messages'],
@@ -23,4 +24,7 @@ setup(name='pyjaia',
           'cmocean',
           'turfpy'
           ],
+        scripts=[
+            'pyjaia/waves/jaia-analyze-waves.py'
+        ]
      )
