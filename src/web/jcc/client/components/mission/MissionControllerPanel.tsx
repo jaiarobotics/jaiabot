@@ -34,7 +34,7 @@ export default class MissionControllerPanel extends React.Component<MissionContr
 			<div id="missionPanel">
 				<div className="panel-heading">Mission Panel</div>
                 <MissionSpeedSettings />
-				<div className="mission-panel-commands-container">
+                <div className="mission-panel-commands-container">
                     <Button 
                         className="button-jcc" 
                         id="add-run" 
