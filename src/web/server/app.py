@@ -4,8 +4,15 @@ import argparse
 from flask import Flask, send_from_directory, Response, request
 import json
 import logging
+import os
 from datetime import *
 import os
+from http import HTTPStatus
+
+# Internal Imports
+import jaia_portal
+import missions
+
 
 def parseDate(date):
     if date is None or date == '':
@@ -19,13 +26,10 @@ def parseDate(date):
         logging.warning(f'Could not parse date: {date}')
         return None
 
-# Internal Imports
-import jaia_portal
-import missions
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("hostname", type=str, nargs="?", help="goby hostname to send and receive protobuf messages")
+parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
 parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
@@ -38,7 +42,7 @@ logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 if args.hostname is None:
-    logging.warning('no ip specified, using localhost:40001')
+    logging.warning('no ip specified, using localhost')    
     args.hostname = "localhost"
 
 jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
@@ -64,6 +68,42 @@ def JSONResponse(obj: any=None, string: str=None):
         return Response(json.dumps(obj), mimetype='application/json')
     if string is not None:
         return Response(string, mimetype='application/json')
+
+
+def ErrorResponse(status: int, error_message: str, error_code: int=None):
+    """Returns an error response with a message and an error code.
+
+    Args:
+        status (int): The http status code for the response.
+        error_message (str): The error message to return to the client via JSON.
+        error_code (int, optional): The error code to return to the client via JSON. Defaults to None.
+
+    Returns:
+        Response: The Flask response object.
+    """
+    responseObject = {
+        'error': {
+            'message': error_message,
+            'code': error_code
+        }
+    }
+    return Response(json.dumps(responseObject), status=status, mimetype='application/json')
+
+
+def JaiaResponse(result: any):
+    """Returns a response with result.
+
+    Args:
+        result (any): The result.
+
+    Returns:
+        Response: The Flask response object.
+    """
+    responseObject = {
+        'result': result
+    }
+    return Response(json.dumps(responseObject), mimetype='application/json')
+
 
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
@@ -214,6 +254,24 @@ def get_drift_map():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
     end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
+
+
+######## Bot paths
+
+@app.route('/jaia/bot-paths', methods=['GET'])
+def get_bot_paths():
+    since_utime: int
+
+    try:
+        since_utime = int(request.args.get('since-utime'))
+    except ValueError:
+        message = f"{request.url}: since-utime is not a valid integer"
+        logging.warning(message)
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, message, 1)
+    except TypeError:
+        since_utime = None
+    
+    return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
 if __name__ == '__main__':

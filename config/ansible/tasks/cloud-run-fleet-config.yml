@@ -1,0 +1,16 @@
+    - name: Write preseed
+      shell: |
+        ./cloud-vfleet-nodes-to-preseed.py {{ n_bots }}
+        cat /etc/jaiabot/cloud.env >> /etc/jaiabot/fleet-config.preseed
+      become: yes
+    - name: Run fleet config
+      shell: |
+        cd ../fleet
+        export JAIA_FLEET_CONFIG_PRESEED="/etc/jaiabot/fleet-config.preseed"
+        export JAIA_FLEET_CONFIG_SSH_OPTS="-o StrictHostKeyChecking=no" 
+        ./fleet-config.sh
+      register: _fleet_config
+    - name: Output fleet config
+      debug:
+        var: _fleet_config.stdout
+

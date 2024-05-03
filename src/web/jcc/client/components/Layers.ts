@@ -7,6 +7,7 @@ import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
 import * as Styles from './shared/Styles'
+import { getBotPathColor } from './shared/BotPathColors';
 
 
 export class Layers {
@@ -101,6 +102,14 @@ export class Layers {
     })
 
     
+    botPathsGroup = new LayerGroup({
+        properties: {
+            title: 'Bot Paths',
+            fold: 'close'
+        },
+    })
+    
+
     /**
      * Layer group for mission-related layers
      */
@@ -117,7 +126,7 @@ export class Layers {
             this.courseOverGroundLayer,
             this.headingLayer,
             this.hubCommsLimitCirclesLayer,
-            this.waypointCircleLayer
+            this.waypointCircleLayer,
         ]
     })
     
@@ -152,7 +161,7 @@ export class Layers {
         showLabels: true,
         wrapX: false,
     })
-    
+
     dragAndDropVectorLayer = new VectorLayer()
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
@@ -165,6 +174,7 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
+            //this.botPathsGroup
         ]
     }
 
@@ -173,6 +183,43 @@ export class Layers {
         this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
     }
+
+    
+    /**
+     * Creates a new bot path layer for the given bot_id
+     *
+     * @param {number} bot_id
+     * @returns {VectorLayer} The bot path layer.
+     */
+    createNewBotPathLayer(bot_id: number) {
+        const newLayer = new VectorLayer({
+            properties: {
+                title: `Bot ${bot_id}`
+            },
+            source: new VectorSource(),
+            visible: true,
+            zIndex: 998,
+            style: new Style.Style({
+                stroke: new Style.Stroke({
+                    color: getBotPathColor(bot_id),
+                    width: 3
+                })
+            })
+        })
+
+        this.botPathsGroup.getLayers().push(newLayer)
+        this.botPathsGroup.getLayersArray().sort((layer1, layer2) => {
+            if (layer1.get('title') < layer2.get('title')) {
+                return -1
+            }
+            else {
+                return 1
+            }
+        })
+
+        return newLayer
+    }
+    
 }
 
 export const layers = new Layers()

@@ -1,3 +1,5 @@
+#include "jaiabot/intervehicle.h"
+
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
 
@@ -380,7 +382,8 @@ jaiabot::statechart::inmission::underway::Task::~Task()
         {
             glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
                                      << task_packet_.DebugString() << std::endl;
-            intervehicle().publish<groups::task_packet>(task_packet_);
+            intervehicle().publish<groups::task_packet>(
+                task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
         }
     }
 }

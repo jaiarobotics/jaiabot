@@ -60,9 +60,9 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
-bot_type = os.environ["jaia_bot_type"]
-
-if bot_type == "NONE":
+if "jaia_bot_type" in os.environ:
+    bot_type = os.environ["jaia_bot_type"]
+else:
     bot_type = "HYDRO"
 
 try:
@@ -87,7 +87,7 @@ node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
+  'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -141,7 +141,7 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             xbee_hub_id='')
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
-    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
@@ -154,9 +154,9 @@ liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jai
 # IMU driver config
 imu_port = common.udp.imu_port(node_id)
 if is_simulation():
-    imu_simulation_flag = '-s'
+    imu_device = 'sim'
 else:
-    imu_simulation_flag = ''
+    imu_device = jaia_imu_type
 
 
 if common.app == 'gobyd':    
@@ -175,12 +175,13 @@ elif common.app == 'goby_coroner':
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
-elif common.app == 'jaiabot_health':    
+elif common.app == 'jaiabot_health':
+    ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation(),
+                                     # do not power off or restart the simulator computer unless we're a VirtualFleet
+                                     ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation()))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
@@ -326,4 +327,4 @@ else:
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
                                      imu_port=imu_port,
-                                     imu_simulation_flag=imu_simulation_flag))
+                                     imu_device=imu_device))

@@ -3,6 +3,9 @@ import json
 import bisect
 import socket
 import threading
+import ipaddress
+import itertools
+import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -22,6 +25,9 @@ from datetime import *
 from math import *
 
 import logging
+
+# Threshold time interval for adding bot locations to the bot_path list (microseconds)
+BOT_PATH_UTIME_THRESHOLD = 2_000_000
 
 
 def now():
@@ -88,6 +94,13 @@ def reduceTime(time: int):
         BIN_LENGTH = 1_000_000
         return int(time) // BIN_LENGTH
 
+
+class BotPathPoint(NamedTuple):
+    utime: int
+    lon: float
+    lat: float
+
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -97,6 +110,9 @@ class Interface:
 
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
+
+    # Dict from bot_id => list of BotPathPoints
+    bot_paths: Dict[str, Deque[BotPathPoint]] = {}
 
     # ClientId that is currently in control
     controllingClientId = None
@@ -117,7 +133,28 @@ class Interface:
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        try:
+            # Resolve the hostname to an IP address
+            addr_info = socket.getaddrinfo(goby_host[0], goby_host[1], socket.AF_UNSPEC, socket.SOCK_DGRAM)
+            # addr_info is a list of 5-tuples with the address family, socket type, protocol, canonical name, and socket address
+            # Extract the first resolved address (IP and port)
+            first_resolved_address = addr_info[0][4][0]
+            # Parse the IP address
+            ip = ipaddress.ip_address(first_resolved_address)
+            # Determine the socket type based on IP address version
+            if ip.version == 4:
+                # IPv4
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            elif ip.version == 6:
+                # IPv6
+                self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            else:
+                raise ValueError("Invalid IP address format")
+            
+        except socket.gaierror:
+            raise ValueError("Hostname could not be resolved")
+        
         self.sock.settimeout(5)
 
         self.read_only = read_only
@@ -178,6 +215,19 @@ class Interface:
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
 
+                # Add position to bot_paths
+                #if msg.bot_status.HasField('location'):
+                #    bot_location = msg.bot_status.location
+                #    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
+                #
+                #    try:
+                #        last_bot_path_point_time = bot_path[-1].utime
+                #    except IndexError:
+                #        last_bot_path_point_time = 0
+                #
+                #    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
+                #        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
+
                 if msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
@@ -224,7 +274,7 @@ class Interface:
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
-        logging.warning('🏓 Pinging server')
+        logging.warning(f'🏓 Pinging server {self.goby_host[0]}:{self.goby_host[1]}')
         msg = ClientToPortalMessage()
         msg.ping = True
         self.send_message_to_portal(msg, True)
@@ -516,6 +566,18 @@ class Interface:
 
     def get_drift_map(self, start_date, end_date):
         return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(start_date, end_date))
+
+    # Bot paths
+
+    def get_bot_paths(self, since_utime: int=None):
+        since_utime = since_utime or 0
+
+        bot_paths: Dict[str, List[BotPathPoint]] = {}
+        for bot_id, bot_path in self.bot_paths.items():
+            start_index = bisect.bisect_right(list(map(lambda point: point.utime, bot_path)), since_utime)
+            bot_paths[bot_id] = list(itertools.islice(bot_path, start_index, None))
+        return bot_paths
+
 
     # Controlling clientId
 
