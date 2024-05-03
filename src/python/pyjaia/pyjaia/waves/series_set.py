@@ -45,15 +45,19 @@ class SeriesSet:
         seriesSet.grav_y = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y', invalid_values=[None], name='grav.y')
         seriesSet.grav_z = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z', invalid_values=[None], name='grav.z')
 
-        seriesSet.accelerationVertical = Series()
-        seriesSet.accelerationVertical.name = 'Vertical Accel'
-        seriesSet.accelerationVertical.utime = copy(seriesSet.acc_x.utime)
-        for i in range(len(seriesSet.acc_x.utime)):
-            seriesSet.accelerationVertical.y_values.append((seriesSet.acc_x.y_values[i] * seriesSet.grav_x.y_values[i] + 
-                                                seriesSet.acc_y.y_values[i] * seriesSet.grav_y.y_values[i] + 
-                                                seriesSet.acc_z.y_values[i] * seriesSet.grav_z.y_values[i]) / 9.8)
+        seriesSet.calculateVerticalAccelerations()
         
         return seriesSet
+
+
+    def calculateVerticalAccelerations(self):
+        self.accelerationVertical = Series()
+        self.accelerationVertical.name = 'Vertical Accel'
+        self.accelerationVertical.utime = copy(self.acc_x.utime)
+        for i in range(len(self.acc_x.utime)):
+            self.accelerationVertical.y_values.append((self.acc_x.y_values[i] * self.grav_x.y_values[i] + 
+                                                self.acc_y.y_values[i] * self.grav_y.y_values[i] + 
+                                                self.acc_z.y_values[i] * self.grav_z.y_values[i]) / 9.8)
 
 
     def slice(self, timeRange: TimeRange):
@@ -138,8 +142,57 @@ class SeriesSet:
             rgy.appendPair(gy.get(i))
             rgz.appendPair(gz.get(i))
 
-        self.acc_x, self.acc_y, self.acc_z = rax, ray, raz
+        def filterAcc(series: Series):
+            """Filter out miscellanous glitches that are common in the BNO055 data.
+
+            Args:
+                series (Series): Unfiltered acceleration series from the BNO055.
+
+            Returns:
+                _type_: Filtered acceleration series, with glitches removed as best we can.
+            """
+            newSeries = deepcopy(series)
+            newSeries.name = f'Filtered {series.name}'
+            newSeries.y_values = list(newSeries.y_values) # In case it's a tuple
+            Y = newSeries.y_values
+            t = newSeries.utime
+
+            ERR = 0.2
+            ERR_LINEAR_EXTRAPOLATION = 0.64
+
+            for i in range(2, len(Y) - 2 - 1):
+                y = Y[i]
+
+                average_y = (Y[i-1] + Y[i+1]) / 2
+                if abs(y - average_y) < ERR:
+                    continue
+
+                y_linear_extrapolation = Y[i-1] + (t[i] - t[i-1]) * (Y[i-1] - Y[i-2]) / (t[i-1] - t[i-2])
+
+                if abs(y - y_linear_extrapolation) < ERR_LINEAR_EXTRAPOLATION:
+                    continue
+
+                y_corrections = [-1.28, +1.28]
+
+                for y_correction in y_corrections:
+                    y_corrected = y + y_correction
+
+                    if abs(y_corrected - average_y) < ERR:
+                        Y[i] = y_corrected
+                        print('glitch')
+                        break
+
+                    if abs(y_corrected - Y[i-1]) < ERR and abs(y_corrected - (Y[i+1] + y_correction)) < ERR:
+                        Y[i] = y_corrected
+                        print('glitch')
+                        break
+                
+            return newSeries
+
+        self.acc_x, self.acc_y, self.acc_z = filterAcc(rax), filterAcc(ray), filterAcc(raz)
         self.grav_x, self.grav_y, self.grav_z = rgx, rgy, rgz
+
+        self.calculateVerticalAccelerations()
 
 
 def isInDriftState(missionStateIndex: int, seriesSet: "SeriesSet"):
