@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate, StationKeepParameters } from './shared/JAIAProtobuf';
 import { GlobalSettings, Save } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { Button, FormControl, MenuItem } from '@mui/material';
@@ -11,6 +11,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import JaiaToggle from './JaiaToggle';
+import { Global } from '@emotion/react';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -85,6 +86,21 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
+    function onChangeStationKeepParameter(evt: React.ChangeEvent<HTMLInputElement>) {
+        const target = evt.target as any
+        const key = target.name as (keyof StationKeepParameters)
+        const value = Number(target.value)
+        console.log(task)
+        
+        var newTask = deepcopy(task)
+        newTask.station_keep[key] = value
+
+        GlobalSettings.stationKeepParameters[key] = value
+        Save(GlobalSettings.stationKeepParameters)
+
+        props.onChange(newTask)
+    }
+
     /**
      * Checks if the bottom dive is currently checked.
      * 
@@ -149,7 +165,7 @@ function TaskOptionsPanel(props: Props) {
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
-
+        console.log(task)
         let value = Number(target.value)
 
         if (key == 'constant_heading') {
@@ -295,6 +311,7 @@ function TaskOptionsPanel(props: Props) {
     let dive = task.dive
     let surface_drift = task.surface_drift
     let constant_heading = task.constant_heading
+    let station_keep = task.station_keep
 
     switch(task.type) {
         case TaskType.NONE:
@@ -355,7 +372,18 @@ function TaskOptionsPanel(props: Props) {
                 </div>
             )
         case TaskType.STATION_KEEP:
-            return null
+            return (
+                <div id="StationKeepDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Station Keep Time</td>
+                                <td className="input-row"><input type="number" step="1" min="0" max ="3600" className="NumberInput" name="station_keep_time" value={station_keep?.station_keep_time} onChange={onChangeStationKeepParameter} disabled={!props?.isEditMode}/>s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )
         case TaskType.SURFACE_DRIFT:
             return (
                 <div id="DriftDiv">
@@ -455,6 +483,9 @@ export function TaskSettingsPanel(props: Props) {
                 break;
             case TaskType.SURFACE_DRIFT:
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters)
+                break;
+            case TaskType.STATION_KEEP:
+                newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters)
                 break;
         }
 
