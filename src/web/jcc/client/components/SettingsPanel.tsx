@@ -3,7 +3,6 @@ import React, { useState } from 'react'
 import JaiaToggle from './JaiaToggle'
 import ScanForBotPanel from './ScanForBotPanel'
 import QueryBotStatusPanel from "./QueryBotStatusPanel"
-import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel'
 import { JaiaAPI } from '../../common/JaiaAPI'
 import { taskData } from './TaskPackets'
 import { PanelType } from './CommandControl'

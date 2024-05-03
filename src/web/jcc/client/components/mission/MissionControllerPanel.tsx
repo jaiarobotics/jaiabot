@@ -3,6 +3,7 @@ import RunPanel from './RunPanel';
 import { JaiaAPI } from '../../../common/JaiaAPI'
 import { Missions } from '../Missions'
 import { MissionInterface, RunInterface } from '../CommandControl';
+import MissionSpeedSettings from '../MissionSpeedSettings';
 
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button';
@@ -32,6 +33,7 @@ export default class MissionControllerPanel extends React.Component<MissionContr
 		return (
 			<div id="missionPanel">
 				<div className="panel-heading">Mission Panel</div>
+                <MissionSpeedSettings />
 				<div className="mission-panel-commands-container">
                     <Button 
                         className="button-jcc" 
