@@ -17,7 +17,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import { ThemeProvider, createTheme } from '@mui/material'
 import { Icon } from '@mdi/react'
-import { mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
+import { mdiPower, mdiRestart, mdiRestartAlert, mdiChartLine, mdiWifiCog, mdiWrenchCog } from '@mdi/js'
 
 
 export function HubDetails() {
@@ -94,6 +94,26 @@ export function HubDetails() {
         sendHubCommand(hubStatus.hub_id, command)
     }
 
+    function openJDV() {					
+        const hubOctal = 10 + hubStatus.hub_id
+        const fleetOctal = hubStatus.fleet_id
+        const url = `http://10.23.${fleetOctal}.${hubOctal}:40010`
+        window.open(url, '_blank')
+    }
+
+    function openRouterPage() {
+        const fleetOctal = hubStatus.fleet_id
+        const url = `http://10.23.${fleetOctal}.1`
+        window.open(url, '_blank')
+    }
+
+    function openUpgradePage() {
+        const hubOctal = 10 + hubStatus.hub_id
+        const fleetOctal = hubStatus.fleet_id 
+        const url = `http://10.23.${fleetOctal}.${hubOctal}:9091`
+        window.open(url, '_blank')
+    }
+
     return (
         <div id='hubDetailsBox'>
              <div className='titleBar'>
@@ -128,7 +148,7 @@ export function HubDetails() {
                                     </tr>
                                     <tr className={getStatusAgeClassName(hubStatus.portalStatusAge)}>
                                         <td>Status Age</td>
-                                        <td>{convertMicrosecondsToSeconds(hubStatus.portalStatusAge).toFixed(0)} s</td>
+                                        <td>{convertMicrosecondsToSeconds(hubStatus.portalStatusAge).toFixed(1)} s</td>
                                     </tr>
                                     <tr>
                                         <td>CPU Load Average (1 min)</td>
@@ -184,6 +204,40 @@ export function HubDetails() {
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
+                
+                <ThemeProvider theme={makeAccordionTheme()}>
+                    <Accordion 
+                        expanded={globalContext.hubAccordionStates.links} 
+                        onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'links' })}
+                        className='accordionContainer'
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls='panel1a-content'
+                            id='panel1a-header'
+                        >
+                             <Typography>Links</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button
+                                className={'button-jcc'} 
+                                onClick={() => openJDV()}
+                            >
+                                <Icon path={mdiChartLine} title='JDV'/>
+                            </Button>
+                            
+                            <Button className="button-jcc" onClick={() => openRouterPage()}>
+                                <Icon path={mdiWifiCog} title="Router"></Icon>
+                            </Button>
+                        
+                            <Button className="button-jcc" onClick={() => openUpgradePage()}>
+                                <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
+                            </Button>
+
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
+
             </div>
         </div>
     )

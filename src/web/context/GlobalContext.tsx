@@ -1,7 +1,5 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
-import { isError } from 'lodash'
 import { jaiaAPI } from '../jcc/common/JaiaAPI'
-import { CustomAlert } from '../shared/CustomAlert'
 
 export interface GlobalContextType {
     clientID: string,
@@ -126,6 +124,9 @@ function handleClickedHubTab(mutableState: GlobalContextType) {
 function handleClickedBotTab(mutableState: GlobalContextType) {
     if (mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB) {
         mutableState.showHubDetails = false
+        // TEMPORARY: Once bot details are integrated into context, 
+        // selectedPodElement will be assinged to the bot selected by the user
+        mutableState.selectedPodElement = null
     }
 
     return mutableState

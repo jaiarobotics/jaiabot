@@ -38,20 +38,28 @@ export function BotListPanel(props: Props) {
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
     function BotTab(bot: PortalBotStatus) {
+        const globalDispatch = useContext(GlobalDispatchContext)
+
         var key = 'bot-' + bot.bot_id
         var botClass = 'bot-item'
+
 
         let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
         let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
         let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
 
+        const handleClick = () => {
+            globalDispatch({
+                type: 'CLICKED_BOT_TAB'
+            })
+            props.didClickBot(bot.bot_id)
+        }
+
         return (
             <div
                 key={key}
-                onClick={
-                    () => { props.didClickBot(bot.bot_id) }
-                }
+                onClick={handleClick}
                 className={`${botClass} ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
             >
                 { bot.bot_id }
