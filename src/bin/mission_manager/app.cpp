@@ -706,14 +706,11 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
-    // Make sure the command has a newer timestamp
-    // If it is not then we should not handle the command and exit
-    if (prev_command_time_ >= command.time())
+    // Make sure the command is not a repeat
+    // If it is, then we should not handle the command and exit
+    if (prev_command_time_ == command.time())
     {
-        glog.is_warn() && glog << "Old command received! Ignoring..." << std::endl;
-
-        // Exit handle command function if the previous
-        // Command time is greater than the one current one
+        glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;
     }
 
