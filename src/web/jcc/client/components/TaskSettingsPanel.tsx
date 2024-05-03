@@ -38,6 +38,7 @@ interface Props {
     task?: MissionTask
     location?: GeographicCoordinate
     isEditMode?: boolean
+    isLastWpt?: boolean
     enableEcho: boolean
     scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
@@ -90,7 +91,6 @@ function TaskOptionsPanel(props: Props) {
         const target = evt.target as any
         const key = target.name as (keyof StationKeepParameters)
         const value = Number(target.value)
-        console.log(task)
         
         var newTask = deepcopy(task)
         newTask.station_keep[key] = value
@@ -165,7 +165,6 @@ function TaskOptionsPanel(props: Props) {
     function onChangeConstantHeadingParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target
         const key = target.name as (keyof ConstantHeadingParameters)
-        console.log(task)
         let value = Number(target.value)
 
         if (key == 'constant_heading') {
@@ -254,6 +253,25 @@ function TaskOptionsPanel(props: Props) {
             GlobalSettings.constantHeadingParameters = constant_heading
             Save(GlobalSettings.constantHeadingParameters)
         })
+    }
+
+    function isNotLastWpt() {
+        if (!props.isLastWpt) {
+            return (
+                <div id="StationKeepDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Station Keep Time</td>
+                                <td className="input-row"><input type="number" step="1" min="0" max ="3600" className="NumberInput" name="station_keep_time" value={station_keep?.station_keep_time} onChange={onChangeStationKeepParameter} disabled={!props?.isEditMode && !props?.isLastWpt}/>s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )
+        }
+
+        return <div></div>
     }
 
     /**
@@ -373,16 +391,7 @@ function TaskOptionsPanel(props: Props) {
             )
         case TaskType.STATION_KEEP:
             return (
-                <div id="StationKeepDiv">
-                    <table className="TaskParametersTable">
-                        <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Station Keep Time</td>
-                                <td className="input-row"><input type="number" step="1" min="0" max ="3600" className="NumberInput" name="station_keep_time" value={station_keep?.station_keep_time} onChange={onChangeStationKeepParameter} disabled={!props?.isEditMode}/>s</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div>{isNotLastWpt()}</div>
             )
         case TaskType.SURFACE_DRIFT:
             return (
