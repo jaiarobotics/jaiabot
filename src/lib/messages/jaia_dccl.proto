@@ -413,6 +413,22 @@ message DivePacket
     }];
 }
 
+message StationkeepPacket {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional int32 drift_duration = 1 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: -1
+            units { base_dimensions: "T" }
+        }
+    ];
+}
+
 message TaskPacket
 {
     /*
@@ -443,4 +459,5 @@ message TaskPacket
 
     optional DivePacket dive = 10;
     optional DriftPacket drift = 11;
+    optional StationkeepPacket stationkeep = 12;
 }
