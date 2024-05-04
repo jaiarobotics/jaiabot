@@ -179,12 +179,10 @@ class SeriesSet:
 
                     if abs(y_corrected - average_y) < ERR:
                         Y[i] = y_corrected
-                        print('glitch')
                         break
 
                     if abs(y_corrected - Y[i-1]) < ERR and abs(y_corrected - (Y[i+1] + y_correction)) < ERR:
                         Y[i] = y_corrected
-                        print('glitch')
                         break
                 
             return newSeries

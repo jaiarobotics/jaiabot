@@ -69,6 +69,9 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
                     if wave_analyzer._sampling_for_bottom_characterization:
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
+                    imuData.imu_type = args.device_type
+
+                    #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
 
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
