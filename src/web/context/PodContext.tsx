@@ -1,9 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
-import { GlobalContext } from './GlobalContext'
+import { HubContextProvider } from './HubContext'
 
-interface PodContextType {
-    fleetID: number
-}
+interface PodContextType {}
 
 interface PodContextProviderProps {
     children: ReactNode
@@ -11,9 +9,7 @@ interface PodContextProviderProps {
 
 interface Action {}
 
-const podDefaultContext: PodContextType = {
-    fleetID: 0
-}
+const podDefaultContext: PodContextType = {}
 
 export const PodContext = createContext(null)
 export const PodDispatchContext = createContext(null)
@@ -23,17 +19,22 @@ function podReducer(state: PodContextType, action: Action) {
 }
 
 export function PodContextProvider({ children }: PodContextProviderProps) {
-    const [state, dispatch] = useReducer(podReducer, podDefaultContext)
+    const [state, dispatch] = useReducer(podReducer, null)
 
     useEffect(() => {
 
     }, [])
 
     return (
-        <GlobalContext.Provider value={state}>
+        <PodContext.Provider value={state}>
             <PodDispatchContext.Provider value={dispatch}>
-                { children }
+
+                <HubContextProvider>
+                    {/* BotContextProvider */}
+                    {children}
+                </HubContextProvider>
+
             </PodDispatchContext.Provider>
-        </GlobalContext.Provider>
+        </PodContext.Provider>
     )
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import { GlobalContextProvider } from '../../context/GlobalContext'
-import { HubContextProvider } from '../../context/HubContext'
+import { PodContextProvider } from '../../context/PodContext'
 
 import CommandControl from '../client/components/CommandControl'
 
@@ -10,11 +10,11 @@ export default function App() {
   return (
     <div>
       <GlobalContextProvider>
-        <HubContextProvider>
+        <PodContextProvider>
 
           <CommandControl />
           
-        </HubContextProvider>
+        </PodContextProvider>
       </GlobalContextProvider> 
     </div>
   )
