@@ -568,7 +568,7 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map settings panel, if needed
+		// Update the settings panel, if needed
 		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
@@ -2700,7 +2700,7 @@ export default class CommandControl extends React.Component {
 		for (const bot of queue) {
 			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id) // Needed to update the queue list when downloads are added after the queue started
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
 				this.removeBotFromQueue(bot)
 			}
 		}
@@ -2792,7 +2792,7 @@ export default class CommandControl extends React.Component {
 	getBotMissionState(botId: number) {
 		// Need external function to get most up-to-date mission state, else mission state stays the same in async operations
 		const bots = this.getPodStatus().bots
-		return bots[botId].mission_state
+		return bots[botId]?.mission_state
 	}
 
 	getBotDownloadPercent(botId: number) {
@@ -3619,14 +3619,14 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} size={1.3} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} size={1.3} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		))
 

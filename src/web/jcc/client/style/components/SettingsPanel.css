@@ -1,11 +1,13 @@
 .settings-outer-container {
+    --toolbar-panels-top: 72px;
+    --toolbar-panels-right: 72px;
+
     position: absolute;
-    top: 72px;
-    right: 72px;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
 
     min-width: 250px;
-    max-height: calc(95vh - 72px);
-    margin-bottom: 16px;
+    max-height: calc(95vh - var(--toolbar-panels-top));
 
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #767d7d;
@@ -14,14 +16,13 @@
     flex-direction: column;
     
     z-index: 1;
-  }
 
-  .settings-inner-container {
+    overflow-y: auto;
+}
+
+.settings-inner-container {
     margin: 8pt;
     font-size: 1.1rem;
-
-    /* 66px equals max toolbar height */
-    max-height: calc(95vh - 66px);
     overflow-y: auto;
 }
 

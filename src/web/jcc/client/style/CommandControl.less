@@ -69,7 +69,6 @@ td {
     text-decoration: none;
     margin: @command-button-margin;
     font-size: 16px;
-    line-height: 1;
     cursor: pointer;
 
     &.inactive {
@@ -1329,10 +1328,10 @@ div.closeButton {
 /******** CSS Mission Planning *****************/
 #missionPanel {
   position: absolute;
-  top: 72px;
-  right: 72px;
+  top: @toolbar-panels-top;
+  right: @toolbar-panels-right;
   min-width: 402px;
-  max-height: calc(95vh - 72px);
+  max-height: calc(95vh - @toolbar-panels-top);
 
   background-color: @overlay-background;
   border: 2px solid @cc-accordian-color;
@@ -1352,7 +1351,8 @@ div.closeButton {
 }
 
 #runList {
-  max-height: calc(95vh - 303px);
+  @static-elements-total-height: 303px;
+  max-height: calc(95vh - @static-elements-total-height);
   overflow-y: auto;
 }
 
