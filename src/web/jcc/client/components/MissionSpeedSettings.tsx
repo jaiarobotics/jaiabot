@@ -20,7 +20,14 @@ enum SpeedType {
 }
 
 export default class MissionSpeedSettings extends React.Component {
-    static MAX_SPEED = 3
+    /**
+     * Changing the MAX_SPEED may result in bot hardware failure. 
+     * Please do not increase the MAX_SPEED unless you know the 
+     * consequences.
+     */
+    readonly MAX_SPEED = 3
+    readonly MIN_SPEED = 0.5
+    readonly STEP = 0.5
 
     // MUI type resulting from createTheme
     theme: any
@@ -77,10 +84,10 @@ export default class MissionSpeedSettings extends React.Component {
                     <Slider
                         aria-label="Transit"
                         defaultValue={this.state.speeds.transit}
-                        step={0.5}
+                        step={this.STEP}
                         marks
-                        min={0.5}
-                        max={MissionSpeedSettings.MAX_SPEED}
+                        min={this.MIN_SPEED}
+                        max={this.MAX_SPEED}
                         onChange={ (evt: any) => { this.handleSpeedSliderChange(SpeedType.TRANSIT, Number(evt.target.value)) }
                         }
                     />
@@ -92,10 +99,10 @@ export default class MissionSpeedSettings extends React.Component {
                     <Slider
                         aria-label="Station Keep"
                         defaultValue={this.state.speeds.stationkeep_outer}
-                        step={0.5}
+                        step={this.STEP}
                         marks
-                        min={0.5}
-                        max={MissionSpeedSettings.MAX_SPEED}
+                        min={this.MIN_SPEED}
+                        max={this.MAX_SPEED}
                         onChange={ (evt: any) => { this.handleSpeedSliderChange(SpeedType.STATION_KEEP, Number(evt.target.value)) }
                         }   
                     />
