@@ -3478,6 +3478,8 @@ export default class CommandControl extends React.Component {
 									this.deleteSRPInputsFromRuns()
 								}
 
+								this.autoAssignBotsToRuns()
+
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
 								this.setRunList(runList)
