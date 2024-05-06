@@ -30,7 +30,7 @@ message PIDControl {
 
     optional uint32 timeout = 3 [(dccl.field) = {
         min: 0
-        max: 100
+        max: 120
         precision: 0
         units { derived_dimensions: "time" }
     }];
