@@ -21,10 +21,6 @@ function podReducer(state: PodContextType, action: Action) {
 export function PodContextProvider({ children }: PodContextProviderProps) {
     const [state, dispatch] = useReducer(podReducer, null)
 
-    useEffect(() => {
-
-    }, [])
-
     return (
         <PodContext.Provider value={state}>
             <PodDispatchContext.Provider value={dispatch}>

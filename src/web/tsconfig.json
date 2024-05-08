@@ -17,4 +17,9 @@
       "dom"
     ],
   },
+  "include": [
+    "./containers/*.ts*",
+    "./context/*.ts*",
+    "./components/*.ts*"
+  ]
 }

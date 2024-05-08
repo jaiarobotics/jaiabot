@@ -2,7 +2,7 @@
 import React, { useEffect, useContext } from 'react'
 import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
 import { HubContext } from '../context/HubContext'
-import { HealthStatusLine } from './HealthStatusLine'
+import { HealthStatusLine } from '../components/HealthStatusLine'
 
 // Utils //
 import { addDropdownListener, convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
@@ -86,7 +86,6 @@ export function HubDetails() {
     async function issueHubCommand(command: CommandInfo) {
         const isControlTaken = await takeControl(globalContext.clientID)
         if (isControlTaken) {
-            console.log('about to dispatch')
             globalDispatch({
                 type: 'TAKE_CONTROL_SUCCESS'
             })

@@ -90,7 +90,6 @@ function saveClientID(mutableState: GlobalContextType, clientID: string) {
 
 function handleControlTaken(mutableState: GlobalContextType) {
     mutableState.controllingClientID = mutableState.clientID
-    console.log(mutableState)
     return mutableState
 }
 

@@ -17,5 +17,5 @@
       "dom"
     ]
   },
-  "include": [".", "./client/components/shared", "../components/HubDetails.tsx"],
+  "include": [".", "./client/components/shared"],
 }
