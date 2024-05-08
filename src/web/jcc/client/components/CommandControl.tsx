@@ -2807,7 +2807,7 @@ export default class CommandControl extends React.Component {
 	 * Gets the most up-to-date mission state of a bot
 	 * 
 	 * @param {number} botId Allows us to get the mission state for a specific bot 
-	 * @returns {MissionState} the bot's state in accordance with the state machine
+	 * @returns {MissionState} The bot's state in accordance with the state machine
 	 * 
 	 * @notes
 	 * Helpful in some asynchronous operations where an external function call is needed
