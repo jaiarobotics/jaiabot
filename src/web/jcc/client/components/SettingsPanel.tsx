@@ -55,12 +55,11 @@ enum AccordionTabs {
 }
 
 /**
- * Defines Layout and Functionality of the SettingsPanel
+ * Defines layout and functionality of the SettingsPanel
  *
- * @param {Props} Props passed from CommandControl
+ * @param {Props} props Data from CommandControl used in the panel 
  * @returns {string} Web content of Settings Panel
  */
-
 export function SettingsPanel(props: Props) {
     const [openAccordionTabs, setOpenAccordionTabs] = useState([])
     const [accordionTheme, setAccordionTheme] = useState(createTheme({

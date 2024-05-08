@@ -513,7 +513,14 @@ export default class CommandControl extends React.Component {
 
 	}
 
-	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
+	/**
+	 * Called when the CommandControl component re-renders
+	 * 
+	 * @param {Props} prevProps 
+	 * @param {State} prevState Holds the values of state prior to the update
+	 * @returns {void}
+	 */
+	componentDidUpdate(prevProps: Props, prevState: State) {
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -2695,10 +2702,17 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Calls the download function for the bot at the top of the queue and
+	 * removes it when the download finishes
+	 * 
+	 * @returns {void}
+	 */
 	async downloadBotsInOrder() {
 		const queue = this.state.botDownloadQueue
 		for (const bot of queue) {
-			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id) // Needed to update the queue list when downloads are added after the queue started
+			// Needed to update the queue list when downloads are added after the queue started
+			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
 				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
 				this.removeBotFromQueue(bot)
@@ -2789,6 +2803,16 @@ export default class CommandControl extends React.Component {
 		return downloadableBots
 	}
 
+	/**
+	 * Gets the most up-to-date mission state of a bot
+	 * 
+	 * @param {number} botId Allows us to get the mission state for a specific bot 
+	 * @returns {MissionState} the bot's state in accordance with the state machine
+	 * 
+	 * @notes
+	 * Helpful in some asynchronous operations where an external function call is needed
+	 * to retrieve the latest data
+	 */
 	getBotMissionState(botId: number) {
 		// Need external function to get most up-to-date mission state, else mission state stays the same in async operations
 		const bots = this.getPodStatus().bots
