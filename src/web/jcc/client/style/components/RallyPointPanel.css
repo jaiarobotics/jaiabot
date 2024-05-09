@@ -1,7 +1,10 @@
 .rally-base-grid {
+    --toolbar-panels-top: 72px;
+    --toolbar-panels-right: 72px;
+
     position: absolute;
-    top: 66px;
-    right: 66px;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
 
     background-color: rgba(0, 0, 0, 0.7);
     padding: 6px;
