@@ -185,63 +185,6 @@ jaiabot::apps::HubManager::HubManager()
 
 jaiabot::apps::HubManager::~HubManager() {}
 
-void jaiabot::apps::HubManager::loop()
-{
-    latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-
-    if (offload_thread_)
-    {
-        latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
-        latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
-            data_offload_percentage_);
-
-        if (offload_complete_)
-        {
-            offload_thread_->join();
-            protobuf::Command command;
-            command.set_bot_id(current_offload_bot_id_);
-            // JCC sends timestamps unwarped, so do the same to avoid sending "newer" timestamp than future JCC command
-            command.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
-                goby::time::SystemClock::unwarp(goby::time::SystemClock::now())));
-            if (offload_success_)
-            {
-                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(true);
-                command.set_type(protobuf::Command::DATA_OFFLOAD_COMPLETE);
-            }
-            else
-            {
-                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(false);
-                command.set_type(protobuf::Command::DATA_OFFLOAD_FAILED);
-            }
-            handle_command(command);
-            offload_thread_.reset();
-        }
-    }
-    else if (!offload_thread_ && !bots_pending_data_offload_.empty())
-    {
-        start_dataoffload(bots_pending_data_offload_.front());
-        bots_pending_data_offload_.pop_front();
-    }
-
-    if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on health report" << std::endl;
-        latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
-        latest_hub_status_.clear_error();
-        latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
-    }
-
-    if (latest_hub_status_.IsInitialized())
-    {
-        glog.is_debug1() &&
-            glog << "Publishing hub status: " << latest_hub_status_.ShortDebugString() << std::endl;
-        interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
-    }
-
-    latest_hub_status_.clear_bot_offload();
-}
-
 void jaiabot::apps::HubManager::handle_subscription_report(
     const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
 {
@@ -362,6 +305,40 @@ void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
+    if (offload_thread_)
+    {
+        latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
+        latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
+            data_offload_percentage_);
+
+        if (offload_complete_)
+        {
+            offload_thread_->join();
+            protobuf::Command command;
+            command.set_bot_id(current_offload_bot_id_);
+            // JCC sends timestamps unwarped, so do the same to avoid sending "newer" timestamp than future JCC command
+            command.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
+                goby::time::SystemClock::unwarp(goby::time::SystemClock::now())));
+            if (offload_success_)
+            {
+                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(true);
+                command.set_type(protobuf::Command::DATA_OFFLOAD_COMPLETE);
+            }
+            else
+            {
+                latest_hub_status_.mutable_bot_offload()->set_offload_succeeded(false);
+                command.set_type(protobuf::Command::DATA_OFFLOAD_FAILED);
+            }
+            handle_command(command);
+            offload_thread_.reset();
+        }
+    }
+    else if (!offload_thread_ && !bots_pending_data_offload_.empty())
+    {
+        start_dataoffload(bots_pending_data_offload_.front());
+        bots_pending_data_offload_.pop_front();
+    }
+
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
@@ -416,6 +393,8 @@ void jaiabot::apps::HubManager::loop()
             handle_command_for_hub(cmd);
         }
     }
+
+    latest_hub_status_.clear_bot_offload();
 }
 
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
