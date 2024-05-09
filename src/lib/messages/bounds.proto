@@ -13,9 +13,9 @@ message MotorBounds {
 		optional int32 forwardStart = 1 [default = 1600, (dccl.field) = { min: 1000 max: 2000 }];
 		optional int32 reverseStart = 2 [default = 1400, (dccl.field) = { min: 1000 max: 2000 }];
 		optional int32 max_reverse = 3 [default = 1320, (dccl.field) = { min: 1000 max: 2000 }];
-		optional int32 throttle_zero_net_buoyancy = 4 [default = -35, (dccl.field) = { min: 0 max: 100 }];
-		optional int32 throttle_dive = 5 [default = -35, (dccl.field) = { min: 0 max: 100 }];
-		optional int32 throttle_ascent = 6 [default = 25, (dccl.field) = { min: 0 max: 100 }];
+		optional int32 throttle_zero_net_buoyancy = 4 [default = -35, (dccl.field) = { min: -100 max: 100 }];
+		optional int32 throttle_dive = 5 [default = -35, (dccl.field) = { min: -100 max: 100 }];
+		optional int32 throttle_ascent = 6 [default = 25, (dccl.field) = { min: -100 max: 100 }];
 	}
 
 message Bounds{

@@ -313,7 +313,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
  */
 void jaiabot::apps::ArduinoDriver::setBounds(const jaiabot::protobuf::Bounds& bounds)
 {
-    bounds_ = bounds;
+    bounds_.MergeFrom(bounds);
 
     glog.is_debug1() && glog << "Setting bounds to " << bounds.ShortDebugString() << endl;
 

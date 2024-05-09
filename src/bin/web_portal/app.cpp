@@ -29,6 +29,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/portal.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
@@ -228,16 +229,10 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
         glog.is_debug2() && glog << group("main") << "Sending engineering_command: "
                                  << engineering_command.ShortDebugString() << endl;
 
-        goby::middleware::Publisher<jaiabot::protobuf::Engineering> command_publisher(
-            {}, [](jaiabot::protobuf::Engineering& cmd, const goby::middleware::Group& group) {
-                cmd.set_bot_id(group.numeric());
-            });
-
         intervehicle().publish_dynamic(
             engineering_command,
-            goby::middleware::DynamicGroup(jaiabot::groups::engineering_command,
-                                           engineering_command.bot_id()),
-            command_publisher);
+            intervehicle::engineering_command_group(engineering_command.bot_id()),
+            intervehicle::default_publisher<jaiabot::protobuf::Engineering>);
     }
 
     if (msg.has_command())
@@ -323,10 +318,6 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
     glog.is_debug2() && glog << group("main")
                              << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
-
-    goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group)
-        { cmd.set_bot_id(group.numeric()); });
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command);
 

@@ -29,6 +29,7 @@
 
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
@@ -59,8 +60,8 @@ class MissionManagerConfigurator
         auto& cfg = mutable_cfg();
 
         // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
-        groups::hub_command_this_bot.reset(
-            new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
+        groups::hub_command_this_bot.reset(new goby::middleware::DynamicGroup(
+            jaiabot::intervehicle::hub_command_group(cfg.bot_id())));
     }
 };
 } // namespace apps
@@ -340,8 +341,14 @@ jaiabot::apps::MissionManager::MissionManager()
             glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString()
                                      << std::endl;
 
-            machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
-            machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+            if (imu_data.has_max_acceleration())
+            {
+                machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+            }
+            if (imu_data.has_significant_wave_height())
+            {
+                machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+            }
         });
 
     // subscribe for engineering commands
@@ -488,18 +495,20 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
                                  << std::endl;
     };
 
-    // use vehicle ID as group for command
-    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group
-    { return goby::middleware::Group(command.bot_id()); };
-
     latest_command_sub_cfg_ = cfg().command_sub_cfg();
 
     // set command publisher to the hub that triggered this subscribe
     latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
     latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
 
+    auto hub_command_subscriber_group_func =
+        [](const protobuf::Command& command) -> goby::middleware::Group {
+        return goby::middleware::Group(
+            jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
+    };
+
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-        latest_command_sub_cfg_, do_set_group, on_command_subscribed};
+        latest_command_sub_cfg_, hub_command_subscriber_group_func, on_command_subscribed};
 
     intervehicle().subscribe_dynamic<protobuf::Command>(
         [this](const protobuf::Command& input_command)
@@ -690,14 +699,11 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
-    // Make sure the command has a newer timestamp
-    // If it is not then we should not handle the command and exit
-    if (prev_command_time_ >= command.time())
+    // Make sure the command is not a repeat
+    // If it is, then we should not handle the command and exit
+    if (prev_command_time_ == command.time())
     {
-        glog.is_warn() && glog << "Old command received! Ignoring..." << std::endl;
-
-        // Exit handle command function if the previous
-        // Command time is greater than the one current one
+        glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;
     }
 

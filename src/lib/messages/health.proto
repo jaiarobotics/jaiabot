@@ -123,6 +123,8 @@ enum Error
     // arduino driver
     ERROR__VERSION__MISMATCH_ARDUINO = 700;
     ERROR__MISSION_DATA__ARDUINO_REPORT = 701;
+    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB = 702; // INTERVEHICLE_API_VERSION_mismatch - hub version < bot_version
+    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT = 703; // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
 }
 
 enum Warning

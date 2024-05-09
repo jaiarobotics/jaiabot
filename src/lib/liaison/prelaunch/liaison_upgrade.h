@@ -72,11 +72,13 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         struct ProcessData
         {
             ProcessData(const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
+                        const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
                         const std::string& input_vars);
             ~ProcessData();
 
             boost::asio::io_service io;
             std::future<std::string> stdout;
+            std::future<std::string> stderr;
             boost::process::child process;
             std::thread io_thread;
         };

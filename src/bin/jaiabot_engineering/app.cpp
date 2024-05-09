@@ -21,12 +21,14 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <goby/middleware/marshalling/protobuf.h>
+#include <google/protobuf/text_format.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
 #include <fstream>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -55,6 +57,7 @@ class JaiabotEngineering : public ApplicationBase
     void loop() override;
 
     void handle_engineering_command(const jaiabot::protobuf::Engineering& command);
+    void handle_bounds_change(const jaiabot::protobuf::Bounds& new_bounds);
     void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
 
     // Engineering state to be published over intervehicle on a regular basis
@@ -76,8 +79,8 @@ int main(int argc, char* argv[])
 jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * si::hertz)
 {
     // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
-    groups::engineering_command_this_bot.reset(
-        new goby::middleware::DynamicGroup(jaiabot::groups::engineering_command, cfg().bot_id()));
+    groups::engineering_command_this_bot.reset(new goby::middleware::DynamicGroup(
+        jaiabot::intervehicle::engineering_command_group(cfg().bot_id())));
 
     latest_engineering.set_bot_id(cfg().bot_id());
 
@@ -89,7 +92,6 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                 [this](const jaiabot::protobuf::PIDControl& pid_control) {
                     latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
                 });
-
 
         // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
         interprocess().subscribe<jaiabot::groups::engineering_status>(
@@ -235,7 +237,8 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
     // use vehicle ID as group for command
     auto do_set_group =
         [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
-        return goby::middleware::Group(command.bot_id());
+        return goby::middleware::Group(
+            jaiabot::intervehicle::engineering_command_group(command.bot_id()).numeric());
     };
 
     latest_command_sub_cfg_ = cfg().command_sub_cfg();
@@ -290,7 +293,8 @@ void jaiabot::apps::JaiabotEngineering::loop()
         queried_for_status_ = false;
         glog.is_debug1() && glog << "Publishing latest_engineering over intervehicle(): "
                                  << latest_engineering.ShortDebugString() << std::endl;
-        intervehicle().publish<jaiabot::groups::engineering_status>(latest_engineering);
+        intervehicle().publish<jaiabot::groups::engineering_status>(
+            latest_engineering, intervehicle::default_publisher<protobuf::Engineering>);
     }
 }
 
@@ -325,17 +329,55 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
         }
     }
 
-    // Persist the bounds configuration, if we received one
-    if (command.has_bounds()) {
-        const auto bounds = command.bounds();
-        glog.is_debug1() && glog << "Bounds changed: " << bounds.ShortDebugString() << std::endl;
-        auto configFile = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
-        configFile << bounds.DebugString();
-        configFile.close();
-
-        latest_engineering.mutable_bounds()->CopyFrom(bounds);
+    if (command.has_bounds())
+    {
+        handle_bounds_change(command.bounds());
     }
 
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands
     interprocess().publish<jaiabot::groups::engineering_command>(command);
+}
+
+/**
+ * @brief Handles bounds submitted via an Engineering command
+ * 
+ * @param new_bounds - The new submitted bounds message, which will be merged with the existing message (from /etc/jaiabot/bounds.pb.cfg)
+ *
+ */
+void jaiabot::apps::JaiabotEngineering::handle_bounds_change(
+    const jaiabot::protobuf::Bounds& new_bounds)
+{
+    glog.is_debug1() && glog << "Bounds changed: " << new_bounds.ShortDebugString() << std::endl;
+
+    auto existing_bounds = jaiabot::protobuf::Bounds();
+
+    // Read existing bounds, if present
+    auto existing_bounds_file = std::ifstream("/etc/jaiabot/bounds.pb.cfg");
+
+    if (existing_bounds_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/bounds.pb.cfg" << std::endl;
+    }
+    else
+    {
+        std::stringstream existing_bounds_stringstream;
+        existing_bounds_stringstream << existing_bounds_file.rdbuf();
+
+        if (!google::protobuf::TextFormat::ParseFromString(existing_bounds_stringstream.str(),
+                                                           &existing_bounds))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/bounds.pb.cfg"
+                                   << std::endl;
+        }
+    }
+
+    // Merge new bounds
+    auto bounds = jaiabot::protobuf::Bounds();
+    bounds.CopyFrom(existing_bounds);
+    bounds.MergeFrom(new_bounds);
+
+    // Write the bounds configuration file
+    auto bounds_file = std::ofstream("/etc/jaiabot/bounds.pb.cfg");
+    bounds_file << bounds.DebugString();
+    bounds_file.close();
 }

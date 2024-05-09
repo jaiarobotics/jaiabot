@@ -49,7 +49,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
 
         cd ${HOME}/jaiabot/config/gen
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type $jaia_simulation --enable
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} $jaia_simulation --enable
 
     else
 
@@ -69,4 +69,4 @@ if [ ! -z "$jaiabot_arduino_type" ]; then
     sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh
 fi
 
-echo "Development version: ${jaiabot_version}, deployed $(date)" | sudo tee /etc/jaiabot/software_version
+sudo sh -c "echo 'Development version: ${jaiabot_version}, deployed $(date)' > /etc/jaiabot/software_version"

@@ -23,39 +23,37 @@ add_custom_target(npm_dependencies
 ###############################################################################
 
 file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/jcc/*)
+file(GLOB jed_src_files ${CMAKE_CURRENT_SOURCE_DIR}/jed/*)
 file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/shared/*)
 
 ###############################################################################
-# Copy the jcc source code to the build/<arch>/intermediate/web/jcc directory
+# Copy the jcc/jed source code to the build/<arch>/intermediate/web/ directory
 # We will be compiling it there, targeting the final location.
 
 # Get the web source tree into the intermediate directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/webpack.config.js DESTINATION ${intermediate_web_dir})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jcc DESTINATION ${intermediate_web_dir})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jed DESTINATION ${intermediate_web_dir})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shared DESTINATION ${intermediate_web_dir})
 
-file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/jcc/*)
-file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/shared/*)
+set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
-set(jcc_out_dir ${project_SHARE_DIR}/jaiabot/web/jcc)
-
-add_custom_command(OUTPUT ${jcc_out_dir}/client.js
+add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
   COMMAND npx webpack
-  ARGS --mode production --env OUTPUT_DIR=${jcc_out_dir} --stats errors-only
-  WORKING_DIRECTORY ${intermediate_web_dir}/jcc/
-  COMMENT "Building jcc"
-  DEPENDS npm_dependencies ${jcc_src_files} ${shared_src_files}
+  ARGS --mode production --env OUTPUT_DIR=${web_out_dir} --stats errors-only
+  WORKING_DIRECTORY ${intermediate_web_dir}/
+  COMMENT "Building jcc and jed"
+  DEPENDS npm_dependencies ${jcc_src_files} ${jed_src_files} ${shared_src_files}
   )
-add_custom_target(jcc
+add_custom_target(jcc_jed
   ALL
-  DEPENDS ${jcc_out_dir}/client.js npm_dependencies
+  DEPENDS ${web_out_dir}/jcc/client.js npm_dependencies ${web_out_dir}/jed/script.js
   )
 
 # Copy the jcc server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
 ###############################################################################
-
-add_subdirectory(jed)
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 

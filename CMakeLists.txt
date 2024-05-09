@@ -86,6 +86,12 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 message(STATUS "Version: ${PROJECT_VERSION}")
 set(PROJECT_SOVERSION "1")
 
+# Intervehicle API version
+
+# increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
+# start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
+set(PROJECT_INTERVEHICLE_API_VERSION 3)
+
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
@@ -246,6 +252,7 @@ endif()
 
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
+# for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
 set(scripts_to_install
@@ -254,6 +261,7 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload.sh
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
+  data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
 )
@@ -263,6 +271,7 @@ foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
+
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

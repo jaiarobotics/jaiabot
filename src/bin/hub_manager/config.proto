@@ -49,12 +49,23 @@ message HubManager
     optional int32 fleet_id = 15 [default = 0];
     optional int32 health_report_timeout_seconds = 16 [default = 20];
 
-    // data offload
-    required string data_offload_script = 20;
-    optional string log_staging_dir = 21 [default = "/var/log/jaiabot/staging"];
-    optional string log_offload_dir = 22
+    message VirtualFleetData
+    {
+        // used by VirtualHub to shut down system after idle (no commands received)
+        // to avoid running up EC2 costs unexpectedly
+        required int32 shutdown_after_last_command_seconds = 1 [default = 3600];
+        // delay shutting down hub after this time since last BotStatus message
+        required int32 hub_shutdown_delay_seconds = 2 [default = 300];
+    }
+    optional VirtualFleetData vfleet = 20;
+    
+  // data offload
+    required string data_offload_script = 30;
+    optional string log_staging_dir = 31 [default = "/var/log/jaiabot/staging"];
+    optional string log_offload_dir = 32
         [default = "/var/log/jaiabot/bot_offload"];
-    optional int32 bot_start_ip = 23 [default = 100];
-    optional string class_b_network = 24 [default = "10.23"];
-    optional bool use_localhost_for_data_offload = 25 [default = false];
+    optional int32 bot_start_ip = 33 [default = 100];
+    optional string class_b_network = 34 [default = "10.23"];
+    optional bool use_localhost_for_data_offload = 35 [default = false];
+
 }

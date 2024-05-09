@@ -49,7 +49,7 @@ class LogConversionManager:
                     logging.error(f'File not found: {goby_path}')
                     continue
 
-                cmd = f'goby_log_tool --input_file {goby_path} --output_file {temp_path} --format HDF5'
+                cmd = f'nice -n 10 goby log convert --input_file {goby_path} --output_file {temp_path} --format HDF5'
                 logging.info(cmd)
                 system(cmd)
                 system(f'mv {temp_path} {h5_path}')
