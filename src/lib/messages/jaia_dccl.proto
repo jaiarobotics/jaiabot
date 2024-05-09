@@ -41,7 +41,7 @@ message Command
         START_MISSION = 3;
         MISSION_PLAN_FRAGMENT = 4;
 
-        // during any mission
+        // during any mission 
         NEXT_TASK = 10;
         RETURN_TO_HOME = 11;
         STOP = 12;
