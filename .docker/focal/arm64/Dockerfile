@@ -40,6 +40,7 @@ RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y install libdccl4:arm64 \
             libdccl4-dev:arm64 \
+            dccl4-apps:amd64 \
             libgoby3:arm64 \
             libgoby3-dev:arm64 \
             libgoby3-moos-dev:arm64 \

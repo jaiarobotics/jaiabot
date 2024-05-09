@@ -27,6 +27,7 @@ RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y install libdccl4:amd64 \
             libdccl4-dev:amd64 \
+            dccl4-apps:amd64 \
             libgoby3:amd64 \
             libgoby3-dev:amd64 \
             libgoby3-moos-dev:amd64 \

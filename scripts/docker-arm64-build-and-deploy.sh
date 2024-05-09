@@ -45,7 +45,7 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
         ./scripts/docker-build-build-system.sh
     fi
 
-    echo "🟢 Building jaiabot apps"
+    echo "🟢 Building jaiabot apps using docker ${image_name} image"
     docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh"
 
 else    
@@ -62,7 +62,7 @@ else
         ./scripts/docker-build-build-system.sh
     fi
 
-    echo "🟢 Building jaiabot apps"
+    echo "🟢 Building jaiabot apps using docker ${image_name} image"
     docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh"
 fi
 
@@ -83,7 +83,7 @@ else
     do
         echo "🟢 Uploading to "$remote
         # Sync all directories
-        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
+        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./src/web/jcc.conf ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
