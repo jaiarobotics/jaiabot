@@ -48,9 +48,15 @@ class IMU:
             return None
 
         imu_data = IMUData()
-        imu_data.euler_angles.heading = reading.orientation.heading
-        imu_data.euler_angles.pitch = reading.orientation.pitch
-        imu_data.euler_angles.roll = reading.orientation.roll
+        if reading.orientation is not None:
+            imu_data.euler_angles.heading = reading.orientation.heading
+            imu_data.euler_angles.pitch = reading.orientation.pitch
+            imu_data.euler_angles.roll = reading.orientation.roll
+            # check if the bot rolled over
+            bot_rolled = int(abs(reading.orientation.roll) > 90)
+            imu_data.bot_rolled_over = bot_rolled
+        else:
+            imu_data.bot_rolled_over = False
 
         imu_data.linear_acceleration.x = reading.linear_acceleration.x
         imu_data.linear_acceleration.y = reading.linear_acceleration.y
@@ -79,9 +85,6 @@ class IMU:
             # .value converts enum type to int (which the protobuf side is looking for)
             imu_data.calibration_state = reading.calibration_state.value
 
-        # check if the bot rolled over
-        bot_rolled = int(abs(reading.orientation.roll) > 90)
-        imu_data.bot_rolled_over = bot_rolled
 
         return imu_data
     

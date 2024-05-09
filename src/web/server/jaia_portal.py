@@ -216,17 +216,17 @@ class Interface:
                 self.bots[bot_id] = botStatus
 
                 # Add position to bot_paths
-                if msg.bot_status.HasField('location'):
-                    bot_location = msg.bot_status.location
-                    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
-
-                    try:
-                        last_bot_path_point_time = bot_path[-1].utime
-                    except IndexError:
-                        last_bot_path_point_time = 0
-
-                    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
-                        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
+                #if msg.bot_status.HasField('location'):
+                #    bot_location = msg.bot_status.location
+                #    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
+                #
+                #    try:
+                #        last_bot_path_point_time = bot_path[-1].utime
+                #    except IndexError:
+                #        last_bot_path_point_time = 0
+                #
+                #    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
+                #        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
 
                 if msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)

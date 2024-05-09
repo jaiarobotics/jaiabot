@@ -1,9 +1,15 @@
 .download-panel-outer-container {
-    position: absolute;
-    top: 66px;
-    right: 66px;
+  --toolbar-panels-top: 72px;
+  --toolbar-panels-right: 72px;
 
+    position: absolute;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
+
+    max-height: calc(95vh - var(--toolbar-panels-top));
     min-width: 300px;
+
+    overflow-y: auto;
 
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #767d7d;
@@ -12,11 +18,11 @@
   }
 
   .download-panel-inner-container {
+    --static-elements-total-height: 125px;
     margin: 8pt;
     font-size: 1.1rem;
 
-    /* 66px equals max toolbar height */
-    max-height: calc(95vh - 66px);
+    max-height: calc(95vh - var(--static-elements-total-height));
     overflow-y: auto;
 }
 
@@ -46,9 +52,6 @@
   padding: 12px;
   background-color: #767d7d;
   font-size: 1.1rem;
-
-  /* 282.54 = height of rc panel, 66 = height of top toolbar, 58 = height of btm btn container, 12 = margins/paddings */
-  max-height: calc(100vh - (282.54px + 66px + 58px + 14px));
   overflow-y: auto;
 }
 
