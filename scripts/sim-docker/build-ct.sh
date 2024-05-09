@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build . -t brodiealexander:jaia-sim-ct
+docker build . -t jaiauser:jaia-sim-ct

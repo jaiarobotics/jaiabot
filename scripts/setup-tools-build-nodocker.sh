@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Install packages to allow apt to use a repository over HTTPS:
+sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
 # Add packages.gobysoft.org mirror to your apt sources
 echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
@@ -10,8 +12,6 @@ sudo apt-get -y update
 sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf
 # Install the build tools necessary
 sudo apt-get -y install cmake g++ npm clang-format clang graphviz
-# Install packages to allow apt to use a repository over HTTPS:
-sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
 # Install Arduino command line interface for local compilation of ino files into hex
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \
     arduino-cli config init --overwrite && \
