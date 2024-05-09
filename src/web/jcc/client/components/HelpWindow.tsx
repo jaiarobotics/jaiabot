@@ -97,19 +97,14 @@ const buttons: ButtonDescriptor[] = [
     },
     {
         iconPath: mdiCog,
-        name: 'Map Settings',
-        description: 'Open the Map Settings panel for Jaia Command & Control.'
+        name: 'Settings',
+        description: 'Open the Settings panel for Jaia Command & Control.'
     },
     {
         iconPath: mdiRuler,
         name: 'Measure Distance',
         description: 'Click two or more points to measure the total distance along a set of line segments.'
     },
-    {
-        iconPath: mdiWrench,
-        name: 'Engineering Panel',
-        description: 'Open the Engineering Panel, which can be used for low-level control of one or more Jaiabots.'
-    }
 ]
 
 
