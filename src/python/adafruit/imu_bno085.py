@@ -4,6 +4,7 @@ import adafruit_bno08x
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
+from threading import Lock
 
 class AdafruitBNO085(IMU):
     _lock: Lock

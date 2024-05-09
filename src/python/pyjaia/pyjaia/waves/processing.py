@@ -1,115 +1,33 @@
 from copy import deepcopy
-from .series import Series
+from pyjaia.series import Series
 from typing import *
 import numpy
 import statistics
 from math import *
-
-def floatRange(start: float, end: float, delta: float):
-    x = start
-
-    while x < end:
-        yield x
-        x += delta
+from .filters import cos2Filter
 
 
-def getMovingAverages(values: List[float], window: int):
-    output = []
+def applyHannWindow(series: Series, fadePeriod: float=2e6):
+    """Apply a Hann window to the start and end of the series.
 
-    for i, value in enumerate(values):
-        start = max(0, i - window)
-        end = min(len(values), i + window + 1)
-        mean = statistics.mean(values[start:end])
-        output.append(mean)
+    Args:
+        series (Series): Input series.
+        fadePeriod (float, optional): Time period (in microseconds), for the Hann window to move from 0 to 1. Defaults to 2e6.
 
-    return output
+    Returns:
+        Series: The resulting Hann-windowed series.
+    """
 
-
-ProcessingStep = Callable[[Series], Series]
-
-
-def addSeries(otherSeries: Series):
-    def f(series: Series):
-        newSeries = deepcopy(series)
-        newSeries.y_values = [series.y_values[index] + otherSeries.getValueAtTime(series.utime[index]) for index in range(len(series.utime))]
-        return newSeries
-    
-    return f
-
-
-def removeStairSteps(stepSize: float):
-    def f(series: Series):
-        series = deepcopy(series)
-        # Remove stairstepping that exceeds the threshold
-        y_values = [series.y_values[0]]
-        for index in range(1, len(series.y_values)):
-            y1 = series.y_values[index - 1]
-            y2 = series.y_values[index]
-            delta = y2 - y1
-            if abs(delta) >= stepSize:
-                delta = 0
-            y_values.append(y_values[-1] + delta)
-
-        series.y_values = y_values
-
-        return series
-    
-    return f
-
-
-def subtractLinearTerm(series: Series):
-    series = deepcopy(series)
-    y_values = series.y_values
-
-    # Subtract out a linear term
-    k = (y_values[-1] - y_values[0]) / len(y_values)
-
-    for i in range(len(y_values)):
-        y_values[i] -= (i * k)
-    
-    series.y_values = y_values
-
-    return series
-
-
-def getUniformSeries(freq: float):
-    def f(series: Series):
-        '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
-        newSeries = Series()
-        if len(series.utime) == 0:
-            return newSeries
-        
-        for utime in floatRange(series.utime[0] + 1, series.utime[-1], 1e6 / freq):
-            newSeries.utime.append(utime)
-            newSeries.y_values.append(series.getValueAtTime(utime, interpolate=True))
-        return newSeries
-    
-    return f
-
-
-def fadeSeries(series: Series, startGap: float, endGap: float=None, fadePeriod: float=2e6):
-    '''Slice and fade a series in and out.  Times are in microseconds.'''
-
-    endGap = endGap or 0
-
-    newSeries = Series()
+    newSeries = deepcopy(series)
 
     if len(series.utime) == 0:
         return newSeries
 
-    startTimeAbsolute = series.utime[0] + startGap
-    startFadeEndTime = startTimeAbsolute + fadePeriod
-    
-    endTimeAbsolute = series.utime[-1] - endGap
-    endFadeStartTime = endTimeAbsolute - fadePeriod
+    startFadeEndTime = series.utime[0] + fadePeriod
+    endFadeStartTime = series.utime[-1] - fadePeriod
 
     for index in range(len(series.utime)):
         t = series.utime[index]
-
-        # Outside slice range
-        if t < startTimeAbsolute or t > endTimeAbsolute:
-            continue
-
         # Fade range
         k = 1
 
@@ -118,30 +36,60 @@ def fadeSeries(series: Series, startGap: float, endGap: float=None, fadePeriod: 
         elif t > endFadeStartTime:
             k *= ((cos((t - endFadeStartTime) * (pi) / (fadePeriod)) + 1) / 2)
 
-        newSeries.utime.append(t)
-        newSeries.y_values.append(k * series.y_values[index])
+        newSeries.y_values[index] *= k
 
     return newSeries
 
 
-def subtractMovingAverage(window: int):
-    def f(series: Series):
-        movingAverages = getMovingAverages(series.y_values, window)
+def trimSeries(series: Series, startGap: float, endGap: float=None):
+    """Trim from the beginning and end of a series.
 
-        newSeries = Series()
-        newSeries.utime = deepcopy(series.utime)
+    Args:
+        series (Series): Input series.
+        startGap (float): Time interval to trim from start.
+        endGap (float, optional): Time interval to trim from end. Defaults to None, which means same as startGap.
 
-        for i, movingAverage in enumerate(movingAverages):
-            newSeries.y_values.append(series.y_values[i] - movingAverage)
+    Returns:
+        Series: The trimmed series.
+    """
 
+    endGap = endGap or 0
+
+    newSeries = deepcopy(series)
+    newSeries.clear()
+
+    # Guard against empty series
+    if len(series.utime) < 1:
         return newSeries
 
-    return f
+    startTimeAbsolute = series.utime[0] + startGap
+    endTimeAbsolute = series.utime[-1] - endGap
+
+    for index in range(len(series.utime)):
+        t = series.utime[index]
+
+        # Outside slice range
+        if t < startTimeAbsolute or t > endTimeAbsolute:
+            continue
+
+        newSeries.utime.append(t)
+        newSeries.y_values.append(series.y_values[index])
+
+    return newSeries
 
 
 def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
-    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
-    if len(inputSeries.utime) == 0:
+    """Applies a frequency filter to a series.
+
+    Args:
+        inputSeries (Series): Input series.
+        sampleFreq (float): Sampling frequency (Hz).
+        filterFunc (Callable[[float], float]): A function that takes a frequency, and returns a gain coefficient to apply to that frequency.
+
+    Returns:
+        Series: The resulting filtered frequency.
+    """
+    if len(inputSeries.utime) < 2:
         return Series()
 
     A = numpy.fft.rfft(inputSeries.y_values)
@@ -170,7 +118,17 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callab
 
 
 def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
-    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
+    """Converts a uniform acceleration series to a uniform elevation series, by applying a frequency filter and double-integrating.
+
+    Args:
+        inputSeries (Series): Uniform series of acceleration values (m/s^2).
+        sampleFreq (float): Sampling frequency (Hz).
+        filterFunc (Callable[[float], float]): A function that takes a frequency, and returns a gain coefficient to apply to that frequency.
+
+    Returns:
+        Series: The resulting elevation series.
+    """
+
     if len(inputSeries.utime) < 2:
         # If there are 0 or 1 data points, we're not going to be able to do the irfft
         return Series()
@@ -208,12 +166,15 @@ def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: 
     return series
 
 
-def processSeries(series: Series, steps: List[ProcessingStep]):
-    for step in steps:
-        series = step(series)
-    return series
-
 def deMean(series: Series):
+    """De-means a series.
+
+    Args:
+        series (Series): The input series.
+
+    Returns:
+        Series: The de-meaned series (subtract the mean value from every point in the series).
+    """
     newSeries = Series()
 
     if len(series.utime) == 0:
@@ -227,89 +188,101 @@ def deMean(series: Series):
 
 
 def calculateSortedWaveHeights(elevationSeries: Series):
+    """Gets a sorted list of wave heights from an input elevation series.
+
+    Args:
+        elevationSeries (Series): Input elevation series.
+
+    Returns:
+        list[float]: A sorted list of wave heights.
+    """
     waveHeights: List[float] = []
-    y = elevationSeries.y_values
+    ys = elevationSeries.y_values
 
-    trough = 0
-    peak = 0
+    trough = None
+    peak = None
 
-    direction = 0 # +1 for up, 0 for stationary, -1 for down
+    oldDy = 0
 
     # Find waves
-    for index, y in enumerate(elevationSeries.y_values):
-        oldDirection = direction
+    for index, y in enumerate(ys):
+        if index > 0:
+            previous_y = ys[index - 1]
+            dy = y - previous_y
 
-        if y > 0:
-            direction = 1
-        else:
-            direction = -1
+            if dy > 0 and oldDy <=0:
+                trough = previous_y
+            elif dy < 0 and oldDy >= 0:
+                peak = previous_y
 
-        if direction == -1 and oldDirection == 1:
-            # Moving down below 0 again, so we finished a wave
-            if peak != 0 and trough != 0:
-                waveHeights.append(peak - trough)
-                peak = 0
-                trough = 0
-        
-        if direction == 1:
-            peak = max(y, peak)
-        elif direction == -1:
-            trough = min(y, trough)
+                if trough is not None:
+                    waveHeights.append(peak - trough)
+
+            oldDy = dy
 
     sortedWaveHeights = sorted(waveHeights)
 
     return sortedWaveHeights
 
-def calculateSignificantWaveHeightFromSortedWaveHeights(waveHeights: List[float]):
+
+def significantWaveHeight(waveHeights: List[float]):
+    """Returns the significant wave height from an unsorted list of wave heights.
+
+    Args:
+        waveHeights (List[float]): Unsorted list of wave heights.
+
+    Returns:
+        float: The significant wave height (mean of the tallest 2/3 of the waves).
+    """
+    if len(waveHeights) == 0:
+        return 0.0
+
     sortedWaveHeights = sorted(waveHeights)
     N = floor(len(sortedWaveHeights) * 2 / 3)
     significantWaveHeights = sortedWaveHeights[N:]
 
-    if len(significantWaveHeights) == 0:
-        return 0.0
-
     return statistics.mean(significantWaveHeights)
 
 
-class FFTSeries:
-    frequencies: List[float] = []
-    amplitudes: List[complex] = []
-
-def getFFT(series: Series, sampleFreq: float):
-    fft = FFTSeries()
-
-    fft.amplitudes = list(numpy.fft.rfft(series.y_values))
-    n = len(fft.amplitudes)
-    nyquist = sampleFreq / 2
-
-    if n % 2 == 0:
-        freqCoefficient = nyquist / n
-    else:
-        freqCoefficient = nyquist * (n - 1) / n / n
-
-    fft.frequencies = [index * freqCoefficient for index in range(n)]
-
-    return fft
+BandPassFilterFunc = Callable[[float], float]
+bandPassFilter = cos2Filter(1/20, 1/100, 5, 5)
 
 
-def getSubSeriesList(series: Series, filterFunc: Callable[[Series, int], bool]):
-    '''Returns a list of subseries, where the filterFunc returns true for each (utime, y_value) pair.  When it returns false, a series will end, and when it returns true again a new series will start.'''
-    subseries: list[Series] = []
+def calculateElevationSeries(accelerationSeries: Series, sampleFreq: float):
+    """Calculates the elevation series from an input acceleration series.
 
-    newSeries = Series()
-    newSeries.name = series.name
+    Args:
+        accelerationSeries (Series): The acceleration series.
 
-    for index in range(len(series.utime)):
+    Returns:
+        Series: The elevation series, calculated by de-meaning, trimming, windowing, FFT, and double integration.
+    """
 
-        shouldInclude = filterFunc(series, index)
+    series = accelerationSeries
+    series = trimSeries(series, 10e6, 5e6)
+    series = applyHannWindow(series, fadePeriod=10e6)
+    series = deMean(series)
+    series = accelerationToElevation(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+    series.name = 'Elevation (m)'
 
-        if shouldInclude:
-            newSeries.utime.append(series.utime[index])
-            newSeries.y_values.append(series.y_values[index])
-        else:
-            if len(newSeries.utime) > 0:
-                subseries.append(newSeries)
-                newSeries = Series()
-                newSeries.name = series.name
+    return series
 
-    return subseries
+
+def filterAcceleration(accelerationSeries: Series, sampleFreq: float):
+    """Process and filter an input acceleration series.
+
+    Args:
+        accelerationSeries (Series): The input acceleration series.
+
+    Returns:
+        Series: The processed and filtered acceleration series.
+    """
+
+    series = accelerationSeries
+    series = trimSeries(series, 10e6, 5e6)
+    series = applyHannWindow(series, fadePeriod=10e6)
+    series = deMean(series)
+    series = filterFrequencies(series, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+    series.name = 'Filtered acceleration (m/s^2)'
+
+    return series
