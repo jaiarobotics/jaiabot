@@ -10,7 +10,7 @@ Group=$group
 
 EnvironmentFile=$env_file
 ExecStartPre=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state START --error_code $error_on_fail --service_name $service
-ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/web/jdv/server/jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload
+ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/web/jdv/server/jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a $jaiabot_share_dir/jaiabot/web/jdv/client/dist/
 ExecStopPost=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state STOP --error_code $error_on_fail --service_name $service --service_result $$SERVICE_RESULT
 
 [Install]
