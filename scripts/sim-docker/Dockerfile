@@ -7,6 +7,7 @@ RUN apt update
 RUN apt install -y sudo git gnupg lsb-release qt5-default python3-dev python3-testresources python3-pip python3-gdal python3-pyqt5 python3-fiona python3-geopandas gdal-bin libgdal-dev  
 RUN python3 -m pip install netifaces
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
+RUN git switch task/create-docker-environment-for-simulator
 WORKDIR /jaiabot/scripts
 RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
 # Hack because line 4 of setup-tools-runtime.sh does not include "-y" and will fail to install these components when used in noninteractive environment
