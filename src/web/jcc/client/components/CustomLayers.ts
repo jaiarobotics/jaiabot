@@ -478,9 +478,9 @@ export class CustomLayerGroupFactory {
 
             this.debug && console.log(`Starting raster decode task for ${geoTiffMd.description}`)
             if (geoTiffMd.isRGB && geoTiffMd.bands.length >= 3) {
-                if (!(isNaN(geoTiffMd.bands[0].displayMin) || isNaN(geoTiffMd.bands[0].displayMin) ||
-                      isNaN(geoTiffMd.bands[1].displayMin) || isNaN(geoTiffMd.bands[1].displayMin) ||
-                      isNaN(geoTiffMd.bands[2].displayMin) || isNaN(geoTiffMd.bands[2].displayMin))) {
+                if (!(isNaN(geoTiffMd.bands[0].displayMin) || isNaN(geoTiffMd.bands[0].displayMax) ||
+                      isNaN(geoTiffMd.bands[1].displayMin) || isNaN(geoTiffMd.bands[1].displayMax) ||
+                      isNaN(geoTiffMd.bands[2].displayMin) || isNaN(geoTiffMd.bands[2].displayMax))) {
                     // Scaled RGB
                     const rasters = await image.readRasters({
                         pool: this.geotiffDecoderPool.geotiffDecoderWorkerPool,
