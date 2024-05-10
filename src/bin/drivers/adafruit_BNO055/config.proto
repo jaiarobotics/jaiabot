@@ -25,8 +25,10 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "jaiabot/messages/feather.proto";
 import "goby/middleware/protobuf/udp_config.proto";
+
+import "jaiabot/messages/feather.proto";
+import "jaiabot/messages/imu.proto";
 
 package jaiabot.config;
 
@@ -39,6 +41,8 @@ message AdaFruitBNO055Publisher
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
-    optional int32 adafruit_bno055_report_timeout_seconds = 10 [default = 40];
+    optional int32 adafruit_bno055_report_timeout_seconds = 10 [default = 30];
     optional bool adafruit_bno055_report_in_simulation = 11 [default = true];
+    optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 33 [default = RESTART_IMU_PY];
+    optional int32 imu_trigger_issue_timeout_seconds = 13 [default = 30];
 }
