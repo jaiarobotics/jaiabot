@@ -1,4 +1,5 @@
 #include "jaiabot/intervehicle.h"
+
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
 
@@ -1345,7 +1346,7 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 
     goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
-    int setpoint_seconds = this->machine().bottom_depth_safety_constant_heading_time();
+    int setpoint_seconds = this->machine().stationkeep_time();
     goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
     setpoint_stop_ = setpoint_start + setpoint_duration;
 }

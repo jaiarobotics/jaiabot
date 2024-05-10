@@ -1202,8 +1202,6 @@ struct StationKeep
     using reactions =
         typename boost::mpl::copy<local_reactions,
                                   boost::mpl::front_inserter<Base::common_reactions>>::type;
-
-    void loop(const EvLoop&);
 };
 
 struct SurfaceDrift
