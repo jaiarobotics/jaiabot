@@ -121,7 +121,7 @@ message MissionManager
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    optional uint32 imu_restart_seconds = 51 [default = 10];
+    optional uint32 imu_restart_seconds = 51 [default = 15];
 
     // Bot not rising timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bot is stuck and is not rising
