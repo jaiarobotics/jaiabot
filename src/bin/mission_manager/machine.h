@@ -1202,6 +1202,8 @@ struct StationKeep
     using reactions =
         typename boost::mpl::copy<local_reactions,
                                   boost::mpl::front_inserter<Base::common_reactions>>::type;
+
+    void loop(const EvLoop&);
 };
 
 struct SurfaceDrift
@@ -1472,10 +1474,15 @@ struct StationKeep
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
+    void loop(const EvLoop&);
+
     using local_reactions = boost::mpl::list<>;
     using reactions =
         typename boost::mpl::copy<local_reactions,
                                   boost::mpl::front_inserter<Base::common_reactions>>::type;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,

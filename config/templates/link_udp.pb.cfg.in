@@ -19,7 +19,7 @@ link {
     # Buffer values for the forwarded subscription (message sent to set up the subscription itself)
     subscription_buffer {
         # avoid sending subscriptions more often than 10 seconds
-        blackout_time: 10
+        blackout_time: 1
         # set to some reasonably high (but not max) value
         value_base: 1000
         # one hour to set up all subscriptions should be enough
