@@ -12,7 +12,7 @@ from http import HTTPStatus
 # Internal Imports
 import jaia_portal
 import missions
-
+from geotiffs import GeoTiffs
 
 def parseDate(date):
     if date is None or date == '':
@@ -264,6 +264,20 @@ def get_bot_paths():
         since_utime = None
     
     return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
+
+
+####### GeoTIFF files
+
+geoTiff_root = '/usr/share/jaiabot/overlays'
+
+@app.route('/geoTiffs/<path>', methods=['GET'])
+def getGeoTiffFile(path):
+    return send_from_directory(geoTiff_root, path)
+
+@app.route('/geoTiffs', methods=['GET'])
+def listGeoTiffFiles():
+    geoTiffs = GeoTiffs(geoTiff_root)
+    return JSONResponse(obj=geoTiffs.list())
 
 
 if __name__ == '__main__':

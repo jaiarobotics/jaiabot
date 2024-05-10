@@ -34,7 +34,6 @@ namespace jaiabot
 {
 namespace intervehicle
 {
-
 // hub_command numeric group is based off bot id
 inline goby::middleware::DynamicGroup hub_command_group(std::uint32_t bot_id)
 {
@@ -71,9 +70,10 @@ goby::middleware::Publisher<DCCLMessage>
 
 // for all non-command intervehicle groups, we use the INTERVEHICLE_API_VERSION directly as the group numeric value
 template <typename DCCLMessage>
-std::function<goby::middleware::Group(const DCCLMessage&)> default_subscriber_group_func(
-    [](const DCCLMessage&) -> goby::middleware::Group
-    { return goby::middleware::Group(jaiabot::INTERVEHICLE_API_VERSION); });
+std::function<goby::middleware::Group(const DCCLMessage&)>
+    default_subscriber_group_func([](const DCCLMessage&) -> goby::middleware::Group {
+        return goby::middleware::Group(jaiabot::INTERVEHICLE_API_VERSION);
+    });
 
 } // namespace intervehicle
 } // namespace jaiabot

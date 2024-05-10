@@ -159,12 +159,12 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
-        { handle_hardware_status(hardware_status); });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            handle_hardware_status(hardware_status);
+        });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
-
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -398,14 +398,11 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     {
         auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
 
-        // Make sure the taskpacket has a newer timestamp
-        // If it is not then we should not handle the taskpacket and exit
-        if (prev_time >= task_packet.start_time())
+        // Make sure the taskpacket is not a repeat
+        // If it is, then we should not handle the taskpacket and exit
+        if (prev_time == task_packet.start_time())
         {
-            glog.is_warn() && glog << "Old taskpacket received! Ignoring..." << std::endl;
-
-            // Exit if the previous taskpacket
-            // time is greater than the one current one
+            glog.is_debug1() && glog << "Repeat taskpacket received! Ignoring..." << std::endl;
             return;
         }
 
