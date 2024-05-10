@@ -98,10 +98,15 @@ message CommandForHub
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
         SHUTDOWN_COMPUTER = 42;
+
+        // simulator commands
+        SET_HUB_LOCATION = 80;
     }
 
     required HubCommandType type = 10;
     optional uint32 scan_for_bot_id = 11;
+
+    optional GeographicCoordinate set_hub_location = 80;
 }
 
 message BotStatus

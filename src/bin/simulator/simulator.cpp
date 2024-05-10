@@ -45,6 +45,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
@@ -224,6 +225,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
                                 command.stop_forward_progress().duration_with_units());
                         break;
+
                 }
             });
 
@@ -239,6 +241,32 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     else
     {
         sim_hub_status();
+
+        // Subscribe to engineering commands for:
+        // * set_hub_location
+        interprocess().subscribe<jaiabot::groups::hub_command_full>(
+            [this](const jaiabot::protobuf::CommandForHub& hub_command) {
+                glog.is_warn() && glog << "Received hub_command: " << hub_command.ShortDebugString()
+                                       << std::endl;
+
+                if (hub_command.has_set_hub_location())
+                {
+                    auto location = hub_command.set_hub_location();
+
+                    // Re-publish hub at new coordinates
+                    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
+                    tpv.mutable_location()->set_lat_with_units(location.lat_with_units());
+                    tpv.mutable_location()->set_lon_with_units(location.lon_with_units());
+                    interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
+
+                    // Publish a datum change
+                    goby::middleware::protobuf::DatumUpdate update;
+                    update.mutable_datum()->set_lat_with_units(location.lat_with_units());
+                    update.mutable_datum()->set_lon_with_units(location.lon_with_units());
+                    this->interprocess().template publish<goby::middleware::groups::datum_update>(
+                        update);
+                }
+            });
     }
 }
 
