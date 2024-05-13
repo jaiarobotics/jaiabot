@@ -87,6 +87,7 @@ job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
   resource_class: large
   steps:
+    - checkout
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
     - run: *run-set-deb-rep-and-version
