@@ -95,8 +95,6 @@ inline protobuf::DeviceMetadata metadata()
     {
         std::string installed_version = installed_match[1];
 
-        std::cout << "Installed version: " << installed_version << std::endl;
-
         if (installed_version != "(none)")
         {
             // Perform regex match to extract "repo" and "release_branch"
