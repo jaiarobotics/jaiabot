@@ -7,9 +7,9 @@
     "sourceMap": true,
     "declaration": true,
     "moduleResolution": "node",
-    "outDir": "typescript/",
-    "rootDir": "../../",
-    "jsx": "react",
+    "outDir": "dist",
+    "rootDir": ".",
+    "jsx": "react-jsx",
     "target": "ES2015",
     "esModuleInterop": true,
     "lib": [
@@ -17,5 +17,5 @@
       "dom"
     ]
   },
-  "include": [".", "./client/components/shared"],
+  "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
 }
