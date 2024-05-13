@@ -49,8 +49,9 @@ class Metadata : public ApplicationBase
     {
         // Subscribe to MetaData
         interprocess().subscribe<jaiabot::groups::metadata>(
-            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata)
-            { publish_metadata(); });
+            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata) {
+                publish_metadata();
+            });
     }
 
   private:
@@ -75,6 +76,7 @@ void jaiabot::apps::Metadata::publish_metadata()
         metadata.set_xbee_node_id(cfg().xbee().node_id());
         metadata.set_xbee_serial_number(cfg().xbee().serial_number());
     }
+    metadata.set_intervehicle_api_version(jaiabot::INTERVEHICLE_API_VERSION);
 
     glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
 

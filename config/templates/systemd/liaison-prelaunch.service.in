@@ -10,6 +10,7 @@ After=var-log.mount
 [Service]
 User=$user
 Group=$group
+Restart=on-failure
 
 EnvironmentFile=$env_file
 ExecStart=$bin_dir/$exe -C '$gen goby_liaison_prelaunch' $extra_flags

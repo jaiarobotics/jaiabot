@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-
-from setuptools import setup, find_packages
-
-print(find_packages())
+from setuptools import setup
 
 setup(name='pyjaia',
       version='1.0',
@@ -11,7 +8,8 @@ setup(name='pyjaia',
       author_email='edsanville@gmail.com',
       url='https://www.jaia.tech',
       packages=[
-          'pyjaia', 
+          'pyjaia',
+          'pyjaia.waves',
           'dccl', 
           'goby.middleware.protobuf', 
           'jaiabot.messages'],
@@ -23,4 +21,7 @@ setup(name='pyjaia',
           'cmocean',
           'turfpy'
           ],
-     )
+        scripts=[
+            'pyjaia/waves/jaia-analyze-waves.py'
+        ]
+    )

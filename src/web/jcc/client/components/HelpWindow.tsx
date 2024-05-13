@@ -2,8 +2,7 @@ import React from 'react'
 import '../style/components/HelpWindow.less'
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
-import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
-import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
+import { mdiPlay, mdiWindowClose, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiWrench, mdiSquareEditOutline, mdiRuler } from '@mdi/js'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-common-types'
 const rallyIcon = require('./shared/rally.svg') as string
@@ -82,7 +81,7 @@ const buttons: ButtonDescriptor[] = [
         description: 'Open the Mission Panel, which shows each run in the current mission, and which bots are assigned to which run.  Missions can also be saved, loaded, and cleared from this panel.'
     },
     {
-        fontAwesomeIconDefinition: faEdit,
+        iconPath: mdiSquareEditOutline,
         name: 'Edit Optimized Mission Survey',
         description: 'Open the Optimized Mission Survey, which can be used to configure a survey mission, where the pod of Jaiabots will coordinate to survey an area of the map.  The tasks performed at each waypoint in the survey mission can be customized.'
     },
@@ -98,19 +97,14 @@ const buttons: ButtonDescriptor[] = [
     },
     {
         iconPath: mdiCog,
-        name: 'Map Settings',
-        description: 'Open the Map Settings panel for Jaia Command & Control.'
+        name: 'Settings',
+        description: 'Open the Settings panel for Jaia Command & Control.'
     },
     {
-        fontAwesomeIconDefinition: faRuler,
+        iconPath: mdiRuler,
         name: 'Measure Distance',
         description: 'Click two or more points to measure the total distance along a set of line segments.'
     },
-    {
-        fontAwesomeIconDefinition: faWrench,
-        name: 'Engineering Panel',
-        description: 'Open the Engineering Panel, which can be used for low-level control of one or more Jaiabots.'
-    }
 ]
 
 

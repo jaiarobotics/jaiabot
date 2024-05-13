@@ -20,6 +20,7 @@ try:
     hub_index=int(os.environ['jaia_hub_index'])
 except:
     hub_index=0
+cloudhub_index=30
 
 try:
     user_role=os.environ['jaia_user_role'].upper()
@@ -38,9 +39,15 @@ templates_dir=common.jaia_templates_dir
 
 liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_load.pb.cfg.in')
 
+# omit so we don't shutdown the real system on a timeout
+vfleet_shutdown_times=''
+if common.is_vfleet:
+    vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 300 }'
+    
+    
 verbosities = \
 { 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_intervehicle_portal':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
+  'goby_intervehicle_portal':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_liaison_prelaunch':    { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
@@ -48,8 +55,8 @@ verbosities = \
   'goby_coroner':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_health':            { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG2'}},
   'jaiabot_metadata':          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'VERBOSE' }},
-  'jaiabot_hub_manager':       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG2' }},
-  'jaiabot_web_portal':        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG2' }},
+  'jaiabot_hub_manager':       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
+  'jaiabot_web_portal':        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'goby_opencpn_interface':    { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_terminate':            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -92,12 +99,17 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 
 
-if common.app == 'gobyd':    
+if common.app == 'gobyd':
+    if hub_index == cloudhub_index:
+        required_clients=''
+    else:
+        required_clients='required_client: "goby_intervehicle_portal"'
+
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
-                                     required_clients='required_client: "goby_intervehicle_portal"'))
+                                     required_clients=required_clients))
 elif common.app == 'goby_intervehicle_portal':    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
@@ -112,12 +124,13 @@ elif common.app == 'goby_coroner':
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
-elif common.app == 'jaiabot_health':    
+elif common.app == 'jaiabot_health':
+    ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/hub/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation(),
+                                     ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation()))
 elif common.app == 'goby_liaison':
     liaison_port=30000
@@ -131,12 +144,28 @@ elif common.app == 'goby_liaison':
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_liaison_prelaunch':
     liaison_port=9091
-    this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)    
+    this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)
+    inventory='/etc/jaiabot/inventory.yml'
+    if hub_index == cloudhub_index:
+        vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
+    else:
+        vfleet_playbooks=''
+
+    # Cloudhub must use a newer pip venv installed ansible since the packaged version (as of Ubuntu 22.04) does not include the required features for EC2
+    if hub_index == cloudhub_index:
+        ansible_playbook_full_path='ansible_playbook_full_path: "/opt/jaia_cloudhub_venv/bin/ansible-playbook"'
+    else:
+        ansible_playbook_full_path=''
+
+        
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
                                      this_hub=this_hub,
-                                     user_role=user_role))
+                                     user_role=user_role,
+                                     inventory=inventory,
+                                     vfleet_playbooks=vfleet_playbooks,
+                                     ansible_playbook_full_path=ansible_playbook_full_path))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
@@ -159,7 +188,8 @@ elif common.app == 'jaiabot_hub_manager':
                                      interprocess_block = interprocess_common,
                                      hub_id=hub_index,
                                      xbee_config=common.comms.xbee_config(),
-                                     fleet_id=fleet_index))
+                                     fleet_id=fleet_index,
+                                     vfleet_shutdown_times=vfleet_shutdown_times))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

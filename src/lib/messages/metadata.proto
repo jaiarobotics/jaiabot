@@ -37,6 +37,8 @@ message DeviceMetadata
     optional string jaiabot_image_version = 9;
     optional string jaiabot_image_build_date = 10;
     optional string jaiabot_image_first_boot_date = 11;
+
+    optional uint32 intervehicle_api_version = 12;
 }
 
 message QueryDeviceMetaData

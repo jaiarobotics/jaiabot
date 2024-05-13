@@ -53,6 +53,7 @@ interface Props {
     isSRPEnabled: boolean
     setIsSRPEnabled: (isSRPEnabled: boolean) => void
     botList?: {[key: string]: BotStatus}
+    enableEcho: boolean
 
     onClose: () => void
     onMissionApply: (startRally: Feature<Geometry>, endRally: Feature<Geometry>, missionStartTask: MissionTask, missionEndTask: MissionTask) => void
@@ -242,6 +243,7 @@ export class MissionSettingsPanel extends React.Component {
                         <TaskSettingsPanel 
                             task={this.state.missionBaseGoal.task} 
                             isEditMode={true}
+                            enableEcho={this.props.enableEcho}
                             onChange={(task) => {
                                 const missionBaseGoal = this.state.missionBaseGoal
                                 missionBaseGoal.task = task
@@ -257,7 +259,8 @@ export class MissionSettingsPanel extends React.Component {
                             map={map} 
                             location={this.props.startRally?.get('location')}
                             isEditMode={true}
-                            task={this.state.missionStartTask} 
+                            task={this.state.missionStartTask}
+                            enableEcho={this.props.enableEcho}
                             onChange={(missionStartTask) => { this.setState({ missionStartTask })}} 
                         />
                     </div>
@@ -269,7 +272,8 @@ export class MissionSettingsPanel extends React.Component {
                             map={map} 
                             location={finalLocation}
                             isEditMode={true}
-                            task={this.state.missionEndTask} 
+                            task={this.state.missionEndTask}
+                            enableEcho={this.props.enableEcho}
                             onChange={(missionEndTask) => { this.setState({ missionEndTask })}} 
                         />
                     </div>

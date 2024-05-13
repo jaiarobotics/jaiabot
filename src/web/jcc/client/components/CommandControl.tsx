@@ -5,12 +5,11 @@ import React, { MouseEvent, ReactElement, ReactNode } from 'react'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
-import EngineeringPanel from './EngineeringPanel'
 import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import { Layers, layers } from './Layers'
-import { jaiaAPI } from '../../common/JaiaAPI'
+import { layers } from './Layers'
+import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
 import { HubOrBot } from './HubOrBot'
@@ -29,6 +28,7 @@ import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
 import { Save, GlobalSettings } from './Settings'
+import { CustomLayerGroupFactory } from './CustomLayers'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
@@ -39,7 +39,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams } from './shared/JAIAProtobuf'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams, BotType } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
@@ -47,6 +47,7 @@ import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHT
 import OlMap from 'ol/Map'
 import OlFeature from 'ol/Feature'
 import OlCollection from 'ol/Collection'
+import LayerGroup from 'ol/layer/Group'
 import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
@@ -65,10 +66,8 @@ import * as turf from '@turf/turf'
 // Styling
 import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
-	     mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp, mdiRuler} from '@mdi/js'
+	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline, mdiMagnifyPlusOutline, mdiMagnifyMinusOutline, mdiRotate3dVariant} from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -87,6 +86,7 @@ const sidebarInitialWidth = 0
 const mapSettings = GlobalSettings.mapSettings
 
 const POD_STATUS_POLL_INTERVAL = 500
+const BOT_PATHS_POLL_INTERVAL = 2_000
 const METADATA_POLL_INTERVAL = 10_000
 const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
@@ -97,7 +97,6 @@ interface Props {}
 export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
-	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	RUN_INFO = 'RUN_INFO',
@@ -135,6 +134,7 @@ interface State {
 	podStatus: PodStatus
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
+	enableEcho: boolean,
 	lastBotCount: number,
 
 	missionParams: MissionParams,
@@ -243,9 +243,12 @@ export default class CommandControl extends React.Component {
 	surveyLines: SurveyLines
 	surveyExclusions: SurveyExclusions
 	podStatusPollId: NodeJS.Timeout
+	botPathsPollId: NodeJS.Timeout
 	metadataPollId: NodeJS.Timeout
 	flagNumber: number
 	missionHistory: MissionInterface[]
+	lastBotPathPointUtime: number = 0
+	botPathFeatures: {[key: number]: Feature<LineString>} = {}
 
 	constructor(props: Props) {
 		super(props)
@@ -258,6 +261,7 @@ export default class CommandControl extends React.Component {
 			},
 			podStatusVersion: 0,
 			botExtents: {},
+			enableEcho: false,
 			lastBotCount: 0,
 
 			missionParams: {
@@ -378,6 +382,9 @@ export default class CommandControl extends React.Component {
 
 		// Map initializations
 		map = createMap()
+		layers.on(CustomLayerGroupFactory.customLayerGroupReady, (customLayerGroup: LayerGroup) => {
+			map.getLayers().insertAt(2, customLayerGroup);
+		})
 		this.interactions = new Interactions(this, map)
 		map.addInteraction(this.interactions.pointerInteraction)
 		map.addInteraction(this.interactions.translateInteraction)
@@ -460,6 +467,7 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
 		this.pollPodStatus()
+		//this.pollBotPaths()
 		this.pollMetadata()
 		setInterval(() => this.pollTaskPackets(), TASK_PACKET_POLL_INTERVAL)
 
@@ -479,9 +487,45 @@ export default class CommandControl extends React.Component {
 		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!')
+
+		// Search for the Zoom & Reset buttons using classname and assign them new icons.
+		const buttons = document.querySelectorAll('.ol-zoom-in, .ol-zoom-out,.ol-rotate-reset');
+		buttons.forEach(button => {
+		  if (button.classList.contains('ol-zoom-in')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiMagnifyPlusOutline}" />
+			</svg>
+		  `;
+		  } else if (button.classList.contains('ol-zoom-out')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiMagnifyMinusOutline}" />
+			</svg>
+		  `;
+		  }else if (button.classList.contains('ol-rotate-reset')) {
+			button.innerHTML = 
+			`
+			<svg viewBox="0 0 24 24" width="40" height="40">
+			  <path d="${mdiRotate3dVariant}" />
+			</svg>
+		  `;
+		  }
+		
+		})
+
 	}
 
-	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
+	/**
+	 * Called when the CommandControl component re-renders
+	 * 
+	 * @param {Props} prevProps 
+	 * @param {State} prevState Holds the values of state prior to the update
+	 * @returns {void}
+	 */
+	componentDidUpdate(prevProps: Props, prevState: State) {
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -536,7 +580,7 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map settings panel, if needed
+		// Update the settings panel, if needed
 		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
@@ -801,6 +845,69 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	
+	/**
+	 * Use JaiaAPI to poll the botPath data.
+	 */
+	pollBotPaths() {
+		this.api.getBotPaths(this.lastBotPathPointUtime).then(
+			(response) => {
+				if (response.error) {
+					this.hubConnectionError(response.error.message)
+					return
+				}
+
+				if (response.result) {
+					this.updateBotPaths(response.result)
+				}
+			},
+			(err) => {
+				this.hubConnectionError(err.message)
+			}
+		)
+		// Starts polling interval
+		if (!this.botPathsPollId) {
+			this.botPathsPollId = setInterval(() => this.pollBotPaths(), BOT_PATHS_POLL_INTERVAL)
+		}
+	}
+
+	
+	/**
+	 * Update the botPath features on the botPathsLayer.
+	 *
+	 * @param {BotPaths} botPaths The dictionary of bot_id strings to BotPathPoint[] to append to the botPath LineString features.
+	 */
+	updateBotPaths(botPaths: BotPaths) {
+		for (const [ bot_id_string, botPath ] of Object.entries(botPaths)) {
+			if (botPath.length < 1) continue
+
+			const bot_id = Number(bot_id_string)
+
+			this.lastBotPathPointUtime = Math.max(this.lastBotPathPointUtime, botPath[botPath.length - 1][0])
+
+			const coordinates = botPath.map((botPathPoint) => {
+				return getMapCoordinate({ lon: botPathPoint[1], lat: botPathPoint[2] }, map)
+			})
+
+			if (!(bot_id in this.botPathFeatures)) {
+				const newLayer = layers.createNewBotPathLayer(bot_id)
+
+				const newFeature = new Feature<LineString>({
+					geometry: new LineString([]),
+					bot_id: Number(bot_id)
+				})
+
+				this.botPathFeatures[bot_id] = newFeature
+				newLayer.getSource().addFeature(newFeature)
+			}
+
+			let feature = this.botPathFeatures[bot_id]
+			const oldCoordinates = feature.getGeometry().getCoordinates()
+			feature.getGeometry().setCoordinates(oldCoordinates.concat(coordinates))
+		}
+	}
+
+
 	pollPodStatus() {
 		this.api.getStatus().then(
 			(result) => {
@@ -816,6 +923,7 @@ export default class CommandControl extends React.Component {
 
 				this.oldPodStatus = {...this.getPodStatus()}
 				this.setPodStatus(result)
+				this.setPodConfig()
 
 				let messages = result.messages
 
@@ -884,6 +992,16 @@ export default class CommandControl extends React.Component {
 
 	setPodStatus(podStatus: PodStatus) {
 		this.setState({ podStatus, podStatusVersion: this.state.podStatusVersion + 1 })
+	}
+
+	/**
+	 * Saves configurable pod settings in state
+	 * 
+	 * @returns {void}
+	 */
+	setPodConfig() {
+		const enableEcho = this.checkBotTypes(BotType.ECHO)
+		this.setState({ enableEcho })
 	}
 
 	getMetadata() {
@@ -1035,6 +1153,21 @@ export default class CommandControl extends React.Component {
 				onSuccess()
 			})
 		}
+	}
+
+	/**
+	 * Loops through bot status messages searching for a particular bot type
+	 * 
+	 * @param {BotType} type Target bot type
+	 * @returns {boolean} Whether or not the target bot type exists in the pod
+	 */
+	checkBotTypes(type: BotType) {
+		for (let bot of Object.values(this.state.podStatus['bots'])) {
+			if (bot.bot_type !== undefined && bot.bot_type === type) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// 
@@ -1730,14 +1863,9 @@ export default class CommandControl extends React.Component {
 		if (botId && !runs[botsAssignedToRuns[botId]]?.command) {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
+		
+		let run = runs[runList.runIdInEditMode]
 
-		let run = null
-		if (!botId) {
-			run = runs[this.getRunList().runIdInEditMode]
-		} else {
-			run = runs[botsAssignedToRuns[botId]]
-		}
- 
 		// Prevent error after operator deletes an unassigned run and then clicks on the map
 		if (!run) { return }
 		
@@ -1958,20 +2086,25 @@ export default class CommandControl extends React.Component {
 	// Transferring Mission to GUI (End)
 	//
 
-	// 
-	// Bot Edit Mode (Start)
-	//
+	/**
+	 * Called when an EditModeToggle is turned on/off and updates runList.runIdInEditMode to the input run 
+	 * 
+	 * @param {React.ChangeEvent<HTMLInputElement>} evt Event activating the edit mode toggle  
+	 * @param {RunInterface} run The run being put into Edit Mode
+	 * @returns {void} 
+	 */
 	toggleEditMode(evt: React.ChangeEvent<HTMLInputElement>, run: RunInterface) {
 		const runList = this.getRunList()
+
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
 		} else {
 			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-				this.setVisiblePanel(PanelType.GOAL_SETTINGS)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
 			runList.runIdInEditMode = ''
 		}
+
 		this.setRunList(runList)
     }
 
@@ -2574,12 +2707,19 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Calls the download function for the bot at the top of the queue and
+	 * removes it when the download finishes
+	 * 
+	 * @returns {void}
+	 */
 	async downloadBotsInOrder() {
 		const queue = this.state.botDownloadQueue
 		for (const bot of queue) {
-			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id) // Needed to update the queue list when downloads are added after the queue started
+			// Needed to update the queue list when downloads are added after the queue started
+			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
 				this.removeBotFromQueue(bot)
 			}
 		}
@@ -2668,10 +2808,20 @@ export default class CommandControl extends React.Component {
 		return downloadableBots
 	}
 
+	/**
+	 * Gets the most up-to-date mission state of a bot
+	 * 
+	 * @param {number} botId Allows us to get the mission state for a specific bot 
+	 * @returns {MissionState} The bot's state in accordance with the state machine
+	 * 
+	 * @notes
+	 * Helpful in some asynchronous operations where an external function call is needed
+	 * to retrieve the latest data
+	 */
 	getBotMissionState(botId: number) {
 		// Need external function to get most up-to-date mission state, else mission state stays the same in async operations
 		const bots = this.getPodStatus().bots
-		return bots[botId].mission_state
+		return bots[botId]?.mission_state
 	}
 
 	getBotDownloadPercent(botId: number) {
@@ -3311,6 +3461,7 @@ export default class CommandControl extends React.Component {
 					isSRPEnabled={this.state.isSRPEnabled}
 					setIsSRPEnabled={this.setIsSRPEnabled.bind(this)}
 					botList={bots}
+					enableEcho={this.state.enableEcho}
 					
 					onClose={() => {
 						this.clearMissionPlanningState()
@@ -3353,6 +3504,8 @@ export default class CommandControl extends React.Component {
 								} else {
 									this.deleteSRPInputsFromRuns()
 								}
+
+								this.autoAssignBotsToRuns()
 
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
@@ -3443,7 +3596,7 @@ export default class CommandControl extends React.Component {
 					this.setVisiblePanel(PanelType.NONE)
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
+				<Icon path={mdiSquareEditOutline} title="Stop Editing Optimized Mission Survey"></Icon>
 			</Button>
 		) : (
 			<Button
@@ -3471,24 +3624,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first survey point');
 				}}
 			>
-				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
-			</Button>
-		))
-
-		const engineeringButton = (visiblePanel == PanelType.ENGINEERING ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-			}} 
-			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.ENGINEERING)
-			}} 
-			>
-				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+				<Icon path={mdiSquareEditOutline} title="Edit Optimized Mission Survey"></Icon>
 			</Button>
 		))
 
@@ -3514,14 +3650,14 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		))
 
@@ -3534,7 +3670,7 @@ export default class CommandControl extends React.Component {
 						this.setVisiblePanel(PanelType.NONE)
 					}}
 				>
-					<Icon path={mdiRuler}  title="Measurement Result" />
+					<Icon path={mdiRuler} size={1.3}  title="Measurement Result" />
 				</Button>
 			</div>
 		) : (
@@ -3546,7 +3682,7 @@ export default class CommandControl extends React.Component {
 					info('Touch map to set first measure point');
 				}}
 			>
-				<Icon path={mdiRuler}  title="Measure Distance" />
+				<Icon path={mdiRuler} size={1.3} title="Measure Distance" />
 			</Button>
 		)
 
@@ -3597,19 +3733,6 @@ export default class CommandControl extends React.Component {
 				)
 				break
 
-			case PanelType.ENGINEERING:
-				visiblePanelElement = (
-					<EngineeringPanel 
-					api={this.api} 
-					bots={bots} 
-					hubs={hubs} 
-					getSelectedBotId={this.selectedBotId.bind(this)}
-					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} 
-					/>
-				)
-				break
-
 			case PanelType.MISSION_SETTINGS:
 				visiblePanelElement = missionSettingsPanel
 				break
@@ -3638,6 +3761,8 @@ export default class CommandControl extends React.Component {
 						originalGoal={goalBeingEdited.originalGoal}
 						runList={this.getRunList()}
 						runNumber={goalBeingEdited?.runNumber}
+						enableEcho={this.state.enableEcho}
+						setRunList={this.setRunList.bind(this)}
 						onChange={() => {
 							this.setRunList(this.getRunList())
 						}}
@@ -3647,7 +3772,7 @@ export default class CommandControl extends React.Component {
 						}}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
-						setRunList={this.setRunList.bind(this)}
+						toggleEditMode={this.toggleEditMode.bind(this)}
 						updateMissionHistory={this.updateMissionHistory.bind(this)}
 					/>
 				)
@@ -3693,6 +3818,15 @@ export default class CommandControl extends React.Component {
 						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
+
+						// Engineering Accordion Props
+						api={this.api} 
+						bots={bots} 
+						hubs={hubs} 
+						getSelectedBotId={this.selectedBotId.bind(this)}
+						getFleetId={this.getFleetId.bind(this)}
+						control={this.takeControl.bind(this)} 
+
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						trackBot={this.trackBot.bind(this)}
@@ -3718,9 +3852,8 @@ export default class CommandControl extends React.Component {
 					{missionPanelButton}
 					{surveyMissionSettingsButton}
 					{downloadQueueButton}
-					{settingsPanelButton}
 					{measureButton}
-					{engineeringButton}
+					{settingsPanelButton}
 				</div>
 
 				<div id="botsDrawer">

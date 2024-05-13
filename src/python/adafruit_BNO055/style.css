@@ -1,9 +1,0 @@
-td { 
-    padding: 15pt;
-    border: 1pt solid lightblue
-}
-
-td.used {
-    font-weight: bold;
-    background-color: lightcyan;
-}
