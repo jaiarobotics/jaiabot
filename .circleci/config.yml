@@ -87,7 +87,6 @@ job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
   resource_class: large
   steps:
-    - checkout
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
     - run: *run-set-deb-rep-and-version
@@ -180,12 +179,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-
+        - "task/status-repo-and-version"
+        
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
+        - "task/status-repo-and-version"
 
 ## Begin actual config
 version: 2
