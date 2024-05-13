@@ -3816,6 +3816,7 @@ export default class CommandControl extends React.Component {
 
 						// Engineering Accordion Props
 						api={this.api} 
+						map={map}
 						bots={bots} 
 						hubs={hubs} 
 						getSelectedBotId={this.selectedBotId.bind(this)}

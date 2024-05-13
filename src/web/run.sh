@@ -31,4 +31,4 @@ popd > /dev/null
 
 
 # Watch build JCC and JED clients for development
-npx webpack --mode production --env OUTPUT_DIR=${BUILD_DIR} --watch --progress
+npx webpack --mode development --env OUTPUT_DIR=${BUILD_DIR} --watch --progress

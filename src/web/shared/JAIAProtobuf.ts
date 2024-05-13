@@ -962,6 +962,7 @@ export enum HubCommandType {
     RESTART_ALL_SERVICES = "RESTART_ALL_SERVICES",
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
+    SET_HUB_LOCATION = "SET_HUB_LOCATION"
 }
 
 export interface CommandForHub {
@@ -969,6 +970,7 @@ export interface CommandForHub {
     time?: number
     type?: HubCommandType
     scan_for_bot_id?: number
+    set_hub_location?: GeographicCoordinate
 }
 
 export interface Attitude {

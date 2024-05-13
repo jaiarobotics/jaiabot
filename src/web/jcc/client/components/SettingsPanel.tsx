@@ -23,6 +23,7 @@ import { mdiSendVariant} from '@mdi/js'
 
 import '../style/components/SettingsPanel.css'
 import SetHubLocationPanel from './SetHubLocationPanel'
+import { Map } from 'ol'
 
 
 interface Props {
@@ -42,6 +43,7 @@ interface Props {
 
     // Engineering Accordion Props
     api: JaiaAPI
+    map: Map
 	bots: {[key: number]: PortalBotStatus}
 	hubs: {[key: number]: PortalHubStatus}
 	getSelectedBotId: () => number
@@ -254,7 +256,7 @@ export function SettingsPanel(props: Props) {
 
                                 <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
 
-                                <SetHubLocationPanel hubs={props.hubs} api={props.api} />
+                                <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} />
                             </div>
                         </AccordionDetails>
                     </Accordion>
