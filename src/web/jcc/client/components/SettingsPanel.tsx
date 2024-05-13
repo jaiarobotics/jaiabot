@@ -22,6 +22,7 @@ import { Icon } from '@mdi/react'
 import { mdiSendVariant} from '@mdi/js'
 
 import '../style/components/SettingsPanel.css'
+import SetHubLocationPanel from './SetHubLocationPanel'
 
 
 interface Props {
@@ -252,6 +253,8 @@ export function SettingsPanel(props: Props) {
                                 <QueryBotStatusPanel control={props.control} api={props.api} />
 
                                 <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
+
+                                <SetHubLocationPanel hubs={props.hubs} api={props.api} />
                             </div>
                         </AccordionDetails>
                     </Accordion>
