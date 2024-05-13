@@ -29,7 +29,6 @@ message DeviceMetadata
     optional string goby_version = 3;
     optional string moos_version = 4;
 
-    // no way yet to get this information, but will keep this as a placeholder
     optional string ivp_version = 5;
 
     optional string xbee_node_id = 6;

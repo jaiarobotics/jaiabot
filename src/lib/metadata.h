@@ -86,28 +86,47 @@ inline protobuf::DeviceMetadata metadata()
         return result;
     };
 
-    std::string cmd = "apt-cache policy jaiabot-embedded";
-    std::string output = execute_command(cmd.c_str());
-
-    std::regex installed_pattern(R"(Installed: (\S+))");
-    std::smatch installed_match;
-    if (std::regex_search(output, installed_match, installed_pattern))
+    // pull deb package info for jaiabot-embedded
     {
-        std::string installed_version = installed_match[1];
+        std::string cmd = "apt-cache policy jaiabot-embedded";
+        std::string output = execute_command(cmd.c_str());
 
-        if (installed_version != "(none)")
+        std::regex installed_pattern(R"(Installed: (\S+))");
+        std::smatch installed_match;
+        if (std::regex_search(output, installed_match, installed_pattern))
         {
-            // Perform regex match to extract "repo" and "release_branch"
-            std::regex repo_pattern(R"(packages\.jaia\.tech/ubuntu/([a-z]*)/([X0-9]+\.y*))");
-            std::smatch repo_match;
-            if (std::regex_search(output, repo_match, repo_pattern))
-            {
-                std::string repo = repo_match[1];
-                std::string release_branch = repo_match[2];
+            std::string installed_version = installed_match[1];
 
-                jaiabot_version.set_deb_repository(repo);
-                jaiabot_version.set_deb_release_branch(release_branch);
+            if (installed_version != "(none)")
+            {
+                // Perform regex match to extract "repo" and "release_branch"
+                std::regex repo_pattern(R"(packages\.jaia\.tech/ubuntu/([a-z]*)/([X0-9]+\.y*))");
+                std::smatch repo_match;
+                if (std::regex_search(output, repo_match, repo_pattern))
+                {
+                    std::string repo = repo_match[1];
+                    std::string release_branch = repo_match[2];
+
+                    jaiabot_version.set_deb_repository(repo);
+                    jaiabot_version.set_deb_release_branch(release_branch);
+                }
             }
+        }
+    }
+
+    // pull deb package info for moos-ivp-apps
+    {
+        std::string cmd = "apt-cache policy moos-ivp-apps";
+        std::string output = execute_command(cmd.c_str());
+
+        std::regex installed_pattern(R"(Installed: (\S+))");
+        std::smatch installed_match;
+        if (std::regex_search(output, installed_match, installed_pattern))
+        {
+            std::string installed_version = installed_match[1];
+
+            if (installed_version != "(none)")
+                metadata.set_ivp_version(installed_version);
         }
     }
 

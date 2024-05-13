@@ -57,6 +57,13 @@ jaiabot::apps::VersionTool::VersionTool()
                     std::cout << "moos: " << all_pb_metadata.moos_version() << std::endl;
                 }
                 break;
+            case jaiabot::config::VersionTool::ivp:
+                *display_pb_metadata.mutable_ivp_version() = all_pb_metadata.ivp_version();
+                if (app_cfg().format() == jaiabot::config::VersionTool::text)
+                {
+                    std::cout << "ivp: " << all_pb_metadata.ivp_version() << std::endl;
+                }
+                break;
             case jaiabot::config::VersionTool::raspi:
 
                 *display_pb_metadata.mutable_raspi_firmware_version() =
