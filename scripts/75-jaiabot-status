@@ -23,8 +23,9 @@ echo ""
 systemctl list-units -all "jaiabot*"
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 echo 
-cat /etc/jaiabot/version
-echo ""
-cat /etc/jaiabot/software_version
+set -a
+source /etc/jaiabot/runtime.env
+${jaia_tool} version
+set +a
 echo
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
