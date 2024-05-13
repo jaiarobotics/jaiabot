@@ -28,9 +28,15 @@ echo "                       _  _   __ ___  _        __ "
 echo "                 \  / |_ |_) (_   |  / \ |\ | (_  "
 echo "                  \/  |_ | \ __) _|_ \_/ | \| __) "      
 echo ""
+
+jaia_tool=jaia
+if [ -e /etc/jaiabot/runtime.env ]; then
 set -a
 source /etc/jaiabot/runtime.env
-${jaia_tool} version
 set +a
+fi
+
+${jaia_tool} version
+
 echo
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
