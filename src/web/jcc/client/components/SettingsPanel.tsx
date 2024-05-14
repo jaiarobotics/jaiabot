@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { ReactElement, useState } from 'react'
 
 import JaiaToggle from './JaiaToggle'
 import ScanForBotPanel from './ScanForBotPanel'
@@ -55,7 +55,8 @@ interface Props {
 enum AccordionTabs {
     TaskPackets = 'TASK_PACKETS',
     MapLayers = 'MAP_LAYERS',
-    Engineering = 'ENGINEERING'
+    Engineering = 'ENGINEERING',
+    Simulation = 'SIMULATION'
 }
 
 /**
@@ -113,6 +114,34 @@ export function SettingsPanel(props: Props) {
             updatedOpenAccordionTabs.push(accordionTab)
             setOpenAccordionTabs(updatedOpenAccordionTabs)
         }
+    }
+
+    const simulationAccordion = (): ReactElement => {
+        if (!props.isSimulation) {
+            return null
+        }
+        return (                
+        <ThemeProvider theme={accordionTheme}>
+            <Accordion
+                expanded={isOpenAccordionTab(AccordionTabs.Simulation)}
+                onChange={() => handleAccordionTabClick(AccordionTabs.Simulation)}
+                className='accordionContainer'
+            >
+                <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls='panel1a-content'
+                    id='panel1a-header'
+                >
+                    <Typography>Simulation</Typography>
+                </AccordionSummary>
+                <AccordionDetails className="settings-accordion-inner-container">
+                    <div className="settings-card">
+                        <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} />
+                    </div>
+                </AccordionDetails>
+            </Accordion>
+        </ThemeProvider>
+        )
     }
 
     return (
@@ -256,14 +285,12 @@ export function SettingsPanel(props: Props) {
                                 <QueryBotStatusPanel control={props.control} api={props.api} />
 
                                 <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
-
-                                { props.isSimulation ?
-                                    <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} /> :
-                                    null }
                             </div>
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
+
+                { simulationAccordion() }
 
             </div>
 

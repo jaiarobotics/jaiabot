@@ -11,6 +11,7 @@ import { getElementById, getGeographicCoordinate } from './shared/Utilities';
 import { Map } from 'ol';
 import { Interaction } from 'ol/interaction';
 import PointerInteraction from 'ol/interaction/Pointer';
+import { Select, MenuItem } from '@mui/material';
 
 interface Props {
     hubs: {[key: number]: PortalHubStatus}
@@ -21,80 +22,77 @@ interface Props {
 export default class SetHubLocationPanel extends React.Component {
     props: Props
     _selectOnMapInteraction: Interaction
+    hub_id: number
 
     constructor(props: Props) {
         super(props)
+        this.hub_id = Object.values(this.props.hubs)[0].hub_id ?? null
     }
 
     render() {
         const hubLocation = this.props.hubs[0].location
         const selectingOnMap = (this._selectOnMapInteraction != null)
-        const defaultHubId = Object.values(this.props.hubs)[0].hub_id ?? null
 
         const hubIdOptionElements = () => {
             return Object.values(this.props.hubs).map((hub) => {
-                return <option value={hub.hub_id}>{`Hub ${hub.hub_id}`}</option>
+                return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>
             })
         }
 
         return (
             <div className="panel">
-                <label>Set Hub Location</label>
-                <select id="bot-id-select" defaultValue={defaultHubId}>
-                    { hubIdOptionElements() }
-                </select>
-                <Button 
-                    className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
-                    type="button" 
-                    id="set-hub-location-map-select"
-                    onClick={this.selectOnMap.bind(this)}
-                    >Select on Map</Button>
-                <table>
-                    <tbody>
-                        <tr key="latitude">
-                            <td>Latitude</td>
-                            <td>
-                                <input 
-                                    id="set-hub-location-latitude" 
-                                    name="latitude" 
-                                    defaultValue={hubLocation.lat.toFixed(6)}
-                                />
-                            </td>
-                        </tr>
-                        <tr key="longitude">
-                            <td>Longitude</td>
-                            <td>
-                                <input
-                                    id="set-hub-location-longitude" 
-                                    name="longitude" 
-                                    defaultValue={hubLocation.lon.toFixed(6)}
-                                />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <Button
-                    className="button-jcc engineering-panel-btn" 
-                    type="button" 
-                    id="set-hub-location-submit"
-                    onClick={() => {
-                        this.submitHubLocation(this.getSelectedHubId(), this.getHubLocation())
-                    }}>
-                    Submit Values
-                </Button>
+                <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
+                <div className='mission-settings-panel-container'>
+
+                    <div className='mission-settings-input-label'>
+                        Hub ID
+                    </div>
+                    <div className='mission-settings-input-row'>
+                        <Select id="bot-id-select" defaultValue={this.hub_id} onChange={(evt) => {
+                                this.hub_id = Number(evt.target.value)
+                            }}>
+                            { hubIdOptionElements() }
+                        </Select>
+                    </div>
+
+                    <div className='mission-settings-input-label'>Latitude</div>
+                    <div className='mission-settings-input-row'>
+                        <input className="mission-settings-num-input"
+                            id="set-hub-location-latitude" 
+                            name="latitude" 
+                            defaultValue={hubLocation.lat.toFixed(6)}
+                        />
+                    </div>
+
+                    <div className='mission-settings-input-label'>Longitude</div>
+                    <div className='mission-settings-input-row'>
+                        <input className="mission-settings-num-input"
+                            id="set-hub-location-longitude" 
+                            name="longitude" 
+                            defaultValue={hubLocation.lon.toFixed(6)}
+                        />
+                    </div>
+
+                    <Button
+                        className="button-jcc engineering-panel-btn" 
+                        type="button" 
+                        id="set-hub-location-submit"
+                        onClick={() => {
+                            this.submitHubLocation(this.hub_id, this.getHubLocation())
+                        }}>
+                        Submit Values
+                    </Button>
+                    <Button 
+                        className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
+                        type="button" 
+                        id="set-hub-location-map-select"
+                        onClick={this.selectOnMap.bind(this)}
+                        >
+                        Select on Map
+                    </Button>
+                </div>
             </div>
         )
-    }
-
-    
-    /**
-     * Gets the currently selected hub_id from the GUI.
-     *
-     * @returns {*}
-     */
-    getSelectedHubId() {
-        const selectElement = getElementById<HTMLSelectElement>('bot-id-select')
-        return Number(selectElement.options[selectElement.selectedIndex].value)
     }
 
     
@@ -147,7 +145,7 @@ export default class SetHubLocationPanel extends React.Component {
             handleEvent: (evt) => {
                 if (evt.type == "click") {
                     const hubLocation = getGeographicCoordinate(evt.coordinate, evt.map)
-                    this.submitHubLocation(this.getSelectedHubId(), hubLocation)
+                    this.submitHubLocation(this.hub_id, hubLocation)
 
                     this.destroySelectOnMapInteraction()
                     return false
