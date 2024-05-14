@@ -50,7 +50,7 @@ export function BotListPanel(props: Props) {
         let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
 
         /**
-         * Triggers the handling logic in CommandControl and dispatches the event to the GlobalContext
+         * Triggers the handling logic in CommandControl and dispatches the event to GlobalContext
          * 
          * @returns {void}
          * 
@@ -93,7 +93,7 @@ export function BotListPanel(props: Props) {
         }
 
         /**
-         * Triggers the handling logic in CommandControl and dispatches the event to the GlobalContext
+         * Triggers the handling logic in CommandControl and dispatches the event to GlobalContext
          * 
          * @returns {void}
          * 

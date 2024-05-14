@@ -11,7 +11,7 @@ const abs = Math.abs
  * Converts microseconds to seconds
  * 
  * @param {number} microseconds Value to be converted to seconds
- * @returns {number} Seconds value corresponding to the provided microseconds
+ * @returns {number} Seconds corresponding to provided microseconds
  */
 export function convertMicrosecondsToSeconds(microseconds: number) {
     const seconds = microseconds / 1e6

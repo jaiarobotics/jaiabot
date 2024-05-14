@@ -467,7 +467,7 @@ class Interface:
         return status
     
     def get_status_hubs(self):
-        """Gets the status for all online hubs
+        """Gets status for all online hubs
         Returns:
             {[hub_id: int]: HubStatus}: The status for all online hubs
         """

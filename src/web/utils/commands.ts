@@ -38,7 +38,7 @@ export const hubCommands: {[key: string]: CommandInfo} = {
 }
 
 /**
- * Saves the client ID associated with the user session as the controlling client ID
+ * Saves client ID associated with the user session as the controlling client ID
  * 
  * @param {string} clientID ID associated with user session
  * @returns {boolean} Whether or not the client took control

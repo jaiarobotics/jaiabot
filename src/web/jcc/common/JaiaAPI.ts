@@ -91,7 +91,7 @@ export class JaiaAPI {
   }
 
   /**
-   * Gets the clientID provided by the server for the web session
+   * Gets clientID provided by the server for the web session
    * 
    * @returns {string} clientID provided by the server
    */
@@ -102,9 +102,9 @@ export class JaiaAPI {
   getStatus() { return this.get('jaia/status') }
 
   /**
-   * Gets the most recent hub status
+   * Gets most recent hub status
    * 
-   * @returns {{[key: string]: PortalHubStatus}} Object containing the most recent hub status
+   * @returns {{[key: string]: PortalHubStatus}} Object containing most recent hub status
    */
   getStatusHubs() { return this.get('jaia/status-hubs') }
 
