@@ -86,11 +86,23 @@ export default class SetHubLocationPanel extends React.Component {
         )
     }
 
+    
+    /**
+     * Gets the currently selected hub_id from the GUI.
+     *
+     * @returns {*}
+     */
     getSelectedHubId() {
         const selectElement = getElementById<HTMLSelectElement>('bot-id-select')
         return Number(selectElement.options[selectElement.selectedIndex].value)
     }
 
+    
+    /**
+     * Gets the user-entered location from the longitude and latitude GUI fields.
+     *
+     * @returns {(GeographicCoordinate | null)}
+     */
     getHubLocation(): GeographicCoordinate | null {
         const lat = Number(getElementById<HTMLInputElement>('set-hub-location-latitude').value)
         const lon = Number(getElementById<HTMLInputElement>('set-hub-location-longitude').value)
@@ -104,6 +116,13 @@ export default class SetHubLocationPanel extends React.Component {
         }
     }
 
+    
+    /**
+     * Calls the API to submit a location change for a certain hub.
+     *
+     * @param {number} hub_id id of the hub to change location.
+     * @param {GeographicCoordinate} hubLocation new location for the hub.
+     */
     submitHubLocation(hub_id: number, hubLocation: GeographicCoordinate) {
         if (hubLocation == null) {
             console.warn('hub location is null')
@@ -119,6 +138,10 @@ export default class SetHubLocationPanel extends React.Component {
         this.props.api.postCommandForHub(hubCommand)
     }
 
+    
+    /**
+     * Initiate a PointerInteraction to select a new hub location with a click or tap.
+     */
     selectOnMap() {
         this._selectOnMapInteraction = new PointerInteraction({
             handleEvent: (evt) => {
@@ -136,11 +159,16 @@ export default class SetHubLocationPanel extends React.Component {
         this.props.map.addInteraction(this._selectOnMapInteraction)
     }
 
+    
+    /**
+     * Destroy the hub location selection interaction.
+     */
     destroySelectOnMapInteraction() {
         this.props.map.removeInteraction(this._selectOnMapInteraction)
         this._selectOnMapInteraction = null
     }
 
+    
     componentWillUnmount(): void {
         this.destroySelectOnMapInteraction()
     }
