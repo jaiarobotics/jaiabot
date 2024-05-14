@@ -1,7 +1,8 @@
 from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
 from objects import jaialog_get_object_list
-from series import Series, h5_get_series
+from pyjaia.series import *
+from pyjaia.h5_tools import *
 from threading import Lock
 
 import h5py
@@ -190,14 +191,14 @@ class JaiaH5FileSet:
             bot_id = re.findall(bot_id_pattern, log.filename)
             bot_id_string = str(bot_id[0])
 
-            lat_series = Series(log=log, path=NodeStatus_lat_path, invalid_values=[0])
-            lon_series = Series(log=log, path=NodeStatus_lon_path, invalid_values=[0])
-            heading_series = Series(log=log, path=NodeStatus_heading_path)
-            course_over_ground_series = Series(log=log, path=NodeStatus_course_over_ground_path)
+            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path, invalid_values=[0])
+            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path, invalid_values=[0])
+            heading_series = Series.loadFromH5File(log=log, path=NodeStatus_heading_path)
+            course_over_ground_series = Series.loadFromH5File(log=log, path=NodeStatus_course_over_ground_path)
 
             thisSeries = []
 
-            desired_heading_series = Series(log=log, path=DesiredSetpoints_heading_path)
+            desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
 
             for i, lat in enumerate(lat_series.y_values):
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
@@ -287,7 +288,7 @@ class JaiaH5FileSet:
 
             for log in self.h5Files:
                 try:
-                    series += Series(log=log, path=path, scheme=1, invalid_values=invalid_values)
+                    series = series.extend(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
                 except KeyError as e:
                     logging.warn(e)
                     continue
