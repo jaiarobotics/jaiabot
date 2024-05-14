@@ -159,9 +159,9 @@ liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jai
 # IMU driver config
 imu_port = common.udp.imu_port(node_id)
 if is_simulation():
-    imu_device = 'sim'
+    imu_type = 'sim'
 else:
-    imu_device = jaia_imu_type
+    imu_type = jaia_imu_type
 
 
 if common.app == 'gobyd':    
@@ -334,4 +334,4 @@ else:
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
                                      imu_port=imu_port,
-                                     imu_device=imu_device))
+                                     imu_type=imu_type))

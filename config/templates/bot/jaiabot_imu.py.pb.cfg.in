@@ -1,1 +1,1 @@
--d $imu_device -p $imu_port
+-t $imu_type -p $imu_port -d

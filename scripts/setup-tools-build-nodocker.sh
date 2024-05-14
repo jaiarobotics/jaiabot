@@ -7,7 +7,7 @@ sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2
 # Update apt
 sudo apt-get -y update
 # Install the required dependencies
-sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf
+sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf gdal-bin
 # Install the build tools necessary
 sudo apt-get -y install cmake g++ npm clang-format clang graphviz
 # Install packages to allow apt to use a repository over HTTPS:

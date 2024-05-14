@@ -264,6 +264,8 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  geotiff_format.py
+  geotiff_scan.sh
 )
 
 # Iterate over each script to install and copy
