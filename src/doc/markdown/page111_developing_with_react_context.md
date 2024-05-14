@@ -23,6 +23,12 @@
     * GlobalContext
     * PodContext
     * HubContext
+
+## `utils`
+#### What lives inside this directory?
+* Functions that abstract data processing away from React code
+* Eventually we will migrate `src/web/shared/Utilities.tsx` functions into this directory
+
 # Context Structure
 ### `GlobalContext`
 * Contains general data pertaining to the view state of the interface
