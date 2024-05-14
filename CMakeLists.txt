@@ -255,7 +255,6 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
-<<<<<<< HEAD
 set(scripts_to_install
   jaiabot-checkloadavg.py
   # data offload
