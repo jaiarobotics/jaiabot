@@ -49,6 +49,14 @@ export function BotListPanel(props: Props) {
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
         let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
 
+        /**
+         * Triggers the handling logic in CommandControl and dispatches the event to the GlobalContext
+         * 
+         * @returns {void}
+         * 
+         * @notes
+         * This is an instance where we are begininning to migrate from CommandControl state to context
+         */
         const handleClick = () => {
             globalDispatch({
                 type: 'CLICKED_BOT_TAB'
@@ -84,6 +92,14 @@ export function BotListPanel(props: Props) {
                 selected = 'selected'
         }
 
+        /**
+         * Triggers the handling logic in CommandControl and dispatches the event to the GlobalContext
+         * 
+         * @returns {void}
+         * 
+         * @notes
+         * This is an instance where we are begininning to migrate from CommandControl state to context
+         */
         const handleClick = () => {
             props.didClickHub(hub.hub_id)
             globalDispatch({ type: 'CLICKED_HUB_TAB' })

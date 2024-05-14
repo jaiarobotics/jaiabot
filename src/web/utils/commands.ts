@@ -37,6 +37,12 @@ export const hubCommands: {[key: string]: CommandInfo} = {
     }
 }
 
+/**
+ * Saves the client ID associated with the user session as the controlling client ID
+ * 
+ * @param {string} clientID ID associated with user session
+ * @returns {boolean} Whether or not the client took control
+ */
 export async function takeControl(clientID: string) {
     const status = await jaiaAPI.getStatus()
 
@@ -60,6 +66,13 @@ export async function takeControl(clientID: string) {
     return false
 }
 
+/**
+ * Posts command to the server so it can be passed to the hub
+ * 
+ * @param {number} hubID Determines which hub receives the command
+ * @param {CommandInfo} hubCommand Contains the contents of the command
+ * @returns {void}
+ */
 export async function sendHubCommand(hubID: number, hubCommand: CommandInfo) {
     const didConfirm = await CustomAlert.confirmAsync("Are you sure you'd like to " + hubCommand.description + '?', hubCommand.confirmationButtonText)
     if (didConfirm) {

@@ -1,5 +1,4 @@
-import React, { useEffect, useContext } from 'react'
-import { GlobalContext } from '../../../context/GlobalContext';
+import React, { useEffect } from 'react'
 
 // Jaia Imports
 import EditModeToggle from './EditModeToggle'
@@ -41,7 +40,6 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 // Utility Imports
 import * as turf from '@turf/turf';
 import { CustomAlert } from './shared/CustomAlert';
-
 
 const rcMode = require('../icons/controller.svg') as string
 

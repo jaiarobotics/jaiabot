@@ -1,5 +1,4 @@
 import React, { MouseEvent, ReactElement, ReactNode } from 'react'
-import { GlobalContext } from '../../../context/GlobalContext'
 
 
 // Jaia Imports
@@ -209,10 +208,6 @@ interface State {
 	customAlert?: ReactNode
 }
 
-interface GlobalContext {
-	showHubDetails: boolean
-}
-
 interface BotAllCommandInfo {
 	botIds?: number[],
 	botIdsInIdleState?: number[],
@@ -234,8 +229,6 @@ interface BotAllCommandInfo {
 export default class CommandControl extends React.Component {
 	props: Props
 	state: State
-	static contextType = GlobalContext
-	context: GlobalContext
 
 	api = jaiaAPI
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`

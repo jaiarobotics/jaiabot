@@ -111,10 +111,20 @@ def getStatus():
 
 @app.route('/jaia/status-bots', methods=['GET'])
 def getStatusBots():
+    """Gets dictionary of most up-to-date bot statuses
+
+    Returns:
+        Response: Dictionary of latest bot statuses
+    """
     return JSONResponse(jaia_interface.get_status_bots())
 
 @app.route('/jaia/status-hubs', methods=['GET'])
 def getStatusHubs():
+    """Gets dictionary of most up-to-date hub statuses
+
+    Returns:
+        Response: Dictionary of latest hub statuses
+    """
     return JSONResponse(jaia_interface.get_status_hubs())
 
 @app.route('/jaia/metadata', methods=['GET'])
