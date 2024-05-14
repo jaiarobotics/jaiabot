@@ -29,10 +29,20 @@ export default class SetHubLocationPanel extends React.Component {
     render() {
         const hubLocation = this.props.hubs[0].location
         const selectingOnMap = (this._selectOnMapInteraction != null)
+        const defaultHubId = Object.values(this.props.hubs)[0].hub_id ?? null
+
+        const hubIdOptionElements = () => {
+            return Object.values(this.props.hubs).map((hub) => {
+                return <option value={hub.hub_id}>{`Hub ${hub.hub_id}`}</option>
+            })
+        }
 
         return (
             <div className="panel">
                 <label>Set Hub Location</label>
+                <select id="bot-id-select" defaultValue={defaultHubId}>
+                    { hubIdOptionElements() }
+                </select>
                 <Button 
                     className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
                     type="button" 
@@ -68,12 +78,17 @@ export default class SetHubLocationPanel extends React.Component {
                     type="button" 
                     id="set-hub-location-submit"
                     onClick={() => {
-                        this.submitHubLocation(this.getHubLocation())
+                        this.submitHubLocation(this.getSelectedHubId(), this.getHubLocation())
                     }}>
                     Submit Values
                 </Button>
             </div>
         )
+    }
+
+    getSelectedHubId() {
+        const selectElement = getElementById<HTMLSelectElement>('bot-id-select')
+        return Number(selectElement.options[selectElement.selectedIndex].value)
     }
 
     getHubLocation(): GeographicCoordinate | null {
@@ -89,14 +104,14 @@ export default class SetHubLocationPanel extends React.Component {
         }
     }
 
-    submitHubLocation(hubLocation: GeographicCoordinate) {
+    submitHubLocation(hub_id: number, hubLocation: GeographicCoordinate) {
         if (hubLocation == null) {
             console.warn('hub location is null')
             return
         }
 
         const hubCommand: CommandForHub = {
-            hub_id: this.props.hubs[0].hub_id,
+            hub_id: hub_id,
             type: HubCommandType.SET_HUB_LOCATION,
             set_hub_location: hubLocation
         }
@@ -106,19 +121,19 @@ export default class SetHubLocationPanel extends React.Component {
 
     selectOnMap() {
         this._selectOnMapInteraction = new PointerInteraction({
-            handleDownEvent: (evt) => { 
-                const hubLocation = getGeographicCoordinate(evt.coordinate, evt.map)
-                this.submitHubLocation(hubLocation)
+            handleEvent: (evt) => {
+                if (evt.type == "click") {
+                    const hubLocation = getGeographicCoordinate(evt.coordinate, evt.map)
+                    this.submitHubLocation(this.getSelectedHubId(), hubLocation)
 
-                this.destroySelectOnMapInteraction()
-                return false
+                    this.destroySelectOnMapInteraction()
+                    return false
+                }
             },
-            stopDown: (evt) => { return false }
+            stopDown: () => { return true }
         })
 
         this.props.map.addInteraction(this._selectOnMapInteraction)
-
-
     }
 
     destroySelectOnMapInteraction() {

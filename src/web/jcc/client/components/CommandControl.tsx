@@ -1879,7 +1879,7 @@ export default class CommandControl extends React.Component {
 		this.updateMissionHistory(runList)
 	}
 
-	handleEvent(evt: any) {
+	handleEvent(evt: MapBrowserEvent<UIEvent>) {
 		switch(evt.type) {
 			case 'click':
 				return this.clickEvent(evt as MapBrowserEvent<UIEvent>)
