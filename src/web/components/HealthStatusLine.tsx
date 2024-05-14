@@ -1,9 +1,9 @@
 import React from 'react'
 
-import { PortalHubStatus } from '../jcc/client/components/shared/PortalStatus'
+import { HealthState } from '../shared/JAIAProtobuf'
 
 interface HealthStatusLineProps {
-    hubStatus: PortalHubStatus
+    healthState: HealthState
 }
 
 export function HealthStatusLine(props: HealthStatusLineProps) {
@@ -13,13 +13,13 @@ export function HealthStatusLine(props: HealthStatusLineProps) {
         'HEALTH__FAILED': 'healthFailed'
     }
 
-    const healthClassName = healthClassNames[props.hubStatus?.health_state] ?? ''
+    const healthClassName = healthClassNames[props.healthState] ?? ''
 
     return (
         <tr>
             <td>Health</td>
             <td>
-                <div className={healthClassName}>{props.hubStatus?.health_state}</div>
+                <div className={healthClassName}>{props.healthState}</div>
             </td>
         </tr>
     )

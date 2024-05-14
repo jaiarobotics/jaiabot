@@ -1,8 +1,8 @@
 // React
-import React, { useEffect, useContext } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
-import { HubContext } from '../context/HubContext'
 import { HealthStatusLine } from '../components/HealthStatusLine'
+import { HubContext } from '../context/HubContext'
 
 // Utilities
 import { addDropdownListener, convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
@@ -29,22 +29,21 @@ export function HubDetails() {
         return <div></div>
     }
 
-    const hubStatus = hubContext.hubStatus['0']
+    const [accordionTheme, setAccordionTheme] = useState(createTheme({
+        transitions: {
+            create: () => 'none',
+        }
+    }))
 
     useEffect(() => {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
     }, [])
 
-    const makeAccordionTheme = () => {
-        return createTheme({
-            transitions: {
-                create: () => 'none',
-            }
-        })
-    }
+    const hub1Key = '0'
+    const hubStatus = hubContext.hubStatus[hub1Key]
 
     /**
-     * Dispatches the an action to close the HubDetails panel
+     * Dispatches an action to close the HubDetails panel
      * 
      * @returns {void}
      */
@@ -77,7 +76,7 @@ export function HubDetails() {
     /**
      * Provides the hub CPU load average for 1, 5, and 15 min intervals
      * 
-     * @param {number} timeMins Time interval Dictating which load average to return
+     * @param {number} timeMins Time interval dictating which load average to return
      * @returns {number | string} Load average for the hub or 'N/A' if an issue arises
      */
     function getCPULoadAverage(timeMins: number) {
@@ -152,13 +151,14 @@ export function HubDetails() {
 
     return (
         <div id='hubDetailsBox'>
-             <div className='titleBar'>
-                 <h2 className='name'>{`Hub ${hubStatus.hub_id}`}</h2>
-                 <div className='closeButton' onClick={handleClosePanel}>⨯</div>
-             </div>
-             <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
-                 <ThemeProvider theme={makeAccordionTheme()}>
-                     <Accordion 
+            <div className='titleBar'>
+                <h2 className='name'>{`Hub ${hubStatus.hub_id}`}</h2>
+                <div className='closeButton' onClick={handleClosePanel}>⨯</div>
+            </div>
+
+            <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
+                <ThemeProvider theme={accordionTheme}>
+                    <Accordion 
                         expanded={globalContext.hubAccordionStates.quickLook} 
                         onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'quickLook' })}
                         className='accordionContainer'
@@ -173,7 +173,7 @@ export function HubDetails() {
                         <AccordionDetails>
                             <table>
                                 <tbody>
-                                    <HealthStatusLine hubStatus={hubStatus}/>
+                                    <HealthStatusLine healthState={hubStatus?.health_state}/>
                                     <tr>
                                         <td>Latitude</td>
                                         <td>{formatLatitude(hubStatus?.location.lat)}</td>
@@ -208,7 +208,7 @@ export function HubDetails() {
                     </Accordion>
                 </ThemeProvider>
 
-                <ThemeProvider theme={makeAccordionTheme()}>
+                <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={globalContext.hubAccordionStates.commands} 
                         onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'commands' })}
@@ -241,7 +241,7 @@ export function HubDetails() {
                     </Accordion>
                 </ThemeProvider>
                 
-                <ThemeProvider theme={makeAccordionTheme()}>
+                <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={globalContext.hubAccordionStates.links} 
                         onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'links' })}

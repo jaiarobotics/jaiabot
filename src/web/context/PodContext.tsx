@@ -1,4 +1,7 @@
+// React
 import React, { createContext, ReactNode, useReducer } from 'react'
+
+// Jaia
 import { HubContextProvider } from './HubContext'
 
 interface PodContextType {}
@@ -9,13 +12,11 @@ interface PodContextProviderProps {
 
 interface Action {}
 
-const podDefaultContext: PodContextType = {}
-
 export const PodContext = createContext(null)
 export const PodDispatchContext = createContext(null)
 
 /**
- * Updates the PodContext
+ * Updates PodContext
  * 
  * @param {PodContextType} state Holds the most recent reference to state 
  * @param {Action} action Contains data associated with a state update 

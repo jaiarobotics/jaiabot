@@ -1,6 +1,11 @@
+// React
 import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
-import { PortalHubStatus } from '../jcc/client/components/shared/PortalStatus'
+
+// Jaia
+import { PortalHubStatus } from '../shared/PortalStatus'
 import { jaiaAPI } from '../jcc/common/JaiaAPI' 
+
+// Utilities
 import { isError } from 'lodash'
 
 interface HubContextType {
@@ -22,21 +27,31 @@ export const HubContext = createContext(null)
 export const HubDispatchContext = createContext(null)
 
 /**
- * Updates the HubContext
+ * Updates HubContext
  * 
  * @param {HubContextType} state Holds the most recent reference to state 
  * @param {Action} action Contains data associated with a state update 
  * @returns {HubContextType} A copy of the updated state
  */
 function hubReducer(state: HubContextType, action: Action) {
+    let mutableState = {...state}
     switch (action.type) {
-        case 'POLLED':
-            let updatedState = {...state}
-            updatedState.hubStatus = action.hubStatus
-            return updatedState
+        case 'HUB_STATUS_POLLED':
+            return handleHubStatusPolled(mutableState, action.hubStatus)
         default:
             return state
     }
+}
+
+/**
+ * Saves the latest hub status to state
+ * 
+ * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleHubStatusPolled(mutableState: HubContextType, hubStatus: PortalHubStatus) {
+    mutableState.hubStatus = hubStatus
+    return mutableState
 }
 
 export function HubContextProvider({ children }: HubContextProviderProps) {
@@ -62,12 +77,18 @@ export function HubContextProvider({ children }: HubContextProviderProps) {
     )
 }
 
+/**
+ * Retrieves the latest hub status from the server
+ * 
+ * @param {React.Dispatch<Action>} dispatch Connects event trigger to event handler
+ * @returns {void}
+ */
 function pollHubStatus(dispatch: React.Dispatch<Action>) {
     return setInterval(async () => {
         const response = await jaiaAPI.getStatusHubs()
         if (!isError(response)) {
             dispatch({
-                type: 'POLLED',
+                type: 'HUB_STATUS_POLLED',
                 hubStatus: response
             })
         }
