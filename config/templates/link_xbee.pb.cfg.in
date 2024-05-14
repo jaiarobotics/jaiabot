@@ -17,6 +17,8 @@ link {
         $mac_slots
     }
 
+    ack_timeout: $ack_timeout
+    
     # Buffer values for the forwarded subscription (message sent to set up the subscription itself)
     subscription_buffer {
         # avoid sending subscriptions more often than 10 seconds
