@@ -236,7 +236,7 @@ elif common.app == 'jaiabot_naviguider_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_naviguider_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     naviguider_report_in_simulation=is_simulation()
+                                     naviguider_report_in_simulation=is_simulation(),
                                      imu_port=imu_port))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',

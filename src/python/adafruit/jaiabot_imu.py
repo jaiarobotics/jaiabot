@@ -14,7 +14,7 @@ import datetime
 
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
-parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
+parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085', 'naviguider'], required=True, help='Device type')
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
@@ -212,6 +212,11 @@ if __name__ == '__main__':
     elif args.device_type == 'bno085':
         from imu_bno085 import *
         imu = AdafruitBNO085()
+    elif args.device_type == 'naviguider':
+        from imu_naviguider import *
+        imu = Naviguider()
+        imu_thread = Thread(target=imu.read_imu_data, name='imuReadThread', daemon=True)
+        imu_thread.start()
 
     # Setup the acceleration analyzer (for wave heights and surface type analysis)
     analyzer = AccelerationAnalyzer(sample_frequency=4, dump_html_flag=args.dump_html_flag)

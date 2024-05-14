@@ -42,23 +42,26 @@ class IMUReading:
         else:
             imu_data.bot_rolled_over = False
 
-        imu_data.linear_acceleration.x = self.linear_acceleration.x
-        imu_data.linear_acceleration.y = self.linear_acceleration.y
-        imu_data.linear_acceleration.z = self.linear_acceleration.z
+        if self.linear_acceleration is not None:
+            imu_data.linear_acceleration.x = self.linear_acceleration.x
+            imu_data.linear_acceleration.y = self.linear_acceleration.y
+            imu_data.linear_acceleration.z = self.linear_acceleration.z
 
-        imu_data.gravity.x = self.gravity.x
-        imu_data.gravity.y = self.gravity.y
-        imu_data.gravity.z = self.gravity.z
+        if self.gravity is not None:
+            imu_data.gravity.x = self.gravity.x
+            imu_data.gravity.y = self.gravity.y
+            imu_data.gravity.z = self.gravity.z
 
         if self.angular_velocity is not None:
             imu_data.angular_velocity.x = self.angular_velocity.x
             imu_data.angular_velocity.y = self.angular_velocity.y
             imu_data.angular_velocity.z = self.angular_velocity.z
 
-        imu_data.quaternion.w = self.quaternion.w
-        imu_data.quaternion.x = self.quaternion.x
-        imu_data.quaternion.y = self.quaternion.y
-        imu_data.quaternion.z = self.quaternion.z
+        if self.quaternion is not None:
+            imu_data.quaternion.w = self.quaternion.w
+            imu_data.quaternion.x = self.quaternion.x
+            imu_data.quaternion.y = self.quaternion.y
+            imu_data.quaternion.z = self.quaternion.z
 
         if self.calibration_status is not None:
             # only send the mag cal

@@ -61,7 +61,7 @@ message IMUData
     optional Acceleration linear_acceleration = 2;
     optional Acceleration gravity = 3;
 
-    optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
+    optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 180 }];
 
     optional IMUCalibrationState calibration_state = 5;
 
