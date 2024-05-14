@@ -91,8 +91,8 @@ export function getSurveyMissionPlans(
         // Rally Point Goals
         let botGoal: Goal = {
             "location": {
-                "lat": rallyStartLocation.lat,
-                "lon": rallyStartLocation.lon
+                "lat": rallyStartLocation?.lat,
+                "lon": rallyStartLocation?.lon
             },
             "task": missionStartTask
         }
@@ -121,8 +121,8 @@ export function getSurveyMissionPlans(
         // Home Goals
         botGoal = {
             "location": {
-                "lat": rallyEndLocation.lat,
-                "lon": rallyEndLocation.lon
+                "lat": rallyEndLocation?.lat,
+                "lon": rallyEndLocation?.lon
             },
             "task": {
                 type: TaskType.NONE
