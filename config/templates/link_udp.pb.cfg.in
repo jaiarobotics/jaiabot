@@ -16,5 +16,6 @@ link {
         slot { src: $modem_id type: DATA slot_seconds: 0.5 }
     }
 
+    # read from _sub_buffer.pb.cfg.in
     $sub_buffer
 }
