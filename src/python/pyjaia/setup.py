@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-
-from setuptools import setup, find_packages
-
-print(find_packages())
+from setuptools import setup
 
 setup(name='pyjaia',
       version='1.0',
@@ -27,4 +24,4 @@ setup(name='pyjaia',
         scripts=[
             'pyjaia/waves/jaia-analyze-waves.py'
         ]
-     )
+    )

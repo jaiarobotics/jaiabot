@@ -260,6 +260,8 @@ set(scripts
     jaiabot-dataoffload.sh
     jaiahub-dataoffload-cloudhub.sh
     jaia_firm_backup_date.sh   # Firmware script
+    geotiff_format.py
+    geotiff_scan.sh
 )
 
 foreach(script ${scripts})

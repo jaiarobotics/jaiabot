@@ -8,6 +8,13 @@ INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
 
 
+def get_root_item_path(path, root_item=''):
+    '''Get the path to a root_item associated with that path'''
+    components = path.strip('/').split('/')
+    components = components[:2] + [root_item]
+    return '/'.join(components)
+
+
 def h5_get_files(filenames):
     h5Files: h5py.File = []
     for fn in filenames:
