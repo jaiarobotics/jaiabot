@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
     parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
     parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
-    parser.add_argument("-a", dest="appRoot", type=str, default="../../../../build/web_dev", help="Location from which to serve web app")
+    parser.add_argument("-a", dest="appRoot", type=str, default="../../../../build/web_dev/jdv", help="Location from which to serve web app")
     args = parser.parse_args()
 
     # Setup logging module
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
     ####### Static files
     global root
-    root = os.path.join(args.appRoot, 'jdv')
+    root = args.appRoot
 
     # Setup the directory
     jaialogStore = jaialog_store.JaialogStore(args.directory)
