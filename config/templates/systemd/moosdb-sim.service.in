@@ -11,8 +11,6 @@ Group=$group
 
 EnvironmentFile=$env_file
 
-# Wait 5 seconds before starting
-ExecStartPre=/bin/sleep 5
 ExecStartPre=/bin/bash -c '$gen moos_sim > $moos_sim_file'
 
 ExecStartPre=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state START --error_code $error_on_fail --service_name $service
