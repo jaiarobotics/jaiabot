@@ -73,11 +73,8 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-ack_timeout=0.1
-
+ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
-
-    
 if common.jaia_comms_mode == common.CommsMode.XBEE:
     if is_simulation():
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
