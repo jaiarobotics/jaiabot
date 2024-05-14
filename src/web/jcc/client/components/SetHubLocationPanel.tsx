@@ -155,6 +155,7 @@ export default class SetHubLocationPanel extends React.Component {
         })
 
         this.props.map.addInteraction(this._selectOnMapInteraction)
+        this.props.map.getTargetElement().style.cursor = 'crosshair'
     }
 
     
@@ -164,6 +165,7 @@ export default class SetHubLocationPanel extends React.Component {
     destroySelectOnMapInteraction() {
         this.props.map.removeInteraction(this._selectOnMapInteraction)
         this._selectOnMapInteraction = null
+        this.props.map.getTargetElement().style.cursor = 'default'
     }
 
     
