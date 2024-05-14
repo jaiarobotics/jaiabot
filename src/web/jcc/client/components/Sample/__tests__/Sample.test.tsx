@@ -1,7 +1,8 @@
-import { describe, expect, test } from '@jest/globals'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import Sample from '../Sample'
 
-test('renders sample component', () => {
-    render(<Sample message="Hello, world!"/>)
+test('sample renders text in doc', () => {
+    render(<Sample message="Hello, World!"/>)
+    const element = screen.getByText((/Hello, World!/))
+    expect(element).toBeInTheDocument()
 })
