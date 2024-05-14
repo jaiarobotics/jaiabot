@@ -1,14 +1,14 @@
-// React //
+// React
 import React, { useEffect, useContext } from 'react'
 import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
 import { HubContext } from '../context/HubContext'
 import { HealthStatusLine } from '../components/HealthStatusLine'
 
-// Utils //
+// Utilities
 import { addDropdownListener, convertMicrosecondsToSeconds, formatLatitude, formatLongitude } from '../shared/Utilities'
 import { CommandInfo, hubCommands, sendHubCommand, takeControl } from '../utils/commands'
 
-// Styles //
+// Styles
 import Button from '@mui/material/Button'
 import Accordion from '@mui/material/Accordion'
 import Typography from '@mui/material/Typography'
@@ -18,7 +18,6 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import { ThemeProvider, createTheme } from '@mui/material'
 import { Icon } from '@mdi/react'
 import { mdiPower, mdiRestart, mdiRestartAlert, mdiChartLine, mdiWifiCog, mdiWrenchCog } from '@mdi/js'
-
 
 export function HubDetails() {
     const globalContext = useContext(GlobalContext)
@@ -44,10 +43,21 @@ export function HubDetails() {
         })
     }
 
+    /**
+     * Dispatches the an action to close the HubDetails panel
+     * 
+     * @returns {void}
+     */
     function handleClosePanel() {
         globalDispatch({ type: 'CLOSED_HUB_DETAILS' })
     }
 
+    /**
+     * Provides a class name that corresponds to styles illustrating comms health
+     * 
+     * @param {number} portalStatusAge Time since last communication between hub and tablet
+     * @returns {string} Class name that dictates the style of the status age
+     */
     function getStatusAgeClassName(portalStatusAge: number) {
         const healthFailedTimeout = 30
         const healthDegradedTimeout = 10
@@ -64,6 +74,12 @@ export function HubDetails() {
         return ''
     }
 
+    /**
+     * Provides the hub CPU load average for 1, 5, and 15 min intervals
+     * 
+     * @param {number} timeMins Time interval Dictating which load average to return
+     * @returns {number | string} Load average for the hub or 'N/A' if an issue arises
+     */
     function getCPULoadAverage(timeMins: number) {
         const loads = hubContext.hubStatus?.processor?.loads
         
@@ -83,6 +99,12 @@ export function HubDetails() {
         }
     }
 
+    /**
+     * Makes sure control is taken, then calls the function to send a command
+     * 
+     * @param {CommandInfo} command Contains command instructions
+     * @returns {void}
+     */
     async function issueHubCommand(command: CommandInfo) {
         const isControlTaken = await takeControl(globalContext.clientID)
         if (isControlTaken) {
@@ -93,6 +115,11 @@ export function HubDetails() {
         sendHubCommand(hubStatus.hub_id, command)
     }
 
+    /**
+     * Opens the JDV in a separate tab
+     * 
+     * @returns {void}
+     */
     function openJDV() {					
         const hubOctal = 10 + hubStatus.hub_id
         const fleetOctal = hubStatus.fleet_id
@@ -100,12 +127,22 @@ export function HubDetails() {
         window.open(url, '_blank')
     }
 
+    /**
+     * Opens the router page in a separate tab
+     * 
+     * @returns {void}
+     */
     function openRouterPage() {
         const fleetOctal = hubStatus.fleet_id
         const url = `http://10.23.${fleetOctal}.1`
         window.open(url, '_blank')
     }
 
+    /**
+     * Opens the upgrade page in a separate tab
+     * 
+     * @returns {void}
+     */
     function openUpgradePage() {
         const hubOctal = 10 + hubStatus.hub_id
         const fleetOctal = hubStatus.fleet_id 

@@ -54,6 +54,13 @@ export const globalDefaultContext: GlobalContextType = {
 export const GlobalContext = createContext(null)
 export const GlobalDispatchContext = createContext(null)
 
+/**
+ * Updates the GlobalContext
+ * 
+ * @param {GlobalContextType} state Holds the most recent reference to state 
+ * @param {Action} action Contains data associated with a state update 
+ * @returns {GlobalContextType} A copy of the updated state
+ */
 function globalReducer(state: GlobalContextType, action: Action) {
     let mutableState = {...state}
     switch (action.type) {
@@ -83,25 +90,57 @@ function globalReducer(state: GlobalContextType, action: Action) {
     }
 }
 
+/**
+ * Adds the client ID to state
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @param {string} clientID ID associated with the client session
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function saveClientID(mutableState: GlobalContextType, clientID: string) {
     mutableState.clientID = clientID
     return mutableState
 }
 
+/**
+ * Sets the client ID in state to be the controlling client ID
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function handleControlTaken(mutableState: GlobalContextType) {
     mutableState.controllingClientID = mutableState.clientID
     return mutableState
 }
 
+/**
+ * Turns off RC Mode on the client-side
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function exitRCMode(mutableState: GlobalContextType) {
     mutableState.isRCMode = false
+    return mutableState
 }
 
+/**
+ * Closes the HubDetails panel
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function handleClosedHubDetails(mutableState: GlobalContextType) {
     mutableState.showHubDetails = false
     return mutableState
 }
 
+/**
+ * Handles the interplay between selecting the hub and clicking the HubTab
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function handleClickedHubTab(mutableState: GlobalContextType) {
     const isHubSelected = mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB
 
@@ -120,6 +159,16 @@ function handleClickedHubTab(mutableState: GlobalContextType) {
     return mutableState
 }
 
+/**
+ * Handles the interplay between selecting a bot and clicking a BotTab
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ * 
+ * @notes
+ * This function only unselects the hub and closes the HubDetails panel. 
+ * It does not handle bot selection yet.
+ */
 function handleClickedBotTab(mutableState: GlobalContextType) {
     if (mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB) {
         mutableState.showHubDetails = false
@@ -131,6 +180,13 @@ function handleClickedBotTab(mutableState: GlobalContextType) {
     return mutableState
 }
 
+/**
+ * Opens and closes the HubDetails accordion tabs
+ * 
+ * @param {GlobalContextType} mutableState Reference of state object for making modifications
+ * @param {string} accordionName Which accordion to open or close
+ * @returns {GlobalContextType} Updated mutable state object
+ */
 function handleHubAccordionClick(mutableState: GlobalContextType, accordionName: string) {
     let hubAccordionStates = mutableState.hubAccordionStates
     switch (accordionName) {
@@ -139,7 +195,6 @@ function handleHubAccordionClick(mutableState: GlobalContextType, accordionName:
             break
         case 'commands':
             hubAccordionStates.commands = !hubAccordionStates.commands
-            console.log(mutableState)
             break
         case 'links':
             hubAccordionStates.links = !hubAccordionStates.links
@@ -151,6 +206,11 @@ function handleHubAccordionClick(mutableState: GlobalContextType, accordionName:
 export function GlobalContextProvider({ children }: GlobalContextProviderProps) {
     const [state, dispatch] = useReducer(globalReducer, globalDefaultContext)
 
+    /**
+     * Fetches the clientID from the server when the component mounts
+     *  
+     * @returns {void}
+     */
     useEffect(() => {
         dispatch({
             type: 'SAVED_CLIENT_ID',

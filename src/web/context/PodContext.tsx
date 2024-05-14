@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
+import React, { createContext, ReactNode, useReducer } from 'react'
 import { HubContextProvider } from './HubContext'
 
 interface PodContextType {}
@@ -14,6 +14,13 @@ const podDefaultContext: PodContextType = {}
 export const PodContext = createContext(null)
 export const PodDispatchContext = createContext(null)
 
+/**
+ * Updates the PodContext
+ * 
+ * @param {PodContextType} state Holds the most recent reference to state 
+ * @param {Action} action Contains data associated with a state update 
+ * @returns {PodContextType} A copy of the updated state
+ */
 function podReducer(state: PodContextType, action: Action) {
     return state
 }

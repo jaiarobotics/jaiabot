@@ -21,6 +21,13 @@ const HUB_POLL_TIME = 1000 // ms
 export const HubContext = createContext(null)
 export const HubDispatchContext = createContext(null)
 
+/**
+ * Updates the HubContext
+ * 
+ * @param {HubContextType} state Holds the most recent reference to state 
+ * @param {Action} action Contains data associated with a state update 
+ * @returns {HubContextType} A copy of the updated state
+ */
 function hubReducer(state: HubContextType, action: Action) {
     switch (action.type) {
         case 'POLLED':
@@ -35,6 +42,11 @@ function hubReducer(state: HubContextType, action: Action) {
 export function HubContextProvider({ children }: HubContextProviderProps) {
     const [state, dispatch] = useReducer(hubReducer, null)
 
+    /**
+     * Starts polling the hub status when the component mounts
+     * 
+     * @returns {void}
+     */
     useEffect(() => {
         const intervalId = pollHubStatus(dispatch)
 
