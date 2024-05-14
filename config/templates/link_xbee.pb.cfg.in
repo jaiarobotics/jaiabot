@@ -17,6 +17,7 @@ link {
         $mac_slots
     }
 
+    ack_timeout: $ack_timeout
     # read from _sub_buffer.pb.cfg.in
     $sub_buffer
 }

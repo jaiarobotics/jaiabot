@@ -73,6 +73,7 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+ack_timeout=0.1
 
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 
@@ -91,7 +92,8 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
                                             xbee_hub_id='hub_id: ' + str(hub_index),
-                                            sub_buffer=sub_buffer_config)
+                                            sub_buffer=sub_buffer_config,
+                                            ack_timeout=ack_timeout)
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
@@ -100,7 +102,8 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                             local_port=common.udp.wifi_udp_port(node_id),
                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
-                                            sub_buffer=sub_buffer_config)
+                                            sub_buffer=sub_buffer_config,
+                                            ack_timeout=ack_timeout)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 

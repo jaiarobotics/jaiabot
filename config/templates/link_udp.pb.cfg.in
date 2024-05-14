@@ -15,7 +15,7 @@ link {
         type: MAC_FIXED_DECENTRALIZED 
         slot { src: $modem_id type: DATA slot_seconds: 0.5 }
     }
-
+    ack_timeout: $ack_timeout
     # read from _sub_buffer.pb.cfg.in
     $sub_buffer
 }
