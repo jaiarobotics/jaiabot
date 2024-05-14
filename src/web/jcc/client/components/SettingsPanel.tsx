@@ -44,6 +44,7 @@ interface Props {
     // Engineering Accordion Props
     api: JaiaAPI
     map: Map
+    isSimulation: boolean
 	bots: {[key: number]: PortalBotStatus}
 	hubs: {[key: number]: PortalHubStatus}
 	getSelectedBotId: () => number
@@ -256,7 +257,9 @@ export function SettingsPanel(props: Props) {
 
                                 <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
 
-                                <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} />
+                                { props.isSimulation ?
+                                    <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} /> :
+                                    null }
                             </div>
                         </AccordionDetails>
                     </Accordion>

@@ -33,7 +33,8 @@ export interface Metadata {
 	moos_version?: string,
 	ivp_version?: string,
 	xbee_node_id?: string,
-	xbee_serial_number?: string
+	xbee_serial_number?: string,
+	is_simulation?: boolean
 }
 
 export function isRemoteControlled(mission_state?: MissionState) {

@@ -3819,6 +3819,7 @@ export default class CommandControl extends React.Component {
 						map={map}
 						bots={bots} 
 						hubs={hubs} 
+						isSimulation={metadata.is_simulation}
 						getSelectedBotId={this.selectedBotId.bind(this)}
 						getFleetId={this.getFleetId.bind(this)}
 						control={this.takeControl.bind(this)} 
