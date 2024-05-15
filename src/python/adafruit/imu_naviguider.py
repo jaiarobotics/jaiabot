@@ -45,31 +45,35 @@ class Naviguider(IMU):
             self._setup()
 
         try:
-            if not None in self.get_rotation_vector():
+            if self.get_rotation_vector() is not None:
                 (quat_x, quat_y, quat_z, quat_w, quat_accuracy) = self.get_rotation_vector()
             else:
                 log.warning("We received None data in the takeReading function for get_rotation_vector data")
                 return None
 
-            if not None in self.get_linear_acceleration():
+            if self.get_linear_acceleration() is not None:
                 (accel_x, accel_y, accel_z, accel_accuracy) = self.get_linear_acceleration()
             else:
                 log.warning("We received None data in the takeReading function for get_linear_acceleration data")
                 return None   
 
-            if not None in self.get_gravity():
+            if self.get_gravity() is not None:
                 (gravity_x, gravity_y, gravity_z, gravity_accuracy) = self.get_gravity()
             else:
                 log.warning("We received None data in the takeReading function for get_gravity data")
                 return None   
 
-            if not None in self.get_orientation():
+            if self.get_orientation() is not None:
                 (yaw, pitch, roll, calibration_status) = self.get_orientation()
+                # Check to see if the bot has rolled over
+                # If it has adjust the yaw by adding 180 degrees
+                if int(abs(self.orientation.roll) > 90):
+                    yaw = yaw + 180
             else:
                 log.warning("We received None data in the takeReading function for get_orientation data")
                 return None 
 
-            if not None in self.get_gyroscope():
+            if self.get_gyroscope() is not None:
                 (gyro_x, gyro_y, gyro_z, gyro_accuracy) = self.get_gyroscope()
             else:
                 log.warning("We received None data in the takeReading function for get_gyroscope data")
