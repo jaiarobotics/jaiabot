@@ -1,14 +1,16 @@
 import React from 'react'
+
+import { Metadata } from '../../../../shared/PortalStatus'
+
 import Icon from '@mdi/react'
 import { mdiClose } from '@mdi/js'
-import '../style/components/JaiaAbout.css'
-import { Metadata } from './shared/PortalStatus'
+import './JaiaAbout.css'
 
 interface Props {
 	metadata: Metadata
 }
 
-export default class JaiaAbot extends React.Component {
+export default class JaiaAbout extends React.Component {
     props: Props
 
     constructor(props: Props) {
