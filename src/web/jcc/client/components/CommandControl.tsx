@@ -8,7 +8,6 @@ import RCControllerPanel from './RCControllerPanel'
 import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout/JaiaAbout'
-import Sample from './Sample/Sample'
 import { layers } from './Layers'
 import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
@@ -3883,8 +3882,6 @@ export default class CommandControl extends React.Component {
 				{this.state.isHelpWindowDisplayed ? <HelpWindow onClose={() => {this.setState({isHelpWindowDisplayed: false})}}></HelpWindow> : null}
 				
 				{this.state.customAlert}
-
-				<Sample message='Hello, world!' />
 				
 			</div>
 		)
