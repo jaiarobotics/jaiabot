@@ -65,10 +65,6 @@ class Naviguider(IMU):
 
             if self.get_orientation() is not None:
                 (yaw, pitch, roll, calibration_status) = self.get_orientation()
-                # Check to see if the bot has rolled over
-                # If it has adjust the yaw by adding 180 degrees
-                if int(abs(self.orientation.roll) > 90):
-                    yaw = yaw + 180
             else:
                 log.warning("We received None data in the takeReading function for get_orientation data")
                 return None 
