@@ -45,24 +45,35 @@ class Naviguider(IMU):
             self._setup()
 
         try:
-            (quat_x, quat_y, quat_z, quat_w, quat_accuracy) = self.get_rotation_vector()
-            quat_tuple = (quat_x, quat_y, quat_z, quat_w)
-
-            (accel_x, accel_y, accel_z, accel_accuracy) = self.get_linear_acceleration()
-            accel_tuple = (accel_x, accel_y, accel_z)
-
-            (gravity_x, gravity_y, gravity_z, gravity_accuracy) = self.get_gravity()
-            gravity_tuple = (gravity_x, gravity_y, gravity_z)
-
-            (yaw, pitch, roll, calibration_status) = self.get_orientation()
-            orientation_tuple = (yaw, pitch, roll)
-
-            (gyro_x, gyro_y, gyro_z, gyro_accuracy) = self.get_gyroscope()
-            gyro_tuple = (gyro_x, gyro_y, gyro_z)
-
-            if None in quat_tuple or None in accel_tuple or None in gravity_tuple or None in orientation_tuple or None in gyro_tuple:
-                log.warning("We received None data in the takeReading function")
+            if not None in self.get_rotation_vector():
+                (quat_x, quat_y, quat_z, quat_w, quat_accuracy) = self.get_rotation_vector()
+            else:
+                log.warning("We received None data in the takeReading function for get_rotation_vector data")
                 return None
+
+            if not None in self.get_linear_acceleration():
+                (accel_x, accel_y, accel_z, accel_accuracy) = self.get_linear_acceleration()
+            else:
+                log.warning("We received None data in the takeReading function for get_linear_acceleration data")
+                return None   
+
+            if not None in self.get_gravity():
+                (gravity_x, gravity_y, gravity_z, gravity_accuracy) = self.get_gravity()
+            else:
+                log.warning("We received None data in the takeReading function for get_gravity data")
+                return None   
+
+            if not None in self.get_orientation():
+                (yaw, pitch, roll, calibration_status) = self.get_orientation()
+            else:
+                log.warning("We received None data in the takeReading function for get_orientation data")
+                return None 
+
+            if not None in self.get_gyroscope():
+                (gyro_x, gyro_y, gyro_z, gyro_accuracy) = self.get_gyroscope()
+            else:
+                log.warning("We received None data in the takeReading function for get_gyroscope data")
+                return None 
         
             quaternion = Quaternion.from_tuple((quat_w, quat_x, quat_y, quat_z))
             linear_acceleration = Vector3(*(accel_x, accel_y, accel_z))
