@@ -13,11 +13,11 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 189 bytes / 1512 bits
+    Actual maximum size of message: 183 bytes / 1464 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1497
-        padding to full byte...................7
+        body................................1456
+        padding to full byte...................0
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -107,11 +107,11 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 54 bytes / 432 bits
+    Actual maximum size of message: 55 bytes / 440 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................424
-        padding to full byte...................0
+        body.................................429
+        padding to full byte...................3
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -257,7 +257,7 @@ message BotStatus
     optional double battery_percent = 57
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 
-    optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
+    optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 180 }];
 
     optional IMUCalibrationState calibration_state = 59;
 

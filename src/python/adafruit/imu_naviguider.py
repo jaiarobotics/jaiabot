@@ -177,6 +177,9 @@ class Naviguider(IMU):
             # IMU mount position
             self.sensor.write(b'M15\r')
             sleep(0.1)
+            # Set NED orientation mode
+            self.sensor.write(b'J3')
+            sleep(0.1)
             # Configure the IMU to send updates at specific rates for sensor IDs
             # Orientation 5 Hz
             self.sensor.write(b's 3,5\r')
