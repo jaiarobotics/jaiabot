@@ -43,7 +43,7 @@ class Naviguider(IMU):
         self.linear_acceleration = None
         self.gyroscope = None
         self.is_setup = False
-        self.calibration_acceptable = 10
+        self.calibration_acceptable = 5
         self.calibration_acceptable_time = 5
         self.lock = Lock()
 
@@ -60,7 +60,7 @@ class Naviguider(IMU):
                 log.info('Connected, now lets enable output')
 
                 self.configure_imu()
-          
+
                 self.is_setup = True
                 self.calibration_status = None
                 self.calibration_state = None
@@ -72,7 +72,7 @@ class Naviguider(IMU):
             except Exception as error:
                 self.is_setup = False
                 log.error(f"NaviGuider setup error: {error}")
-            
+
     def setup(self):
         """Thread-safe setup function.  Call to setup the IMU."""
         with self.lock:
@@ -94,26 +94,28 @@ class Naviguider(IMU):
                 (accel_x, accel_y, accel_z, accel_accuracy) = self.get_linear_acceleration()
             else:
                 log.warning("We received None data in the takeReading function for get_linear_acceleration data")
-                return None   
+                return None
 
             if self.get_gravity() is not None:
                 (gravity_x, gravity_y, gravity_z, gravity_accuracy) = self.get_gravity()
             else:
                 log.warning("We received None data in the takeReading function for get_gravity data")
-                return None   
+                return None
 
             if self.get_orientation() is not None:
                 (yaw, pitch, roll, calibration_status) = self.get_orientation()
             else:
                 log.warning("We received None data in the takeReading function for get_orientation data")
-                return None 
+                return None
 
             if self.get_gyroscope() is not None:
                 (gyro_x, gyro_y, gyro_z, gyro_accuracy) = self.get_gyroscope()
             else:
                 log.warning("We received None data in the takeReading function for get_gyroscope data")
-                return None 
-        
+                return None
+
+            self.checkCalibration(calibration_status)
+
             quaternion = Quaternion.from_tuple((quat_w, quat_x, quat_y, quat_z))
             linear_acceleration = Vector3(*(accel_x, accel_y, accel_z))
             gravity = Vector3(*(gravity_x, gravity_y, gravity_z))
@@ -121,12 +123,12 @@ class Naviguider(IMU):
             angular_velocity = Vector3(*(gyro_x, gyro_y, gyro_z))
             linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-            return IMUReading(orientation=orientation, 
-                        linear_acceleration=linear_acceleration, 
+            return IMUReading(orientation=orientation,
+                        linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
                         calibration_status=int(calibration_status),
-                        calibration_state=CalibrationState.COMPLETE,
+                        calibration_state=self.calibration_state,
                         quaternion=quaternion,
                         angular_velocity=angular_velocity)
 
@@ -220,17 +222,13 @@ class Naviguider(IMU):
         # Start auto-calibration
         self.write_to_naviguider(NaviguiderCommands.START_AUTOCAL.value)
 
-    def checkCalibration(self):
+    def checkCalibration(self, mag_cal):
         if time.time() - self.check_calibration_time >= self.wait_to_check_calibration_duration:
             logging.debug("Checking Calibration")
             try:
-                # set the calibration status to save when we are not querying a 
-                # new calibration status
-                self.calibration_status = self.sensor.calibration_status
-
                 if self.calibration_state == CalibrationState.IN_PROGRESS:
                     logging.debug("Calibrating imu")
-                    if not self.calibration_good_at and self.calibration_status < self.calibration_acceptable:
+                    if not self.calibration_good_at and mag_cal < self.calibration_acceptable:
                         self.calibration_good_at = time.monotonic()
                         logging.debug("Record time of good calibration")
                     if self.calibration_good_at and (time.monotonic() - self.calibration_good_at > self.calibration_acceptable_time):
