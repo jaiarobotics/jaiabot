@@ -2,7 +2,38 @@ from imu import *
 
 import serial
 from time import sleep
+import time
 from threading import Lock
+
+class NaviguiderCommands(Enum):
+    SELF_TEST = b'B' # Run RM3100 Self tests
+    SENSOR_DATA_OFF = b'D0' # sensor Data display off
+    SENSOR_DATA_ON = b'D1' # sensor Data display on
+    SENSOR_DATA_TOGGLE = b'D\r' # Toggle sensor Data display (on/off) Default (On)
+    START_AUTOCAL = b'J0' # Start autocal
+    STOP_AUTOCAL = b'J1' # Stop autocal (this will reset the current autocal values)
+    PAUSE_AUTOCAL = b'J2' # Pauses autocal. Sending J2 again will resume autocal from where it left off
+    NED_MODE = b'J3' # Set module to NED orientation
+    ENU_MODE = b'J4' # Set module to ENU orientation (Default)
+    META_OFF = b'm0' # Meta event reporting off
+    META_ON = b'm1' # Meta event reporting on
+    META_TOGGLE = b'm\r' # Toggle meta event reporting(on/off) Default (On)
+    MOUNT_Z_DOWN_180 = b'M15\r' # Mounting Option
+    SENSOR_INFO = b'n' # Display sensor information
+    VERSION = b'v' # Display Version
+    ONE_SHOT_ORIENTATION = b'0' # One-Shot Orientation Sensor*
+    POWER_DOWN = b'P' # Power Down (Low power mode)
+    SAVE_CALIBRATION = b'S' # Save factory calibration parameters
+    VERBOSE_OFF = b'V0' # Verbose Mode off
+    VERBOSE_ON = b'V1' # Verbose Mode on
+    VERBOSE_TOGGLE = b'V\r' # Toggle Verbose Mode (on/off) Default (On)
+    RESTART_SYSTEM = b'X' # Restart system
+    # SENSORS
+    ORIENTATION_5Hz = b's 3,5\r'
+    GYROSCOPE_5Hz = b's 4,5\r'
+    GRAVITY_5Hz = b's 9,5\r'
+    LINEAR_ACCELERATION_5Hz = b's 10,5\r'
+    ROTATION_VECTOR_5Hz = b's 11,5\r'
 
 class Naviguider(IMU):
     def __init__(self):
@@ -12,6 +43,8 @@ class Naviguider(IMU):
         self.linear_acceleration = None
         self.gyroscope = None
         self.is_setup = False
+        self.calibration_acceptable = 10
+        self.calibration_acceptable_time = 5
         self.lock = Lock()
 
     def _setup(self):
@@ -29,6 +62,12 @@ class Naviguider(IMU):
                 self.configure_imu()
           
                 self.is_setup = True
+                self.calibration_status = None
+                self.calibration_state = None
+                # set the duration for checking calibration (seconds)
+                self.wait_to_check_calibration_duration = 1
+                # set the initial time for checking calibration
+                self.check_calibration_time = time.time()
 
             except Exception as error:
                 self.is_setup = False
@@ -172,32 +211,63 @@ class Naviguider(IMU):
                 # Handle errors such as port disconnection here
                 # For simplicity, I'm just printing the error
 
+    def startCalibration(self):
+        self.calibration_state = CalibrationState.IN_PROGRESS
+        self.calibration_good_at = None
+        # Reset saved calibration by stopping and starting autocal per documentation
+        # Stop auto-calibration
+        self.write_to_naviguider(NaviguiderCommands.STOP_AUTOCAL.value)
+        # Start auto-calibration
+        self.write_to_naviguider(NaviguiderCommands.START_AUTOCAL.value)
+
+    def checkCalibration(self):
+        if time.time() - self.check_calibration_time >= self.wait_to_check_calibration_duration:
+            logging.debug("Checking Calibration")
+            try:
+                # set the calibration status to save when we are not querying a 
+                # new calibration status
+                self.calibration_status = self.sensor.calibration_status
+
+                if self.calibration_state == CalibrationState.IN_PROGRESS:
+                    logging.debug("Calibrating imu")
+                    if not self.calibration_good_at and self.calibration_status < self.calibration_acceptable:
+                        self.calibration_good_at = time.monotonic()
+                        logging.debug("Record time of good calibration")
+                    if self.calibration_good_at and (time.monotonic() - self.calibration_good_at > self.calibration_acceptable_time):
+                        logging.debug("Good calibration has been achieved for over 5 seconds, saving calibration data")
+                        # Save calibration
+                        self.write_to_naviguider(NaviguiderCommands.SAVE_CALIBRATION.value)
+                        self.calibration_good_at = None
+                        self.calibration_state = CalibrationState.COMPLETE
+            except Exception as error:
+                log.warning("Error trying to get calibration status!")
+            # reset the start time
+            self.check_calibration_time = time.time()
+        else:
+            logging.debug("Waiting To Check Calibration")
+
+    def write_to_naviguider(self, command):
+        self.sensor.write(command)
+        sleep(0.1)
+
     def configure_imu(self):
         try:
             # IMU mount position
-            self.sensor.write(b'M15\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.MOUNT_Z_DOWN_180.value)
             # Set NED orientation mode
-            self.sensor.write(b'J3')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.NED_MODE.value)
             # Configure the IMU to send updates at specific rates for sensor IDs
             # Orientation 5 Hz
-            self.sensor.write(b's 3,5\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.ORIENTATION_5Hz.value)
             # Gyroscope 5 Hz
-            self.sensor.write(b's 4,5\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.GYROSCOPE_5Hz.value)
             # Gravity 5 Hz
-            self.sensor.write(b's 9,5\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.GRAVITY_5Hz.value)
             # Linear Acceleration 5 Hz
-            self.sensor.write(b's 10,5\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.LINEAR_ACCELERATION_5Hz.value)
             # Rotation Vector (Quaternions) 5 Hz
-            self.sensor.write(b's 11,5\r')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.ROTATION_VECTOR_5Hz.value)
             # Turn off meta data
-            self.sensor.write(b'm0')
-            sleep(0.1)
+            self.write_to_naviguider(NaviguiderCommands.META_OFF.value)
         except Exception as e:
             log.warning("Error configuring IMU:", e)
