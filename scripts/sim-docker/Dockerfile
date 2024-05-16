@@ -14,13 +14,13 @@ RUN apt install -y python3-gdal
 RUN apt install -y python3-pyqt5
 RUN apt install -y python3-fiona
 RUN apt install -y python3-geopandas
+# The above line is what installed  python3-numexpr
 RUN apt install -y gdal-bin
 RUN apt install -y libgdal-dev 
-# The above line is what installed  python3-numexpr
 RUN python3 -m pip install netifaces
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
-RUN git switch task/create-docker-environment-for-simulator
+RUN git switch task/create-docker-environment-for-simulator--no-liaison
 RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
 # Hack because line 4 of setup-tools-runtime.sh does not include "-y" and will fail to install these components when used in noninteractive environment
 #RUN apt-get install -y goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 ntp screen
