@@ -948,9 +948,6 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
  */
 void jaiabot::apps::Fusion::detect_imu_issue()
 {
-    jaiabot::protobuf::IMUIssue imu_issue;
-    imu_issue.set_solution(cfg().imu_issue_solution());
-
     auto now = goby::time::SteadyClock::now();
 
     glog.is_debug1() && glog << "Entering detect_imu_issue function" << endl;
@@ -1071,6 +1068,15 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         }
         else
         {
+            jaiabot::protobuf::IMUIssue imu_issue;
+            imu_issue.set_solution(cfg().imu_issue_solution());
+            imu_issue.set_type(jaiabot::protobuf::IMUIssue_IssueType::
+                                   IMUIssue_IssueType_HEADING_COURSE_DIFFERENCE_TOO_LARGE);
+
+            imu_issue.set_imu_heading_course_max_diff(cfg().imu_heading_course_max_diff());
+            imu_issue.set_heading(heading);
+            imu_issue.set_course_over_ground(course);
+
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             imu_issue_detected_ = true;
             glog.is_debug2() && glog

@@ -136,4 +136,28 @@ message IMUIssue
     }
 
     required SolutionType solution = 1;
+    
+    enum IssueType {
+        HEADING_COURSE_DIFFERENCE_TOO_LARGE = 0;
+    }
+
+    optional IssueType type = 2;
+
+    optional double imu_heading_course_max_diff = 30 [default = 45];
+
+    optional double heading = 31 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double course_over_ground = 32 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    
 }
