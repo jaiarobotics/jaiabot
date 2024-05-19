@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { PortalHubStatus } from './shared/PortalStatus';
@@ -19,75 +19,21 @@ interface Props {
     map: Map
 }
 
-export default class SetHubLocationPanel extends React.Component {
-    props: Props
-    _selectOnMapInteraction: Interaction
-    hub_id: number
 
-    constructor(props: Props) {
-        super(props)
-        this.hub_id = Object.values(this.props.hubs)[0].hub_id ?? null
-    }
+export default function SetHubLocationPanel(props: Props) {
+    const [ hub_id, set_hub_id ] = useState(0)
+    const [ selectOnMapInteraction, setSelectOnMapInteraction ] = useState(null)
 
-    render() {
-        const hubLocation = this.props.hubs[0].location
-        const selectingOnMap = (this._selectOnMapInteraction != null)
+    const hubLocation = props.hubs[hub_id].location
+    const selectingOnMap = (selectOnMapInteraction != null)
 
-        return (
-            <div className="panel">
-                <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
-                <div className='mission-settings-panel-container'>
-
-                    { /* this.hubIdSelectionElement() */ }
-
-                    <div className='mission-settings-input-label'>Latitude</div>
-                    <div className='mission-settings-input-row'>
-                        <input className="mission-settings-num-input"
-                            id="set-hub-location-latitude" 
-                            name="latitude" 
-                            defaultValue={hubLocation.lat.toFixed(6)}
-                        />
-                    </div>
-
-                    <div className='mission-settings-input-label'>Longitude</div>
-                    <div className='mission-settings-input-row'>
-                        <input className="mission-settings-num-input"
-                            id="set-hub-location-longitude" 
-                            name="longitude" 
-                            defaultValue={hubLocation.lon.toFixed(6)}
-                        />
-                    </div>
-                </div>
-                <Button
-                    className="button-jcc engineering-panel-btn"
-                    type="button"
-                    id="set-hub-location-submit"
-                    onClick={() => {
-                        this.submitHubLocation(this.hub_id, this.getHubLocation())
-                    }}>
-                    Submit Values
-                </Button>
-                <Button
-                    className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
-                    type="button"
-                    id="set-hub-location-map-select"
-                    onClick={this.selectOnMap.bind(this)}
-                    >
-                    Select on Map
-                </Button>
-            </div>
-        )
-    }
-
-    
-    
     /**
      * A Select element for choosing the hub_id.
      *
      * @returns {*} The Select element.
      */
-    hubIdSelectionElement() {
-        const menuItems = Object.values(this.props.hubs).map((hub) => {
+    function hubIdSelectionElement() {
+        const menuItems = Object.values(props.hubs).map((hub) => {
             return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>
         })
 
@@ -97,8 +43,8 @@ export default class SetHubLocationPanel extends React.Component {
 
         const hubIdSelectionRow = 
             <div className='mission-settings-input-row'>
-                <Select id="bot-id-select" defaultValue={this.hub_id} onChange={(evt) => {
-                        this.hub_id = Number(evt.target.value)
+                <Select id="bot-id-select" defaultValue={hub_id} onChange={(evt) => {
+                        set_hub_id(Number(evt.target.value))
                     }}>
                     { menuItems }
                 </Select>
@@ -108,12 +54,13 @@ export default class SetHubLocationPanel extends React.Component {
     }
 
 
+    
     /**
-     * Gets the user-entered location from the longitude and latitude GUI fields.
+     * Gets the hub location from the text inputs.
      *
-     * @returns {(GeographicCoordinate | null)}
+     * @returns {GeographicCoordinate}
      */
-    getHubLocation(): GeographicCoordinate | null {
+    function getInputHubLocation(): GeographicCoordinate {
         const lat = Number(getElementById<HTMLInputElement>('set-hub-location-latitude').value)
         const lon = Number(getElementById<HTMLInputElement>('set-hub-location-longitude').value)
         if (lat == null || lon == null) {
@@ -126,14 +73,14 @@ export default class SetHubLocationPanel extends React.Component {
         }
     }
 
-    
+
     /**
      * Calls the API to submit a location change for a certain hub.
      *
-     * @param {number} hub_id id of the hub to change location.
-     * @param {GeographicCoordinate} hubLocation new location for the hub.
      */
-    submitHubLocation(hub_id: number, hubLocation: GeographicCoordinate) {
+    function submitHubLocation() {
+        const hubLocation = getInputHubLocation()
+
         if (hubLocation == null) {
             console.warn('hub location is null')
             return
@@ -145,44 +92,103 @@ export default class SetHubLocationPanel extends React.Component {
             set_hub_location: hubLocation
         }
 
-        this.props.api.postCommandForHub(hubCommand)
+        props.api.postCommandForHub(hubCommand)
     }
 
     
     /**
      * Initiate a PointerInteraction to select a new hub location with a click or tap.
      */
-    selectOnMap() {
-        this._selectOnMapInteraction = new PointerInteraction({
+    function selectOnMap() {
+        const _selectOnMapInteraction = new PointerInteraction({
             handleEvent: (evt) => {
                 if (evt.type == "click") {
-                    const hubLocation = getGeographicCoordinate(evt.coordinate, evt.map)
-                    this.submitHubLocation(this.hub_id, hubLocation)
-
-                    this.destroySelectOnMapInteraction()
+                    const clickedLocation = getGeographicCoordinate(evt.coordinate, evt.map)
+                    getElementById<HTMLInputElement>('set-hub-location-latitude').value = clickedLocation.lat.toFixed(6)
+                    getElementById<HTMLInputElement>('set-hub-location-longitude').value = clickedLocation.lon.toFixed(6)
+                    submitHubLocation()
+                    setSelectOnMapInteraction(null)
                     return false
                 }
             },
             stopDown: () => { return true }
         })
-
-        this.props.map.addInteraction(this._selectOnMapInteraction)
-        this.props.map.getTargetElement().style.cursor = 'crosshair'
+        setSelectOnMapInteraction(_selectOnMapInteraction)
     }
-
     
+
     /**
      * Destroy the hub location selection interaction.
      */
-    destroySelectOnMapInteraction() {
-        this.props.map.removeInteraction(this._selectOnMapInteraction)
-        this._selectOnMapInteraction = null
-        this.props.map.getTargetElement().style.cursor = 'default'
+    function destroySelectOnMapInteraction() {
+        console.log(selectOnMapInteraction)
+        if (selectOnMapInteraction != null) {
+            props.map.removeInteraction(selectOnMapInteraction)
+            setSelectOnMapInteraction(null)
+            props.map.getTargetElement().style.cursor = 'default'
+        }
     }
 
+    // Destroy the map select interaction on unmount, if present.
+    useEffect(() => {
+        return () => {
+            setSelectOnMapInteraction(null)
+        }
+    }, [])
     
-    componentWillUnmount(): void {
-        this.destroySelectOnMapInteraction()
-    }
 
+    useEffect(() => {
+        if (selectOnMapInteraction == null) {
+            props.map.removeInteraction(selectOnMapInteraction)
+            props.map.getTargetElement().style.cursor = 'default'
+        }
+        else {
+            props.map.addInteraction(selectOnMapInteraction)
+            props.map.getTargetElement().style.cursor = 'crosshair'
+        }
+    }, [ selectOnMapInteraction ])
+
+
+    return (
+        <div className="panel" key="set-hub-location">
+            <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
+            <div className='mission-settings-panel-container'>
+
+                { /* this.hubIdSelectionElement() */ }
+
+                <div className='mission-settings-input-label'>Latitude</div>
+                <div className='mission-settings-input-row'>
+                    <input className="mission-settings-num-input"
+                        id="set-hub-location-latitude" 
+                        name="latitude" 
+                        defaultValue={props.hubs[hub_id].location.lat.toFixed(6)}
+                    />
+                </div>
+
+                <div className='mission-settings-input-label'>Longitude</div>
+                <div className='mission-settings-input-row'>
+                    <input className="mission-settings-num-input"
+                        id="set-hub-location-longitude" 
+                        name="longitude" 
+                        defaultValue={props.hubs[hub_id].location.lon.toFixed(6)}
+                    />
+                </div>
+            </div>
+            <Button
+                className="button-jcc engineering-panel-btn"
+                type="button"
+                id="set-hub-location-submit"
+                onClick={submitHubLocation}>
+                Submit Values
+            </Button>
+            <Button
+                className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
+                type="button"
+                id="set-hub-location-map-select"
+                onClick={selectOnMap}
+                >
+                Select on Map
+            </Button>
+        </div>
+    )
 }
