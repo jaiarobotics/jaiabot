@@ -73,6 +73,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     int calculateMotorMicroseconds(const int& input);
 
+    goby::middleware::protobuf::IOStatus io_status = goby::middleware::protobuf::IOStatus();
     int64_t lastAckTime_;
 
     uint64_t _time_last_command_received_ = 0;
@@ -304,6 +305,10 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
+
+    // Handle serial port connection error(s)
+    interthread().subscribe<serial_out>(
+        [this](const goby::middleware::protobuf::IOStatus& status) { io_status = status; });
 }
 
 /**
@@ -575,6 +580,14 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
             ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
     }
 
+    if (io_status.has_state() &&
+        io_status.state() != goby::middleware::protobuf::IOState::IO__LINK_OPEN)
+    {
+        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
+    }
+
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
             goby::time::SteadyClock::now() &&
         !last_command_acked_)
@@ -590,6 +603,6 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
+            ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
     }
 }
