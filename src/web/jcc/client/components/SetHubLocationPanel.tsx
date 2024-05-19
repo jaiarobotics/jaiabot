@@ -33,27 +33,12 @@ export default class SetHubLocationPanel extends React.Component {
         const hubLocation = this.props.hubs[0].location
         const selectingOnMap = (this._selectOnMapInteraction != null)
 
-        const hubIdOptionElements = () => {
-            return Object.values(this.props.hubs).map((hub) => {
-                return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>
-            })
-        }
-
         return (
             <div className="panel">
                 <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
                 <div className='mission-settings-panel-container'>
 
-                    <div className='mission-settings-input-label'>
-                        Hub ID
-                    </div>
-                    <div className='mission-settings-input-row'>
-                        <Select id="bot-id-select" defaultValue={this.hub_id} onChange={(evt) => {
-                                this.hub_id = Number(evt.target.value)
-                            }}>
-                            { hubIdOptionElements() }
-                        </Select>
-                    </div>
+                    { /* this.hubIdSelectionElement() */ }
 
                     <div className='mission-settings-input-label'>Latitude</div>
                     <div className='mission-settings-input-row'>
@@ -96,6 +81,34 @@ export default class SetHubLocationPanel extends React.Component {
     }
 
     
+    
+    /**
+     * A Select element for choosing the hub_id.
+     *
+     * @returns {*} The Select element.
+     */
+    hubIdSelectionElement() {
+        const menuItems = Object.values(this.props.hubs).map((hub) => {
+            return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>
+        })
+
+        const labelRow = <div className='mission-settings-input-label'>
+                Hub ID
+            </div>
+
+        const hubIdSelectionRow = 
+            <div className='mission-settings-input-row'>
+                <Select id="bot-id-select" defaultValue={this.hub_id} onChange={(evt) => {
+                        this.hub_id = Number(evt.target.value)
+                    }}>
+                    { menuItems }
+                </Select>
+            </div>
+
+        return [ labelRow, hubIdSelectionRow ]
+    }
+
+
     /**
      * Gets the user-entered location from the longitude and latitude GUI fields.
      *
