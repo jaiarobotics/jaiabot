@@ -57,25 +57,24 @@ export default class SetHubLocationPanel extends React.Component {
                             defaultValue={hubLocation.lon.toFixed(6)}
                         />
                     </div>
-
-                    <Button
-                        className="button-jcc engineering-panel-btn" 
-                        type="button" 
-                        id="set-hub-location-submit"
-                        onClick={() => {
-                            this.submitHubLocation(this.hub_id, this.getHubLocation())
-                        }}>
-                        Submit Values
-                    </Button>
-                    <Button 
-                        className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
-                        type="button" 
-                        id="set-hub-location-map-select"
-                        onClick={this.selectOnMap.bind(this)}
-                        >
-                        Select on Map
-                    </Button>
                 </div>
+                <Button
+                    className="button-jcc engineering-panel-btn"
+                    type="button"
+                    id="set-hub-location-submit"
+                    onClick={() => {
+                        this.submitHubLocation(this.hub_id, this.getHubLocation())
+                    }}>
+                    Submit Values
+                </Button>
+                <Button
+                    className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
+                    type="button"
+                    id="set-hub-location-map-select"
+                    onClick={this.selectOnMap.bind(this)}
+                    >
+                    Select on Map
+                </Button>
             </div>
         )
     }
