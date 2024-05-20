@@ -88,7 +88,13 @@ job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
   resource_class: large
   steps:
-    - checkout
+    - attach-workspace: &attach-src-workspace
+        at: /root/src
+    - run: &run-extract-src
+        name: Extract the original source tarball
+        command: |
+          cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
+          tar xfJ ../*.orig.tar.xz --strip-components=1
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
     - run: *run-set-deb-rep-and-version
@@ -97,13 +103,6 @@ job-template-deb-amd64: &job-template-deb-amd64
     - run: &run-import-gpg
         name: Import GPG key
         command: echo -e "$GPG_KEY" | gpg --import
-    - attach-workspace: &attach-src-workspace
-        at: /root/src
-    - run: &run-extract-src
-        name: Extract the original source tarball
-        command: |
-          cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
-          tar xfJ ../*.orig.tar.xz --strip-components=1
     - run: &run-update-deb
         name: Update the debian source repo and pull the branch with the same name as the project branch (if it exists)
         command: |

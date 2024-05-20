@@ -24,6 +24,7 @@ export jaia_lib_dir=$(realpath "$(dirname $(which jaiabot_single_thread_pattern)
 export jaia_share_dir=$(realpath "$(dirname $(which jaiabot_single_thread_pattern))/../share")
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${goby3_lib_dir}:${jaia_lib_dir}
 
+export jaia_tool=$(realpath "$(which jaia)")
 [ -z "${jaia_hub_index}" ] && export jaia_hub_index=1
 [ -z "${jaia_bot_index}" ] && export jaia_bot_index=1
 [ -z "${jaia_fleet_index}" ] && export jaia_fleet_index=0
