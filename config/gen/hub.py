@@ -189,6 +189,10 @@ elif common.app == 'jaiabot_hub_manager':
                                      hub_id=hub_index,
                                      xbee_config=common.comms.xbee_config(),
                                      fleet_id=fleet_index,
+                                     bot_log_staging_dir=common.bot_log_staging_dir,
+                                     hub_log_offload_dir=common.hub_log_offload_dir,
+                                     # if we're using localhost for wifi comms, use it for data offload as well
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',

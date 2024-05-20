@@ -5,8 +5,10 @@
   become: yes
   tasks:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      # in some case the "apt" module was not doing an update
+      shell: "apt-get update"
+      args:
+        warn: false
 
     - include_tasks: tasks/get-version.yml
 
