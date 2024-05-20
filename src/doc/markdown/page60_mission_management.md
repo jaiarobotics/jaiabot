@@ -58,7 +58,7 @@ The goal is to keep the state machine as simple as possible while still supporti
         * ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
-	+ DataOffload: Hub is download data from Bot.
+	+ DataOffload: Hub is downloading data from Bot.
 	+ Idle: Bot is awaiting a command to reset for a new mission or shut down. If a new mission is sent, goby_logger is started.
 	+ Failed: Hub could not download data.
 	+ ShuttingDown: Bot is cleanly powering down.

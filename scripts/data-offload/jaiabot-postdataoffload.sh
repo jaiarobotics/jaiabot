@@ -21,7 +21,7 @@ echo "Bot staging dir: ${staging_dir}"
 
 archive_dir="$3"
 if [[ -z "${archive_dir}" ]]; then
-    echo "Must specify valid archive directory as second command line parameter"
+    echo "Must specify valid archive directory as third command line parameter"
     exit 1;
 fi
 
