@@ -25,6 +25,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 #include <boost/algorithm/string.hpp>
 
@@ -68,6 +69,66 @@ inline protobuf::DeviceMetadata metadata()
     jaiabot_version.set_git_hash(JAIABOT_VERSION_GITHASH);
     jaiabot_version.set_git_branch(JAIABOT_VERSION_GITBRANCH);
 #endif
+
+    auto execute_command = [](const char* cmd) -> std::string
+    {
+        std::array<char, 128> buffer;
+        std::string result;
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+        if (!pipe)
+        {
+            throw std::runtime_error("popen() failed!");
+        }
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+        {
+            result += buffer.data();
+        }
+        return result;
+    };
+
+    // pull deb package info for jaiabot-embedded
+    {
+        std::string cmd = "apt-cache policy jaiabot-embedded";
+        std::string output = execute_command(cmd.c_str());
+
+        std::regex installed_pattern(R"(Installed: (\S+))");
+        std::smatch installed_match;
+        if (std::regex_search(output, installed_match, installed_pattern))
+        {
+            std::string installed_version = installed_match[1];
+
+            if (installed_version != "(none)")
+            {
+                // Perform regex match to extract "repo" and "release_branch"
+                std::regex repo_pattern(R"(packages\.jaia\.tech/ubuntu/([a-z]*)/([X0-9]+\.y*))");
+                std::smatch repo_match;
+                if (std::regex_search(output, repo_match, repo_pattern))
+                {
+                    std::string repo = repo_match[1];
+                    std::string release_branch = repo_match[2];
+
+                    jaiabot_version.set_deb_repository(repo);
+                    jaiabot_version.set_deb_release_branch(release_branch);
+                }
+            }
+        }
+    }
+
+    // pull deb package info for moos-ivp-apps
+    {
+        std::string cmd = "apt-cache policy moos-ivp-apps";
+        std::string output = execute_command(cmd.c_str());
+
+        std::regex installed_pattern(R"(Installed: (\S+))");
+        std::smatch installed_match;
+        if (std::regex_search(output, installed_match, installed_pattern))
+        {
+            std::string installed_version = installed_match[1];
+
+            if (installed_version != "(none)")
+                metadata.set_ivp_version(installed_version);
+        }
+    }
 
     metadata.set_goby_version(goby::VERSION_STRING);
     metadata.set_moos_version(MOOS_VERSION);
