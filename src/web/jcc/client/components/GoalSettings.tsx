@@ -90,15 +90,6 @@ export class GoalSettingsPanel extends React.Component {
         this.props.onDoneClick()
     }
 
-    isLastWpt() {
-        const runLength = this.props.runList.runs[this.props.runList.runIdInEditMode]?.command.plan.goal.length
-        if (runLength === this.props.goalIndex) {
-            return true
-        } 
-        
-        return false
-    }
-
     cancelClicked() {
         const { goal, originalGoal } = this.props
 
@@ -284,7 +275,6 @@ export class GoalSettingsPanel extends React.Component {
                         map={this.props.map}
                         location={goal?.location}
                         isEditMode={isEditMode}
-                        isLastWpt={this.isLastWpt()}
                         enableEcho={this.props.enableEcho}
                         scrollTaskSettingsIntoView={this.scrollTaskSettingsIntoView.bind(this)}
                         onChange={task => {

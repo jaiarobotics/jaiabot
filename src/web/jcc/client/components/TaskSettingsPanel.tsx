@@ -11,7 +11,6 @@ import { Vector as VectorSource } from 'ol/source';
 import { Point } from 'ol/geom';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import JaiaToggle from './JaiaToggle';
-import { Global } from '@emotion/react';
 
 // For keeping heading angles in the [0, 360] range
 
@@ -38,7 +37,6 @@ interface Props {
     task?: MissionTask
     location?: GeographicCoordinate
     isEditMode?: boolean
-    isLastWpt?: boolean
     enableEcho: boolean
     scrollTaskSettingsIntoView?: () => void
     onChange?: (task?: MissionTask) => void
