@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
 import matplotlib.lines as mlines
+import matplotlib.lines as mlines
 import pandas as pd
 from math import *
 
@@ -233,6 +234,7 @@ def hdop_draw_summaries(summary, data, global_data, file_name):
             ax1.errorbar(i, mean, yerr=std_dev, fmt='o', color=color, ecolor='darkred', elinewidth=2, capsize=4, capthick=2, label='Standard Deviation' if i == 0 else None)
 
 
+
     #Set labels and title
     ax1.set_xlabel('HDOP Bin')
     ax1.set_ylabel('Drift Distance Dist. (m)', color='black')
@@ -246,6 +248,8 @@ def hdop_draw_summaries(summary, data, global_data, file_name):
     box = mpatches.Patch(color='lightgray', label='Box: Interquartile Range (IQR)')
     median = mpatches.Patch(color='blue', label='Median Line')
     whisker = mpatches.Patch(color='black', label='Whiskers: 1.5 * IQR')
+    flier = mlines.Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgecolor='black', label='Outlier Marker')
+    mean_dot = mlines.Line2D([], [], color='white', marker='o', linestyle='None', markersize=8, markeredgecolor='black', label='Mean / Frequency (Red = Higher Frequency)')
     flier = mlines.Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, markeredgecolor='black', label='Outlier Marker')
     mean_dot = mlines.Line2D([], [], color='white', marker='o', linestyle='None', markersize=8, markeredgecolor='black', label='Mean / Frequency (Red = Higher Frequency)')
     mean_error_bar = mpatches.Patch(color='darkred', label='Mean ± 1 Std. Dev.')
@@ -274,39 +278,25 @@ def hdop_draw_summaries(summary, data, global_data, file_name):
     table.auto_set_font_size(False)
     ax2.axis('off')
 
-    #Show both path only if not in global mode
-    if not global_data:
-        graph.suptitle(f'Bot {bot_id} HDOP Analysis\n{file_name}', fontsize=16)
-        chart.suptitle(f'Bot {bot_id} HDOP Analysis - {file_name}', fontsize=8)
-
-        #Scatter showing bot path
-        path, (ax3) = plt.subplots(figsize=(16, 10))
-        ax3.set_title(f'Path of Bot {bot_id}\n{file_name}')
-        ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
-        ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
-        ax3.set_xlabel('Longitude')
-        ax3.set_ylabel('Latitude')
-        ax3.grid(True)
-
-        #Legend for Path Chart
-        bot_path = mpatches.Patch(color='green', label='Bot Status Path')
-        drift_path = mpatches.Patch(color='red', label='Path while drifitng or reacquiring GPS')
-        transit_path = mpatches.Patch(color='blue', label='Path while not in drift')
-        ax3.legend(handles=[bot_path, drift_path, transit_path], loc='upper right')
-    else: 
-        graph.suptitle(f'HDOP Analysis\n{file_name}', fontsize=16)
-        chart.suptitle(f'HDOP Analysis - {file_name}', fontsize=10)        
-
-    #Dynamically adjust the cell height for the table
-    cell_height = 1 / (row_num * 1.5)
-    for pos, cell in table.get_celld().items():
-        cell.set_height(cell_height)
-        cell.set_width(1 / col_num)
-
-    table.auto_set_font_size(True)
-    table.scale(1, 1.5)
-
+    graph.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
     plt.tight_layout()
+
+    chart.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
+    
+    ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
+    ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
+    ax3.set_title(f'Path of Bot {bot_id}\n{filename}')
+    ax3.set_xlabel('Longitude')
+    ax3.set_ylabel('Latitude')
+    ax3.grid(True)
+
+    #Legend for Path Chart
+    bot_path = mpatches.Patch(color='green', label='Bot Status Path')
+    drift_path = mpatches.Patch(color='red', label='Path while drifitng or reacquiring GPS')
+    transit_path = mpatches.Patch(color='blue', label='Path while not in drift')
+
+    ax3.legend(handles=[bot_path, drift_path, transit_path], loc='upper right')
+
     plt.show()
 
 def get_plot_data(hdop_dist, pdop_dist, global_data, file_name):
@@ -373,32 +363,24 @@ def get_data(file_list, global_data):
         void
     """
     global filename
-    if global_data:
-        global all_hdop
-        global all_pdop
-        all_hdop = []
-        all_pdop = []
-
-    for filename in file_list:
-        global lats
-        global lons
-        global bots_lats
-        global bots_lons
-        global tpv_utimes
-        global hdops
-        global pdops
-        global nsats
-        global sky_utimes
-        global bot_id
-        global ds_utimes
-        global bot_utimes
-        #global hdop_dist
-        #global pdop_dist
-        global final_data
-        global cleaned_bot_data
-
-        file_path = filename
-
+    for filename in os.listdir(directory):
+        if filename.endswith('.h5'): 
+            global lats
+            global lons
+            global bots_lats
+            global bots_lons
+            global tpv_utimes
+            global hdops
+            global pdops
+            global nsats
+            global sky_utimes
+            global bot_id
+            global ds_utimes
+            global bot_utimes
+            global hdop_dist
+            global pdop_dist
+            global final_data
+            global cleaned_bot_data
 
         print(f'Analyzing {filename}')
 
