@@ -32,7 +32,7 @@ class Point:
         lat (float): Latitude of the Point
         lon (float): Longitude of the Point
     """
-    def __init__(self, lat, lon):
+    def __init__(self, lat, lon): 
         self.lat = lat
         self.lon = lon
 
