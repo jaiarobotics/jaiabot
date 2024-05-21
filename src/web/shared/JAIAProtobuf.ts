@@ -1184,5 +1184,11 @@ export interface HubStatus {
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
     linux_hardware_status?: LinuxHardwareStatus
+    bot_offload?: BotOffloadData
 }
 
+interface BotOffloadData {
+    bot_id : number,
+    data_offload_percentage?: number,
+    offload_succeeded?: boolean 
+}

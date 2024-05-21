@@ -2796,7 +2796,7 @@ export default class CommandControl extends React.Component {
 		const bots = this.getPodStatus().bots
 		for (const bot of Object.values(bots)) {
 			for (const enabledState of this.enabledDownloadStates) {
-				if (bot?.mission_state.includes(enabledState) && 
+				if (bot?.mission_state?.includes(enabledState) && 
 					bot?.wifi_link_quality_percentage && 
 					!this.isBotInQueue(bot) &&
 					!commDest.botIdsDisconnected.includes(bot?.bot_id)) {
@@ -2824,9 +2824,19 @@ export default class CommandControl extends React.Component {
 		return bots[botId]?.mission_state
 	}
 
+	/**
+	 * Gets the data offload percentage for a specific bot
+	 * 
+	 * @param {number} botId Ensures the percentage returned corresponds with the given bot
+	 * @returns {number} Data offload percentage
+	 */
 	getBotDownloadPercent(botId: number) {
-		const bots = this.getPodStatus().bots
-		return bots[botId]?.data_offload_percentage
+		const hubStatusKey = 1
+		let dataOffload = this.state.podStatus.hubs[hubStatusKey]?.bot_offload
+		if (botId == dataOffload.bot_id) {
+			return dataOffload?.data_offload_percentage
+		}
+		return 0
 	}
 
 	isBotInQueue(bot: PortalBotStatus) {
@@ -2926,7 +2936,7 @@ export default class CommandControl extends React.Component {
 			let notAvailable = true
 			if (sendingDownload) {
 				for (const enabledState of this.enabledDownloadStates) {
-					if (bot?.mission_state.includes(enabledState)) {
+					if (bot?.mission_state?.includes(enabledState)) {
 						notAvailable = false
 						break;
 					}
