@@ -63,10 +63,10 @@ class AccelerationAnalyzer:
         if imuData is None:
             return
         
+        acc = imuData.linear_acceleration
+        
         if self._sampling_for_wave_height:
             utime = datetime.utcnow().timestamp() * 1e6
-            acc = imuData.linear_acceleration
-
             vertical_acceleration = dotProduct(imuData.linear_acceleration, imuData.gravity) / magnitude(imuData.gravity)
             self.vertical_acceleration.append(utime, vertical_acceleration)
 

@@ -13,5 +13,5 @@ message MOOSGatewayConfig
 
 extend .goby.apps.moos.protobuf.GobyMOOSGatewayConfig
 {
-    optional MOOSGatewayConfig jaiabot_config = 1001;
+    optional MOOSGatewayConfig jaiabot_gateway_config = 1001;
 }

@@ -13,11 +13,11 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 183 bytes / 1464 bits
+    Actual maximum size of message: 179 bytes / 1432 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1456
-        padding to full byte...................0
+        body................................1423
+        padding to full byte...................1
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -31,6 +31,7 @@ message Command
     required uint64 time = 2 [(dccl.field) = {
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
+        precision: -6  // second precision
     }];
 
     enum CommandType
@@ -57,6 +58,8 @@ message Command
         RECOVERED = 30;
         SHUTDOWN = 31;
         RETRY_DATA_OFFLOAD = 32;
+        DATA_OFFLOAD_COMPLETE = 33;
+        DATA_OFFLOAD_FAILED = 34;
 
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;
@@ -270,10 +273,7 @@ message BotStatus
 
     optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 data_offload_percentage = 62
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
-
-    optional int32 wifi_link_quality_percentage = 63
+    optional int32 wifi_link_quality_percentage = 62
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 }
 

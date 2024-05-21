@@ -55,12 +55,12 @@ The goal is to keep the state machine as simple as possible while still supporti
 		* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 		* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 		* Manual: Operator has commanded the bot to pause its mission.
-		* ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
+        * ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
-	+ DataProcessing: Does not do anything at the moment. Placeholder for future on-board processing tasks.
-	+ DataOffload: Bot is uploading data to hub0.
+	+ DataOffload: Hub is downloading data from Bot.
 	+ Idle: Bot is awaiting a command to reset for a new mission or shut down. If a new mission is sent, goby_logger is started.
+	+ Failed: Hub could not download data.
 	+ ShuttingDown: Bot is cleanly powering down.
 
 ### Events
@@ -102,9 +102,9 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvRCSetpoint: Triggered by the operator providing a new remote control setpoint.
 - EvRCSetpointComplete: Triggered when the setpoint duration is exceeded.
 - EvRecovered: Triggered when the operator sends Command type: RECOVERED
-- EvBeginDataProcessing: Automatically triggered upon entry to Recovered.
-- EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
-- EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
+- EvBeginDataOffload: Automatically triggered upon entry to Recovered.
+- EvDataOffloadComplete: Triggered when the jaiabot_hub_manager sends Command type: DATA_OFFLOAD_COMPLETE.
+- EvDataOffloadFailed: Triggered when the jaiabot_hub_manager sends Command type: DATA_OFFLOAD_FAILED.
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD.
 - EvGPSFix: Triggered whe the GPS Fix meets our requirements. 
 - EvGPSNoFix: Triggered whe the GPS Fix does not meet our requirements.
@@ -167,9 +167,7 @@ Nominal progression (in all use cases):
 - Underway::Recovery::Stopped
 	- operator picks up bot
 - PostDeployment::Recovered
-	- data processing begins
-- PostDeployment::DataProcessing
- 	- data processing completes
+	- data offload begins
 - PostDeployment::DataOffload
 	-  data upload completes
 - PostDeployment::Idle
@@ -191,6 +189,21 @@ Nominal progression (in all use cases):
 - Survey Mission to Single Bot Remote Control Use Case
 	+ This is handled by sending a standard mission plan containing waypoint goals (as Waypoint Mission or Optimized Survey Mission)
 	+ When the operator chooses, the RemoteControl setpoints can be sent which move the bot into the Movement::RemoteControl state. From here the operator can issue manual tasks as desired to perform. When the RC part of the mission is over, the operator can resume the original mission plan by sending REMOTE_CONTROL_RESUME_MOVEMENT.
+
+
+## Log offload
+
+The logs are automatically offloaded onto the hub as part of the PostDeployment state of the mission manager.
+
+This process is automatically initiated when the vehicle is Recovered (or the user commands "RECOVERED"). The bot is responsible for staging the data required to be offloaded (`jaiabot-predataoffload.sh`), but the hub actually performs the `rsync` based data copy in the `jaiahub-dataoffload.sh` script (so that the bots do not need `ssh` credentials to log into the hub).
+
+After the data are copied, the bot archives the copied logs and deletes old (>7 days) logs using the `jaiabot-postdataoffload.sh` script.
+
+The complete process is diagrammed here:
+
+![](../figures/data-offload-sequence.png)
+
+
 
 ### Engineering Test Overrides
 
