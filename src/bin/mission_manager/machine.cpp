@@ -1487,11 +1487,16 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
-// PostDeployment::DataProcessing
-jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
-    typename StateBase::my_context c)
+// PostDeployment::DataOffload
+jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
     : StateBase(c)
 {
+    glog.is_verbose() && glog << "Stop Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+    request.set_close_log(true);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+
     if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
     {
         // Reset if recovered
@@ -1501,122 +1506,116 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
         this->machine().set_create_task_packet_file(true);
     }
 
-    // currently we do not do any data processing on the bot
-    post_event(EvDataProcessingComplete());
+    // run preoffload script and then do nothing (actual offload handled by jaiabot_hub_manager)
+    if (!run_command(CommandType::PRE_OFFLOAD))
+    {
+        this->machine().insert_warning(
+            jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
+        post_event(EvDataOffloadFailed());
+    }
 }
 
-// PostDeployment::DataOffload
-jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
-    : StateBase(c)
+bool jaiabot::statechart::postdeployment::DataOffload::run_command(CommandType type)
 {
-    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
-    this->set_offload_command(cfg().data_offload_command() + " " + cfg().class_b_network() + "." +
-                              std::to_string(cfg().fleet_id()) + "." +
-                              std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
-                              this->machine().data_offload_exclude() + " 2>&1");
+    std::string human_command_type;
+    std::string command;
+    bool success = false;
 
-    auto offload_func = [this]()
+    if (type == CommandType::PRE_OFFLOAD)
     {
-        glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
-                                 << "]" << std::endl;
+        human_command_type = "pre-data offload";
+        command = cfg().data_preoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + this->machine().data_offload_exclude() + " 2>&1";
+    }
+    else if (type == CommandType::POST_OFFLOAD)
+    {
+        human_command_type = "post-data offload";
+        command = cfg().data_postoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + " " + cfg().log_archive_dir() + " 2>&1";
+    }
 
-        FILE* pipe = popen(this->offload_command().c_str(), "r");
-        if (!pipe)
+    glog.is_debug1() && glog << "Performing " << human_command_type << " with command: [" << command
+                             << "]" << std::endl;
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+    {
+        glog.is_warn() && glog << "Error opening pipe to " << human_command_type
+                               << " command: " << strerror(errno) << std::endl;
+    }
+    else
+    {
+        std::string stdout;
+        std::array<char, 256> buffer;
+        while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
         {
-            glog.is_warn() && glog << "Error opening pipe to data offload command: "
-                                   << strerror(errno) << std::endl;
+            glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
+                                     << std::flush;
+            stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+        }
+
+        if (!feof(pipe))
+        {
+            pclose(pipe);
+            glog.is_warn() && glog << "Error reading output while executing " << human_command_type
+                                   << " command" << std::endl;
         }
         else
         {
-            std::string stdout;
-            std::array<char, 256> buffer;
-            while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
+            int status = pclose(pipe);
+            if (status < 0)
             {
-                glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
-                                         << std::flush;
-                stdout.append(buffer.begin(), buffer.begin() + bytes_read);
-
-                // Check if the line contains progress information
-                std::string percent_complete_str = "";
-                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
-                size_t pos = percent_complete_str.find("%");
-                if (pos != std::string::npos)
-                {
-                    if (pos >= 3)
-                    {
-                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
-                                                 << std::endl;
-
-                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
-                        this->set_data_offload_percentage(percent);
-                    }
-                }
-            }
-
-            if (!feof(pipe))
-            {
-                pclose(pipe);
-                glog.is_warn() && glog
-                                      << "Error reading output while executing data offload command"
-                                      << std::endl;
+                glog.is_warn() && glog << "Error executing  " << human_command_type
+                                       << " command: " << strerror(errno) << ", output: " << stdout
+                                       << std::endl;
             }
             else
             {
-                int status = pclose(pipe);
-                if (status < 0)
+                if (WIFEXITED(status))
                 {
-                    glog.is_warn() &&
-                        glog << "Error executing data offload command: " << strerror(errno)
-                             << ", output: " << stdout << std::endl;
+                    int exit_status = WEXITSTATUS(status);
+                    if (exit_status == 0)
+                        success = true;
+                    else
+                        glog.is_warn() && glog << "Error: " << human_command_type
+                                               << " command returned normally but with "
+                                                  "non-zero exit code "
+                                               << exit_status << ", output: " << stdout
+                                               << std::endl;
                 }
+
                 else
                 {
-                    if (WIFEXITED(status))
-                    {
-                        int exit_status = WEXITSTATUS(status);
-                        if (exit_status == 0)
-                            offload_success_ = true;
-                        else
-                            glog.is_warn() &&
-                                glog << "Error: Offload command returned normally but with "
-                                        "non-zero exit code "
-                                     << exit_status << ", output: " << stdout << std::endl;
-                    }
-
-                    else
-                    {
-                        glog.is_warn() &&
-                            glog << "Error: Offload command exited abnormally. output: " << stdout
-                                 << std::endl;
-                    }
+                    glog.is_warn() && glog << "Error:  " << human_command_type
+                                           << " command exited abnormally. output: " << stdout
+                                           << std::endl;
                 }
             }
         }
-        offload_complete_ = true;
-    };
+    }
 
-    offload_thread_.reset(new std::thread(offload_func));
+    return success;
 }
 
-void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
+jaiabot::statechart::postdeployment::DataOffload::~DataOffload()
 {
-    if (offload_complete_)
+    auto offload_complete_event = dynamic_cast<const EvDataOffloadComplete*>(triggering_event());
+
+    // run post offload only on successful data offload
+    if (offload_complete_event)
     {
-        offload_thread_->join();
-
-        if (cfg().is_sim())
+        if (!run_command(CommandType::POST_OFFLOAD))
         {
-            offload_success_ = true;
-        }
-
-        if (!offload_success_)
+            glog.is_warn() && glog << "Post offload command failed" << std::endl;
             this->machine().insert_warning(
-                jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
-        else // clear any previous offload failed warning
-            this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
-
-        post_event(EvDataOffloadComplete());
+                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+        }
     }
+
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
 }
 
 // PostDeployment::Idle
@@ -1641,6 +1640,17 @@ jaiabot::statechart::postdeployment::Idle::~Idle()
         interprocess().publish<goby::middleware::groups::logger_request>(request);
     }
 }
+
+// PostDeployment::Failed
+jaiabot::statechart::postdeployment::Failed::Failed(typename StateBase::my_context c) : StateBase(c)
+{
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+}
+
+jaiabot::statechart::postdeployment::Failed::~Failed() {}
 
 // PostDeployment::ShuttingDown
 jaiabot::statechart::postdeployment::ShuttingDown::ShuttingDown(typename StateBase::my_context c)
