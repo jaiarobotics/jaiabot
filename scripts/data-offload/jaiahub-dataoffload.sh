@@ -41,8 +41,8 @@ fi
 # don't specify jaia user for simulation localhost offloads, otherwise do so
 if [[ "${bot_ip}" == "127.0.0.1" ]]; then
     userat=""
+    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${staging_dir}/ ${offload_dir}
 else
     userat="jaia@"
+    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${userat}${bot_ip}:${staging_dir}/ ${offload_dir}
 fi
-    
-nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${userat}${bot_ip}:${staging_dir}/ ${offload_dir}
