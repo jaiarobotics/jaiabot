@@ -418,7 +418,7 @@ message StationkeepPacket {
         unit_system: "si"
     };
 
-    optional int32 drift_duration = 1 [
+    optional int32 stationkeep_duration = 1 [
         default = 0,
         (dccl.field) = {
             min: 0
