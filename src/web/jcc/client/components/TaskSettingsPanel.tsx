@@ -255,25 +255,6 @@ function TaskOptionsPanel(props: Props) {
         })
     }
 
-    function isNotLastWpt() {
-        if (!props.isLastWpt) {
-            return (
-                <div id="StationKeepDiv">
-                    <table className="TaskParametersTable">
-                        <tbody>
-                            <tr className="task-param-container">
-                                <td className="task-label">Station Keep Time</td>
-                                <td className="input-row"><input type="number" step="1" min="0" max ="3600" className="NumberInput" name="station_keep_time" value={station_keep?.station_keep_time} onChange={onChangeStationKeepParameter} disabled={!props?.isEditMode && !props?.isLastWpt}/>s</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            )
-        }
-
-        return <div></div>
-    }
-
     /**
      * If the pod contains an Echo bot, then a toggle for acoustic functionality will appear in the task settings
      * 
@@ -391,7 +372,16 @@ function TaskOptionsPanel(props: Props) {
             )
         case TaskType.STATION_KEEP:
             return (
-                <div>{isNotLastWpt()}</div>
+                <div id="StationKeepDiv">
+                    <table className="TaskParametersTable">
+                        <tbody>
+                            <tr className="task-param-container">
+                                <td className="task-label">Station Keep Time</td>
+                                <td className="input-row"><input type="number" step="1" min="0" max ="3600" className="NumberInput" name="station_keep_time" value={station_keep?.station_keep_time} onChange={onChangeStationKeepParameter} disabled={!props?.isEditMode}/>s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             )
         case TaskType.SURFACE_DRIFT:
             return (
