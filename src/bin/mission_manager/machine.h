@@ -1475,12 +1475,11 @@ struct StationKeep
     void loop(const EvLoop&);
 
     using local_reactions = boost::mpl::list<>;
-    using reactions =
-        typename boost::mpl::copy<local_reactions,
-                                  boost::mpl::front_inserter<Base::common_reactions>>::type;
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, StationKeep, &StationKeep::loop>>;
 
   private:
-    goby::time::SteadyClock::time_point setpoint_stop_
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
