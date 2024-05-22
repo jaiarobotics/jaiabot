@@ -2833,7 +2833,7 @@ export default class CommandControl extends React.Component {
 	getBotDownloadPercent(botId: number) {
 		const hubStatusKey = 1
 		let dataOffload = this.state.podStatus.hubs[hubStatusKey]?.bot_offload
-		if (botId == dataOffload.bot_id) {
+		if (dataOffload && botId == dataOffload.bot_id) {
 			return dataOffload?.data_offload_percentage
 		}
 		return 0
