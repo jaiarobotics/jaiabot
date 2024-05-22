@@ -19,7 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
 #RUN apt install -y gdal-bin
 #RUN apt install -y libgdal-dev 
 #RUN python3 -m pip install netifaces
-RUN apt-get install python3-netifaces
+#RUN apt-get install python3-netifaces
 #Note line above only needed until jaiabot-debian/pull/64 is merged 
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
