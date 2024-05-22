@@ -5,11 +5,10 @@ import React, { MouseEvent, ReactElement, ReactNode } from 'react'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
-import EngineeringPanel from './EngineeringPanel'
 import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import { Layers, layers } from './Layers'
+import { layers } from './Layers'
 import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
@@ -29,6 +28,7 @@ import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
 import { Save, GlobalSettings } from './Settings'
+import { CustomLayerGroupFactory } from './CustomLayers'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
@@ -47,6 +47,7 @@ import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHT
 import OlMap from 'ol/Map'
 import OlFeature from 'ol/Feature'
 import OlCollection from 'ol/Collection'
+import LayerGroup from 'ol/layer/Group'
 import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
@@ -96,7 +97,6 @@ interface Props {}
 export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
-	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	RUN_INFO = 'RUN_INFO',
@@ -382,6 +382,9 @@ export default class CommandControl extends React.Component {
 
 		// Map initializations
 		map = createMap()
+		layers.on(CustomLayerGroupFactory.customLayerGroupReady, (customLayerGroup: LayerGroup) => {
+			map.getLayers().insertAt(2, customLayerGroup);
+		})
 		this.interactions = new Interactions(this, map)
 		map.addInteraction(this.interactions.pointerInteraction)
 		map.addInteraction(this.interactions.translateInteraction)
@@ -515,7 +518,14 @@ export default class CommandControl extends React.Component {
 
 	}
 
-	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
+	/**
+	 * Called when the CommandControl component re-renders
+	 * 
+	 * @param {Props} prevProps 
+	 * @param {State} prevState Holds the values of state prior to the update
+	 * @returns {void}
+	 */
+	componentDidUpdate(prevProps: Props, prevState: State) {
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -570,7 +580,7 @@ export default class CommandControl extends React.Component {
 			this.updateMissionPlanningLayer()
 		}
 
-		// Update the map settings panel, if needed
+		// Update the settings panel, if needed
 		if (this.state.visiblePanel == PanelType.SETTINGS && prevState.visiblePanel != PanelType.SETTINGS) {
 			this.setupMapLayersPanel()
 		}
@@ -2697,12 +2707,20 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Calls the download function for the bot at the top of the queue and
+	 * removes it when the download finishes
+	 * 
+	 * @returns {void}
+	 */
 	async downloadBotsInOrder() {
 		const queue = this.state.botDownloadQueue
 		for (const bot of queue) {
-			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id) // Needed to update the queue list when downloads are added after the queue started
+			// Needed to update the queue list when downloads are added after the queue started
+			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED' ||
+					bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
 				this.removeBotFromQueue(bot)
 			}
 		}
@@ -2711,7 +2729,7 @@ export default class CommandControl extends React.Component {
 	async downloadBot(bot: PortalBotStatus, retryDownload: boolean) {
 		try {
 			await this.startDownload(bot, retryDownload)
-			await this.waitForPostDepoloymentIdle(bot, retryDownload)
+			await this.waitForPostDepoloyment(bot, retryDownload)
 		} catch (error) {
 			console.error('Function: downloadBot', error)
 		}
@@ -2731,12 +2749,13 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	waitForPostDepoloymentIdle(bot: PortalBotStatus, retryDownload?: boolean) {
+	waitForPostDepoloyment(bot: PortalBotStatus, retryDownload?: boolean) {
 		const timeoutTime = retryDownload ? 4000 : 0 // Accounts for lag in swithcing states
 		return new Promise<void>((resolve, reject) => {
 			setTimeout(() => {
 				const intervalId = setInterval(() => {
-					if (this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__IDLE') {
+					if (this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__IDLE' ||
+							this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__FAILED') {
 						clearInterval(intervalId)
 						resolve()
 					} 
@@ -2779,7 +2798,7 @@ export default class CommandControl extends React.Component {
 		const bots = this.getPodStatus().bots
 		for (const bot of Object.values(bots)) {
 			for (const enabledState of this.enabledDownloadStates) {
-				if (bot?.mission_state.includes(enabledState) && 
+				if (bot?.mission_state?.includes(enabledState) && 
 					bot?.wifi_link_quality_percentage && 
 					!this.isBotInQueue(bot) &&
 					!commDest.botIdsDisconnected.includes(bot?.bot_id)) {
@@ -2791,10 +2810,20 @@ export default class CommandControl extends React.Component {
 		return downloadableBots
 	}
 
+	/**
+	 * Gets the most up-to-date mission state of a bot
+	 * 
+	 * @param {number} botId Allows us to get the mission state for a specific bot 
+	 * @returns {MissionState} The bot's state in accordance with the state machine
+	 * 
+	 * @notes
+	 * Helpful in some asynchronous operations where an external function call is needed
+	 * to retrieve the latest data
+	 */
 	getBotMissionState(botId: number) {
 		// Need external function to get most up-to-date mission state, else mission state stays the same in async operations
 		const bots = this.getPodStatus().bots
-		return bots[botId].mission_state
+		return bots[botId]?.mission_state
 	}
 
 	getBotDownloadPercent(botId: number) {
@@ -2899,7 +2928,7 @@ export default class CommandControl extends React.Component {
 			let notAvailable = true
 			if (sendingDownload) {
 				for (const enabledState of this.enabledDownloadStates) {
-					if (bot?.mission_state.includes(enabledState)) {
+					if (bot?.mission_state?.includes(enabledState)) {
 						notAvailable = false
 						break;
 					}
@@ -3478,6 +3507,8 @@ export default class CommandControl extends React.Component {
 									this.deleteSRPInputsFromRuns()
 								}
 
+								this.autoAssignBotsToRuns()
+
 								// Default to edit mode off for runs created with line tool
 								runList.runIdInEditMode = ''
 								this.setRunList(runList)
@@ -3599,23 +3630,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const engineeringButton = (visiblePanel == PanelType.ENGINEERING ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-			}} 
-			>
-				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.ENGINEERING)
-			}} 
-			>
-				<Icon path={mdiWrench} size={1.3} rotate={90}  title="Engineering Panel" />
-			</Button>
-		))
-
 		const missionPanelButton = (visiblePanel == PanelType.MISSION ? (
 			<Button className="button-jcc active" onClick={() => {
 				this.setVisiblePanel(PanelType.NONE)
@@ -3638,14 +3652,14 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.NONE)
 			}}
 			>
-				<Icon path={mdiCog} size={1.3} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.SETTINGS)
 			}}
 			>
-				<Icon path={mdiCog} size={1.3} title="Map Settings" />
+				<Icon path={mdiCog} size={1.3} title="Settings" />
 			</Button>
 		))
 
@@ -3717,19 +3731,6 @@ export default class CommandControl extends React.Component {
 					setRunList={this.setRunList.bind(this)}
 					updateMissionHistory={this.updateMissionHistory.bind(this)}
 					toggleShowTableOfWaypoints={this.toggleShowTableOfWaypoints.bind(this)}
-					/>
-				)
-				break
-
-			case PanelType.ENGINEERING:
-				visiblePanelElement = (
-					<EngineeringPanel 
-					api={this.api} 
-					bots={bots} 
-					hubs={hubs} 
-					getSelectedBotId={this.selectedBotId.bind(this)}
-					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} 
 					/>
 				)
 				break
@@ -3819,6 +3820,15 @@ export default class CommandControl extends React.Component {
 						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
 						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
 						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
+
+						// Engineering Accordion Props
+						api={this.api} 
+						bots={bots} 
+						hubs={hubs} 
+						getSelectedBotId={this.selectedBotId.bind(this)}
+						getFleetId={this.getFleetId.bind(this)}
+						control={this.takeControl.bind(this)} 
+
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						trackBot={this.trackBot.bind(this)}
@@ -3844,9 +3854,8 @@ export default class CommandControl extends React.Component {
 					{missionPanelButton}
 					{surveyMissionSettingsButton}
 					{downloadQueueButton}
-					{settingsPanelButton}
 					{measureButton}
-					{engineeringButton}
+					{settingsPanelButton}
 				</div>
 
 				<div id="botsDrawer">

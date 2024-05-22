@@ -121,7 +121,7 @@ message MissionManager
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    optional uint32 imu_restart_seconds = 51 [default = 10];
+    optional uint32 imu_restart_seconds = 51 [default = 15];
 
     // Bot not rising timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bot is stuck and is not rising
@@ -160,26 +160,28 @@ message MissionManager
     optional double dive_eps_to_determine_diving = 62
         [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
 
-    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
-    // jaia@hub0:/var/log/jaiabot/bot_offload
-    // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload
-    // to
-    required string data_offload_command = 70;
+    required string data_preoffload_script = 70;
+    required string data_postoffload_script = 71;
 
     // e.g. /var/log/jaiabot/bot/*/
-    required string log_dir = 71;
+    required string log_dir = 72;
 
+    optional string log_staging_dir = 73 [
+        default = "/var/log/jaiabot/staging"
+    ];  // dir on bot with data to be offloaded
+
+    optional string log_archive_dir = 74 [
+        default = "/var/log/jaiabot/archive"
+    ];  // archived bot data
+
+    
     enum DownloadFileTypes
     {
         NONE = 1;
         GOBY = 2;
         TASKPACKET = 3;
     }
-    optional DownloadFileTypes data_offload_exclude = 72;
-
-    required int32 hub_start_ip = 73 [default = 10];
-
-    required string class_b_network = 74 [default = "10.23"];
+    optional DownloadFileTypes data_offload_exclude = 75;
 
     enum EngineeringTestMode
     {

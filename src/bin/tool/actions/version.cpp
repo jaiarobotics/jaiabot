@@ -30,6 +30,16 @@ jaiabot::apps::VersionTool::VersionTool()
                     if (all_pb_metadata.jaiabot_version().has_git_branch())
                         std::cout << "  git branch: "
                                   << all_pb_metadata.jaiabot_version().git_branch() << std::endl;
+
+                    if (all_pb_metadata.jaiabot_version().has_deb_repository())
+                        std::cout << "  deb repository: "
+                                  << all_pb_metadata.jaiabot_version().deb_repository()
+                                  << std::endl;
+
+                    if (all_pb_metadata.jaiabot_version().has_deb_release_branch())
+                        std::cout << "  deb release branch: "
+                                  << all_pb_metadata.jaiabot_version().deb_release_branch()
+                                  << std::endl;
                 }
 
                 break;
@@ -45,6 +55,13 @@ jaiabot::apps::VersionTool::VersionTool()
                 if (app_cfg().format() == jaiabot::config::VersionTool::text)
                 {
                     std::cout << "moos: " << all_pb_metadata.moos_version() << std::endl;
+                }
+                break;
+            case jaiabot::config::VersionTool::ivp:
+                *display_pb_metadata.mutable_ivp_version() = all_pb_metadata.ivp_version();
+                if (app_cfg().format() == jaiabot::config::VersionTool::text)
+                {
+                    std::cout << "ivp: " << all_pb_metadata.ivp_version() << std::endl;
                 }
                 break;
             case jaiabot::config::VersionTool::raspi:

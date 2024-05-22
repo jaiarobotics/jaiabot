@@ -56,7 +56,6 @@ td {
   }
 
   .button-jcc {
-    display: inline-block;
     width: auto;
     height: @command-button-size;
     min-width: @command-button-size;
@@ -70,7 +69,6 @@ td {
     text-decoration: none;
     margin: @command-button-margin;
     font-size: 16px;
-    line-height: 1;
     cursor: pointer;
 
     &.inactive {
@@ -286,7 +284,6 @@ td {
 
     > ul {
       list-style: none;
-      width: 301.25px; // Width of largest accordion tab
     }
 
     li.group:last-child {
@@ -414,6 +411,7 @@ td {
     .layer-switcher-fold label {
       font-size: 1.08rem;
       color: #FFFFFF;
+      word-break: break-all;
     }
 
     .layer-switcher-fold > button {
@@ -715,15 +713,7 @@ td {
   /******** CSS Engineering Panels ********************/
 
   #engineeringPanel {
-    position: absolute;
-    top: @command-button-size + (2 * @command-button-padding);
-    right: @command-button-size + (2 * @command-button-padding);
-    
-    max-height: calc(95vh - @top-toolbar-height);
-    overflow-y: auto;
-    
     background-color: @overlay-background;
-    border: 2px solid @cc-accordian-color;
 
     z-index: 1;
 
@@ -732,8 +722,8 @@ td {
       flex-direction: column;
       align-items: center;
 
-      margin: 8pt;
-      padding: 8pt;
+      margin: 1px;
+      padding: 1px;
 
       background-color: @cc-background-color;
     }
@@ -1339,10 +1329,10 @@ div.closeButton {
 /******** CSS Mission Planning *****************/
 #missionPanel {
   position: absolute;
-  top: @command-button-size + (2 * @command-button-padding);
-  right: @command-button-size + (2 * @command-button-padding);
+  top: @toolbar-panels-top;
+  right: @toolbar-panels-right;
   min-width: 402px;
-  max-height: calc(95vh - @top-toolbar-height);
+  max-height: calc(95vh - @toolbar-panels-top);
 
   background-color: @overlay-background;
   border: 2px solid @cc-accordian-color;
@@ -1362,8 +1352,8 @@ div.closeButton {
 }
 
 #runList {
-  // 77.31px = mission panel command strip, 22.91px = heading, 36px = measured buffer
-  max-height: calc(95vh - @top-toolbar-height - 77.31px - 22.91px - 36px);
+  @static-elements-total-height: 303px;
+  max-height: calc(95vh - @static-elements-total-height);
   overflow-y: auto;
 }
 

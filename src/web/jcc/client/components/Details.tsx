@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 
 // Jaia Imports
 import EditModeToggle from './EditModeToggle'
@@ -143,6 +143,7 @@ const commands: {[key: string]: CommandInfo} = {
         confirmationButtonText: 'Retry Data Offload',
         statesAvailable: [
             /^POST_DEPLOYMENT__IDLE$/,
+            /^POST_DEPLOYMENT__FAILED$/,
             /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
         ],
         humanReadableAvailable: "POST_DEPLOYMENT__IDLE, POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN",
@@ -586,19 +587,17 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     if (!bot) {
         return (<div></div>)
-    }
+    } 
+
+    const [accordionTheme, setAccordionTheme] = useState(createTheme({
+        transitions: {
+            create: () => 'none',
+        }
+    }))
 
     useEffect(() => {
         addDropdownListener('accordionContainer', 'botDetailsAccordionContainer', 30)
     }, [])
-
-    const makeAccordionTheme = () => {
-        return createTheme({
-            transitions: {
-                create: () => 'none',
-            }
-        })
-    }
 
     const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
     let statusAgeClassName: string
@@ -772,8 +771,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         />
                     </div>
                 </div>
-                <div id='botDetailsAccordionContainer' className='accordionParentContainer'>
-                    <ThemeProvider theme={makeAccordionTheme()}>
+                <div id='botDetailsAccordionContainer'>
+                    <ThemeProvider theme={accordionTheme}>
                         <Accordion 
                             expanded={isExpanded.quickLook} 
                             onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
@@ -831,7 +830,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Accordion>
                     </ThemeProvider>
 
-                    <ThemeProvider theme={makeAccordionTheme()}>
+                    <ThemeProvider theme={accordionTheme}>
                         <Accordion 
                         expanded={isExpanded.commands} 
                         onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
@@ -928,7 +927,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Accordion>
                     </ThemeProvider>
 
-                    <ThemeProvider theme={makeAccordionTheme()}>
+                    <ThemeProvider theme={accordionTheme}>
                         <Accordion 
                             expanded={isExpanded.health} 
                             onChange={(event, expanded) => {setDetailsExpanded('health', expanded)}}
@@ -951,7 +950,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Accordion>
                     </ThemeProvider>
 
-                    <ThemeProvider theme={makeAccordionTheme()}>
+                    <ThemeProvider theme={accordionTheme}>
                         <Accordion 
                             expanded={isExpanded.data} 
                             onChange={(event, expanded) => {setDetailsExpanded('data', expanded)}}
@@ -967,7 +966,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                             <AccordionDetails>
 
-                                <ThemeProvider theme={makeAccordionTheme()}>
+                                <ThemeProvider theme={accordionTheme}>
                                     <Accordion 
                                         expanded={isExpanded.gps} 
                                         onChange={(event, expanded) => {setDetailsExpanded('gps', expanded)}}
@@ -1013,7 +1012,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </Accordion>
                                 </ThemeProvider>
 
-                                <ThemeProvider theme={makeAccordionTheme()}>
+                                <ThemeProvider theme={accordionTheme}>
                                     <Accordion 
                                         expanded={isExpanded.imu} 
                                         onChange={(event, expanded) => {setDetailsExpanded('imu', expanded)}}
@@ -1047,7 +1046,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </Accordion>
                                 </ThemeProvider>
 
-                                <ThemeProvider theme={makeAccordionTheme()}>
+                                <ThemeProvider theme={accordionTheme}>
                                     <Accordion 
                                         expanded={isExpanded.sensor} 
                                         onChange={(event, expanded) => {setDetailsExpanded('sensor', expanded)}}
@@ -1081,7 +1080,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </Accordion>
                                 </ThemeProvider>
 
-                                <ThemeProvider theme={makeAccordionTheme()}>
+                                <ThemeProvider theme={accordionTheme}>
                                     <Accordion 
                                         expanded={isExpanded.power} 
                                         onChange={(event, expanded) => {setDetailsExpanded('power', expanded)}}
@@ -1147,17 +1146,15 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const closeWindow = props.closeWindow
     const takeControl = props.takeControl
 
+    const [accordionTheme, setAccordionTheme] = useState(createTheme({
+        transitions: {
+            create: () => 'none',
+        }
+    }))
+
     useEffect(() => {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
     }, [])
-
-    const makeAccordionTheme = () => {
-        return createTheme({
-            transitions: {
-                create: () => 'none',
-            }
-        })
-    }
 
     if (!hub) {
         return (<div></div>)
@@ -1208,8 +1205,8 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 <h2 className='name'>{`Hub ${hub?.hub_id}`}</h2>
                 <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
             </div>
-            <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
-                <ThemeProvider theme={makeAccordionTheme()}>
+            <div id='hubDetailsAccordionContainer'>
+                <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={isExpanded.quickLook} 
                         onChange={(event, expanded) => {setDetailsExpanded('quickLook', expanded)}}
@@ -1260,7 +1257,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                 </ThemeProvider>
 
-                <ThemeProvider theme={makeAccordionTheme()}>
+                <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={isExpanded.commands} 
                         onChange={(event, expanded) => {setDetailsExpanded('commands', expanded)}}
@@ -1290,7 +1287,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                 </ThemeProvider>
 
-                <ThemeProvider theme={makeAccordionTheme()}>
+                <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={isExpanded.links} 
                         onChange={(event, expanded) => {setDetailsExpanded('links', expanded)}}

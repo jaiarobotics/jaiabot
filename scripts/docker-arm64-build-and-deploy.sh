@@ -8,40 +8,71 @@
 ## If omitted, the code is just built, but not pushed
 ## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
-## 
+## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
+## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
+## Env var "jaiabot_version" can be set to one of: 1.y, X.y which will set the version of the 'apt' repository. If unset, "1.y" will be used.
+## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, "focal" will be used.
 
 set -e
 
 botuser=jaia
 
 function dockerPackageVersion() {
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system apt show $1 | sed -n 's/^Version: \(.*\)~.*$/\1/p'
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} apt show $1 | sed -n 's/^Version: \(.*\)~.*$/\1/p'
 }
 
 script_dir=$(dirname $0)
 
+repo=${jaiabot_repo:-release}
+version=${jaiabot_version:-1.y}
+version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
+distro=${jaiabot_distro:-focal}
+
 # install clang-format hook if not installed
 [ ! -e ${script_dir}/../.git/hooks/pre-commit ] && ${script_dir}/../scripts/clang-format-hooks/git-pre-commit-format install
 
-cd ${script_dir}/..
-mkdir -p build/arm64
+if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
+    cd ${script_dir}/..
 
-if [ "$(docker image ls build_system --format='true')" != "true" ];
-then
-    echo "🟢 Building the docker build_system image"
-    docker build -t build_system .docker/focal/arm64
+    build_dir=build/amd64-vbox   
+    mkdir -p ${build_dir}
+
+    image_name=jaia_build_vbox_${distro}_${repo}_${version_lower}
+
+    if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
+    then
+        echo "🟢 Building the docker ${image_name} image"
+        ./scripts/docker-build-build-system.sh
+    fi
+
+    echo "🟢 Building jaiabot apps using docker ${image_name} image"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh"
+
+else    
+    cd ${script_dir}/..
+
+    build_dir=build/arm64
+    mkdir -p ${build_dir}
+    image_name=jaia_build_${distro}_${repo}_${version_lower}
+
+
+    if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
+    then
+        echo "🟢 Building the docker ${image_name} image"
+        ./scripts/docker-build-build-system.sh
+    fi
+
+    echo "🟢 Building jaiabot apps using docker ${image_name} image"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh"
 fi
 
 # Get goby and dccl versions currently installed into the build image
 docker_libgoby_version=$(dockerPackageVersion libgoby3)
 docker_libdccl_version=$(dockerPackageVersion libdccl4)
 
-echo "🟢 Building jaiabot apps"
-docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
-
 # Remove old library files
 echo "🟢 Cleaning old library files"
-docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts -t build_system bash -c "./clean-lib-directory.py"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts -t ${image_name} bash -c "./clean-lib-directory.py"
 
 if [ -z "$1" ]
 then
@@ -52,10 +83,10 @@ else
     do
         echo "🟢 Uploading to "$remote
         # Sync all directories
-        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./build/arm64/bin ./build/arm64/include ./build/arm64/share/ ./build/arm64/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
+        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./src/web/jcc.conf ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
-        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
 
         if [ ! -z $jaiabot_systemd_type ]; then
             echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"

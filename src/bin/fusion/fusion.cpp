@@ -501,15 +501,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_active_goal();
             }
 
-            if (report.has_data_offload_percentage())
-            {
-                latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
-            }
-            else
-            {
-                latest_bot_status_.clear_data_offload_percentage();
-            }
-
             if (report.has_repeat_index())
             {
                 latest_bot_status_.set_repeat_index(report.repeat_index());
@@ -889,23 +880,13 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
         {
             // TODO: We should be able to easily configure different error timeouts
             // Temp fix for now
-            if (ep.first == DataType::HEADING && !imu_issue_detected_)
+            if (ep.first == DataType::HEADING)
             {
                 if (!last_data_time_.count(ep.first) ||
                     (last_data_time_[ep.first] +
                          std::chrono::seconds(cfg().heading_timeout_seconds()) <
                      now))
                 {
-                    jaiabot::protobuf::IMUIssue imu_issue;
-                    imu_issue.set_solution(cfg().imu_issue_solution());
-                    interprocess().publish<jaiabot::groups::imu>(imu_issue);
-                    imu_issue_detected_ = true;
-                    last_imu_issue_report_time_ = now;
-
-                    glog.is_debug2() &&
-                        glog << "detect_imu_issue() Post IMU Warning: No heading data "
-                                "indicates imu issue"
-                             << endl;
                     health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                         ->add_error(ep.second);
                     health.set_state(goby::middleware::protobuf::HEALTH__FAILED);

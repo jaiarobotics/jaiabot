@@ -1,7 +1,10 @@
 .goal-settings-panel-outer-container {
+  --toolbar-panels-top: 72px;
+  --toolbar-panels-right: 72px;
+
   position: absolute;
-  top: 66px;
-  right: 66px;
+  top: var(--toolbar-panels-top);
+  right: var(--toolbar-panels-right);
   z-index: 1;
   
   background-color: rgba(0, 0, 0, 0.7);
