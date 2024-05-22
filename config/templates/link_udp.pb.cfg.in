@@ -1,0 +1,28 @@
+link {
+    modem_id: $modem_id
+    subnet_mask: $subnet_mask
+    driver {
+        driver_type: DRIVER_UDP
+        [goby.acomms.udp.protobuf.config] { 
+            local {                   
+                port: $local_port
+            }
+            $remotes
+            max_frame_size: 1400
+        }
+    }
+    mac { 
+        type: MAC_FIXED_DECENTRALIZED 
+        slot { src: $modem_id type: DATA slot_seconds: 0.5 }
+    }
+
+    # Buffer values for the forwarded subscription (message sent to set up the subscription itself)
+    subscription_buffer {
+        # avoid sending subscriptions more often than 10 seconds
+        blackout_time: 1
+        # set to some reasonably high (but not max) value
+        value_base: 1000
+        # one hour to set up all subscriptions should be enough
+        ttl: 3600        
+    }
+}
