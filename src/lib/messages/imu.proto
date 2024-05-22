@@ -159,5 +159,25 @@ message IMUIssue
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 
+    optional double heading_course_difference = 33 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double pitch = 34 [(dccl.field) = {
+        min: -180
+        max: 180
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
     
+    optional double speed_over_ground = 35 [(dccl.field) = {
+        min: -5
+        max: 10
+        precision: 1
+        units { derived_dimensions: "velocity" system: "si" }
+    }];
+
 }

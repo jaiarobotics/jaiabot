@@ -1076,6 +1076,9 @@ void jaiabot::apps::Fusion::detect_imu_issue()
             imu_issue.set_imu_heading_course_max_diff(cfg().imu_heading_course_max_diff());
             imu_issue.set_heading(heading);
             imu_issue.set_course_over_ground(course);
+            imu_issue.set_heading_course_difference(prev_course_vs_current_diff);
+            imu_issue.set_pitch(latest_bot_status_.attitude().pitch());
+            imu_issue.set_speed_over_ground(latest_bot_status_.speed().over_ground());
 
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             imu_issue_detected_ = true;
