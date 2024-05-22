@@ -4,8 +4,9 @@ ENV jaia_mode=simulation
 ENV USER=root
 ENV DEBIAN_FRONTEND=noninteractive
 #note ENV above was not recommended for use becaue it affects the entire image and will make the contrainer work noninteractive
-RUN apt update
-RUN apt install -y sudo git gnupg lsb-release
+RUN apt-get update
+RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
 #RUN apt install -y qt5-default 
 #RUN apt install -y python3-dev 
 #RUN apt install -y python3-testresources 
@@ -18,6 +19,8 @@ RUN apt install -y sudo git gnupg lsb-release
 #RUN apt install -y gdal-bin
 #RUN apt install -y libgdal-dev 
 #RUN python3 -m pip install netifaces
+RUN apt-get install python3-netifaces
+#Note line above only needed until jaiabot-debian/pull/64 is merged 
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
 RUN git switch task/create-docker-environment-for-simulator--no-liaison
