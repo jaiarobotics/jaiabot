@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { PortalHubStatus } from './shared/PortalStatus';
@@ -21,11 +21,11 @@ interface Props {
 
 
 export default function SetHubLocationPanel(props: Props) {
-    const [ hub_id, set_hub_id ] = useState(0)
-    const [ selectOnMapInteraction, setSelectOnMapInteraction ] = useState(null)
+    const [ hub_id, set_hub_id ] = useState(Number(Object.keys(props.hubs)[0]) ?? 1)
+    const [ selectingOnMap, setSelectingOnMap ] = useState(false)
+    const selectOnMapInteractionRef = useRef(null)
 
     const hubLocation = props.hubs[hub_id].location
-    const selectingOnMap = (selectOnMapInteraction != null)
 
     /**
      * A Select element for choosing the hub_id.
@@ -99,54 +99,48 @@ export default function SetHubLocationPanel(props: Props) {
     /**
      * Initiate a PointerInteraction to select a new hub location with a click or tap.
      */
-    function selectOnMap() {
-        const _selectOnMapInteraction = new PointerInteraction({
+    const toggleSelectOnMapInteraction = () => {
+        if (selectOnMapInteractionRef.current != null) {
+            destroySelectOnMapInteraction()
+            return
+        }
+
+        selectOnMapInteractionRef.current = new PointerInteraction({
             handleEvent: (evt) => {
                 if (evt.type == "click") {
                     const clickedLocation = getGeographicCoordinate(evt.coordinate, evt.map)
                     getElementById<HTMLInputElement>('set-hub-location-latitude').value = clickedLocation.lat.toFixed(6)
                     getElementById<HTMLInputElement>('set-hub-location-longitude').value = clickedLocation.lon.toFixed(6)
                     submitHubLocation()
-                    setSelectOnMapInteraction(null)
+                    destroySelectOnMapInteraction()
                     return false
                 }
             },
             stopDown: () => { return true }
         })
-        setSelectOnMapInteraction(_selectOnMapInteraction)
+        setSelectingOnMap(true)
+        props.map.addInteraction(selectOnMapInteractionRef.current)
+        props.map.getTargetElement().style.cursor = 'crosshair'
     }
     
 
     /**
      * Destroy the hub location selection interaction.
      */
-    function destroySelectOnMapInteraction() {
-        console.log(selectOnMapInteraction)
-        if (selectOnMapInteraction != null) {
-            props.map.removeInteraction(selectOnMapInteraction)
-            setSelectOnMapInteraction(null)
+    const destroySelectOnMapInteraction = () => {
+        if (selectOnMapInteractionRef.current != null) {
+            props.map.removeInteraction(selectOnMapInteractionRef.current)
+            selectOnMapInteractionRef.current = null
             props.map.getTargetElement().style.cursor = 'default'
+            setSelectingOnMap(false)
         }
     }
 
+
     // Destroy the map select interaction on unmount, if present.
     useEffect(() => {
-        return () => {
-            setSelectOnMapInteraction(null)
-        }
+        return destroySelectOnMapInteraction
     }, [])
-    
-
-    useEffect(() => {
-        if (selectOnMapInteraction == null) {
-            props.map.removeInteraction(selectOnMapInteraction)
-            props.map.getTargetElement().style.cursor = 'default'
-        }
-        else {
-            props.map.addInteraction(selectOnMapInteraction)
-            props.map.getTargetElement().style.cursor = 'crosshair'
-        }
-    }, [ selectOnMapInteraction ])
 
 
     return (
@@ -185,7 +179,7 @@ export default function SetHubLocationPanel(props: Props) {
                 className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
                 type="button"
                 id="set-hub-location-map-select"
-                onClick={selectOnMap}
+                onClick={toggleSelectOnMapInteraction}
                 >
                 Select on Map
             </Button>
