@@ -2719,7 +2719,8 @@ export default class CommandControl extends React.Component {
 			// Needed to update the queue list when downloads are added after the queue started
 			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED' ||
+					bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
 				this.removeBotFromQueue(bot)
 			}
 		}
@@ -2728,7 +2729,7 @@ export default class CommandControl extends React.Component {
 	async downloadBot(bot: PortalBotStatus, retryDownload: boolean) {
 		try {
 			await this.startDownload(bot, retryDownload)
-			await this.waitForPostDepoloymentIdle(bot, retryDownload)
+			await this.waitForPostDepoloyment(bot, retryDownload)
 		} catch (error) {
 			console.error('Function: downloadBot', error)
 		}
@@ -2748,12 +2749,13 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	waitForPostDepoloymentIdle(bot: PortalBotStatus, retryDownload?: boolean) {
+	waitForPostDepoloyment(bot: PortalBotStatus, retryDownload?: boolean) {
 		const timeoutTime = retryDownload ? 4000 : 0 // Accounts for lag in swithcing states
 		return new Promise<void>((resolve, reject) => {
 			setTimeout(() => {
 				const intervalId = setInterval(() => {
-					if (this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__IDLE') {
+					if (this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__IDLE' ||
+							this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__FAILED') {
 						clearInterval(intervalId)
 						resolve()
 					} 
@@ -2796,7 +2798,7 @@ export default class CommandControl extends React.Component {
 		const bots = this.getPodStatus().bots
 		for (const bot of Object.values(bots)) {
 			for (const enabledState of this.enabledDownloadStates) {
-				if (bot?.mission_state.includes(enabledState) && 
+				if (bot?.mission_state?.includes(enabledState) && 
 					bot?.wifi_link_quality_percentage && 
 					!this.isBotInQueue(bot) &&
 					!commDest.botIdsDisconnected.includes(bot?.bot_id)) {
@@ -2926,7 +2928,7 @@ export default class CommandControl extends React.Component {
 			let notAvailable = true
 			if (sendingDownload) {
 				for (const enabledState of this.enabledDownloadStates) {
-					if (bot?.mission_state.includes(enabledState)) {
+					if (bot?.mission_state?.includes(enabledState)) {
 						notAvailable = false
 						break;
 					}
