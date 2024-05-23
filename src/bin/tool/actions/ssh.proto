@@ -53,4 +53,5 @@ message SshTool
     optional Net net = 3 [default = wlan];
 
     optional bool ipv6 = 4 [default = false];
+    optional string user = 5 [default = "jaia"];
 }

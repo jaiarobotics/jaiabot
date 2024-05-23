@@ -92,7 +92,8 @@ jaiabot::apps::SshTool::SshTool()
                                               << "): " << host_ip << std::endl;
 
         boost::trim(host_ip);
-        args.push_back(host_ip);
+        std::string user_and_host = app_cfg().user() + "@" + host_ip;
+        args.push_back(user_and_host);
     }
     else
     {
