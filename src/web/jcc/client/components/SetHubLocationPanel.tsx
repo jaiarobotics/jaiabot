@@ -9,7 +9,6 @@ import { PortalHubStatus } from './shared/PortalStatus';
 import { CommandForHub, GeographicCoordinate, HubCommandType } from './shared/JAIAProtobuf';
 import { getElementById, getGeographicCoordinate } from './shared/Utilities';
 import { Map } from 'ol';
-import { Interaction } from 'ol/interaction';
 import PointerInteraction from 'ol/interaction/Pointer';
 import { Select, MenuItem } from '@mui/material';
 
@@ -157,7 +156,7 @@ export default function SetHubLocationPanel(props: Props) {
                     <input className="mission-settings-num-input"
                         id="set-hub-location-latitude" 
                         name="latitude" 
-                        defaultValue={props.hubs[hub_id].location.lat.toFixed(6)}
+                        defaultValue={hubLocation.lat.toFixed(6)}
                     />
                 </div>
 
@@ -166,7 +165,7 @@ export default function SetHubLocationPanel(props: Props) {
                     <input className="mission-settings-num-input"
                         id="set-hub-location-longitude" 
                         name="longitude" 
-                        defaultValue={props.hubs[hub_id].location.lon.toFixed(6)}
+                        defaultValue={hubLocation.lon.toFixed(6)}
                     />
                 </div>
             </div>
