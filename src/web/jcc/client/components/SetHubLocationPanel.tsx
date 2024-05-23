@@ -115,8 +115,10 @@ export default function SetHubLocationPanel(props: Props) {
                     destroySelectOnMapInteraction()
                     return false
                 }
-            },
-            stopDown: () => { return true }
+                else {
+                    return true
+                }
+            }
         })
         setSelectingOnMap(true)
         props.map.addInteraction(selectOnMapInteractionRef.current)
