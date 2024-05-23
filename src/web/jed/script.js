@@ -387,7 +387,7 @@ headingSlider.onValueChanged =
 // "elevator", 10, ['KeyK'], ['KeyI'])
 
 const timeoutSlider =
-    new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false,
+    new Slider(horizontal, "timeout", 0, 100, "Timeout", false, false,
                "timeout", 5, [ "KeyV" ], [ "KeyB" ], 1)
 timeoutSlider.value = 5
 
