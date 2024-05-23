@@ -252,9 +252,9 @@ elif jaia_type == Type.HUB:
     
 all_goby_apps = []
 
-
+# Need to check both eth0 and wlan0 as Cloud machines do not have wlan0 and real bots do not provision eth0 during normal ops
 liaison_systemd_ipv6_workaround = """# Wt appears to not resolve 0::0 until a non-`lo` interface has been assigned an IPv6 address. While this appears to be buggy behavior, the best we can do for now is to ensure that wlan0 is up with IPv6 before we start liaison
-ExecStartPre=timeout 60s bash -c 'until ip address show dev wlan0 | grep "inet6"; do sleep 1; done'
+ExecStartPre=timeout 60s bash -c 'until (ip address show dev wlan0 | grep "inet6") || (ip address show dev eth0 | grep "inet6"); do sleep 1; done'
 """
 
 jaiabot_apps = [
