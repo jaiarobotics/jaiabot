@@ -1,4 +1,4 @@
 export interface HubOrBot {
-	type: 'hub' | 'bot',
-	id: number
+    type: "hub" | "bot";
+    id: number;
 }

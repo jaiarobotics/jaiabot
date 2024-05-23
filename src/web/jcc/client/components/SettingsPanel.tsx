@@ -1,115 +1,115 @@
-import React, { useState } from 'react'
+import React, { useState } from "react";
 
-import JaiaToggle from './JaiaToggle'
-import ScanForBotPanel from './ScanForBotPanel'
-import QueryBotStatusPanel from "./QueryBotStatusPanel"
-import { JaiaAPI } from '../../common/JaiaAPI'
-import { taskData } from './TaskPackets'
-import { PanelType } from './CommandControl'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import { PortalBotStatus, PortalHubStatus } from './shared/PortalStatus'
+import JaiaToggle from "./JaiaToggle";
+import ScanForBotPanel from "./ScanForBotPanel";
+import QueryBotStatusPanel from "./QueryBotStatusPanel";
+import { JaiaAPI } from "../../common/JaiaAPI";
+import { taskData } from "./TaskPackets";
+import { PanelType } from "./CommandControl";
+import { PIDGainsPanel } from "./PIDGainsPanel";
+import { PortalBotStatus, PortalHubStatus } from "./shared/PortalStatus";
 
+import Button from "@mui/material/Button";
+import Accordion from "@mui/material/Accordion";
+import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import { ThemeProvider, createTheme } from "@mui/material";
 
-import Button from '@mui/material/Button'
-import Accordion from '@mui/material/Accordion'
-import Typography from '@mui/material/Typography'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
-import { ThemeProvider, createTheme } from '@mui/material';
+import { Icon } from "@mdi/react";
+import { mdiSendVariant } from "@mdi/js";
 
-import { Icon } from '@mdi/react'
-import { mdiSendVariant} from '@mdi/js'
-
-import '../style/components/SettingsPanel.css'
-
+import "../style/components/SettingsPanel.css";
 
 interface Props {
-    taskPacketsTimeline: {[key: string]: string | boolean}
-    isClusterModeOn: boolean
-    handleTaskPacketEditDatesToggle: () => void
-    handleTaskPacketsTimelineChange: (evt: React.ChangeEvent<HTMLInputElement>) => void
-    handleSubmitTaskPacketsTimeline: () => void
-    handleKeepEndDateCurrentToggle: () => void
-    isTaskPacketsSendBtnDisabled: () => boolean
-    setClusterModeStatus: (isOn: boolean) => void
-    setVisiblePanel: (panelType: PanelType) => void
-    trackBot: (id: number | string) => void
-    trackingTarget:string | number | null
-    visiblePanel: PanelType
-    zoomToPod: (firstMove: boolean) => void
+    taskPacketsTimeline: { [key: string]: string | boolean };
+    isClusterModeOn: boolean;
+    handleTaskPacketEditDatesToggle: () => void;
+    handleTaskPacketsTimelineChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
+    handleSubmitTaskPacketsTimeline: () => void;
+    handleKeepEndDateCurrentToggle: () => void;
+    isTaskPacketsSendBtnDisabled: () => boolean;
+    setClusterModeStatus: (isOn: boolean) => void;
+    setVisiblePanel: (panelType: PanelType) => void;
+    trackBot: (id: number | string) => void;
+    trackingTarget: string | number | null;
+    visiblePanel: PanelType;
+    zoomToPod: (firstMove: boolean) => void;
 
     // Engineering Accordion Props
-    api: JaiaAPI
-	bots: {[key: number]: PortalBotStatus}
-	hubs: {[key: number]: PortalHubStatus}
-	getSelectedBotId: () => number
-	getFleetId: () => number
-	control: (onSuccess: () => void) => void
+    api: JaiaAPI;
+    bots: { [key: number]: PortalBotStatus };
+    hubs: { [key: number]: PortalHubStatus };
+    getSelectedBotId: () => number;
+    getFleetId: () => number;
+    control: (onSuccess: () => void) => void;
 }
 
 enum AccordionTabs {
-    TaskPackets = 'TASK_PACKETS',
-    MapLayers = 'MAP_LAYERS',
-    Engineering = 'ENGINEERING'
+    TaskPackets = "TASK_PACKETS",
+    MapLayers = "MAP_LAYERS",
+    Engineering = "ENGINEERING",
 }
 
 /**
  * Defines layout and functionality of the SettingsPanel
  *
- * @param {Props} props Data from CommandControl used in the panel 
+ * @param {Props} props Data from CommandControl used in the panel
  * @returns {string} Web content of Settings Panel
  */
 export function SettingsPanel(props: Props) {
-    const [openAccordionTabs, setOpenAccordionTabs] = useState([])
-    const [accordionTheme, setAccordionTheme] = useState(createTheme({
-        transitions: {
-            create: () => 'none',
-        }
-    }))
+    const [openAccordionTabs, setOpenAccordionTabs] = useState([]);
+    const [accordionTheme, setAccordionTheme] = useState(
+        createTheme({
+            transitions: {
+                create: () => "none",
+            },
+        }),
+    );
 
     const handleClusterToggleClick = () => {
         // Task packets within this distance (meters) will be clustered
-        const defaultDistance = 30
+        const defaultDistance = 30;
 
         if (props.isClusterModeOn) {
-            taskData.updateClusterDistance(0)
+            taskData.updateClusterDistance(0);
         } else {
-            taskData.updateClusterDistance(defaultDistance)
+            taskData.updateClusterDistance(defaultDistance);
         }
 
-        props.setClusterModeStatus(!props.isClusterModeOn)
-    }
+        props.setClusterModeStatus(!props.isClusterModeOn);
+    };
 
     const handleTrackPodToggleClick = () => {
-        if (props.trackingTarget === 'pod') {
+        if (props.trackingTarget === "pod") {
             props.zoomToPod(false);
             props.trackBot(null);
         } else {
             props.zoomToPod(true);
-            props.trackBot('pod');
+            props.trackBot("pod");
         }
-    }
+    };
 
     const isOpenAccordionTab = (accordionTab: AccordionTabs) => {
-        return openAccordionTabs.includes(accordionTab)
-    }
+        return openAccordionTabs.includes(accordionTab);
+    };
 
     const handleAccordionTabClick = (accordionTab: AccordionTabs) => {
-        let updatedOpenAccordionTabs = [...openAccordionTabs]
-        
+        let updatedOpenAccordionTabs = [...openAccordionTabs];
+
         if (isOpenAccordionTab(accordionTab)) {
             for (let i = 0; i < openAccordionTabs.length; i++) {
                 if (openAccordionTabs[i] === accordionTab) {
-                    updatedOpenAccordionTabs.splice(i, 1)
-                    setOpenAccordionTabs(updatedOpenAccordionTabs)
+                    updatedOpenAccordionTabs.splice(i, 1);
+                    setOpenAccordionTabs(updatedOpenAccordionTabs);
                 }
             }
         } else {
-            updatedOpenAccordionTabs.push(accordionTab)
-            setOpenAccordionTabs(updatedOpenAccordionTabs)
+            updatedOpenAccordionTabs.push(accordionTab);
+            setOpenAccordionTabs(updatedOpenAccordionTabs);
         }
-    }
+    };
 
     return (
         <div className="settings-outer-container">
@@ -117,9 +117,11 @@ export function SettingsPanel(props: Props) {
             <div className="settings-inner-container">
                 <div className="settings-card-container">
                     <div className="settings-card">
-                        <div className="settings-label" style={{color:'white'}}>Track Pod:</div>
+                        <div className="settings-label" style={{ color: "white" }}>
+                            Track Pod:
+                        </div>
                         <JaiaToggle
-                            checked={() => props.trackingTarget === 'pod'}
+                            checked={() => props.trackingTarget === "pod"}
                             onClick={() => handleTrackPodToggleClick()}
                         />
                     </div>
@@ -128,12 +130,12 @@ export function SettingsPanel(props: Props) {
                     <Accordion
                         expanded={isOpenAccordionTab(AccordionTabs.TaskPackets)}
                         onChange={() => handleAccordionTabClick(AccordionTabs.TaskPackets)}
-                        className='accordionContainer'
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
                         >
                             <Typography>Task Packets</Typography>
                         </AccordionSummary>
@@ -152,56 +154,57 @@ export function SettingsPanel(props: Props) {
                                     onClick={() => props.handleTaskPacketEditDatesToggle()}
                                 />
                             </div>
-                            <div className={
-                                `settings-card-grid
-                                ${props.taskPacketsTimeline.isEditing ? " visible" : " hidden"}`
-                            }>
+                            <div
+                                className={`settings-card-grid
+                                ${props.taskPacketsTimeline.isEditing ? " visible" : " hidden"}`}
+                            >
                                 <div className="settings-label">Start Date:</div>
                                 <input
                                     id="task-packet-start-date"
                                     type="date"
                                     value={props.taskPacketsTimeline.startDate as string}
                                     onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}
-                                    max={''}>
-                                </input>
+                                    max={""}
+                                ></input>
                                 <input
                                     id="task-packet-start-time"
                                     type="time"
                                     value={props.taskPacketsTimeline.startTime as string}
-                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
-                                </input>
+                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}
+                                ></input>
 
                                 <div className="settings-label">End Date:</div>
                                 <input
                                     id="task-packet-end-date"
                                     type="date"
                                     value={props.taskPacketsTimeline.endDate as string}
-                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
-                                </input>
+                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}
+                                ></input>
                                 <input
                                     id="task-packet-end-time"
                                     type="time"
                                     value={props.taskPacketsTimeline.endTime as string}
-                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}>
-                                </input>
+                                    onChange={(evt) => props.handleTaskPacketsTimelineChange(evt)}
+                                ></input>
 
                                 <div className="task-packet-button-container">
                                     <div className="task-packet-checkbox-container">
                                         <input
                                             type="checkbox"
-                                            checked={props.taskPacketsTimeline.keepEndDateCurrent as boolean}
-                                            onChange={() => props.handleKeepEndDateCurrentToggle()}>
-                                        </input>
+                                            checked={
+                                                props.taskPacketsTimeline
+                                                    .keepEndDateCurrent as boolean
+                                            }
+                                            onChange={() => props.handleKeepEndDateCurrentToggle()}
+                                        ></input>
                                         <label>Keep End Date Current</label>
                                     </div>
                                     <div
-                                        className={
-                                            `settings-send-btn
-                                            ${props.isTaskPacketsSendBtnDisabled() ? ' disabled' : ''}`
-                                        }
+                                        className={`settings-send-btn
+                                            ${props.isTaskPacketsSendBtnDisabled() ? " disabled" : ""}`}
                                         onClick={() => props.handleSubmitTaskPacketsTimeline()}
                                     >
-                                        <Icon path={mdiSendVariant} title='Get Task Packets' />
+                                        <Icon path={mdiSendVariant} title="Get Task Packets" />
                                     </div>
                                 </div>
                             </div>
@@ -212,12 +215,12 @@ export function SettingsPanel(props: Props) {
                     <Accordion
                         expanded={isOpenAccordionTab(AccordionTabs.MapLayers)}
                         onChange={() => handleAccordionTabClick(AccordionTabs.MapLayers)}
-                        className='accordionContainer'
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
                         >
                             <Typography>Map Layers</Typography>
                         </AccordionSummary>
@@ -230,35 +233,44 @@ export function SettingsPanel(props: Props) {
                     <Accordion
                         expanded={isOpenAccordionTab(AccordionTabs.Engineering)}
                         onChange={() => handleAccordionTabClick(AccordionTabs.Engineering)}
-                        className='accordionContainer'
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls='panel1a-content'
-                            id='panel1a-header'
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
                         >
                             <Typography>Engineering</Typography>
                         </AccordionSummary>
                         <AccordionDetails className="settings-accordion-inner-container">
                             <div id="engineeringPanel">
                                 <div className="panel">
-                                    <Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
+                                    <Button
+                                        className="button-jcc engineering-panel-btn"
+                                        onClick={() => window.open("/jed/")}
+                                    >
                                         JaiaBot Engineer & Debug
                                     </Button>
                                 </div>
 
-                                <PIDGainsPanel bots={props.bots}  control={props.control} api={props.api} />
+                                <PIDGainsPanel
+                                    bots={props.bots}
+                                    control={props.control}
+                                    api={props.api}
+                                />
 
                                 <QueryBotStatusPanel control={props.control} api={props.api} />
 
-                                <ScanForBotPanel hubs={props.hubs} control={props.control} api={props.api} />
+                                <ScanForBotPanel
+                                    hubs={props.hubs}
+                                    control={props.control}
+                                    api={props.api}
+                                />
                             </div>
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
-
             </div>
-
         </div>
-    )
+    );
 }
