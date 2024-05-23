@@ -72,14 +72,20 @@ module.exports = (env, argv) => {
     target : 'web',
     stats : 'errors-only',
     devtool : 'eval-source-map',
-    entry :
-        [ 'babel-polyfill', path.resolve(__dirname, 'jcc/client/index.js') ],
+    entry : {
+        client : [ 'babel-polyfill', path.resolve(__dirname, 'jcc/client/index.js') ],
+        customLayerRasterWorker : [ path.resolve(__dirname, 'jcc/client/components/CustomLayerRasterWorker.ts') ],
+      },
     resolve : {
       extensions : [ '.*', '.js', '.jsx', '.ts', '.tsx' ],
+      alias : {
+        geotiff : path.resolve(
+            __dirname, 'node_modules/geotiff/dist-module/geotiff.js'),
+      },
     },
     output : {
       path: path.resolve(env.OUTPUT_DIR, 'jcc/'),
-      filename : 'client.js'},
+      filename : '[name].js'},
     module : {
       rules : [
         {
@@ -130,7 +136,8 @@ module.exports = (env, argv) => {
     plugins : [
       new HtmlWebpackPlugin({
         template : path.resolve(__dirname, 'jcc/public/index.html'),
-        favicon : path.resolve(__dirname, 'jcc/public/favicon.png')
+        favicon : path.resolve(__dirname, 'jcc/public/favicon.png'),
+        excludeChunks : [ 'customLayerWorker' ]
       }),
       new CopyWebpackPlugin({
         patterns : [

@@ -1,9 +1,12 @@
 .mission-settings-panel-outer-container {
-    position: absolute;
-    top: 66px;
-    right: 66px;
+    --toolbar-panels-top: 72px;
+    --toolbar-panels-right: 72px;
 
-    max-height: calc(95vh - 66px);
+    position: absolute;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
+
+    max-height: calc(95vh - var(--toolbar-panels-top));
     
     background-color: rgba(0, 0, 0, 0.7);
   
@@ -13,6 +16,8 @@
 }
 
 .mission-settings-panel-container {
+    --static-elements-total-height: 187px;
+
     display: grid;
     grid-template-columns: max-content min-content;
     gap: 16px;
@@ -21,8 +26,7 @@
     background-color: #FFFFFF;
     font-size: 1.1rem;
 
-    /* 66px = height of top toolbar, 58px = height of btm btn container, 57px = measured buffer */
-    max-height: calc(95vh - (66px + 58px + 57px));
+    max-height: calc(95vh - var(--static-elements-total-height));
     overflow-y: auto;
 }
 

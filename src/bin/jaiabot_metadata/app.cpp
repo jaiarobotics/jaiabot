@@ -49,8 +49,9 @@ class Metadata : public ApplicationBase
     {
         // Subscribe to MetaData
         interprocess().subscribe<jaiabot::groups::metadata>(
-            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata)
-            { publish_metadata(); });
+            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata) {
+                publish_metadata();
+            });
     }
 
   private:

@@ -69,6 +69,8 @@ class AdaFruitBNO085Publisher
     dccl::Codec dccl_;
     goby::time::SteadyClock::time_point last_adafruit_BNO085_report_time_{std::chrono::seconds(0)};
     bool helm_ivp_in_mission_{false};
+    goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
 };
 
 } // namespace apps
@@ -188,8 +190,19 @@ void jaiabot::apps::AdaFruitBNO085Publisher::check_last_report(
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on adafruit_BNO085" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER);
+
+        // Wait a certain amount of time before publishing issue
+        if (last_imu_trigger_issue_time_ +
+                std::chrono::seconds(cfg().imu_trigger_issue_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+        {
+            jaiabot::protobuf::IMUIssue imu_issue;
+            imu_issue.set_solution(cfg().imu_issue_solution());
+            interprocess().publish<jaiabot::groups::imu>(imu_issue);
+            last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
+        }
     }
 }

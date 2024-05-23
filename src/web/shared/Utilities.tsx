@@ -153,6 +153,17 @@ export function getElementById<T>(id: string) {
     return document.getElementById(id) as T
 }
 
+/**
+ * Adds an event listener to detect when a dropdown element extends beyond the visible view and
+ * scrolls it back into view
+ * 
+ * @param {string} targetClassName Used to identify dropdown elements
+ * @param {string} parentContainerId Used to identify outer container
+ * @param {number} delayMS Determines the time before the scroll occurs
+ * 
+ * @notes
+ * parentContainerId needs to have the property max-height set in css 
+ */
 export function addDropdownListener(targetClassName: string, parentContainerId: string, delayMS: number) {
     const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
     dropdownContainers.forEach((dropdownElement: HTMLElement) => {

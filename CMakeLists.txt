@@ -90,7 +90,7 @@ set(PROJECT_SOVERSION "1")
 
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
-set(PROJECT_INTERVEHICLE_API_VERSION 3)
+set(PROJECT_INTERVEHICLE_API_VERSION 4)
 
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
@@ -255,14 +255,21 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
-set(scripts
-    jaiabot-checkloadavg.py
-    jaiabot-dataoffload.sh
-    jaiahub-dataoffload-cloudhub.sh
-    jaia_firm_backup_date.sh   # Firmware script
+set(scripts_to_install
+  jaiabot-checkloadavg.py
+  # data offload
+  data-offload/jaiahub-dataoffload.sh
+  data-offload/jaiabot-predataoffload.sh
+  data-offload/jaiabot-postdataoffload.sh
+  data-offload/jaiahub-dataoffload-cloudhub.sh
+  # Firmware scripts
+  jaia_firm_backup_date.sh
+  geotiff_format.py
+  geotiff_scan.sh
 )
 
-foreach(script ${scripts})
+# Iterate over each script to install and copy
+foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
