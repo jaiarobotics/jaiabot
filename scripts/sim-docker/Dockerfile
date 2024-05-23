@@ -2,7 +2,7 @@ FROM ubuntu:focal
 ENV jaia_log_dir=/var/log/jaiabot
 ENV jaia_mode=simulation
 ENV USER=root
-ENV DEBIAN_FRONTEND=noninteractive
+#ENV DEBIAN_FRONTEND=noninteractive
 #note ENV above was not recommended for use becaue it affects the entire image and will make the contrainer work noninteractive
 RUN apt-get update
 RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
@@ -21,8 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata keyboard
 #RUN apt install -y gdal-bin
 #RUN apt install -y libgdal-dev 
 #RUN python3 -m pip install netifaces
-#RUN apt-get install python3-netifaces
-#Note line above only needed until jaiabot-debian/pull/64 is merged 
+RUN apt-get install python3-netifaces
+#Note line above only needed until jaiabot-debian/pull/64 is released
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
 #branch is only needed while debugging
