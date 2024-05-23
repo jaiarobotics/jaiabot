@@ -14,7 +14,7 @@ jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 # goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
 # [kill=SIGTERM] socat tcp:localhost:30100 pty,link=/tmp/pty_jaiahub,raw,echo=0
 
-goby_coroner <(../../gen/hub.py goby_coroner) --expected_name jaiabot_hub_manager --expected_name goby_liaison --expected_name jaiabot_web_portal --expected_name jaiabot_metadata --expected_name jaiabot_health
+goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_hub_manager --expected_name jaiabot_web_portal --expected_name jaiabot_metadata --expected_name jaiabot_health
 jaiabot_health <(../../gen/hub.py jaiabot_health)
 
 #[kill=SIGTERM] ../../../build/amd64/share/jaiabot/web/server/app.py
