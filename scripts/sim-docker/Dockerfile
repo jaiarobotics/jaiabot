@@ -6,7 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 #note ENV above was not recommended for use becaue it affects the entire image and will make the contrainer work noninteractive
 RUN apt-get update
 RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
-RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
+#items below must be installed here because ENV is not passed through sudo in the scripts below
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata keyboard-configuration
+#Commented out items were in file provided by Brodie, no longer needed
 #RUN apt install -y qt5-default 
 #RUN apt install -y python3-dev 
 #RUN apt install -y python3-testresources 
@@ -23,8 +25,10 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
 #Note line above only needed until jaiabot-debian/pull/64 is merged 
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
+#branch is only needed while debugging
 RUN git switch task/create-docker-environment-for-simulator
 RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
+# Hack below was in file provided by Brodie, not needed
 # Hack because line 4 of setup-tools-runtime.sh does not include "-y" and will fail to install these components when used in noninteractive environment
 #RUN apt-get install -y goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 ntp screen
 RUN /jaiabot/scripts/setup-tools-runtime.sh
