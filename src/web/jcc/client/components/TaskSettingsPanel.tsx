@@ -85,12 +85,18 @@ function TaskOptionsPanel(props: Props) {
         props.onChange(newTask)
     }
 
+    /**
+     * Called when the parameter of a station keep task is updated. Saves the new value to local storage and updates the global station keep parameter.
+     * 
+     * @param evt Change being made to the station keep DiveParameters
+     * @returns {void}
+     */
     function onChangeStationKeepParameter(evt: React.ChangeEvent<HTMLInputElement>) {
         const target = evt.target as any
         const key = target.name as (keyof StationKeepParameters)
         const value = Number(target.value)
         
-        var newTask = deepcopy(task)
+        let newTask = deepcopy(task)
         newTask.station_keep[key] = value
 
         GlobalSettings.stationKeepParameters[key] = value
