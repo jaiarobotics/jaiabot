@@ -2826,9 +2826,19 @@ export default class CommandControl extends React.Component {
 		return bots[botId]?.mission_state
 	}
 
+	/**
+	 * Gets the data offload percentage for a specific bot
+	 * 
+	 * @param {number} botId Ensures the percentage returned corresponds with the given bot
+	 * @returns {number} Data offload percentage
+	 */
 	getBotDownloadPercent(botId: number) {
-		const bots = this.getPodStatus().bots
-		return bots[botId]?.data_offload_percentage
+		const hubStatusKey = 1
+		let dataOffload = this.state.podStatus.hubs[hubStatusKey]?.bot_offload
+		if (dataOffload && botId == dataOffload.bot_id) {
+			return dataOffload?.data_offload_percentage
+		}
+		return 0
 	}
 
 	isBotInQueue(bot: PortalBotStatus) {
