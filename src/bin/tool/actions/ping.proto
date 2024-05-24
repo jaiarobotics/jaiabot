@@ -27,7 +27,7 @@ import "actions/net.proto";
 
 package jaiabot.config;
 
-message SshTool
+message PingTool
 {
     option (goby.msg).cfg.tool = {
         is_tool: true
@@ -39,12 +39,11 @@ message SshTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string host = 2 [(goby.field) = {
-        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
+        description: "The host to ping (e.g. b4f2, h1f3, or chf4)",
         cfg { position { enable: true } }
     }];
 
     optional Net net = 3 [default = wlan];
 
     optional bool ipv6 = 4 [default = false];
-    optional string user = 5 [default = "jaia"];
 }
