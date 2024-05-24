@@ -45,3 +45,4 @@ done
 sudo chown -R dput /var/www/html/ubuntu/
 ```
 - Make a git tag and push it as a point of reference for commits until the first release, such as `git tag 2.0.0_alpha1 && git push --tags`.
+- Update `.circleci/test_deb_repo.sh` to test for new release branch in non-standard branches
