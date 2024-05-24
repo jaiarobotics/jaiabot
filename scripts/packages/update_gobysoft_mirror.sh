@@ -67,7 +67,7 @@ all_releases=("1.y" "2.y" ) # ... "3.y" "4.y" "5.y")
 
 declare -A distros_for_releases
 
-distros_for_releases["1.y"]="focal,jammy,noble"
+distros_for_releases["1.y"]="focal,noble"
 distros_for_releases["2.y"]="noble"
 
 
