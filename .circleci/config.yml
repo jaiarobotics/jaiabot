@@ -180,14 +180,12 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "bug/fix-cloud-regressions"
         
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "bug/fix-cloud-regressions"
 
 ## Begin actual config
 version: 2
