@@ -3,7 +3,7 @@
 set -e -u -x
 
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 [jammy|focal]"
+    echo "Usage: $0 [jammy|focal|noble]"
     exit 1
 fi
 
@@ -13,6 +13,8 @@ if [[ "$distro" = "jammy" ]]; then
     version=22.04.1
 elif [[ "$distro" = "focal" ]]; then
     version=20.04.1
+elif [[ "$distro" = "noble" ]]; then
+    version=24.04.1
 else
     echo "Distro $distro is not supported"
     exit 1
