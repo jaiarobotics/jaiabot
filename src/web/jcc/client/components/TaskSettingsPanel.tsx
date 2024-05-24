@@ -88,7 +88,7 @@ function TaskOptionsPanel(props: Props) {
     /**
      * Called when the parameter of a station keep task is updated. Saves the new value to local storage and updates the global station keep parameter.
      * 
-     * @param evt Change being made to the station keep DiveParameters
+     * @param {React.Component<HTMLElement>} evt Change being made to the station keep DiveParameters
      * @returns {void}
      */
     function onChangeStationKeepParameter(evt: React.ChangeEvent<HTMLInputElement>) {
