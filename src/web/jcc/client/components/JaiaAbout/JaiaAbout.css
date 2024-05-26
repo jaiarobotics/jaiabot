@@ -16,6 +16,7 @@
   }
 
   .jaia-about-close-btn-container {
+    all: unset;
     grid-column: 2 / 3;
     grid-row: 1 / 2;
     justify-self: end;

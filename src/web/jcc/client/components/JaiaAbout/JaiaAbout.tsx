@@ -40,10 +40,10 @@ export default class JaiaAbout extends React.Component {
         }
         
         return (
-            <div id='jaia-about-container'>
-                <div className='jaia-about-close-btn-container' onClick={() => this.closeAboutCard()}>
+            <div id='jaia-about-container' data-testid="jaia-about-panel">
+                <button className='jaia-about-close-btn-container' aria-label='close-btn' onClick={() => this.closeAboutCard()}>
                     <Icon path={mdiClose} size={1} className='jaia-about-close-btn'/>
-                </div>
+                </button>
                 <img src='/favicon.png' className='jaia-about-logo'></img>
                 <div className='jaia-about-contact-container'>
                     <div className='jaia-about-label'>Website:</div>
