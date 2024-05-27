@@ -68,7 +68,6 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiArrowULeftTop, mdiStop, mdiViewList, 
 	     mdiProgressDownload, mdiCog, mdiHelp, mdiRuler, mdiWrench, mdiSquareEditOutline, mdiMagnifyPlusOutline, mdiMagnifyMinusOutline, mdiRotate3dVariant} from '@mdi/js'
-// import 'reset-css'
 import './CommandControl.less'
 
 
