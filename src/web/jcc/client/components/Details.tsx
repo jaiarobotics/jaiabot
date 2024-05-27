@@ -143,6 +143,7 @@ const commands: {[key: string]: CommandInfo} = {
         confirmationButtonText: 'Retry Data Offload',
         statesAvailable: [
             /^POST_DEPLOYMENT__IDLE$/,
+            /^POST_DEPLOYMENT__FAILED$/,
             /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
         ],
         humanReadableAvailable: "POST_DEPLOYMENT__IDLE, POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN",

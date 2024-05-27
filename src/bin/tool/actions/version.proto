@@ -42,8 +42,9 @@ message VersionTool
         jaiabot = 1;
         goby = 2;
         moos = 3;
-        raspi = 4;
-        image = 5;
+        ivp = 4;
+        raspi = 5;
+        image = 6;
     }
     repeated Version display_version = 10 [(goby.field) = {
         description: "Versions to display. If none are selected, all versions are displayed.",

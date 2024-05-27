@@ -76,6 +76,7 @@ except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
+
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
@@ -262,6 +263,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      log_dir=log_file_dir,
+                                     bot_log_staging_dir=common.bot_log_staging_dir,
+                                     bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
