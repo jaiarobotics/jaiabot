@@ -2876,7 +2876,7 @@ export default class CommandControl extends React.Component {
 				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
 					<Icon path={mdiHelp} title="Help"></Icon>
 				</Button>
-				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
+				<img className="jaia-logo button" src="/favicon.png" aria-label="Jaia info button" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
 					}}>
