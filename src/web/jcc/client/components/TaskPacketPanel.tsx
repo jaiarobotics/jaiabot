@@ -1,7 +1,7 @@
 import React from 'react'
 import Icon from '@mdi/react'
 import { mdiClose } from '@mdi/js'
-import { PanelType } from './CommandControl'
+import { PanelType } from './CommandControl/CommandControl'
 import '../style/components/TaskPacketPanel.css'
 
 interface Props {

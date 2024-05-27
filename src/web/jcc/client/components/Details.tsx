@@ -6,7 +6,7 @@ import { JaiaAPI } from '../../common/JaiaAPI';
 import { Missions } from './Missions'
 import { GlobalSettings } from './Settings';
 import { error, warning, info} from '../libs/notifications';
-import { MissionInterface, RunInterface } from './CommandControl';
+import { MissionInterface, RunInterface } from './CommandControl/CommandControl';
 import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
 import { Command, CommandType, HubCommandType, BotStatus, MissionState, HubStatus } from './shared/JAIAProtobuf';
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'

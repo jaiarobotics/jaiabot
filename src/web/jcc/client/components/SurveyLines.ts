@@ -10,7 +10,7 @@ import { DrawEvent } from "ol/interaction/Draw";
 import { warning } from "../libs/notifications";
 
 // Jaia imports
-import CommandControl from "./CommandControl";
+import CommandControl from "./CommandControl/CommandControl";
 import { deepcopy } from "./shared/Utilities";
 
 import * as turf from "@turf/turf"

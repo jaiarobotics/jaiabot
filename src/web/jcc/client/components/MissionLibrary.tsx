@@ -1,6 +1,6 @@
 import { LoadMissions, SaveMissions } from './Settings'
 import { RunLibrary } from './Missions'
-import { MissionInterface } from './CommandControl';
+import { MissionInterface } from './CommandControl/CommandControl';
 
 const savedMissionsKey = "savedMissions"
 

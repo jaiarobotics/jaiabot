@@ -2,7 +2,7 @@ import './style/app.css';
 
 import React, {Component} from 'react';
 
-import CommandControl from './components/CommandControl';
+import CommandControl from './components/CommandControl/CommandControl';
 
 export default class App extends Component {
   // state = { username: null };

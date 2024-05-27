@@ -11,7 +11,7 @@ import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderUpload } fr
 import Button from '@mui/material/Button';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
 import { CommandList } from './Missions';
-import { MissionInterface } from './CommandControl';
+import { MissionInterface } from './CommandControl/CommandControl';
 import { CustomAlert } from './shared/CustomAlert';
 
 interface Props {

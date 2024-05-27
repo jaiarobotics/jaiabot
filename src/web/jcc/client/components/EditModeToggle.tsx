@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { RunInterface } from "./CommandControl"
+import { RunInterface } from "./CommandControl/CommandControl"
 
 import Switch from '@mui/material/Switch'
 import { amber } from '@mui/material/colors'

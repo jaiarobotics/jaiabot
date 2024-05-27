@@ -15,7 +15,7 @@ import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import RunAssignMenu from './RunAssignMenu';
 import EditModeToggle from '../EditModeToggle';
 import { Goal } from '../shared/JAIAProtobuf';
-import { RunInterface } from '../CommandControl';
+import { RunInterface } from '../CommandControl/CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 import '../../style/components/RunItem.less'

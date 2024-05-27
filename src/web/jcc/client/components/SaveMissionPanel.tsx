@@ -12,7 +12,7 @@ import Button from '@mui/material/Button';
 import { downloadToFile } from './shared/Utilities';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
 import { CommandList } from './Missions';
-import { MissionInterface } from './CommandControl';
+import { MissionInterface } from './CommandControl/CommandControl';
 import { CustomAlert } from './shared/CustomAlert';
 
 
