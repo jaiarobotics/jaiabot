@@ -98,6 +98,7 @@ bool target_led_switch_on = false;
 constexpr int VvCurrent = A3;
 constexpr int VccCurrent = A2;
 constexpr int VccVoltage = A0;
+constexpr int fluorometer_pin = A4;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -174,6 +175,10 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   // Current motor value
   ack.has_motor = true;
   ack.motor = motor_actual;
+
+  // Fluorometer
+  ack.has_fluorometer_voltage = true;
+  ack.fluorometer_voltage = analogRead(fluorometer_pin) * 5 / 1024;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;

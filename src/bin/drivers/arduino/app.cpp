@@ -35,6 +35,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/fluorometer.pb.h"
 #include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -279,6 +280,15 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
+
+            if (arduino_response.has_fluorometer_voltage()) {
+                jaiabot::protobuf::Fluorometer fluorometer_msg;
+                fluorometer_msg.set_voltage(arduino_response.fluorometer_voltage());
+                interprocess().publish<groups::fluorometer>(fluorometer_msg);
+                glog.is_debug1() && glog << "Published Fluorometer Voltage: " << fluorometer_msg.voltage() << std::endl;
+            } else {
+                glog.is_debug1() && glog << "NO FLUOROMETER VOLTAGE" << std::endl;
+            }
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
             last_arduino_report_time_ = goby::time::SteadyClock::now();
