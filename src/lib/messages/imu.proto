@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
@@ -143,6 +144,8 @@ message IMUIssue
 
     optional IssueType type = 2;
 
+    optional MissionState mission_state = 3;
+
     optional double imu_heading_course_max_diff = 30 [default = 45];
 
     optional double heading = 31 [(dccl.field) = {
@@ -152,32 +155,45 @@ message IMUIssue
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 
-    optional double course_over_ground = 32 [(dccl.field) = {
+    optional double desired_heading = 32 [(dccl.field) = {
         min: 0
         max: 360
         precision: 0
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 
-    optional double heading_course_difference = 33 [(dccl.field) = {
+    optional double course_over_ground = 33 [(dccl.field) = {
         min: 0
         max: 360
         precision: 0
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
 
-    optional double pitch = 34 [(dccl.field) = {
+    optional double heading_course_difference = 34 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double pitch = 35 [(dccl.field) = {
         min: -180
         max: 180
         precision: 0
         units { derived_dimensions: "plane_angle" system: "angle::degree" }
     }];
     
-    optional double speed_over_ground = 35 [(dccl.field) = {
+    optional double speed_over_ground = 36 [(dccl.field) = {
         min: -5
         max: 10
         precision: 1
         units { derived_dimensions: "velocity" system: "si" }
     }];
 
+    optional double desired_speed = 37 [(dccl.field) = {
+        min: -5
+        max: 10
+        precision: 1
+        units { derived_dimensions: "velocity" system: "si" }
+    }];
 }
