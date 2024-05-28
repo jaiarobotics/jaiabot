@@ -1516,7 +1516,7 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
     }
     else
     {
-        glog.is_warn() && glog << "Pre offload command Succeeded" << std::endl;
+        glog.is_debug1() && glog << "Pre offload command Succeeded" << std::endl;
         this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
     }
 }
@@ -1618,7 +1618,7 @@ jaiabot::statechart::postdeployment::DataOffload::~DataOffload()
         }
         else
         {
-            glog.is_warn() && glog << "Post offload command Succeeded" << std::endl;
+            glog.is_debug1() && glog << "Post offload command Succeeded" << std::endl;
             this->machine().erase_warning(
                 jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
         }
