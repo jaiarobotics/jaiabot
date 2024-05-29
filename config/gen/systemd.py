@@ -252,11 +252,6 @@ elif jaia_type == Type.HUB:
     
 all_goby_apps = []
 
-
-liaison_systemd_ipv6_workaround = """# Wt appears to not resolve 0::0 until a non-`lo` interface has been assigned an IPv6 address. While this appears to be buggy behavior, the best we can do for now is to ensure that wlan0 is up with IPv6 before we start liaison
-ExecStartPre=timeout 60s bash -c 'until ip address show dev wlan0 | grep "inet6"; do sleep 1; done'
-"""
-
 jaiabot_apps = [
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
@@ -278,7 +273,7 @@ jaiabot_apps = [
     {'exe': 'goby_liaison',
      'description': 'Goby Liaison GUI for JaiaBot',
      'template': 'goby-app.service.in',
-     'extra_service': liaison_systemd_ipv6_workaround + 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
+     'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
      'runs_on': Type.BOTH,
      'wanted_by': 'jaiabot_health.service',   
@@ -340,7 +335,7 @@ jaiabot_apps = [
     {'exe': 'goby_liaison_standalone',
      'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
      'template': 'liaison-prelaunch.service.in',
-     'extra_service': liaison_systemd_ipv6_workaround + 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
+     'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
      'runs_on': Type.HUB,
      'runs_on_cloudhub': True},
     {'exe': 'jaiabot_simulator',

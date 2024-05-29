@@ -159,6 +159,10 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
+liaison_bind_addr='0.0.0.0'
+if common.is_vfleet:
+    liaison_bind_addr='0::0'
+
 # IMU driver config
 imu_port = common.udp.imu_port(node_id)
 if is_simulation():
@@ -205,6 +209,7 @@ elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      http_port=liaison_port,
+                                     http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=''))
 elif common.app == 'goby_moos_gateway':
