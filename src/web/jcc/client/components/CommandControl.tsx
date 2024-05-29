@@ -2719,8 +2719,7 @@ export default class CommandControl extends React.Component {
 			// Needed to update the queue list when downloads are added after the queue started
 			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED' ||
-					bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED')
 				this.removeBotFromQueue(bot)
 			}
 		}
