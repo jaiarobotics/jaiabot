@@ -11,8 +11,6 @@ Group=$group
 
 EnvironmentFile=$env_file
 
-# Wait 5 seconds before starting
-ExecStartPre=/bin/sleep 5
 ExecStartPre=/bin/bash -c '$gen moos > $moos_file'
 ExecStartPre=/bin/bash -c '$gen bhv > $bhv_file'
 

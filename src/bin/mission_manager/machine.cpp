@@ -1344,6 +1344,18 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
             this->machine().mission_plan().speeds().stationkeep_outer_with_units());
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = goal.get().task().station_keep().station_keep_time();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+void jaiabot::statechart::inmission::underway::task::StationKeep::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvTaskComplete());
 }
 
 // Dive::ConstantHeading

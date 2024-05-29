@@ -11,21 +11,3 @@ udp_config {
 #    remote_address: "127.0.0.1"
 #    remote_port: 40021
 #}
-
-sub_config {
-    intervehicle
-    {
-        publisher_id: 2
-
-        # buffer configuration for the Command messages
-        buffer {
-            ack_required: false
-            blackout_time: 0
-            max_queue: 1
-            newest_first: true
-            ttl: 600
-            value_base: 1000
-        }
-    }
-}
-
