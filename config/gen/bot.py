@@ -159,7 +159,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
-1liaison_bind_addr='0.0.0.0'
+liaison_bind_addr='0.0.0.0'
 if common.is_vfleet:
     liaison_bind_addr='0::0'
 
