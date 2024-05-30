@@ -178,7 +178,8 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
 
   // Fluorometer
   ack.has_fluorometer_voltage = true;
-  ack.fluorometer_voltage = analogRead(fluorometer_pin) * 5 / 1024;
+  // Arduino yields resolution between readings of 5V over 1024 units
+  ack.fluorometer_voltage = analogRead(fluorometer_pin) * 5 / 1024.0;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
