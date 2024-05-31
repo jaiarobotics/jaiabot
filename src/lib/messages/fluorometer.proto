@@ -4,4 +4,5 @@ package jaiabot.protobuf;
 
 message Fluorometer {
     optional float voltage = 1;
+    optional float concentration = 2;
 }
