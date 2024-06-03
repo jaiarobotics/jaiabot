@@ -282,16 +282,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             if (arduino_response.has_fluorometer_voltage()) {
-                // C-FLUOR factory defaults from calibration certificate
-                const float offset = 0.0318; // volts
-                const float calibration_coefficient = 29.7527; // micrograms/liter per volt
-
-                const float measured_voltage = arduino_response.fluorometer_voltage();
-                const float concentration = (measured_voltage - offset) * calibration_coefficient; // micrograms/liter
-
                 jaiabot::protobuf::Fluorometer fluorometer_msg;
                 fluorometer_msg.set_voltage(arduino_response.fluorometer_voltage());
-                fluorometer_msg.set_concentration(concentration);
                 interprocess().publish<groups::fluorometer>(fluorometer_msg);
             }
 
