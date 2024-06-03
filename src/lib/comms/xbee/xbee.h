@@ -35,6 +35,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <functional>
+
 #include "xbee.pb.h"
 
 namespace jaiabot
@@ -91,7 +93,7 @@ class XBeeDevice
   private:
     static const SerialNumber broadcast_serial_number;
 
-    boost::asio::io_service* io;
+    std::shared_ptr<boost::asio::io_context> io;
     boost::asio::serial_port* port;
     NodeId my_node_id;
     SerialNumber my_serial_number;
@@ -117,6 +119,9 @@ class XBeeDevice
     std::string read_until(const std::string& delimiter);
     size_t bytes_available();
     void read(void* ptr, const size_t n_bytes);
+    void async_read_with_timeout(std::string& buffer, const std::string& delimiter,
+                                 int timeout_seconds,
+                                 std::function<void(const std::string&)> handler);
 
     // Command mode stuff
     void enter_command_mode();

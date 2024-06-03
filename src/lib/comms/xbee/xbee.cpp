@@ -71,7 +71,7 @@ const SerialNumber jaiabot::comms::XBeeDevice::broadcast_serial_number =
 
 jaiabot::comms::XBeeDevice::XBeeDevice()
 {
-    io = new io_service();
+    io = std::make_shared<io_context>();
     port = new serial_port(*io);
 }
 
@@ -437,25 +437,110 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
     return size_t(n_bytes_available);
 }
 
+/**
+ * @brief Asynchronously reads data from a serial port until a delimiter is encountered, with a timeout.
+ *
+ * This function initiates an asynchronous read operation on the specified serial port.
+ * It reads data until the specified delimiter is encountered or the timeout period expires.
+ * A handler function is called with the read data when the operation completes,
+ * or with an appropriate error message if the operation fails or times out.
+ *
+ * @param buffer Reference to the buffer for storing the read data.
+ * @param delimiter The delimiter indicating the end of the data.
+ * @param timeout_seconds The timeout period in seconds.
+ * @param handler The handler function to be called when the operation completes.
+ *                It should accept a single parameter of type const std::string&,
+ *                representing the read data or an error message.
+ */
+void jaiabot::comms::XBeeDevice::async_read_with_timeout(
+    std::string& buffer, const std::string& delimiter, int timeout_seconds,
+    std::function<void(const std::string&)> handler)
+{
+    // Clear the buffer before starting the read operation
+    buffer.clear();
+
+    // Create a shared pointer to manage the lifetime of the deadline timer
+    auto timer = std::make_shared<boost::asio::deadline_timer>(*io);
+
+    // Set the expiration time of the timer
+    timer->expires_from_now(boost::posix_time::seconds(timeout_seconds));
+
+    // Set up the timer's asynchronous wait operation
+    timer->async_wait([&](const boost::system::error_code& ec) {
+        if (!ec)
+        {
+            // Timer expired, handle timeout
+            handler("timeout");
+        }
+    });
+
+    // Initiate an asynchronous read operation on the serial port
+    boost::asio::async_read_until(
+        *port, boost::asio::dynamic_buffer(buffer), delimiter,
+        [&](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+            if (!ec)
+            {
+                // Cancel the timer if read is successful
+                timer->cancel();
+                // Call the handler with the read data
+                handler(buffer);
+            }
+            else
+            {
+                // Handle read error
+                handler("read_error");
+            }
+        });
+    // Run the io_context to perform the asynchronous operation
+    io->run();
+    // Restart the io_context for subsequent operations
+    io->restart();
+}
+
 void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     // We need to send bypass command if we are
     // are using the new radio.
-    // (Need a delay of 5 seconds between the bypass commands)
     // Old radio still functions the same.
-    write("\r");
+    // Loop to write '\r' until we get the desired response
+    std::function<void()> try_enter_command_mode = [this, &try_enter_command_mode]() {
+        std::string buffer;
+        this->write("\r");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    sleep(5);
+        // Read with timeout and check the result
+        this->async_read_with_timeout(
+            buffer, "B-Bypass", 5, [this, &try_enter_command_mode](const std::string& result) {
+                glog.is_warn() && glog << group(glog_group) << "Result: " << result << std::endl;
 
-    write("b");
+                glog.is_warn() && glog << group(glog_group) << "Result is empty: " << result.empty()
+                                       << std::endl;
 
-    sleep(5);
+                if (result.find("B-Bypass") != std::string::npos)
+                {
+                    glog.is_warn() && glog << group(glog_group) << "Found bypass sending b"
+                                           << std::endl;
+                    // Successfully entered command mode
+                    this->write("b");
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    glog.is_warn() && glog << group(glog_group) << "sending +++" << std::endl;
+                    this->write("+++");
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    glog.is_warn() && glog << group(glog_group) << "waiting for ok" << std::endl;
+                    this->read_until("OK\r");
+                    glog.is_warn() && glog << group(glog_group) << "Finished" << std::endl;
+                }
+                else
+                {
+                    // Log an error and retry
+                    glog.is_warn() && glog << group(glog_group) << "ERROR: " << std::endl;
+                    try_enter_command_mode();
+                }
+            });
+    };
 
-    write("+++");
-
-    sleep(1);
-    // Read until we get the OK, in case some binary data comes through and interferes
-    read_until("OK\r");
+    // Start trying to enter command mode
+    try_enter_command_mode();
 }
 
 void jaiabot::comms::XBeeDevice::assert_ok()
