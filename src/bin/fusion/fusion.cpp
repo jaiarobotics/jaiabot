@@ -501,15 +501,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_active_goal();
             }
 
-            if (report.has_data_offload_percentage())
-            {
-                latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
-            }
-            else
-            {
-                latest_bot_status_.clear_data_offload_percentage();
-            }
-
             if (report.has_repeat_index())
             {
                 latest_bot_status_.set_repeat_index(report.repeat_index());
@@ -948,9 +939,6 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
  */
 void jaiabot::apps::Fusion::detect_imu_issue()
 {
-    jaiabot::protobuf::IMUIssue imu_issue;
-    imu_issue.set_solution(cfg().imu_issue_solution());
-
     auto now = goby::time::SteadyClock::now();
 
     glog.is_debug1() && glog << "Entering detect_imu_issue function" << endl;
@@ -1071,6 +1059,20 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         }
         else
         {
+            jaiabot::protobuf::IMUIssue imu_issue;
+            imu_issue.set_solution(cfg().imu_issue_solution());
+            imu_issue.set_type(jaiabot::protobuf::IMUIssue_IssueType::
+                                   IMUIssue_IssueType_HEADING_COURSE_DIFFERENCE_TOO_LARGE);
+            imu_issue.set_mission_state(latest_bot_status_.mission_state());
+            imu_issue.set_imu_heading_course_max_diff(cfg().imu_heading_course_max_diff());
+            imu_issue.set_heading(heading);
+            imu_issue.set_desired_heading(bot_desired_heading_);
+            imu_issue.set_course_over_ground(course);
+            imu_issue.set_heading_course_difference(prev_course_vs_current_diff);
+            imu_issue.set_pitch(latest_bot_status_.attitude().pitch());
+            imu_issue.set_speed_over_ground(latest_bot_status_.speed().over_ground());
+            imu_issue.set_desired_speed(bot_desired_speed_);
+
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             imu_issue_detected_ = true;
             glog.is_debug2() && glog

@@ -46,10 +46,10 @@ enum MissionState
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
     POST_DEPLOYMENT__RECOVERED = 200;
-    POST_DEPLOYMENT__DATA_PROCESSING = 201;
     POST_DEPLOYMENT__DATA_OFFLOAD = 202;
     POST_DEPLOYMENT__IDLE = 203;
     POST_DEPLOYMENT__SHUTTING_DOWN = 204;
+    POST_DEPLOYMENT__FAILED = 205;
 }
 
 message Speeds
@@ -249,8 +249,25 @@ message MissionTask
         ];
     }
 
+    // for type == CONSTANT_HEADING
     optional ConstantHeadingParameters constant_heading = 4;
     optional bool start_echo = 5 [default = false];
+
+    message StationKeepParameters
+    {
+        optional int32 station_keep_time = 1 [
+            default = 10,
+            (dccl.field) = {
+                min: 0,
+                max: 3600,
+                precision: -1,
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == STATION_KEEP
+    optional StationKeepParameters station_keep = 6;
 }
 
 message MissionPlan

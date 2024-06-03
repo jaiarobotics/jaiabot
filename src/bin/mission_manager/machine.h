@@ -89,9 +89,9 @@ STATECHART_EVENT(EvReturnToHome)
 STATECHART_EVENT(EvStop)
 STATECHART_EVENT(EvAbort)
 STATECHART_EVENT(EvRecovered)
-STATECHART_EVENT(EvBeginDataProcessing)
-STATECHART_EVENT(EvDataProcessingComplete)
+STATECHART_EVENT(EvBeginDataOffload)
 STATECHART_EVENT(EvDataOffloadComplete)
+STATECHART_EVENT(EvDataOffloadFailed)
 STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
@@ -257,9 +257,9 @@ struct PostDeployment;
 namespace postdeployment
 {
 struct Recovered;
-struct DataProcessing;
 struct DataOffload;
 struct Idle;
+struct Failed;
 struct ShuttingDown;
 
 } // namespace postdeployment
@@ -1472,10 +1472,14 @@ struct StationKeep
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
+    void loop(const EvLoop&);
+
     using local_reactions = boost::mpl::list<>;
-    using reactions =
-        typename boost::mpl::copy<local_reactions,
-                                  boost::mpl::front_inserter<Base::common_reactions>>::type;
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, StationKeep, &StationKeep::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
@@ -1936,24 +1940,13 @@ struct Recovered : boost::statechart::state<Recovered, PostDeployment>,
     using StateBase = boost::statechart::state<Recovered, PostDeployment>;
     Recovered(typename StateBase::my_context c) : StateBase(c)
     {
-        // automatically go into data procesing
-        post_event(EvBeginDataProcessing());
+        // automatically go into data offload
+        post_event(EvBeginDataOffload());
     }
     ~Recovered() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvBeginDataProcessing, DataProcessing>>;
-};
-
-struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>,
-                        Notify<DataProcessing, protobuf::POST_DEPLOYMENT__DATA_PROCESSING>
-{
-    using StateBase = boost::statechart::state<DataProcessing, PostDeployment>;
-    DataProcessing(typename StateBase::my_context c);
-    ~DataProcessing() {}
-
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvDataProcessingComplete, DataOffload>>;
+        boost::mpl::list<boost::statechart::transition<EvBeginDataOffload, DataOffload>>;
 };
 
 struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
@@ -1961,33 +1954,31 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
 {
     using StateBase = boost::statechart::state<DataOffload, PostDeployment>;
     DataOffload(typename StateBase::my_context c);
-    ~DataOffload() {}
+    ~DataOffload();
 
-    void loop(const EvLoop&);
-
-    void set_data_offload_percentage(const uint32_t& data_offload_percentage)
-    {
-        data_offload_percentage_ = data_offload_percentage;
-    }
-    uint32_t data_offload_percentage() const { return data_offload_percentage_; }
-
-    void set_offload_command(const std::string& offload_command)
-    {
-        offload_command_ = offload_command;
-    }
-    std::string offload_command() const { return offload_command_; }
-
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvDataOffloadComplete, Idle>,
-        boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>,
+                                       boost::statechart::transition<EvDataOffloadFailed, Failed>>;
 
   private:
-    std::unique_ptr<std::thread> offload_thread_;
-    // used by offload_thread_
-    std::atomic<bool> offload_success_{false};
-    std::atomic<bool> offload_complete_{false};
-    std::string offload_command_{cfg().data_offload_command() + " 2>&1"};
-    uint32_t data_offload_percentage_{0};
+    enum class CommandType
+    {
+        PRE_OFFLOAD,
+        POST_OFFLOAD
+    };
+
+    bool run_command(CommandType type);
+};
+
+struct Failed : boost::statechart::state<Failed, PostDeployment>,
+                Notify<Failed, protobuf::POST_DEPLOYMENT__FAILED>
+{
+    using StateBase = boost::statechart::state<Failed, PostDeployment>;
+    Failed(typename StateBase::my_context c);
+    ~Failed();
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
+                         boost::statechart::transition<EvRetryDataOffload, DataOffload>>;
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,
@@ -1999,7 +1990,6 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
-                         boost::statechart::transition<EvRetryDataOffload, DataOffload>,
                          boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 

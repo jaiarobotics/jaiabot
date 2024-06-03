@@ -317,6 +317,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data offload script
      'runs_on': Type.HUB,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
@@ -356,6 +357,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
