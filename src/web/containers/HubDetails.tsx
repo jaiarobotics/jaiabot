@@ -39,8 +39,8 @@ export function HubDetails() {
         addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 30)
     }, [])
 
-    const hub1Key = '0'
-    const hubStatus = hubContext.hubStatus[hub1Key]
+    const firstKey = Object.keys(hubContext.hubStatus)[0]
+    const hubStatus = hubContext.hubStatus[firstKey]
 
     /**
      * Dispatches an action to close the HubDetails panel
