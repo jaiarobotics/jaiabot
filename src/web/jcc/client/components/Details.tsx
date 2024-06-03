@@ -682,8 +682,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     let botOffloadPercentage = ''
 
-    if (bot.data_offload_percentage) {
-        botOffloadPercentage = ' ' + bot.data_offload_percentage + '%'
+    if (bot.bot_id === hub?.bot_offload?.bot_id) {
+        botOffloadPercentage = ' ' + hub.bot_offload?.data_offload_percentage + '%'
     }
 
     // Change message for clicking on map if the bot has a run, but it is not in edit mode
