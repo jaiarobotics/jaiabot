@@ -1,7 +1,7 @@
 $app_block
 
 interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
-http_address: "0::0"
+http_address: "$http_address"
 http_port: $http_port
 
 start_paused: false

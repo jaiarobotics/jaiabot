@@ -645,6 +645,10 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number
 }
 
+export interface StationKeepParameters {
+    station_keep_time?: number
+}
+
 export interface SRPParameters {
     safety_depth: number
 }
@@ -654,6 +658,7 @@ export interface MissionTask {
     dive?: DiveParameters
     surface_drift?: DriftParameters
     constant_heading?: ConstantHeadingParameters
+    station_keep?: StationKeepParameters
     start_echo?: boolean
 }
 
@@ -1185,4 +1190,12 @@ export interface HubStatus {
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
     linux_hardware_status?: LinuxHardwareStatus
+    bot_offload?: BotOffloadData
 }
+
+interface BotOffloadData {
+    bot_id : number,
+    data_offload_percentage?: number,
+    offload_succeeded?: boolean 
+}
+

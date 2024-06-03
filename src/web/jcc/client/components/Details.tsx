@@ -142,9 +142,7 @@ const commands: {[key: string]: CommandInfo} = {
         description: 'Retry Data Offload for',
         confirmationButtonText: 'Retry Data Offload',
         statesAvailable: [
-            /^POST_DEPLOYMENT__IDLE$/,
-            /^POST_DEPLOYMENT__FAILED$/,
-            /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
+            /^POST_DEPLOYMENT__FAILED$/
         ],
         humanReadableAvailable: "POST_DEPLOYMENT__IDLE, POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN",
         humanReadableNotAvailable: ""
@@ -684,8 +682,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     let botOffloadPercentage = ''
 
-    if (bot.data_offload_percentage) {
-        botOffloadPercentage = ' ' + bot.data_offload_percentage + '%'
+    if (bot.bot_id === hub?.bot_offload?.bot_id) {
+        botOffloadPercentage = ' ' + hub.bot_offload?.data_offload_percentage + '%'
     }
 
     // Change message for clicking on map if the bot has a run, but it is not in edit mode
