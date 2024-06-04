@@ -971,7 +971,7 @@ export interface CommandForHub {
     time?: number
     type?: HubCommandType
     scan_for_bot_id?: number
-    set_hub_location?: GeographicCoordinate
+    hub_location?: GeographicCoordinate
 }
 
 export interface Attitude {

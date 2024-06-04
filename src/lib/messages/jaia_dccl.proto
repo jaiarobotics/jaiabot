@@ -109,7 +109,7 @@ message CommandForHub
     required HubCommandType type = 10;
     optional uint32 scan_for_bot_id = 11;
 
-    optional GeographicCoordinate set_hub_location = 80;
+    optional GeographicCoordinate hub_location = 80;
 }
 
 message BotStatus

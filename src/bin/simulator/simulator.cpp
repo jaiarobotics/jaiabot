@@ -243,15 +243,15 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         sim_hub_status();
 
         // Subscribe to engineering commands for:
-        // * set_hub_location
+        // * hub_location
         interprocess().subscribe<jaiabot::groups::hub_command_full>(
             [this](const jaiabot::protobuf::CommandForHub& hub_command) {
                 glog.is_warn() && glog << "Received hub_command: " << hub_command.ShortDebugString()
                                        << std::endl;
 
-                if (hub_command.has_set_hub_location())
+                if (hub_command.has_hub_location())
                 {
-                    auto location = hub_command.set_hub_location();
+                    auto location = hub_command.hub_location();
 
                     // Re-publish hub at new coordinates
                     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;

@@ -88,7 +88,7 @@ export default function SetHubLocationPanel(props: Props) {
         const hubCommand: CommandForHub = {
             hub_id: hub_id,
             type: HubCommandType.SET_HUB_LOCATION,
-            set_hub_location: hubLocation
+            hub_location: hubLocation
         }
 
         props.api.postCommandForHub(hubCommand)
