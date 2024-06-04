@@ -1,7 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react'
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
