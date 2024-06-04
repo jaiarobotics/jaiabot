@@ -117,9 +117,11 @@ export default function SetHubLocationPanel(props: Props) {
                     getElementById<HTMLInputElement>('set-hub-location-longitude').value = clickedLocation.lon.toFixed(6)
                     submitHubLocation()
                     destroySelectOnMapInteraction()
+                    // Return false to prevent other interactions from being affected by this click.
                     return false
                 }
                 else {
+                    // Let this event fall through to the other interactions on the stack.
                     return true
                 }
             }
