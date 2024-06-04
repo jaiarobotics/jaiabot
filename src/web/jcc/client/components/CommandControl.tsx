@@ -2719,8 +2719,7 @@ export default class CommandControl extends React.Component {
 			// Needed to update the queue list when downloads are added after the queue started
 			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 			if (updatedQueueIds.includes(bot.bot_id)) {
-				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED' ||
-					bot?.mission_state === 'POST_DEPLOYMENT__IDLE')
+				await this.downloadBot(bot, bot?.mission_state === 'POST_DEPLOYMENT__FAILED')
 				this.removeBotFromQueue(bot)
 			}
 		}
@@ -2826,9 +2825,19 @@ export default class CommandControl extends React.Component {
 		return bots[botId]?.mission_state
 	}
 
+	/**
+	 * Gets the data offload percentage for a specific bot
+	 * 
+	 * @param {number} botId Ensures the percentage returned corresponds with the given bot
+	 * @returns {number} Data offload percentage
+	 */
 	getBotDownloadPercent(botId: number) {
-		const bots = this.getPodStatus().bots
-		return bots[botId]?.data_offload_percentage
+		const hubStatusKey = 1
+		let dataOffload = this.state.podStatus.hubs[hubStatusKey]?.bot_offload
+		if (dataOffload && botId == dataOffload.bot_id) {
+			return dataOffload?.data_offload_percentage
+		}
+		return 0
 	}
 
 	isBotInQueue(bot: PortalBotStatus) {

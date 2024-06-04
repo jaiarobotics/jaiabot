@@ -249,8 +249,25 @@ message MissionTask
         ];
     }
 
+    // for type == CONSTANT_HEADING
     optional ConstantHeadingParameters constant_heading = 4;
     optional bool start_echo = 5 [default = false];
+
+    message StationKeepParameters
+    {
+        optional int32 station_keep_time = 1 [
+            default = 10,
+            (dccl.field) = {
+                min: 0,
+                max: 3600,
+                precision: -1,
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == STATION_KEEP
+    optional StationKeepParameters station_keep = 6;
 }
 
 message MissionPlan
