@@ -13,7 +13,7 @@ export interface GlobalContextType {
     isRCMode: boolean
 }
 
-interface SelectedPodElement {
+export interface SelectedPodElement {
     type: PodElement
     id: number
 }
@@ -24,7 +24,7 @@ interface HubAccordionStates {
     links: boolean
 }
 
-interface Action {
+export interface GlobalAction {
     type: string,
     clientID?: string,
     hubAccordionName?: string
@@ -57,14 +57,16 @@ export const globalDefaultContext: GlobalContextType = {
 export const GlobalContext = createContext(null)
 export const GlobalDispatchContext = createContext(null)
 
+const defaultSelectedHub = { type: PodElement.HUB, id: 1 }
+
 /**
  * Updates GlobalContext
  * 
  * @param {GlobalContextType} state Holds the most recent reference to state 
- * @param {Action} action Contains data associated with a state update 
+ * @param {GlobalAction} action Contains data associated with a state update 
  * @returns {GlobalContextType} A copy of the updated state
  */
-function globalReducer(state: GlobalContextType, action: Action) {
+function globalReducer(state: GlobalContextType, action: GlobalAction) {
     let mutableState = {...state}
     switch (action.type) {
         case 'SAVED_CLIENT_ID':
@@ -84,6 +86,9 @@ function globalReducer(state: GlobalContextType, action: Action) {
 
         case 'CLICKED_BOT_TAB':
             return handleClickedBotTab(mutableState)
+
+        case 'CLICKED_HUB_MAP_ICON':
+            return handleClickedHubMapIcon(mutableState)
 
         case 'CLICKED_HUB_ACCORDION':
             return handleClickedHubAccordion(mutableState, action.hubAccordionName)
@@ -154,7 +159,7 @@ function handleClickedHubTab(mutableState: GlobalContextType) {
     }
 
     if (mutableState.showHubDetails) {
-        mutableState.selectedPodElement = { type: PodElement.HUB, id: 1 }
+        mutableState.selectedPodElement = defaultSelectedHub
     } else {
         mutableState.selectedPodElement = null
     }
@@ -179,7 +184,23 @@ function handleClickedBotTab(mutableState: GlobalContextType) {
         // selectedPodElement will be assinged to the bot selected by the user
         mutableState.selectedPodElement = null
     }
+    return mutableState
+}
 
+/**
+ * Handles click events for the hub icon located on map
+ * 
+ * @param {GlobalContextType} mutableState State object ref for making modifications 
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleClickedHubMapIcon(mutableState: GlobalContextType) {
+    if (mutableState.selectedPodElement !== null && mutableState.selectedPodElement?.type === PodElement.HUB) {
+        mutableState.selectedPodElement = null
+        mutableState.showHubDetails = false
+    } else {
+        mutableState.selectedPodElement = defaultSelectedHub
+        mutableState.showHubDetails = true
+    }
     return mutableState
 }
 

@@ -1,4 +1,4 @@
-import React, { MouseEvent, ReactElement, ReactNode } from 'react'
+import React, { MouseEvent, ReactElement, ReactNode, useContext } from 'react'
 
 
 // Jaia Imports
@@ -40,6 +40,7 @@ import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shar
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from './Details'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
+import { GlobalContext, GlobalDispatchContext, GlobalContextType, GlobalAction } from '../../../context/GlobalContext'
 import { getGeographicCoordinate, deepcopy, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams, BotType } from './shared/JAIAProtobuf'
 
@@ -93,8 +94,6 @@ const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
 const MICROSECONDS_FACTOR = 1_000_000
 
-interface Props {}
-
 export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
@@ -129,6 +128,11 @@ export interface MissionInterface {
 	runIdIncrement: number,
 	botsAssignedToRuns: {[key: number]: string}
 	runIdInEditMode: string
+}
+
+interface Props {
+	globalContext: GlobalContextType,
+	globalDispatch: React.Dispatch<GlobalAction>
 }
 
 interface State {
@@ -549,7 +553,7 @@ export default class CommandControl extends React.Component {
 		// Update layers derived from the podStatus
 		if (prevState.podStatusVersion !== this.state.podStatusVersion ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
-				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
+				this.hubLayers.update(this.state.podStatus.hubs, this.props.globalContext.selectedPodElement)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
 				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
@@ -1958,7 +1962,9 @@ export default class CommandControl extends React.Component {
 			// Clicked on hub
 			const hubStatus = feature.get('hub') as PortalHubStatus
 			if (hubStatus) {
-				this.toggleHub(hubStatus.hub_id)
+				this.props.globalDispatch({ type: 'CLICKED_HUB_MAP_ICON' })
+				const hubKey = Object.keys(this.state.podStatus.hubs)[0]
+				this.didClickHub(this.state.podStatus.hubs[hubKey].hub_id)
 				return false
 			}
 
@@ -3888,4 +3894,17 @@ export default class CommandControl extends React.Component {
 			</div>
 		)
 	}
+}
+
+/**
+ * Wraps the CommandControl class component in a function component to facilitate the usage
+ * of context in the class component.
+ * 
+ * @returns {ReactElement} CommandControl component with contexts passed as props
+ */
+export function CommandControlWrapper() {
+	const globalContext = useContext(GlobalContext)
+	const globalDispatch = useContext(GlobalDispatchContext)
+	const props = { globalContext, globalDispatch }
+	return <CommandControl {...props} />
 }
