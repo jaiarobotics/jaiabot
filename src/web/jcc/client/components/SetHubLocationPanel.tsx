@@ -1,19 +1,26 @@
+// React
 import React, { useState, useEffect, useRef } from 'react'
-import Button from '@mui/material/Button';
-import {JaiaAPI} from '../../common/JaiaAPI'
+
+// OpenLayers
+import { Map } from 'ol';
+import PointerInteraction from 'ol/interaction/Pointer';
+
+// Jaia
+import { JaiaAPI } from '../../common/JaiaAPI'
 import { PortalHubStatus } from './shared/PortalStatus';
 import { CommandForHub, GeographicCoordinate, HubCommandType } from './shared/JAIAProtobuf';
 import { getElementById, getGeographicCoordinate } from './shared/Utilities';
-import { Map } from 'ol';
-import PointerInteraction from 'ol/interaction/Pointer';
+
+// Style
+import Button from '@mui/material/Button';
 import { Select, MenuItem } from '@mui/material';
+
 
 interface Props {
     hubs: {[key: number]: PortalHubStatus}
     api: JaiaAPI
     map: Map
 }
-
 
 export default function SetHubLocationPanel(props: Props) {
     const [ hub_id, set_hub_id ] = useState(Number(Object.keys(props.hubs)[0]) ?? 1)
