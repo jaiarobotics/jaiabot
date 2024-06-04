@@ -73,6 +73,8 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+ack_timeout=10
+sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 if common.jaia_comms_mode == common.CommsMode.XBEE:
     if is_simulation():
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
@@ -86,17 +88,24 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
-                                            xbee_hub_id='hub_id: ' + str(hub_index))
+                                            xbee_hub_id='hub_id: ' + str(hub_index),
+                                            sub_buffer=sub_buffer_config,
+                                            ack_timeout=ack_timeout)
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.wifi_modem_id(node_id),
-                                             local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
-                                             mac_slots=common.comms.wifi_mac_slots(node_id))
+                                            subnet_mask=common.comms.subnet_mask,                                            
+                                            modem_id=common.comms.wifi_modem_id(node_id),
+                                            local_port=common.udp.wifi_udp_port(node_id),
+                                            remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
+                                            mac_slots=common.comms.wifi_mac_slots(node_id),
+                                            sub_buffer=sub_buffer_config,
+                                            ack_timeout=ack_timeout)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
+liaison_bind_addr='0.0.0.0'
+if common.is_vfleet:
+    liaison_bind_addr='0::0'
 
 
 if common.app == 'gobyd':
@@ -140,6 +149,7 @@ elif common.app == 'goby_liaison':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      http_port=liaison_port,
+                                     http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_liaison_prelaunch':
@@ -161,6 +171,7 @@ elif common.app == 'goby_liaison_prelaunch':
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
+                                     http_address=liaison_bind_addr,
                                      this_hub=this_hub,
                                      user_role=user_role,
                                      inventory=inventory,
