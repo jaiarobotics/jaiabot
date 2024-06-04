@@ -542,13 +542,6 @@ void jaiabot::apps::MissionManager::loop()
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
-    const auto* data_offload =
-        machine_->state_cast<const statechart::postdeployment::DataOffload*>();
-
-    if (data_offload)
-    {
-        report.set_data_offload_percentage(data_offload->data_offload_percentage());
-    }
 
     // Relay the repeat_index
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
@@ -852,6 +845,16 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::RETRY_DATA_OFFLOAD:
             machine_->process_event(statechart::EvRetryDataOffload());
+            break;
+
+        case protobuf::Command::DATA_OFFLOAD_COMPLETE:
+            machine_->process_event(statechart::EvDataOffloadComplete());
+            machine_->erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+            break;
+
+        case protobuf::Command::DATA_OFFLOAD_FAILED:
+            machine_->process_event(statechart::EvDataOffloadFailed());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
             break;
 
             // handled by jaiabot_health
