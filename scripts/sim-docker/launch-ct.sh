@@ -14,4 +14,4 @@
 
 #working code
 mkdir -p .cache
-docker run --rm --name jaia-sim-container-test2 -d -i -t -e jaia_fleet_index=23 -v "./.cache/web_dev/:/jaiabot/build/web_dev/" -p "40010:40010" -p "40001:40001" -p "30000:30000" jaiauser:jaia-sim-ct-test2 /bin/bash -li /entrypoint.sh
+docker run --rm --name jaia-sim-ct -d -i -t -e jaia_fleet_index=23 -v "./.cache/web_dev/:/jaiabot/build/web_dev/" -p "40010:40010" -p "40001:40001" -p "30000:30000" jaiauser:jaia-sim-ct /bin/bash -li /entrypoint.sh

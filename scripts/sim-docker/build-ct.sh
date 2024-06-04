@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t jaiauser:jaia-sim-ct .
+docker build --progress=plain --no-cache -t jaiauser:jaia-sim-ct .
