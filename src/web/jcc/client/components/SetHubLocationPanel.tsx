@@ -32,9 +32,11 @@ export default function SetHubLocationPanel(props: Props) {
     /**
      * A Select element for choosing the hub_id.
      *
-     * @returns {*} The Select element.
+     * @returns {React.JSX.Element[]} The Select element.
+     * 
+     * @notes Would be used in a multi-hub simulation environment.
      */
-    function hubIdSelectionElement() {
+    function hubIdSelectionElement(): React.JSX.Element[] {
         const menuItems = Object.values(props.hubs).map((hub) => {
             return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>
         })
