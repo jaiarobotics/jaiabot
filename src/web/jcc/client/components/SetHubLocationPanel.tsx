@@ -152,32 +152,31 @@ export default function SetHubLocationPanel(props: Props) {
 
 
     return (
-        <div className="panel" key="set-hub-location">
+        <div className="panel" key="set-hub-location" style={{width: "100%"}}>
             <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
-            <div className='mission-settings-panel-container'>
+            <div className='mission-settings-panel-container' style={{gridTemplateColumns: "auto auto"}}>
 
                 { /* this.hubIdSelectionElement() */ }
 
                 <div className='mission-settings-input-label'>Latitude</div>
-                <div className='mission-settings-input-row'>
-                    <input className="mission-settings-num-input"
-                        id="set-hub-location-latitude" 
-                        name="latitude" 
-                        defaultValue={hubLocation.lat.toFixed(6)}
-                    />
-                </div>
+                <input className="mission-settings-num-input"
+                    style={{width: "125px"}}
+                    id="set-hub-location-latitude" 
+                    name="latitude" 
+                    defaultValue={hubLocation.lat.toFixed(6)}
+                />
 
                 <div className='mission-settings-input-label'>Longitude</div>
-                <div className='mission-settings-input-row'>
-                    <input className="mission-settings-num-input"
-                        id="set-hub-location-longitude" 
-                        name="longitude" 
-                        defaultValue={hubLocation.lon.toFixed(6)}
-                    />
-                </div>
+                <input className="mission-settings-num-input"
+                    style={{width: "125px"}}
+                    id="set-hub-location-longitude" 
+                    name="longitude" 
+                    defaultValue={hubLocation.lon.toFixed(6)}
+                />
             </div>
             <Button
                 className="button-jcc engineering-panel-btn"
+                style={{marginLeft: "0px", marginRight: "0px"}}
                 type="button"
                 id="set-hub-location-submit"
                 onClick={submitHubLocation}>
@@ -185,6 +184,7 @@ export default function SetHubLocationPanel(props: Props) {
             </Button>
             <Button
                 className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
+                style={{marginLeft: "0px", marginRight: "0px"}}
                 type="button"
                 id="set-hub-location-map-select"
                 onClick={toggleSelectOnMapInteraction}
