@@ -191,7 +191,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
         - "1.y"
         - "support-X.y"
         
-# which branches to run the AWS virtual machine conversion
+# which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
   filters:
     tags:
