@@ -102,6 +102,9 @@ export default function SetHubLocationPanel(props: Props) {
     
     /**
      * Initiate a PointerInteraction to select a new hub location with a click or tap.
+     * 
+     * @returns {void}
+     * 
      */
     const toggleSelectOnMapInteraction = () => {
         if (selectOnMapInteractionRef.current !== null) {
