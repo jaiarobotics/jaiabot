@@ -3,6 +3,7 @@ import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
 
 // Jaia
 import { PortalHubStatus } from '../shared/PortalStatus'
+import { HubActions } from './actions/HubActions'
 import { jaiaAPI } from '../jcc/common/JaiaAPI' 
 
 // Utilities
@@ -36,7 +37,7 @@ export const HubDispatchContext = createContext(null)
 function hubReducer(state: HubContextType, action: Action) {
     let mutableState = {...state}
     switch (action.type) {
-        case 'HUB_STATUS_POLLED':
+        case HubActions.HUB_STATUS_POLLED:
             return handleHubStatusPolled(mutableState, action.hubStatus)
         default:
             return state
@@ -88,7 +89,7 @@ function pollHubStatus(dispatch: React.Dispatch<Action>) {
         const response = await jaiaAPI.getStatusHubs()
         if (!isError(response)) {
             dispatch({
-                type: 'HUB_STATUS_POLLED',
+                type: HubActions.HUB_STATUS_POLLED,
                 hubStatus: response
             })
         }

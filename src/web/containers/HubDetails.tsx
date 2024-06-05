@@ -1,7 +1,8 @@
-// React
+// React -- Jaia
 import React, { useContext, useEffect, useState } from 'react'
 import { GlobalContext, GlobalDispatchContext } from '../context/GlobalContext'
 import { HealthStatusLine } from '../components/HealthStatusLine'
+import { GlobalActions } from '../context/actions/GlobalActions'
 import { HubContext } from '../context/HubContext'
 
 // Utilities
@@ -48,7 +49,7 @@ export function HubDetails() {
      * @returns {void}
      */
     function handleClosePanel() {
-        globalDispatch({ type: 'CLOSED_HUB_DETAILS' })
+        globalDispatch({ type: GlobalActions.CLOSED_HUB_DETAILS })
     }
 
     /**
@@ -107,9 +108,7 @@ export function HubDetails() {
     async function issueHubCommand(command: CommandInfo) {
         const isControlTaken = await takeControl(globalContext.clientID)
         if (isControlTaken) {
-            globalDispatch({
-                type: 'TAKE_CONTROL_SUCCESS'
-            })
+            globalDispatch({ type: GlobalActions.TAKE_CONTROL_SUCCESS })
         }
         sendHubCommand(hubStatus.hub_id, command)
     }
@@ -160,7 +159,7 @@ export function HubDetails() {
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={globalContext.hubAccordionStates.quickLook} 
-                        onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'quickLook' })}
+                        onChange={() => globalDispatch({ type: GlobalActions.CLICKED_HUB_ACCORDION, hubAccordionName: 'quickLook' })}
                         className='accordionContainer'
                     >
                         <AccordionSummary
@@ -211,7 +210,7 @@ export function HubDetails() {
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={globalContext.hubAccordionStates.commands} 
-                        onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'commands' })}
+                        onChange={() => globalDispatch({ type: GlobalActions.CLICKED_HUB_ACCORDION, hubAccordionName: 'commands' })}
                         className='accordionContainer'
                     >
                         <AccordionSummary
@@ -244,7 +243,7 @@ export function HubDetails() {
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion 
                         expanded={globalContext.hubAccordionStates.links} 
-                        onChange={() => globalDispatch({ type: 'CLICKED_HUB_ACCORDION', hubAccordionName: 'links' })}
+                        onChange={() => globalDispatch({ type: GlobalActions.CLICKED_HUB_ACCORDION, hubAccordionName: 'links' })}
                         className='accordionContainer'
                     >
                         <AccordionSummary

@@ -1,5 +1,6 @@
 import React, { useContext } from "react"
 import { GlobalContext, GlobalDispatchContext, PodElement } from "../../../context/GlobalContext"
+import { GlobalActions } from "../../../context/actions/GlobalActions"
 
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
@@ -58,9 +59,7 @@ export function BotListPanel(props: Props) {
          * This is an instance where we are begininning to migrate from CommandControl state to context
          */
         const handleClick = () => {
-            globalDispatch({
-                type: 'CLICKED_BOT_TAB'
-            })
+            globalDispatch({ type: GlobalActions.CLICKED_BOT_TAB })
             props.didClickBot(bot.bot_id)
         }
 
@@ -102,7 +101,7 @@ export function BotListPanel(props: Props) {
          */
         const handleClick = () => {
             props.didClickHub(hub.hub_id)
-            globalDispatch({ type: 'CLICKED_HUB_TAB' })
+            globalDispatch({ type: GlobalActions.CLICKED_HUB_TAB })
         }
 
         //For now we are naming HUB, HUB with no id

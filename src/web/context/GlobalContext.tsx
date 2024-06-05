@@ -3,6 +3,7 @@ import React, { createContext, ReactNode, useEffect, useReducer } from 'react'
 
 // Jaia
 import { jaiaAPI } from '../jcc/common/JaiaAPI'
+import { GlobalActions } from './actions/GlobalActions'
 
 export interface GlobalContextType {
     clientID: string,
@@ -69,28 +70,28 @@ const defaultSelectedHub = { type: PodElement.HUB, id: 1 }
 function globalReducer(state: GlobalContextType, action: GlobalAction) {
     let mutableState = {...state}
     switch (action.type) {
-        case 'SAVED_CLIENT_ID':
+        case GlobalActions.SAVED_CLIENT_ID:
             return handleSavedClientID(mutableState, action.clientID)
 
-        case 'TAKE_CONTROL_SUCCESS':
+        case GlobalActions.TAKE_CONTROL_SUCCESS:
             return handleTakeControlSuccess(mutableState)
             
-        case 'EXITED_RC_MODE':
+        case GlobalActions.EXITED_RC_MODE:
             return handleExitedRCMode(mutableState)
 
-        case 'CLOSED_HUB_DETAILS':
+        case GlobalActions.CLOSED_HUB_DETAILS:
             return handleClosedHubDetails(mutableState)
         
-        case 'CLICKED_HUB_TAB':
+        case GlobalActions.CLICKED_HUB_TAB:
             return handleClickedHubTab(mutableState)
 
-        case 'CLICKED_BOT_TAB':
+        case GlobalActions.CLICKED_BOT_TAB:
             return handleClickedBotTab(mutableState)
 
-        case 'CLICKED_HUB_MAP_ICON':
+        case GlobalActions.CLICKED_HUB_MAP_ICON:
             return handleClickedHubMapIcon(mutableState)
 
-        case 'CLICKED_HUB_ACCORDION':
+        case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName)
 
         default:
@@ -237,7 +238,7 @@ export function GlobalContextProvider({ children }: GlobalContextProviderProps) 
      */
     useEffect(() => {
         dispatch({
-            type: 'SAVED_CLIENT_ID',
+            type: GlobalActions.SAVED_CLIENT_ID,
             clientID: jaiaAPI.getClientId()
         })
     }, [])

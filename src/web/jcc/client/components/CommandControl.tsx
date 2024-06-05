@@ -21,6 +21,7 @@ import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
 import { SettingsPanel } from './SettingsPanel'
+import { GlobalActions } from '../../../context/actions/GlobalActions'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
 import { SurveyExclusions } from './SurveyExclusions'
@@ -1962,7 +1963,7 @@ export default class CommandControl extends React.Component {
 			// Clicked on hub
 			const hubStatus = feature.get('hub') as PortalHubStatus
 			if (hubStatus) {
-				this.props.globalDispatch({ type: 'CLICKED_HUB_MAP_ICON' })
+				this.props.globalDispatch({ type: GlobalActions.CLICKED_HUB_MAP_ICON })
 				const hubKey = Object.keys(this.state.podStatus.hubs)[0]
 				this.didClickHub(this.state.podStatus.hubs[hubKey].hub_id)
 				return false
