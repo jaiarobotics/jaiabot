@@ -90,6 +90,9 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
         case GlobalActions.CLICKED_HUB_MAP_ICON:
             return handleClickedHubMapIcon(mutableState, action.hubID)
 
+        case GlobalActions.CLICKED_BOT_MAP_ICON:
+            return handleClickedBotMapIcon(mutableState)
+
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName)
 
@@ -211,6 +214,24 @@ function handleClickedHubMapIcon(mutableState: GlobalContextType, hubID: number)
         mutableState.selectedPodElement = { type: PodElement.HUB, id: hubID }
         mutableState.showHubDetails = true
     }
+    return mutableState
+}
+
+/**
+ * Handles click events for the bot icon located on map
+ * 
+ * @param {GlobalContextType} mutableState State object ref for making modifications 
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleClickedBotMapIcon(mutableState: GlobalContextType) {
+    const isHubSelected = mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB
+    
+    if (isHubSelected) {
+        // When bot logic is integrated into context, selectedPodElement will be set to the clicked bot
+        mutableState.selectedPodElement = null
+        mutableState.showHubDetails = false
+    }
+
     return mutableState
 }
 

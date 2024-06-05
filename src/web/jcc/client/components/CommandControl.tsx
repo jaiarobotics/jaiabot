@@ -1956,6 +1956,7 @@ export default class CommandControl extends React.Component {
 			// Clicked on bot
 			const botStatus = feature.get('bot') as PortalBotStatus
 			if (botStatus) {
+				this.props.globalDispatch({ type: GlobalActions.CLICKED_BOT_MAP_ICON })
 				this.toggleBot(botStatus.bot_id)
 				return false
 			}
