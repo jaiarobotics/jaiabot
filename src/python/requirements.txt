@@ -16,13 +16,13 @@ colorzero==2.0
 contourpy==1.1.1
 cycler==0.12.1
 dataclasses-json==0.5.7
-Fiona==1.9.6
+Fiona==1.8.22
 Flask==2.2.2
 fonttools==4.48.1
 geojson==3.1.0
-geopandas==0.14.4
+geopandas==0.11.1
 gpiozero==1.6.2
-h5py==3.11.0
+h5py==3.7.0
 idna==3.6
 importlib-metadata==7.0.1
 itsdangerous==2.1.2
@@ -35,7 +35,7 @@ matplotlib==3.6.0
 munch==4.0.0
 mypy-extensions==1.0.0
 networkx==2.8.7
-numpy==1.26.4
+numpy==1.24.4
 packaging==23.2
 pandas==2.0.3
 pillow==10.2.0
@@ -43,7 +43,7 @@ plotly==5.15.0
 protobuf==3.20.0
 pyftdi==0.54.0
 pyparsing==3.1.1
-pyproj==3.6.1
+pyproj==3.5.0
 pyserial==3.5
 python-dateutil==2.8.2
 pytz==2024.1
@@ -51,8 +51,8 @@ pyusb==1.2.1
 requests==2.28.2
 rpi-ws281x==4.3.4
 RPi.GPIO==0.7.1
-scipy==1.13.1
-Shapely==2.0.4
+scipy==1.9.1
+Shapely==1.8.5.post1
 simplejson==3.16.0
 six==1.16.0
 smbus==1.1.post2

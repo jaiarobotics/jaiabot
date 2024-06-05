@@ -360,7 +360,7 @@ jobs:
   bundle-focal:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2004:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-focal
@@ -384,7 +384,7 @@ jobs:
   bundle-noble:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2004:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-noble
