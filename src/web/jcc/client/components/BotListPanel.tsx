@@ -56,7 +56,7 @@ export function BotListPanel(props: Props) {
          * @returns {void}
          * 
          * @notes
-         * This is an instance where we are begininning to migrate from CommandControl state to context
+         * This is an instance where we are beginning to migrate from CommandControl state to context
          */
         const handleClick = () => {
             globalDispatch({ type: GlobalActions.CLICKED_BOT_TAB })
@@ -97,11 +97,11 @@ export function BotListPanel(props: Props) {
          * @returns {void}
          * 
          * @notes
-         * This is an instance where we are begininning to migrate from CommandControl state to context
+         * This is an instance where we are beginning to migrate from CommandControl state to context
          */
         const handleClick = () => {
             props.didClickHub(hub.hub_id)
-            globalDispatch({ type: GlobalActions.CLICKED_HUB_TAB })
+            globalDispatch({ type: GlobalActions.CLICKED_HUB_TAB, hubID: hub.hub_id })
         }
 
         //For now we are naming HUB, HUB with no id

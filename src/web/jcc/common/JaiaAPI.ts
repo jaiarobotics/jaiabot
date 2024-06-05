@@ -102,9 +102,9 @@ export class JaiaAPI {
   getStatus() { return this.get('jaia/status') }
 
   /**
-   * Gets most recent hub status
+   * Gets most recent status for hub(s)
    * 
-   * @returns {{[key: string]: PortalHubStatus}} Object containing most recent hub status
+   * @returns {{[key: string]: PortalHubStatus}} Object containing most recent status for hub(s)
    */
   getStatusHubs() { return this.get('jaia/status-hubs') }
 

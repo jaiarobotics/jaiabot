@@ -44,7 +44,7 @@
 ##### `BotContext`
 * Coming soon
 
-## General Context Strcuture
+## General Context Structure
 1. Imports
 2. Interfaces
 3. Constant Variables and Enums

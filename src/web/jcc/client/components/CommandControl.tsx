@@ -1963,9 +1963,10 @@ export default class CommandControl extends React.Component {
 			// Clicked on hub
 			const hubStatus = feature.get('hub') as PortalHubStatus
 			if (hubStatus) {
-				this.props.globalDispatch({ type: GlobalActions.CLICKED_HUB_MAP_ICON })
 				const hubKey = Object.keys(this.state.podStatus.hubs)[0]
-				this.didClickHub(this.state.podStatus.hubs[hubKey].hub_id)
+				const hubID = this.state.podStatus.hubs[hubKey].hub_id
+				this.props.globalDispatch({ type: GlobalActions.CLICKED_HUB_MAP_ICON, hubID: hubID })
+				this.didClickHub(hubID)
 				return false
 			}
 

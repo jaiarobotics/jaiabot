@@ -28,6 +28,7 @@ interface HubAccordionStates {
 export interface GlobalAction {
     type: string,
     clientID?: string,
+    hubID?: number,
     hubAccordionName?: string
 }
 
@@ -58,8 +59,6 @@ export const globalDefaultContext: GlobalContextType = {
 export const GlobalContext = createContext(null)
 export const GlobalDispatchContext = createContext(null)
 
-const defaultSelectedHub = { type: PodElement.HUB, id: 1 }
-
 /**
  * Updates GlobalContext
  * 
@@ -83,13 +82,13 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
             return handleClosedHubDetails(mutableState)
         
         case GlobalActions.CLICKED_HUB_TAB:
-            return handleClickedHubTab(mutableState)
+            return handleClickedHubTab(mutableState, action.hubID)
 
         case GlobalActions.CLICKED_BOT_TAB:
             return handleClickedBotTab(mutableState)
 
         case GlobalActions.CLICKED_HUB_MAP_ICON:
-            return handleClickedHubMapIcon(mutableState)
+            return handleClickedHubMapIcon(mutableState, action.hubID)
 
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName)
@@ -107,7 +106,8 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleSavedClientID(mutableState: GlobalContextType, clientID: string) {
-    if (!clientID) throw new Error("Invalid clientID")
+    if (!clientID) throw new Error('Invalid clientID')
+
     mutableState.clientID = clientID
     return mutableState
 }
@@ -151,7 +151,9 @@ function handleClosedHubDetails(mutableState: GlobalContextType) {
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
  */
-function handleClickedHubTab(mutableState: GlobalContextType) {
+function handleClickedHubTab(mutableState: GlobalContextType, hubID: number) {
+    if (!hubID) throw new Error('Invalid hubID')
+
     const isHubSelected = mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB
 
     if (isHubSelected) {
@@ -161,7 +163,7 @@ function handleClickedHubTab(mutableState: GlobalContextType) {
     }
 
     if (mutableState.showHubDetails) {
-        mutableState.selectedPodElement = defaultSelectedHub
+        mutableState.selectedPodElement = { type: PodElement.HUB, id: hubID }
     } else {
         mutableState.selectedPodElement = null
     }
@@ -180,7 +182,9 @@ function handleClickedHubTab(mutableState: GlobalContextType) {
  * It does not handle bot selection yet.
  */
 function handleClickedBotTab(mutableState: GlobalContextType) {
-    if (mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB) {
+    const isHubSelected = mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB
+
+    if (isHubSelected) {
         mutableState.showHubDetails = false
         // TEMPORARY: Once bot details are integrated into context, 
         // selectedPodElement will be assinged to the bot selected by the user
@@ -195,12 +199,16 @@ function handleClickedBotTab(mutableState: GlobalContextType) {
  * @param {GlobalContextType} mutableState State object ref for making modifications 
  * @returns {GlobalContextType} Updated mutable state object
  */
-function handleClickedHubMapIcon(mutableState: GlobalContextType) {
-    if (mutableState.selectedPodElement !== null && mutableState.selectedPodElement?.type === PodElement.HUB) {
+function handleClickedHubMapIcon(mutableState: GlobalContextType, hubID: number) {
+    if (!hubID) throw new Error('Invalid hubID')
+
+    const isHubSelected = mutableState.selectedPodElement !== null && mutableState.selectedPodElement.type === PodElement.HUB
+
+    if (isHubSelected) {
         mutableState.selectedPodElement = null
         mutableState.showHubDetails = false
     } else {
-        mutableState.selectedPodElement = defaultSelectedHub
+        mutableState.selectedPodElement = { type: PodElement.HUB, id: hubID }
         mutableState.showHubDetails = true
     }
     return mutableState
@@ -214,7 +222,8 @@ function handleClickedHubMapIcon(mutableState: GlobalContextType) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleClickedHubAccordion(mutableState: GlobalContextType, accordionName: string) {
-    if (!accordionName) throw new Error("Invalid accordionName")
+    if (!accordionName) throw new Error('Invalid accordionName')
+
     let hubAccordionStates = mutableState.hubAccordionStates
     switch (accordionName) {
         case 'quickLook':
