@@ -14,6 +14,7 @@ import { getElementById, getGeographicCoordinate } from './shared/Utilities';
 // Style
 import Button from '@mui/material/Button';
 import { Select, MenuItem } from '@mui/material';
+import '../style/components/SetHubLocationPanel.less'
 
 
 interface Props {
@@ -155,15 +156,14 @@ export default function SetHubLocationPanel(props: Props) {
 
 
     return (
-        <div className="panel" key="set-hub-location" style={{width: "100%"}}>
-            <div className='panel-heading' style={{color: "black"}}>Set Hub Location</div>
-            <div className='mission-settings-panel-container' style={{gridTemplateColumns: "auto auto"}}>
+        <div id="set-hub-location-panel" className="panel" key="set-hub-location">
+            <div className='panel-heading'>Set Hub Location</div>
+            <div className='mission-settings-panel-container'>
 
                 { /* this.hubIdSelectionElement() */ }
 
                 <div className='mission-settings-input-label'>Latitude</div>
                 <input className="mission-settings-num-input"
-                    style={{width: "125px"}}
                     id="set-hub-location-latitude" 
                     name="latitude" 
                     defaultValue={hubLocation.lat.toFixed(6)}
@@ -171,23 +171,20 @@ export default function SetHubLocationPanel(props: Props) {
 
                 <div className='mission-settings-input-label'>Longitude</div>
                 <input className="mission-settings-num-input"
-                    style={{width: "125px"}}
                     id="set-hub-location-longitude" 
                     name="longitude" 
                     defaultValue={hubLocation.lon.toFixed(6)}
                 />
             </div>
             <Button
-                className="button-jcc engineering-panel-btn"
-                style={{marginLeft: "0px", marginRight: "0px"}}
+                className="button-jcc"
                 type="button"
                 id="set-hub-location-submit"
                 onClick={submitHubLocation}>
                 Submit Values
             </Button>
             <Button
-                className={"button-jcc engineering-panel-btn" + (selectingOnMap ? " selected" : "")}
-                style={{marginLeft: "0px", marginRight: "0px"}}
+                className={"button-jcc" + (selectingOnMap ? " selected" : "")}
                 type="button"
                 id="set-hub-location-map-select"
                 onClick={toggleSelectOnMapInteraction}
