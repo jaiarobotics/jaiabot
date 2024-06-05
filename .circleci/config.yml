@@ -104,18 +104,9 @@ job-template-deb-amd64: &job-template-deb-amd64
     - run: &run-import-gpg
         name: Import GPG key
         command: echo -e "$GPG_KEY" | gpg --import
-    - run: &run-update-deb
-        name: Update the debian source repo and pull the branch with the same name as the project branch (if it exists)
-        command: |
-          cd /root && 
-          git clone https://github.com/jaiarobotics/jaiabot-debian &&
-          cd /root/jaiabot-debian &&
-          git checkout origin/${CIRCLE_BRANCH} ||
-          echo "No branch in debian called ${CIRCLE_BRANCH}, using $(git rev-parse --abbrev-ref HEAD)"
     - run: &run-nest-deb
-        name: Nest debian source into project source and comment out clang as build-depends (causes problems for cross-builds)
+        name: Nest debian changelog into project source and comment out clang as build-depends (causes problems for cross-builds)
         command: |
-          mv /root/jaiabot-debian ${CIRCLE_WORKING_DIRECTORY}/debian &&
           cp /root/src/changelog ${CIRCLE_WORKING_DIRECTORY}/debian &&
           sed -i "s/DISTRORELEASEVERSION/${DISTRO_RELEASE_VERSION}/;s/DISTRORELEASECODENAME/${DISTRO_RELEASE_CODENAME}/" ${CIRCLE_WORKING_DIRECTORY}/debian/changelog &&
           sed -i 's/^\( *\)clang/#\1clang/' ${CIRCLE_WORKING_DIRECTORY}/debian/control &&
@@ -279,9 +270,7 @@ jobs:
       - run:
           name: Add changelog entry 
           command: |
-            cd /root &&
-            rm -rf debian &&
-            git clone https://github.com/jaiarobotics/jaiabot-debian debian &&
+            cd /root/jaiabot &&
             export NEWVERSION="$(echo /root/src/*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
             COMMENT="Autobuild for version ${NEWVERSION}" &&
             dch --newversion=${NEWVERSION}-0~DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
