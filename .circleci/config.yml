@@ -24,9 +24,9 @@ environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
   DISTRO_RELEASE_VERSION: "ubuntu20.04"
 
-environment-template-noble: &environment-template-noble
-  DISTRO_RELEASE_CODENAME: "noble"
-  DISTRO_RELEASE_VERSION: "ubuntu24.04"
+environment-template-jammy: &environment-template-jammy
+  DISTRO_RELEASE_CODENAME: "jammy"
+  DISTRO_RELEASE_VERSION: "ubuntu22.04"
   
   
 ## Pre-declare Docker containers
@@ -36,13 +36,13 @@ docker-base-focal: &docker-base-focal
 docker-arm64-focal: &docker-arm64-focal
   - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
 
-docker-base-noble: &docker-base-noble
-  - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
-docker-arm64-noble: &docker-arm64-noble
-  - image: gobysoft/jaiabot-ubuntu-arm64:24.04.1
+docker-base-jammy: &docker-base-jammy
+  - image: gobysoft/jaiabot-ubuntu-amd64:22.04.1
+docker-arm64-jammy: &docker-arm64-jammy
+  - image: gobysoft/jaiabot-ubuntu-arm64:22.04.1
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:24.04.1    
+  - image: gobysoft/ubuntu-build-base:22.04.1    
 
     
 ## Pre-declare job templates
@@ -189,7 +189,7 @@ workflows:
     jobs:
       - amd64-focal-build:
           <<: *filter-template-non-master
-      - amd64-noble-build:
+      - amd64-jammy-build:
           <<: *filter-template-non-master
       
       - get-orig-source:
@@ -204,11 +204,11 @@ workflows:
           requires:
             - get-orig-source
 
-      - amd64-noble-deb-build:
+      - amd64-jammy-deb-build:
           <<: *filter-template-master-only
           requires:
             - get-orig-source
-      - arm64-noble-deb-build:
+      - arm64-jammy-deb-build:
           <<: *filter-template-master-only
           requires:
             - get-orig-source
@@ -223,8 +223,8 @@ workflows:
           requires:
             - amd64-focal-deb-build
             - arm64-focal-deb-build
-            - amd64-noble-deb-build
-            - arm64-noble-deb-build
+            - amd64-jammy-deb-build
+            - arm64-jammy-deb-build
 
       # bundle after each package upload
       - bundle-focal:
@@ -236,7 +236,7 @@ workflows:
           requires:
             - upload
             
-      - bundle-noble:
+      - bundle-jammy:
           filters:
             tags:
               only: /.*/
@@ -253,7 +253,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -306,34 +306,34 @@ jobs:
       <<: *environment-template-focal
       <<: *environment-template-arm64
 
-  amd64-noble-build:
+  amd64-jammy-build:
     <<: *job-template-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-jammy
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
 
-  amd64-noble-deb-build:
+  amd64-jammy-deb-build:
     <<: *job-template-deb-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-jammy
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
-  arm64-noble-deb-build: 
+  arm64-jammy-deb-build: 
     <<: *job-template-deb-cross
-    docker: *docker-arm64-noble
+    docker: *docker-arm64-jammy
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
       <<: *environment-template-arm64
 
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -360,7 +360,7 @@ jobs:
   bundle-focal:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-focal
@@ -381,13 +381,13 @@ jobs:
       - store_artifacts: &store-bundle-artifacts
           path: /tmp/bundle/result
 
-  bundle-noble:
+  bundle-jammy:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
-      <<: *environment-template-noble
+      <<: *environment-template-jammy
     steps:
       - checkout
       - run: *run-set-deb-rep-and-version
