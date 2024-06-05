@@ -23,8 +23,14 @@ This Git repository is hosted at: <https://github.com/jaiarobotics/jaiabot-debia
 - Legacy (N/A) - Will be 1.y in the future.
  - Stable (1.y) - Stable code that receives primarily bug fixes and low risk features 
  - Testing (2.y) - Superset of stable that includes most of the new development.
- 
+
 Over time the Stable release will become Legacy, the Testing will become Stable, and a new Testing release branch will be created.
+
+## Ubuntu Releases
+Each `jaiabot` release series is aligned to an long-term support (LTS) release of Ubuntu (except 1.y which supports two LTS releases as a special case):
+- jaiabot 1.y: Ubuntu 20.04 (focal) and 22.04 (jammy)
+- jaiabot 2.y (forthcoming, expected Oct 2024): Ubuntu 24.04 (noble)
+- jaiabot 3.y (future, expected Oct 2026): Ubuntu 26.04
 
 ## Updates to create new release branch
 
