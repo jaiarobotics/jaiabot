@@ -24,11 +24,11 @@ interface Props {
 }
 
 export default function SetHubLocationPanel(props: Props) {
-    const [ hub_id, set_hub_id ] = useState(Number(Object.keys(props.hubs)[0]) ?? 1)
+    const [ hubId, setHubId ] = useState(Number(Object.keys(props.hubs)[0]) ?? 1)
     const [ selectingOnMap, setSelectingOnMap ] = useState(false)
     const selectOnMapInteractionRef = useRef(null)
 
-    const hubLocation = props.hubs[hub_id].location
+    const hubLocation = props.hubs[hubId].location
 
     /**
      * A Select element for choosing the hub_id.
@@ -48,8 +48,8 @@ export default function SetHubLocationPanel(props: Props) {
 
         const hubIdSelectionRow = 
             <div className='mission-settings-input-row'>
-                <Select id="bot-id-select" defaultValue={hub_id} onChange={(evt) => {
-                        set_hub_id(Number(evt.target.value))
+                <Select id="bot-id-select" defaultValue={hubId} onChange={(evt) => {
+                        setHubId(Number(evt.target.value))
                     }}>
                     { menuItems }
                 </Select>
@@ -92,7 +92,7 @@ export default function SetHubLocationPanel(props: Props) {
         }
 
         const hubCommand: CommandForHub = {
-            hub_id: hub_id,
+            hub_id: hubId,
             type: HubCommandType.SET_HUB_LOCATION,
             hub_location: hubLocation
         }
