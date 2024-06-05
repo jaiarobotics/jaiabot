@@ -174,12 +174,14 @@ filter-template-debian-builds: &filter-template-debian-builds
         - "1.y"
         - "support-X.y"
           
+# which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
         - "1.y"
          
+# which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
   filters:
     tags:
@@ -189,6 +191,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
         - "1.y"
         - "support-X.y"
         
+# which branches to run the AWS virtual machine conversion
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
   filters:
     tags:
@@ -420,7 +423,7 @@ jobs:
           name: Bundle package (to jaiabot/build/bundle/jaiabot_bundle.tar)
           command: |
             cd /tmp/bundle/jaiabot
-            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./rootfs/scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
             sudo mkdir -p /tmp/bundle/result
@@ -468,7 +471,8 @@ jobs:
             export ROOTFS_BUILD_TAG="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"
             export TMP_IMG_NAME=jaiabot
             mkdir /tmp/images
-            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} ${CREATE_IMAGE_ARGS}
+            cd rootfs
+            sudo scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} ${CREATE_IMAGE_ARGS}
             source ${TMP_IMG_NAME}.metadata.txt
             for filename in ${TMP_IMG_NAME}.*; do
               extension="${filename#*.}"
