@@ -199,8 +199,8 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "1.y"
+        - "support-X.y"
 
-      
 ## Begin actual config
 version: 2.1
 orbs:
