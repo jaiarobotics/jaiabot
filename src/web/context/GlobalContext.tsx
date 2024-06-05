@@ -107,6 +107,7 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleSavedClientID(mutableState: GlobalContextType, clientID: string) {
+    if (!clientID) throw new Error("Invalid clientID")
     mutableState.clientID = clientID
     return mutableState
 }
@@ -213,6 +214,7 @@ function handleClickedHubMapIcon(mutableState: GlobalContextType) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleClickedHubAccordion(mutableState: GlobalContextType, accordionName: string) {
+    if (!accordionName) throw new Error("Invalid accordionName")
     let hubAccordionStates = mutableState.hubAccordionStates
     switch (accordionName) {
         case 'quickLook':

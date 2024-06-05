@@ -51,6 +51,7 @@ function hubReducer(state: HubContextType, action: Action) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleHubStatusPolled(mutableState: HubContextType, hubStatus: PortalHubStatus) {
+    if (!hubStatus) throw new Error("Invalid hubStatus")
     mutableState.hubStatus = hubStatus
     return mutableState
 }
