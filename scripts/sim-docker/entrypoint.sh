@@ -1,4 +1,5 @@
 #!/bin/bash
+export jaia_fleet_index=$JAIA_SIM_FLEET
 cd /jaiabot/src/web
 ./run.sh &
 cd /jaiabot/config/launch/simulation/
