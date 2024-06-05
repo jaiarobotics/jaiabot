@@ -24,15 +24,17 @@ All commands should be executed in the jaiabot/scripts/sim-docker directory
     This will launch the Docker container to run the simulation.
     Becasue the web support needs to be built each time, it takes a while for everything to become available.
     This may be longer than on your host machine, be patient.
-3.  Accessing Web Apps from the Docker container in your host machine browser.
+
+3.  Accessing Jaia Web Apps from the Docker container using your host machine browser.
 
     Currently the Docker container supports the following web apps
     JCC, JED, Liaison
     The container shares the host network so all ports are the same as if the apps were running on the host machine.
-    Because it is a shared network, you must specify the IP address 127.0.0.1 instead of "localhost"
+    Because it is a shared network, you must specify the IP address 127.0.0.1 instead of using "localhost"
     example JCC -> http://127.0.0.1:40001/
 
 4. Usefull Docker commands
+
     This will list all available images on your machine
     $ docker images
     REPOSITORY   TAG           IMAGE ID       CREATED             SIZE
@@ -43,7 +45,8 @@ All commands should be executed in the jaiabot/scripts/sim-docker directory
     CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS     NAMES
     f377d7195cfc   jaiauser:jaia-sim-ct   "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-ct
 
-    This will stop the running container.  The jaiauser:jaia-sim-ct is being launched by launch-ct.sh such that it will remove itself when shut down
+    This will stop the running container.  The jaiauser:jaia-sim-ct container
+    is being launched by launch-ct.sh such that it will remove itself when shut down
     $ docker stop <container-id>
 
     This can be used to remove a stopped container if needed
@@ -54,7 +57,6 @@ All commands should be executed in the jaiabot/scripts/sim-docker directory
     $ docker rmi <image-id>
 
     This can be used to log into a running container.  This can be useful if you want to monitor how things are running.
-    Using $ top in the container you will be able to see the process of the web build out.  
     $ docker exec -it jaia-sim-ct bash
 
 

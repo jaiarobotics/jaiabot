@@ -8,7 +8,7 @@ RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
 #items below must be installed here because ENV is not passed through sudo in the scripts below
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata keyboard-configuration
 #Note next line only needed until jaiabot-debian/pull/64 is released
-RUN apt-get install python3-netifaces
+#RUN apt-get install python3-netifaces
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
 #branch is only needed while debugging
