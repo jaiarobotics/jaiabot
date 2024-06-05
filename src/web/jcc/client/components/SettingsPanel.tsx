@@ -135,7 +135,7 @@ export function SettingsPanel(props: Props) {
                     <Typography>Simulation</Typography>
                 </AccordionSummary>
                 <AccordionDetails className="settings-accordion-inner-container">
-                    <div className="settings-card">
+                    <div className="settings-card hub-location-card">
                         <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} />
                     </div>
                 </AccordionDetails>

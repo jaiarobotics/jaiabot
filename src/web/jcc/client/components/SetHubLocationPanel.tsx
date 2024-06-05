@@ -156,35 +156,38 @@ export default function SetHubLocationPanel(props: Props) {
 
 
     return (
-        <div id="set-hub-location-panel" className="panel" key="set-hub-location">
-            <div className='panel-heading'>Set Hub Location</div>
-            <div className='mission-settings-panel-container'>
+        <div id="set-hub-location-panel" className="panel">
+            
+            <div className="panel-heading">Set Hub Location</div>
 
-                { /* this.hubIdSelectionElement() */ }
-
-                <div className='mission-settings-input-label'>Latitude</div>
-                <input className="mission-settings-num-input"
-                    id="set-hub-location-latitude" 
+            <div className="hub-location-input-grid">
+                <div>Latitude:</div>
+                <input
+                    id="set-hub-location-latitude"
+                    className="hub-location-num-input"
                     name="latitude" 
                     defaultValue={hubLocation.lat.toFixed(6)}
                 />
 
-                <div className='mission-settings-input-label'>Longitude</div>
-                <input className="mission-settings-num-input"
+                <div>Longitude:</div>
+                <input
                     id="set-hub-location-longitude" 
+                    className="hub-location-num-input"
                     name="longitude" 
                     defaultValue={hubLocation.lon.toFixed(6)}
                 />
             </div>
+
             <Button
-                className="button-jcc"
+                className="button-jcc button-hub-location"
                 type="button"
                 id="set-hub-location-submit"
                 onClick={submitHubLocation}>
                 Submit Values
             </Button>
+
             <Button
-                className={"button-jcc" + (selectingOnMap ? " selected" : "")}
+                className={"button-jcc button-hub-location" + (selectingOnMap ? " selected" : "")}
                 type="button"
                 id="set-hub-location-map-select"
                 onClick={toggleSelectOnMapInteraction}
