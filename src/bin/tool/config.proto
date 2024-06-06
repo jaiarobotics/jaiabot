@@ -79,6 +79,17 @@ message Tool
                            "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
                            "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
         }];
+        ping = 6 [(goby.ev).cfg = {
+            short_help_msg: "Use ping to test connectivity to jaiabots and hubs",
+            full_help_msg: "This action is a wrapper for 'ping' that can take shortcut names for jaia hosts\n"
+                           "Command line options before the host name are processed by 'jaia ping', and command line options after the host name are passed unmodified to ping"
+                           "\n"
+                           "Example commands:\n"
+                           "  jaia ping b4f10: ping bot4 on fleet10\n"
+                           "  jaia ping h1f2: ping hub1 on fleet2\n"
+                           "  jaia ping --net=fleet_vpn b5f3: ping bot5 fleet3 over fleet vpn\n"
+                           "  jaia ping --net=fleet_vpn b5f3 -i 10: ping bot5 fleet3 over fleet vpn using 'ping -i 10'\n"
+        }];
     }
     optional Action action = 2 [
         default = help,
