@@ -3,8 +3,8 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import { Collection } from "ol"
 import LayerGroup from "ol/layer/Group"
+import { SelectedPodElement, PodElement } from "../../../context/GlobalContext"
 import { PortalHubStatus } from "./shared/PortalStatus"
-import { HubOrBot } from "./HubOrBot"
 import { getMapCoordinate } from "./shared/Utilities"
 import { Point } from "ol/geom"
 import { Feature } from "ol"
@@ -59,7 +59,7 @@ export class HubLayers {
      * @param {HubOrBot} selectedHubOrBot - an object to determine if a hub id is selected so we can update state accordingly
      * @returns {void}
      */
-    update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
+    update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: SelectedPodElement) {
         for (let hubId in hubs) {
             let hub = hubs[hubId];
     
@@ -88,7 +88,7 @@ export class HubLayers {
                 'hub': hub
             })
 
-            const selected = selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
+            const selected = selectedHubOrBot !== null && selectedHubOrBot.type === PodElement.HUB && selectedHubOrBot.id === hub_id
             hubFeature.set('selected', selected);
 
             hubLayer.changed();
