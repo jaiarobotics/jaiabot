@@ -56,3 +56,26 @@ sudo chown -R dput /var/www/html/ubuntu/
 ```
 - Make a git tag and push it as a point of reference for commits until the first release, such as `git tag 2.0.0_alpha1 && git push --tags`.
 - Update `.circleci/test_deb_repo.sh` to test for new release branch in non-standard branches
+
+# Ubuntu Distributions
+
+To add a new Ubuntu distribution:
+
+- Update `jaiabot/scripts/packages/mini-dinstall.conf` and copy to packages.jaia.tech (in /opt/jaia_packages).
+- On packages.jaia.tech, run:
+```
+sudo su dput
+release_branch=2.y
+for repo in test continuous beta release; do
+    /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/${repo}/${release_branch}
+done
+```
+- Also on packages.jaia.tech update the staging mirror and manually copy the new distro to release:
+```
+release_branch=2.y
+new_distro=noble
+sudo -E rsync -aP /var/spool/apt-mirror/staging/${release_branch}/mirror/packages.gobysoft.org/ubuntu/release/${new_distro} /var/spool/apt-mirror/release/${release_branch}/mirror/packages.gobysoft.org/ubuntu/release/
+```
+
+- Symlink old docker (preferred) or create new for new distro in `jaiabot/.docker`
+- Add new distro to `docker-create-push-for-circleci.sh` and run `docker-create-push-for-circleci.sh {distroname}`
