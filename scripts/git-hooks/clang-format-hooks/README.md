@@ -2,10 +2,9 @@ From https://github.com/barisione/clang-format-hooks
 
 [![Build status](https://api.travis-ci.org/barisione/clang-format-hooks.svg?master)](https://travis-ci.org/barisione/clang-format-hooks)
 
-`clang-format` git hooks
-========================
+# `clang-format` git hooks
 
-***Apply a coding style with `clang-format` only to new code added to an existing code base.***
+**_Apply a coding style with `clang-format` only to new code added to an existing code base._**
 
 At [Undo](https://www.undo.io/), we decided to use the `clang-format` tool to enforce a consistent coding style for new and refactored code, but without changing the existing one.
 
@@ -19,15 +18,13 @@ This is done through a script (`apply-format`) which can be run manually or thro
 
 By default, `clang-format` supports a few pre-defined styles matching the style used by a few important projects, but it's possible to customise specific styles.
 
-
-Setup
------
+## Setup
 
 ### Dependencies
 
-*  **Ubuntu and Debian:** install the `clang-format` package. You can install a newer version with [these instructions](docs/NewerClangFormatUbuntu.md).
-*  **Fedora, CentOS and Red Hat:**  install the `clang` package.
-*  **macOS:** install `clang-format` using HomeBrew: `brew install clang-format`.
+- **Ubuntu and Debian:** install the `clang-format` package. You can install a newer version with [these instructions](docs/NewerClangFormatUbuntu.md).
+- **Fedora, CentOS and Red Hat:** install the `clang` package.
+- **macOS:** install `clang-format` using HomeBrew: `brew install clang-format`.
 
 You can optionally install `colordiff` to get nicer output.
 
@@ -54,17 +51,15 @@ $ ./git-pre-commit-format install
 
 This will add a hook (in `.git/hooks/`) which is run every time you commit.
 
-
-Using the pre-commit hook
--------------------------
+## Using the pre-commit hook
 
 After registering the git hook, you don't need to do anything except for committing your changes.
 
 Every time you commit, the hook will check if your code matches the coding standard. If it doesn't, you get asked what to do and you can decide to:
 
-* Apply the fixes automatically (only to the code you are actually committing, not to unstaged code).
-* Commit anyway.
-* Abort the commit so you can fix the problem manually.
+- Apply the fixes automatically (only to the code you are actually committing, not to unstaged code).
+- Commit anyway.
+- Abort the commit so you can fix the problem manually.
 
 Note that, if you use `git` through a GUI or some other tool (i.e. not directly on the command line), the script will fail to get your input.
 In this case disable the interactive behaviour with:
@@ -73,19 +68,17 @@ In this case disable the interactive behaviour with:
 $ git config hooks.clangFormatDiffInteractive false
 ```
 
-For more information on the script use the ``--help`` option.
+For more information on the script use the `--help` option.
 
-
-Manual script
--------------
+## Manual script
 
 You can also reformat changed code without committing it using the `apply-format` script directly.
 
-By default, ``apply-format`` reformats only the code which was modified, i.e.  the code that ``git diff`` would show, and prints the diff to the terminal.
+By default, `apply-format` reformats only the code which was modified, i.e. the code that `git diff` would show, and prints the diff to the terminal.
 
-If you want to automatically apply the suggested changes, run the script with ``-i``.
+If you want to automatically apply the suggested changes, run the script with `-i`.
 
-If you only want to reformat your staged changes, but not the unstanged ones, use ``--staged``.
+If you only want to reformat your staged changes, but not the unstanged ones, use `--staged`.
 
 For instance, a possible workflow would be similar to:
 
@@ -100,7 +93,7 @@ $ # Commit the result.
 $ git commit
 ```
 
-It’s also possible to reformat a whole file (using ``--whole-file`` or its
-shorter form ``-f``).
+It’s also possible to reformat a whole file (using `--whole-file` or its
+shorter form `-f`).
 
-For more information on the script use the ``--help`` option.
+For more information on the script use the `--help` option.
