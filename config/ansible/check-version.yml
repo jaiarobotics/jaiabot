@@ -7,8 +7,6 @@
     - name: Update apt cache
       # in some case the "apt" module was not doing an update
       shell: "apt-get update"
-      args:
-        warn: false
 
     - include_tasks: tasks/get-version.yml
 

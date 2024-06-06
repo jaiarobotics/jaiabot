@@ -20,31 +20,40 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-syntax = "proto2";
-import "goby/middleware/protobuf/app_config.proto";
-import "goby/protobuf/option_extensions.proto";
-import "actions/net.proto";
+#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_PING_H
+#define JAIABOT_SRC_BIN_TOOL_ACTIONS_PING_H
 
-package jaiabot.config;
+#include "goby/middleware/application/interface.h"
 
-message SshTool
+#include "actions/ping.pb.h"
+
+namespace jaiabot
 {
-    option (goby.msg).cfg.tool = {
-        is_tool: true
-        has_subtools: true
-        has_help_action: false
-    };
+namespace apps
+{
+class PingToolConfigurator
+    : public goby::middleware::ProtobufConfigurator<jaiabot::config::PingTool>
+{
+  public:
+    PingToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::PingTool>(argc, argv)
+    {
+        auto& cfg = mutable_cfg();
+    }
+};
 
-    optional goby.middleware.protobuf.AppConfig app = 1
-        [(goby.field) = { cfg { action: DEVELOPER } }];
+class PingTool : public goby::middleware::Application<jaiabot::config::PingTool>
+{
+  public:
+    PingTool();
+    ~PingTool() override {}
 
-    required string host = 2 [(goby.field) = {
-        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
-        cfg { position { enable: true } }
-    }];
+  private:
+    void run() override { assert(false); }
 
-    optional Net net = 3 [default = wlan];
+  private:
+};
 
-    optional bool ipv6 = 4 [default = false];
-    optional string user = 5 [default = "jaia"];
-}
+} // namespace apps
+} // namespace jaiabot
+#endif

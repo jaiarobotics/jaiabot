@@ -1,18 +1,17 @@
 #include "goby/middleware/application/tool.h"
 
 #include "common.h"
-#include "ssh.h"
+#include "ping.h"
 
 #include <boost/filesystem.hpp>
 
-jaiabot::apps::SshTool::SshTool()
+jaiabot::apps::PingTool::PingTool()
 {
-    std::vector<std::string> args{"ssh"};
+    std::vector<std::string> args{"ping"};
 
     std::string host_ip = parse_host_ip_from_code(app_cfg().host(), app_cfg().has_net(),
                                                   app_cfg().net(), app_cfg().ipv6());
-    std::string user_and_host = app_cfg().user() + "@" + host_ip;
-    args.push_back(user_and_host);
+    args.push_back(host_ip);
 
     for (const auto& cli_extra : app_cfg().app().tool_cfg().extra_cli_param())
         args.push_back(cli_extra);
@@ -28,6 +27,6 @@ jaiabot::apps::SshTool::SshTool()
 
     execvp(c_args[0], c_args.data());
     // If execvp returns, there was an error
-    goby::glog.is_die() && goby::glog << "ERROR executing ssh" << std::endl;
+    goby::glog.is_die() && goby::glog << "ERROR executing ping" << std::endl;
     quit(0);
 }
