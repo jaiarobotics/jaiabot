@@ -574,7 +574,7 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 {
     if (!is_driver_connected_)
     {
-        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
     }
