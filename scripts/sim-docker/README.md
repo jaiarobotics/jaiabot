@@ -8,7 +8,7 @@ A few important Docker terms:
 
 *All commands should be executed in the `jaiabot/scripts/sim-docker directory`*
 
-1.  **`$ ./build-ct.sh`**
+1.  **`$ ./build-image.sh`**
     * This will build the Docker image needed to run the simulator.
     * This will take a while.
 
@@ -18,7 +18,7 @@ A few important Docker terms:
         * JAIA_SIM_WARP=2
         * JAIA_SIM_FLEET=20
 
-3.  **`$ ./launch-ct.sh`**
+3.  **`$ ./launch-container.sh`**
     * This will launch the Docker container to run the simulation.
     * Becasue the web support needs to be built each time, it takes a while for everything to become available.
     * This may be longer than on your host machine, be patient.
@@ -36,18 +36,18 @@ A few important Docker terms:
     * This will list all available images on your machine.
         * `$ docker images`
         * ```
-          REPOSITORY   TAG           IMAGE ID       CREATED             SIZE
-          jaiauser     jaia-sim-ct   777cba4e942c   About an hour ago   5.46GB
+          REPOSITORY   TAG                  IMAGE ID       CREATED             SIZE
+          jaiauser     jaia-sim-container   777cba4e942c   About an hour ago   5.46GB
           ```
    
     * This will list all running Docker containers.
         * `$ docker ps`
         * ```
-          CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS     NAMES
-          f377d7195cfc   jaiauser:jaia-sim-ct   "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-ct
+          CONTAINER ID   IMAGE                          COMMAND                  CREATED          STATUS          PORTS     NAMES
+          f377d7195cfc   jaiauser:jaia-sim-container    "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-container
           ```
-    * This will stop the running container. The `jaiauser:jaia-sim-ct` container
-    is being launched by `launch-ct.sh` such that it will remove itself when shut down.
+    * This will stop the running container. The `jaiauser:jaia-sim-container` container
+    is being launched by `launch-container.sh` such that it will remove itself when shut down.
         * `$ docker stop <container-id>`
 
     * This can be used to remove a stopped container if needed.
@@ -57,6 +57,6 @@ A few important Docker terms:
         * `$ docker rmi <image-id>`
 
     * This can be used to log into a running container. This can be useful if you want to monitor how things are running.
-        * `$ docker exec -it jaia-sim-ct bash`
+        * `$ docker exec -it jaia-sim-container bash`
 
 
