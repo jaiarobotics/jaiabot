@@ -20,31 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-syntax = "proto2";
-import "goby/middleware/protobuf/app_config.proto";
-import "goby/protobuf/option_extensions.proto";
-import "actions/net.proto";
-
 package jaiabot.config;
 
-message SshTool
+enum Net
 {
-    option (goby.msg).cfg.tool = {
-        is_tool: true
-        has_subtools: true
-        has_help_action: false
-    };
-
-    optional goby.middleware.protobuf.AppConfig app = 1
-        [(goby.field) = { cfg { action: DEVELOPER } }];
-
-    required string host = 2 [(goby.field) = {
-        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
-        cfg { position { enable: true } }
-    }];
-
-    optional Net net = 3 [default = wlan];
-
-    optional bool ipv6 = 4 [default = false];
-    optional string user = 5 [default = "jaia"];
+    wlan = 0;
+    fleet_vpn = 1;
+    vfleet_vpn = 2;
+    cloudhub_vpn = 3;
 }

@@ -192,4 +192,4 @@ if __name__ == '__main__':
     logging.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
     logging.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
 
-    app.run(host='0.0.0.0', port=args.port, debug=True)
+    app.run(host='0::0', port=args.port, debug=True)

@@ -37,14 +37,14 @@ A few important Docker terms:
         * `$ docker images`
         * ```
           REPOSITORY   TAG                  IMAGE ID       CREATED             SIZE
-          jaiauser     jaia-sim-container   777cba4e942c   About an hour ago   5.46GB
+          jaiauser     jaia-sim-image       777cba4e942c   About an hour ago   5.46GB
           ```
    
     * This will list all running Docker containers.
         * `$ docker ps`
         * ```
           CONTAINER ID   IMAGE                          COMMAND                  CREATED          STATUS          PORTS     NAMES
-          f377d7195cfc   jaiauser:jaia-sim-container    "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-container
+          f377d7195cfc   jaiauser:jaia-sim-image        "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-container
           ```
     * This will stop the running container. The `jaiauser:jaia-sim-container` container
     is being launched by `launch-container.sh` such that it will remove itself when shut down.
