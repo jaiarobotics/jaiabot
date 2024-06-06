@@ -3,9 +3,9 @@ import React, { ReactElement, useState } from "react";
 import { Map } from "ol";
 
 import JaiaToggle from "./JaiaToggle";
+import SetHubLocation from "./SetHubLocation";
 import ScanForBotPanel from "./ScanForBotPanel";
 import QueryBotStatusPanel from "./QueryBotStatusPanel";
-import SetHubLocationPanel from "./SetHubLocationPanel";
 import { JaiaAPI } from "../../common/JaiaAPI";
 import { taskData } from "./TaskPackets";
 import { PanelType } from "./CommandControl";
@@ -137,11 +137,7 @@ export function SettingsPanel(props: Props) {
                     </AccordionSummary>
                     <AccordionDetails className="settings-accordion-inner-container">
                         <div className="settings-card">
-                            <SetHubLocationPanel
-                                map={props.map}
-                                hubs={props.hubs}
-                                api={props.api}
-                            />
+                            <SetHubLocation map={props.map} hubs={props.hubs} api={props.api} />
                         </div>
                     </AccordionDetails>
                 </Accordion>
