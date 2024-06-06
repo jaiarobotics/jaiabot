@@ -17,11 +17,11 @@ pip3 install .
 
 To run the Jaia web interface, run the following command:
 
-```./app.py hub_hostname```
+`./app.py hub_hostname`
 
-where _hub\_hostname_ is the name of the machine running the hub script:
+where _hub_hostname_ is the name of the machine running the hub script:
 
-```jaiabot/config/launch/pid-control-web/hub.launch``` 
+`jaiabot/config/launch/pid-control-web/hub.launch`
 
 This can be localhost, or a remote machine.
 
@@ -35,4 +35,4 @@ The **Engineering** interface will be present at:
 
 <http://web_hostname:3000/pid/>
 
-where _web\_hostname_ is the hostname where you're running the app.py script.
+where _web_hostname_ is the hostname where you're running the app.py script.
