@@ -1,432 +1,432 @@
 /* Sliders */
 
 * {
-  font-family: Sans-Serif;
+    font-family: Sans-Serif;
 }
 
 #body {
-  padding: 3px;
+    padding: 3px;
 }
 
 div {
-  font-size: 12pt;
+    font-size: 12pt;
 }
 
 .columnGroup {
-  position: static;
-  display: inline-block;
-  width: 20%;
-  height: 60%;
-  margin: 10pt;
+    position: static;
+    display: inline-block;
+    width: 20%;
+    height: 60%;
+    margin: 10pt;
 }
 
 .columnContainer {
-  width: 40%;
-  display: inline-block;
-  vertical-align: top;
-  margin: 10pt;
+    width: 40%;
+    display: inline-block;
+    vertical-align: top;
+    margin: 10pt;
 }
 
 .sliderRange {
-  display: flex;
+    display: flex;
 }
 
 .minValueLabel {
-  text-align: left;
-  flex: 1;
-  margin: auto;
+    text-align: left;
+    flex: 1;
+    margin: auto;
 }
 
 .maxValueLabel {
-  text-align: right;
-  flex: 1;
-  margin: auto;
+    text-align: right;
+    flex: 1;
+    margin: auto;
 }
 
 .sliderValueLabel {
-  text-align: center;
-  width: 100%;
+    text-align: center;
+    width: 100%;
 }
 
 .sliderTitle {
-  text-align: center;
-  width: 100%;
+    text-align: center;
+    width: 100%;
 }
 
 div.verticalSliderOuterContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 div.verticalSliderInnerContainer {
-  width: 10pt; /* Full-width */
-  height: 80pt; /* Specified height */
+    width: 10pt; /* Full-width */
+    height: 80pt; /* Specified height */
 }
 
 /* The sliders themselves */
 .slider {
-  -webkit-appearance: none;  /* Override default CSS styles */
-  display:inline-block;
-  appearance: none;
-  width: 120pt; /* Full-width */
-  height: 10pt; /* Specified height */
-  border-radius: 10pt;
-  background: #d3d3d3; /* Grey background */
-  outline: none; /* Remove outline */
-  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
-  transition: opacity .2s;
-  padding-bottom: -10pt;
+    -webkit-appearance: none; /* Override default CSS styles */
+    display: inline-block;
+    appearance: none;
+    width: 120pt; /* Full-width */
+    height: 10pt; /* Specified height */
+    border-radius: 10pt;
+    background: #d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: 0.2s; /* 0.2 seconds transition on hover */
+    transition: opacity 0.2s;
+    padding-bottom: -10pt;
 }
 
 input.vertical {
-  width: 80pt;
-  height: 10pt;
-  transform-origin: 37pt 39pt;
-  transform: rotate(-90deg);
+    width: 80pt;
+    height: 10pt;
+    transform-origin: 37pt 39pt;
+    transform: rotate(-90deg);
 }
 
 /* Mouse-over effects */
 .slider:hover {
-  opacity: 1; /* Fully shown on mouse-over */
+    opacity: 1; /* Fully shown on mouse-over */
 }
 
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .slider::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Override default look */
-  appearance: none;
-  width: 18pt; /* Set a specific slider handle width */
-  height: 18pt; /* Slider handle height */
-  border-radius: 12pt;
-  /* background: darkcyan; */
-  background: #82B366;
-  cursor: pointer; /* Cursor on hover */
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 18pt; /* Set a specific slider handle width */
+    height: 18pt; /* Slider handle height */
+    border-radius: 12pt;
+    /* background: darkcyan; */
+    background: #82b366;
+    cursor: pointer; /* Cursor on hover */
 }
 
 .slider::-moz-range-thumb {
-  width: 12px; /* Set a specific slider handle width */
-  height: 12px; /* Slider handle height */
-  border-radius: 12pt;
-  background: darkcyan;
-  cursor: pointer; /* Cursor on hover */
+    width: 12px; /* Set a specific slider handle width */
+    height: 12px; /* Slider handle height */
+    border-radius: 12pt;
+    background: darkcyan;
+    cursor: pointer; /* Cursor on hover */
 }
 
 .slider.elevator::-webkit-slider-thumb {
-  background: #d6b656
+    background: #d6b656;
 }
 
 .slider.elevator::-moz-range-thumb {
-  background: #d6b656;
+    background: #d6b656;
 }
 
 .slider.throttle::-webkit-slider-thumb {
-  background: #B85450
+    background: #b85450;
 }
 
 .slider.throttle::-moz-range-thumb {
-  background: #B85450;
+    background: #b85450;
 }
 
 .slider.dive::-webkit-slider-thumb {
-  background: #6C8EBF
+    background: #6c8ebf;
 }
 
 .slider.dive::-moz-range-thumb {
-  background: #6C8EBF;
+    background: #6c8ebf;
 }
 
 .slider.timeout::-webkit-slider-thumb {
-  background: darkgray
+    background: darkgray;
 }
 
 .slider.timeout::-moz-range-thumb {
-  background: darkgray;
+    background: darkgray;
 }
 
 /* Misc */
 
 .title {
-  text-align: center;
+    text-align: center;
 }
 
 .radioButtonContainer {
-  margin:auto;
-  display:float;
-  width:20pt
+    margin: auto;
+    display: float;
+    width: 20pt;
 }
 
 .vpad {
-  margin-top: 30pt;
-  margin-bottom: 30pt;
-  margin-left: auto;
-  margin-right: auto;
+    margin-top: 30pt;
+    margin-bottom: 30pt;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 div.gain {
-  display: block;
-  width: 100%;
-  text-align: center;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
 .submitButton {
-  display: block;
-  width: 100pt;
-  border: 3px solid green;
-  padding: 10px;
+    display: block;
+    width: 100pt;
+    border: 3px solid green;
+    padding: 10px;
 }
 
 .bordered {
-  border: 3px solid green;
-  padding: 10px;
+    border: 3px solid green;
+    padding: 10px;
 }
 
 .colored {
-  background-color: red
+    background-color: red;
 }
 
 #deadMansSwitch {
-  width: 80pt;
-  margin: 5pt;
-  padding: 20pt 5pt;
-  font-size: 16pt;
-  text-align: center;
-  border-radius: 10pt;
-  background-color: red;
-  color: whitesmoke;
-  user-select: none;
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
+    width: 80pt;
+    margin: 5pt;
+    padding: 20pt 5pt;
+    font-size: 16pt;
+    text-align: center;
+    border-radius: 10pt;
+    background-color: red;
+    color: whitesmoke;
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
 }
 
 div.horizontal {
-  display: block;
+    display: block;
 }
 
 div.value {
-  display: inline-block;
-  margin: 5pt;
-  width: 40pt;
-  text-align: center;
+    display: inline-block;
+    margin: 5pt;
+    width: 40pt;
+    text-align: center;
 }
 
 div.mode {
-  display: inline-block;
-  width: 100pt;
-  margin-left: 20pt;
+    display: inline-block;
+    width: 100pt;
+    margin-left: 20pt;
 }
 
 div.gainLabel {
-  width: 40pt;
+    width: 40pt;
 }
 
 input.gain {
-  display: inline-block;
-  width: 50pt;
+    display: inline-block;
+    width: 50pt;
 }
 
 button.submit {
-  display: inline-block;
-  width: 100pt;
+    display: inline-block;
+    width: 100pt;
 }
 
 input.mode {
-  vertical-align: top;
+    vertical-align: top;
 }
 
 div.sliderTop {
-  margin-bottom: 20pt;
+    margin-bottom: 20pt;
 }
 
 div.sliderName {
-  display: inline-block;
-  text-align: center;
+    display: inline-block;
+    text-align: center;
 }
 
 div.sliderValue {
-  display: inline-block;
-  width: 40pt;
-  padding: 0pt 10pt 0pt 10pt;
+    display: inline-block;
+    width: 40pt;
+    padding: 0pt 10pt 0pt 10pt;
 
-  text-align: center;
+    text-align: center;
 }
 
 button.sliderCenter {
-  display: inline-block;
-  width: 50pt;
-  margin: 10pt;
+    display: inline-block;
+    width: 50pt;
+    margin: 10pt;
 }
 
 #status {
-  width: 100%;
-  height: 100px;
-  margin-top: 20pt;
-  margin-bottom: 80pt;
+    width: 100%;
+    height: 100px;
+    margin-top: 20pt;
+    margin-bottom: 80pt;
 }
 
 table.status {
-  width: 100%;
+    width: 100%;
 }
 
 th {
-  text-align: left;
-  background-color:powderblue ;
+    text-align: left;
+    background-color: powderblue;
 }
 
 div.hotkeyContainer {
-  display: flex;
-  background-color: powderblue;
+    display: flex;
+    background-color: powderblue;
 }
 
 div.hotkey {
-  margin: auto;
+    margin: auto;
 }
 
 div.row {
-  background-color:#efefef;
-  margin-top: 10pt;
-  margin-bottom: 10pt;
-  border-radius: 5pt;
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
+    background-color: #efefef;
+    margin-top: 10pt;
+    margin-bottom: 10pt;
+    border-radius: 5pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
 }
 
 div.left-section {
-  display: flex;
-  align-items: center;
-  flex: none;
-  background-color: rgb(236, 252, 255);
-  padding: 10pt;
-  margin: 0;
-  width: 40%;
+    display: flex;
+    align-items: center;
+    flex: none;
+    background-color: rgb(236, 252, 255);
+    padding: 10pt;
+    margin: 0;
+    width: 40%;
 }
 
 div.section {
-  display: flex;
-  align-items: stretch;
-  flex: none;
-  padding: 10pt;
-  margin: 0;
-  min-width: 40%;
+    display: flex;
+    align-items: stretch;
+    flex: none;
+    padding: 10pt;
+    margin: 0;
+    min-width: 40%;
 }
 
 div.selected {
-  background-color: rgb(236, 252, 255);
+    background-color: rgb(236, 252, 255);
 }
 
 div.unselected {
-  background-color: transparent;
-  opacity: 0.5;
+    background-color: transparent;
+    opacity: 0.5;
 }
 
 div.gains {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
-  height: 100pt;
-  margin: 10pt;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    height: 100pt;
+    margin: 10pt;
 }
 
 div.gainRow {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 div.slidersContainer {
-  display: flex;
-  width: 90%;
-  flex-direction: row;
-  justify-content: space-around;
+    display: flex;
+    width: 90%;
+    flex-direction: row;
+    justify-content: space-around;
 }
 
 div.sliderAndGainsContainer {
-  display: flex;
-  width: 90%;
-  flex-direction: row;
-  justify-content: space-between;
+    display: flex;
+    width: 90%;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 div.manualOrPidButtonContainer {
-  display: flex;
-  height: 150pt;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
+    display: flex;
+    height: 150pt;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
 }
 
 input.manualOrPidButton {
-  width: 75pt;
-  height: 40%;
-  border-style: none;
-  margin: 10pt;
+    width: 75pt;
+    height: 40%;
+    border-style: none;
+    margin: 10pt;
 }
 
 .manual {
-  background-color: rgb(236, 252, 255);
+    background-color: rgb(236, 252, 255);
 }
 
 .pid {
-  background-color: seashell;
+    background-color: seashell;
 }
 
 button#helpOpenButton {
-  font-size: 28pt;
+    font-size: 28pt;
 }
 
 div.fullViewport {
-  position:fixed;
-  left: 0pt;
-  top: 0pt;
-  width:100%;
-  height:100%;
+    position: fixed;
+    left: 0pt;
+    top: 0pt;
+    width: 100%;
+    height: 100%;
 }
 
 div.helpPane {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  position: fixed;
-  size: auto;
-  border: 5px solid #ccc;
-  background-color: whitesmoke;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: fixed;
+    size: auto;
+    border: 5px solid #ccc;
+    background-color: whitesmoke;
 }
 
 div.hidden {
-  display: none;
+    display: none;
 }
 
 button.close {
-  border: 1pt solid darkgray;
-  font-size: 14pt;
-  margin: 10pt;
-  border-radius: 50%;
-  background-color: lightgray;
+    border: 1pt solid darkgray;
+    font-size: 14pt;
+    margin: 10pt;
+    border-radius: 50%;
+    background-color: lightgray;
 }
 
 input.manualOrPidButton:hover {
-  background-color: azure;
-  border: 2pt solid darkgray
+    background-color: azure;
+    border: 2pt solid darkgray;
 }
 
 .controlling {
-  border-style: none;
+    border-style: none;
 }
 
 .noncontrolling {
-  border-style: solid;
-  border-width: 3pt;
-  border-color: red;
+    border-style: solid;
+    border-width: 3pt;
+    border-color: red;
 }
 
 .bot-meta-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 #take-control {
-  width: 150px;
+    width: 150px;
 }
