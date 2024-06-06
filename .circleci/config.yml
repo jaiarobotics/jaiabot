@@ -593,12 +593,12 @@ jobs:
 
             IMAGE_NAME=${OVA%.*}
             # writes result.json for later use
-            cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
           command: |
-            cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            rootfs/cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
       - run:
           name: Tag new AMI
           command: |
