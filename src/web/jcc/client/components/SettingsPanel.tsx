@@ -22,7 +22,7 @@ import { Icon } from '@mdi/react'
 import { mdiSendVariant} from '@mdi/js'
 
 import '../style/components/SettingsPanel.css'
-import SetHubLocationPanel from './SetHubLocationPanel'
+import SetHubLocation from './SetHubLocation'
 import { Map } from 'ol'
 
 
@@ -136,7 +136,7 @@ export function SettingsPanel(props: Props) {
                 </AccordionSummary>
                 <AccordionDetails className="settings-accordion-inner-container">
                     <div className="settings-card">
-                        <SetHubLocationPanel map={props.map} hubs={props.hubs} api={props.api} />
+                        <SetHubLocation map={props.map} hubs={props.hubs} api={props.api} />
                     </div>
                 </AccordionDetails>
             </Accordion>

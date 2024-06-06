@@ -14,7 +14,7 @@ import { getElementById, getGeographicCoordinate } from './shared/Utilities';
 // Style
 import Button from '@mui/material/Button';
 import { Select, MenuItem } from '@mui/material';
-import '../style/components/SetHubLocationPanel.less'
+import '../style/components/SetHubLocation.less'
 
 
 interface Props {
@@ -23,7 +23,7 @@ interface Props {
     map: Map
 }
 
-export default function SetHubLocationPanel(props: Props) {
+export default function SetHubLocation(props: Props) {
     const [ hubId, setHubId ] = useState(Number(Object.keys(props.hubs)[0]) ?? 1)
     const [ selectingOnMap, setSelectingOnMap ] = useState(false)
     const selectOnMapInteractionRef = useRef(null)
@@ -156,7 +156,7 @@ export default function SetHubLocationPanel(props: Props) {
 
 
     return (
-        <div id="set-hub-location-panel" className="panel" key="set-hub-location">
+        <div id="set-hub-location" className="panel" key="set-hub-location">
             <div className='panel-heading'>Set Hub Location</div>
             <div className='mission-settings-panel-container'>
 
