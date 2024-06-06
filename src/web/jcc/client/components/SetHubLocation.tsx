@@ -26,6 +26,8 @@ export default function SetHubLocation(props: Props) {
     const [hubId, setHubId] = useState(Number(Object.keys(props.hubs)[0]) ?? 1);
     const [selectingOnMap, setSelectingOnMap] = useState(false);
     const selectOnMapInteractionRef = useRef(null);
+    const latitudeInputElementRef = useRef<HTMLInputElement>();
+    const longitudeInputElementRef = useRef<HTMLInputElement>();
 
     const hubLocation = props.hubs[hubId].location;
 
@@ -66,8 +68,8 @@ export default function SetHubLocation(props: Props) {
      * @returns {GeographicCoordinate}
      */
     function getInputHubLocation(): GeographicCoordinate {
-        const lat = Number(getElementById<HTMLInputElement>("set-hub-location-latitude").value);
-        const lon = Number(getElementById<HTMLInputElement>("set-hub-location-longitude").value);
+        const lat = Number(latitudeInputElementRef.current.value);
+        const lon = Number(longitudeInputElementRef.current.value);
         if (lat == null || lon == null) {
             return null;
         }
@@ -115,10 +117,8 @@ export default function SetHubLocation(props: Props) {
             handleEvent: (evt) => {
                 if (evt.type == "click") {
                     const clickedLocation = getGeographicCoordinate(evt.coordinate, evt.map);
-                    getElementById<HTMLInputElement>("set-hub-location-latitude").value =
-                        clickedLocation.lat.toFixed(6);
-                    getElementById<HTMLInputElement>("set-hub-location-longitude").value =
-                        clickedLocation.lon.toFixed(6);
+                    latitudeInputElementRef.current.value = clickedLocation.lat.toFixed(6);
+                    longitudeInputElementRef.current.value = clickedLocation.lon.toFixed(6);
                     submitHubLocation();
                     destroySelectOnMapInteraction();
                     // Return false to prevent other interactions from being affected by this click.
@@ -161,6 +161,7 @@ export default function SetHubLocation(props: Props) {
                 <input
                     className="mission-settings-num-input"
                     id="set-hub-location-latitude"
+                    ref={latitudeInputElementRef}
                     name="latitude"
                     defaultValue={hubLocation.lat.toFixed(6)}
                 />
@@ -170,6 +171,7 @@ export default function SetHubLocation(props: Props) {
                     className="mission-settings-num-input"
                     id="set-hub-location-longitude"
                     name="longitude"
+                    ref={longitudeInputElementRef}
                     defaultValue={hubLocation.lon.toFixed(6)}
                 />
             </div>
