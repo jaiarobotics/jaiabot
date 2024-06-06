@@ -1,0 +1,7 @@
+# Buffer values for the forwarded subscription (message sent to set up the subscription itself)
+subscription_buffer {
+    # set to slightly more than "normal" messages (but much less than 1000 for command message)
+    value_base: 15
+    # one hour to set up all subscriptions should be enough
+    ttl: 3600
+}

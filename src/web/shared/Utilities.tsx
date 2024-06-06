@@ -5,7 +5,18 @@ import { GeographicCoordinate } from "./JAIAProtobuf"
 import { getLength as OlGetLength } from "ol/sphere"
 import { Geometry} from "ol/geom"
 
-let abs = Math.abs
+const abs = Math.abs
+
+/**
+ * Converts microseconds to seconds
+ * 
+ * @param {number} microseconds Value to be converted to seconds
+ * @returns {number} Seconds corresponding to provided microseconds
+ */
+export function convertMicrosecondsToSeconds(microseconds: number) {
+    const seconds = microseconds / 1e6
+    return seconds
+}
 
 export function formatLatitude(lat: number, prec=5) {
     if (lat == null) {
