@@ -2,10 +2,8 @@
 - include_tasks: read-debconf.yml
 
 - name: Pre-download jaiabot packages (hub cache only)
+  # need to use shell, not apt as download-only isn't supported yet by the ansible module
   shell: "apt-get -y update && apt-get -y install {{ jaiabot_packages | join(' ') }} --download-only"
-  args:
-    # need to use shell, not apt as download-only isn't supported yet by the ansible module
-    warn: false
   when: using_hub_deb_cache and jaiabot_embedded_type == "hub"
   
 - name: Pre-fetch python (hub cache only)

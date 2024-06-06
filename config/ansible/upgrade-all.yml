@@ -22,10 +22,8 @@
       when: ansible_architecture == "x86_64"
 
     - name: Pre-download hub package upgrade (hub cache only)
+      # need to use shell, not apt as download-only isn't supported yet by the ansible module
       shell: "apt-get -y update && apt-get -y dist-upgrade --download-only"
-      args:
-        # need to use shell, not apt as download-only isn't supported yet by the ansible module
-        warn: false
       when: using_hub_deb_cache and jaiabot_embedded_type == "hub"
         
     - name: Upgrade remaining system packages (safe upgrade)
