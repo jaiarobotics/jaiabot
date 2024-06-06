@@ -1,77 +1,73 @@
-import { Map } from "ol"
-import { Coordinate } from "ol/coordinate"
-import { toLonLat, fromLonLat } from "ol/proj"
-import { GeographicCoordinate } from "./JAIAProtobuf"
-import { getLength as OlGetLength } from "ol/sphere"
-import { Geometry} from "ol/geom"
+import { Map } from "ol";
+import { Coordinate } from "ol/coordinate";
+import { toLonLat, fromLonLat } from "ol/proj";
+import { GeographicCoordinate } from "./JAIAProtobuf";
+import { getLength as OlGetLength } from "ol/sphere";
+import { Geometry } from "ol/geom";
 
-let abs = Math.abs
+let abs = Math.abs;
 
-export function formatLatitude(lat: number, prec=5) {
+export function formatLatitude(lat: number, prec = 5) {
     if (lat == null) {
-        return "?"
-    } 
+        return "?";
+    }
     if (lat > 0) {
-        return abs(lat).toFixed(prec) + "° N"
-    }
-    else {
-        return abs(lat).toFixed(prec) + "° S"
+        return abs(lat).toFixed(prec) + "° N";
+    } else {
+        return abs(lat).toFixed(prec) + "° S";
     }
 }
 
-export function formatLongitude(lon: number, prec=5) {
+export function formatLongitude(lon: number, prec = 5) {
     if (lon == null) {
-        return "?"
-    } 
-    if (lon > 0) {
-        return abs(lon).toFixed(prec) + "° E"
+        return "?";
     }
-    else {
-        return abs(lon).toFixed(prec) + "° W"
+    if (lon > 0) {
+        return abs(lon).toFixed(prec) + "° E";
+    } else {
+        return abs(lon).toFixed(prec) + "° W";
     }
 }
 
-export function formatAttitudeAngle(angleDegrees: number, prec=2) {
+export function formatAttitudeAngle(angleDegrees: number, prec = 2) {
     if (angleDegrees == null) {
-        return "?"
+        return "?";
     }
-    return angleDegrees.toFixed(prec) + '°'
+    return angleDegrees.toFixed(prec) + "°";
 }
 
 export function deepcopy<T>(aObject: T): T {
     // Prevent undefined objects
     // if (!aObject) return aObject;
-  
+
     let bObject: any = Array.isArray(aObject) ? [] : {};
-  
+
     let value;
     for (const key in aObject) {
-  
-      // Prevent self-references to parent object
-      // if (Object.is(aObject[key], aObject)) continue;
-      
-      value = aObject[key];
-  
-      bObject[key] = (typeof value === "object") ? deepcopy(value) : value;
+        // Prevent self-references to parent object
+        // if (Object.is(aObject[key], aObject)) continue;
+
+        value = aObject[key];
+
+        bObject[key] = typeof value === "object" ? deepcopy(value) : value;
     }
-  
+
     return bObject;
 }
 
 export function equalValues(a: any, b: any) {
-    return JSON.stringify(a) == JSON.stringify(b)
+    return JSON.stringify(a) == JSON.stringify(b);
 }
 
 export function randomBase57(stringLength: number) {
-    const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+    const base75Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz";
 
-    var s = ''
+    var s = "";
     for (let i = 0; i < stringLength; i++) {
-        s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+        s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)]);
     }
-    return s
+    return s;
 }
-
 
 /**
  * Starts a browser download of a file with string contents
@@ -82,17 +78,16 @@ export function randomBase57(stringLength: number) {
  * @returns {void}
  */
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
-    const blob = new Blob([data], {type: mimeType})
+    const blob = new Blob([data], { type: mimeType });
 
-    var link = window.document.createElement('a')
-    link.href = window.URL.createObjectURL(blob)
+    var link = window.document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
     // Construct filename dynamically and set to link.download
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
-
 
 /**
  * Starts a browser download of a file with binary data contents
@@ -102,14 +97,16 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
  * @returns {void}
  */
 export function downloadBlobToFile(name: string, data: BlobPart) {
-    let a = document.createElement('a')
+    let a = document.createElement("a");
     if (a.download !== undefined) {
         a.download = name;
     }
-    a.href = URL.createObjectURL(new Blob([data], {
-        type: 'application/octet-stream'
-    }))
-    a.dispatchEvent(new MouseEvent('click'))
+    a.href = URL.createObjectURL(
+        new Blob([data], {
+            type: "application/octet-stream",
+        }),
+    );
+    a.dispatchEvent(new MouseEvent("click"));
 }
 
 /**
@@ -120,13 +117,13 @@ export function downloadBlobToFile(name: string, data: BlobPart) {
  * @returns {GeographicCoordinate} The GeographicCoordinate of the input coordinate
  */
 export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
-    const lonLat = toLonLat(coordinate, map.getView().getProjection())
+    const lonLat = toLonLat(coordinate, map.getView().getProjection());
     const geographicCoordinate: GeographicCoordinate = {
         lon: lonLat[0],
-        lat: lonLat[1]
-    }
+        lat: lonLat[1],
+    };
 
-    return geographicCoordinate
+    return geographicCoordinate;
 }
 
 /**
@@ -137,138 +134,157 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
  * @returns {Coordinate} The OpenLayers coordinate (adj to the map) corresponding to the input coordinate
  */
 export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
-    if (coordinate == null) return null
-    return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())
+    if (coordinate == null) return null;
+    return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection());
 }
 
 /**
  * Gets the element with a certain id
- * 
+ *
  * @param id id of the element to get
  * @returns The element, if it exists
  */
 export function getElementById<T>(id: string) {
     // In case they passed a jQuery id selector in
-    id = id.replaceAll('#', '')
-    return document.getElementById(id) as T
+    id = id.replaceAll("#", "");
+    return document.getElementById(id) as T;
 }
 
 /**
  * Adds an event listener to detect when a dropdown element extends beyond the visible view and
  * scrolls it back into view
- * 
+ *
  * @param {string} targetClassName Used to identify dropdown elements
  * @param {string} parentContainerId Used to identify outer container
  * @param {number} delayMS Determines the time before the scroll occurs
- * 
+ *
  * @notes
- * parentContainerId needs to have the property max-height set in css 
+ * parentContainerId needs to have the property max-height set in css
  */
-export function addDropdownListener(targetClassName: string, parentContainerId: string, delayMS: number) {
-    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
+export function addDropdownListener(
+    targetClassName: string,
+    parentContainerId: string,
+    delayMS: number,
+) {
+    const dropdownContainers = Array.from(
+        document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>,
+    );
     dropdownContainers.forEach((dropdownElement: HTMLElement) => {
-        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId, delayMS))
-    })
+        dropdownElement.addEventListener("click", (event: Event) =>
+            handleAccordionDropdownClick(event, targetClassName, parentContainerId, delayMS),
+        );
+    });
 }
 
-function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string, delayMS: number) {       
-    let clickedElement = event.target as HTMLElement
-    if (clickedElement.classList.contains('Mui-expanded')) {
-        return
+function handleAccordionDropdownClick(
+    event: Event,
+    targetClassName: string,
+    parentContainerId: string,
+    delayMS: number,
+) {
+    let clickedElement = event.target as HTMLElement;
+    if (clickedElement.classList.contains("Mui-expanded")) {
+        return;
     }
     // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
     //     reduces some of the lag
-    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
-        clickedElement = clickedElement.parentElement
+    while (
+        !clickedElement.classList.contains(targetClassName) &&
+        !clickedElement.classList.contains("nestedAccordionContainer")
+    ) {
+        clickedElement = clickedElement.parentElement;
     }
-    const dropdownTimeout: number = delayMS // Milliseconds
+    const dropdownTimeout: number = delayMS; // Milliseconds
 
     setTimeout(() => {
-        const dropdownContainer = clickedElement
-        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
-    }, dropdownTimeout)
+        const dropdownContainer = clickedElement;
+        adjustAccordionScrollPosition(parentContainerId, dropdownContainer);
+    }, dropdownTimeout);
 }
 
 /**
  * Scroll a dropdown element into view within its parent element
- * 
+ *
  * @param {string} parentContainerId - allows us to get dimensions of the parent element
  * @param dropdownContainer - gives us access to dimensions of the dropdown element
  * @returns {void}
- * 
+ *
  * @notes
  * The dropdown is passed as an HTMLElement to prevent the developer from having to assign ids to
  * each dropdown element in an accordion
  */
-export function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
-    const parentContainer = document.getElementById(parentContainerId)
+export function adjustAccordionScrollPosition(
+    parentContainerId: string,
+    dropdownContainer: HTMLElement,
+) {
+    const parentContainer = document.getElementById(parentContainerId);
 
     if (!parentContainer || !dropdownContainer) {
-        return
+        return;
     }
 
-    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
-    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
+    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect();
+    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect();
 
     if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
-        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
+        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height;
         parentContainer.scrollBy({
             // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger
             // than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0
-        })
+            left: 0,
+        });
     } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
         parentContainer.scrollBy({
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0
-        })
+            left: 0,
+        });
     }
 }
 
 export function formatLength(line: Geometry, map: Map) {
     const length = OlGetLength(line, { projection: map.getView().getProjection() });
     if (length > 100) {
-        return {magnitude: `${Math.round((length / 1000) * 100) / 100}`, unit: 'km'};
+        return { magnitude: `${Math.round((length / 1000) * 100) / 100}`, unit: "km" };
     }
-    return {magnitude: `${Math.round(length * 100) / 100}`, unit: 'm'};
+    return { magnitude: `${Math.round(length * 100) / 100}`, unit: "m" };
 }
 
 /**
  * Returns a date string in the form yyyy-mm-dd
  *
  * @param date
- * @returns {string} 
+ * @returns {string}
  */
 export function getHTMLDateString(date: Date) {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : date.getMonth() + 1 // Zero-indexed (January == 0)
-    const day = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate()
-    return `${year}-${month}-${day}`
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : date.getMonth() + 1; // Zero-indexed (January == 0)
+    const day = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate();
+    return `${year}-${month}-${day}`;
 }
 
 /**
- * Returns a time string in the form hh:mm 
+ * Returns a time string in the form hh:mm
  *
  * @param date
  * @returns {string} The time string in the form hh::mm
  */
 export function getHTMLTimeString(date: Date) {
-    const hours = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours()
-    const mins = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
-    return `${hours}:${mins}`
+    const hours = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours();
+    const mins = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes();
+    return `${hours}:${mins}`;
 }
 
 /**
  * Converts a string date to a cleaned ISO formatted string in UTC time
- * 
+ *
  * @param {string} strDate date to be converted to UTC in ISO format
  * @returns {string} ISO formatted date without letters and special chars
- * 
+ *
  * @notes
  * Expected strDate format: "yyyy-mm-dd hh:mm"
  * Example return value: "2023-10-18 09:04:00"
  */
 export function convertHTMLStrDateToISO(strDate: string) {
-    return new Date(strDate).toISOString().replace('T', ' ').split('.')[0]
+    return new Date(strDate).toISOString().replace("T", " ").split(".")[0];
 }

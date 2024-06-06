@@ -1,10 +1,10 @@
 // Gets an element with this id
 function byId(id) {
-    const element = document.getElementById(id)
+    const element = document.getElementById(id);
     if (!element) {
-      console.warn("WARNING: Cannot locate element with id = ", id)
+        console.warn("WARNING: Cannot locate element with id = ", id);
     }
-    return element
+    return element;
 }
 
-export { byId }
+export { byId };

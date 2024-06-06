@@ -1,37 +1,37 @@
-import { BotStatus } from "./JAIAProtobuf"
-import { Point } from "ol/geom"
-import { fromLonLat } from "ol/proj"
-import { Feature, Map } from "ol"
-import * as Styles from "./Styles"
+import { BotStatus } from "./JAIAProtobuf";
+import { Point } from "ol/geom";
+import { fromLonLat } from "ol/proj";
+import { Feature, Map } from "ol";
+import * as Styles from "./Styles";
 
 interface Properties {
-    map: Map,
-    botId: number
-    lonLat: number[]
-    heading: number
-    courseOverGround: number
+    map: Map;
+    botId: number;
+    lonLat: number[];
+    heading: number;
+    courseOverGround: number;
 }
 
 export function createBotFeature(properties: Properties) {
-    const projection = properties.map.getView().getProjection()
+    const projection = properties.map.getView().getProjection();
 
     const feature = new Feature({
         name: properties.botId,
-        geometry: new Point(fromLonLat(properties.lonLat, projection))
-    })
-    
-    feature.setProperties(properties)
-    feature.setStyle(Styles.botMarker)
+        geometry: new Point(fromLonLat(properties.lonLat, projection)),
+    });
 
-    return feature
+    feature.setProperties(properties);
+    feature.setStyle(Styles.botMarker);
+
+    return feature;
 }
 
 interface BotOtherProperties {
-    desiredHeading?: number
+    desiredHeading?: number;
 }
 
 export function botPopupHTML(bot: BotStatus, properties: BotOtherProperties) {
-    var desiredHeadingRow = ''
+    var desiredHeadingRow = "";
 
     if (properties.desiredHeading != null) {
         desiredHeadingRow = `
@@ -41,7 +41,7 @@ export function botPopupHTML(bot: BotStatus, properties: BotOtherProperties) {
             <td>${properties.desiredHeading?.toFixed(1) ?? "?"}</td>
             <td>deg</td>
         </tr>
-        `
+        `;
     }
 
     return `
@@ -63,49 +63,47 @@ export function botPopupHTML(bot: BotStatus, properties: BotOtherProperties) {
                 </tr>
             </tbody>
         </table>
-    `
+    `;
 }
-
 
 export function createBotCourseOverGroundFeature(properties: Properties) {
-    const projection = properties.map.getView().getProjection()
-
-    const feature = new Feature({
-        name: properties.botId,
-        geometry: new Point(fromLonLat(properties.lonLat, projection))
-    })
-
-    feature.setProperties(properties)
-    feature.setStyle(Styles.courseOverGroundArrow(properties.courseOverGround))
-
-    return feature
-}
-
-
-export function createBotDesiredHeadingFeature(properties: Properties) {
-    const projection = properties.map.getView().getProjection()
+    const projection = properties.map.getView().getProjection();
 
     const feature = new Feature({
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection)),
-    })
+    });
 
-    feature.setProperties(properties)
-    feature.setStyle(Styles.desiredHeadingArrow)
+    feature.setProperties(properties);
+    feature.setStyle(Styles.courseOverGroundArrow(properties.courseOverGround));
 
-    return feature
+    return feature;
 }
 
-export function createBotHeadingFeature(properties: Properties) {
-    const projection = properties.map.getView().getProjection()
+export function createBotDesiredHeadingFeature(properties: Properties) {
+    const projection = properties.map.getView().getProjection();
 
     const feature = new Feature({
         name: properties.botId,
-        geometry: new Point(fromLonLat(properties.lonLat, projection))
-    })
+        geometry: new Point(fromLonLat(properties.lonLat, projection)),
+    });
 
-    feature.setProperties(properties)
-    feature.setStyle(Styles.headingArrow(properties.heading))
+    feature.setProperties(properties);
+    feature.setStyle(Styles.desiredHeadingArrow);
 
-    return feature
+    return feature;
+}
+
+export function createBotHeadingFeature(properties: Properties) {
+    const projection = properties.map.getView().getProjection();
+
+    const feature = new Feature({
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection)),
+    });
+
+    feature.setProperties(properties);
+    feature.setStyle(Styles.headingArrow(properties.heading));
+
+    return feature;
 }
