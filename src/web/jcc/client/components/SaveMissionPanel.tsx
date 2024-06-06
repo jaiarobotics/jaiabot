@@ -3,103 +3,115 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import React from 'react'
+import React from "react";
 
 // Material Design Icons
-import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from '@mdi/js'
-import Button from '@mui/material/Button';
-import { downloadToFile } from './shared/Utilities';
-import { MissionLibraryLocalStorage } from './MissionLibrary';
-import { CommandList } from './Missions';
-import { MissionInterface } from './CommandControl';
-import { CustomAlert } from './shared/CustomAlert';
-
+import Icon from "@mdi/react";
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from "@mdi/js";
+import Button from "@mui/material/Button";
+import { downloadToFile } from "./shared/Utilities";
+import { MissionLibraryLocalStorage } from "./MissionLibrary";
+import { CommandList } from "./Missions";
+import { MissionInterface } from "./CommandControl";
+import { CustomAlert } from "./shared/CustomAlert";
 
 interface Props {
-    missionLibrary: MissionLibraryLocalStorage
-    mission: MissionInterface
-    onDone: () => void
+    missionLibrary: MissionLibraryLocalStorage;
+    mission: MissionInterface;
+    onDone: () => void;
 }
-
 
 interface State {
-    selectedMissionName: string | null
+    selectedMissionName: string | null;
 }
 
-
 export class SaveMissionPanel extends React.Component {
-
-    props: Props
-    state: State
+    props: Props;
+    state: State;
 
     constructor(props: Props) {
-        super(props)
+        super(props);
 
         this.state = {
-            selectedMissionName: null
-        }
+            selectedMissionName: null,
+        };
     }
 
     render() {
-        let self = this
+        let self = this;
 
         // Nem text input
-        const nameInput = (<div>
-            <input type="text" className="textInput" autoFocus placeholder="Mission Name" defaultValue={this.state.selectedMissionName} onInput={(e) => {
-                this.state.selectedMissionName = (e.target as any).value
-            }} onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    this.saveClicked()
-                }
-            }}></input>
-        </div>)
+        const nameInput = (
+            <div>
+                <input
+                    type="text"
+                    className="textInput"
+                    autoFocus
+                    placeholder="Mission Name"
+                    defaultValue={this.state.selectedMissionName}
+                    onInput={(e) => {
+                        this.state.selectedMissionName = (e.target as any).value;
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            this.saveClicked();
+                        }
+                    }}
+                ></input>
+            </div>
+        );
 
         // Mission rows
-        let missionNames = this.props.missionLibrary.missionNames()
+        let missionNames = this.props.missionLibrary.missionNames();
 
         let missionNameRows = missionNames.map((name) => {
-
-            var rowClasses = "LoadMissionPanel row hoverable"
+            var rowClasses = "LoadMissionPanel row hoverable";
             if (name == this.state.selectedMissionName) {
-                rowClasses += ' selected'
+                rowClasses += " selected";
             }
 
-            let row = (<div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
-                {name}
-            </div>)
+            let row = (
+                <div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
+                    {name}
+                </div>
+            );
 
-            return row
-        })
+            return row;
+        });
 
         // Buttons
-        let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
-            <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
-                <Icon path={mdiDelete}></Icon>
-            </Button>
-            <Button className="button-jcc" onClick={this.downloadClicked.bind(this)}>
-                <Icon path={mdiFolderDownload}></Icon>
-            </Button>
-            <div className='flexSpacer'></div>
-            <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
-            <Button className="button-jcc" onClick={this.saveClicked.bind(this)}>Save</Button>
-        </div>)
-
-        return (<div className="LoadMissionPanel centered rounded shadowed">
-            <div className="LoadMissionPanel title">Save Mission As</div>
-            {nameInput}
-            <div className="LoadMissionPanel missionList">
-                {missionNameRows}
+        let buttonRow = (
+            <div className="LoadMissionPanel HorizontalFlexbox">
+                <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
+                    <Icon path={mdiDelete}></Icon>
+                </Button>
+                <Button className="button-jcc" onClick={this.downloadClicked.bind(this)}>
+                    <Icon path={mdiFolderDownload}></Icon>
+                </Button>
+                <div className="flexSpacer"></div>
+                <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>
+                    Cancel
+                </Button>
+                <Button className="button-jcc" onClick={this.saveClicked.bind(this)}>
+                    Save
+                </Button>
             </div>
-            {buttonRow}
-        </div>)
+        );
+
+        return (
+            <div className="LoadMissionPanel centered rounded shadowed">
+                <div className="LoadMissionPanel title">Save Mission As</div>
+                {nameInput}
+                <div className="LoadMissionPanel missionList">{missionNameRows}</div>
+                {buttonRow}
+            </div>
+        );
     }
 
     didClick(name: string) {
-        this.setState({selectedMissionName: name})
+        this.setState({ selectedMissionName: name });
     }
 
-    
     /**
      * Called when user clicks the Save button (to save a mission to localStorage in their browser)
      *
@@ -108,54 +120,66 @@ export class SaveMissionPanel extends React.Component {
     async saveClicked() {
         // Check to see if we have selected a mission
         if (Object.keys(this.props.mission.runs).length === 0) {
-            CustomAlert.alert("Please create a mission to save")
-            return
+            CustomAlert.alert("Please create a mission to save");
+            return;
         }
 
-        let name = this.state.selectedMissionName
+        let name = this.state.selectedMissionName;
         if (name == null) {
-            CustomAlert.alert("Please name this mission")
-            return
+            CustomAlert.alert("Please name this mission");
+            return;
         }
 
         if (this.props.missionLibrary.hasMission(name)) {
-            if (!(await CustomAlert.confirmAsync('Do you really want to replace mission named \"' + name + '\"?', 'Replace Mission'))) {
-                return
+            if (
+                !(await CustomAlert.confirmAsync(
+                    'Do you really want to replace mission named "' + name + '"?',
+                    "Replace Mission",
+                ))
+            ) {
+                return;
             }
         }
 
-        this.props.mission.name = name
-        this.props.missionLibrary.saveMission(name, this.props.mission)
+        this.props.mission.name = name;
+        this.props.missionLibrary.saveMission(name, this.props.mission);
 
-        this.props.onDone?.()
+        this.props.onDone?.();
     }
 
     async deleteClicked() {
-        let name = this.state.selectedMissionName
+        let name = this.state.selectedMissionName;
 
         if (name == null) {
-            return
+            return;
         }
-        
-        if (await CustomAlert.confirmAsync("Are you sure you want to delete the mission named \"" + name + "\"?", 'Delete Mission')) {
-            this.props.missionLibrary.deleteMission(name)
+
+        if (
+            await CustomAlert.confirmAsync(
+                'Are you sure you want to delete the mission named "' + name + '"?',
+                "Delete Mission",
+            )
+        ) {
+            this.props.missionLibrary.deleteMission(name);
             this.state.selectedMissionName = null;
-            this.forceUpdate()
+            this.forceUpdate();
         }
     }
 
     cancelClicked() {
-        this.props.onDone?.()
+        this.props.onDone?.();
     }
 
-    
     /**
      * Called when user clicks the Download button (to download a json mission)
-     * 
+     *
      * @returns {void}
      */
     downloadClicked() {
-        downloadToFile(JSON.stringify(this.props.mission), 'application/json', `${this.state.selectedMissionName ?? this.props.mission.name}.json`)
+        downloadToFile(
+            JSON.stringify(this.props.mission),
+            "application/json",
+            `${this.state.selectedMissionName ?? this.props.mission.name}.json`,
+        );
     }
-
 }

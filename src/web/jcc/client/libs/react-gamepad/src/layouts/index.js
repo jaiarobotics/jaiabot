@@ -1,7 +1,7 @@
-import XBOX from './XBOX'
+import XBOX from "./XBOX";
 
-export { XBOX }
+export { XBOX };
 
 export default {
-  XBOX
-}
+    XBOX,
+};
