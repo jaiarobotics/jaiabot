@@ -1,5 +1,8 @@
+import React, { useContext } from "react"
+import { GlobalContext, GlobalDispatchContext, PodElement } from "../../../context/GlobalContext"
+import { GlobalActions } from "../../../context/actions/GlobalActions"
+
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
-import React = require("react")
 import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
 
 
@@ -35,21 +38,35 @@ export function BotListPanel(props: Props) {
     let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotId)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
-    function BotDiv(bot: PortalBotStatus) {
+    function BotTab(bot: PortalBotStatus) {
+        const globalDispatch = useContext(GlobalDispatchContext)
+
         var key = 'bot-' + bot.bot_id
         var botClass = 'bot-item'
+
 
         let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
         let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
         let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
 
+        /**
+         * Triggers the handling logic in CommandControl and dispatches the event to GlobalContext
+         * 
+         * @returns {void}
+         * 
+         * @notes
+         * This is an instance where we are beginning to migrate from CommandControl state to context
+         */
+        const handleClick = () => {
+            globalDispatch({ type: GlobalActions.CLICKED_BOT_TAB })
+            props.didClickBot(bot.bot_id)
+        }
+
         return (
             <div
                 key={key}
-                onClick={
-                    () => { props.didClickBot(bot.bot_id) }
-                }
+                onClick={handleClick}
                 className={`${botClass} ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
             >
                 { bot.bot_id }
@@ -58,21 +75,41 @@ export function BotListPanel(props: Props) {
 
     }
 
-    function HubDiv(hub: HubStatus) {
+    function HubTab(hub: HubStatus) {
+        const globalContext = useContext(GlobalContext)
+        const globalDispatch = useContext(GlobalDispatchContext)
+
         var key = 'hub-' + hub.hub_id
         var bothubClass = 'hub-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
-        let selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
+        
+        let selected = ''
+        
+        if (globalContext.selectedPodElement !== null 
+            && globalContext.selectedPodElement.type === PodElement.HUB) {
+                selected = 'selected'
+        }
+
+        /**
+         * Triggers the handling logic in CommandControl and dispatches the event to GlobalContext
+         * 
+         * @returns {void}
+         * 
+         * @notes
+         * This is an instance where we are beginning to migrate from CommandControl state to context
+         */
+        const handleClick = () => {
+            props.didClickHub(hub.hub_id)
+            globalDispatch({ type: GlobalActions.CLICKED_HUB_TAB, hubID: hub.hub_id })
+        }
 
         //For now we are naming HUB, HUB with no id
         //In the future we will have to revisit this
         return (
             <div
                 key={key}
-                onClick={
-                    () => props.didClickHub(hub.hub_id)
-                }
+                onClick={handleClick}
                 className={`${bothubClass} ${faultLevelClass} ${selected}`}
             >
                 {"HUB"} 
@@ -84,10 +121,10 @@ export function BotListPanel(props: Props) {
     return (
         <div id="botsList">
             {
-                hubs.map(HubDiv)
+                hubs.map(HubTab)
             }
             {
-                bots.map(BotDiv)
+                bots.map(BotTab)
             }
         </div>
     )

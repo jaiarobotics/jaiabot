@@ -465,6 +465,18 @@ class Interface:
             pass
 
         return status
+    
+    def get_status_hubs(self):
+        """Gets status for all online hubs
+        Returns:
+            {[hub_id: int]: HubStatus}: The status for all online hubs
+        """
+        for hub in self.hubs.values():
+            # Add the time since last status
+            if not 'portalStatusAge' in hub:
+                hub['portalStatusAge'] = now() - hub['lastStatusReceivedTime']
+        
+        return self.hubs
 
     def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())

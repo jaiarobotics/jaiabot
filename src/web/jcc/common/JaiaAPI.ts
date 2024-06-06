@@ -90,9 +90,23 @@ export class JaiaAPI {
     return this.hit('GET', endpoint);
   }
 
+  /**
+   * Gets clientID provided by the server for the web session
+   * 
+   * @returns {string} clientID provided by the server
+   */
+  getClientId() { return this.clientId }
+
   getMetadata() { return this.get('jaia/metadata') }
 
   getStatus() { return this.get('jaia/status') }
+
+  /**
+   * Gets most recent status for hub(s)
+   * 
+   * @returns {{[key: string]: PortalHubStatus}} Object containing most recent status for hub(s)
+   */
+  getStatusHubs() { return this.get('jaia/status-hubs') }
 
   getBotPaths(since_utime?: number): Promise<JaiaResponse<BotPaths>> { 
     var url = 'jaia/bot-paths'
