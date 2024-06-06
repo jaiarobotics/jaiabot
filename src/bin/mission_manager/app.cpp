@@ -849,10 +849,12 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::DATA_OFFLOAD_COMPLETE:
             machine_->process_event(statechart::EvDataOffloadComplete());
+            machine_->erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
             break;
 
         case protobuf::Command::DATA_OFFLOAD_FAILED:
             machine_->process_event(statechart::EvDataOffloadFailed());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
             break;
 
             // handled by jaiabot_health

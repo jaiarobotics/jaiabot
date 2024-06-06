@@ -23,6 +23,7 @@
 syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
+import "actions/net.proto";
 
 package jaiabot.config;
 
@@ -38,19 +39,12 @@ message SshTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string host = 2 [(goby.field) = {
-        description: "The host to log into (e.g. b4f2 or h1f3)",
+        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
         cfg { position { enable: true } }
     }];
-
-    enum Net
-    {
-        wlan = 0;
-        fleet_vpn = 1;
-        vfleet_vpn = 2;
-        cloudhub_vpn = 3;
-    }
 
     optional Net net = 3 [default = wlan];
 
     optional bool ipv6 = 4 [default = false];
+    optional string user = 5 [default = "jaia"];
 }

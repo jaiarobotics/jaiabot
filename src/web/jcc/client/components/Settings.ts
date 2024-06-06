@@ -1,5 +1,5 @@
 // Saving and loading settings from browser's localStorage
-import { ConstantHeadingParameters, SRPParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
+import { ConstantHeadingParameters, SRPParameters, DiveParameters, DriftParameters, Speeds, StationKeepParameters } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 
 /**
@@ -95,10 +95,16 @@ export let GlobalSettings = {
         drift_time: 10
     }),
 
+    // Default constant heading parameters when creating a new constant heading task
     constantHeadingParameters: Load<ConstantHeadingParameters>('constantHeadingParameters', {
         constant_heading: 0,
         constant_heading_speed: 3,
         constant_heading_time: 10
+    }),
+
+    // Default station keep time when creating a new station keep task
+    stationKeepParameters: Load<StationKeepParameters>('stationKeepParameters', {
+        station_keep_time: 10
     }),
 
     srpParameters: Load<SRPParameters>('srpSafetyDepth', {
