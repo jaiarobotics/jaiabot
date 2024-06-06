@@ -8,7 +8,7 @@ moos {
 
 poll_frequency: 10
 
-[jaiabot.protobuf.jaiabot_config] {
+[jaiabot.protobuf.jaiabot_gateway_config] {
 # double dollar sign because of the python Template becomes single
     logging_omit_var_regex: "^.*_ITER_GAP$$|^.*_ITER_LEN$$|^.*_STATUS$$|^APPCAST$$|^GOBY_MOOS_TRANSLATOR_TIME$$|^DB_VARSUMMARY$$|^DB_RWSUMMARY$$"
 #  logging_omit_app_regex: ""

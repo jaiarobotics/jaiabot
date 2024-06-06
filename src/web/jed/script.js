@@ -380,14 +380,14 @@ headingSlider.onValueChanged =
 
 // portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port
 // Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU']) stbdElevatorSlider
-// = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true,
-// "elevator", 10, ['KeyL'], ['KeyO']) rollSlider = new Slider(horizontal,
+// = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true,
+// true, "elevator", 10, ['KeyL'], ['KeyO']) rollSlider = new Slider(horizontal,
 // "roll", -180, 180, "Roll", true, false, "", 10, ['KeyQ'], ['KeyE'])
 // pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false,
 // "elevator", 10, ['KeyK'], ['KeyI'])
 
 const timeoutSlider =
-    new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false,
+    new Slider(horizontal, "timeout", 0, 100, "Timeout", false, false,
                "timeout", 5, [ "KeyV" ], [ "KeyB" ], 1)
 timeoutSlider.value = 5
 

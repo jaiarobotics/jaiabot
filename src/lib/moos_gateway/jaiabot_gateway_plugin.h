@@ -8,7 +8,7 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/moos.pb.h"
 
-#include "config.pb.h"
+#include "jaiabot_gateway_config.pb.h"
 namespace jaiabot
 {
 namespace moos
@@ -73,7 +73,7 @@ class AllMessagesForLoggingTranslation : public goby::moos::Translator
   public:
     AllMessagesForLoggingTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg),
-          jaiabot_cfg_(cfg.GetExtension(jaiabot::protobuf::jaiabot_config)),
+          jaiabot_cfg_(cfg.GetExtension(jaiabot::protobuf::jaiabot_gateway_config)),
           omit_var_(jaiabot_cfg_.logging_omit_var_regex()),
           omit_app_(jaiabot_cfg_.logging_omit_app_regex())
     {

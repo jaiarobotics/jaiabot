@@ -2,29 +2,41 @@
 
 # Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)
 
+# https://patorjk.com/software/taag/#p=display&f=Mini&t=JAIABOT
+
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-echo "                                    __  __ ___                   "
-echo "                         | /\ | /\ |__)/  \ |                    "
-echo "                       __)/--\|/--\|__)\__/ |                    "
+echo "                             ___       _   _ ___             "
+echo "                      |  /\   |   /\  |_) / \ |              "
+echo "                    \_| /--\ _|_ /--\ |_) \_/ |              "
 echo ""
 echo "                       https://www.jaia.tech/                    "
 echo "                   https://github.com/jaiarobotics/              "
 export SYSTEMD_COLORS=1
-echo "                        _ ___ __   _ _                           "
-echo "                       |_  |  |_/ | | |                          "
-echo "                       |  _|_ | | | | |                          "
+echo "                           _ ___  _                              "
+echo "                          |_  |  |_) |\/|                        "
+echo "                          |  _|_ | \ |  |                        "
 echo ""
-systemctl list-units -all "jaia_firm*"
+systemctl list-units -all "jaia_firm*" --no-pager
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-echo "                            _  _  _                              "
-echo "                        /\ |_/|_//                               "
-echo "                       /--\|  | _|                               "
-echo ""
-systemctl list-units -all "jaiabot*"
+echo "                               _   _   __ "
+echo "                          /\  |_) |_) (_  "
+echo "                         /--\ |   |   __) "
+echo "                                          "
+systemctl list-units -all "jaiabot*" --no-pager
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-echo 
-cat /etc/jaiabot/version
+echo "                       _  _   __ ___  _        __ "
+echo "                 \  / |_ |_) (_   |  / \ |\ | (_  "
+echo "                  \/  |_ | \ __) _|_ \_/ | \| __) "      
 echo ""
-cat /etc/jaiabot/software_version
+
+jaia_tool=jaia
+if [ -e /etc/jaiabot/runtime.env ]; then
+set -a
+source /etc/jaiabot/runtime.env
+set +a
+fi
+
+${jaia_tool} version
+
 echo
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
