@@ -560,32 +560,19 @@ jobs:
       - aws-cli/setup:
           profile_name: OIDC-User
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
-      - run:
-          name: Set environmental variables for which repo tag to use (analogous to APT repo names)
-          command: |
-            # use script from jaiabot that does the same thing
-            
-            git clone https://github.com/jaiarobotics/jaiabot.git
-            
-            repo=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
-            version=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
-            echo "repo:${repo}"
-            echo "version:${version}"
-            # export these for later use
-            echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
-            echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
+      - run: *run-set-deb-rep-and-version
       - run:
           name: Delete previous images for this repo/version
           command: |
-            aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}
       - aws-s3/sync:
           profile_name: OIDC-User
           from: /tmp/vbox
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
+          to: s3://jaia-disk-images/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/vbox
       - aws-s3/sync:
           profile_name: OIDC-User
           from: /tmp/images
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+          to: s3://jaia-disk-images/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/rpi
       - run:
           name: Import new AMI
           command: |
@@ -593,12 +580,12 @@ jobs:
 
             IMAGE_NAME=${OVA%.*}
             # writes result.json for later use
-            cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
           command: |
-            cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            cloud/aws/delete_ami.sh ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
       - run:
           name: Tag new AMI
           command: |
@@ -610,8 +597,8 @@ jobs:
               "Key=jaia_creator,Value=circleci" \
               "Key=jaiabot-rootfs-gen_version,Value=${JAIABOT_ROOTFS_GEN_TAG}" \
               "Key=jaiabot-rootfs-gen_distro,Value=${DISTRO_RELEASE_CODENAME}" \
-              "Key=jaiabot-rootfs-gen_repository,Value=${JAIABOT_ROOTFS_GEN_REPO}" \
-              "Key=jaiabot-rootfs-gen_repository_version,Value=${JAIABOT_ROOTFS_GEN_REPO_VERSION}" \
+              "Key=jaiabot-rootfs-gen_repository,Value=${JAIABOT_APT_REPO}" \
+              "Key=jaiabot-rootfs-gen_repository_version,Value=${JAIABOT_APT_VERSION}" \
               "Key=jaiabot-rootfs-gen_build-date,Value=$(date -u)" \
               "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
