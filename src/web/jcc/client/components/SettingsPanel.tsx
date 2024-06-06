@@ -1,8 +1,11 @@
 import React, { ReactElement, useState } from "react";
 
+import { Map } from "ol";
+
 import JaiaToggle from "./JaiaToggle";
 import ScanForBotPanel from "./ScanForBotPanel";
 import QueryBotStatusPanel from "./QueryBotStatusPanel";
+import SetHubLocationPanel from "./SetHubLocationPanel";
 import { JaiaAPI } from "../../common/JaiaAPI";
 import { taskData } from "./TaskPackets";
 import { PanelType } from "./CommandControl";
@@ -21,8 +24,6 @@ import { Icon } from "@mdi/react";
 import { mdiSendVariant } from "@mdi/js";
 
 import "../style/components/SettingsPanel.css";
-import SetHubLocation from "./SetHubLocation";
-import { Map } from "ol";
 
 interface Props {
     taskPacketsTimeline: { [key: string]: string | boolean };
@@ -136,7 +137,11 @@ export function SettingsPanel(props: Props) {
                     </AccordionSummary>
                     <AccordionDetails className="settings-accordion-inner-container">
                         <div className="settings-card">
-                            <SetHubLocation map={props.map} hubs={props.hubs} api={props.api} />
+                            <SetHubLocationPanel
+                                map={props.map}
+                                hubs={props.hubs}
+                                api={props.api}
+                            />
                         </div>
                     </AccordionDetails>
                 </Accordion>
@@ -303,6 +308,8 @@ export function SettingsPanel(props: Props) {
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
+
+                {simulationAccordion()}
             </div>
         </div>
     );
