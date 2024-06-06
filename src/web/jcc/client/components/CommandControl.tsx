@@ -1,4 +1,4 @@
-import React, { MouseEvent, ReactElement, ReactNode } from 'react'
+import React, { MouseEvent, ReactElement, ReactNode, useContext } from 'react'
 
 
 // Jaia Imports
@@ -9,38 +9,41 @@ import DownloadPanel from './DownloadPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { layers } from './Layers'
-import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
 import { HubOrBot } from './HubOrBot'
 import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
+import { HubDetails } from '../../../containers/HubDetails'
 import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
 import { SettingsPanel } from './SettingsPanel'
+import { GlobalActions } from '../../../context/actions/GlobalActions'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
 import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
+import { jaiaAPI, BotPaths } from '../../common/JaiaAPI'
 import { Save, GlobalSettings } from './Settings'
 import { CustomLayerGroupFactory } from './CustomLayers'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
 import { CustomAlert, CustomAlertProps } from './shared/CustomAlert'
-import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
+import { MissionSettingsPanel, MissionParams } from './MissionSettings'
 import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
 import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
+import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from './Details'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
-import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { GlobalContext, GlobalDispatchContext, GlobalContextType, GlobalAction } from '../../../context/GlobalContext'
+import { getGeographicCoordinate, deepcopy, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket, BottomDepthSafetyParams, BotType } from './shared/JAIAProtobuf'
-import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
 // OpenLayers
@@ -92,8 +95,6 @@ const TASK_PACKET_POLL_INTERVAL = 5_000
 const MAX_GOALS = 30
 const MICROSECONDS_FACTOR = 1_000_000
 
-interface Props {}
-
 export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
@@ -128,6 +129,11 @@ export interface MissionInterface {
 	runIdIncrement: number,
 	botsAssignedToRuns: {[key: number]: string}
 	runIdInEditMode: string
+}
+
+interface Props {
+	globalContext: GlobalContextType,
+	globalDispatch: React.Dispatch<GlobalAction>
 }
 
 interface State {
@@ -548,7 +554,7 @@ export default class CommandControl extends React.Component {
 		// Update layers derived from the podStatus
 		if (prevState.podStatusVersion !== this.state.podStatusVersion ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
-				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
+				this.hubLayers.update(this.state.podStatus.hubs, this.props.globalContext.selectedPodElement)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
 				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
@@ -1950,6 +1956,7 @@ export default class CommandControl extends React.Component {
 			// Clicked on bot
 			const botStatus = feature.get('bot') as PortalBotStatus
 			if (botStatus) {
+				this.props.globalDispatch({ type: GlobalActions.CLICKED_BOT_MAP_ICON })
 				this.toggleBot(botStatus.bot_id)
 				return false
 			}
@@ -1957,7 +1964,10 @@ export default class CommandControl extends React.Component {
 			// Clicked on hub
 			const hubStatus = feature.get('hub') as PortalHubStatus
 			if (hubStatus) {
-				this.toggleHub(hubStatus.hub_id)
+				const hubKey = Object.keys(this.state.podStatus.hubs)[0]
+				const hubID = this.state.podStatus.hubs[hubKey].hub_id
+				this.props.globalDispatch({ type: GlobalActions.CLICKED_HUB_MAP_ICON, hubID: hubID })
+				this.didClickHub(hubID)
 				return false
 			}
 
@@ -3562,18 +3572,6 @@ export default class CommandControl extends React.Component {
 		}
 
 		switch (detailsBoxItem?.type) {
-			case 'hub':
-				const hubDetailsProps: HubDetailsProps = {
-					hub: hubs?.[this.selectedHubId()],
-					api: this.api,
-					isExpanded: this.state.detailsExpanded,
-					setDetailsExpanded: this.setDetailsExpanded.bind(this),
-					getFleetId: this.getFleetId.bind(this),
-					takeControl: this.takeControl.bind(this),
-					closeWindow: closeDetails.bind(this),
-				}
-				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
-				break;
 			case 'bot':
 				const botDetailsProps: BotDetailsProps = {
 					bot: bots?.[this.selectedBotId()], 
@@ -3877,6 +3875,8 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				{detailsBox}
+	
+				<HubDetails />
 
 				{rcControllerPanel}
 
@@ -3897,4 +3897,17 @@ export default class CommandControl extends React.Component {
 			</div>
 		)
 	}
+}
+
+/**
+ * Wraps the CommandControl class component in a function component to facilitate the usage
+ * of context in the class component.
+ * 
+ * @returns {ReactElement} CommandControl component with contexts passed as props
+ */
+export function CommandControlWrapper() {
+	const globalContext = useContext(GlobalContext)
+	const globalDispatch = useContext(GlobalDispatchContext)
+	const props = { globalContext, globalDispatch }
+	return <CommandControl {...props} />
 }
