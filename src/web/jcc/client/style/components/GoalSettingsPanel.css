@@ -1,17 +1,17 @@
 .goal-settings-panel-outer-container {
-  --toolbar-panels-top: 72px;
-  --toolbar-panels-right: 72px;
+    --toolbar-panels-top: 72px;
+    --toolbar-panels-right: 72px;
 
-  position: absolute;
-  top: var(--toolbar-panels-top);
-  right: var(--toolbar-panels-right);
-  z-index: 1;
-  
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 6px;
-  border: 2px solid #767d7d;
+    position: absolute;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
+    z-index: 1;
 
-  max-height: 80vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 6px;
+    border: 2px solid #767d7d;
+
+    max-height: 80vh;
 }
 
 .goal-settings-panel-inner-container {
@@ -19,9 +19,9 @@
     grid-template-columns: min-content min-content;
     gap: 12px;
     padding: 24px 24px 0 24px;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
     font-size: 1.1rem;
-    
+
     /* 
       max-height < 69vh shrinks outer-container 
       && max-height > 69vh overflows outer-container
@@ -31,125 +31,127 @@
 }
 
 .goal-settings-wpt-input-container {
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  align-items: center;
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    align-items: center;
 }
 
 .goal-settings-delete-wpt-container {
-  justify-self: center;
+    justify-self: center;
 }
 
 .goal-settings-delete-wpt-container.button-jcc {
-  margin: 0 !important;
-  width: 42px !important;
-  height: 42px !important;
+    margin: 0 !important;
+    width: 42px !important;
+    height: 42px !important;
 }
 
 .goal-settings-delete-wpt-container:hover {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .goal-settings-move-container {
-  grid-column: 1 / 3;
-  display: flex;
-  gap: 12px;
+    grid-column: 1 / 3;
+    display: flex;
+    gap: 12px;
 }
 
 .goal-settings-label {
-  grid-column: 1 / 2;
-  font-weight: 600;
+    grid-column: 1 / 2;
+    font-weight: 600;
 }
 
 .goal-settings-label.wpt-label {
-  align-self: center;
+    align-self: center;
 }
 
 .goal-settings-label.task-label {
-  margin-top: 6px;
-  /* Provides 12px of "padding-bottom" after auto-scroll */
-  margin-bottom: -12px;
+    margin-top: 6px;
+    /* Provides 12px of "padding-bottom" after auto-scroll */
+    margin-bottom: -12px;
 }
 
 .goal-settings-label.move-label {
-  margin-top: 10px;
-  width: max-content;
+    margin-top: 10px;
+    width: max-content;
 }
 
 .goal-settings-label.coord-label {
-  margin-top: 7px;
+    margin-top: 7px;
 }
 
 .goal-settings-input {
-  grid-column: 2 / 3;
+    grid-column: 2 / 3;
 }
 
 .goal-settings-input.wpt-input {
-  grid-column: 1 / 2;
+    grid-column: 1 / 2;
 }
 
 .goal-settings-input.coord-input {
-  width: 102px;
-  text-align: center;
-  padding: 6px;
-  border-radius: 3px;
-  border: 1px solid #9CA3AF;
+    width: 102px;
+    text-align: center;
+    padding: 6px;
+    border-radius: 3px;
+    border: 1px solid #9ca3af;
 }
 
 .goal-settings-button-container {
-  grid-column: 1 / 3;
+    grid-column: 1 / 3;
 
-  display: flex;
-  justify-content: space-between;
-  background-color: #FFFFFF;
-  margin-top: 2px;
-  padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    background-color: #ffffff;
+    margin-top: 2px;
+    padding: 12px 24px;
 }
 
 .goal-settings-button-container.goal-settings-single-button-container {
-  justify-content: center;
+    justify-content: center;
 }
 
 .goal-settings-btn {
-  all: unset;
-  background-color: #D1D5DB;
-  color: #000000;
-  padding: 9px 12px;
-  border-radius: 6px;
-  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+    all: unset;
+    background-color: #d1d5db;
+    color: #000000;
+    padding: 9px 12px;
+    border-radius: 6px;
+    box-shadow:
+        rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+        rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
 }
 
 .goal-settings-btn:hover {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .goal-settings-btn.goal-settings-single-btn {
-  width: 100%;
-  text-align: center;
+    width: 100%;
+    text-align: center;
 }
 
 .goal-settings-line-break {
-  grid-column: 1 / 3;
-  height: 1px;
-  background-color: #D1D5DB;
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
 }
 
 .goal-settings.line-break-final {
-  height: 0;
+    height: 0;
 }
 
 .goal-settings-hide {
-  display: none !important;
+    display: none !important;
 }
 
 .MuiFormControl-root > .MuiInputBase-root {
-  margin: 0;
+    margin: 0;
 }
 
 .MuiFormControlLabel-root {
-  margin: 0 !important;
+    margin: 0 !important;
 }
 
 .MuiFormGroup-root {
-  margin: 0 !important;
+    margin: 0 !important;
 }

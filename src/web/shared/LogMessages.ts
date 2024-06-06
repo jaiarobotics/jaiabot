@@ -1,4 +1,4 @@
-import { Command, TaskPacket } from "./JAIAProtobuf"
+import { Command, TaskPacket } from "./JAIAProtobuf";
 
 /**
  * Messages stored in Jaia .goby and .h5 files that contain a few extra fields
@@ -11,16 +11,16 @@ export interface LogMessage {
      *
      * @type {number}
      */
-    _utime_: number
-    
+    _utime_: number;
+
     /**
-     * Encoding scheme, where 1 is for intravehicle, non-DCCL messages 
+     * Encoding scheme, where 1 is for intravehicle, non-DCCL messages
      * (with more precision than the equivalent DCCL messages)
      *
      * @type {number}
      */
-    _scheme_: number
+    _scheme_: number;
 }
 
-export type LogCommand = (Command & LogMessage)
-export type LogTaskPacket = (TaskPacket & LogMessage)
+export type LogCommand = Command & LogMessage;
+export type LogTaskPacket = TaskPacket & LogMessage;
