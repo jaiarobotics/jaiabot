@@ -43,7 +43,7 @@ Whenever a new release branch is created, the following must be done:
   -  Copy to /opt/jaia_packages on packages.jaia.tech.
   - Run ./update_gobysoft_mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.
 - Update `jaiabot/.circleci/config.yml`:
-	-  Change to new release branch to "filter-template-master-only" and "filter-template-non-master" list.
+	-  Change to new release branch in all the "filter-template-*" lists.
 	-  Change distros targeted by this release branch.
 - Add new entries for release, beta, continuous, and test for the new release branch to `jaiabot/.circleci/dput.cf`.
 - Add new directories to packages.jaia.tech:
