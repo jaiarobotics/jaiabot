@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# clang-format=hooks
+scripts/git-hooks/clang-format-hooks/git-pre-commit-format
+
+# prettier
+scripts/git-hooks/prettier/write.sh
+
+exit 0
