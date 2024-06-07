@@ -1,19 +1,19 @@
-import React from 'react'
+import React from "react";
 
-import { HealthState } from '../shared/JAIAProtobuf'
+import { HealthState } from "../shared/JAIAProtobuf";
 
 interface HealthStatusLineProps {
-    healthState: HealthState
+    healthState: HealthState;
 }
 
 export function HealthStatusLine(props: HealthStatusLineProps) {
     const healthClassNames = {
-        'HEALTH__OK': 'healthOK',
-        'HEALTH__DEGRADED': 'healthDegraded',
-        'HEALTH__FAILED': 'healthFailed'
-    }
+        HEALTH__OK: "healthOK",
+        HEALTH__DEGRADED: "healthDegraded",
+        HEALTH__FAILED: "healthFailed",
+    };
 
-    const healthClassName = healthClassNames[props.healthState] ?? ''
+    const healthClassName = healthClassNames[props.healthState] ?? "";
 
     return (
         <tr>
@@ -22,5 +22,5 @@ export function HealthStatusLine(props: HealthStatusLineProps) {
                 <div className={healthClassName}>{props.healthState}</div>
             </td>
         </tr>
-    )
+    );
 }

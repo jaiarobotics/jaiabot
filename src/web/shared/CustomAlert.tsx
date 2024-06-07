@@ -1,107 +1,132 @@
-import React from 'react'
-import './CustomAlert.css'
+import React from "react";
+import "./CustomAlert.css";
 
-type PresentAlertFunction = (props: CustomAlertProps | null) => void
-let presentAlert: PresentAlertFunction
+type PresentAlertFunction = (props: CustomAlertProps | null) => void;
+let presentAlert: PresentAlertFunction;
 
 export interface CustomAlertButton {
-    title: string
-    action?: () => void
+    title: string;
+    action?: () => void;
 }
 
 export interface CustomAlertProps {
-    title?: string
-    text: string
-    buttons?: CustomAlertButton[]
+    title?: string;
+    text: string;
+    buttons?: CustomAlertButton[];
 }
 
 export class CustomAlert extends React.Component {
-    props: CustomAlertProps
+    props: CustomAlertProps;
 
     constructor(props: CustomAlertProps) {
-        super(props)
+        super(props);
 
-        this.props = props
+        this.props = props;
     }
 
     render(): React.ReactNode {
-        var buttons: React.JSX.Element[]
+        var buttons: React.JSX.Element[];
 
         if (this.props.buttons == null) {
             buttons = [
-                <div className='button' onClick={() => {presentAlert(null)}}>Close</div>
-            ]
-        }
-        else {
+                <div
+                    className="button"
+                    onClick={() => {
+                        presentAlert(null);
+                    }}
+                >
+                    Close
+                </div>,
+            ];
+        } else {
             buttons = this.props.buttons.map((buttonInput: CustomAlertButton) => {
-                return <div className='button' onClick={() => {
-                    presentAlert(null)
-                    buttonInput.action?.()
-                }}>{buttonInput.title}</div>
-            })
+                return (
+                    <div
+                        className="button"
+                        onClick={() => {
+                            presentAlert(null);
+                            buttonInput.action?.();
+                        }}
+                    >
+                        {buttonInput.title}
+                    </div>
+                );
+            });
         }
 
         // Deal with newlines in text
-        const textDivs = this.props.text.split('\n').map((line: string) => {
-            return <div className='text'>{line}</div>
-        })
+        const textDivs = this.props.text.split("\n").map((line: string) => {
+            return <div className="text">{line}</div>;
+        });
 
-        return <div className='fullscreen'>
-            <div className="custom-alert" style={{ border: this.props.title === 'Warning' ? '3px solid red' : 'none' }}>
-                <div className='title'>{this.props.title ?? 'Alert'}</div>
-                {textDivs}
-                <div className='button-container'>
-                    {buttons}
+        return (
+            <div className="fullscreen">
+                <div
+                    className="custom-alert"
+                    style={{ border: this.props.title === "Warning" ? "3px solid red" : "none" }}
+                >
+                    <div className="title">{this.props.title ?? "Alert"}</div>
+                    {textDivs}
+                    <div className="button-container">{buttons}</div>
                 </div>
             </div>
-        </div>
+        );
     }
 
     static setPresenter(presenter: PresentAlertFunction) {
-        presentAlert = presenter
+        presentAlert = presenter;
     }
 
     static presentAlert(props: CustomAlertProps) {
-        presentAlert(props)
+        presentAlert(props);
     }
 
     static alert(text: string) {
-        presentAlert({text})
+        presentAlert({ text });
     }
 
-    static confirm(text: string, actionTitle: string, action?: () => void, cancelAction?: () => void) {
+    static confirm(
+        text: string,
+        actionTitle: string,
+        action?: () => void,
+        cancelAction?: () => void,
+    ) {
         presentAlert({
-            title: 'Confirm',
+            title: "Confirm",
             text: text,
             buttons: [
                 {
-                    title: 'Cancel',
-                    action: cancelAction
+                    title: "Cancel",
+                    action: cancelAction,
                 },
                 {
                     title: actionTitle,
                     action: action,
-                }
-            ]
-        })
+                },
+            ],
+        });
     }
 
-    static confirmAsync(text: string, actionTitle: string, title?:string): Promise<boolean> {
+    static confirmAsync(text: string, actionTitle: string, title?: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             presentAlert({
-                title: title?title:'Confirm',
+                title: title ? title : "Confirm",
                 text: text,
                 buttons: [
                     {
-                        title: 'Cancel',
-                        action: () => { resolve(false) }
+                        title: "Cancel",
+                        action: () => {
+                            resolve(false);
+                        },
                     },
                     {
                         title: actionTitle,
-                        action: () => { resolve(true) },
-                    }
-                ]
-            })
-        })
+                        action: () => {
+                            resolve(true);
+                        },
+                    },
+                ],
+            });
+        });
     }
 }

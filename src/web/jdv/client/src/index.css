@@ -136,7 +136,7 @@ button {
 }
 
 .listItem {
-    -webkit-user-select: none; /* Safari */        
+    -webkit-user-select: none; /* Safari */
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+/Edge */
     user-select: none; /* Standard */
@@ -185,12 +185,12 @@ button {
 
 #layerSwitcherToggler {
     display: inline-block;
-    position:relative;
+    position: relative;
 }
 
 #layerSwitcher {
     display: inline-block;
-    vertical-align:top;
+    vertical-align: top;
     margin: 10pt;
     padding: 10pt 40pt 10pt 10pt;
     border-width: 1pt;
@@ -207,7 +207,7 @@ button {
 
 /* Layer Switcher */
 li::marker {
-    content: '';
+    content: "";
 }
 
 #mapPane {
@@ -259,7 +259,7 @@ li::marker {
     width: 100%;
 }
 
-.dataTable>table {
+.dataTable > table {
     width: 100%;
     padding: 10pt;
 }
@@ -319,8 +319,8 @@ td.dataKey {
 }
 
 div#layerSwitcher {
-    display:block;
-    position:absolute;
+    display: block;
+    position: absolute;
     margin: 10pt;
     padding: 10pt;
 
@@ -349,7 +349,7 @@ div.ol-attribution > button {
 }
 
 .busy-overlay {
-    position:absolute;
+    position: absolute;
     top: 0%;
     right: 0%;
     bottom: 0%;
@@ -366,7 +366,6 @@ div.ol-attribution > button {
     top: 50%;
     -ms-transform: translateY(-50%);
     transform: translateY(-50%);
-
 }
 
 .no-selected-series-message {

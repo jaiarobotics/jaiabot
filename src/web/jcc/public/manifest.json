@@ -1,14 +1,14 @@
 {
-  "short_name": "Jaia Command & Control",
-  "name": "Jaia Command & Control",
-  "icons": [
-    {
-      "src": "favicon.png",
-      "sizes": "64x64",
-      "type": "image/png"
-    }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "landscape"
+    "short_name": "Jaia Command & Control",
+    "name": "Jaia Command & Control",
+    "icons": [
+        {
+            "src": "favicon.png",
+            "sizes": "64x64",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "landscape"
 }
