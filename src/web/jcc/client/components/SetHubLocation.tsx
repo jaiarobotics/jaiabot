@@ -9,7 +9,7 @@ import PointerInteraction from "ol/interaction/Pointer";
 import { JaiaAPI } from "../../common/JaiaAPI";
 import { PortalHubStatus } from "./shared/PortalStatus";
 import { CommandForHub, GeographicCoordinate, HubCommandType } from "./shared/JAIAProtobuf";
-import { getElementById, getGeographicCoordinate } from "./shared/Utilities";
+import { getGeographicCoordinate } from "./shared/Utilities";
 
 // Style
 import Button from "@mui/material/Button";
@@ -32,11 +32,12 @@ export default function SetHubLocation(props: Props) {
     const hubLocation = props.hubs[hubId].location;
 
     /**
-     * A Select element for choosing the hub_id.
+     * A Select element for choosing the hubId.
      *
      * @returns {React.JSX.Element[]} The Select element.
      *
-     * @notes Would be used in a multi-hub simulation environment.
+     * @notes
+     * Would be used in a multi-hub simulation environment.
      */
     function hubIdSelectionElement(): React.JSX.Element[] {
         const menuItems = Object.values(props.hubs).map((hub) => {
@@ -83,6 +84,7 @@ export default function SetHubLocation(props: Props) {
     /**
      * Calls the API to submit a location change for a certain hub.
      *
+     * @returns {void}
      */
     function submitHubLocation() {
         const hubLocation = getInputHubLocation();
@@ -105,7 +107,6 @@ export default function SetHubLocation(props: Props) {
      * Initiate a PointerInteraction to select a new hub location with a click or tap.
      *
      * @returns {void}
-     *
      */
     const toggleSelectOnMapInteraction = () => {
         if (selectOnMapInteractionRef.current !== null) {
@@ -115,7 +116,7 @@ export default function SetHubLocation(props: Props) {
 
         selectOnMapInteractionRef.current = new PointerInteraction({
             handleEvent: (evt) => {
-                if (evt.type == "click") {
+                if (evt.type === "click") {
                     const clickedLocation = getGeographicCoordinate(evt.coordinate, evt.map);
                     latitudeInputElementRef.current.value = clickedLocation.lat.toFixed(6);
                     longitudeInputElementRef.current.value = clickedLocation.lon.toFixed(6);
@@ -136,6 +137,8 @@ export default function SetHubLocation(props: Props) {
 
     /**
      * Destroy the hub location selection interaction.
+     *
+     * @returns {void}
      */
     const destroySelectOnMapInteraction = () => {
         if (selectOnMapInteractionRef.current !== null) {
