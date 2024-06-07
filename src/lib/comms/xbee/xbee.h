@@ -122,9 +122,13 @@ class XBeeDevice
     void async_read_with_timeout(std::string& buffer, const std::string& delimiter,
                                  int timeout_seconds,
                                  std::function<void(const std::string&)> handler);
+    
+    //convert string to hex
+    std::string convertToHex(const std::string& str);
 
     // Command mode stuff
     void enter_command_mode();
+    void try_enter_command_mode();
     void assert_ok();
     void exit_command_mode();
 

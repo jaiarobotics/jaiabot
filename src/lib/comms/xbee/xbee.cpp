@@ -406,6 +406,7 @@ void jaiabot::comms::XBeeDevice::write(const string& raw)
     port->write_some(buffer(raw.c_str(), raw.size()));
     glog.is_debug2() && glog << group(glog_group) << "Wrote: " << raw << endl;
     glog.is_debug2() && glog << group(glog_group) << "  hex: " << hexadecimal(raw) << endl;
+    sleep(1);
 }
 
 string jaiabot::comms::XBeeDevice::read_until(const string& delimiter)
@@ -435,6 +436,62 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
         return 0;
     }
     return size_t(n_bytes_available);
+}
+
+void jaiabot::comms::XBeeDevice::enter_command_mode()
+{
+    // Start trying to enter command mode
+    try_enter_command_mode();
+    glog.is_warn() && glog << group(glog_group) << "Done" << std::endl;
+}
+
+/**
+ * @brief Keep trying to enter command mode until the expected result
+ * 
+ */
+void jaiabot::comms::XBeeDevice::try_enter_command_mode()
+{
+    std::string buffer;
+    std::string deliminiter = "";
+    int timeout_seconds = 5;
+    
+    //Triggers menu to appear for bypass
+    write("\r");
+
+    this->async_read_with_timeout(
+            buffer, deliminiter, timeout_seconds, [this](const std::string& result) {
+                      
+                glog.is_warn() && glog << group(glog_group) << "Result: " << result 
+                                       << "\nResult is empty: " << result.empty()
+                                       << std::endl;
+
+                glog.is_warn() && glog << group(glog_group) << "result == 'timeout' | " << (result == "timeout")
+                                       << std::endl;
+                if (result.find("B-Bypass") != std::string::npos || 
+                        result == "timeout")
+                {
+                    glog.is_warn() && glog << group(glog_group) << "Almost" << std::endl;
+                    // Send b to bypass
+                    write("b");
+                    // Send +++ to enter command mode
+                    write("+++");
+                    // Wait for ok to proceed
+                    read_until("OK\r");
+                    // Stop io context to exit and continue
+                    io->stop();
+                    return;
+                }
+                else
+                {
+                    // Log an error and retry
+                    glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result 
+                                    << "| ERROR Result Hex: " << convertToHex(result)
+                                    << std::endl;
+                    
+                    try_enter_command_mode();
+                } 
+                
+            });
 }
 
 /**
@@ -491,56 +548,24 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
                 handler("read_error");
             }
         });
-    // Run the io_context to perform the asynchronous operation
+    
+    // Wait for either the read operation to complete or the timeout to occur
     io->run();
-    // Restart the io_context for subsequent operations
-    io->restart();
 }
 
-void jaiabot::comms::XBeeDevice::enter_command_mode()
+/**
+ * @brief Function to convert the string to hexadecimal format and return as a string
+ * 
+ * @param str String to convert into Hex
+ * @return std::string Hex string
+ */
+std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str) 
 {
-    // We need to send bypass command if we are
-    // are using the new radio.
-    // Old radio still functions the same.
-    // Loop to write '\r' until we get the desired response
-    std::function<void()> try_enter_command_mode = [this, &try_enter_command_mode]() {
-        std::string buffer;
-        this->write("\r");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        // Read with timeout and check the result
-        this->async_read_with_timeout(
-            buffer, "B-Bypass", 5, [this, &try_enter_command_mode](const std::string& result) {
-                glog.is_warn() && glog << group(glog_group) << "Result: " << result << std::endl;
-
-                glog.is_warn() && glog << group(glog_group) << "Result is empty: " << result.empty()
-                                       << std::endl;
-
-                if (result.find("B-Bypass") != std::string::npos)
-                {
-                    glog.is_warn() && glog << group(glog_group) << "Found bypass sending b"
-                                           << std::endl;
-                    // Successfully entered command mode
-                    this->write("b");
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                    glog.is_warn() && glog << group(glog_group) << "sending +++" << std::endl;
-                    this->write("+++");
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                    glog.is_warn() && glog << group(glog_group) << "waiting for ok" << std::endl;
-                    this->read_until("OK\r");
-                    glog.is_warn() && glog << group(glog_group) << "Finished" << std::endl;
-                }
-                else
-                {
-                    // Log an error and retry
-                    glog.is_warn() && glog << group(glog_group) << "ERROR: " << std::endl;
-                    try_enter_command_mode();
-                }
-            });
-    };
-
-    // Start trying to enter command mode
-    try_enter_command_mode();
+    std::ostringstream hexStream;
+    for (unsigned char c : str) {
+        hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " ";
+    }
+    return hexStream.str();
 }
 
 void jaiabot::comms::XBeeDevice::assert_ok()
