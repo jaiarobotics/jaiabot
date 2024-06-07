@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message Fluorometer {
+    optional float voltage = 1;
+}
