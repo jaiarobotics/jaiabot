@@ -547,7 +547,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     glog.is_debug1() && glog << group("main")
                              << "Received Full Command: " << input_command.ShortDebugString()
                              << std::endl;
-   if (is_virtualhub_)
+    if (is_virtualhub_)
         update_vfleet_shutdown_time();
 
     using protobuf::Command;
@@ -742,8 +742,7 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]()
-    {
+    auto offload_func = [this, offload_command]() {
         glog.is_debug1() && glog << "Offloading data with command: [" << offload_command << "]"
                                  << std::endl;
 

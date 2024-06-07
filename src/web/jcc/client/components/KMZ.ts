@@ -1,5 +1,5 @@
-const JSZip = require("jszip") as any // No type definitions for this old version
-import { KML } from 'ol/format';
+const JSZip = require("jszip") as any; // No type definitions for this old version
+import { KML } from "ol/format";
 import { Type } from "ol/format/Feature";
 
 // Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
@@ -16,7 +16,7 @@ function getKMLData(buffer: any) {
 }
 
 function getKMLImage(href: string) {
-    const index = window.location.href.lastIndexOf('/');
+    const index = window.location.href.lastIndexOf("/");
     if (index !== -1) {
         const kmlFile = zip.file(href.slice(index + 1));
         if (kmlFile) {
@@ -36,7 +36,7 @@ export class KMZ extends KML {
     }
 
     getType() {
-        return 'arraybuffer' as Type;
+        return "arraybuffer" as Type;
     }
 
     readFeature(source: any, options: any) {
@@ -49,4 +49,3 @@ export class KMZ extends KML {
         return super.readFeatures(kmlData, options);
     }
 }
-

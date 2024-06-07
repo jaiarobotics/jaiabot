@@ -33,9 +33,16 @@ file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAK
 # Get the web source tree into the intermediate directory
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/webpack.config.js DESTINATION ${intermediate_web_dir})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tsconfig.json DESTINATION ${intermediate_web_dir})
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/components DESTINATION ${intermediate_web_dir})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/containers DESTINATION ${intermediate_web_dir})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/context DESTINATION ${intermediate_web_dir})
+
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jcc DESTINATION ${intermediate_web_dir})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jed DESTINATION ${intermediate_web_dir})
+
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shared DESTINATION ${intermediate_web_dir})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/utils DESTINATION ${intermediate_web_dir})
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 

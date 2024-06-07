@@ -6,9 +6,9 @@
     padding: 2px;
     font-size: 14px;
     text-align: center;
-  }
+}
 
-  .ol-scale-line-inner {
+.ol-scale-line-inner {
     color: white;
     border: 1px solid white;
     border-top: none;
@@ -17,4 +17,4 @@
     text-align: center;
     margin: 1px;
     will-change: contents, width;
-  }
+}

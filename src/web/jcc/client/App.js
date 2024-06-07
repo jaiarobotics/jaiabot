@@ -1,27 +1,22 @@
-import './style/app.css';
+// React
+import React from "react";
 
-import React, {Component} from 'react';
+// Jaia
+import { GlobalContextProvider } from "../../context/GlobalContext";
+import { PodContextProvider } from "../../context/PodContext";
+import { CommandControlWrapper } from "./components/CommandControl/CommandControl";
 
-import CommandControl from './components/CommandControl/CommandControl';
+// Style
+import "./style/app.css";
 
-export default class App extends Component {
-  // state = { username: null };
-
-  componentDidMount() {
-    /*
-    fetch('/api/getUsername')
-      .then(res => res.json())
-      .then(user => this.setState({ username: user.username }));
-      */
-  }
-
-  render() {
-    // const { username } = this.state;
+export default function App() {
     return (
-      <div>
-        <CommandControl />
-        {/* {username ? <h1>{`Hello ${username}`}</h1> : <h1>Loading.. please wait!</h1>}   */}
-      </div>
+        <div>
+            <GlobalContextProvider>
+                <PodContextProvider>
+                    <CommandControlWrapper />
+                </PodContextProvider>
+            </GlobalContextProvider>
+        </div>
     );
-  }
 }
