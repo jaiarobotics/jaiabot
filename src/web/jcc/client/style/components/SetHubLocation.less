@@ -1,21 +1,27 @@
 #set-hub-location {
-    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 15px;
 
-    > .panel-heading {
+    .panel-heading {
         color: black;
     }
 
-    > .mission-settings-panel-container {
-        grid-template-columns: auto auto;
-
-        > input {
-            width: 125px;
-        }
+    .hub-location-input-grid {
+        display: grid;
+        grid-template-columns: min-content min-content;
+        gap: 15px;
+        align-items: center;
     }
 
-    > #set-hub-location-submit,
-    > #set-hub-location-map-select {
-        margin-left: 0px;
-        margin-right: 0px;
+    .hub-location-num-input {
+        all: unset;
+        border: 1px solid #d1d5db;
+        border-radius: 3px;
+        padding: 6px;
+    }
+
+    .button-jcc.button-hub-location {
+        margin: 0;
     }
 }

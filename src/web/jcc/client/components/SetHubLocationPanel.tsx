@@ -9,11 +9,12 @@ import PointerInteraction from "ol/interaction/Pointer";
 import { JaiaAPI } from "../../common/JaiaAPI";
 import { PortalHubStatus } from "./shared/PortalStatus";
 import { CommandForHub, GeographicCoordinate, HubCommandType } from "./shared/JAIAProtobuf";
-import { getGeographicCoordinate } from "./shared/Utilities";
+import { getElementById, getGeographicCoordinate } from "./shared/Utilities";
 
 // Style
 import Button from "@mui/material/Button";
-import "../style/components/SetHubLocation.less";
+import { Select, MenuItem } from "@mui/material";
+import "../style/components/SetHubLocationPanel.less";
 
 interface Props {
     hubs: { [key: number]: PortalHubStatus };
@@ -21,24 +22,53 @@ interface Props {
     map: Map;
 }
 
-export default function SetHubLocation(props: Props) {
-    const [hubId, setHubId] = useState(Number(Object.keys(props.hubs)[0]) ?? 1);
+export default function SetHubLocationPanel(props: Props) {
+    const [hub_id, set_hub_id] = useState(Number(Object.keys(props.hubs)[0]) ?? 1);
     const [selectingOnMap, setSelectingOnMap] = useState(false);
     const selectOnMapInteractionRef = useRef(null);
-    const latitudeInputElementRef = useRef<HTMLInputElement>();
-    const longitudeInputElementRef = useRef<HTMLInputElement>();
 
-    const hubLocation = props.hubs[hubId].location;
+    const hubLocation = props.hubs[hub_id].location;
+
+    /**
+     * A Select element for choosing the hub_id.
+     *
+     * @returns {React.JSX.Element[]} The Select element.
+     *
+     * @notes Would be used in a multi-hub simulation environment.
+     */
+    function hubIdSelectionElement(): React.JSX.Element[] {
+        const menuItems = Object.values(props.hubs).map((hub) => {
+            return <MenuItem value={hub.hub_id}>{`Hub ${hub.hub_id}`}</MenuItem>;
+        });
+
+        const labelRow = <div className="mission-settings-input-label">Hub ID</div>;
+
+        const hubIdSelectionRow = (
+            <div className="mission-settings-input-row">
+                <Select
+                    id="bot-id-select"
+                    defaultValue={hub_id}
+                    onChange={(evt) => {
+                        set_hub_id(Number(evt.target.value));
+                    }}
+                >
+                    {menuItems}
+                </Select>
+            </div>
+        );
+
+        return [labelRow, hubIdSelectionRow];
+    }
 
     /**
      * Gets the hub location from the text inputs.
      *
-     * @returns {GeographicCoordinate | null} Hub location or null (if invalid value entered).
+     * @returns {GeographicCoordinate}
      */
     function getInputHubLocation(): GeographicCoordinate {
-        const lat = Number(latitudeInputElementRef.current.value);
-        const lon = Number(longitudeInputElementRef.current.value);
-        if (isNaN(lat) || isNaN(lon)) {
+        const lat = Number(getElementById<HTMLInputElement>("set-hub-location-latitude").value);
+        const lon = Number(getElementById<HTMLInputElement>("set-hub-location-longitude").value);
+        if (lat == null || lon == null) {
             return null;
         }
 
@@ -51,18 +81,17 @@ export default function SetHubLocation(props: Props) {
     /**
      * Calls the API to submit a location change for a certain hub.
      *
-     * @returns {void}
      */
     function submitHubLocation() {
         const hubLocation = getInputHubLocation();
 
-        if (hubLocation === null) {
-            console.warn("Hub location is null");
+        if (hubLocation == null) {
+            console.warn("hub location is null");
             return;
         }
 
         const hubCommand: CommandForHub = {
-            hub_id: hubId,
+            hub_id: hub_id,
             type: HubCommandType.SET_HUB_LOCATION,
             hub_location: hubLocation,
         };
@@ -74,6 +103,7 @@ export default function SetHubLocation(props: Props) {
      * Initiate a PointerInteraction to select a new hub location with a click or tap.
      *
      * @returns {void}
+     *
      */
     const toggleSelectOnMapInteraction = () => {
         if (selectOnMapInteractionRef.current !== null) {
@@ -83,10 +113,12 @@ export default function SetHubLocation(props: Props) {
 
         selectOnMapInteractionRef.current = new PointerInteraction({
             handleEvent: (evt) => {
-                if (evt.type === "click") {
+                if (evt.type == "click") {
                     const clickedLocation = getGeographicCoordinate(evt.coordinate, evt.map);
-                    latitudeInputElementRef.current.value = clickedLocation.lat.toFixed(6);
-                    longitudeInputElementRef.current.value = clickedLocation.lon.toFixed(6);
+                    getElementById<HTMLInputElement>("set-hub-location-latitude").value =
+                        clickedLocation.lat.toFixed(6);
+                    getElementById<HTMLInputElement>("set-hub-location-longitude").value =
+                        clickedLocation.lon.toFixed(6);
                     submitHubLocation();
                     destroySelectOnMapInteraction();
                     // Return false to prevent other interactions from being affected by this click.
@@ -104,8 +136,6 @@ export default function SetHubLocation(props: Props) {
 
     /**
      * Destroy the hub location selection interaction.
-     *
-     * @returns {void}
      */
     const destroySelectOnMapInteraction = () => {
         if (selectOnMapInteractionRef.current !== null) {
@@ -122,25 +152,23 @@ export default function SetHubLocation(props: Props) {
     }, []);
 
     return (
-        <div id="set-hub-location" className="panel">
+        <div id="set-hub-location-panel" className="panel">
             <div className="panel-heading">Set Hub Location</div>
 
             <div className="hub-location-input-grid">
-                <div>Latitude</div>
+                <div>Latitude:</div>
                 <input
-                    className="hub-location-num-input"
                     id="set-hub-location-latitude"
-                    ref={latitudeInputElementRef}
+                    className="hub-location-num-input"
                     name="latitude"
                     defaultValue={hubLocation.lat.toFixed(6)}
                 />
 
-                <div>Longitude</div>
+                <div>Longitude:</div>
                 <input
-                    className="hub-location-num-input"
                     id="set-hub-location-longitude"
+                    className="hub-location-num-input"
                     name="longitude"
-                    ref={longitudeInputElementRef}
                     defaultValue={hubLocation.lon.toFixed(6)}
                 />
             </div>
