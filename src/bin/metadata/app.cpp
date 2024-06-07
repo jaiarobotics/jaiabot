@@ -71,6 +71,9 @@ void jaiabot::apps::Metadata::publish_metadata()
 {
     DeviceMetadata metadata = jaiabot::metadata();
 
+    // Set is_simulation, if present in the config
+    metadata.set_is_simulation(cfg().has_is_simulation() && cfg().is_simulation());
+
     if (cfg().has_xbee())
     {
         metadata.set_xbee_node_id(cfg().xbee().node_id());

@@ -218,7 +218,8 @@ elif common.app == 'jaiabot_metadata':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_metadata.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     xbee_info=xbee_info))
+                                     xbee_info=xbee_info,
+                                     is_simulation=str(is_simulation()).lower()))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:
