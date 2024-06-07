@@ -13,7 +13,7 @@
     - name: Set fact if upgrade available
       set_fact:
         jaiabot_upgrade_available: "{{ jaiabot_current_version != jaiabot_available_version }}"
-        
+
     - name: Display current package information
       debug:
         var: jaiabot_current_version
@@ -21,4 +21,3 @@
     - name: Display available package information
       debug:
         var: jaiabot_available_version
-        

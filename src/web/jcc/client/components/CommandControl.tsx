@@ -2023,7 +2023,7 @@ export default class CommandControl extends React.Component {
         this.updateMissionHistory(runList);
     }
 
-    handleEvent(evt: any) {
+    handleEvent(evt: MapBrowserEvent<UIEvent>) {
         switch (evt.type) {
             case "click":
                 return this.clickEvent(evt as MapBrowserEvent<UIEvent>);
@@ -4166,8 +4166,10 @@ export default class CommandControl extends React.Component {
                         isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
                         // Engineering Accordion Props
                         api={this.api}
+                        map={map}
                         bots={bots}
                         hubs={hubs}
+                        isSimulation={metadata.is_simulation}
                         getSelectedBotId={this.selectedBotId.bind(this)}
                         getFleetId={this.getFleetId.bind(this)}
                         control={this.takeControl.bind(this)}
