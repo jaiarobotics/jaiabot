@@ -442,7 +442,6 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     // Start trying to enter command mode
     try_enter_command_mode();
-    glog.is_warn() && glog << group(glog_group) << "Done" << std::endl;
 }
 
 /**
@@ -461,16 +460,13 @@ void jaiabot::comms::XBeeDevice::try_enter_command_mode()
     this->async_read_with_timeout(
             buffer, deliminiter, timeout_seconds, [this](const std::string& result) {
                       
-                glog.is_warn() && glog << group(glog_group) << "Result: " << result 
+                glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
                                        << "\nResult is empty: " << result.empty()
                                        << std::endl;
 
-                glog.is_warn() && glog << group(glog_group) << "result == 'timeout' | " << (result == "timeout")
-                                       << std::endl;
                 if (result.find("B-Bypass") != std::string::npos || 
                         result == "timeout")
                 {
-                    glog.is_warn() && glog << group(glog_group) << "Almost" << std::endl;
                     // Send b to bypass
                     write("b");
                     // Send +++ to enter command mode
