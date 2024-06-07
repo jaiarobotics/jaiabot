@@ -39,4 +39,7 @@ message Metadata
 
     // Xbee configuration
     optional jaiabot.protobuf.XbeeInfo xbee = 10;
+
+    // Is this a real bot, or just a fantasy?
+    optional bool is_simulation = 11;
 }
