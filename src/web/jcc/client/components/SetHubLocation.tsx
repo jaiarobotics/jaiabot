@@ -65,12 +65,12 @@ export default function SetHubLocation(props: Props) {
     /**
      * Gets the hub location from the text inputs.
      *
-     * @returns {GeographicCoordinate}
+     * @returns {GeographicCoordinate | null} Hub location or null (if invalid value entered).
      */
     function getInputHubLocation(): GeographicCoordinate {
         const lat = Number(latitudeInputElementRef.current.value);
         const lon = Number(longitudeInputElementRef.current.value);
-        if (lat == null || lon == null) {
+        if (isNaN(lat) || isNaN(lon)) {
             return null;
         }
 
@@ -87,8 +87,8 @@ export default function SetHubLocation(props: Props) {
     function submitHubLocation() {
         const hubLocation = getInputHubLocation();
 
-        if (hubLocation == null) {
-            console.warn("hub location is null");
+        if (hubLocation === null) {
+            console.warn("Hub location is null");
             return;
         }
 
