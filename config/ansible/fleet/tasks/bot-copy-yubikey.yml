@@ -6,7 +6,7 @@
   set_fact:
     HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
 
-- include_tasks: tasks/fleet-copy-yubikey.yml
+- include_tasks: tasks/copy-yubikey.yml
 
 - name: Append public key to authorized_keys
   shell: |

@@ -6,7 +6,7 @@
   vars:
     SSH_KEY_TYPE: ed25519
   pre_tasks:
-    - include_tasks: tasks/fleet-set-facts.yml
+    - include_tasks: tasks/set-facts.yml
 
   tasks:    
     - name: Find all files in /media/root-rw/overlay/home/jaia/.ssh/
@@ -29,7 +29,7 @@
       block:
         - name: Copy yubikey
           when: USE_YUBIKEY
-          include_tasks: tasks/fleet-copy-yubikey.yml
+          include_tasks: tasks/copy-yubikey.yml
 
         - name: Generate new SSH key for virtual fleet
           when: not USE_YUBIKEY

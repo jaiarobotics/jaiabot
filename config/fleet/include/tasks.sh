@@ -3,18 +3,18 @@ ANSIBLE_VFLEET_INVENTORY=/tmp/jaiabot-ansible-vfleet-inventory.yml
 
 function ssh_key_setup() {
     echo "#################################################################"
-    echo "========= fleet-ssh-create-hub-keys.yml =============="
+    echo "========= fleet/ssh-create-hub-keys.yml =============="
     echo "#################################################################"
-    ansible-playbook ${ansible_dir}/fleet-ssh-create-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
+    ansible-playbook ${ansible_dir}/fleet/ssh-create-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
     echo "#################################################################"
-    echo "========= fleet-ssh-copy-hub-keys.yml =============="
+    echo "========= fleet/ssh-copy-hub-keys.yml =============="
     echo "#################################################################"
-    ansible-playbook ${ansible_dir}/fleet-ssh-copy-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
+    ansible-playbook ${ansible_dir}/fleet/ssh-copy-hub-keys.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET} -e JAIA_FLEET_CONFIG_YUBIKEYS_DIR=${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}
 
     echo "#################################################################"
-    echo "========= fleet-ssh-update-hubs.yml =============="
+    echo "========= fleet/ssh-update-hubs.yml =============="
     echo "#################################################################"
-    ansible-playbook ${ansible_dir}/fleet-ssh-update-hubs.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET}
+    ansible-playbook ${ansible_dir}/fleet/ssh-update-hubs.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET}
 }
 
 function fetch_wireguard_public_keys() {

@@ -7,12 +7,12 @@
     USE_YUBIKEY: "{{ not (CONFIGURE_VIRTUALFLEET | bool) }}"
 
   pre_tasks:
-    - include_tasks: tasks/fleet-set-facts.yml
+    - include_tasks: tasks/set-facts.yml
   tasks:
     - name: Gather keys
       when: not USE_YUBIKEY
       block:
-        - include_tasks: tasks/fleet-set-facts.yml
+        - include_tasks: tasks/set-facts.yml
 
         - name: Slurp SSH public key
           ansible.builtin.slurp:
@@ -33,7 +33,7 @@
   gather_facts: no
   become: yes
   tasks:
-    - include_tasks: tasks/fleet-set-facts.yml
+    - include_tasks: tasks/set-facts.yml
 
     - name: Remove all overlay files we are going to modify
       ansible.builtin.file:
@@ -62,7 +62,7 @@
 
     - name: Copy Yubikey (real fleet - does not require hubs)
       when: USE_YUBIKEY
-      include_tasks: tasks/fleet-bot-copy-yubikey.yml
+      include_tasks: tasks/bot-copy-yubikey.yml
       loop: "{{ groups['hubs'] }}"
       loop_control:
         loop_var: hub_inventory_name

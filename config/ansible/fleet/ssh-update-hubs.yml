@@ -5,7 +5,7 @@
   become: yes
 
   pre_tasks:
-    - include_tasks: tasks/fleet-set-facts.yml
+    - include_tasks: tasks/set-facts.yml
 
   tasks:
     - name: Remove all overlay files we are going to modify
@@ -17,7 +17,7 @@
         - /media/root-rw/overlay/home/jaia/.ssh/known_hosts
 
     - name: Append bots to /etc/hosts and .ssh/known_hosts
-      include_tasks: tasks/fleet-hub-add-known-host.yml
+      include_tasks: tasks/hub-add-known-host.yml
       loop: "{{ groups['bots'] }}"
       loop_control:
         loop_var: bot_inventory_name

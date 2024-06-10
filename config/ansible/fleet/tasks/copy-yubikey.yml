@@ -1,5 +1,5 @@
 - name: Check Yubikey files
-  include_tasks: tasks/fleet-check-yubikey-files.yml
+  include_tasks: tasks/check-yubikey-files.yml
   
 - name: Copy Yubikey public key to destination
   synchronize:
