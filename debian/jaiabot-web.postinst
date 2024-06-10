@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+# disable default apache2 site if enabled
+a2dissite 000-default || true
+# enable JCC site in apache2
+a2ensite jcc
+
+#DEBHELPER#
+
+exit 0
