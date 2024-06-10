@@ -1,6 +1,13 @@
 ANSIBLE_INVENTORY=/tmp/jaiabot-ansible-inventory.yml
 ANSIBLE_VFLEET_INVENTORY=/tmp/jaiabot-ansible-vfleet-inventory.yml
 
+function retrofit_ssh() {
+    echo "#################################################################"
+    echo "========= fleet/retrofit-ssh-config.yml =============="
+    echo "#################################################################"
+    ansible-playbook ${ansible_dir}/fleet/retrofit-ssh-config.yml -i ${INVENTORY} -e CONFIGURE_VIRTUALFLEET=${CONFIGURE_VIRTUALFLEET}
+}
+
 function ssh_key_setup() {
     echo "#################################################################"
     echo "========= fleet/ssh-create-hub-keys.yml =============="

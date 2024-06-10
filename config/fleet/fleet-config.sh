@@ -3,7 +3,7 @@ set -e -u
 # 
 # This script configures an entire fleet from a machine with access
 # to all the machines (i.e. with one of the master security keys installed)
-# ssh-keygen -t ed25519-sk -f master_yubikey{serial#} -N ""
+#   ssh-keygen -t ed25519-sk -f master_yubikey{serial#} -N ""
 #
 # The script is re-entrant so you can reconfigure bots that were previously
 # configured (potentially mixed with some that are not configured) and all should be OK.
@@ -17,6 +17,17 @@ set -e -u
 
 # You can modify the SSH parameters using the environmental variable JAIA_FLEET_CONFIG_SSH_OPTS, e.g.
 #       JAIA_FLEET_CONFIG_SSH_OPTS="-o StrictHostKeyChecking=no"
+
+# For a real fleet, you must give the directory of the pre-generated Yubikeys as
+#       JAIA_FLEET_CONFIG_YUBIKEYS_DIR=/path/to/fleet_config/ssh
+#
+# Where the keys are expected to be found at (privatekey) ${JAIA_FLEET_CONFIG_YUBIKEYS}/fleet0/hub1_fleet0 and (publickey) ${JAIA_FLEET_CONFIG_YUBIKEYS}/fleet0_yubikey/hub1_fleet0.pub
+#
+# These keys must be generated *once* using the actual host yubikey and the command
+#   export FLEET_ID=6
+#   export HUB_ID=1
+#   ssh-keygen -t ed25519-sk -O no-touch-required -f /path/to/ssh/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID} -N ""
+#
 
 # If running the Xbee Radio setup, you must provide the path to the directory with "fleetN/xbee.pb.cfg" or the file with JAIA_FLEET_CONFIG_XBEE_CFG, e.g., one of:
 #       JAIA_FLEET_CONFIG_XBEE_CFG=/path/to/fleet_config
@@ -49,7 +60,7 @@ function bot_id_to_last_ip_octet()
     BOT_ID=$1; echo $((BOT_ID+100))
 }
 
-run_wt_yesno jaia_is_real_fleet "Real or Virtual fleet" "Is this a real fleet (as opposed to a VirtualBox fleet)?" && CONFIGURE_VIRTUALBOX=false || CONFIGURE_VIRTUALBOX=true
+run_wt_yesno jaia_is_real_fleet "Real or Virtual fleet" "Is this a real fleet (as opposed to a VirtualFleet)?" && CONFIGURE_VIRTUALFLEET=false || CONFIGURE_VIRTUALFLEET=true
 
 if [[ "${CONFIGURE_VIRTUALFLEET}" != "true" && -z "${JAIA_FLEET_CONFIG_YUBIKEYS_DIR:-}" ]]; then
     echo "You must set JAIA_FLEET_CONFIG_YUBIKEYS_DIR to configure a real fleet. Make sure you've sourced setup-fleet-config.sh"
@@ -61,7 +72,7 @@ function bot_ip()
     BOT_ID=$1;
     TYPE=${2:-"ssh"}
     BOT_IP="10.23.${FLEET_ID}.$(bot_id_to_last_ip_octet ${BOT_ID})"
-    [[ "$CONFIGURE_VIRTUALBOX" = "true" && "$TYPE" = "ssh" ]] && BOT_IP=bot${BOT_ID}-virtualfleet${FLEET_ID}
+    [[ "$CONFIGURE_VIRTUALFLEET" = "true" && "$TYPE" = "ssh" ]] && BOT_IP=bot${BOT_ID}-virtualfleet${FLEET_ID}
     echo "${BOT_IP}"
 }
 function hub_ip()
@@ -69,7 +80,7 @@ function hub_ip()
     HUB_ID=$1;
     TYPE=${2:-"ssh"}
     HUB_IP="10.23.${FLEET_ID}.$(hub_id_to_last_ip_octet ${HUB_ID})"
-    [[ "$CONFIGURE_VIRTUALBOX" = "true" && "$TYPE" = "ssh" ]] && HUB_IP=hub${HUB_ID}-virtualfleet${FLEET_ID}
+    [[ "$CONFIGURE_VIRTUALFLEET" = "true" && "$TYPE" = "ssh" ]] && HUB_IP=hub${HUB_ID}-virtualfleet${FLEET_ID}
     echo "${HUB_IP}"
 }
 
@@ -126,6 +137,8 @@ function filter_output()
     sed -e '\#^INFO: Chrooting\|mount: /media/root-ro: mount point is busy.\|ERROR: Note that \[/media/root-ro\] is still mounted read/write#d'
 }
 
+retrofit_ssh="Retrofit SSH config to support Yubikeys"
+retrofit_ssh_preseed="retrofit-ssh"
 setup_ssh_keys="Setup SSH Keys amongst fleet"
 setup_ssh_keys_preseed="ssh-keys"
 setup_wireguard="Setup Wireguard config and push to server"
@@ -139,7 +152,7 @@ generate_ansible_inventory_preseed="ansible-inventory"
 reboot="Reboot"
 reboot_preseed="reboot"
 
-run_wt_checklist jaia_actions "Action" "Choose the fleet config action(s)" "$setup_ssh_keys" "$setup_wireguard" "$disable_wireguard" "$copy_xbee" "$generate_ansible_inventory" "$reboot"
+run_wt_checklist jaia_actions "Action" "Choose the fleet config action(s)" "$retrofit_ssh" "$setup_ssh_keys" "$setup_wireguard" "$disable_wireguard" "$copy_xbee" "$generate_ansible_inventory" "$reboot"
 [ $? -eq 0 ] || exit 1
 actions="$WT_CHOICE"
 
@@ -154,6 +167,9 @@ do
     [[ "${action}" == ' ' || -z "${action}" ]] && continue
     set -o pipefail
     case "$action" in
+        "$retrofit_ssh"|"$retrofit_ssh_preseed")
+            retrofit_ssh |& filter_output
+            ;;
         "$setup_ssh_keys"|"$setup_ssh_keys_preseed")
             ssh_key_setup |& filter_output
             ;;

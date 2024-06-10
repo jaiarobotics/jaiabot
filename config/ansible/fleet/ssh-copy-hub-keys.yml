@@ -42,6 +42,9 @@
       loop:
         - /media/root-rw/overlay/etc/jaiabot/ssh/sshd_config
         - /media/root-rw/overlay/etc/ssh/sshd_config.d/jaia_sshd.conf        
+        - /media/root-rw/overlay/etc/jaiabot/ssh/hub_authorized_keys
+        - /media/root-rw/overlay/etc/jaiabot/ssh/root_authorized_keys
+        - /media/root-rw/overlay/etc/jaiabot/ssh/tmp_authorized_keys
 
     - name: Remove existing authorized_keys file
       shell: |
@@ -67,7 +70,4 @@
       loop_control:
         loop_var: hub_inventory_name
 
-    - name: Set sshd config
-      shell: |
-        {{ RO_ROOT_CMD }} bash -c "echo \"AuthorizedKeysFile     .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/hub_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys\" > /etc/ssh/sshd_config.d/jaia_sshd.conf"
-        
+    - include_tasks: tasks/set-jaiabot-ssh-perms.yml
