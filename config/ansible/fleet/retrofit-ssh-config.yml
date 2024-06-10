@@ -24,6 +24,12 @@
         src: "{{ rootfs_includes_dir }}/etc/ssh/sshd_config.d/jaia_sshd.conf"
         dest: "/tmp/jaia_sshd.conf"
         rsync_path: "sudo {{ RO_CMD }} rsync"
+        
+    - name: Copy Yubikey udev rule
+      synchronize:
+        src: "{{ rootfs_includes_dir }}/etc/udev/rules.d/70-jaiabot_yubikey.rules"
+        dest: "/tmp/70-jaiabot_yubikey.rules"
+        rsync_path: "sudo {{ RO_CMD }} rsync"
 
     - name: Move files into place
       shell: |
@@ -31,6 +37,8 @@
         {{ RO_ROOT_CMD }} mv /tmp/root_authorized_keys /etc/jaiabot/ssh/root_authorized_keys
         {{ RO_ROOT_CMD }} mv /tmp/jaia_sshd.conf /etc/ssh/sshd_config.d/jaia_sshd.conf
         {{ RO_ROOT_CMD }} chown root:root /etc/ssh/sshd_config.d/jaia_sshd.conf
+        {{ RO_ROOT_CMD }} mv /tmp/70-jaiabot_yubikey.rules /etc/udev/rules.d/70-jaiabot_yubikey.rules
+        {{ RO_ROOT_CMD }} chown root:root /etc/udev/rules.d/70-jaiabot_yubikey.rules
         
     - include_tasks: tasks/set-jaiabot-ssh-perms.yml
         
