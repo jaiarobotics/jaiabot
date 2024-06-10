@@ -1,6 +1,6 @@
 # Building and Installing JaiaBot software
 
-JaiaBot development is done on Ubuntu Linux, generally the latest LTS version.
+JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supported aligned with the `jaiabot` release branch (see [Repository](page19_repository.md) page).
 
 ## Dependencies
 
