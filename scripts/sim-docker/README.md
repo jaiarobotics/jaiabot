@@ -32,7 +32,15 @@ A few important Docker terms:
     Because it is a shared network, you must specify the IP address `127.0.0.1` instead of using "localhost"
         * Example: JCC -> http://127.0.0.1:40001/
 
-5. **Useful Docker commands**
+5.  **'$ ./save-image.sh' **
+    * This save the Docker Image to a file for transport
+    * file will be named ./jaia-sim-image.tar.gz
+
+6.  **'$ ./load-image.sh' **
+    * This load the Docker Image from the file jaia-sim-image.tar.gz
+    * file should be in the local directory when the script is run
+    
+7. **Other Useful Docker commands**
     * This will list all available images on your machine.
         * `$ docker images`
         * ```
