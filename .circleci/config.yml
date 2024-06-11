@@ -278,21 +278,7 @@ workflows:
           requires:
             - raspi-image-create-jammy
             - virtualbox-image-create-jammy
-          <<: *filter-template-aws-rootfs-builds
-                
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 7 * * *"
-          filters:
-            branches:
-              only:
-                - /.*/
-    jobs:
-      - raspi-image-create-focal
-      - virtualbox-image-create-focal
-      - raspi-image-create-jammy
-      - virtualbox-image-create-jammy
+          <<: *filter-template-aws-rootfs-builds                
       
 jobs:
 

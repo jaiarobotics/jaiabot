@@ -1,10 +1,10 @@
 # JaiaBot rootfs generation.
 
-This repository contains [live-build](https://live-team.pages.debian.net/live-manual/html/live-manual/index.en.html) scripts for generating an Ubuntu root filesystem for booting on the embedded Linux computer (currently Raspberry Pi) or on a VirtualBox virtual machine.
+This folder contains [live-build](https://live-team.pages.debian.net/live-manual/html/live-manual/index.en.html) scripts for generating an Ubuntu root filesystem for booting on the embedded Linux computer (currently Raspberry Pi) or on a VirtualBox virtual machine.
 
 ## CI Built images
 
-As an alternative to cloning this repository and building images yourself, you can download them pre-built on [CircleCI](https://app.circleci.com/pipelines/github/jaiarobotics/jaiabot-rootfs-gen). Browse to the latest build (raspi-image-create for the Raspberry Pi image, or virtualbox-image-create for the VirtualBox image), click "Artifacts", and download the appropriate file (.img.gz or .ova, respectively).
+As an alternative to cloning this repository and building images yourself, you can download them pre-built on [CircleCI](https://app.circleci.com/pipelines/github/jaiarobotics/jaiabot?branch=1.y). Browse to the latest build (raspi-image-create for the Raspberry Pi image, or virtualbox-image-create for the VirtualBox image), click "Artifacts", and download the appropriate file (.img.gz or .ova, respectively).
 
 
 ## Quick usage (build your own)
