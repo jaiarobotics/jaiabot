@@ -65,13 +65,17 @@ all_repos_except_release=("test" "continuous" "beta")
 all_repos=("${all_repos_except_release[@]}" "release")
 all_releases=("1.y" "2.y" ) # ... "3.y" "4.y" "5.y")
 
+declare -A distros_for_releases
+
+distros_for_releases["1.y"]="focal,jammy"
+distros_for_releases["2.y"]="noble"
+
+
 function set_all_release()
 {       
     for repo in "${all_repos[@]}"; do
         local b=$branch
-        if [ "$repo" = "test" ]; then
-            b="X.y"
-        fi
+
         echo "Setting $repo to release"
         mkdir -p /var/www/html/ubuntu/gobysoft/${repo}
         rm -f /var/www/html/ubuntu/gobysoft/${repo}/${b}
@@ -85,9 +89,6 @@ function set_staging()
     # strip quotes
     repo=$(eval echo $1)
     local b=$branch
-    if [ "$repo" = "test" ]; then
-        b="X.y"
-    fi
 
     echo "Setting $repo to staging"
     mkdir -p /var/www/html/ubuntu/gobysoft/${repo}
@@ -115,13 +116,15 @@ set nthreads     20
 set _tilde 0
 #
 ############# end config ##############
-
-deb http://packages.gobysoft.org/ubuntu/release/ focal/
-deb-src http://packages.gobysoft.org/ubuntu/release/ focal/
-
-deb http://packages.gobysoft.org/ubuntu/release/ jammy/
-deb-src http://packages.gobysoft.org/ubuntu/release/ jammy/
 EOF
+    
+    for distro in ${distros_for_releases[$branch]//,/ }
+    do
+        cat <<EOF >> /tmp/gobysoft-apt-mirror-${branch}.list
+deb http://packages.gobysoft.org/ubuntu/release/ ${distro}/
+deb-src http://packages.gobysoft.org/ubuntu/release/ ${distro}/
+EOF
+    done
 
    apt-mirror /tmp/gobysoft-apt-mirror-${branch}.list || exit 1    
 }

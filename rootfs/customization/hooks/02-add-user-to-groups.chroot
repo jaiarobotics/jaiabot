@@ -1,0 +1,63 @@
+#!/bin/sh -x 
+
+DEFGROUPS="admin,adm,dialout,cdrom,plugdev,audio,dip,video"
+
+/bin/egrep  -i "^admin" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User admin exists in /etc/group"
+else
+   echo "User admin does not exists in /etc/group must create"
+   groupadd admin
+fi
+/bin/egrep  -i "^dialout" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User dialout exists in /etc/group"
+else
+   echo "User dialout does not exists in /etc/group must create"
+   groupadd dialout
+fi
+/bin/egrep  -i "^cdrom" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User cdrom exists in /etc/group"
+else
+   echo "User cdrom does not exists in /etc/group must create"
+   groupadd cdrom 
+fi
+/bin/egrep  -i "^plugdev" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User plugdev exists in /etc/group"
+else
+   echo "User plugdev does not exists in /etc/group must create"
+   groupadd plugdev
+fi
+/bin/egrep  -i "^audio" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User audio exists in /etc/group"
+else
+   echo "User audio does not exists in /etc/group must create"
+   groupadd audio
+fi
+/bin/egrep  -i "^dip" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User dip exists in /etc/group"
+else
+   echo "User dip does not exists in /etc/group must create"
+   groupadd dip
+fi
+/bin/egrep  -i "^video" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User video exists in /etc/group"
+else
+   echo "User video does not exists in /etc/group must create"
+   groupadd video
+fi
+/bin/egrep  -i "^adm" /etc/group
+if [ $? -eq 0 ]; then
+   echo "User adm exists in /etc/group"
+else
+   echo "User adm does not exists in /etc/group must create"
+   groupadd adm
+fi
+
+echo "I: add jaia to ($DEFGROUPS) groups"
+usermod -a -G ${DEFGROUPS} jaia

@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+echo "<<<<< Install pip package spidev for root user"
+/usr/bin/python3 -m pip install spidev==3.6
+
+# We need to change to the directory where requirements.txt resides, so the
+#   pyjaia path works
+pushd /usr/share/jaiabot/python
+    /usr/bin/python3 -m venv venv
+
+    source venv/bin/activate
+
+    # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
+    mkdir -p /var/log/tmp
+    export TMPDIR=/var/log/tmp
+    pip3 install wheel
+    pip3 install -r requirements.txt
+    rm -rf /var/log/tmp
+
+    deactivate
+popd
+
+#DEBHELPER#
+
+exit 0
