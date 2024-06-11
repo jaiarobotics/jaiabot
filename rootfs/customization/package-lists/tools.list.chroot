@@ -1,0 +1,23 @@
+## tools
+openssh-server
+socat
+zile
+vim
+nano
+screen
+git
+mosh
+picocom
+minicom
+curl
+gpsd
+gpsd-clients
+ntp
+rsync
+xz-utils
+## for stress testing
+stress
+memtester
+iptables
+ufw
+zip

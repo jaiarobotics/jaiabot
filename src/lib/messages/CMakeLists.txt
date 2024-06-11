@@ -38,7 +38,7 @@ protobuf_generate_nanopb_c(PROTO_C_SRCS PROTO_C_HDRS ${project_INC_DIR}
   )
 
 add_library(jaiabot_messages_c SHARED ${PROTO_C_SRCS} ${PROTO_C_HDRS})
-target_link_libraries(jaiabot_messages_c protobuf-nanopb)
+target_link_libraries(jaiabot_messages_c nanopb::protobuf-nanopb-static)
 
 project_install_lib(jaiabot_messages_c)
 

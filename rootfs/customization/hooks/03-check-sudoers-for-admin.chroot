@@ -1,0 +1,17 @@
+#!/bin/sh 
+
+# check to make sure sudoers file has ref for admin
+ADMINEXISTS="$(awk '$1 == "%admin" { print $1 }' /etc/sudoers)"
+if [ -z "$ADMINEXISTS" ]; then
+  # append admin entry to sudoers
+  echo "# Members of the admin group may gain root privileges" >> /etc/sudoers
+  echo "%admin  ALL = (ALL) NOPASSWD: ALL" >> /etc/sudoers
+fi
+
+# make sure that NOPASSWD is set for %admin
+# expecially in the case that we didn't add it to /etc/sudoers
+# just blow the %admin line away and force it to be NOPASSWD
+sed -i -e '
+/\%admin/ c \
+%admin  ALL = (ALL) NOPASSWD: ALL
+' /etc/sudoers

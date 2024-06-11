@@ -1,0 +1,1 @@
+Empty Packages file so that apt-get succeeds even when "updates" drive isn't mounted

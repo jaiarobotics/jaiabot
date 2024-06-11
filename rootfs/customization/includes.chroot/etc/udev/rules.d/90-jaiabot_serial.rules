@@ -1,0 +1,6 @@
+## arduino
+KERNEL=="ttyUSB0", SYMLINK+="arduino"
+
+## xbee
+KERNEL=="ttyAMA2", SYMLINK+="xbee"
+

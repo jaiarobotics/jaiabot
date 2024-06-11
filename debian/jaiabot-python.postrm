@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "$1" = "purge" ]; then
+    rm -r /usr/share/jaiabot/python/venv
+fi
+
+exit 0

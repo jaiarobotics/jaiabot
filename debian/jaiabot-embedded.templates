@@ -1,0 +1,112 @@
+Template: jaiabot-embedded/debconf_state_common
+Type: select
+Choices: type, fleet_id, led_type, electronics_stack, mode, warp, NEXT
+Description: Choose a common option to edit
+
+Template: jaiabot-embedded/debconf_state_bot
+Type: select
+Choices: BACK, bot_id, arduino_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, EXIT
+Description: Choose a bot option to edit
+
+Template: jaiabot-embedded/debconf_state_hub
+Type: select
+Choices: BACK, hub_id, user_role, EXIT
+Description: Choose a hub option to edit
+
+Template: jaiabot-embedded/type
+Type: select
+Choices: bot, hub
+Description: Is this a bot or a hub?
+  This choice will determine which applications will be configured to launch with systemd.
+
+Template: jaiabot-embedded/mode
+Type: select
+Choices: runtime, simulation
+Default: runtime
+Description: Is this bot or hub to be run in runtime (operational) or simulation mode?
+  This choice will determine which applications will be configured to launch with systemd.
+
+Template: jaiabot-embedded/warp
+Type: select
+Choices: 1, 2, 5, 10, 20, 30, 40, 50
+Default: 1
+Description: At what multiple of real speed should this simulation be run?
+  A value of 1 is normal speed, 10 is 10x the real clock, etc.
+
+Template: jaiabot-embedded/bot_id
+Type: select
+Choices: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150
+Description: Bot identification number
+  This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
+
+Template: jaiabot-embedded/hub_id
+Type: select
+Choices: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+Description: Hub identification number
+  This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
+
+
+Template: jaiabot-embedded/n_bots
+Type: select
+Choices: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+Description: Number of bots
+  This is the number of bots in the fleet, used by the intervehicle comms.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
+
+Template: jaiabot-embedded/fleet_id
+Type: select
+Choices: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+Description: Fleet identification number
+  This is used to set the correct value in the jaiabot configuration.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
+
+Template: jaiabot-embedded/arduino_type
+Type: select
+Default: none
+Choices: spi, usb, none
+Description: What type of Arduino connection does this bot have?
+
+Template: jaiabot-embedded/led_type
+Type: select
+Choices: hub_led, none
+Default: none
+Description: What type of leds does your system have?
+
+Template: jaiabot-embedded/electronics_stack
+Type: select
+Choices: 0, 1, 2
+Default: 0
+Description: What type of electronics stack do you have?
+
+Template: jaiabot-embedded/user_role
+Type: select
+Choices: user, advanced, developer
+Default: user
+Description: The user role to be set in the Upgrade UI (this sets which Ansible playbooks are visible to the user).
+
+Template: jaiabot-embedded/imu_type
+Type: select
+Choices: bno055, bno085, none
+Default: bno055
+Description: What type of imu does your system have?
+
+Template: jaiabot-embedded/bot_type
+Type: select
+Choices: hydro, echo, none
+Default: hydro
+Description: What type of bot is your system?
+
+Template: jaiabot-embedded/data_offload_ignore_type
+Type: select
+Choices: goby, taskpacket, none
+Default: none
+Description: What data types to ignore when sending data to the hub?
+
+Template: jaiabot-embedded/imu_install_type
+Type: select
+Choices: embedded, retrofit, none
+Default: embedded
+Description: What type of imu installation does your system have?
+
