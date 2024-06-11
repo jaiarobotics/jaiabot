@@ -1509,6 +1509,18 @@ export default class CommandControl extends React.Component {
                                 this._runMission(runs[key].command);
                                 // Turn off edit mode when run starts for completeness
                                 if (runs[key].id === this.getRunList().runIdInEditMode) {
+                                    // Take the current goal being edited out of move waypoint mode
+                                    //  TODO:  Refactor the waypoint movement into an Interaction that's added to the map, OR
+                                    //         Allow waypoints to be dragged for moving.
+                                    //  TODO:  Use a toolbar button to switch to "Add Waypoint Mode" instead of having "Edit Mode?"
+                                    //         This may simplify logic considerably and prevent state-related bugs.
+                                    const goalBeingEdited = this.state.goalBeingEdited;
+                                    if (goalBeingEdited) {
+                                        goalBeingEdited.moveWptMode = false;
+                                    }
+                                    this.setState({ goalBeingEdited });
+
+                                    // Set empty runIdInEditMode
                                     const runList = this.getRunList();
                                     runList.runIdInEditMode = "";
                                     this.setRunList(runList);
@@ -2977,7 +2989,7 @@ export default class CommandControl extends React.Component {
                 }
             });
 
-            this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder());
+            this.setState({ botDownloadQueue: updatedQueue });
         };
 
         if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
