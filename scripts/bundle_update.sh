@@ -43,7 +43,8 @@ dpkg-scanpackages . > Packages
 apt-get -y install python3-pip libgdal-dev
 ### Match the requirements in jaiabot-python.postinst
 pip3 wheel wheel -w .
-pip3 wheel -r <(sed '/pyjaia/d' /jaiabot/src/python/requirements.txt) -w .
+# remove local (./pyjaia, etc.) requirements - these are already in jaiabot-python
+pip3 wheel -r <(sed '/^\.\//d' /jaiabot/src/python/requirements.txt) -w .
 
 # Generate ISO
 apt-get -y install genisoimage
