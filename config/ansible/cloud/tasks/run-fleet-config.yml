@@ -1,6 +1,6 @@
     - name: Write preseed
       shell: |
-        ./cloud-vfleet-nodes-to-preseed.py {{ n_bots }}
+        ./vfleet-nodes-to-preseed.py {{ n_bots }}
         cat /etc/jaiabot/cloud.env >> /etc/jaiabot/fleet-config.preseed
       become: yes
     - name: Run fleet config
