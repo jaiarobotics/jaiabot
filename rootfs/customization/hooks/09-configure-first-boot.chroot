@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# configure the first boot by setting up .profile
+echo "I: add first boot hook script"
+
+cat <<EOF >> /home/jaia/.profile
+source /etc/jaiabot/init/include/overlay_tools.sh
+if [[ "\${JAIABOT_OVERLAY}" == "false" ]]; then
+	source /etc/jaiabot/version
+        [[ "\${JAIABOT_FIRST_BOOT_DATE}" == "" ]] && sudo bash -c "sudo mkdir -p /var/log/jaiabot && /etc/jaiabot/init/first-boot.sh 2>&1 | tee /var/log/jaiabot/first-boot.log"
+	# Write command prompt to show warning
+	export PS1="[\[\e[31m\]OVERLAY DISK NOT MOUNTED\[\e[m\]] \u@\h:\w\$ "
+fi
+EOF
+
+systemctl enable first_boot.service
