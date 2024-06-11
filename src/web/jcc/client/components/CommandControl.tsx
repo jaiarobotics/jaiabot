@@ -2989,7 +2989,7 @@ export default class CommandControl extends React.Component {
                 }
             });
 
-            this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder());
+            this.setState({ botDownloadQueue: updatedQueue });
         };
 
         if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {

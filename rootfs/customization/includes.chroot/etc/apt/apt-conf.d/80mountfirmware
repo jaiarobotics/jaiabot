@@ -1,0 +1,2 @@
+DPkg::Pre-Invoke  {"echo 'Mounting /boot/firmware rw' && /bin/mount -o remount,rw /boot/firmware";};
+DPkg::Post-Invoke  {"echo 'Mounting /boot/firmware ro' && /bin/mount -o remount,ro /boot/firmware || true";};
