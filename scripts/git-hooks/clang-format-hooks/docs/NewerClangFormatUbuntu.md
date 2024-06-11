@@ -1,5 +1,4 @@
-Installing `clang-format` 6 on Ubuntu
-=====================================
+# Installing `clang-format` 6 on Ubuntu
 
 Some versions of Ubuntu have a very old `clang-format`. You can install a newer one (version 6.0) following these instructions.
 

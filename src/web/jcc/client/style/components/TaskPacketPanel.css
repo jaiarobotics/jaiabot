@@ -5,61 +5,61 @@
     position: absolute;
     top: var(--toolbar-panels-top);
     right: var(--toolbar-panels-right);
-    
+
     background-color: rgba(0, 0, 0, 0.7);
     padding: 6px;
-    
+
     border: 2px solid #767d7d;
     z-index: 100;
 }
-    
+
 .task-packet-layout-container {
     display: grid;
     grid-template-columns: 1fr;
     justify-items: center;
     gap: 12px;
     padding: 6px;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
 }
-    
+
 .task-packet-outer-container {
     display: flex;
     flex-direction: column;
     gap: 24px;
     padding: 3px 24px 24px 24px;
 }
-    
+
 .task-packet-close-btn {
     justify-self: flex-start;
 }
-    
+
 .task-packet-close-btn:hover {
     cursor: pointer;
 }
-    
+
 .task-packet-title {
     grid-row: 2 / 3;
-    
+
     font-size: 1.2rem;
     font-weight: 600;
-    
+
     align-self: center;
 }
 
 .task-packet-panel-container {
     grid-row: 3 / 4;
-    
+
     display: grid;
     grid-template-columns: max-content min-content min-content;
     gap: 12px;
     font-size: 1.1rem;
 }
-    
+
 .task-packet-label {
     grid-column: 1 / 2;
     font-weight: 600;
 }
-    
+
 .task-packet-input {
     grid-column: 2 / 3;
     text-align: center;
@@ -69,11 +69,10 @@
     grid-column: 3 / 4;
     margin-left: -6px;
 }
-    
+
 .task-packet-line-break {
     grid-column: 1 / 4;
-    
+
     height: 1px;
-    background-color: #D1D5DB;
+    background-color: #d1d5db;
 }
-    

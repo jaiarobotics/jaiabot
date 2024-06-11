@@ -1,14 +1,14 @@
-import { RasterMetadata, RasterReadResult } from './CustomLayerRasterWorker';
+import { RasterMetadata, RasterReadResult } from "./CustomLayerRasterWorker";
 
 export interface ReadRasterTask {
-    taskData:      RasterMetadata,
-    transferables: Transferable[],
+    taskData: RasterMetadata;
+    transferables: Transferable[];
 }
 
 interface ReadRasterTaskWithHandlers {
-    task:    ReadRasterTask,
-    resolve: (result: Blob) => void,
-    reject:  (reason: Error) => void,
+    task: ReadRasterTask;
+    resolve: (result: Blob) => void;
+    reject: (reason: Error) => void;
 }
 
 export class CustomLayerRasterWorkerPool {
@@ -43,7 +43,7 @@ export class CustomLayerRasterWorkerPool {
     private findAvailableWorker(): Worker | null {
         for (let [worker, timeoutId] of this.workers) {
             if (timeoutId !== null) {
-                this.debug && console.log('Clearing the raster transformation worker idle timer.')
+                this.debug && console.log("Clearing the raster transformation worker idle timer.");
                 clearTimeout(timeoutId);
                 this.workers.set(worker, null); // Mark as busy
                 return worker;
@@ -67,14 +67,14 @@ export class CustomLayerRasterWorkerPool {
             this.handleWorkerIdle(worker);
         };
         worker.onerror = (event: ErrorEvent) => {
-            console.error('Error trying to run CustomLayerRasterWorker: ', event);
+            console.error("Error trying to run CustomLayerRasterWorker: ", event);
             taskWithHandlers.reject(event.error);
             this.terminateWorker(worker);
         };
     }
 
     private startWorker(taskWithHandlers: ReadRasterTaskWithHandlers): void {
-        const worker = new Worker('customLayerRasterWorker.js');
+        const worker = new Worker("customLayerRasterWorker.js");
         this.workers.set(worker, null); // Mark as busy
         this.assignTaskToWorker(worker, taskWithHandlers);
     }
@@ -85,14 +85,17 @@ export class CustomLayerRasterWorkerPool {
             this.assignTaskToWorker(worker, nextTask);
         } else {
             // Set the worker to idle with a timeout
-            this.debug && console.log('Setting the raster transformation worker idle timer.')
-            const timeoutId = window.setTimeout(() => this.terminateWorker(worker), this.workerIdleLifetimeSecs * 1000);
+            this.debug && console.log("Setting the raster transformation worker idle timer.");
+            const timeoutId = window.setTimeout(
+                () => this.terminateWorker(worker),
+                this.workerIdleLifetimeSecs * 1000,
+            );
             this.workers.set(worker, timeoutId);
         }
     }
 
     private terminateWorker(worker: Worker): void {
-        this.debug && console.log('Terminating raster transformation worker due to idle timeout.')
+        this.debug && console.log("Terminating raster transformation worker due to idle timeout.");
         worker.terminate();
         this.workers.delete(worker);
     }
