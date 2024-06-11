@@ -1,4 +1,7 @@
 #auto wlan0
-#iface wlan0 inet dhcp
-#    wpa-essid _JAIA_ESSID_
-#    wpa-psk _JAIA_WPA_PSK_
+#iface wlan0 inet static
+#   wpa-essid SSSSSSSSSS
+#   wpa-psk   KKKKKKKKKK
+#   address 10.23.XXX.YYY
+#   netmask 255.255.255.0
+#   gateway 10.23.XXX.1

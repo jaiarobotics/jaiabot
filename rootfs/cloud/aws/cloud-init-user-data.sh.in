@@ -74,6 +74,12 @@ EOF
 ## Restore network interfaces file for reboot after first-boot config
 mv /etc/network/vmimport.interfaces /etc/network/interfaces
 
+## Set eth0 as DHCP
+cat <<EOF > /etc/network/interfaces.d/eth0
+auto eth0
+iface eth0 inet dhcp
+EOF
+
 ## Restore default hostname
 hostnamectl set-hostname "jaia-unnamed"
 
