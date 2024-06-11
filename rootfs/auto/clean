@@ -1,0 +1,6 @@
+#!/bin/sh
+lb clean noauto
+
+rm -Rf config
+rm -f build.log
+rm -rf local

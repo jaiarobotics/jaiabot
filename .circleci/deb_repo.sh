@@ -2,6 +2,9 @@
 
 set -e -u
 
+script_dir=$(dirname $0)
+default_version=$(<${script_dir}/../scripts/release_branch)
+
 CIRCLE_BRANCH="$1"
 CIRCLE_TAG="$2"
 
@@ -37,7 +40,7 @@ else
     else
         # default to test/X.y repo on non-standard branches
         repo="test";
-        version="X.y";
+        version="${default_version}";
     fi
 fi
 

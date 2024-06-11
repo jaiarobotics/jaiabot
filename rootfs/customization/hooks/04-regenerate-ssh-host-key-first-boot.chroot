@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "I: configure ssh host key regeneration for first time boot"
+sudo update-rc.d regenerate_ssh_host_keys defaults
