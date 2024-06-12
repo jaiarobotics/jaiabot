@@ -15,4 +15,6 @@ RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
 RUN /jaiabot/scripts/setup-tools-runtime.sh
 WORKDIR /jaiabot
 RUN /jaiabot/build.sh
+WORKDIR /jaiabot/src/python/
+RUN ./build_venv.sh /jaiabot/build/web_dev/python
 COPY ./entrypoint.sh /entrypoint.sh
