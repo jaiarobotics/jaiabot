@@ -6,25 +6,24 @@ JaiaBot uses the Raspberry Pi (RP) Compute Module 4 (CM4) as the embedded Linux 
 
 ### Flashing the bootloader configuration
 
-*Note: this step should only need to be done once per new CM4.*
+_Note: this step should only need to be done once per new CM4._
 
 The RP bootloader on older CM4 boards does not boot from all the USB ports automatically. Thus, we need to update the bootloader configuration once on each CM4 that we receive in order to ensure that the CM4 will boot from the USB thumb drive.
 
 - Once, to set up your developer machine (e.g. Ubuntu computer), follow the steps to [build the usbboot repository](https://www.raspberrypi.com/documentation/computers/compute-module.html#compute-module-4-bootloader). At the time of writing, this repository was at [commit 70b14a](https://github.com/raspberrypi/usbboot/commit/70b14a2a4fdad7caf7a614d299cb6f6b1c1b3f56).
 - For each CM4, follow the steps to
-	1. [setup the CMIO board](https://www.raspberrypi.com/documentation/computers/compute-module.html#setting-up-the-cmio-board) J2 jumper and micro USB cable.
-	2. [update the CM4 bootloader](https://www.raspberrypi.com/documentation/computers/compute-module.html#cm4bootloader). When editing the `boot.conf` file, check that the `BOOT_ORDER` line is set to `BOOT_ORDER=0xf25641`. For more detail on reading the value, see the [BOOT_ORDER documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER). Older CM4s were omitting the 0x5 value (which corresponds to the USB-A port on the CM4 IO board).
-		- In the last step (`../rpiboot -d . `), I had to use `sudo ../rpiboot -d .`
-		- After running that step (`sudo ../rpiboot -d . `), power on the CM4 IO board. The script should detect the board at this point and upload the configuration changes. It will provide some verbose output to this effect.
-
+  1.  [setup the CMIO board](https://www.raspberrypi.com/documentation/computers/compute-module.html#setting-up-the-cmio-board) J2 jumper and micro USB cable.
+  2.  [update the CM4 bootloader](https://www.raspberrypi.com/documentation/computers/compute-module.html#cm4bootloader). When editing the `boot.conf` file, check that the `BOOT_ORDER` line is set to `BOOT_ORDER=0xf25641`. For more detail on reading the value, see the [BOOT_ORDER documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER). Older CM4s were omitting the 0x5 value (which corresponds to the USB-A port on the CM4 IO board).
+      - In the last step (`../rpiboot -d . `), I had to use `sudo ../rpiboot -d .`
+      - After running that step (`sudo ../rpiboot -d . `), power on the CM4 IO board. The script should detect the board at this point and upload the configuration changes. It will provide some verbose output to this effect.
 
 ### Generation of the filesystem image
 
-*Note: this step should only need to be done once per change to jaiabot-rootfs-gen (and then reused for any number of USB thumb drives).*
+_Note: this step should only need to be done once per change to jaiabot/rootfs files (and then reused for any number of USB thumb drives)._
 
-The [jaiabot-rootfs-gen](https://github.com/jaiarobotics/jaiabot-rootfs-gen) project is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
+The jaiabot/rootfs folder is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
 
-To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot-rootfs-gen/blob/master/README.md
+To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/1.y/rootfs/README.md.
 
 The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 
@@ -63,12 +62,13 @@ If you want to re-run the first-boot configuration in the future (for example to
 
 - chroot into the underlay "read only" partition: `sudo overlayroot-chroot`
 - Disable the overlayroot in the next boot by commenting out this line in /etc/overlayroot.conf (ensure you use two '#'):
+
 ```
 ## overlayroot=device:dev=/dev/disk/by-label/overlay,timeout=60,recurse=0
 ```
+
 - Move first-boot.preseed.complete to first-boot.preseed in /boot/firmware/jaiabot/init and edit as required.
 - reboot
-
 
 ### Fleet configuration
 
@@ -87,12 +87,14 @@ When using the `jaiabot-embedded` Debian package, the systemd services are autom
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
 
 Bot 0 (install and enable):
+
 ```
 cd jaiabot/config/gen
 ./systemd-local.sh bot --bot_index 0 --n_bots 4 --enable
 ```
 
 Hub (install and enable):
+
 ```
 cd jaiabot/config/gen
 ./systemd-local.sh hub --n_bots 4 --enable
@@ -127,33 +129,31 @@ Running `./systemd-local.sh --help` will always show the defaults inferred from 
 ### Usage
 
 - To start, stop, or restart all the JaiaBot applications:
-	```
-	sudo systemctl start jaiabot
-	```
-	```
-	sudo systemctl stop jaiabot
-	```
-	```
-	sudo systemctl restart jaiabot
-	```
-	
+  ```
+  sudo systemctl start jaiabot
+  ```
+  ```
+  sudo systemctl stop jaiabot
+  ```
+  ```
+  sudo systemctl restart jaiabot
+  ```
 - To start (or stop, restart) a single application:
-	```
-	sudo systemctl start jaiabot_driver_arduino
-	```	
+  ```
+  sudo systemctl start jaiabot_driver_arduino
+  ```
 - To get a quick summary of all the applications' status:
-	```
-	systemctl list-units "jaiabot*"
-	```
+  ```
+  systemctl list-units "jaiabot*"
+  ```
 - To get the full log from a particular service (stdout/stderr),
-	```
-	sudo journalctl -u jaiabot_driver_arduino
-	```
+  ```
+  sudo journalctl -u jaiabot_driver_arduino
+  ```
 - To get a summary and the last few lines of the log,
-	```
-	sudo systemctl status jaiabot_driver_arduino
-	```
-	
+  ```
+  sudo systemctl status jaiabot_driver_arduino
+  ```
 
 ## Testing with Vagrant
 
@@ -183,9 +183,10 @@ This generates a `Vagrantfile` in the current working directory, which can be mo
   end
 ```
 
-###  Start machine
+### Start machine
 
 To start the machine from the directory with the `Vagrantfile`, simply run
+
 ```
 vagrant up
 ```

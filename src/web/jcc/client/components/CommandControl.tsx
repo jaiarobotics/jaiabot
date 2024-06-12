@@ -1509,6 +1509,18 @@ export default class CommandControl extends React.Component {
                                 this._runMission(runs[key].command);
                                 // Turn off edit mode when run starts for completeness
                                 if (runs[key].id === this.getRunList().runIdInEditMode) {
+                                    // Take the current goal being edited out of move waypoint mode
+                                    //  TODO:  Refactor the waypoint movement into an Interaction that's added to the map, OR
+                                    //         Allow waypoints to be dragged for moving.
+                                    //  TODO:  Use a toolbar button to switch to "Add Waypoint Mode" instead of having "Edit Mode?"
+                                    //         This may simplify logic considerably and prevent state-related bugs.
+                                    const goalBeingEdited = this.state.goalBeingEdited;
+                                    if (goalBeingEdited) {
+                                        goalBeingEdited.moveWptMode = false;
+                                    }
+                                    this.setState({ goalBeingEdited });
+
+                                    // Set empty runIdInEditMode
                                     const runList = this.getRunList();
                                     runList.runIdInEditMode = "";
                                     this.setRunList(runList);
@@ -2023,7 +2035,7 @@ export default class CommandControl extends React.Component {
         this.updateMissionHistory(runList);
     }
 
-    handleEvent(evt: any) {
+    handleEvent(evt: MapBrowserEvent<UIEvent>) {
         switch (evt.type) {
             case "click":
                 return this.clickEvent(evt as MapBrowserEvent<UIEvent>);
@@ -2977,7 +2989,7 @@ export default class CommandControl extends React.Component {
                 }
             });
 
-            this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder());
+            this.setState({ botDownloadQueue: updatedQueue });
         };
 
         if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
@@ -4166,8 +4178,10 @@ export default class CommandControl extends React.Component {
                         isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
                         // Engineering Accordion Props
                         api={this.api}
+                        map={map}
                         bots={bots}
                         hubs={hubs}
+                        isSimulation={metadata.is_simulation}
                         getSelectedBotId={this.selectedBotId.bind(this)}
                         getFleetId={this.getFleetId.bind(this)}
                         control={this.takeControl.bind(this)}

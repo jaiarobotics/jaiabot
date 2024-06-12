@@ -1,6 +1,6 @@
 # Building and Installing JaiaBot software
 
-JaiaBot development is done on Ubuntu Linux, generally the latest LTS version.
+JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supported aligned with the `jaiabot` release branch (see [Repository](page19_repository.md) page).
 
 ## Dependencies
 
@@ -55,11 +55,13 @@ This project provides a convenience script called `build.sh` that runs cmake to 
 Some examples:
 
 Basic build:
+
 ```
 ./build.sh
 ```
 
 Build documentation as well:
+
 ```
 export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ./build.sh
@@ -75,11 +77,10 @@ We use CircleCI to do two main types of builds:
 
 - "basic" code build and run unit tests
 - Debian package build to produce .deb packages that can be installed by `apt`. These are categorized to allow for a stratification of stability versus the latest features:
-    - "test" builds that run when necessary to test build packages for branches before merging into `1.y`
-    - "continuous" builds that are run with each commit to the `1.y` branch (usually the result of a pull request merge). This is the newest code.
-    - "beta" builds that a run with each release ending in an `_` (e.g., `1.0.0_beta1`) which is changed to `~` (e.g. 1.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
-    - "release" builds that are run with any other release release (`git tag`), e.g., `1.0.0`.
-
+  - "test" builds that run when necessary to test build packages for branches before merging into `1.y`
+  - "continuous" builds that are run with each commit to the `1.y` branch (usually the result of a pull request merge). This is the newest code.
+  - "beta" builds that a run with each release ending in an `_` (e.g., `1.0.0_beta1`) which is changed to `~` (e.g. 1.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
+  - "release" builds that are run with any other release release (`git tag`), e.g., `1.0.0`.
 
 The interaction between the developers and the automated CI/CD system is summarized in the following figure:
 
@@ -87,7 +88,7 @@ The interaction between the developers and the automated CI/CD system is summari
 
 ### Feature development / bug fix
 
-When the developer is working on a new feature or fixing a bug, he or she *branches* the code into a "feature branch", then incrementally commits and pushes these changes. Each commit that is pushed triggers a basic build on CircleCI to ensure that the committed code compiles correctly and the existing unit tests pass.
+When the developer is working on a new feature or fixing a bug, he or she _branches_ the code into a "feature branch", then incrementally commits and pushes these changes. Each commit that is pushed triggers a basic build on CircleCI to ensure that the committed code compiles correctly and the existing unit tests pass.
 
 ### After the pull request is merged
 
@@ -138,7 +139,7 @@ Examples:
 - `git tag 1.0.0` built on Ubuntu 20.04 "focal" becomes Debian version `1.0.0-0~ubuntu20.04.1`
 - git hash 8f9b675, which is 5 commits after `git tag 1.0.0_alpha1` built on Ubuntu 18.04 "xenial" becomes Debian version `1.0.0~alpha1+5+g8f9b675-0~ubuntu18.04.1`
 
-This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last (beta or regular) release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built. 
+This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last (beta or regular) release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built.
 
 ## Initial set up of packages.jaia.tech
 
@@ -203,11 +204,12 @@ Real name: Jaiabot Packages
 Email address: info@jaia.tech
 ```
 
-and the fingerprint of the resulting (public) key was `954A004CD5D8CF32`. 
+and the fingerprint of the resulting (public) key was `954A004CD5D8CF32`.
 
 In order for CircleCI builds to sign the package, the GPG private key must be available to CircleCI but kept private (so it can't be in `jaiabot`):
+
 ```
-gpg -a --export-secret-keys 954A004CD5D8CF32 | cat -e | sed 's/\$/\\n/g' 
+gpg -a --export-secret-keys 954A004CD5D8CF32 | cat -e | sed 's/\$/\\n/g'
 ```
 
 The resulting contents was copied into Circle CI [private environmental variable configuration](https://app.circleci.com/settings/project/github/jaiarobotics/jaiabot/environment-variables) and called "GPG_KEY" (which is later used by `jaiabot/.circleci/config.yml`).
@@ -218,9 +220,9 @@ To control the version of the GobySoft packages used, we maintain a mirror of pa
 
 #### Create/update the mirror
 
-Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively tested and merged into the JaiaBot repository. 
+Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively tested and merged into the JaiaBot repository.
 
-The script `update_gobysoft_mirror.sh` in `jaiabot/scripts/packages` (copied to `/opt/jaia_packages` on packages.jaia.tech) can be used to interactively manage the state of the GobySoft mirrors and their relation to the Jaiabot release distributions. 
+The script `update_gobysoft_mirror.sh` in `jaiabot/scripts/packages` (copied to `/opt/jaia_packages` on packages.jaia.tech) can be used to interactively manage the state of the GobySoft mirrors and their relation to the Jaiabot release distributions.
 
 The script has three actions:
 
@@ -230,7 +232,7 @@ The script has three actions:
 
 (For backwards compatibility, `/var/www/html/ubuntu/gobysoft/1.y` is manually symlinked to `/var/www/html/ubuntu/gobysoft/release/1.y`)
 
-#### Pulling in a new Goby release 
+#### Pulling in a new Goby release
 
 The general process for pulling in a new Goby release should be:
 
@@ -242,13 +244,16 @@ The general process for pulling in a new Goby release should be:
 deb http://packages.jaia.tech/ubuntu/continuous/1.y/ @DISTRIBUTION@/
 deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ @DISTRIBUTION@/
 ```
+
 - When ready to release a beta tag, just before tagging, run `update_gobysoft_mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
 - Tag `jaiabot` with the beta tag and push. This will trigger a CircleCI "beta" build against the staging repo.
 - Test on vehicles using the beta `jaiabot.list` repos:
+
 ```
 deb http://packages.jaia.tech/ubuntu/beta/1.y/ @DISTRIBUTION@/
 deb http://packages.jaia.tech/ubuntu/gobysoft/beta/1.y/ @DISTRIBUTION@/
 ```
+
 - When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
 - Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.
 
@@ -261,7 +266,6 @@ The default update path assumes a reasonably fast internet connection to the pub
 
 ![Update pathways](../figures/alternative-updates.png)
 
-
 The Ansible playbook `jaiabot/config/ansible/change-sources.yml` can be used to change the update mode for a given fleet (this can also be run with the Liaison pre-launch UI with role == ADVANCED or higher).
 
 ### Online updates with Hub Caching
@@ -269,6 +273,7 @@ The Ansible playbook `jaiabot/config/ansible/change-sources.yml` can be used to 
 Update many bots at once can place high demands on the internet connection as they all have to fetch the same .deb packages. To reduce this load, we can configure the hub to act as a caching proxy using the `squid-deb-proxy` package. In this case, the hub will cache any packages requested so that future requests are served locally by the hub rather than requiring another internet download.
 
 To enable online mode with hub caching:
+
 ```
 ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online_with_hub_cache -e version=1.y -e repo=release
 ```
@@ -280,6 +285,7 @@ For some scenarios, the fleet must be updated without connecting it to the inter
 This `.iso` is then burned to a CD or `dd`'d to a USB key and connected to `hub0` of the fleet. The `/etc/fstab` will already include the mount point (based off the ISO label: `updates`), so simply running `sudo mount -a` or rebooting the hub will mount this disk to `/var/www/html/updates` (which is served by Apache2 as http://hub0/updates).
 
 To enable offline mode:
+
 ```
 ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=offline
 ```
@@ -288,7 +294,6 @@ At this point each bot and hub in the fleet can be updated by simply running `su
 
 **Please keep in mind that the offline updates do not include the usual Ubuntu security patches so are not suitable for internet-connected machines (use the Online or Online update with Hub Caching in this case to ensure security updates are installed).**
 
-
 ### Online (default mode)
 
 To revert to "normal" online updates after using one of the alternatives (or to switch the repo or version), you can use the same playbook:
@@ -296,7 +301,6 @@ To revert to "normal" online updates after using one of the alternatives (or to 
 ```
 ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online -e repo=release -e version=1.y
 ```
-
 
 ## Cross-compiling locally using Docker
 
@@ -332,6 +336,7 @@ sudo systemctl enable containerd.service
 ### Build the image
 
 To create the docker image initially (should only need to be done initially and whenever there are updates to the dependencies):
+
 ```bash
 cd jaiabot/.docker/focal/arm64
 docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
@@ -346,25 +351,23 @@ Then to cross-compile using this image:
 ```bash
 cd jaiabot
 # run the docker container interactively
-docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1 
+docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1
 # update any dependencies since the image was created (not required if you've recently built the image)
 apt update && apt upgrade -y
 # actually build the code
 ./scripts/arm64_build.sh
 ```
 
-
-
 ### Copy the binaries to the Raspberry Pi
 
 If you rsync the contents of `jaiabot/build/bin` and `jaiabot/build/lib` to the Raspberry Pi at `/home/ubuntu/jaiabot` you should be able to run them successfully.
 
 (This assumes that `/home/ubuntu/jaiabot/build` exists on the Raspberry Pi, if not, `mkdir` it first):
+
 ```
 cd jaiabot
 rsync -aP build/bin build/lib ubuntu@172.20.11.10:/home/ubuntu/jaiabot/build
 ```
-
 
 ### Build and copy in one step
 
@@ -381,5 +384,5 @@ Use the all-in-one-script (`/scripts/docker_arm64_build-and-deploy.sh`):
 no code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appr
 opriate systemd services. If unset, the systemd services will not be installed and enabled
-## 
+##
 ```
