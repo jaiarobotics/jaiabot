@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { RunInterface } from "../CommandControl";
+import { RunInterface } from "../CommandControl/CommandControl";
 
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";

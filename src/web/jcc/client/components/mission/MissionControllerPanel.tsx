@@ -2,7 +2,7 @@ import React from "react";
 import RunPanel from "./RunPanel";
 import { JaiaAPI } from "../../../common/JaiaAPI";
 import { Missions } from "../Missions";
-import { MissionInterface, RunInterface } from "../CommandControl";
+import { MissionInterface, RunInterface } from "../CommandControl/CommandControl";
 import MissionSpeedSettings from "../MissionSpeedSettings";
 
 import Icon from "@mdi/react";

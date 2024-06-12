@@ -19,7 +19,7 @@ export interface SelectedPodElement {
     id: number;
 }
 
-interface HubAccordionStates {
+export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
     links: boolean;
