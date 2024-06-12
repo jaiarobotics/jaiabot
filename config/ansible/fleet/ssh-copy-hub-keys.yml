@@ -3,14 +3,14 @@
   hosts: hubs
   gather_facts: no
   become: yes
-  vars:
-    USE_YUBIKEY: "{{ not (CONFIGURE_VIRTUALFLEET | bool) }}"
-
   pre_tasks:
-    - include_tasks: tasks/set-facts.yml
+    - name: Set facts
+      include_tasks: tasks/set-facts.yml
+      when: HUB_IS_PRESENT
+
   tasks:
     - name: Gather keys
-      when: not USE_YUBIKEY
+      when: HUB_IS_PRESENT
       block:
         - include_tasks: tasks/set-facts.yml
 
@@ -21,7 +21,7 @@
 
         - name: Save SSH public key content in a fact
           set_fact:
-            hub_ssh_pub_key: "{{ hub_key_content['content'] | b64decode }}"
+            hub_ssh_pub_key: "{{ hub_key_content['content'] | b64decode | trim }}"
           delegate_to: localhost
 
         - name: Debug SSH public key content
@@ -45,26 +45,16 @@
         - /media/root-rw/overlay/etc/jaiabot/ssh/hub_authorized_keys
         - /media/root-rw/overlay/etc/jaiabot/ssh/root_authorized_keys
         - /media/root-rw/overlay/etc/jaiabot/ssh/tmp_authorized_keys
-
-    - name: Remove existing authorized_keys file
-      shell: |
-        {{ RO_ROOT_CMD }} rm -f /etc/jaiabot/ssh/hub_authorized_keys
         
     - name: Gather / copy keys read from Hubs
-      when: not USE_YUBIKEY
-      block:
-        - name: Fetch SSH public key content from hostvars
-          set_fact:
-            hub_ssh_pub_key: "{{ hostvars[groups['hubs'][0]]['hub_ssh_pub_key'] }}"
-        
-        - name: Append public key to authorized_keys
-          shell: |
-            {{ RO_ROOT_CMD }} mkdir -p /etc/jaiabot/ssh
-            {{ RO_ROOT_CMD }} bash -c "echo \"{{ hostvars[item]['hub_ssh_pub_key'] }}\" >> /etc/jaiabot/ssh/hub_authorized_keys"
-          loop: "{{ groups['hubs'] }}"
+      when: HUB_IS_PRESENT
+      include_tasks: tasks/bot-write-pubkey-from-hostvars.yml
+      loop: "{{ groups['hubs'] }}"
+      loop_control:
+        loop_var: hub_inventory_name
 
-    - name: Copy Yubikey (real fleet - does not require hubs)
-      when: USE_YUBIKEY
+    - name: Copy Yubikey from stored directory (does not require Hub to be present)
+      when: not HUB_IS_PRESENT
       include_tasks: tasks/bot-copy-yubikey.yml
       loop: "{{ groups['hubs'] }}"
       loop_control:

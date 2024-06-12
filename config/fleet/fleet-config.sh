@@ -84,7 +84,7 @@ function hub_ip()
     echo "${HUB_IP}"
 }
 
-function generate_ansible_inventory()
+function generate_temporary_ansible_inventory()
 {
     local inv=${INVENTORY}
     echo "bots:" > ${inv}
@@ -102,11 +102,13 @@ function generate_ansible_inventory()
         ip=$(eval hub_ip ${id})
         echo "    hub${id}-fleet${FLEET_ID}:" >> ${inv}
         echo "      ansible_host: ${ip}" >> ${inv}
-    done    
+    done
 }
 
 
 SSH="ssh ${JAIA_FLEET_CONFIG_SSH_OPTS:-}"
+export ANSIBLE_HOST_KEY_CHECKING=False
+
 # run commands on the read-only underlay as jaia (unprivileged user)
 RO_CMD="sudo overlayroot-chroot sudo -u jaia "
 RO_ROOT_CMD="sudo overlayroot-chroot "
@@ -127,8 +129,8 @@ run_wt_checklist jaia_bots "Fleet Configuration" "Which bots to configure?" "${B
 BOT_IDS="$WT_CHOICE"
 
 # write local temporary ansible playbook
-INVENTORY=/tmp/jaia-fleet${FLEET_ID}-inventory.yml
-generate_ansible_inventory
+INVENTORY=/tmp/jaia-fleet${FLEET_ID}-inventory-for-fleet-config.yml
+generate_temporary_ansible_inventory
 export ANSIBLE_FORCE_COLOR=true
 
 function filter_output()
@@ -167,24 +169,31 @@ do
     [[ "${action}" == ' ' || -z "${action}" ]] && continue
     set -o pipefail
     case "$action" in
+        # bots and hubs
         "$retrofit_ssh"|"$retrofit_ssh_preseed")
             retrofit_ssh |& filter_output
             ;;
+        # bots and hubs
         "$setup_ssh_keys"|"$setup_ssh_keys_preseed")
             ssh_key_setup |& filter_output
             ;;
+        # bots and hubs
         "$setup_wireguard"|"$setup_wireguard_preseed")
             wireguard_setup |& filter_output
             ;;
+        # bots and hubs
         "$disable_wireguard"|"$disable_wireguard_preseed")
             wireguard_disable |& filter_output
             ;;
+        # bots and hubs
         "$copy_xbee"|"$copy_xbee_preseed")
             xbee_radio_setup |& filter_output
             ;;
+        # hubs only
         "$generate_ansible_inventory"|"$generate_ansible_inventory_preseed")
             gen_ansible_inventory |& filter_output
             ;;
+        # bots and hubs
         "$reboot"|"$reboot_preseed")
             reboot |& filter_output
             ;;
