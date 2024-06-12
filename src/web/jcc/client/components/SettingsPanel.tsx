@@ -8,7 +8,7 @@ import ScanForBotPanel from "./ScanForBotPanel";
 import QueryBotStatusPanel from "./QueryBotStatusPanel";
 import { JaiaAPI } from "../../common/JaiaAPI";
 import { taskData } from "./TaskPackets";
-import { PanelType } from "./CommandControl";
+import { PanelType } from "./CommandControl/CommandControl";
 import { PIDGainsPanel } from "./PIDGainsPanel";
 import { PortalBotStatus, PortalHubStatus } from "./shared/PortalStatus";
 
