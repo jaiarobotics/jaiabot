@@ -1,17 +1,11 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from "react";
 
 // Material Design Icons
 import Icon from "@mdi/react";
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderUpload } from "@mdi/js";
+import { mdiDelete, mdiFolderUpload } from "@mdi/js";
 import Button from "@mui/material/Button";
 import { MissionLibraryLocalStorage } from "./MissionLibrary";
-import { CommandList } from "./Missions";
-import { MissionInterface } from "./CommandControl";
+import { MissionInterface } from "./CommandControl/CommandControl";
 import { CustomAlert } from "./shared/CustomAlert";
 
 interface Props {

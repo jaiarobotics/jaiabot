@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import EditModeToggle from "./EditModeToggle";
 import { Missions } from "./Missions";
 import { GlobalSettings } from "./Settings";
-import { JaiaAPI, jaiaAPI } from "../../common/JaiaAPI";
+import { JaiaAPI } from "../../common/JaiaAPI";
 import { error, warning, info } from "../libs/notifications";
-import { MissionInterface, RunInterface } from "./CommandControl";
+import { MissionInterface, RunInterface } from "./CommandControl/CommandControl";
 import { PortalHubStatus, PortalBotStatus } from "./shared/PortalStatus";
 import {
     Command,
@@ -14,7 +14,6 @@ import {
     HubCommandType,
     BotStatus,
     MissionState,
-    HubStatus,
 } from "./shared/JAIAProtobuf";
 import {
     formatLatitude,
@@ -34,9 +33,6 @@ import {
     mdiSkipNext,
     mdiDownload,
     mdiRestartAlert,
-    mdiWrenchCog,
-    mdiChartLine,
-    mdiWifiCog,
     mdiCheckboxMarkedCirclePlusOutline,
 } from "@mdi/js";
 

@@ -12,9 +12,8 @@ import {
 } from "./shared/JAIAProtobuf";
 import { getGeographicCoordinate } from "./shared/Utilities";
 import { FormControl, MenuItem } from "@mui/material";
-import { GlobalSettings, Save } from "./Settings";
 import { TaskSettingsPanel } from "./TaskSettingsPanel";
-import { MissionInterface } from "./CommandControl";
+import { MissionInterface } from "./CommandControl/CommandControl";
 import { Geometry } from "ol/geom";
 import { Feature } from "ol";
 import { CustomAlert } from "./shared/CustomAlert";
