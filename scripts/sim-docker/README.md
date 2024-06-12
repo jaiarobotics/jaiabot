@@ -11,6 +11,8 @@ A few important Docker terms:
 1.  **`$ ./build-image.sh`**
     * This will build the Docker image needed to run the simulator.
     * This will take a while.
+    * Windows users should enter the following command (from the bash script above)
+    * `docker build --progress=plain --no-cache -t jaiauser:jaia-sim-image .`
 
 2.  **Edit sim_env_vars.txt**
     * This file contains environment variables that will be used to set up the simulation:
@@ -22,24 +24,29 @@ A few important Docker terms:
     * This will launch the Docker container to run the simulation.
     * Becasue the web support needs to be built each time, it takes a while for everything to become available.
     * This may be longer than on your host machine, be patient.
+    * Windows users should enter the following command (from the bash script above)
+    * `docker run --rm --name jaia-sim-container -d -i -t --env-file sim_env_vars.txt -p "40001:40001" jaiauser:jaia-sim-image /bin/bash -li /entrypoint.sh`
 
 4.  **Accessing Jaia web apps from the Docker container using your host machine browser**
     * Currently the Docker container supports the following web apps:
         * JCC
         * JED
-        * Goby Liaison
-    * The container shares the host network so all ports are the same as if the apps were running on the host machine.
-    Because it is a shared network, you must specify the IP address `127.0.0.1` instead of using "localhost"
+    * The container maps port 40001 to the corresponding host port, launch JCC as usual
         * Example: JCC -> http://127.0.0.1:40001/
+        * Example: JCC -> localhost/:40001/
 
 5.  **`$ ./save-image.sh`**
     * This save the Docker Image to a file for transport
     * file will be named ./jaia-sim-image.tar.gz
+    * Windows users should enter the following command (from the bash script above)
+    * `docker image save jaiauser:jaia-sim-image | gzip > jaia-sim-image.tar.gz`
 
 6.  **`$ ./load-image.sh`**
     * This load the Docker Image from the file jaia-sim-image.tar.gz
     * file should be in the local directory when the script is run
-    
+    * Windows users should enter the following command (from the bash script above)
+    * `docker load -i jaia-sim-image.tar.gz`
+
 7. **Other Useful Docker commands**
     * This will list all available images on your machine.
         * `$ docker images`
