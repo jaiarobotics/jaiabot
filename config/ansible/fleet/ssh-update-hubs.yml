@@ -1,4 +1,14 @@
 ---
+
+- name: Determine active bots
+  gather_facts: no
+  become: no
+  hosts: all
+  tasks:
+    - name: Active bots fact
+      set_fact:
+        active_bots: "{{ groups['bots'] | intersect(ansible_play_batch) }}"
+
 - name: Update Hubs known_hosts with new Bot(s)
   hosts: hubs
   gather_facts: no
@@ -18,7 +28,7 @@
 
     - name: Append bots to /etc/hosts and .ssh/known_hosts
       include_tasks: tasks/hub-add-known-host.yml
-      loop: "{{ groups['bots'] }}"
+      loop: "{{ active_bots }}"
       loop_control:
         loop_var: bot_inventory_name
       

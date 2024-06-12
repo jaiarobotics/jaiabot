@@ -6,8 +6,7 @@
   pre_tasks:
     - name: Set facts
       include_tasks: tasks/set-facts.yml
-      when: HUB_IS_PRESENT
-
+      when: HUB_IS_PRESENT        
   tasks:
     - name: Gather keys
       when: HUB_IS_PRESENT
@@ -24,9 +23,14 @@
             hub_ssh_pub_key: "{{ hub_key_content['content'] | b64decode | trim }}"
           delegate_to: localhost
 
-        - name: Debug SSH public key content
-          debug:
-            var: hub_ssh_pub_key
+- name: Determine active hubs
+  gather_facts: no
+  become: no
+  hosts: all
+  tasks:
+    - name: Active hubs fact
+      set_fact:
+        active_hubs: "{{ groups['hubs'] | intersect(ansible_play_batch) }}"
 
 - name: Distribute SSH public key to bots
   hosts: bots
@@ -49,14 +53,14 @@
     - name: Gather / copy keys read from Hubs
       when: HUB_IS_PRESENT
       include_tasks: tasks/bot-write-pubkey-from-hostvars.yml
-      loop: "{{ groups['hubs'] }}"
+      loop: "{{ active_hubs }}"
       loop_control:
         loop_var: hub_inventory_name
 
     - name: Copy Yubikey from stored directory (does not require Hub to be present)
       when: not HUB_IS_PRESENT
       include_tasks: tasks/bot-copy-yubikey.yml
-      loop: "{{ groups['hubs'] }}"
+      loop: "{{ active_hubs }}"
       loop_control:
         loop_var: hub_inventory_name
 

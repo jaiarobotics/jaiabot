@@ -3,5 +3,5 @@
   vars:
     CONFIGURE_VIRTUALFLEET: false
     
-- import_playbook: ../reboot-hubs.yml
+- import_playbook: ../reboot-all.yml
   
