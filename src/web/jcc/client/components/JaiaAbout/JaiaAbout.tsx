@@ -1,8 +1,10 @@
 import React from "react";
+
+import { Metadata } from "../../../../shared/PortalStatus";
+
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
-import "../style/components/JaiaAbout.css";
-import { Metadata } from "./shared/PortalStatus";
+import "./JaiaAbout.css";
 
 interface Props {
     metadata: Metadata;
@@ -41,13 +43,14 @@ export default class JaiaAbot extends React.Component {
         }
 
         return (
-            <div id="jaia-about-container">
-                <div
+            <div id="jaia-about-container" data-testid="jaia-about-panel">
+                <button
                     className="jaia-about-close-btn-container"
+                    aria-label="close-btn"
                     onClick={() => this.closeAboutCard()}
                 >
                     <Icon path={mdiClose} size={1} className="jaia-about-close-btn" />
-                </div>
+                </button>
                 <img src="/favicon.png" className="jaia-about-logo"></img>
                 <div className="jaia-about-contact-container">
                     <div className="jaia-about-label">Website:</div>

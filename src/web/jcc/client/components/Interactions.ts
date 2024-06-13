@@ -3,7 +3,7 @@ import * as Source from "ol/source";
 import * as Style from "ol/style";
 import * as Events from "ol/events";
 import { DrawEvent } from "ol/interaction/Draw";
-import CommandControl from "./CommandControl";
+import CommandControl from "./CommandControl/CommandControl";
 import { unByKey } from "ol/Observable";
 import GeoJSON from "ol/format/GeoJSON";
 import { GPX, IGC, KML, TopoJSON } from "ol/format";

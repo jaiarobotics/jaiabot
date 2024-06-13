@@ -3,7 +3,8 @@
 # Install packages to allow apt to use a repository over HTTPS:
 sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
 # Add packages.gobysoft.org mirror to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
+default_version=$(<release_branch)
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
 # Update apt
