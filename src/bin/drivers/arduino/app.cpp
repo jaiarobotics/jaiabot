@@ -102,6 +102,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
+    bool is_driver_connected_{false};
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
     bool arduino_restarting_{false};
@@ -200,6 +201,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 if (is_settings_ack_)
                 {
                     // Reset to check compatibility again
+                    is_driver_connected_ = false;
                     is_driver_compatible_ = false;
 
                     // Reset to false because the arduino restarted
@@ -221,16 +223,18 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             }
 
             glog.is_debug2() &&
-                glog << group("main") << "Arduino Driver Compatible: " << is_driver_compatible_
+                glog << group("main") << "Arduino Driver Connected: " << is_driver_connected_
+                     << "Arduino Driver Compatible: " << is_driver_compatible_
                      << ", Arduino Version: " << arduino_response.version()
                      << ", Arduino Driver Has Verision: "
                      << arduino_version_compatibility_.count(arduino_response.version())
                      << std::endl;
 
             // Check if the driver is compatible
-            if (!is_driver_compatible_ &&
+            if (!is_driver_connected_ &&
                 arduino_version_compatibility_.count(arduino_response.version()))
             {
+                is_driver_connected_ = true;
                 auto compatible_from =
                     arduino_version_compatibility_.at(arduino_response.version()).first;
                 auto compatible_to =
@@ -568,11 +572,20 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (!is_driver_compatible_)
+    if (!is_driver_connected_)
     {
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
+    }
+    else
+    {
+        if (!is_driver_compatible_)
+        {
+            health_state = goby::middleware::protobuf::HEALTH__FAILED;
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+        }
     }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
@@ -590,6 +603,6 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
+            ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
     }
 }

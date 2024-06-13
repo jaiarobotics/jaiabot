@@ -1,3 +1,3 @@
 export function byId(id) {
-    return document.getElementById(id)
+    return document.getElementById(id);
 }

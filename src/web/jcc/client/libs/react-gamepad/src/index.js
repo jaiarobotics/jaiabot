@@ -1,8 +1,8 @@
-import Gamepad from './Gamepad'
-import layouts from './layouts'
+import Gamepad from "./Gamepad";
+import layouts from "./layouts";
 
-Gamepad.layouts = layouts
+Gamepad.layouts = layouts;
 
-export { Gamepad, layouts }
+export { Gamepad, layouts };
 
-export default Gamepad
+export default Gamepad;

@@ -1,0 +1,83 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "RunInstancesSpecificVPC",
+			"Effect": "Allow",
+			"Action": "ec2:RunInstances",
+			"Resource": "arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:subnet/*",
+			"Condition": {
+				"StringEquals": {
+					"ec2:Vpc": "arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:vpc/{{VPC_ID}}"
+				}
+			}
+		},
+		{
+			"Sid": "DescribeThings",
+			"Effect": "Allow",
+			"Action": "ec2:Describe*",
+			"Resource": "*"
+		},
+		{
+			"Sid": "RunInstancesRequiredExtraPermissions",
+			"Effect": "Allow",
+			"Action": "ec2:RunInstances",
+			"Resource": [
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:network-interface/*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:security-group/*",
+				"arn:aws:ec2:{{REGION}}::image/ami-*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:key-pair/*"
+			]
+		},
+		{
+			"Sid": "InstanceStateForVirtualFleetImages",
+			"Effect": "Allow",
+			"Action": [
+				"ec2:RebootInstances",
+				"ec2:TerminateInstances",
+				"ec2:StartInstances",
+				"ec2:StopInstances"
+			],
+			"Resource": [
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
+			],
+			"Condition": {
+				"StringEquals": {
+					"ec2:ResourceTag/jaia_instance_type": "virtualfleet"
+				}
+			}
+		},
+		{
+			"Sid": "CreateTagsOnLaunch",
+			"Effect": "Allow",
+			"Action": "ec2:CreateTags",
+			"Resource": [
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
+			],
+			"Condition": {
+				"StringEquals": {
+					"ec2:CreateAction": "RunInstances"
+				}
+			}
+		},
+		{
+			"Sid": "CloudHubData",
+			"Effect": "Allow",
+			"Action": [
+				"s3:GetBucketLocation",
+				"s3:GetObject",
+				"s3:ListBucket",
+				"s3:PutObject",
+				"s3:GetBucketAcl"
+			],
+			"Resource": [
+				"arn:aws:s3:::{{CLOUDHUB_DATA_BUCKET}}",
+				"arn:aws:s3:::{{CLOUDHUB_DATA_BUCKET}}/*"
+			]
+		}
+	]
+}

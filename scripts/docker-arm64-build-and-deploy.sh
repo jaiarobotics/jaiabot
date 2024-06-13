@@ -10,7 +10,7 @@
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
-## Env var "jaiabot_version" can be set to one of: 1.y, X.y which will set the version of the 'apt' repository. If unset, "1.y" will be used.
+## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the contents of "release_branch" will be used (the default for this current branch).
 ## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, "focal" will be used.
 
 set -e
@@ -24,7 +24,9 @@ function dockerPackageVersion() {
 script_dir=$(dirname $0)
 
 repo=${jaiabot_repo:-release}
-version=${jaiabot_version:-1.y}
+
+default_version=$(<release_branch)
+version=${jaiabot_version:-${default_version}}
 version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
 distro=${jaiabot_distro:-focal}
 

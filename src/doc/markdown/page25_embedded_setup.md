@@ -20,11 +20,11 @@ The RP bootloader on older CM4 boards does not boot from all the USB ports autom
 
 ### Generation of the filesystem image
 
-*Note: this step should only need to be done once per change to jaiabot-rootfs-gen (and then reused for any number of USB thumb drives).*
+*Note: this step should only need to be done once per change to jaiabot/rootfs files (and then reused for any number of USB thumb drives).*
 
-The [jaiabot-rootfs-gen](https://github.com/jaiarobotics/jaiabot-rootfs-gen) project is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
+The jaiabot/rootfs folder is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
 
-To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot-rootfs-gen/blob/master/README.md
+To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/1.y/rootfs/README.md.
 
 The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 
