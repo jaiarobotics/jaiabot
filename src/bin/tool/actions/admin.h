@@ -20,30 +20,40 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-syntax = "proto2";
-import "goby/middleware/protobuf/app_config.proto";
-import "goby/protobuf/option_extensions.proto";
-import "actions/net.proto";
+#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_H
+#define JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_H
 
-package jaiabot.config;
+#include "goby/middleware/application/interface.h"
 
-message IPTool
+#include "actions/admin.pb.h"
+
+namespace jaiabot
 {
-    option (goby.msg).cfg.tool = {
-        is_tool: true
-        has_subtools: false
-        has_help_action: false
-    };
+namespace apps
+{
+class AdminToolConfigurator
+    : public goby::middleware::ProtobufConfigurator<jaiabot::config::AdminTool>
+{
+  public:
+    AdminToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::AdminTool>(argc, argv)
+    {
+        auto& cfg = mutable_cfg();
+    }
+};
 
-    optional goby.middleware.protobuf.AppConfig app = 1
-        [(goby.field) = { cfg { action: DEVELOPER } }];
+class AdminTool : public goby::middleware::Application<jaiabot::config::AdminTool>
+{
+  public:
+    AdminTool();
+    ~AdminTool() override {}
 
-    required string host = 2 [(goby.field) = {
-        description: "The host get the IP address of (e.g. b4f2, h1f3, or chf4)",
-        cfg { position { enable: true } }
-    }];
+  private:
+    void run() override { assert(false); }
 
-    optional Net net = 3 [default = wlan];
+  private:
+};
 
-    optional bool ipv6 = 4 [default = false];
-}
+} // namespace apps
+} // namespace jaiabot
+#endif

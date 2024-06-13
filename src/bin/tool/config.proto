@@ -98,6 +98,9 @@ message Tool
                            "  jaia ping --net=fleet_vpn b5f3: ping bot5 fleet3 over fleet vpn\n"
                            "  jaia ping --net=fleet_vpn b5f3 -i 10: ping bot5 fleet3 over fleet vpn using 'ping -i 10'\n"
         }];
+        admin = 8 [
+            (goby.ev).cfg = { short_help_msg: "System administration commands" }
+        ];
     }
     optional Action action = 2 [
         default = help,
