@@ -57,7 +57,7 @@ The components of the VPC include:
 
 ## Network addresses
 
-The use of the `ip.py` tool (in `jaiabot/rootfs/customization/includes.chroot/etc/jaiabot` or `/etc/jaiabot/ip.py` on the hub/bots) is recommended for determining IP addresses for a given node, id, fleet, etc.
+The use of the `jaia-ip.py` tool is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page55_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
@@ -115,21 +115,21 @@ Some examples include:
 
 You can generate the values for the table above yourself using:
 ```
-ip.py addr --fleet_id 4 --node bot --node_id 5 --net fleet_vpn --ipv6
-ip.py addr --fleet_id 4 --node bot --node_id 5 --net vfleet_vpn --ipv6
-ip.py addr --fleet_id 4 --node bot --node_id 5 --net cloudhub_vpn --ipv6
+jaia-ip.py addr --fleet_id 4 --node bot --node_id 5 --net fleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 4 --node bot --node_id 5 --net vfleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 4 --node bot --node_id 5 --net cloudhub_vpn --ipv6
 
-ip.py addr --fleet_id 250 --node bot --node_id 6 --net fleet_vpn --ipv6
-ip.py addr --fleet_id 250 --node bot --node_id 6 --net vfleet_vpn --ipv6
-ip.py addr --fleet_id 250 --node bot --node_id 6 --net cloudhub_vpn --ipv6
+jaia-ip.py addr --fleet_id 250 --node bot --node_id 6 --net fleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 250 --node bot --node_id 6 --net vfleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 250 --node bot --node_id 6 --net cloudhub_vpn --ipv6
 
-ip.py addr --fleet_id 10 --node hub --node_id 20 --net fleet_vpn --ipv6
-ip.py addr --fleet_id 10 --node hub --node_id 20 --net vfleet_vpn --ipv6
-ip.py addr --fleet_id 10 --node hub --node_id 20 --net cloudhub_vpn --ipv6
+jaia-ip.py addr --fleet_id 10 --node hub --node_id 20 --net fleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 10 --node hub --node_id 20 --net vfleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 10 --node hub --node_id 20 --net cloudhub_vpn --ipv6
 
-ip.py addr --fleet_id 15 --node hub --node_id 30 --net fleet_vpn --ipv6
-ip.py addr --fleet_id 15 --node hub --node_id 30 --net vfleet_vpn --ipv6
-ip.py addr --fleet_id 15 --node hub --node_id 30 --net cloudhub_vpn --ipv6
+jaia-ip.py addr --fleet_id 15 --node hub --node_id 30 --net fleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 15 --node hub --node_id 30 --net vfleet_vpn --ipv6
+jaia-ip.py addr --fleet_id 15 --node hub --node_id 30 --net cloudhub_vpn --ipv6
 ```
 
 ## AWS tags
