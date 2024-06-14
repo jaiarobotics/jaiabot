@@ -253,6 +253,10 @@ if [ -z "$ROOTFS_TARBALL" ]; then
     echo "JAIABOT_IMAGE_VERSION=$ROOTFS_BUILD_TAG" >> config/includes.chroot/etc/jaiabot/version
     echo "JAIABOT_IMAGE_BUILD_DATE=\"`date -u`\""  >> config/includes.chroot/etc/jaiabot/version
     echo "RASPI_FIRMWARE_VERSION=$RASPI_FIRMWARE_VERSION"  >> config/includes.chroot/etc/jaiabot/version
+
+    # Do not include cloud packages in Raspi image - cloud-init seems to cause long hangs on first-boot
+    [ -z "$VIRTUALBOX" ] && rm config/package-lists/cloud.list.chroot
+    
     lb build
     cd ..
     ROOTFS_TARBALL=rootfs-build/binary-tar.tar.gz
