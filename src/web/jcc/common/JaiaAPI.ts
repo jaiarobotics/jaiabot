@@ -6,6 +6,7 @@ import { GeoJSON } from "ol/format";
 import { Command, Engineering, CommandForHub, TaskPacket } from "../../shared/JAIAProtobuf";
 import { randomBase57, convertHTMLStrDateToISO } from "../client/components/shared/Utilities";
 import { Geometry } from "ol/geom";
+import { FeatureCollection } from "@turf/turf";
 
 export interface JaiaError {
     code?: number;
@@ -160,14 +161,28 @@ export class JaiaAPI {
         return this.get(`jaia/task-packets-count`);
     }
 
-    getDepthContours(startDate?: string, endDate?: string) {
-        if (startDate && endDate) {
+    async getDepthContours(
+        startDate?: string,
+        endDate?: string,
+    ): Promise<FeatureCollection<Geometry>> {
+        var queryParameters = [];
+        if (startDate) {
             const startDateStr = convertHTMLStrDateToISO(startDate);
+            queryParameters.push(`startDate=${startDateStr}`);
+        }
+        if (endDate) {
             const endDateStr = convertHTMLStrDateToISO(endDate);
-            return this.get(`jaia/depth-contours?startDate=${startDateStr}&endDate=${endDateStr}`);
+            queryParameters.push(`endDate=${endDateStr}`);
+        }
+
+        if (queryParameters.length > 0) {
+            const queryParameterString = queryParameters.join("&");
+            return (await this.get(
+                `jaia/depth-contours?${queryParameterString}`,
+            )) as FeatureCollection<Geometry>;
         } else {
             // Let server set default date values
-            return this.get(`jaia/depth-contours`);
+            return (await this.get(`jaia/depth-contours`)) as FeatureCollection<Geometry>;
         }
     }
 
@@ -180,10 +195,19 @@ export class JaiaAPI {
      * @returns {Feature<Geometry>[] | void} A GeoJSON feature set containing interpolated drift features
      */
     getDriftMap(startDate?: string, endDate?: string) {
-        if (startDate && endDate) {
+        var queryParameters = [];
+        if (startDate) {
             const startDateStr = convertHTMLStrDateToISO(startDate);
+            queryParameters.push(`startDate=${startDateStr}`);
+        }
+        if (endDate) {
             const endDateStr = convertHTMLStrDateToISO(endDate);
-            return this.get(`jaia/drift-map?startDate=${startDateStr}&endDate=${endDateStr}`)
+            queryParameters.push(`endDate=${endDateStr}`);
+        }
+
+        if (queryParameters.length > 0) {
+            const queryParameterString = queryParameters.join("&");
+            return this.get(`jaia/drift-map?${queryParameterString}`)
                 .then((geoJSON) => {
                     const features = new GeoJSON().readFeatures(geoJSON);
                     return features;

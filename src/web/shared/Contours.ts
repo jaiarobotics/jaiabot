@@ -4,7 +4,7 @@ import { ProjectionLike } from "ol/proj";
 
 const equirectangular = "EPSG:4326";
 
-export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojson: object) {
+export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojson: any) {
     // Manually transform features from lon/lat to the view's projection.
     var features = new GeoJSON().readFeatures(geojson);
     features.forEach((feature) => {
@@ -27,7 +27,7 @@ export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojso
     return features;
 }
 
-export function geoJSONToFeatures(projection: ProjectionLike, geojson: object) {
+export function geoJSONToFeatures(projection: ProjectionLike, geojson: any) {
     // Manually transform features from lon/lat to the view's projection.
     var features = new GeoJSON().readFeatures(geojson);
     features.forEach((feature) => {

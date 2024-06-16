@@ -87,6 +87,23 @@ export class TaskData {
         });
     }
 
+    update(startDate?: string, endDate?: string) {
+        console.log("update");
+        console.log(startDate, endDate);
+
+        return jaiaAPI
+            .getTaskPackets(startDate, endDate)
+            .then((taskPackets) => {
+                this.updateTaskPacketsLayers(taskPackets);
+
+                this._updateInterpolatedDrifts(startDate, endDate);
+                this._updateContourPlot(startDate, endDate);
+            })
+            .catch((err) => {
+                console.error("Task Packets Retrieval Error:", err);
+            });
+    }
+
     getTaskPackets() {
         this.taskPackets;
     }
@@ -237,10 +254,10 @@ export class TaskData {
         return taskCalcs;
     }
 
-    _updateContourPlot() {
+    _updateContourPlot(startDate?: string, endDate?: string) {
         // To Do: Figure out how to make multiple contour maps based on time/location
         jaiaAPI
-            .getDepthContours()
+            .getDepthContours(startDate, endDate)
             .catch((error) => {
                 console.error(error);
             })
@@ -293,14 +310,6 @@ export class TaskData {
             }
         }
 
-        if (taskPackets.length >= 2) {
-            this._updateInterpolatedDrifts();
-        }
-
-        if (taskPackets.length >= 3) {
-            this._updateContourPlot();
-        }
-
         this.diveSource.clear();
         this.driftSource.clear();
 
@@ -318,9 +327,9 @@ export class TaskData {
      * @notes
      * To Do: Figure out how to make multiple Drift Maps based on time/location
      */
-    _updateInterpolatedDrifts() {
+    _updateInterpolatedDrifts(startDate?: string, endDate?: string) {
         jaiaAPI
-            .getDriftMap()
+            .getDriftMap(startDate, endDate)
             .then((features) => {
                 if (Array.isArray(features)) {
                     const tFeatures = features.map((feature) => {
