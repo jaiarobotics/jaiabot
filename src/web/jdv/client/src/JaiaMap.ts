@@ -569,6 +569,8 @@ export default class JaiaMap {
             return;
         }
 
+        console.log(this.command_dict);
+
         const botIdArray = Object.keys(this.command_dict);
         if (botIdArray.length == 0) {
             return;
@@ -589,7 +591,11 @@ export default class JaiaMap {
                 return;
             }
 
+            console.log("active_goal_dict");
+            console.log(this.active_goal_dict);
             const activeGoalsArray = this.active_goal_dict[bot_id];
+            console.log("activeGoalsArray");
+            console.log(activeGoalsArray);
 
             if (!activeGoalsArray) {
                 continue;
@@ -598,6 +604,9 @@ export default class JaiaMap {
             const activeGoal = bisect(activeGoalsArray, (active_goal) => {
                 return timestamp_micros - active_goal._utime_;
             })?.value;
+
+            console.log("activeGoal");
+            console.log(activeGoal);
 
             const activeGoalIndex = activeGoal?.active_goal;
             const isSelected = false;
