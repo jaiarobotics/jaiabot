@@ -2,3 +2,5 @@ $app_block
 $interprocess_block
 
 $xbee_info
+
+is_simulation: $is_simulation

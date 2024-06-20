@@ -1,62 +1,55 @@
 import React, { MouseEvent, ReactElement, ReactNode, useContext } from "react";
 
 // Jaia Imports
-import MissionControllerPanel from "./mission/MissionControllerPanel";
-import * as MissionFeatures from "./shared/MissionFeatures";
-import RCControllerPanel from "./RCControllerPanel";
-import DownloadPanel from "./DownloadPanel";
-import RunInfoPanel from "./RunInfoPanel";
-import JaiaAbout from "./JaiaAbout";
-import { layers } from "./Layers";
-import { Missions } from "./Missions";
-import { taskData } from "./TaskPackets";
-import { HubOrBot } from "./HubOrBot";
-import { createMap } from "./Map";
-import { BotLayers } from "./BotLayers";
-import { HubLayers } from "./HubLayers";
-import { HubDetails } from "../../../containers/HubDetails";
-import { CommandList } from "./Missions";
-import { SurveyLines } from "./SurveyLines";
-import { BotListPanel } from "./BotListPanel";
-import { Interactions } from "./Interactions";
-import { SettingsPanel } from "./SettingsPanel";
-import { GlobalActions } from "../../../context/actions/GlobalActions";
-import { RallyPointPanel } from "./RallyPointPanel";
-import { TaskPacketPanel } from "./TaskPacketPanel";
-import { SurveyExclusions } from "./SurveyExclusions";
-import { LoadMissionPanel } from "./LoadMissionPanel";
-import { SaveMissionPanel } from "./SaveMissionPanel";
-import { GoalSettingsPanel } from "./GoalSettings";
-import { jaiaAPI, BotPaths } from "../../common/JaiaAPI";
-import { Save, GlobalSettings } from "./Settings";
-import { CustomLayerGroupFactory } from "./CustomLayers";
-import { MissionLibraryLocalStorage } from "./MissionLibrary";
-import { playDisconnectReconnectSounds } from "./DisconnectSound";
-import { error, success, warning, info } from "../libs/notifications";
-import { CustomAlert, CustomAlertProps } from "./shared/CustomAlert";
-import { MissionSettingsPanel, MissionParams } from "./MissionSettings";
-import { PodStatus, PortalBotStatus, PortalHubStatus, Metadata } from "./shared/PortalStatus";
-import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from "./shared/Styles";
-import { createBotCourseOverGroundFeature, createBotHeadingFeature } from "./shared/BotFeature";
-import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from "./Details";
+import MissionControllerPanel from "../mission/MissionControllerPanel";
+import * as MissionFeatures from "../shared/MissionFeatures";
+import RCControllerPanel from "../RCControllerPanel";
+import DownloadPanel from "../DownloadPanel";
+import RunInfoPanel from "../RunInfoPanel";
+import JaiaAbout from "../JaiaAbout/JaiaAbout";
+import { layers } from "../Layers";
+import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
+import { Missions } from "../Missions";
+import { taskData } from "../TaskPackets";
+import { HubOrBot } from "../HubOrBot";
+import { createMap } from "../Map";
+import { BotLayers } from "../BotLayers";
+import { HubLayers } from "../HubLayers";
+import { HubDetails } from "../../../../containers/HubDetails";
+import { CommandList } from "../Missions";
+import { SurveyLines } from "../SurveyLines";
+import { BotListPanel } from "../BotListPanel";
+import { Interactions } from "../Interactions";
+import { GlobalActions } from "../../../../context/actions/GlobalActions";
+import { SettingsPanel } from "../SettingsPanel";
+import { RallyPointPanel } from "../RallyPointPanel";
+import { TaskPacketPanel } from "../TaskPacketPanel";
+import { SurveyExclusions } from "../SurveyExclusions";
+import { LoadMissionPanel } from "../LoadMissionPanel";
+import { SaveMissionPanel } from "../SaveMissionPanel";
+import { GoalSettingsPanel } from "../GoalSettings";
+import { Save, GlobalSettings } from "../Settings";
+import { CustomLayerGroupFactory } from "../CustomLayers";
+import { MissionLibraryLocalStorage } from "../MissionLibrary";
+import { playDisconnectReconnectSounds } from "../DisconnectSound";
+import { error, success, warning, info } from "../../libs/notifications";
+import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
+import { MissionSettingsPanel, MissionSettings, MissionParams } from "../MissionSettings";
+import { PodStatus, PortalBotStatus, PortalHubStatus, Metadata } from "../shared/PortalStatus";
+import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from "../shared/Styles";
+import { createBotCourseOverGroundFeature, createBotHeadingFeature } from "../shared/BotFeature";
 import {
     getSurveyMissionPlans,
     featuresFromMissionPlanningGrid,
     surveyStyle,
-} from "./SurveyMission";
+} from "../SurveyMission";
 import {
     GlobalContext,
     GlobalDispatchContext,
     GlobalContextType,
     GlobalAction,
-} from "../../../context/GlobalContext";
-import {
-    getGeographicCoordinate,
-    deepcopy,
-    getMapCoordinate,
-    getHTMLDateString,
-    getHTMLTimeString,
-} from "./shared/Utilities";
+} from "../../../../context/GlobalContext";
+import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from "../Details";
 import {
     Goal,
     TaskType,
@@ -68,7 +61,15 @@ import {
     TaskPacket,
     BottomDepthSafetyParams,
     BotType,
-} from "./shared/JAIAProtobuf";
+} from "../shared/JAIAProtobuf";
+import {
+    getGeographicCoordinate,
+    deepcopy,
+    equalValues,
+    getMapCoordinate,
+    getHTMLDateString,
+    getHTMLTimeString,
+} from "../shared/Utilities";
 
 // OpenLayers
 import OlMap from "ol/Map";
@@ -113,14 +114,13 @@ import {
     mdiMagnifyMinusOutline,
     mdiRotate3dVariant,
 } from "@mdi/js";
-import "reset-css";
-import "../style/CommandControl.less";
+import "./CommandControl.less";
 
 // Utility
 import cloneDeep from "lodash.clonedeep";
-import { HelpWindow } from "./HelpWindow";
+import { HelpWindow } from "../HelpWindow";
 
-const rallyIcon = require("./shared/rally.svg") as string;
+const rallyIcon = require("../../../../shared/rally.svg") as string;
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap;
@@ -172,7 +172,7 @@ export interface MissionInterface {
     runIdInEditMode: string;
 }
 
-interface Props {
+export interface Props {
     globalContext: GlobalContextType;
     globalDispatch: React.Dispatch<GlobalAction>;
 }
@@ -1521,6 +1521,18 @@ export default class CommandControl extends React.Component {
                                 this._runMission(runs[key].command);
                                 // Turn off edit mode when run starts for completeness
                                 if (runs[key].id === this.getRunList().runIdInEditMode) {
+                                    // Take the current goal being edited out of move waypoint mode
+                                    //  TODO:  Refactor the waypoint movement into an Interaction that's added to the map, OR
+                                    //         Allow waypoints to be dragged for moving.
+                                    //  TODO:  Use a toolbar button to switch to "Add Waypoint Mode" instead of having "Edit Mode?"
+                                    //         This may simplify logic considerably and prevent state-related bugs.
+                                    const goalBeingEdited = this.state.goalBeingEdited;
+                                    if (goalBeingEdited) {
+                                        goalBeingEdited.moveWptMode = false;
+                                    }
+                                    this.setState({ goalBeingEdited });
+
+                                    // Set empty runIdInEditMode
                                     const runList = this.getRunList();
                                     runList.runIdInEditMode = "";
                                     this.setRunList(runList);
@@ -2035,7 +2047,7 @@ export default class CommandControl extends React.Component {
         this.updateMissionHistory(runList);
     }
 
-    handleEvent(evt: any) {
+    handleEvent(evt: MapBrowserEvent<UIEvent>) {
         switch (evt.type) {
             case "click":
                 return this.clickEvent(evt as MapBrowserEvent<UIEvent>);
@@ -2989,7 +3001,7 @@ export default class CommandControl extends React.Component {
                 }
             });
 
-            this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder());
+            this.setState({ botDownloadQueue: updatedQueue });
         };
 
         if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
@@ -3131,6 +3143,7 @@ export default class CommandControl extends React.Component {
                 <img
                     className="jaia-logo button"
                     src="/favicon.png"
+                    aria-label="Jaia info button"
                     onClick={() => {
                         const jaiaInfoContainer = document.getElementById(
                             "jaia-about-container",
@@ -4178,8 +4191,10 @@ export default class CommandControl extends React.Component {
                         isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
                         // Engineering Accordion Props
                         api={this.api}
+                        map={map}
                         bots={bots}
                         hubs={hubs}
+                        isSimulation={metadata.is_simulation}
                         getSelectedBotId={this.selectedBotId.bind(this)}
                         getFleetId={this.getFleetId.bind(this)}
                         control={this.takeControl.bind(this)}

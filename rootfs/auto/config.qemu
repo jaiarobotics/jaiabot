@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+export LB_BOOTSTRAP_FLAVOUR="minbase"
+lb config noauto \
+ --apt-indices none \
+ --architectures arm64 \
+ --archive-areas 'main universe multiverse restricted' \
+ --binary-filesystem ext4 \
+ --binary-images tar \
+ --bootstrap-qemu-arch arm64 \
+ --bootstrap-qemu-static /usr/bin/qemu-aarch64-static \
+ --chroot-filesystem none \
+ --compression gzip \
+ --distribution focal \
+ --iso-volume "JaiaBot" \
+ --iso-publisher "https://www.jaia.tech/" \
+ --linux-flavours none \
+ --linux-packages none \
+ --mode ubuntu \
+ --system normal
+
+cp -rf customization/* config/

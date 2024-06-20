@@ -96,6 +96,9 @@ set(PROJECT_INTERVEHICLE_API_VERSION 7)
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
+# find NanoPB
+find_package( Nanopb REQUIRED )
+
 # find DCCL
 find_package(DCCL REQUIRED)
 get_target_property(DCCL_INCLUDE_DIR dccl INTERFACE_INCLUDE_DIRECTORIES)
