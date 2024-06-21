@@ -7,52 +7,57 @@ A few important Docker terms:
 - _image_ - refers to a self contained run enviroment
 - _container_ - refers to a running instance of an image
 
-_All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
+_All commands should be executed in the `jaiabot/scripts/sim-docker directory` for **Linux users**_
 
-1.  **`$ ./build-image.sh`**
-
+1.  **Build the image**
+    
+    - **Linux users:** `$ ./build-image.sh`
+    - **Windows users:** `docker build --no-cache -t jaiauser:jaia-sim-image .`
+      - First, copy the `Dockerfile` from the jaiabot repository (`jaiabot/scripts/sim-docker`).
+      - Second, copy the `entrypoint.sh` script from the jaiabot repository (`jaiabot/scripts/sim-docker`).
+      - These two files should live in the location where you run the docker build command.
     - This will build the Docker image needed to run the simulator.
     - This will take a while.
-    - Windows users should enter the following command (from the bash script above)
-    - `docker build --no-cache -t jaiauser:jaia-sim-image .`
 
 2.  **Edit sim_env_vars.txt**
-
+    
     - This file contains environment variables that will be used to set up the simulation:
+    - **Windows users** will need to create this file in the location where you plan on launching the container.
       - JAIA_SIM_BOTS=3
       - JAIA_SIM_WARP=2
       - JAIA_SIM_FLEET=20
 
-3.  **`$ ./launch-container.sh`**
-
+3.  **Launch the container**
+    
+    - **Linux users:** `$ ./launch-container.sh`
+    - **Windows users:** `docker run --rm --name jaia-sim-container -d -i -t --env-file sim_env_vars.txt -p "40001:40001" jaiauser:jaia-sim-image /bin/bash -li /entrypoint.sh`
     - This will launch the Docker container to run the simulation.
-    - Windows users should enter the following command (from the bash script above)
-    - `docker run --rm --name jaia-sim-container -d -i -t --env-file sim_env_vars.txt -p "40001:40001" jaiauser:jaia-sim-image /bin/bash -li /entrypoint.sh`
 
 4.  **Accessing Jaia web apps from the Docker container using your host machine browser**
 
     - Currently the Docker container supports the following web apps:
       - JCC
       - JED
-    - The container maps port 40001 to the corresponding host port, launch JCC as usual
+    - The container maps port 40001 to the corresponding host port, launch JCC as usual.
       - Example: JCC -> http://127.0.0.1:40001/
-      - Example: JCC -> localhost/:40001/
+      - Example: JCC -> localhost:40001/
+    - It may take a couple of minutes for the JCC to load.
 
-5.  **`$ ./save-image.sh`**
+5.  **Save the image**
 
-    - This save the Docker Image to a file for transport
-    - file will be named ./jaia-sim-image.tar.gz
-    - Windows users should enter the following command (from the bash script above)
-    - `docker image save jaiauser:jaia-sim-image | gzip > jaia-sim-image.tar.gz`
+    - **Linux users:** `$ ./save-image.sh`
+    - **Windows users:** `docker image save jaiauser:jaia-sim-image | gzip > jaia-sim-image.tar.gz`
+    - This save the Docker Image to a file for transport.
+    - The file will be named ./jaia-sim-image.tar.gz.
 
-6.  **`$ ./load-image.sh`**
+6.  **Load the image**
 
-    - This load the Docker Image from the file jaia-sim-image.tar.gz
-    - file should be in the local directory when the script is run
-    - Windows users should enter the following command (from the bash script above)
-    - `docker load -i jaia-sim-image.tar.gz`
+    - **Linux users:** `$ ./load-image.sh`
+    - **Windows users:** `docker load -i jaia-sim-image.tar.gz`
+    - This load the Docker Image from the file jaia-sim-image.tar.gz.
+    - The file should be in the local directory when the script is run.
 
-7.  **Other Useful Docker commands**
+7.  **Other useful Docker commands**
 
     - This will list all available images on your machine.
       - `$ docker images`
