@@ -50,7 +50,7 @@ source $1
 set +a
 
 SCRIPT_PATH=$(dirname "$0")
-IP_PY=$(realpath "${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/ip.py")
+IP_PY=$(realpath "${SCRIPT_PATH}/../../../scripts/jaia-ip.py")
 JCC_HUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ipv6)
 
 FLEET_ID_HEX=$(printf '%x\n' ${FLEET_ID})
