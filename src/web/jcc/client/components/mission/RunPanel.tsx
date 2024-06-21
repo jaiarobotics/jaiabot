@@ -3,7 +3,7 @@ import React from "react";
 import RunList from "./RunList";
 import { Goal } from "../shared/JAIAProtobuf";
 import { Missions } from "../Missions";
-import { MissionInterface, RunInterface } from "../CommandControl";
+import { MissionInterface, RunInterface } from "../CommandControl/CommandControl";
 
 type RunPanelProps = {
     botIds: number[];

@@ -6,7 +6,7 @@ import {
     MissionStart,
     MovementType,
 } from "./shared/JAIAProtobuf";
-import { MissionInterface, RunInterface } from "./CommandControl";
+import { MissionInterface, RunInterface } from "./CommandControl/CommandControl";
 import { deepcopy } from "./shared/Utilities";
 import { CustomAlert } from "./shared/CustomAlert";
 
