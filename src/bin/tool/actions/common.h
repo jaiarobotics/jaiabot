@@ -29,7 +29,7 @@
 
 inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
-    std::regex host_pattern("([bh])([0-9]+)([svc]|)f([0-9]+)|(ch)f([0-9]+)");
+    std::regex host_pattern("([bh])([0-9]+)([svc]?)f([0-9]+)|(ch)f([0-9]+)");
     std::smatch host_matches;
 
     if (std::regex_match(host_code, host_matches, host_pattern))
