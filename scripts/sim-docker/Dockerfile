@@ -9,8 +9,7 @@ RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata keyboard-configuration
 RUN git clone https://github.com/jaiarobotics/jaiabot.git
 WORKDIR /jaiabot/scripts
-#branch is only needed while debugging
-RUN git switch task/create-docker-environment-for-simulator
+RUN git switch 1.y
 RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
 RUN /jaiabot/scripts/setup-tools-runtime.sh
 WORKDIR /jaiabot
