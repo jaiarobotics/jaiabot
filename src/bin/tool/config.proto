@@ -68,7 +68,15 @@ message Tool
         version = 4 [(goby.ev).cfg = {
             short_help_msg: "Jaia version (metadata)",
         }];
-        ssh = 5 [(goby.ev).cfg = {
+        ip = 5 [(goby.ev).cfg = {
+            short_help_msg: "Output the address or network for a given Jaia Hub or Bot for a given real or VPN network",
+            full_help_msg: "Runs the jaia-ip.py script to determine a given address for a bot or hub using shorthand codes.\n"
+                           "Example commands:\n"
+                           "  jaia ip b4f10: IP address for bot4 on fleet10\n"
+                           "  jaia ip h1f2: IP address for hub1 on fleet2\n"
+                           "  jaia ip --net=fleet_vpn b5f3: IP address for bot5 fleet3 on the fleet vpn\n"
+        }];
+        ssh = 6 [(goby.ev).cfg = {
             short_help_msg: "Use SSH to login to jaiabots and hubs",
             full_help_msg: "This action is a wrapper for 'ssh' that can take shortcut names for jaia hosts\n"
                            "Command line options before the host name are processed by 'jaia ssh', and command line options after the host name are passed unmodified to ssh"
@@ -79,7 +87,7 @@ message Tool
                            "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
                            "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
         }];
-        ping = 6 [(goby.ev).cfg = {
+        ping = 7 [(goby.ev).cfg = {
             short_help_msg: "Use ping to test connectivity to jaiabots and hubs",
             full_help_msg: "This action is a wrapper for 'ping' that can take shortcut names for jaia hosts\n"
                            "Command line options before the host name are processed by 'jaia ping', and command line options after the host name are passed unmodified to ping"

@@ -30,7 +30,7 @@ else
     exit 1
 fi
 
-IP_PY="/etc/jaiabot/ip.py"
+IP_PY="jaia-ip.py"
 PRIVKEY=$(wg genkey)
 PUBKEY=$(echo $PRIVKEY | wg pubkey)
 
