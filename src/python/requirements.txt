@@ -1,5 +1,4 @@
 Adafruit-Blinka==8.18.1
-adafruit-circuitpython-bno08x==1.2.4
 adafruit-circuitpython-busdevice==5.1.8
 adafruit-circuitpython-register==1.9.8
 adafruit-circuitpython-typing==1.6.0
@@ -70,3 +69,4 @@ watchdog==3.0
 werkzeug==2.3.7
 zipp==3.17.0
 ./pyjaia
+./Adafruit_CircuitPython_BNO08x
