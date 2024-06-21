@@ -46,10 +46,16 @@ message SSHTool
             full_help_msg: "Usage: \"jaia admin ssh help [action]\""
         }];
         add = 1 [(goby.ev).cfg = {
-            short_help_msg: "Add authorized SSH key",
+            short_help_msg: "Add authorized SSH key (by default to tmp_authorized_keys)",
         }];
-        remove = 2 [(goby.ev).cfg = {
-            short_help_msg: "Delete authorized SSH key",
+        rm = 2 [(goby.ev).cfg = {
+            short_help_msg: "Remove authorized SSH key (by default from tmp_authorized_keys)",
+        }];
+        list = 3 [(goby.ev).cfg = {
+            short_help_msg: "List authorized SSH keys",
+        }];
+        clear = 4 [(goby.ev).cfg = {
+            short_help_msg: "Clear authorized SSH keys (by default those in tmp_authorized_keys)",
         }];
     }
     optional Action action = 2 [

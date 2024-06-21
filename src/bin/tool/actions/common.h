@@ -27,39 +27,42 @@
 
 #include "actions/net.pb.h"
 
-inline std::string parse_host_ip_from_code(const std::string& host_code, bool has_net,
-                                           jaiabot::config::Net net, bool ipv6)
+inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
-    std::regex host_pattern("([bh])([0-9]+)f([0-9]+)|(ch)f([0-9]+)");
+    std::regex host_pattern("([bh])([0-9]+)([svc]|)f([0-9]+)|(ch)f([0-9]+)");
     std::smatch host_matches;
 
     if (std::regex_match(host_code, host_matches, host_pattern))
     {
+        std::string node_code = host_matches[1];
         std::string node_id = host_matches[2];
-        std::string fleet_id = host_matches[3];
+        std::string net_code = host_matches[3];
+        std::string fleet_id = host_matches[4];
+
+        jaiabot::config::Net net;
+        if (net_code == "s")
+            net = jaiabot::config::fleet_vpn;
+        else if (net_code == "v")
+            net = jaiabot::config::vfleet_vpn;
+        else if (net_code == "c")
+            net = jaiabot::config::cloudhub_vpn;
+        else
+            net = jaiabot::config::wlan;
+
         std::string node_type;
-        if (host_matches[1] == "b")
+        if (node_code == "b")
         {
             node_type = "bot";
-            node_id = host_matches[2];
-            fleet_id = host_matches[3];
         }
-        else if (host_matches[1] == "h")
+        else if (node_code == "h")
         {
             node_type = "hub";
-            node_id = host_matches[2];
-            fleet_id = host_matches[3];
         }
-        else if (host_matches[4] == "ch")
+        else if (host_matches[5] == "ch")
         {
             node_type = "hub";
             node_id = "30";
-            fleet_id = host_matches[5];
-
-            // only meaningful net for cloudhub
-            if (has_net && net != jaiabot::config::cloudhub_vpn)
-                std::cerr << "Setting net to cloudhub_vpn" << std::endl;
-
+            fleet_id = host_matches[6];
             net = jaiabot::config::cloudhub_vpn;
         }
 
@@ -75,7 +78,8 @@ inline std::string parse_host_ip_from_code(const std::string& host_code, bool ha
         command += " addr --node " + node_type + " --fleet_id " + fleet_id + " --node_id " +
                    node_id + " --net " + jaiabot::config::Net_Name(net);
 
-        if (!ipv6 && (net == jaiabot::config::wlan || net == jaiabot::config::fleet_vpn))
+        // legacy IPv4 networks - remove once these are deprecated
+        if (net == jaiabot::config::wlan || net == jaiabot::config::fleet_vpn)
             command += " --ipv4";
         else
             command += " --ipv6";
@@ -106,12 +110,11 @@ inline std::string parse_host_ip_from_code(const std::string& host_code, bool ha
     }
     else
     {
-        goby::glog.is_die() &&
-            goby::glog
-                << "Host string is invalid: " << host_code
-                << ". It must be b<bot_id>f<fleet_id> or h<hub_id>f<fleet_id> or chf<fleet_id> "
-                   "(for cloudhub)"
-                << std::endl;
+        goby::glog.is_die() && goby::glog << "Host string is invalid: " << host_code
+                                          << ". It must be b<bot_id>[sv]f<fleet_id> or "
+                                             "h<hub_id>[svc]f<fleet_id> or chf<fleet_id> "
+                                             "(for cloudhub)"
+                                          << std::endl;
     }
     return "";
 }

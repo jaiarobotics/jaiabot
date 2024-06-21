@@ -20,6 +20,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_SSH_PUBKEYS_H
+#define JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_SSH_PUBKEYS_H
+
 #include <map>
 #include <string>
 
@@ -44,7 +47,7 @@ class PubKeyManager
         std::string b64_key;
         std::string comment;
 
-        std::string to_str()
+        std::string to_str() const
         {
             std::string s;
             if (!options.empty())
@@ -54,15 +57,23 @@ class PubKeyManager
         }
     };
 
+    std::pair<bool, PubKey> find(const std::string& pubkey_or_comment);
+
+    const std::map<std::string, PubKey>& revoked_pubkeys() { return revoked_pubkeys_; }
+
     static bool validate_and_parse_pubkey(const std::string& key,
                                           jaiabot::apps::admin::ssh::PubKeyManager::PubKey& pubkey);
 
   private:
     // map of "comment" to Pubkey
     std::map<std::string, PubKey> pubkeys_;
+    // map of "comment" to revoked Pubkeys
+    std::map<std::string, PubKey> revoked_pubkeys_;
 };
 
 } // namespace ssh
 } // namespace admin
 } // namespace apps
 } // namespace jaiabot
+
+#endif

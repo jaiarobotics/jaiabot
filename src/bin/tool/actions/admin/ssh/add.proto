@@ -43,18 +43,18 @@ message AddTool
         cfg { position { enable: true } }
     }];
 
-    required string valid_for = 3 [(goby.field) = {
-        description: "How long until the key expires, e.g. '1w' for one week, '5d' for 5 days or '2m' for two months",
-        cfg { position { enable: true } }
-    }];
-
-    required string pubkey = 4 [(goby.field) = {
+    required string pubkey = 3 [(goby.field) = {
         description: "Either the full public key or an ID corresponding to a public key compiled into this tool.",
         cfg { position { enable: true } }
     }];
 
-    optional Net net = 10 [default = wlan];
+    required string valid_for = 4 [(goby.field) = {
+        description: "How long until the key expires, e.g. '1w' for one week, '5d' for 5 days or '2m' for two months",
+        cfg { position { enable: true } }
+    }];
 
-    optional bool ipv6 = 11 [default = false];
-    optional string user = 12 [default = "jaia"];
+    optional string user = 10 [default = "jaia"];
+
+    optional string authorized_keys_file = 11
+        [default = "/etc/jaiabot/ssh/tmp_authorized_keys"];
 }
