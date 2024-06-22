@@ -170,7 +170,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "task/add-adafruit_bno08x-repo-into-jaiabot-repo-jaia-1270"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
