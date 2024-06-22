@@ -7,7 +7,7 @@
   tags: read
 
 - name: Look up server network
-  shell: /etc/jaiabot/ip.py net  --net vfleet_vpn --fleet_id  {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  shell: /usr/bin/jaia-ip.py net  --net vfleet_vpn --fleet_id  {{ cloud_env_vars.jaia_fleet_index }} --ipv6
   register: virtualfleet_vpn_server_result
   tags: read
   

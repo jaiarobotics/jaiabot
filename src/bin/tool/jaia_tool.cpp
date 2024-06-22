@@ -28,6 +28,7 @@
 #include "actions/ping.h"
 #include "actions/ssh.h"
 #include "actions/version.h"
+#include "actions/ip.h"
 #include "config.pb.h"
 
 using goby::glog;
@@ -112,6 +113,12 @@ jaiabot::apps::Tool::Tool()
                                     action_for_help);
                             break;
 
+                        case jaiabot::config::Tool::ip:
+                            tool_helper
+                                .help<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>(
+                                    action_for_help);
+                            break;
+                            
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -142,6 +149,11 @@ jaiabot::apps::Tool::Tool()
             case jaiabot::config::Tool::ping:
                 tool_helper
                     .run_subtool<jaiabot::apps::PingTool, jaiabot::apps::PingToolConfigurator>();
+                break;
+
+            case jaiabot::config::Tool::ip:
+                tool_helper
+                    .run_subtool<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>();
                 break;
 
             default:
