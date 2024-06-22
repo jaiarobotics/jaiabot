@@ -30,9 +30,6 @@ version=${jaiabot_version:-${default_version}}
 version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
 distro=${jaiabot_distro:-focal}
 
-# install clang-format hook if not installed
-[ ! -e ${script_dir}/../.git/hooks/pre-commit ] && ${script_dir}/../scripts/clang-format-hooks/git-pre-commit-format install
-
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     cd ${script_dir}/..
 
