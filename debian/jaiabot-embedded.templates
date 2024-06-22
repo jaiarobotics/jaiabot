@@ -88,7 +88,7 @@ Description: The user role to be set in the Upgrade UI (this sets which Ansible 
 
 Template: jaiabot-embedded/imu_type
 Type: select
-Choices: bno055, bno085, none
+Choices: bno055, bno085, naviguider, none
 Default: bno055
 Description: What type of imu does your system have?
 
