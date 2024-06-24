@@ -1,134 +1,120 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const webpack = require("webpack");
-const Dotenv = require("dotenv-webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
+const webpack = require("webpack");
 
-const optimizationConfig = {
-    minimize: false,
-    minimizer: [
-        new TerserPlugin({
-            terserOptions: {
-                toplevel: true,
-                mangle: {
-                    toplevel: true,
-                },
-                passes: 2,
-                output: {
-                    comments: false,
+/**
+ * Base configuration for all modes and targets.
+ */
+const baseConfig = {
+    target: "web",
+    resolve: {
+        extensions: [".*", ".js", ".jsx", ".ts", ".tsx"],
+        alias: {
+            geotiff: path.resolve(__dirname, "node_modules/geotiff/dist-module/geotiff.js"),
+        },
+    },
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/,
+                exclude: [/node_modules/],
+                use: ["ts-loader"],
+            },
+            {
+                test: /\.(js|jsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: "babel-loader",
+                    options: {
+                        presets: [
+                            ["@babel/preset-env", { modules: false, targets: "defaults" }],
+                            "@babel/preset-react",
+                        ],
+                        plugins: [
+                            "@babel/plugin-proposal-class-properties",
+                            [
+                                "transform-react-remove-prop-types",
+                                {
+                                    mode: "remove",
+                                    _disabled_ignoreFilenames: ["node_modules"],
+                                },
+                            ],
+                            "@babel/plugin-proposal-nullish-coalescing-operator",
+                            "@babel/plugin-proposal-optional-chaining",
+                        ],
+                    },
                 },
             },
-            // cache: true,
-            parallel: true,
-        }),
-    ],
-    mangleWasmImports: true,
+            { test: /\.css$/, use: ["style-loader", "css-loader"] },
+            { test: /\.(png|svg|jpg|jpeg|gif)$/, type: "asset/resource" },
+            {
+                test: /\.less$/,
+                use: [
+                    "style-loader",
+                    "css-loader",
+                    {
+                        loader: "less-loader",
+                        options: { lessOptions: { javascriptEnabled: true } },
+                    },
+                ],
+            },
+            { test: /\.geojson$/, use: ["json-loader"] },
+        ],
+    },
+};
+
+/**
+ * Production mode
+ */
+const productionConfig = {
+    optimization: {
+        minimize: true,
+    },
+    performance: { hints: false },
+    stats: "errors-only",
+};
+
+/**
+ * Development mode
+ */
+const developmentConfig = {
+    stats: "minimal",
+    devtool: "eval-source-map", // Makes output assets much larger, but provides better console debugging output
 };
 
 module.exports = (env, argv) => {
-    const jedWebpackOptions = {
-        mode: "production",
+    const modeConfig = argv.mode == "production" ? productionConfig : developmentConfig;
+
+    /**
+     * JED config
+     */
+    const jedConfig = {
         entry: path.resolve(__dirname, "./jed/script.js"),
-        module: {
-            rules: [
-                {
-                    test: /\.(js)$/,
-                    exclude: /node_modules/,
-                    use: ["babel-loader"],
-                },
-                { test: /\.css$/, use: ["style-loader", "css-loader"] },
-                {
-                    test: /\.(png|svg|jpg|jpeg|gif)$/,
-                    type: "asset/resource",
-                },
-                {
-                    test: /\.tsx?$/,
-                    exclude: [/node_modules/],
-                    use: ["ts-loader"],
-                },
-            ],
+        output: {
+            path: path.resolve(env.OUTPUT_DIR, "jed/"),
+            filename: "script.js",
         },
-        resolve: { extensions: ["*", ".js", ".ts", ".tsx", ".css"] },
         plugins: [
             new CopyWebpackPlugin({
                 patterns: ["jed/index.html", "jed/favicon.png", "jed/helpPane.png"],
             }),
         ],
-        output: {
-            path: path.resolve(env.OUTPUT_DIR, "jed/"),
-            filename: "script.js",
-        },
-        stats: "errors-only",
     };
 
-    const jccWebpackOptions = {
-        target: "web",
-        stats: "errors-only",
-        devtool: "eval-source-map",
+    /**
+     * JCC config
+     */
+    const jccConfig = {
         entry: {
-            client: ["babel-polyfill", path.resolve(__dirname, "jcc/client/index.js")],
+            client: path.resolve(__dirname, "jcc/client/index.js"),
             customLayerRasterWorker: [
                 path.resolve(__dirname, "jcc/client/components/CustomLayerRasterWorker.ts"),
             ],
         },
-        resolve: {
-            extensions: [".*", ".js", ".jsx", ".ts", ".tsx"],
-            alias: {
-                geotiff: path.resolve(__dirname, "node_modules/geotiff/dist-module/geotiff.js"),
-            },
-        },
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
             filename: "[name].js",
-        },
-        module: {
-            rules: [
-                {
-                    test: /\.tsx?$/,
-                    exclude: [/node_modules/],
-                    use: ["ts-loader"],
-                },
-                {
-                    test: /\.(js|jsx)$/,
-                    exclude: /node_modules/,
-                    use: {
-                        loader: "babel-loader",
-                        options: {
-                            presets: [
-                                ["@babel/preset-env", { modules: false, targets: "defaults" }],
-                                "@babel/preset-react",
-                            ],
-                            plugins: [
-                                "@babel/plugin-proposal-class-properties",
-                                [
-                                    "transform-react-remove-prop-types",
-                                    {
-                                        mode: "remove",
-                                        _disabled_ignoreFilenames: ["node_modules"],
-                                    },
-                                ],
-                                "@babel/plugin-proposal-nullish-coalescing-operator",
-                                "@babel/plugin-proposal-optional-chaining",
-                            ],
-                        },
-                    },
-                },
-                { test: /\.css$/, use: ["style-loader", "css-loader"] },
-                { test: /\.(png|svg|jpg|jpeg|gif)$/, type: "asset/resource" },
-                {
-                    test: /\.less$/,
-                    use: [
-                        "style-loader",
-                        "css-loader",
-                        {
-                            loader: "less-loader",
-                            options: { lessOptions: { javascriptEnabled: true } },
-                        },
-                    ],
-                },
-                { test: /\.geojson$/, use: ["json-loader"] },
-            ],
         },
         plugins: [
             new HtmlWebpackPlugin({
@@ -145,10 +131,10 @@ module.exports = (env, argv) => {
             }),
             new webpack.HotModuleReplacementPlugin(),
         ],
-        optimization: optimizationConfig,
-        performance: { hints: false },
-        stats: "minimal",
     };
 
-    return [jccWebpackOptions, jedWebpackOptions];
+    return [
+        Object.assign({}, baseConfig, modeConfig, jedConfig),
+        Object.assign({}, baseConfig, modeConfig, jccConfig),
+    ];
 };
