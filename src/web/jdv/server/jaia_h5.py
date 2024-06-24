@@ -173,9 +173,6 @@ class JaiaH5FileSet:
                     except IndexError: # No commands
                         continue
 
-                    if bot_id not in results:
-                        results[bot_id] = []
-
                     results[bot_id] = commands
 
         return results
