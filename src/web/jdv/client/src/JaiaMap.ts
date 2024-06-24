@@ -569,8 +569,6 @@ export default class JaiaMap {
             return;
         }
 
-        console.log(this.command_dict);
-
         const botIdArray = Object.keys(this.command_dict);
         if (botIdArray.length == 0) {
             return;
