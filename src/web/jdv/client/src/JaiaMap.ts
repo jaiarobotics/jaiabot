@@ -456,14 +456,12 @@ export default class JaiaMap {
 
     updateToTimestamp(timestamp_micros: number) {
         this.timestamp = timestamp_micros;
-        // console.log('updateToTimestamp', timestamp_micros, this.timestamp)
 
         this.updateBotMarkers(timestamp_micros);
         this.updateMissionLayer(timestamp_micros);
     }
 
     getTimestamp(): number {
-        // console.log('get timestamp', this.timestamp)
         return this.timestamp;
     }
 
@@ -589,11 +587,7 @@ export default class JaiaMap {
                 return;
             }
 
-            console.log("active_goal_dict");
-            console.log(this.active_goal_dict);
             const activeGoalsArray = this.active_goal_dict[bot_id];
-            console.log("activeGoalsArray");
-            console.log(activeGoalsArray);
 
             if (!activeGoalsArray) {
                 continue;
@@ -602,9 +596,6 @@ export default class JaiaMap {
             const activeGoal = bisect(activeGoalsArray, (active_goal) => {
                 return timestamp_micros - active_goal._utime_;
             })?.value;
-
-            console.log("activeGoal");
-            console.log(activeGoal);
 
             const activeGoalIndex = activeGoal?.active_goal;
             const isSelected = false;
