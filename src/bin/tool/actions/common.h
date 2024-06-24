@@ -64,20 +64,14 @@ inline std::string parse_host_ip_from_code(const std::string& host_code, bool ha
         }
 
         // Constructing the command
-        std::string command = "ip.py";
+        std::string command = "jaia-ip.py";
 
-        // Check if ip.py is on the path
-        if (std::system("which ip.py > /dev/null 2>&1"))
-        {
-            // ip.py is not on the path, use the fallback path
-            std::string ip_py_etc = "/etc/jaiabot/ip.py";
-            if (boost::filesystem::exists(ip_py_etc))
-                command = ip_py_etc;
-            else
-                goby::glog.is_die() && goby::glog << "Could not find ip.py. Ensure that it is on "
-                                                     "your path or in /etc/jaiabot/ip.py"
-                                                  << std::endl;
-        }
+        // Check if jaia-ip.py is on the path
+        if (std::system("which jaia-ip.py > /dev/null 2>&1"))
+            goby::glog.is_die() && goby::glog << "Could not find jaia-ip.py. Ensure that it is on "
+                                                 "your path"
+                                              << std::endl;
+
         command += " addr --node " + node_type + " --fleet_id " + fleet_id + " --node_id " +
                    node_id + " --net " + jaiabot::config::Net_Name(net);
 
@@ -90,7 +84,7 @@ inline std::string parse_host_ip_from_code(const std::string& host_code, bool ha
         FILE* pipe = popen(command.c_str(), "r");
         if (!pipe)
         {
-            goby::glog.is_die() && goby::glog << "Failed to open pipe for ip.py execution."
+            goby::glog.is_die() && goby::glog << "Failed to open pipe for jaia-ip.py execution."
                                               << std::endl;
         }
 
@@ -101,7 +95,7 @@ inline std::string parse_host_ip_from_code(const std::string& host_code, bool ha
         int return_code = pclose(pipe);
         if (return_code != 0)
         {
-            goby::glog.is_die() && goby::glog << "ip.py command returned error. " << std::endl;
+            goby::glog.is_die() && goby::glog << "jaia-ip.py command returned error. " << std::endl;
         }
         std::string host_ip = ip_output.str();
         goby::glog.is_verbose() && goby::glog << host_code << " (" << jaiabot::config::Net_Name(net)

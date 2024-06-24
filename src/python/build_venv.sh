@@ -19,7 +19,7 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
 
     # Install the pyjaia directory into the intermediate build products directory
         # Rsync the requirements.txt and pyjaia directory
-        rsync -a requirements.txt pyjaia ${TARGET_DIR}
+        rsync -a requirements.txt pyjaia Adafruit_CircuitPython_BNO08x ${TARGET_DIR}
         # Build the messages to the intermediate build product directory
         ./pyjaia/build_messages.sh ${JAIA_DIR} ${TARGET_DIR}/pyjaia
 
