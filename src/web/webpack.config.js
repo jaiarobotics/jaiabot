@@ -133,6 +133,8 @@ module.exports = (env, argv) => {
         ],
     };
 
+    // This just takes a new empty object {}, and then updates it in place with the baseConfig, then the modeConfig,
+    // then the config for the target app... basically fusing the three configs together.
     return [
         Object.assign({}, baseConfig, modeConfig, jedConfig),
         Object.assign({}, baseConfig, modeConfig, jccConfig),
