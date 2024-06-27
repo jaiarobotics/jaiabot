@@ -109,7 +109,15 @@ jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
             glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString()
                                      << endl;
 
-            interprocess().publish<groups::imu>(imu_data);
+            if (imu_data.is_secondary())
+            {
+                interprocess().publish<groups::imu_secondary>(imu_data);
+            }
+            else
+            {
+                interprocess().publish<groups::imu>(imu_data);
+            }
+
             last_adafruit_BNO085_report_time_ = goby::time::SteadyClock::now();
         });
 

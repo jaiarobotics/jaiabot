@@ -40,6 +40,7 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
+constexpr goby::middleware::Group imu_secondary{"jaiabot::imu_secondary"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};

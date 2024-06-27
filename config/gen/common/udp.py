@@ -33,3 +33,21 @@ def imu_port(node_id):
         return 20400 + node_id
     else:
         return 20000
+    
+def bno055_port(node_id):
+    if is_simulation():
+        return 20400 + node_id
+    else:
+        return 20010
+
+def bno085_port(node_id):
+    if is_simulation():
+        return 20400 + node_id
+    else:
+        return 20011
+    
+def naviguider_port(node_id):
+    if is_simulation():
+        return 20400 + node_id
+    else:
+        return 20012

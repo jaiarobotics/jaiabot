@@ -55,6 +55,7 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'naviguider', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--imu_type_secondary', choices=['bno055', 'bno085', 'naviguider', 'none'], help='If set, configure services for a secondary imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
@@ -207,6 +208,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
+               'export jaia_imu_type_secondary=' + args.imu_type_secondary + '; ' +
                'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
@@ -473,7 +475,7 @@ if jaia_imu_type.value == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000 -d',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -493,7 +495,7 @@ elif jaia_imu_type.value == 'naviguider':
         'description': 'JaiaBot Naviguider IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.NAVIGUIDER.value} -p 20000 -d',
+        'args': f'-t {IMU_TYPE.NAVIGUIDER.value} -p 20012 -d',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -501,7 +503,7 @@ elif jaia_imu_type.value == 'naviguider':
         'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_imu)
-else:
+elif jaia_imu_type.value == 'bno055':
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_adafruit_BNO055_driver',
         'description': 'JaiaBot BNO055 IMU Sensor Driver',
@@ -513,7 +515,68 @@ else:
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000 -d',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p 20010 -d',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_imu)
+
+if args.imu_type_secondary == 'bno085':
+    jaiabot_apps_imu = [
+        {'exe': 'jaiabot_adafruit_BNO085_driver',
+        'description': 'JaiaBot BNO085 IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot BNO085 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'imu',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -s',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_imu)
+elif args.imu_type_secondary == 'naviguider':
+    jaiabot_apps_imu = [
+        {'exe': 'jaiabot_naviguider_driver',
+        'description': 'JaiaBot Naviguider IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_NAVIGUIDER_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot Naviguider IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'imu',
+        'args': f'-t {IMU_TYPE.NAVIGUIDER.value} -p 20012 -d -s',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_imu)
+elif args.imu_type_secondary == 'bno055':
+    jaiabot_apps_imu = [
+        {'exe': 'jaiabot_adafruit_BNO055_driver',
+        'description': 'JaiaBot BNO055 IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot BNO055 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'imu',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p 20010 -d -s',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,

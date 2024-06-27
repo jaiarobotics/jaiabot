@@ -92,6 +92,12 @@ Choices: bno055, bno085, naviguider, none
 Default: bno055
 Description: What type of imu does your system have?
 
+Template: jaiabot-embedded/imu_type_secondary
+Type: select
+Choices: bno055, bno085, naviguider, none
+Default: none
+Description: Are you using a secondary IMU?
+
 Template: jaiabot-embedded/bot_type
 Type: select
 Choices: hydro, echo, none

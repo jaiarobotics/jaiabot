@@ -24,6 +24,8 @@ parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simu
 
 parser.add_argument('-d', dest='dump_html_flag', action='store_true', help='Dump SWH analysis as html file in /var/log/jaiabot')
 
+parser.add_argument('-s', dest='secondary_flag', type=str, help="Set the priority of the IMU to secondary when working with two IMUs")
+
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
@@ -70,6 +72,9 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
                     imuData.imu_type = args.device_type
+
+                    if args.secondary_flag:
+                        imuData.is_secondary = True
 
                     #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
