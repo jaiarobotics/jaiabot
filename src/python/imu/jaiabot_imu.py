@@ -15,7 +15,7 @@ import datetime
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
 parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085', 'naviguider'], required=True, help='Device type')
-parser.add_argument('-p', dest='pot'r, type=int, default=20000, help='Port to publish orientation data')
+parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 
