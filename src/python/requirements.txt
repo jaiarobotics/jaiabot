@@ -1,5 +1,4 @@
 Adafruit-Blinka==8.18.1
-adafruit-circuitpython-bno08x==1.2.4
 adafruit-circuitpython-busdevice==5.1.8
 adafruit-circuitpython-register==1.9.8
 adafruit-circuitpython-typing==1.6.0
@@ -34,6 +33,7 @@ marshmallow-enum==1.5.1
 matplotlib==3.6.0
 munch==4.0.0
 mypy-extensions==1.0.0
+netifaces==0.11.0
 networkx==2.8.7
 numpy==1.24.4
 packaging==23.2
@@ -59,6 +59,7 @@ smbus==1.1.post2
 spidev==3.6
 sysv-ipc==1.1.0
 tenacity==8.2.3
+testresources==2.0.1
 turfpy==0.0.7
 typing-extensions==4.9.0
 typing-inspect==0.9.0
@@ -68,3 +69,4 @@ watchdog==3.0
 werkzeug==2.3.7
 zipp==3.17.0
 ./pyjaia
+./Adafruit_CircuitPython_BNO08x

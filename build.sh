@@ -40,3 +40,6 @@ cd ${script_dir}/build/${ARCH}
 (set -x; cmake ../.. ${JAIABOT_CMAKE_FLAGS})
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 (set -x; time cmake --build . -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@)
+
+# Initialize and update submodules
+git submodule update --init
