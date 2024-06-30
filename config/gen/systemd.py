@@ -698,7 +698,7 @@ for app in jaiabot_apps:
         if 'service' in macros:
             service = macros['service']
         else:
-            if app['exe'] == 'jaiabot_imu_py' and 'second' in app['args']:
+            if app['exe'] == 'jaiabot_imu.py' and 'second' in app['args']:
                 service = 'jaiabot_imu_py_secondary'
             else:
                 service = app['exe'].replace('.', '_').lower()
