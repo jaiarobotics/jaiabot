@@ -6,6 +6,7 @@ import serial
 import time
 import math
 from threading import Lock
+from magnetometer import RawMagnetometer
 
 class AdafruitBNO085(IMU):
     _lock: Lock
@@ -76,12 +77,7 @@ class AdafruitBNO085(IMU):
             gravity = Vector3(*gravity)
 
             raw_heading = math.atan2(raw_mag_y, raw_mag_x) * 180 / math.pi
-            raw_magnetometer = {
-                "x": raw_mag_x,
-                "y": raw_mag_y,
-                "z": raw_mag_z,
-                "heading": raw_heading
-            }
+            raw_magnetometer = RawMagnetometer(x=raw_mag_x, y=raw_mag_y, z=raw_mag_z, heading=raw_heading)
 
             return IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration, 

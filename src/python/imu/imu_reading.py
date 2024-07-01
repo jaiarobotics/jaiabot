@@ -1,6 +1,7 @@
 # Standard modules
 from enum import Enum
 from dataclasses import *
+from typing import Optional
 from math import *
 
 # Jaia modules
@@ -25,7 +26,7 @@ class IMUReading:
     calibration_state: CalibrationState
     quaternion: Quaternion
     angular_velocity: Vector3
-    raw_magnetometer: RawMagnetometer
+    raw_magnetometer: Optional[RawMagnetometer] = field(default=None)
 
     def convertToIMUData(self):
         """Returns an IMUData protobuf object, suitable for sending over UDP
