@@ -4,6 +4,7 @@ import adafruit_bno08x
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
+import math
 from threading import Lock
 
 class AdafruitBNO085(IMU):
@@ -26,6 +27,7 @@ class AdafruitBNO085(IMU):
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_RAW_MAGNETOMETER)
 
                 self.is_setup = True
                 self.calibration_status = None
@@ -53,6 +55,7 @@ class AdafruitBNO085(IMU):
             quat_x, quat_y, quat_z, quat_w = self.sensor.quaternion
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
+            raw_mag_x, raw_mag_y, raw_mag_z = self.sensor.raw_magnetic
             gravity = self.sensor.gravity
             calibration_status = self.calibration_status
             calibration_state = self.calibration_state
@@ -72,6 +75,14 @@ class AdafruitBNO085(IMU):
             linear_acceleration_world = quaternion.apply(linear_acceleration)
             gravity = Vector3(*gravity)
 
+            raw_heading = math.atan2(raw_mag_y, raw_mag_x) * 180 / math.pi
+            raw_magnetometer = {
+                "x": raw_mag_x,
+                "y": raw_mag_y,
+                "z": raw_mag_z,
+                "heading": raw_heading
+            }
+
             return IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration, 
                         linear_acceleration_world=linear_acceleration_world,
@@ -79,7 +90,9 @@ class AdafruitBNO085(IMU):
                         calibration_status=calibration_status,
                         calibration_state=calibration_state,
                         quaternion=quaternion,
-                        angular_velocity=angular_velocity)
+                        angular_velocity=angular_velocity,
+                        raw_magnetometer=raw_magnetometer
+                        )
 
         except Exception as error:
             log.warning(f"Error trying to get data: {error}")

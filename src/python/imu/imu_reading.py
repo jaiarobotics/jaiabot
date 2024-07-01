@@ -7,6 +7,7 @@ from math import *
 from orientation import Orientation
 from vector3 import Vector3
 from quaternion import Quaternion
+from magnetometer import RawMagnetometer
 from jaiabot.messages.imu_pb2 import IMUData
 
 
@@ -24,7 +25,7 @@ class IMUReading:
     calibration_state: CalibrationState
     quaternion: Quaternion
     angular_velocity: Vector3
-
+    raw_magnetometer: RawMagnetometer
 
     def convertToIMUData(self):
         """Returns an IMUData protobuf object, suitable for sending over UDP
@@ -70,5 +71,11 @@ class IMUReading:
         if self.calibration_state is not None:
             # .value converts enum type to int (which the protobuf side is looking for)
             imu_data.calibration_state = self.calibration_state.value
+
+        if self.raw_magnetometer is not None:
+            imu_data.raw_magnetometer.x = self.raw_magnetometer.x
+            imu_data.raw_magnetometer.y = self.raw_magnetometer.y
+            imu_data.raw_magnetometer.z = self.raw_magnetometer.z
+            imu_data.raw_magnetometer.heading = self.raw_magnetometer.heading
 
         return imu_data
