@@ -15,6 +15,7 @@ import { TaskType, CommandType } from "./shared/JAIAProtobuf";
 import { Joystick, JoystickShape } from "react-joystick-component";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CustomAlert } from "./shared/CustomAlert";
+import { Typography } from "@mui/material";
 
 interface Props {
     api: JaiaAPI;
@@ -39,6 +40,7 @@ interface State {
     throttleBinNumber: number;
     rudderBinNumber: number;
     botId: number;
+    isMaximized: boolean;
 }
 
 enum JoySticks {
@@ -83,6 +85,7 @@ export default class RCControllerPanel extends React.Component {
             // bot id is saved to determine when the user
             // clicks on a new bot details window
             botId: 0,
+            isMaximized: true,
         };
     }
 
@@ -636,45 +639,69 @@ export default class RCControllerPanel extends React.Component {
             this.props.remoteControlValues.bot_id = this.props.bot.bot_id;
         }
 
+        const contents = (
+            <div className="stick-container">
+                {this.state.controlType === ControlTypes.MANUAL_DUAL
+                    ? leftController
+                    : soleController}
+
+                {this.state.controlType === ControlTypes.DIVE ? diveControlPad : driveControlPad}
+
+                {rightController}
+
+                <Gamepad
+                    // Not using gamepad deadzone so we can handle it in our
+                    // handleGamepadAxisChange
+                    deadZone={0}
+                    onConnect={() => {
+                        console.log("connected");
+                        if (!this.props.weHaveInterval()) {
+                            this.props.createInterval();
+                        }
+                        this.clearRemoteControlValues();
+                    }}
+                    onAxisChange={(axisName: string, value: number) => {
+                        // Need to check for interval because onConnect is
+                        // only called at the start and does not get called again
+                        // if we are switching between bots
+                        if (!this.props.weHaveInterval()) {
+                            this.props.createInterval();
+                        }
+                        this.handleGamepadAxisChange(axisName, value);
+                    }}
+                >
+                    <React.Fragment />
+                </Gamepad>
+            </div>
+        );
+
+        /**
+         * Toggle minimize/maximize state of the RC panel.
+         * Tapping anywhere on the heading will toggle this.
+         */
+        const toggleMinimize = () => {
+            this.setState({ isMaximized: !this.state.isMaximized });
+        };
+
+        /**
+         * Buttons to indicate the ability to toggle the minimize/maximize state.
+         * They don't need an onClick handler, because the whole heading is sensitive to clicks.
+         */
+        const toggleMinimizeIndicator = (
+            <Button>
+                <Typography>{this.state.isMaximized ? "˅" : "^"}</Typography>
+            </Button>
+        );
+
         return (
             <div id="remoteControlPanelContainer">
-                <div className="rc-heading">Remote Control Panel: Bot {this.props.bot.bot_id}</div>
-
-                <div className="stick-container">
-                    {this.state.controlType === ControlTypes.MANUAL_DUAL
-                        ? leftController
-                        : soleController}
-
-                    {this.state.controlType === ControlTypes.DIVE
-                        ? diveControlPad
-                        : driveControlPad}
-
-                    {rightController}
-
-                    <Gamepad
-                        // Not using gamepad deadzone so we can handle it in our
-                        // handleGamepadAxisChange
-                        deadZone={0}
-                        onConnect={() => {
-                            console.log("connected");
-                            if (!this.props.weHaveInterval()) {
-                                this.props.createInterval();
-                            }
-                            this.clearRemoteControlValues();
-                        }}
-                        onAxisChange={(axisName: string, value: number) => {
-                            // Need to check for interval because onConnect is
-                            // only called at the start and does not get called again
-                            // if we are switching between bots
-                            if (!this.props.weHaveInterval()) {
-                                this.props.createInterval();
-                            }
-                            this.handleGamepadAxisChange(axisName, value);
-                        }}
-                    >
-                        <React.Fragment />
-                    </Gamepad>
+                <div className="rc-heading" onClick={toggleMinimize}>
+                    {toggleMinimizeIndicator}
+                    Remote Control Panel: Bot {this.props.bot.bot_id}
+                    {toggleMinimizeIndicator}
                 </div>
+
+                {this.state.isMaximized ? contents : null}
             </div>
         );
     }
