@@ -413,8 +413,9 @@ export default class JaiaMap {
                 }
 
                 if (
-                    (prevPt && this.checkOutlier(prevPt[1], lat, coordEpsilon)) ||
-                    this.checkOutlier(prevPt[2], lon, coordEpsilon)
+                    prevPt &&
+                    (this.checkOutlier(prevPt[1], lat, coordEpsilon) ||
+                        this.checkOutlier(prevPt[2], lon, coordEpsilon))
                 ) {
                     continue;
                 }
