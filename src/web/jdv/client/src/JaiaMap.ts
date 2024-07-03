@@ -391,10 +391,18 @@ export default class JaiaMap {
             let prevLat = ptArray[0][1];
             let prevLon = ptArray[0][2];
             const coordEpsilon = 0.0001;
+
             for (const pt of ptArray) {
                 const t = pt[0];
                 const lat = pt[1];
                 const lon = pt[2];
+
+                if (
+                    this.checkOutlier(prevLat, lat, coordEpsilon) ||
+                    this.checkOutlier(prevLon, lon, coordEpsilon)
+                ) {
+                    continue;
+                }
 
                 // Contribute to tMin and tMax
                 if (this.tMin == null || t < this.tMin) this.tMin = t;
@@ -407,13 +415,6 @@ export default class JaiaMap {
 
                 if (t > timeRange[0]) {
                     path.push(this.fromLonLat([lon, lat])); // API gives lat/lon, OpenLayers uses lon/lat
-                }
-
-                if (
-                    this.checkOutlier(prevLat, lat, coordEpsilon) ||
-                    this.checkOutlier(prevLon, lon, coordEpsilon)
-                ) {
-                    continue;
                 }
 
                 prevLat = lat;
