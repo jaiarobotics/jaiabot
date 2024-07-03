@@ -424,7 +424,6 @@ export default class JaiaMap {
                 }
 
                 prevPt = pt;
-                console.log(prevPt);
             }
 
             // const pathLineString = new LineString(path)
