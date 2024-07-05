@@ -5,6 +5,9 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   actions/version.proto
   actions/ctl.proto
   actions/ssh.proto
+  actions/ping.proto
+  actions/net.proto
+  actions/ip.proto
   )
 
 add_executable(${APP}
@@ -12,6 +15,8 @@ add_executable(${APP}
   actions/version.cpp
   actions/ctl.cpp
   actions/ssh.cpp
+  actions/ping.cpp
+  actions/ip.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

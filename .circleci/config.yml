@@ -9,7 +9,7 @@ environment-template-common: &environment-template-common
   QUILT_REFRESH_ARGS: "-p ab --no-timestamps --no-index --strip-trailing-whitespace"
   CC: /usr/bin/clang
   CXX: /usr/bin/clang++
-  
+
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
   DEB_BUILD_OPTIONS: "parallel=4"
@@ -19,7 +19,7 @@ environment-template-amd64: &environment-template-amd64
 environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=4 nocheck"
-  
+
 environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
   DISTRO_RELEASE_VERSION: "ubuntu20.04"
@@ -27,8 +27,7 @@ environment-template-focal: &environment-template-focal
 environment-template-jammy: &environment-template-jammy
   DISTRO_RELEASE_CODENAME: "jammy"
   DISTRO_RELEASE_VERSION: "ubuntu22.04"
-  
-  
+
 ## Pre-declare Docker containers
 
 docker-base-focal: &docker-base-focal
@@ -40,10 +39,10 @@ docker-base-jammy: &docker-base-jammy
   - image: gobysoft/jaiabot-ubuntu-amd64:22.04.1
 docker-arm64-jammy: &docker-arm64-jammy
   - image: gobysoft/jaiabot-ubuntu-arm64:22.04.1
-docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:22.04.1    
 
-    
+docker-base-light: &docker-base-light
+  - image: gobysoft/ubuntu-build-base:22.04.1
+
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
   resource_class: large
@@ -88,7 +87,7 @@ job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
   resource_class: large
   steps:
-    - attach-workspace: &attach-src-workspace
+    - attach_workspace: &attach-src-workspace
         at: /root/src
     - run: &run-extract-src
         name: Extract the original source tarball
@@ -103,18 +102,9 @@ job-template-deb-amd64: &job-template-deb-amd64
     - run: &run-import-gpg
         name: Import GPG key
         command: echo -e "$GPG_KEY" | gpg --import
-    - run: &run-update-deb
-        name: Update the debian source repo and pull the branch with the same name as the project branch (if it exists)
-        command: |
-          cd /root && 
-          git clone https://github.com/jaiarobotics/jaiabot-debian &&
-          cd /root/jaiabot-debian &&
-          git checkout origin/${CIRCLE_BRANCH} ||
-          echo "No branch in debian called ${CIRCLE_BRANCH}, using $(git rev-parse --abbrev-ref HEAD)"
     - run: &run-nest-deb
-        name: Nest debian source into project source and comment out clang as build-depends (causes problems for cross-builds)
+        name: Nest debian changelog into project source and comment out clang as build-depends (causes problems for cross-builds)
         command: |
-          mv /root/jaiabot-debian ${CIRCLE_WORKING_DIRECTORY}/debian &&
           cp /root/src/changelog ${CIRCLE_WORKING_DIRECTORY}/debian &&
           sed -i "s/DISTRORELEASEVERSION/${DISTRO_RELEASE_VERSION}/;s/DISTRORELEASECODENAME/${DISTRO_RELEASE_CODENAME}/" ${CIRCLE_WORKING_DIRECTORY}/debian/changelog &&
           sed -i 's/^\( *\)clang/#\1clang/' ${CIRCLE_WORKING_DIRECTORY}/debian/control &&
@@ -132,9 +122,9 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_MAJOR *\".*\"/set(PROJECT_VERSION_MAJOR \"${NEWVERSION_MAJOR}\"/" CMakeLists.txt
           sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" CMakeLists.txt
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" CMakeLists.txt
-          quilt refresh                  
+          quilt refresh
     - run: &run-build-pkg
-        name: Build the Debian package 
+        name: Build the Debian package
         command: |
           export DPKG_BUILDPACKAGE_BUILD_TYPE="-B"
           # default is to do source and binary build
@@ -153,72 +143,94 @@ job-template-deb-amd64: &job-template-deb-amd64
         path: /tmp/deb
     - run: &remove-orig-source
         name: Remove original source file to avoid conflicts in merging
-        command: |        
+        command: |
           rm -f /root/deb/*.orig.tar.xz || true
     - persist_to_workspace: &persist-debs
         root: /root/deb
         paths:
-          - '*.dsc'
-          - '*.tar.xz'
-          - '*.deb'
-          - '*.ddeb'
-          - '*.changes'
-          - '*.buildinfo'
-  
+          - "*.dsc"
+          - "*.tar.xz"
+          - "*.deb"
+          - "*.ddeb"
+          - "*.changes"
+          - "*.buildinfo"
+
 job-template-deb-cross: &job-template-deb-cross
   <<: *job-template-deb-amd64
 
 job-template-upload: &job-template-upload
   <<: *job-template-amd64
   docker: *docker-base-light
-  
+
 # which branches to run the Debian build and upload on
-filter-template-master-only: &filter-template-master-only
+filter-template-debian-builds: &filter-template-debian-builds
   filters:
     tags:
       only: /.*/
     branches:
       only:
         - "1.y"
-        
-filter-template-non-master: &filter-template-non-master
+
+# which branches to run the normal source build
+filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
         - "1.y"
 
+# which branches to run the rootfs filesystem builds
+filter-template-rootfs-builds: &filter-template-rootfs-builds
+  filters:
+    tags:
+      only: /.*/
+    branches:
+      only:
+        - "1.y"
+
+# which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
+filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
+  filters:
+    tags:
+      only: /.*/
+    branches:
+      only:
+        - "1.y"
+
 ## Begin actual config
-version: 2
+version: 2.1
+orbs:
+  aws-cli: circleci/aws-cli@4.0
+  aws-s3: circleci/aws-s3@4.0
 workflows:
   version: 2
   commit:
     jobs:
       - amd64-focal-build:
-          <<: *filter-template-non-master
+          <<: *filter-template-normal-builds
       - amd64-jammy-build:
-          <<: *filter-template-non-master
-      
+          <<: *filter-template-normal-builds
+
       - get-orig-source:
-          <<: *filter-template-master-only
+          <<: *filter-template-debian-builds
 
       - amd64-focal-deb-build:
-          <<: *filter-template-master-only
+          <<: *filter-template-debian-builds
           requires:
             - get-orig-source
       - arm64-focal-deb-build:
-          <<: *filter-template-master-only
+          <<: *filter-template-debian-builds
           requires:
             - get-orig-source
 
       - amd64-jammy-deb-build:
-          <<: *filter-template-master-only
+          <<: *filter-template-debian-builds
           requires:
             - get-orig-source
       - arm64-jammy-deb-build:
-          <<: *filter-template-master-only
+          <<: *filter-template-debian-builds
           requires:
             - get-orig-source
-            
+
       # always do the upload if we did the deb builds
       - upload:
           filters:
@@ -241,7 +253,7 @@ workflows:
               only: /.*/
           requires:
             - upload
-            
+
       - bundle-jammy:
           filters:
             tags:
@@ -249,10 +261,24 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - upload          
+            - upload
+
+      # rootfs jobs
+      - raspi-image-create-focal:
+          <<: *filter-template-rootfs-builds
+      - virtualbox-image-create-focal:
+          <<: *filter-template-rootfs-builds
+      - raspi-image-create-jammy:
+          <<: *filter-template-rootfs-builds
+      - virtualbox-image-create-jammy:
+          <<: *filter-template-rootfs-builds
+      - aws-sync:
+          requires:
+            - raspi-image-create-jammy
+            - virtualbox-image-create-jammy
+          <<: *filter-template-aws-rootfs-builds
 
 jobs:
-
   get-orig-source:
     <<: *job-template-deb-amd64
     docker: *docker-base-light
@@ -263,6 +289,8 @@ jobs:
       <<: *environment-template-amd64
     steps:
       - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
       - run:
           name: Get original source tarball
           command: |
@@ -270,15 +298,20 @@ jobs:
             # use tag directly for release/beta builds
             [ -z "${CIRCLE_TAG}" ] && export RAWVERSION="$(git describe --tags HEAD --long)" || export RAWVERSION="${CIRCLE_TAG}"
             export NEWVERSION="$(echo ${RAWVERSION} | sed 's/_/~/' | sed 's/-/+/g')"
-            git config tar.tar.xz.command "xz -c" &&
-            mkdir -p /root/src &&
-            git archive --prefix=jaiabot-${NEWVERSION}/ -o /root/src/jaiabot_${NEWVERSION}.orig.tar.xz HEAD;
+            mkdir -p /root/src
+            export OUTTAR=/root/src/jaiabot_${NEWVERSION}.orig.tar
+            # archive core repo
+            git archive --format tar --prefix=jaiabot-${NEWVERSION}/ -o $OUTTAR HEAD;
+            # archive submodules
+            git submodule --quiet foreach --recursive 'git archive --format tar --prefix=jaiabot-${NEWVERSION}/$displaypath/ -o submodule.tar HEAD'
+            # concatentate submodule tarballs onto core repo
+            TOPDIR=$(pwd) git submodule --quiet foreach --recursive 'cd $TOPDIR; tar --concatenate --file=$OUTTAR $displaypath/submodule.tar; rm -fv $displaypath/submodule.tar'
+            # compress output with XZ
+            xz $OUTTAR
       - run:
-          name: Add changelog entry 
+          name: Add changelog entry
           command: |
-            cd /root &&
-            rm -rf debian &&
-            git clone https://github.com/jaiarobotics/jaiabot-debian debian &&
+            cd /root/jaiabot &&
             export NEWVERSION="$(echo /root/src/*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
             COMMENT="Autobuild for version ${NEWVERSION}" &&
             dch --newversion=${NEWVERSION}-0~DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
@@ -288,8 +321,8 @@ jobs:
       - persist_to_workspace:
           root: /root/src
           paths:
-            - '*.tar.xz'
-            - 'changelog'
+            - "*.tar.xz"
+            - "changelog"
 
   amd64-focal-build:
     <<: *job-template-amd64
@@ -306,7 +339,7 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-amd64
-  arm64-focal-deb-build: 
+  arm64-focal-deb-build:
     <<: *job-template-deb-cross
     docker: *docker-arm64-focal
     environment:
@@ -329,7 +362,7 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-jammy
       <<: *environment-template-amd64
-  arm64-jammy-deb-build: 
+  arm64-jammy-deb-build:
     <<: *job-template-deb-cross
     docker: *docker-arm64-jammy
     environment:
@@ -350,14 +383,14 @@ jobs:
           fingerprints:
             - "5a:bc:88:89:21:a2:a0:cd:68:07:b5:26:f0:64:28:e9"
       - run: *run-import-gpg
-      - attach-workspace:
+      - attach_workspace:
           at: /root/deb
-      - attach-workspace: *attach-src-workspace
+      - attach_workspace: *attach-src-workspace
       - run:
           name: Move original source into output directory
           command: mv /root/src/* /root/deb
       - run: *run-set-deb-rep-and-version
-      - run:      
+      - run:
           name: Upload packages to packages.jaia.tech
           command: |
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
@@ -368,7 +401,7 @@ jobs:
   bundle-focal:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-focal
@@ -392,7 +425,7 @@ jobs:
   bundle-jammy:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-jammy
@@ -401,4 +434,174 @@ jobs:
       - run: *run-set-deb-rep-and-version
       - run: *run-bundle-package
       - store_artifacts: *store-bundle-artifacts
-          
+
+  # rootfs jobs
+  raspi-image-create-jammy:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    environment:
+      CREATE_IMAGE_ARGS: "--native"
+      DISTRO_RELEASE_CODENAME: "jammy"
+      DEBIAN_FRONTEND: "noninteractive"
+    steps:
+      - checkout
+      - run: &run-install-apt-raspi
+          name: Install apt dependencies
+          command: sudo apt-get update && sudo apt-get -y install pigz dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget
+      - run: &run-create-image
+          name: Create filesystem image
+          command: |
+            if [ ! -z "$CIRCLE_BRANCH" ]; then
+              export CIRCLE_BRANCH_ESC=$(echo "$CIRCLE_BRANCH-" | tr '/' '_');
+            else
+              export CIRCLE_BRANCH_ESC=""
+            fi
+            export ROOTFS_BUILD_TAG="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"
+            export TMP_IMG_NAME=jaiabot
+            mkdir /tmp/images
+            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} ${CREATE_IMAGE_ARGS}
+            source ${TMP_IMG_NAME}.metadata.txt
+            for filename in ${TMP_IMG_NAME}.*; do
+              extension="${filename#*.}"
+              mv "${TMP_IMG_NAME}.${extension}" "/tmp/images/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}__code-v${JAIABOT_VERSION}.${extension}"
+            done
+      - run: &run-compress-image-raspi
+          name: Compress image
+          command: pigz /tmp/images/*.img
+      - store_artifacts: &store-raspi
+          path: /tmp/images/
+      - persist_to_workspace: &persist-raspi
+          root: /tmp
+          paths:
+            - "images/*.img.gz"
+            - "images/*.metadata.txt"
+
+  virtualbox-image-create-jammy:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: medium
+    environment:
+      CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
+      DISTRO_RELEASE_CODENAME: "jammy"
+      DEBIAN_FRONTEND: "noninteractive"
+    steps:
+      - checkout
+      - run: &run-install-apt-vbox
+          name: Install apt dependencies
+          command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox
+      - run: *run-create-image
+      - run: &run-move-vbox
+          name: Move image for storage
+          command: |
+            mkdir /tmp/vbox &&
+            sudo chmod a+rwx /tmp/images/*.ova &&
+            mv /tmp/images/*.ova /tmp/vbox/
+      - store_artifacts: &store-vbox
+          path: /tmp/vbox/
+      - persist_to_workspace: &persist-vbox
+          root: /tmp
+          paths:
+            - "vbox/*.ova"
+
+  raspi-image-create-focal:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm.medium
+    environment:
+      CREATE_IMAGE_ARGS: "--native"
+      DISTRO_RELEASE_CODENAME: "focal"
+      DEBIAN_FRONTEND: "noninteractive"
+    steps:
+      - checkout
+      - run: *run-install-apt-raspi
+      - run: *run-create-image
+      - run: *run-compress-image-raspi
+      - store_artifacts: *store-raspi
+
+  virtualbox-image-create-focal:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    environment:
+      CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
+      DISTRO_RELEASE_CODENAME: "focal"
+      DEBIAN_FRONTEND: "noninteractive"
+    steps:
+      - checkout
+      - run: *run-install-apt-vbox
+      - run: *run-create-image
+      - run: *run-move-vbox
+      - store_artifacts: *store-vbox
+
+  aws-sync:
+    docker:
+      - image: cimg/base:current
+    environment:
+      AWS_DEFAULT_REGION: "us-east-1"
+      # only upload latest Ubuntu version to AWS
+      DISTRO_RELEASE_CODENAME: "jammy"
+    resource_class: medium
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - aws-cli/setup:
+          profile_name: OIDC-User
+          role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+      - run:
+          name: Set environmental variables for which repo tag to use (analogous to APT repo names)
+          command: |
+            # use script from jaiabot that does the same thing
+
+            git clone https://github.com/jaiarobotics/jaiabot.git
+
+            repo=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            echo "repo:${repo}"
+            echo "version:${version}"
+            # export these for later use
+            echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
+            echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
+      - run:
+          name: Delete previous images for this repo/version
+          command: |
+            aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/vbox
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/images
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+      - run:
+          name: Import new AMI
+          command: |
+            OVA=$(basename $(ls /tmp/vbox/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
+
+            IMAGE_NAME=${OVA%.*}
+            # writes result.json for later use
+            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
+      - run:
+          name: Deregister old AMI and delete snapshots
+          command: |
+            rootfs/cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+      - run:
+          name: Tag new AMI
+          command: |
+            source /tmp/images/*.metadata.txt
+            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
+            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+            aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
+              "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
+              "Key=jaia_creator,Value=circleci" \
+              "Key=jaiabot-rootfs-gen_version,Value=${JAIABOT_ROOTFS_GEN_TAG}" \
+              "Key=jaiabot-rootfs-gen_distro,Value=${DISTRO_RELEASE_CODENAME}" \
+              "Key=jaiabot-rootfs-gen_repository,Value=${JAIABOT_ROOTFS_GEN_REPO}" \
+              "Key=jaiabot-rootfs-gen_repository_version,Value=${JAIABOT_ROOTFS_GEN_REPO_VERSION}" \
+              "Key=jaiabot-rootfs-gen_build-date,Value=$(date -u)" \
+              "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
+              "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
+              "Key=goby_version_when_built,Value=${GOBY_VERSION}"

@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+# LTO is causing issues with Clang on Ubuntu Noble - this can be removed once this bug is closed: https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-18/+bug/2064187
+export DEB_BUILD_MAINT_OPTIONS=optimize=-lto
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/cmake.mk
+
+DEB_MAKE_ENVVARS = CTEST_OUTPUT_ON_FAILURE=ON
+
+DEB_BUILD_PARALLEL = true
+DEB_CMAKE_EXTRA_FLAGS =
+
+DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
+DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
+ifneq ($(DEB_BUILD_ARCH),$(DEB_TARGET_ARCH))
+        # cross compiling
+        DEB_CMAKE_EXTRA_FLAGS += -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$(DEB_TARGET_GNU_CPU) -DCMAKE_C_FLAGS="-target $(DEB_HOST_GNU_TYPE)" -DCMAKE_CXX_FLAGS="-target $(DEB_HOST_GNU_TYPE)"
+else
+# only run unit tests and build documentation on x86_64 and i386
+ifeq ($(shell (dpkg-architecture -qDEB_BUILD_ARCH | egrep -q "amd64|i386") && echo "yes"),yes)
+	DEB_CMAKE_EXTRA_FLAGS += -Dbuild_doc=ON -Dexport_goby_interfaces=ON 
+        # for running tests
+        # DEB_MAKE_ENVVARS += LD_LIBRARY_PATH=$(CURDIR)/lib
+        # DEB_MAKE_CHECK_TARGET = test
+endif
+endif
+
+$(info $$DEB_BUILD_ARCH is [${DEB_BUILD_ARCH}])
+$(info $$DEB_TARGET_ARCH is [${DEB_TARGET_ARCH}])
+$(info $$DEB_CMAKE_EXTRA_FLAGS is [${DEB_CMAKE_EXTRA_FLAGS}])
+
+CC=/usr/bin/clang 
+CXX=/usr/bin/clang++

@@ -80,7 +80,10 @@ def getSeries():
 @app.route('/map', methods=['GET'])
 def getMap():
     log_names = parseFilenames(request.args.get('log'))
-    return JSONResponse(jaialogStore.getMap(log_names))
+    try:
+        return JSONResponse(jaialogStore.getMap(log_names))
+    except Exception as e:
+        return JSONErrorResponse(str(e))
 
 
 @app.route('/commands', methods=['GET'])
@@ -192,4 +195,4 @@ if __name__ == '__main__':
     logging.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
     logging.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
 
-    app.run(host='0.0.0.0', port=args.port, debug=True)
+    app.run(host='0::0', port=args.port, debug=True)

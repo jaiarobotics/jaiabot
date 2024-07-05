@@ -1,72 +1,71 @@
-import { LoadMissions, SaveMissions } from './Settings'
-import { RunLibrary } from './Missions'
-import { MissionInterface } from './CommandControl';
+import { LoadMissions, SaveMissions } from "./Settings";
+import { RunLibrary } from "./Missions";
+import { MissionInterface } from "./CommandControl/CommandControl";
 
-const savedMissionsKey = "savedMissions"
+const savedMissionsKey = "savedMissions";
 
-let savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
+let savedMissions = LoadMissions<RunLibrary>(savedMissionsKey);
 
 export class MissionLibraryLocalStorage {
-    static missionLibraryLocalStorage: MissionLibraryLocalStorage
+    static missionLibraryLocalStorage: MissionLibraryLocalStorage;
 
     static shared() {
         if (MissionLibraryLocalStorage.missionLibraryLocalStorage == null) {
-            MissionLibraryLocalStorage.missionLibraryLocalStorage = new MissionLibraryLocalStorage()
+            MissionLibraryLocalStorage.missionLibraryLocalStorage =
+                new MissionLibraryLocalStorage();
         }
-        return MissionLibraryLocalStorage.missionLibraryLocalStorage
+        return MissionLibraryLocalStorage.missionLibraryLocalStorage;
     }
 
-    constructor() {
-    }
+    constructor() {}
 
     missionNames() {
         // Check to see if we have saved missions
         if (savedMissions) {
-            let savedMissionNames = Object?.keys(savedMissions).sort()
-            return savedMissionNames
+            let savedMissionNames = Object?.keys(savedMissions).sort();
+            return savedMissionNames;
         }
 
-        return []
+        return [];
     }
 
     hasMission(name: string) {
         if (savedMissions) {
-            return (name in savedMissions)
+            return name in savedMissions;
         }
 
-        return
+        return;
     }
 
     loadMission(key: string) {
-        savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
+        savedMissions = LoadMissions<RunLibrary>(savedMissionsKey);
 
         if (savedMissions) {
-            return savedMissions[key]
+            return savedMissions[key];
         }
 
-        return
+        return;
     }
 
     saveMission(key: string, mission: MissionInterface) {
         if (!key) {
-            return
+            return;
         }
 
         if (!savedMissions) {
-            savedMissions = {}
+            savedMissions = {};
         }
 
-        savedMissions[key] = JSON.parse(JSON.stringify(mission))
-        SaveMissions(savedMissionsKey, savedMissions)
+        savedMissions[key] = JSON.parse(JSON.stringify(mission));
+        SaveMissions(savedMissionsKey, savedMissions);
     }
 
     deleteMission(key: string) {
         if (key == null) {
-            return
+            return;
         }
 
-        delete savedMissions[key]
-        SaveMissions(savedMissionsKey, savedMissions)
+        delete savedMissions[key];
+        SaveMissions(savedMissionsKey, savedMissions);
     }
-
 }

@@ -19,16 +19,21 @@ popd > /dev/null
 # Build JCC and JED clients
 # Install pre-requisites
 ./install_dependencies.sh ./
-mkdir -p ${BUILD_DIR}
-echo 🟢 Building JCC and JED into ${BUILD_DIR}
-npx webpack --mode production --env OUTPUT_DIR=${BUILD_DIR} --progress
+
+
+# Set up pre-commit hooks
+pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
+    ./set-pre-commit-hook.sh
+popd > /dev/null
 
 
 # Start server
+echo 🟢 Starting server
 pushd server > /dev/null
     ./app.py -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
 
 # Watch build JCC and JED clients for development
-npx webpack --mode production --env OUTPUT_DIR=${BUILD_DIR} --watch --progress
+echo 🟢 Building the client apps. Please wait until initial build completes before loading JCC or JED in browser.
+npx webpack --mode development --env OUTPUT_DIR=${BUILD_DIR} --watch --progress

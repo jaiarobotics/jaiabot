@@ -11,10 +11,10 @@
 
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #767d7d;
-    
+
     display: flex;
     flex-direction: column;
-    
+
     z-index: 1;
 
     overflow-y: auto;
@@ -36,16 +36,22 @@
     max-height: 70vh;
     overflow-y: auto;
 }
+
 .settings-card-container {
     padding-left: 14px;
     padding-right: 20px;
     margin-bottom: 10px;
 }
+
 .settings-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 30px;
+}
+
+.settings-card.hub-location-card {
+    justify-content: center;
 }
 
 .settings-card .button-jcc {
@@ -65,14 +71,14 @@
 }
 
 .settings-card-grid.visible {
-    border: 1px solid #D1D5DB;
+    border: 1px solid #d1d5db;
     border-radius: 3px;
     padding: 6px;
 }
 
 .settings-line-break {
     height: 1px;
-    background-color: #D1D5DB;
+    background-color: #d1d5db;
     margin: 12px 0;
 }
 

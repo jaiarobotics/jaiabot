@@ -7,15 +7,13 @@
     - name: Update apt cache
       # in some case the "apt" module was not doing an update
       shell: "apt-get update"
-      args:
-        warn: false
 
     - include_tasks: tasks/get-version.yml
 
     - name: Set fact if upgrade available
       set_fact:
         jaiabot_upgrade_available: "{{ jaiabot_current_version != jaiabot_available_version }}"
-        
+
     - name: Display current package information
       debug:
         var: jaiabot_current_version
@@ -23,4 +21,3 @@
     - name: Display available package information
       debug:
         var: jaiabot_available_version
-        

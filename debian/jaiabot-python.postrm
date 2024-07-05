@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rm -r /usr/share/jaiabot/python/venv
+
+exit 0

@@ -1,0 +1,4 @@
+#!/bin/sh  
+
+echo "symlink zile as emacs"
+ln -s /usr/bin/zile /usr/local/bin/emacs

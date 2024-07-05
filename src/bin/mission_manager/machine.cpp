@@ -1509,9 +1509,15 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
     // run preoffload script and then do nothing (actual offload handled by jaiabot_hub_manager)
     if (!run_command(CommandType::PRE_OFFLOAD))
     {
+        glog.is_warn() && glog << "Pre offload command Failed" << std::endl;
         this->machine().insert_warning(
             jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
         post_event(EvDataOffloadFailed());
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Pre offload command Succeeded" << std::endl;
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
     }
 }
 
@@ -1608,6 +1614,12 @@ jaiabot::statechart::postdeployment::DataOffload::~DataOffload()
         {
             glog.is_warn() && glog << "Post offload command failed" << std::endl;
             this->machine().insert_warning(
+                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+        }
+        else
+        {
+            glog.is_debug1() && glog << "Post offload command Succeeded" << std::endl;
+            this->machine().erase_warning(
                 jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
         }
     }

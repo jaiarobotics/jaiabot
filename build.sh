@@ -35,8 +35,8 @@ source $HOME/.nvm/nvm.sh
 set -e -u
 mkdir -p ${script_dir}/build/${ARCH}
 
-# Install clang-format hook if not installed
-[ ! -e ${script_dir}/.git/hooks/pre-commit ] && ${script_dir}/scripts/clang-format-hooks/git-pre-commit-format install
+# Initialize and update submodules
+git submodule update --init
 
 echo "Configuring..."
 cd ${script_dir}/build/${ARCH}

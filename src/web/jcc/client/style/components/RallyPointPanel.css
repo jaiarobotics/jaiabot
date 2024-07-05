@@ -10,7 +10,7 @@
     padding: 6px;
 
     border: 2px solid #767d7d;
-  
+
     z-index: 100;
 }
 
@@ -20,7 +20,7 @@
     justify-items: center;
     gap: 12px;
     padding: 6px;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
 }
 
 .rally-outer-container {

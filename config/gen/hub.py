@@ -103,6 +103,9 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                             ack_timeout=ack_timeout)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
+liaison_bind_addr='0.0.0.0'
+if common.is_vfleet:
+    liaison_bind_addr='0::0'
 
 
 if common.app == 'gobyd':
@@ -146,6 +149,7 @@ elif common.app == 'goby_liaison':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      http_port=liaison_port,
+                                     http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_liaison_prelaunch':
@@ -167,6 +171,7 @@ elif common.app == 'goby_liaison_prelaunch':
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
+                                     http_address=liaison_bind_addr,
                                      this_hub=this_hub,
                                      user_role=user_role,
                                      inventory=inventory,
@@ -213,7 +218,8 @@ elif common.app == 'jaiabot_metadata':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_metadata.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     xbee_info=xbee_info))
+                                     xbee_info=xbee_info,
+                                     is_simulation=str(is_simulation()).lower()))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:
