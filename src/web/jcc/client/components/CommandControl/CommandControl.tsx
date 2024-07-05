@@ -3097,13 +3097,6 @@ export default class CommandControl extends React.Component {
                     <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots" />
                 </Button>
                 <Button
-                    className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
-                    title="Add Rally Point"
-                    onClick={this.rallyButtonClicked.bind(this)}
-                >
-                    <img src={rallyIcon} />
-                </Button>
-                <Button
                     className="button-jcc"
                     style={{ backgroundColor: "#cc0505" }}
                     onClick={this.sendStopAll.bind(this)}
@@ -3968,6 +3961,16 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
+        const addRallyPointButton = (
+            <Button
+                className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
+                title="Add Rally Point"
+                onClick={this.rallyButtonClicked.bind(this)}
+            >
+                <img src={rallyIcon} />
+            </Button>
+        );
+
         const missionPanelButton =
             visiblePanel == PanelType.MISSION ? (
                 <Button
@@ -4211,6 +4214,7 @@ export default class CommandControl extends React.Component {
 
                 <div id="viewControls">
                     {missionPanelButton}
+                    {addRallyPointButton}
                     {surveyMissionSettingsButton}
                     {downloadQueueButton}
                     {measureButton}

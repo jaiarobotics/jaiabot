@@ -193,8 +193,8 @@ class JaiaH5FileSet:
             bot_id = re.findall(bot_id_pattern, log.filename)
             bot_id_string = str(bot_id[0])
 
-            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path, invalid_values=[0])
-            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path, invalid_values=[0])
+            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path)
+            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path)
             heading_series = Series.loadFromH5File(log=log, path=NodeStatus_heading_path)
             course_over_ground_series = Series.loadFromH5File(log=log, path=NodeStatus_course_over_ground_path)
 
@@ -206,8 +206,8 @@ class JaiaH5FileSet:
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
                 thisSeries.append([
                     lat_series.utime[i], 
-                    lat_series.y_values[i], 
-                    lon_series.y_values[i], 
+                    lat_series.y_values[i] or None, 
+                    lon_series.y_values[i] or None, 
                     heading_series.y_values[i], 
                     course_over_ground_series.y_values[i], 
                     most_recent_desired_heading

@@ -376,7 +376,15 @@ export default class JaiaMap {
 
             // Filter to only keep points within the time range
             var path = [];
+            var startPt = null;
+            var endPt = null;
+
             for (const pt of ptArray) {
+                if (pt[1] == null || pt[2] == null) continue;
+
+                if (startPt == null) startPt = pt;
+                endPt = pt;
+
                 // Contribute to tMin and tMax
                 const t = pt[0];
                 if (this.tMin == null || t < this.tMin) this.tMin = t;
@@ -405,9 +413,8 @@ export default class JaiaMap {
             this.botPathVectorSource.addFeature(pathFeature);
 
             // Add start and end markers
-            if (ptArray.length > 0) {
-                // parameters: {title?, lon, lat, style?, time?, popupHTML?}
-                const startPt = ptArray[0];
+
+            if (startPt) {
                 const startMarker = createMarker2(this.map, {
                     title: "Start",
                     lon: startPt[2],
@@ -416,8 +423,9 @@ export default class JaiaMap {
                     style: Styles.startMarker,
                 });
                 this.botPathVectorSource.addFeature(startMarker);
+            }
 
-                const endPt = ptArray[ptArray.length - 1];
+            if (endPt) {
                 const endMarker = createMarker2(this.map, {
                     title: "End",
                     lon: endPt[2],
