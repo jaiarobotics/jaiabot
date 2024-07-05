@@ -35,11 +35,11 @@ source $HOME/.nvm/nvm.sh
 set -e -u
 mkdir -p ${script_dir}/build/${ARCH}
 
+# Initialize and update submodules
+git submodule update --init
+
 echo "Configuring..."
 cd ${script_dir}/build/${ARCH}
 (set -x; cmake ../.. ${JAIABOT_CMAKE_FLAGS})
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 (set -x; time cmake --build . -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@)
-
-# Initialize and update submodules
-git submodule update --init
