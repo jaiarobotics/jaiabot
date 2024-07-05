@@ -464,14 +464,12 @@ export default class JaiaMap {
 
     updateToTimestamp(timestamp_micros: number) {
         this.timestamp = timestamp_micros;
-        // console.log('updateToTimestamp: ', timestamp_micros)
 
         this.updateBotMarkers(timestamp_micros);
         this.updateMissionLayer(timestamp_micros);
     }
 
     getTimestamp(): number {
-        // console.log('get timestamp', this.timestamp)
         return this.timestamp;
     }
 
