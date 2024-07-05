@@ -689,7 +689,7 @@ export default class RCControllerPanel extends React.Component {
          */
         const toggleMinimizeIndicator = (
             <Button>
-                <Typography>{this.state.isMaximized ? "˅" : "^"}</Typography>
+                <Typography>{this.state.isMaximized ? "^" : "˅"}</Typography>
             </Button>
         );
 
