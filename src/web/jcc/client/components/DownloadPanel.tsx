@@ -27,7 +27,6 @@ interface Props {
     downloadableBots: PortalBotStatus[];
     removeBotFromQueue: (bot: PortalBotStatus) => void;
     getBotDownloadPercent: (botId: number) => number;
-    processDownloadAllBots: () => Promise<void>;
 }
 
 enum AccordionTabs {
@@ -72,15 +71,6 @@ export default function DownloadPanel(props: Props) {
     };
 
     /**
-     * Calls processDownloadAllBots function in CommandControl  when the user clicks on "Download All" button
-     *
-     * @returns {void}
-     */
-    const handleDownloadAll = async () => {
-        await props.processDownloadAllBots();
-    };
-
-    /**
      * Prepares a KML document for download
      *
      * @returns {void}
@@ -116,11 +106,6 @@ export default function DownloadPanel(props: Props) {
             <div className="panel-heading">Download Panel</div>
 
             <div className="download-panel-inner-container">
-                <div className="toolbar">
-                    <Button id="downloadAll" className={`button-jcc`} onClick={handleDownloadAll}>
-                        <Icon path={mdiDownloadMultiple} title="Download All" />
-                    </Button>
-                </div>
 
                 <Accordion
                     expanded={isOpenAccordionTab(AccordionTabs.DownloadToComputer)}
