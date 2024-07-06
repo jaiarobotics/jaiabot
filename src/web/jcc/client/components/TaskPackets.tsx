@@ -87,10 +87,16 @@ export class TaskData {
         });
     }
 
+    
+    /**
+     * Updates the task packet data store to the specified time range.
+     *
+     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
+     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
+     * @returns {*}
+     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm
+     */
     update(startDate?: string, endDate?: string) {
-        console.log("update");
-        console.log(startDate, endDate);
-
         return jaiaAPI
             .getTaskPackets(startDate, endDate)
             .then((taskPackets) => {
@@ -254,6 +260,13 @@ export class TaskData {
         return taskCalcs;
     }
 
+    
+    /**
+     * Download a new contour plot GeoJSON feature set from the backend, with a new date range.
+     *
+     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
+     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
+     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm     */
     _updateContourPlot(startDate?: string, endDate?: string) {
         // To Do: Figure out how to make multiple contour maps based on time/location
         jaiaAPI

@@ -161,6 +161,16 @@ export class JaiaAPI {
         return this.get(`jaia/task-packets-count`);
     }
 
+    
+    /**
+     * Get a set of depth contours from the backend in GeoJSON format.
+     *
+     * @async
+     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
+     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
+     * @returns {Promise<FeatureCollection<Geometry>>} The depth contour feature set.
+     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm
+     */
     async getDepthContours(
         startDate?: string,
         endDate?: string,

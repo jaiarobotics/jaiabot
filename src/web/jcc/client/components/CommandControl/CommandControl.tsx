@@ -1040,6 +1040,10 @@ export default class CommandControl extends React.Component {
         }
     }
 
+    
+    /**
+     * Polls the backend to download new task packets, if they exist.
+     */
     pollTaskPackets() {
         this.setTaskPacketDates();
         this.api
