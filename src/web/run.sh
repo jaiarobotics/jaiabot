@@ -27,16 +27,13 @@ pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
 popd > /dev/null
 
 
-mkdir -p ${BUILD_DIR}
-echo 🟢 Building JCC and JED into ${BUILD_DIR}
-npx webpack --mode production --env OUTPUT_DIR=${BUILD_DIR} --progress
-
-
 # Start server
+echo 🟢 Starting server
 pushd server > /dev/null
     ./app.py -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
 
 # Watch build JCC and JED clients for development
+echo 🟢 Building the client apps. Please wait until initial build completes before loading JCC or JED in browser.
 npx webpack --mode development --env OUTPUT_DIR=${BUILD_DIR} --watch --progress
