@@ -1,0 +1,93 @@
+syntax = "proto2";
+
+import "jaiabot/messages/jaia_dccl.proto";
+import "jaiabot/messages/hub.proto";
+import "jaiabot/messages/metadata.proto";
+
+package jaiabot.protobuf;
+
+message TaskPacketsRequest
+{
+    required string start_date = 1;
+    required string end_date = 2;
+}
+
+message CommandResult
+{
+    required bool command_acked = 1;
+}
+
+enum APIErrorCode
+{
+    // REST API URL errors
+    API_ERROR__UNSUPPORTED_API_VERSION = 1;
+    API_ERROR__INVALID_ACTION = 2;
+    API_ERROR__TARGETS_STRING_MALFORMATTED = 3;
+
+    // Parse errors
+    API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON = 10;
+
+    // Missing fields
+    API_ERROR__REQUEST_NOT_INITIALIZED = 11;
+    API_ERROR__NO_ACTION_SPECIFIED = 12;
+}
+
+
+message APIError
+{
+    required APIErrorCode code  = 1;
+    optional string details = 2;
+}
+
+
+message APIRequest
+{
+    message Nodes
+    {
+        optional bool hub = 1 [default = false];
+        repeated int32 bots = 2;
+        optional bool all = 3 [default = false];
+    }
+    required Nodes target = 1;
+    optional string api_key = 2;
+
+    oneof action
+    {
+        bool status = 11;
+        bool metadata = 12;
+        TaskPacketsRequest task_packets = 13;
+        Command command = 14;
+        CommandForHub command_for_hub = 15;
+    }
+}
+
+message APIResponse
+{
+    message Nodes
+    {
+        required bool hub = 1;
+        repeated int32 bots = 2;
+    }
+    optional Nodes target = 1;
+    message Statuses
+    {
+        repeated BotStatus bot = 1;
+        repeated HubStatus hub = 2;
+    }
+    message TaskPackets
+    {
+        repeated TaskPacket packet = 1;
+    }
+
+    oneof action
+    {
+        APIError error = 10;
+        Statuses status = 11;
+        DeviceMetadata metadata = 12;
+        TaskPackets task_packets = 13;
+        CommandResult command_result = 14;
+    }
+
+    // copy of original request
+    required APIRequest request = 20;
+}
