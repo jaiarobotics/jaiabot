@@ -128,7 +128,21 @@ message IMUData
         optional double heading = 4;
     }
 
+    message RawGyroscope {
+        optional double x = 1;
+        optional double y = 2;
+        optional double z = 3;
+    }
+
+    message RawAccelerometer {
+        optional double x = 1;
+        optional double y = 2;
+        optional double z = 3;
+    }
+
     optional RawMagnetometer raw_magnetometer = 13;
+    optional RawGyroscope raw_gyroscope = 17;
+    optional RawAccelerometer raw_accelerometer = 18;
 
     optional int32 magnetometer_accuracy = 14;
     optional int32 gyroscope_accuracy = 15;

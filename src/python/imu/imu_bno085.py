@@ -63,6 +63,8 @@ class AdafruitBNO085(IMU):
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             raw_mag_x, raw_mag_y, raw_mag_z = self.sensor.raw_magnetic
+            raw_gyro_x, raw_gryo_y, raw_gyro_z = self.sensor.raw_gyro
+            raw_accel_x, raw_accel_y, raw_accel_z = self.sensor.raw_acceleration
             gravity = self.sensor.gravity
             calibration_status = self.calibration_status
             calibration_state = self.calibration_state
