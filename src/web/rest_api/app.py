@@ -38,7 +38,7 @@ def jaia_api_short(version):
     return finalize_response(jaia_response, jaia_request)
 
 
-@app.route("/jaia/v<int:version>/<string:action>/<string:target_str>", methods=['POST'])
+@app.route("/jaia/v<int:version>/<string:action>/<string:target_str>", methods=['GET', 'POST'])
 def jaia_api_long(version, action, target_str):
     jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
@@ -56,10 +56,17 @@ def jaia_api_long(version, action, target_str):
             # auto fill boolean actions
             setattr(jaia_request, action_field_desc.name, True)
         else:
-            # parse POST data as JSON for action
-            json_request = request.json
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
-            google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
+            # parse POST data as JSON for action
+            if not request.is_json:
+                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Action '" + action + "' requires additional data to be submitted in JSON using POST according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
+            json_request = request.json
+
+            try:
+                google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
+            except google.protobuf.json_format.Error as e:
+                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as a '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message: " + str(e))
+
 
         check_initialized(jaia_request)
         

@@ -23,7 +23,8 @@ enum APIErrorCode
     API_ERROR__UNSUPPORTED_API_VERSION = 1;
     API_ERROR__INVALID_ACTION = 2;
     API_ERROR__TARGETS_STRING_MALFORMATTED = 3;
-
+    API_ERROR__ACTION_REQUIRES_JSON_POST_DATA = 4;
+    
     // Parse errors
     API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON = 10;
 
@@ -44,7 +45,7 @@ message APIRequest
 {
     message Nodes
     {
-        optional bool hub = 1 [default = false];
+        repeated int32 hubs = 1;
         repeated int32 bots = 2;
         optional bool all = 3 [default = false];
     }
@@ -65,7 +66,7 @@ message APIResponse
 {
     message Nodes
     {
-        required bool hub = 1;
+        repeated int32 hubs = 1;
         repeated int32 bots = 2;
     }
     optional Nodes target = 1;
