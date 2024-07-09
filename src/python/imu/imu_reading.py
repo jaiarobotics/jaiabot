@@ -27,9 +27,9 @@ class IMUReading:
     quaternion: Quaternion
     angular_velocity: Vector3
     raw_magnetometer: Optional[RawMagnetometer] = field(default=None)
-    magnetometer_accuracy: int
-    gyroscope_accuracy: int
-    accelerometer_accuracy: int
+    magnetometer_accuracy: Optional[int] = field(default=-1)
+    gyroscope_accuracy: Optional[int] = field(default=-1)
+    accelerometer_accuracy: Optional[int] = field(default=-1)
 
     def convertToIMUData(self):
         """Returns an IMUData protobuf object, suitable for sending over UDP
