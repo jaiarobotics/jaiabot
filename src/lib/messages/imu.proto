@@ -129,6 +129,10 @@ message IMUData
     }
 
     optional RawMagnetometer raw_magnetometer = 13;
+
+    optional int32 magnetometer_accuracy = 14;
+    optional int32 gyroscope_accuracy = 15;
+    optional int32 accelerometer_accuracy = 16;
 }
 
 message IMUIssue

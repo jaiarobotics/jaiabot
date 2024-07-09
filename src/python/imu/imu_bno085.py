@@ -1,12 +1,18 @@
-from imu import *
-
-import adafruit_bno08x
-from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
 import math
+import sys
+import os
 from threading import Lock
-from magnetometer import RawMagnetometer
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
+import Adafruit_CircuitPython_BNO08x.adafruit_bno08x
+import Adafruit_CircuitPython_BNO08x.adafruit_bno08x.uart
+
+from imu import *
+
 
 class AdafruitBNO085(IMU):
     _lock: Lock
@@ -20,15 +26,15 @@ class AdafruitBNO085(IMU):
         if not self.is_setup:
             try:
                 uart = serial.Serial("/dev/ttyAMA0", 3000000)
-                self.sensor = BNO08X_UART(uart)
+                self.sensor = Adafruit_CircuitPython_BNO08x.adafruit_bno08x.uart.BNO08X_UART(uart)
                 log.info('Connected, now lets enable output')
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
-                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_RAW_MAGNETOMETER)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_GYROSCOPE)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_GRAVITY)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_RAW_MAGNETOMETER)
 
                 self.is_setup = True
                 self.calibration_status = None
@@ -79,6 +85,10 @@ class AdafruitBNO085(IMU):
             raw_heading = math.atan2(raw_mag_y, raw_mag_x) * 180 / math.pi
             raw_magnetometer = RawMagnetometer(x=raw_mag_x, y=raw_mag_y, z=raw_mag_z, heading=raw_heading)
 
+            magnetometer_accuracy = self.sensor.get_magnetometer_accuracy()
+            gyroscope_accuracy = self.sensor.get_gyroscope_accuracy()
+            accelerometer_accuracy = self.sensor.get_accelerometer_accuracy()
+
             return IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration, 
                         linear_acceleration_world=linear_acceleration_world,
@@ -87,7 +97,10 @@ class AdafruitBNO085(IMU):
                         calibration_state=calibration_state,
                         quaternion=quaternion,
                         angular_velocity=angular_velocity,
-                        raw_magnetometer=raw_magnetometer
+                        raw_magnetometer=raw_magnetometer,
+                        magnetometer_accuracy=magnetometer_accuracy,
+                        gyroscope_accuracy=gyroscope_accuracy,
+                        accelerometer_accuracy=accelerometer_accuracy
                         )
 
         except Exception as error:
