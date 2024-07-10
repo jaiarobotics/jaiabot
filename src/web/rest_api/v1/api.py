@@ -50,9 +50,16 @@ def status(jaia_request):
                 
     return jaia_response
 
-### NEEDs IMPLEMENTING
-#def metadata(jaia_request):
-#    return jaiabot.messages.rest_api_pb2.APIResponse()
+def metadata(jaia_request):
+    # TODO: ignores targets currently
+    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    with common.shared_data.data_lock:
+        if common.shared_data.data.hubs:
+            # we only currently store metadata for a single hub
+            jaia_response.target.hubs.append(list(common.shared_data.data.hubs)[0])
+            jaia_response.metadata.CopyFrom(common.shared_data.data.metadata)
+
+    return jaia_response
 
 ### NEEDs IMPLEMENTING
 #def task_packets(jaia_request):
