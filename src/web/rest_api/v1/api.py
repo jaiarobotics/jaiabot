@@ -47,7 +47,6 @@ def status(jaia_request):
                     jaia_response.target.hubs.append(hub_id)
                 else: # empty bot status to indicate we haven't heard from this bot
                     jaia_response.status.hubs.append(jaiabot.messages.hub_pb2.HubStatus(hub_id=hub_id, time=0))
-                
     return jaia_response
 
 def metadata(jaia_request):

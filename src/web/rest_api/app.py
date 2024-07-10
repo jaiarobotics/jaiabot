@@ -5,7 +5,7 @@
 ##
 
 import argparse
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.option_extensions_pb2
 import google.protobuf.json_format
@@ -37,7 +37,12 @@ logging.getLogger('werkzeug').setLevel('WARN')
 if args.hostname is None:
     logging.warning('no ip specified, using localhost')    
     args.hostname = "localhost"
-    
+
+try: 
+    api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
+except KeyError:
+    print("Environment variable JAIA_REST_API_PRIVATE_KEY does not exist. It must be explicitly set to the empty string if you wish to bypass API key checking.")
+    exit(1)
 
 app = Flask(__name__)
 
@@ -58,6 +63,9 @@ def jaia_api_short(version):
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as an APIRequest Protobuf message: " + str(e))
 
         check_initialized(jaia_request)
+
+        if not check_api_key(jaia_request.api_key):
+            abort(403) # forbidden
         
         if jaia_request.WhichOneof("action") is None:
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NO_ACTION_SPECIFIED, "An action must be specified. Valid actions are: " + ", ".join(str(a) for a in valid_actions.keys()))
@@ -88,6 +96,15 @@ def jaia_api_long(version, action, target_str):
         if action_field_desc.type == google.protobuf.descriptor.FieldDescriptor.TYPE_BOOL:
             # auto fill boolean actions
             setattr(jaia_request, action_field_desc.name, True)
+
+            if request.method == 'POST':
+                json_request = request.json
+                if "api_key" in json_request:
+                    jaia_request.api_key = json_request["api_key"]
+            elif request.method == 'GET':
+                api_key_get = request.args.get("api_key")            
+                if api_key_get:
+                    jaia_request.api_key = api_key_get
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
             # set to empty action message so we can catch uninitialized child fields
@@ -95,15 +112,25 @@ def jaia_api_long(version, action, target_str):
             # parse POST data as JSON for action
             if request.method == 'POST':
                 json_request = request.json
-            
+                if "api_key" in json_request:
+                    jaia_request.api_key = json_request["api_key"]
+                    # remove so Protobuf parses correctly
+                    del json_request["api_key"]
+                
                 try:
                     google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
                 except google.protobuf.json_format.Error as e:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as a '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message: " + str(e))
             elif request.method == 'GET':
-                jaia_request_action.CopyFrom(parse_get_args(jaia_request_action, action_field_desc))
+                key, request_action = parse_get_args(jaia_request_action, action_field_desc)
+                jaia_request_action.CopyFrom(request_action)
+                if key:
+                    jaia_request.api_key = key
                 
         check_initialized(jaia_request)
+
+        if not check_api_key(jaia_request.api_key):
+            abort(403) # forbidden
 
         jaia_response.CopyFrom(process_request(version, jaia_request))
         
@@ -115,6 +142,9 @@ def jaia_api_long(version, action, target_str):
 
 
 def parse_get_args(jaia_request_action, action_field_desc):    
+    api_key_get = request.args.get("api_key")
+    print(api_key_get)
+    
     for field in jaia_request_action.DESCRIPTOR.fields:
         get_var = request.args.get(field.name)
         if get_var is not None:
@@ -140,7 +170,7 @@ def parse_get_args(jaia_request_action, action_field_desc):
                 setattr(jaia_request_action, field.name, get_var)                
             else:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
-    return jaia_request_action
+    return (api_key_get, jaia_request_action)
 
 
 def check_initialized(jaia_request):
@@ -179,12 +209,18 @@ def is_omitted(parts, descriptor):
             return True
         else:
             return is_omitted(parts[1:], field.message_type)
-        
+
+def check_api_key(key):
+    if not api_key:
+        return True
+    else:
+        return key == api_key
+
 def main():
     streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
     streaming_thread.start()
     app.run(host='127.0.0.1', port=args.bindPort, debug=False)
-        
+    
 if __name__ == '__main__':
     main()
 
