@@ -1,17 +1,48 @@
 #!/usr/bin/env python3
 
+##
+## Core REST API application: Combines Flask on main thread with asyncio (for streaming protocol to Goby) on separate thread.
+##
+
+import argparse
 from flask import Flask, request, jsonify
 import jaiabot.messages.rest_api_pb2
+import jaiabot.messages.option_extensions_pb2
 import google.protobuf.json_format
+import importlib
+import re
+import os
+import logging
+import threading
 
-from api_exception import APIException
-import target
+from common.api_exception import APIException
+import common.target as target
+import common.streaming_client as streaming_client
+import common.shared_data as shared_data
+
+# Arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
+parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
+parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
+parser.add_argument("-b", dest='bindPort', type=int, default=9092, help="bind port for flask server")
+
+args = parser.parse_args()
+
+logLevel = getattr(logging, args.logLevel.upper())
+logging.getLogger().setLevel(logLevel)
+logging.getLogger('werkzeug').setLevel('WARN')
+
+
+if args.hostname is None:
+    logging.warning('no ip specified, using localhost')    
+    args.hostname = "localhost"
+    
 
 app = Flask(__name__)
 
 valid_versions=[1]
 valid_actions={}
-
 for field in jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'].fields:
     valid_actions[field.name]=field
     
@@ -30,6 +61,8 @@ def jaia_api_short(version):
         
         if jaia_request.WhichOneof("action") is None:
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NO_ACTION_SPECIFIED, "An action must be specified. Valid actions are: " + ", ".join(str(a) for a in valid_actions.keys()))
+
+        jaia_response.CopyFrom(process_request(version, jaia_request))
         
     except APIException as e:  
         jaia_response.error.code = e.code
@@ -44,7 +77,7 @@ def jaia_api_long(version, action, target_str):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
     try:
         if not version in valid_versions:
-            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__UNSUPPORTED_API_VERSION, "Version " + str(version) + " is invalid. Valid versions are: " + ", ".join(str(v for v in valid_versions)))
+            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__UNSUPPORTED_API_VERSION, "Version " + str(version) + " is invalid. Valid versions are: " + ", ".join(str(v) for v in valid_versions))
 
         if not action in valid_actions.keys():
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_ACTION, "Action '" + action + "' is invalid. Valid actions are: " + ", ".join(str(a) for a in valid_actions.keys()))
@@ -57,6 +90,8 @@ def jaia_api_long(version, action, target_str):
             setattr(jaia_request, action_field_desc.name, True)
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
+            # set to empty action message so we can catch uninitialized child fields
+            jaia_request_action.CopyFrom(action_field_desc.message_type._concrete_class())
             # parse POST data as JSON for action
             if request.method == 'POST':
                 json_request = request.json
@@ -69,6 +104,8 @@ def jaia_api_long(version, action, target_str):
                 jaia_request_action.CopyFrom(parse_get_args(jaia_request_action, action_field_desc))
                 
         check_initialized(jaia_request)
+
+        jaia_response.CopyFrom(process_request(version, jaia_request))
         
     except APIException as e:  
         jaia_response.error.code = e.code
@@ -77,10 +114,7 @@ def jaia_api_long(version, action, target_str):
     return finalize_response(jaia_response, jaia_request)
 
 
-def parse_get_args(jaia_request_action, action_field_desc):
-    # set to empty action message so we can catch uninitialized child fields
-    jaia_request_action.CopyFrom(action_field_desc.message_type._concrete_class())
-    
+def parse_get_args(jaia_request_action, action_field_desc):    
     for field in jaia_request_action.DESCRIPTOR.fields:
         get_var = request.args.get(field.name)
         if get_var is not None:
@@ -102,6 +136,8 @@ def parse_get_args(jaia_request_action, action_field_desc):
                 else:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Invalid enum '" + get_var + " for field " + field.name + ". Valid options are: " + ", ".join(e for e in enum_type.values_by_name.keys()))
 
+            elif field.cpp_type == field.CPPTYPE_STRING:
+                setattr(jaia_request_action, field.name, get_var)                
             else:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
     return jaia_request_action
@@ -109,12 +145,46 @@ def parse_get_args(jaia_request_action, action_field_desc):
 
 def check_initialized(jaia_request):
     if not jaia_request.IsInitialized():
-        raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__REQUEST_NOT_INITIALIZED, "APIRequest not initialized. Missing fields: " + ", ".join(e for e in jaia_request.FindInitializationErrors()))
+        # verify that uninitialized fields are not OMITTED
+        uninitialized = jaia_request.FindInitializationErrors()
+        api_required_uninitialized = list()
+        
+        for u in uninitialized:
+            # expect 'foo.bar[2].bar' string - strip off the repeated info (e.g., '[2]')
+            pattern = re.compile(r'(\w+)(\[\d+\])?')
+            matches = pattern.findall(u)    
+            parts = [match[0] for match in matches]            
+            if not is_omitted(parts, jaia_request.DESCRIPTOR):
+                api_required_uninitialized.append(u)
 
+        if api_required_uninitialized:
+            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__REQUEST_NOT_INITIALIZED, "APIRequest not initialized. Missing fields: " + ", ".join(e for e in api_required_uninitialized))
+
+def process_request(version, jaia_request):
+    api_module = importlib.import_module("v" + str(version) + ".api")
+    return api_module.process_request(jaia_request)
 
 def finalize_response(jaia_response, jaia_request):
     jaia_response.request.CopyFrom(jaia_request)
     return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True)
 
+# Recursively check for OMITTED presence, if found at any node in the tree, return True
+def is_omitted(parts, descriptor):
+    if not parts:
+        return False
+    else: 
+        field = descriptor.fields_by_name[parts[0]]
+        presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
+        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.OMITTED:
+            return True
+        else:
+            return is_omitted(parts[1:], field.message_type)
+        
+def main():
+    streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
+    streaming_thread.start()
+    app.run(host='127.0.0.1', port=args.bindPort, debug=False)
+        
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    main()
+

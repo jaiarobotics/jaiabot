@@ -1,7 +1,11 @@
+##
+## Parses target string into Protobuf Target object
+##
+
 import re
 import jaiabot.messages.rest_api_pb2
 
-from api_exception import APIException
+from common.api_exception import APIException
 
 def validate(target_str):
     pattern = re.compile(r'^(all|((h\d+|b\d+)(,(h\d+|b\d+))*))$')
