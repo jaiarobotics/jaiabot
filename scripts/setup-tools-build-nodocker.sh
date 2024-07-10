@@ -23,7 +23,13 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
 curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 
 export NODE_VERSION=v18.12.1
-export NVM_DIR="$HOME/.nvm"
+
+if [ -z "${XDG_CONFIG_HOME-}" ]; then
+    export NVM_DIR="${HOME}/.nvm"
+else
+    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+fi
+
 
 # We have to source the "~/.nvm/nvm.sh" script in order to set the paths to use the
 #   nvm versions of webpack and npm
