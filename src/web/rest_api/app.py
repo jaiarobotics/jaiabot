@@ -58,16 +58,16 @@ def jaia_api_long(version, action, target_str):
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
             # parse POST data as JSON for action
-            if not request.is_json:
-                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Action '" + action + "' requires additional data to be submitted in JSON using POST according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
-            json_request = request.json
-
-            try:
-                google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
-            except google.protobuf.json_format.Error as e:
-                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as a '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message: " + str(e))
-
-
+            if request.method == 'POST':
+                json_request = request.json
+            
+                try:
+                    google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
+                except google.protobuf.json_format.Error as e:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as a '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message: " + str(e))
+            elif request.method == 'GET':
+                jaia_request_action.CopyFrom(parse_get_args(jaia_request_action, action_field_desc))
+                
         check_initialized(jaia_request)
         
     except APIException as e:  
@@ -75,6 +75,36 @@ def jaia_api_long(version, action, target_str):
         jaia_response.error.details = e.details
 
     return finalize_response(jaia_response, jaia_request)
+
+
+def parse_get_args(jaia_request_action, action_field_desc):
+    # set to empty action message so we can catch uninitialized child fields
+    jaia_request_action.CopyFrom(action_field_desc.message_type._concrete_class())
+    
+    for field in jaia_request_action.DESCRIPTOR.fields:
+        get_var = request.args.get(field.name)
+        if get_var is not None:
+            if field.label == google.protobuf.descriptor.FieldDescriptor.LABEL_REPEATED:
+                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Repeated fields are not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
+            
+            elif field.cpp_type in (field.CPPTYPE_INT32, 
+                                    field.CPPTYPE_INT64,
+                                    field.CPPTYPE_UINT32,
+                                    field.CPPTYPE_UINT64):
+                setattr(jaia_request_action, field.name, int(get_var))
+            elif field.cpp_type in (field.CPPTYPE_DOUBLE, 
+                                    field.CPPTYPE_FLOAT):
+                setattr(jaia_request_action, field.name, float(get_var))
+            elif field.type == field.TYPE_ENUM:
+                enum_type = field.enum_type
+                if get_var in enum_type.values_by_name.keys():
+                    setattr(jaia_request_action, field.name, enum_type.values_by_name[get_var].number)
+                else:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Invalid enum '" + get_var + " for field " + field.name + ". Valid options are: " + ", ".join(e for e in enum_type.values_by_name.keys()))
+
+            else:
+                raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
+    return jaia_request_action
 
 
 def check_initialized(jaia_request):
