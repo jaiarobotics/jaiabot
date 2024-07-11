@@ -44,7 +44,7 @@ class AdafruitBNO085(IMU):
                 # set the initial time for checking calibration
                 self.check_calibration_time = time.time()
 
-                self.sensor.begin_calibration()
+                #self.sensor.begin_calibration()
 
             except Exception as error:
                 self.is_setup = False
@@ -143,7 +143,7 @@ class AdafruitBNO085(IMU):
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
                         self.calibration_state = CalibrationState.COMPLETE
-                        self.sensor.disable_calibration()
+                        #self.sensor.disable_calibration()
             except Exception as error:
                 log.warning("Error trying to get calibration status!")
             # reset the start time
