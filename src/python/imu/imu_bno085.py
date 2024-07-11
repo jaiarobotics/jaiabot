@@ -44,6 +44,8 @@ class AdafruitBNO085(IMU):
                 # set the initial time for checking calibration
                 self.check_calibration_time = time.time()
 
+                self.sensor.begin_calibration()
+
             except Exception as error:
                 self.is_setup = False
                 log.error(f"Adafruit BNO085 setup error: {error}")
@@ -88,6 +90,7 @@ class AdafruitBNO085(IMU):
             magnetometer_accuracy = self.sensor.get_magnetometer_accuracy()
             gyroscope_accuracy = self.sensor.get_gyroscope_accuracy()
             accelerometer_accuracy = self.sensor.get_accelerometer_accuracy()
+            rotation_vector_accuracy = self.sensor.get_rotation_vector_accuracy()
 
             return IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration, 
@@ -100,7 +103,8 @@ class AdafruitBNO085(IMU):
                         raw_magnetometer=raw_magnetometer,
                         magnetometer_accuracy=magnetometer_accuracy,
                         gyroscope_accuracy=gyroscope_accuracy,
-                        accelerometer_accuracy=accelerometer_accuracy
+                        accelerometer_accuracy=accelerometer_accuracy,
+                        rotation_vector_accuracy=rotation_vector_accuracy
                         )
 
         except Exception as error:
@@ -139,6 +143,7 @@ class AdafruitBNO085(IMU):
                         self.sensor.save_calibration_data()
                         self.calibration_good_at = None
                         self.calibration_state = CalibrationState.COMPLETE
+                        self.sensor.disable_calibration()
             except Exception as error:
                 log.warning("Error trying to get calibration status!")
             # reset the start time

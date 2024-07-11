@@ -30,6 +30,7 @@ class IMUReading:
     magnetometer_accuracy: Optional[int] = field(default=-1)
     gyroscope_accuracy: Optional[int] = field(default=-1)
     accelerometer_accuracy: Optional[int] = field(default=-1)
+    rotation_vector_accuracy: Optional[int] = field(default=-1)
 
     def convertToIMUData(self):
         """Returns an IMUData protobuf object, suitable for sending over UDP
@@ -90,5 +91,8 @@ class IMUReading:
 
         if self.accelerometer_accuracy is not None:
             imu_data.accelerometer_accuracy = self.accelerometer_accuracy
+        
+        if self.rotation_vector_accuracy is not None:
+            imu_data.rotation_vector_accuracy = self.rotation_vector_accuracy
 
         return imu_data

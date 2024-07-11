@@ -133,6 +133,7 @@ message IMUData
     optional int32 magnetometer_accuracy = 14;
     optional int32 gyroscope_accuracy = 15;
     optional int32 accelerometer_accuracy = 16;
+    optional int32 rotation_vector_accuracy = 17;
 }
 
 message IMUIssue
