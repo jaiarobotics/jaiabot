@@ -26,7 +26,7 @@ set -e -u -x
 # These keys must be generated *once* using the actual host yubikey and the command
 #   export FLEET_ID=6
 #   export HUB_ID=1
-#   ssh-keygen -t ed25519-sk -O no-touch-required -f /path/to/ssh/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID} -N ""
+#   ssh-keygen -t ed25519-sk -O no-touch-required -f /path/to/ssh/fleet${FLEET_ID}_yubikey/hub${HUB_ID}_fleet${FLEET_ID} -N "" -C hub${HUB_ID}_fleet${FLEET_ID}
 #
 
 # If running the Xbee Radio setup, you must provide the path to the directory with "fleetN/xbee.pb.cfg" or the file with JAIA_FLEET_CONFIG_XBEE_CFG, e.g., one of:
