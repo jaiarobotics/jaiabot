@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -u
+set -e -u -x
 # 
 # This script configures an entire fleet from a machine with access
 # to all the machines (i.e. with one of the master security keys installed)
@@ -93,6 +93,7 @@ function generate_temporary_ansible_inventory()
         id=${id//\"/} # Remove quotes
         ip=$(eval bot_ip ${id})
         echo "    bot${id}-fleet${FLEET_ID}:" >> ${inv}
+        echo "      ansible_user: jaia" >> ${inv}
         echo "      ansible_host: ${ip}" >> ${inv}
     done
     echo "hubs:" >> ${inv}
@@ -101,6 +102,7 @@ function generate_temporary_ansible_inventory()
         id=${id//\"/} 
         ip=$(eval hub_ip ${id})
         echo "    hub${id}-fleet${FLEET_ID}:" >> ${inv}
+        echo "      ansible_user: jaia" >> ${inv}
         echo "      ansible_host: ${ip}" >> ${inv}
     done
 }
