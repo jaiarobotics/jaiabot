@@ -4,6 +4,39 @@ from scipy.spatial import Delaunay
 import numpy as np
 import cmocean
 import logging
+from typing import *
+from dataclasses import dataclass
+from pprint import pprint
+
+
+@dataclass
+class BottomDive:
+    lon: float
+    lat: float
+    depth: float
+
+    def lonLat(self):
+        return [self.lon, self.lat]
+
+
+def getBottomDives(taskPackets: List[Dict]):
+    """Filters a list of BottomDive objects from a list of task packet dictionaries.
+
+    Args:
+        taskPackets (List[Dict]): A list of task packet dictionaries
+
+    Returns:
+        List[BottomDive]: A list of BottomDive objects
+    """
+    bottomDives: List[BottomDive] = []
+    for taskPacket in taskPackets:
+        if 'dive' in taskPacket:
+            dive = taskPacket['dive']
+            if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
+                bottomDives.append(BottomDive(dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']))
+
+    return bottomDives
+
 
 deepColorMap = cmocean.cm.deep
 
@@ -16,7 +49,7 @@ def colorCode(colorMap, value):
     """
 
     rgba = colorMap(value)
-    s = f'#{int(rgba[0]*255):02x}{int(rgba[1]*255):02x}{int(rgba[2]*255):02x}{int(rgba[3]*255):02x}'
+    s = f'#{int(rgba[0]*255):02x}{int(rgba[1]*255):02x}{int(rgba[2]*255):02x}'
     return s
 
 def point(coordinates, properties={}):
@@ -36,9 +69,7 @@ def polygon(coordinates, properties={}):
       "properties": properties,
       "geometry": {
         "type": "Polygon",
-        "coordinates": [
-            coordinates
-        ]
+        "coordinates": [ coordinates ] # For some reason, polygons need 3 levels of nesting
       }
     }
 
@@ -68,137 +99,129 @@ def geojson(features):
     }
 
 
-def interpolate(pt0, pt1, value):
-    if pt0[2] == pt1[2]:
+def interpolate(dive0: BottomDive, dive1: BottomDive, depth: float):
+    if dive0.depth == dive1.depth:
         fraction = 0
     else:
-        fraction = (value - pt0[2]) / (pt1[2] - pt0[2])
+        fraction = (depth - dive0.depth) / (dive1.depth - dive0.depth)
 
     return [
-        pt0[0] + fraction * (pt1[0] - pt0[0]),
-        pt0[1] + fraction * (pt1[1] - pt0[1])
+        dive0.lon + fraction * (dive1.lon - dive0.lon),
+        dive0.lat + fraction * (dive1.lat - dive0.lat)
     ]
 
 
-def getContourSegmentsForTriangles(triangleVertices, contourValues):
-    # Sort traingles by their value
-    sortedVertices = sorted(triangleVertices, key=lambda t: t[2])
-    minValue = sortedVertices[0][2]
-    midValue = sortedVertices[1][2]
-    maxValue = sortedVertices[2][2]
+def getSimplices(bottomDives: List[BottomDive]):
+    if len(bottomDives) < 3:
+        return []
+
+    meshPoints = [[d.lon, d.lat] for d in bottomDives]
+
+    try:
+        tri = Delaunay(np.array(meshPoints), qhull_options="Qbb Qc Qz Q12")
+        return tri.simplices
+    except Exception as e:
+        logging.warning(f'While doing Delaunay triangulation: {e}')
+        logging.warning('Do you have co-linear mesh points?')
+        return None
+
+
+def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
+    # Get contour values
+    values = [b.depth for b in bottomDives]
+    minValue = min(values)
+    maxValue = max(values)
+
+    if minValue == maxValue:
+        logging.warning('No contours to display, because all dives reach the same depth')
+        raise Exception('No contours to display, because all dives reach the same depth')
+
+    return np.arange(minValue, maxValue + 1e-6, (maxValue - minValue) / contourCount)
+
+
+def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float]):
+    # Sort vertex depths by their value
+    sortedDives = sorted(bottomDives, key=lambda t: t.depth)
+    minDive = sortedDives[0]
+    midDive = sortedDives[1]
+    maxDive = sortedDives[2]
 
     # Get min and max contour values in this set (for colorization)
     minContourValue = min(contourValues)
     maxContourValue = max(contourValues)
 
     # Find which contourValues lie between the min and max
-    relevantContourValues = filter(lambda val: minValue <= val < maxValue, contourValues)
+    relevantContourValues: List[float] = []
+    for contourIndex in range(1, len(contourValues)):
+        if contourValues[contourIndex] >= minDive.depth:
+            relevantContourValues.append(contourValues[contourIndex - 1])
+            relevantContourValues.append(contourValues[contourIndex])
 
-    contourSegments = []
+        if contourValues[contourIndex] > maxDive.depth:
+            break
 
-    for contourValue in relevantContourValues:
-        pt0 = interpolate(sortedVertices[0], sortedVertices[2], contourValue)
+    if len(relevantContourValues) < 2:
+        raise Exception()
 
-        if contourValue > midValue:
-            pt1 = interpolate(sortedVertices[1], sortedVertices[2], contourValue)
+    polygons: List[Dict] = []
+    lines: List[Dict] = []
+
+    for contourIndex in range(1, len(relevantContourValues)):
+        depth0 = max(relevantContourValues[contourIndex - 1], minDive.depth)
+        depth1 = min(relevantContourValues[contourIndex], maxDive.depth)
+
+        pts: List[List[float]] = []
+
+        pts.append(interpolate(minDive, maxDive, depth0))
+        pts.append(interpolate(minDive, maxDive, depth1))
+
+        if depth1 > midDive.depth:
+            pts.append(interpolate(midDive, maxDive, depth1))
         else:
-            pt1 = interpolate(sortedVertices[0], sortedVertices[1], contourValue)
+            pts.append(interpolate(minDive, midDive, depth1))
 
-        colorParameter = (contourValue - minContourValue) / (maxContourValue - minContourValue)
+        if depth0 < midDive.depth and depth1 > midDive.depth:
+            pts.append(midDive.lonLat())
 
-        contourSegments.append({
-            'vertices': [pt0, pt1],
-            'value': contourValue,
-            'color': colorCode(deepColorMap, colorParameter)
-        })
+        if depth0 > midDive.depth:
+            pts.append(interpolate(midDive, maxDive, depth0))
+        else:
+            pts.append(interpolate(minDive, midDive, depth0))
 
-    return contourSegments
+        pts.append(interpolate(minDive, maxDive, depth0))
 
+        colorParameter = (depth1 - minContourValue) / (maxContourValue - minContourValue)
 
-def getContourSegmentsForMeshPoints(meshPoints, contourCount=10):
-    """Gets an array of contour line segments, given a set of irregular mesh points (x, y, z)
+        polygons.append(polygon(pts, {'value': depth1, 'fill': colorCode(deepColorMap, colorParameter), 'stroke-width': 0}))
 
-    Args:
-        meshPoints (iterable): A container with triplets (x, y, z), with z used to produce the contour segments.
-        contourCount (int): The number of contours to produce
+        if depth0 != minDive.depth:
+            lines.append(linestring([pts[0], pts[-2]], {'value': depth0, 'stroke': 'black'}))
 
-    Returns:
-        list: A list of dictionaries like so: { 'vertices': [[0, 1], [1, 2]], 'value': 0.4 }
-    """
-    if len(meshPoints) < 3:
-        return []
-
-    meshPoints2d = [p[:2] for p in meshPoints]
-
-    try:
-        tri = Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
-    except Exception as e:
-        logging.warning(f'While doing Delaunay triangulation: {e}')
-        logging.warning('Do you have co-linear mesh points?')
-        return []
-
-    # Get contour values
-    values = [p[2] for p in meshPoints]
-    minValue = min(values)
-    maxValue = max(values)
-
-    if minValue == maxValue:
-        logging.warning('No contours to display, because all dives reach the same depth')
-        return []
-
-    contourValues = np.arange(minValue, maxValue, (maxValue - minValue) / contourCount)
-
-    contourSegments = []
-
-    for simplex in tri.simplices:
-        triangleVertices = [meshPoints[i] for i in simplex]
-        contourSegments += getContourSegmentsForTriangles(triangleVertices, contourValues)
-
-    return contourSegments
-
-def getContourGeoJSON(meshPoints, contourCount=10):
-    """Return a GeoJSON string containing contours for a set of mesh points
-
-    Args:
-        meshPoints (iterable): A container with triplets (x, y, z), with z used to produce the contour segments.
-        contourCount (int): The number of contours to produce
-
-    Returns:
-        dict: a GeoJSON dictionary
-    """
-    contourSegments = getContourSegmentsForMeshPoints(meshPoints)
-
-    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value']), 'color': contourSegment['color']}) for contourSegment in contourSegments]
-
-    return geojson(linestrings)
+    return polygons + lines
 
 
-def taskPacketsToContours(taskPackets):
-    """Return a GeoJSON containing contours for a set of task packets
+def taskPacketsToColorMap(taskPackets):
+    bottomDives = getBottomDives(taskPackets)
 
-    Args:
-        taskPackets (iterable): An iterable of task packets as represented by dicts
+    simplices = getSimplices(bottomDives)
+    contourValues = getContourValues(bottomDives)
 
-    Returns:
-        dict: a GeoJSON dictionary
-    """
-    meshPoints = []
-    for taskPacket in taskPackets:
-        if 'dive' in taskPacket:
-            dive = taskPacket['dive']
-            if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
-                meshPoints.append([dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']])
+    polygons: List[Dict] = []
 
-    return getContourGeoJSON(meshPoints)
+    for simplex in simplices:
+        polygons.extend(getColorMapPolygons([bottomDives[i] for i in simplex], contourValues))
+
+    return geojson(polygons)
 
 
 if __name__ == '__main__':
-    meshPoints = [
-        [10, 10, 1],
-        [15, 15, 2],
-        [20, 10, 2],
-        [17, 10, 2]
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 1}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 15}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 15, 'lat': 10}, 'depth_achieved': 4}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 15, 'lat': 15}, 'depth_achieved': 2}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 20, 'lat': 15}, 'depth_achieved': 16}},
     ]
 
-    json.dump(getContourGeoJSON(meshPoints), open(os.path.expanduser('~/test.json'), 'w'))
+    json.dump(taskPacketsToColorMap(taskPackets), open(os.path.expanduser('~/test.json'), 'w'))
 

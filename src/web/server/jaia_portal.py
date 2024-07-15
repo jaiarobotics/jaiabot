@@ -560,7 +560,7 @@ class Interface:
     # Contour map
     
     def get_depth_contours(self, start_date, end_date):
-        return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
+        return pyjaia.contours.taskPacketsToColorMap(self.get_task_packets(start_date, end_date))
 
     # Drift map
 

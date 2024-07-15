@@ -329,7 +329,8 @@ export default class JaiaMap {
                 title: "Depth Contours",
             },
             source: this.depthContourVectorSource,
-            zIndex: 13,
+            opacity: 0.5,
+            zIndex: 6,
         });
     }
 

@@ -1,5 +1,5 @@
 import GeoJSON from "ol/format/GeoJSON";
-import { Style, Stroke } from "ol/style";
+import { Style, Fill, Stroke } from "ol/style";
 import { ProjectionLike } from "ol/proj";
 
 const equirectangular = "EPSG:4326";
@@ -12,16 +12,19 @@ export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojso
         feature.getGeometry().transform(equirectangular, projection);
 
         const properties = feature.getProperties();
-        const color = properties.color;
+        const fill = properties.fill;
 
-        feature.setStyle(
-            new Style({
-                stroke: new Stroke({
-                    color: color,
-                    width: 2.0,
-                }),
-            }),
-        );
+        var style = new Style();
+
+        if (properties.fill) {
+            style.setFill(new Fill({ color: properties.fill }));
+        }
+
+        if (properties.stroke) {
+            style.setStroke(new Stroke({ color: properties.stroke }));
+        }
+
+        feature.setStyle(style);
     });
 
     return features;

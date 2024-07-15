@@ -135,7 +135,7 @@ def getDepthContours():
         return JSONErrorResponse("Missing log filename")
 
     taskPackets = jaialogStore.getTaskPacketDicts(log_names)
-    return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
+    return JSONResponse(pyjaia.contours.taskPacketsToColorMap(taskPackets))
 
 
 @app.route('/interpolated-drifts', methods=['GET'])
