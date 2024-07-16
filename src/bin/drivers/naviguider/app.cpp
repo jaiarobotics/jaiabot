@@ -1,8 +1,7 @@
 // Copyright 2021:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
-//   Edited by Ed Sanville <edsanville@gmail.com>
+//   Matthew Ferro <matt.ferro@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Hydro Project Binaries
@@ -53,11 +52,10 @@ namespace apps
 constexpr goby::middleware::Group imu_udp_in{"imu_udp_in"};
 constexpr goby::middleware::Group imu_udp_out{"imu_udp_out"};
 
-class AdaFruitBNO085Publisher
-    : public zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>
+class NaviguiderPublisher : public zeromq::MultiThreadApplication<config::NaviguiderPublisher>
 {
   public:
-    AdaFruitBNO085Publisher();
+    NaviguiderPublisher();
 
   private:
     void loop() override;
@@ -67,7 +65,7 @@ class AdaFruitBNO085Publisher
 
   private:
     dccl::Codec dccl_;
-    goby::time::SteadyClock::time_point last_adafruit_BNO085_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_naviguider_report_time_{std::chrono::seconds(0)};
     bool helm_ivp_in_mission_{false};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
@@ -78,78 +76,70 @@ class AdaFruitBNO085Publisher
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::AdaFruitBNO085Publisher>(
-        goby::middleware::ProtobufConfigurator<config::AdaFruitBNO085Publisher>(argc, argv));
+    return goby::run<jaiabot::apps::NaviguiderPublisher>(
+        goby::middleware::ProtobufConfigurator<config::NaviguiderPublisher>(argc, argv));
 }
 
 // Main thread
 
 double loop_freq = 10;
 
-jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
-    : zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>(loop_freq * si::hertz)
+jaiabot::apps::NaviguiderPublisher::NaviguiderPublisher()
+    : zeromq::MultiThreadApplication<config::NaviguiderPublisher>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<imu_udp_in, imu_udp_out>;
     launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interthread().subscribe<imu_udp_in>(
-        [this](const goby::middleware::protobuf::IOData& data)
+    interthread().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
+        // Deserialize from the UDP packet
+        jaiabot::protobuf::IMUData imu_data;
+        if (!imu_data.ParseFromString(data.data()))
         {
-            // Deserialize from the UDP packet
-            jaiabot::protobuf::IMUData imu_data;
-            if (!imu_data.ParseFromString(data.data()))
-            {
-                glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet"
-                                       << endl;
-                return;
-            }
+            glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet" << endl;
+            return;
+        }
 
-            glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString()
-                                     << endl;
+        glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString() << endl;
 
-            if (imu_data.is_secondary())
+        if (imu_data.is_secondary())
+        {
+            interprocess().publish<groups::imu_secondary>(imu_data);
+        }
+        else
+        {
+            interprocess().publish<groups::imu>(imu_data);
+        }
+
+        last_naviguider_report_time_ = goby::time::SteadyClock::now();
+    });
+
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
             {
-                interprocess().publish<groups::imu_secondary>(imu_data);
+                helm_ivp_in_mission_ = true;
             }
             else
             {
-                interprocess().publish<groups::imu>(imu_data);
+                helm_ivp_in_mission_ = false;
             }
+        }
+    });
 
-            last_adafruit_BNO085_report_time_ = goby::time::SteadyClock::now();
-        });
+    interprocess().subscribe<jaiabot::groups::imu>([this](const protobuf::IMUCommand& imu_command) {
+        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+        io_data->set_data(imu_command.SerializeAsString());
+        interthread().publish<imu_udp_out>(io_data);
 
-    interprocess().subscribe<jaiabot::groups::moos>(
-        [this](const protobuf::MOOSMessage& moos_msg)
-        {
-            if (moos_msg.key() == "JAIABOT_MISSION_STATE")
-            {
-                if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
-                {
-                    helm_ivp_in_mission_ = true;
-                }
-                else
-                {
-                    helm_ivp_in_mission_ = false;
-                }
-            }
-        });
-
-    interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const protobuf::IMUCommand& imu_command)
-        {
-            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-            io_data->set_data(imu_command.SerializeAsString());
-            interthread().publish<imu_udp_out>(io_data);
-
-            glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
-                                     << endl;
-        });
+        glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
+                                 << endl;
+    });
 }
 
-void jaiabot::apps::AdaFruitBNO085Publisher::loop()
+void jaiabot::apps::NaviguiderPublisher::loop()
 {
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
@@ -162,15 +152,14 @@ void jaiabot::apps::AdaFruitBNO085Publisher::loop()
     glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
 }
 
-void jaiabot::apps::AdaFruitBNO085Publisher::health(
-    goby::middleware::protobuf::ThreadHealth& health)
+void jaiabot::apps::NaviguiderPublisher::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     //Check to see if the adafruit_BNO085 is responding
-    if (cfg().adafruit_bno085_report_in_simulation())
+    if (cfg().naviguider_report_in_simulation())
     {
         if (helm_ivp_in_mission_)
         {
@@ -189,18 +178,18 @@ void jaiabot::apps::AdaFruitBNO085Publisher::health(
     health.set_state(health_state);
 }
 
-void jaiabot::apps::AdaFruitBNO085Publisher::check_last_report(
+void jaiabot::apps::NaviguiderPublisher::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (last_adafruit_BNO085_report_time_ +
-            std::chrono::seconds(cfg().adafruit_bno085_report_timeout_seconds()) <
+    if (last_naviguider_report_time_ +
+            std::chrono::seconds(cfg().naviguider_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on adafruit_BNO085" << std::endl;
+        glog.is_warn() && glog << "Timeout on naviguider" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_NAVIGUIDER_DRIVER);
 
         // Wait a certain amount of time before publishing issue
         if (last_imu_trigger_issue_time_ +

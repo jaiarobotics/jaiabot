@@ -82,6 +82,9 @@ JAIA_USER_ROLE=$RET
 db_get jaiabot-embedded/imu_type
 JAIA_IMU_TYPE=$RET
 
+db_get jaiabot-embedded/imu_type_secondary
+JAIA_IMU_TYPE_SECONDARY=$RET
+
 db_get jaiabot-embedded/imu_install_type
 JAIA_IMU_INSTALL_TYPE=$RET
 
@@ -107,6 +110,7 @@ JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
 					 --electronics_stack=${JAIA_ELECTRONICS_STACK} \
 					 --user_role=${JAIA_USER_ROLE} \
 					 --imu_type=${JAIA_IMU_TYPE} \
+                     --imu_type_secondary=${JAIA_IMU_TYPE_SECONDARY} \
 					 --arduino_type=${JAIA_ARDUINO_TYPE} \
 					 --bot_type=${JAIA_BOT_TYPE} \
 					 --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \

@@ -14,7 +14,8 @@ import datetime
 
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
-parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
+
+parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085', 'naviguider'], required=True, help='Device type')
 parser.add_argument('-n', dest='install_type', choices=['embedded', 'retrofit', 'none'], help='Install type')
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
@@ -24,6 +25,8 @@ parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simu
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
 parser.add_argument('-d', dest='dump_html_flag', action='store_true', help='Dump SWH analysis as html file in /var/log/jaiabot')
+
+parser.add_argument('-o', dest='order', choices=['first', 'second'], type=str, help="Set the priority of the IMU to secondary when working with two IMUs")
 
 args = parser.parse_args()
 
@@ -71,6 +74,9 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
                         imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
                     imuData.imu_type = args.device_type
+
+                    if args.order == 'second':
+                        imuData.is_secondary = True
 
                     #log.warning(imuData)
                     sock.sendto(imuData.SerializeToString(), addr)
@@ -216,6 +222,12 @@ if __name__ == '__main__':
             imu = AdafruitBNO085()
         else:
             imu = AdafruitBNO085()
+    elif args.device_type == 'naviguider':
+        from imu_naviguider import *
+        imu = Naviguider()
+        imu_thread = Thread(target=imu.read_imu_data, name='imuReadThread', daemon=True)
+        imu_thread.start()
+
 
     # Setup the acceleration analyzer (for wave heights and surface type analysis)
     analyzer = AccelerationAnalyzer(sample_frequency=4, dump_html_flag=args.dump_html_flag)
