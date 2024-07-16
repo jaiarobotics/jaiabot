@@ -464,25 +464,46 @@ jaiabot_apps = [
 ]
 
 if jaia_imu_type.value == 'bno085':
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO085_driver',
-        'description': 'JaiaBot BNO085 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
-        'runs_on': Type.BOT,
-        'wanted_by': 'jaiabot_health.service'},
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO085 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -o first',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': Type.BOT,
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ] 
-    jaiabot_apps.extend(jaiabot_apps_imu)
+    if args.imu_type_secondary == 'bno085': # If both are 085, then set the primary as retrofit port - SF
+        jaiabot_apps_imu = [
+            {'exe': 'jaiabot_adafruit_BNO085_driver',
+            'description': 'JaiaBot BNO085 IMU Sensor Driver',
+            'template': 'goby-app.service.in',
+            'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
+            'runs_on': Type.BOT,
+            'wanted_by': 'jaiabot_health.service'},
+            {'exe': 'jaiabot_imu.py',
+            'description': 'JaiaBot BNO085 IMU Python Driver',
+            'template': 'py-app.service.in',
+            'subdir': 'imu',
+            'args': f'-t {IMU_TYPE.BNO085.value} -n retrofit -p 20011 -d -o first', # -n retrofit configures port
+            'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+            'runs_on': Type.BOT,
+            'runs_when': Mode.RUNTIME,
+            'wanted_by': 'jaiabot_health.service',
+            'restart': 'on-failure'},
+        ] 
+        jaiabot_apps.extend(jaiabot_apps_imu)
+    else:
+        jaiabot_apps_imu = [
+            {'exe': 'jaiabot_adafruit_BNO085_driver',
+            'description': 'JaiaBot BNO085 IMU Sensor Driver',
+            'template': 'goby-app.service.in',
+            'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
+            'runs_on': Type.BOT,
+            'wanted_by': 'jaiabot_health.service'},
+            {'exe': 'jaiabot_imu.py',
+            'description': 'JaiaBot BNO085 IMU Python Driver',
+            'template': 'py-app.service.in',
+            'subdir': 'imu',
+            'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -o first',
+            'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+            'runs_on': Type.BOT,
+            'runs_when': Mode.RUNTIME,
+            'wanted_by': 'jaiabot_health.service',
+            'restart': 'on-failure'},
+        ] 
+        jaiabot_apps.extend(jaiabot_apps_imu)
 elif jaia_imu_type.value == 'naviguider':
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_naviguider_driver',
@@ -536,7 +557,7 @@ if args.imu_type_secondary == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver Secondary',
         'template': 'py-app.service.in',
         'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -o second',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -o second', # For test, if reversing primary, switch this line
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
