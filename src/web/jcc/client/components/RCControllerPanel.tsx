@@ -16,6 +16,7 @@ import { Joystick, JoystickShape } from "react-joystick-component";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CustomAlert } from "./shared/CustomAlert";
 import { Typography } from "@mui/material";
+import JaiaToggle from "./JaiaToggle";
 
 interface Props {
     api: JaiaAPI;
@@ -41,6 +42,7 @@ interface State {
     rudderBinNumber: number;
     botId: number;
     isMaximized: boolean;
+    overdriveEnabled: boolean;
 }
 
 enum JoySticks {
@@ -86,6 +88,7 @@ export default class RCControllerPanel extends React.Component {
             // clicks on a new bot details window
             botId: 0,
             isMaximized: true,
+            overdriveEnabled: false,
         };
     }
 
@@ -102,6 +105,28 @@ export default class RCControllerPanel extends React.Component {
             { throttleDirection: event.direction.toString(), throttleBinNumber: bin.binNumber },
             () => {},
         );
+    }
+    
+    /**
+     * Checks to see if what state High Speed
+     *
+     * @returns {void}
+     */
+
+    isOverdriveChecked() {
+        return this.state.overdriveEnabled;
+    }
+
+    /**
+     * Switches toggle state for start_echo
+     *
+     * @returns {void}
+     */
+    
+    handleOverdriveCheck() {
+        this.state.overdriveEnabled = !this.state.overdriveEnabled;
+        console.log("overdriveEnabled set to %s", this.state.overdriveEnabled?"true":"flase")
+        return;
     }
 
     /**
@@ -125,14 +150,22 @@ export default class RCControllerPanel extends React.Component {
             return 0;
         }
 
+        //boost throttle settings if overdrive is enabled
+        let boost: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+        if (this.state.overdriveEnabled) boost = {binNumber: 1, binValue: 20 }
+
         if (throttleDirection === "FORWARD") {
-            // This means our max forward throttle would be 40 or speed 2.
-            if (speed <= 95) {
+            // This means our max forward throttle would be 40 or speed 2 unless overdrive enabled
+            if (speed <= 50){ // under 50 never use boost
                 bin.binNumber = 1;
                 bin.binValue = 20;
+            }
+            else if (speed <= 95) {
+                bin.binNumber = 1 + boost.binNumber;
+                bin.binValue = 20 + boost.binValue;
             } else if (speed > 95) {
-                bin.binNumber = 2;
-                bin.binValue = 40;
+                bin.binNumber = 2 + boost.binNumber;
+                bin.binValue = 40+ boost.binValue;
             }
         } else if (throttleDirection === "BACKWARD") {
             // This means our max backward throttle would be 10 or speed 0.5.
@@ -545,19 +578,33 @@ export default class RCControllerPanel extends React.Component {
         );
 
         driveControlPad = (
-            <div className="rc-labels-container">
-                {selectControlType}
-                <div className="rc-info-container">
-                    <div>Throttle Direction:</div>
-                    <div className="rc-data">{this.state.throttleDirection}</div>
-                    <div>Throttle:</div>
-                    <div className="rc-data">{this.state.throttleBinNumber}</div>
+            <div className="rc-dive-labels-container">
+                
+                <div className="rc-labels-left">
+                    {selectControlType}
+                    <div className="rc-info-container">
+                        <div>Throttle Direction:</div>
+                        <div className="rc-data">{this.state.throttleDirection}</div>
+                        <div>Throttle:</div>
+                        <div className="rc-data">{this.state.throttleBinNumber}</div>
+                    </div>
+                    <div className="rc-info-container">
+                        <div>Rudder Direction:</div>
+                        <div className="rc-data">{this.state.rudderDirection}</div>
+                        <div>Rudder:</div>
+                        <div className="rc-data">{this.state.rudderBinNumber}</div>
+                    </div>
                 </div>
-                <div className="rc-info-container">
-                    <div>Rudder Direction:</div>
-                    <div className="rc-data">{this.state.rudderDirection}</div>
-                    <div>Rudder:</div>
-                    <div className="rc-data">{this.state.rudderBinNumber}</div>
+                <div className="rc-labels-right">
+                    <div className="rc-adv-speed-container">
+                        <div>Overdrive Speed</div>
+                        <JaiaToggle
+                            checked={() => this.isOverdriveChecked()}
+                            onClick={() => this.handleOverdriveCheck()}
+                            disabled={() => false}
+                        />
+                    </div>
+
                 </div>
             </div>
         );
