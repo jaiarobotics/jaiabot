@@ -219,7 +219,7 @@ if __name__ == '__main__':
     elif args.device_type == 'bno085':
         from imu_bno085 import *
         if args.install_type == 'retrofit':
-            imu = AdafruitBNO085()
+            imu = AdafruitBNO085(dev='/dev/ttyUSB0')
         else:
             imu = AdafruitBNO085()
     elif args.device_type == 'naviguider':
