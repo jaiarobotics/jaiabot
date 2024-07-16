@@ -9,15 +9,16 @@ from threading import Lock
 class AdafruitBNO085(IMU):
     _lock: Lock
 
-    def __init__(self):
+    def __init__(self, dev='/dev/ttyAMA0'):
         self.is_setup = False
         self._lock = Lock()
+        self._dev = dev
 
     def _setup(self):
         """Thread unsafe setup function.  Only used internally."""
         if not self.is_setup:
             try:
-                uart = serial.Serial("/dev/ttyAMA0", 3000000)
+                uart = serial.Serial(self._dev, 3000000)
                 self.sensor = BNO08X_UART(uart)
                 log.info('Connected, now lets enable output')
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)

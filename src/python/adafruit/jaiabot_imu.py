@@ -15,6 +15,7 @@ import datetime
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
 parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
+parser.add_argument('-n', dest='install_type', choices=['embedded', 'retrofit', 'none'], help='Install type')
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
@@ -211,7 +212,10 @@ if __name__ == '__main__':
         imu = AdafruitBNO055()
     elif args.device_type == 'bno085':
         from imu_bno085 import *
-        imu = AdafruitBNO085()
+        if args.install_type == 'retrofit':
+            imu = AdafruitBNO085()
+        else:
+            imu = AdafruitBNO085()
 
     # Setup the acceleration analyzer (for wave heights and surface type analysis)
     analyzer = AccelerationAnalyzer(sample_frequency=4, dump_html_flag=args.dump_html_flag)
@@ -225,3 +229,4 @@ if __name__ == '__main__':
         do_interactive_loop()
     else:
         portThread.join() # Just sit around until the port daemon thread finishes (which won't happen until process killed)
+    
