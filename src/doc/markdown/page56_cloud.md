@@ -106,31 +106,31 @@ For a given node (bot or hub) on the VPN, the 64-bit interface identifier is giv
 
 Some examples include:
 
-| Fleet     | Bot or Hub? | ID  | Fleet VPN Address  |  VirtualFleet VPN Address  |  CloudHub VPN Address  |
+| Bot (b) or Hub (h)? | ID  | Fleet     | Fleet VPN Address (s) |  VirtualFleet VPN (v) Address (fN)  |  CloudHub VPN Address (c) |
 |-----------|-------------|-----|--------------------|--------------------|--------------------|
-| 4        | Bot         | 5   | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
-| 250      | Bot         | 6   | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
-| 10       | Hub         | 20 | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
-| 15       | Hub (CloudHub)        | 30 | `fd91:5457:1e5c:f::1e` | `ffd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
+| Bot         | 5   | 4        | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
+| Bot         | 6   | 250      | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
+| Hub         | 20 | 10       | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
+| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `ffd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
 
-You can generate the values for the table above yourself using (you can omit `--ipv6` for the VPNs that are IPv6 only):
+You can generate the values for the table above yourself using:
 ```
-jaia ip --net=fleet_vpn --ipv6 b5f4
-jaia ip --net=vfleet_vpn b5f4
-jaia ip --net=cloudhub_vpn b5f4
+jaia ip b5sf4
+jaia ip b5vf4
+jaia ip b5cf4
 
-jaia ip --net=fleet_vpn --ipv6 b6f250
-jaia ip --net=vfleet_vpn b6f250
-jaia ip --net=cloudhub_vpn b6f250
+jaia ip b6sf250
+jaia ip b6vf250
+jaia ip b6cf250
 
-jaia ip --net=fleet_vpn --ipv6 h20f10
-jaia ip --net=vfleet_vpn h20f10
-jaia ip --net=cloudhub_vpn h20f10
+jaia ip h20sf10
+jaia ip h20vf10
+jaia ip h20cf10
 
 
-jaia ip --net=fleet_vpn --ipv6 h30f15
-jaia ip --net=vfleet_vpn h30f15
-jaia ip --net=cloudhub_vpn h30f15
+jaia ip h30sf15
+jaia ip h30vf15
+jaia ip h30cf15
 # OR
 jaia ip chf15
 ```
