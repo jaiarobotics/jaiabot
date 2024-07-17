@@ -8,7 +8,7 @@ from math import *
 from orientation import Orientation
 from vector3 import Vector3
 from quaternion import Quaternion
-from python.imu.raw_output import RawMagnetometer, RawGyroscope, RawAccelerometer
+from raw_output import RawMagnetometer, RawGyroscope, RawAccelerometer
 from jaiabot.messages.imu_pb2 import IMUData
 
 

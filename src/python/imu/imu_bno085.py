@@ -35,6 +35,8 @@ class AdafruitBNO085(IMU):
                 self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
                 self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_GRAVITY)
                 self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_RAW_MAGNETOMETER)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_RAW_GYROSCOPE)
+                self.sensor.enable_feature(Adafruit_CircuitPython_BNO08x.adafruit_bno08x.BNO_REPORT_RAW_ACCELEROMETER)
 
                 self.is_setup = True
                 self.calibration_status = None
@@ -88,6 +90,8 @@ class AdafruitBNO085(IMU):
 
             raw_heading = math.atan2(raw_mag_y, raw_mag_x) * 180 / math.pi
             raw_magnetometer = RawMagnetometer(x=raw_mag_x, y=raw_mag_y, z=raw_mag_z, heading=raw_heading)
+            raw_gyroscope = RawGyroscope(x=raw_gyro_x, y=raw_gryo_y, z=raw_accel_z)
+            raw_accelerometer = RawAccelerometer(x=raw_accel_x, y=raw_accel_y, z=raw_accel_z)
 
             magnetometer_accuracy = self.sensor.get_magnetometer_accuracy()
             gyroscope_accuracy = self.sensor.get_gyroscope_accuracy()
@@ -103,6 +107,8 @@ class AdafruitBNO085(IMU):
                         quaternion=quaternion,
                         angular_velocity=angular_velocity,
                         raw_magnetometer=raw_magnetometer,
+                        raw_gyroscope=raw_gyroscope,
+                        raw_accelerometer=raw_accelerometer,
                         magnetometer_accuracy=magnetometer_accuracy,
                         gyroscope_accuracy=gyroscope_accuracy,
                         accelerometer_accuracy=accelerometer_accuracy,
