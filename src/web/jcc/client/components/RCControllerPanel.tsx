@@ -57,6 +57,8 @@ enum ControlTypes {
     DIVE = "DIVE",
 }
 
+type bin = { binNumber: number; binValue: number };
+
 export default class RCControllerPanel extends React.Component {
     api: JaiaAPI;
     props: Props;
@@ -93,16 +95,16 @@ export default class RCControllerPanel extends React.Component {
     }
 
     updateThrottleDirectionMove(event: IJoystickUpdateEvent) {
-        let bin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+        let throttleBin: bin = { binNumber: 0, binValue: 0 };
         if (event.direction.toString() === "FORWARD") {
-            this.calcThrottleBinNum(event.y * 100, "FORWARD", bin);
-            this.props.remoteControlValues.pid_control.throttle = bin.binValue;
+            this.calcThrottleBinNum(event.y * 100, "FORWARD", throttleBin);
+            this.props.remoteControlValues.pid_control.throttle = throttleBin.binValue;
         } else if (event.direction.toString() === "BACKWARD") {
-            this.calcThrottleBinNum(event.y * 100, "BACKWARD", bin);
-            this.props.remoteControlValues.pid_control.throttle = bin.binValue;
+            this.calcThrottleBinNum(event.y * 100, "BACKWARD", throttleBin);
+            this.props.remoteControlValues.pid_control.throttle = throttleBin.binValue;
         }
         this.setState(
-            { throttleDirection: event.direction.toString(), throttleBinNumber: bin.binNumber },
+            { throttleDirection: event.direction.toString(), throttleBinNumber: throttleBin.binNumber },
             () => {},
         );
     }
@@ -147,7 +149,7 @@ export default class RCControllerPanel extends React.Component {
      *
      * @param {number} speed is the position of the input that is used to determine bin number
      * @param {string} throttleDirection determines the direction of the throttle (FORWARD, BACKWARD)
-     * @param {{binNumber: number, binValue: number}} bin used to pass the bin number and value
+     * @param {bin} throttleBin used to pass the bin number and value
      * @returns {number}
      *
      * @notes
@@ -156,7 +158,7 @@ export default class RCControllerPanel extends React.Component {
     calcThrottleBinNum(
         speed: number,
         throttleDirection: string,
-        bin: { binNumber: number; binValue: number },
+        throttleBin: { binNumber: number; binValue: number },
     ) {
         // Basic error handling to protect against unexpected speed value
         if (!speed || speed === 0) {
@@ -170,20 +172,20 @@ export default class RCControllerPanel extends React.Component {
         if (throttleDirection === "FORWARD") {
             // This means our max forward throttle would be 40 or speed 2 unless overdrive enabled
             if (speed <= 50){ // under 50 never use boost
-                bin.binNumber = 1;
-                bin.binValue = 20;
+                throttleBin.binNumber = 1;
+                throttleBin.binValue = 20;
             }
             else if (speed <= 95) {
-                bin.binNumber = 1 + boost.binNumber;
-                bin.binValue = 20 + boost.binValue;
+                throttleBin.binNumber = 1 + boost.binNumber;
+                throttleBin.binValue = 20 + boost.binValue;
             } else if (speed > 95) {
-                bin.binNumber = 2 + boost.binNumber;
-                bin.binValue = 40+ boost.binValue;
+                throttleBin.binNumber = 2 + boost.binNumber;
+                throttleBin.binValue = 40+ boost.binValue;
             }
         } else if (throttleDirection === "BACKWARD") {
             // This means our max backward throttle would be 10 or speed 0.5.
-            bin.binNumber = 1;
-            bin.binValue = -10;
+            throttleBin.binNumber = 1;
+            throttleBin.binValue = -10;
         }
     }
 
@@ -193,21 +195,21 @@ export default class RCControllerPanel extends React.Component {
     }
 
     updateRudderDirectionMove(event: IJoystickUpdateEvent) {
-        let bin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+        let rudderBin: bin = { binNumber: 0, binValue: 0 };
         // The is used to only detect changes if the value is above
         // this percentage (Added when using tablet controller)
         let deadzonePercent = 10;
-        this.calcRudderBinNum(event.x * 100, bin, deadzonePercent);
-        this.props.remoteControlValues.pid_control.rudder = bin.binValue;
+        this.calcRudderBinNum(event.x * 100, rudderBin, deadzonePercent);
+        this.props.remoteControlValues.pid_control.rudder = rudderBin.binValue;
         this.setState({
             rudderDirection: event.direction.toString(),
-            rudderBinNumber: bin.binNumber,
+            rudderBinNumber: rudderBin.binNumber,
         });
     }
 
     calcRudderBinNum(
         position: number,
-        bin: { binNumber: number; binValue: number },
+        rudderBin: bin,
         deadzonePercent: number,
     ) {
         // Basic error handling to protect against unexpected position value
@@ -217,23 +219,23 @@ export default class RCControllerPanel extends React.Component {
 
         // Added a deadzone
         if (position > deadzonePercent && position < 50) {
-            bin.binNumber = 1;
-            bin.binValue = 40;
+            rudderBin.binNumber = 1;
+            rudderBin.binValue = 40;
         } else if (position >= 50 && position <= 95) {
-            bin.binNumber = 2;
-            bin.binValue = 70;
+            rudderBin.binNumber = 2;
+            rudderBin.binValue = 70;
         } else if (position > 95) {
-            bin.binNumber = 3;
-            bin.binValue = 100;
+            rudderBin.binNumber = 3;
+            rudderBin.binValue = 100;
         } else if (position < -deadzonePercent && position > -50) {
-            bin.binNumber = 1;
-            bin.binValue = -40;
+            rudderBin.binNumber = 1;
+            rudderBin.binValue = -40;
         } else if (position <= -50 && position >= -95) {
-            bin.binNumber = 2;
-            bin.binValue = -70;
+            rudderBin.binNumber = 2;
+            rudderBin.binValue = -70;
         } else if (position < -95) {
-            bin.binNumber = 3;
-            bin.binValue = -100;
+            rudderBin.binNumber = 3;
+            rudderBin.binValue = -100;
         }
     }
 
@@ -308,11 +310,11 @@ export default class RCControllerPanel extends React.Component {
         if (
             axisName === (controlType === ControlTypes.MANUAL_SINGLE ? "LeftStickX" : "RightStickX")
         ) {
-            let bin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+            let rudderBin: bin = { binNumber: 0, binValue: 0 };
 
-            this.calcRudderBinNum(valuePercent, bin, deadzonePercent);
-            this.props.remoteControlValues.pid_control.rudder = bin.binValue;
-            rudderBinNumber = bin.binNumber;
+            this.calcRudderBinNum(valuePercent, rudderBin, deadzonePercent);
+            this.props.remoteControlValues.pid_control.rudder = rudderBin.binValue;
+            rudderBinNumber = rudderBin.binNumber;
 
             // Added a deadzone
             if (valuePercent > deadzonePercent) {
@@ -332,18 +334,18 @@ export default class RCControllerPanel extends React.Component {
 
         // Throttle Handler
         if (axisName === "LeftStickY") {
-            let bin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+            let throttleBin: bin = { binNumber: 0, binValue: 0 };
             // Added a deadzone
             if (valuePercent > deadzonePercent) {
                 throttleDirection = "FORWARD";
-                this.calcThrottleBinNum(valuePercent, throttleDirection, bin);
-                this.props.remoteControlValues.pid_control.throttle = bin.binValue;
-                throttleBinNumber = bin.binNumber;
+                this.calcThrottleBinNum(valuePercent, throttleDirection, throttleBin);
+                this.props.remoteControlValues.pid_control.throttle = throttleBin.binValue;
+                throttleBinNumber = throttleBin.binNumber;
             } else if (valuePercent < -deadzonePercent) {
                 throttleDirection = "BACKWARD";
-                this.calcThrottleBinNum(valuePercent, throttleDirection, bin);
-                this.props.remoteControlValues.pid_control.throttle = bin.binValue;
-                throttleBinNumber = bin.binNumber;
+                this.calcThrottleBinNum(valuePercent, throttleDirection, throttleBin);
+                this.props.remoteControlValues.pid_control.throttle = throttleBin.binValue;
+                throttleBinNumber = throttleBin.binNumber;
             } else {
                 throttleDirection = "";
                 this.props.remoteControlValues.pid_control.throttle = 0;
