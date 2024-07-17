@@ -141,8 +141,8 @@ message IMUData
     }
 
     optional RawMagnetometer raw_magnetometer = 13;
-    optional RawGyroscope raw_gyroscope = 17;
-    optional RawAccelerometer raw_accelerometer = 18;
+    optional RawGyroscope raw_gyroscope = 18;
+    optional RawAccelerometer raw_accelerometer = 19;
 
     optional int32 magnetometer_accuracy = 14;
     optional int32 gyroscope_accuracy = 15;
