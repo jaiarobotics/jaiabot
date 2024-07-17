@@ -104,7 +104,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'
-if common.is_vfleet:
+if common.is_vfleet or hub_index == cloudhub_index:
     liaison_bind_addr='0::0'
 
 
