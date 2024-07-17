@@ -11,7 +11,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import CircularProgress from "@mui/joy/CircularProgress";
 import Icon from "@mdi/react";
-import { mdiClose, mdiDownloadMultiple } from "@mdi/js";
+import { mdiClose } from "@mdi/js";
 
 // Utilities
 import { taskData } from "./TaskPackets";
@@ -106,7 +106,6 @@ export default function DownloadPanel(props: Props) {
             <div className="panel-heading">Download Panel</div>
 
             <div className="download-panel-inner-container">
-
                 <Accordion
                     expanded={isOpenAccordionTab(AccordionTabs.DownloadToComputer)}
                     onChange={() => handleAccordionTabClick(AccordionTabs.DownloadToComputer)}
