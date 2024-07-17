@@ -121,28 +121,19 @@ message IMUData
 
     optional bool is_secondary = 12 [default = false];
 
-    message RawMagnetometer {
-        optional double x = 1;
-        optional double y = 2;
-        optional double z = 3;
-        optional double heading = 4;
-    }
-
-    message RawGyroscope {
+    message IMUSensorOutput {
         optional double x = 1;
         optional double y = 2;
         optional double z = 3;
     }
 
-    message RawAccelerometer {
-        optional double x = 1;
-        optional double y = 2;
-        optional double z = 3;
-    }
-
-    optional RawMagnetometer raw_magnetometer = 13;
-    optional RawGyroscope raw_gyroscope = 18;
-    optional RawAccelerometer raw_accelerometer = 19;
+    optional IMUSensorOutput raw_magnetometer = 13;
+    optional IMUSensorOutput raw_gyroscope = 18;
+    optional IMUSensorOutput raw_accelerometer = 19;
+    
+    optional IMUSensorOutput cal_magnetometer = 20;
+    optional IMUSensorOutput cal_gyroscope = 21;
+    optional IMUSensorOutput cal_accelerometer = 22;
 
     optional int32 magnetometer_accuracy = 14;
     optional int32 gyroscope_accuracy = 15;

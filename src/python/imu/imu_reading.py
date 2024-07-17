@@ -8,7 +8,7 @@ from math import *
 from orientation import Orientation
 from vector3 import Vector3
 from quaternion import Quaternion
-from raw_output import RawMagnetometer, RawGyroscope, RawAccelerometer
+from imu_sensor_output import IMUSensorOutput
 from jaiabot.messages.imu_pb2 import IMUData
 
 
@@ -26,9 +26,12 @@ class IMUReading:
     calibration_state: CalibrationState
     quaternion: Quaternion
     angular_velocity: Vector3
-    raw_magnetometer: Optional[RawMagnetometer] = field(default=None)
-    raw_gyroscope: Optional[RawGyroscope] = field(default=None)
-    raw_accelerometer: Optional[RawAccelerometer] = field(default=None)
+    raw_magnetometer: Optional[IMUSensorOutput] = field(default=None)
+    raw_gyroscope: Optional[IMUSensorOutput] = field(default=None)
+    raw_accelerometer: Optional[IMUSensorOutput] = field(default=None)
+    cal_magnetometer: Optional[IMUSensorOutput] = field(default=None)
+    cal_gyroscope: Optional[IMUSensorOutput] = field(default=None)
+    cal_accelerometer: Optional[IMUSensorOutput] = field(default=None)
     magnetometer_accuracy: Optional[int] = field(default=-1)
     gyroscope_accuracy: Optional[int] = field(default=-1)
     accelerometer_accuracy: Optional[int] = field(default=-1)
@@ -83,7 +86,6 @@ class IMUReading:
             imu_data.raw_magnetometer.x = self.raw_magnetometer.x
             imu_data.raw_magnetometer.y = self.raw_magnetometer.y
             imu_data.raw_magnetometer.z = self.raw_magnetometer.z
-            imu_data.raw_magnetometer.heading = self.raw_magnetometer.heading
 
         if self.raw_gyroscope is not None:
             imu_data.raw_gyroscope.x = self.raw_gyroscope.x
@@ -94,6 +96,21 @@ class IMUReading:
             imu_data.raw_accelerometer.x = self.raw_accelerometer.x
             imu_data.raw_accelerometer.y = self.raw_accelerometer.y
             imu_data.raw_accelerometer.z = self.raw_accelerometer.z
+
+        if self.cal_magnetometer is not None:
+            imu_data.cal_magnetometer.x = self.cal_magnetometer.x
+            imu_data.cal_magnetometer.y = self.cal_magnetometer.y
+            imu_data.cal_magnetometer.z = self.cal_magnetometer.z
+
+        if self.cal_gyroscope is not None:
+            imu_data.cal_gyroscope.x = self.cal_gyroscope.x
+            imu_data.cal_gyroscope.y = self.cal_gyroscope.y
+            imu_data.cal_gyroscope.z = self.cal_gyroscope.z
+
+        if self.cal_accelerometer is not None:
+            imu_data.cal_accelerometer.x = self.cal_accelerometer.x
+            imu_data.cal_accelerometer.y = self.cal_accelerometer.y
+            imu_data.cal_accelerometer.z = self.cal_accelerometer.z
 
         if self.magnetometer_accuracy is not None:
             imu_data.magnetometer_accuracy = self.magnetometer_accuracy
