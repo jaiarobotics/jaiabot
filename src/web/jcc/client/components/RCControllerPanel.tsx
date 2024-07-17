@@ -158,7 +158,7 @@ export default class RCControllerPanel extends React.Component {
     calcThrottleBinNum(
         speed: number,
         throttleDirection: string,
-        throttleBin: { binNumber: number; binValue: number },
+        throttleBin: bin,
     ) {
         // Basic error handling to protect against unexpected speed value
         if (!speed || speed === 0) {
@@ -166,7 +166,7 @@ export default class RCControllerPanel extends React.Component {
         }
 
         //boost throttle settings if overdrive is enabled
-        let boost: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+        let boost: bin = { binNumber: 0, binValue: 0 };
         if (this.state.overdriveEnabled) boost = {binNumber: 1, binValue: 20 }
 
         if (throttleDirection === "FORWARD") {
@@ -250,8 +250,8 @@ export default class RCControllerPanel extends React.Component {
         let throttleBinNumber = 0;
         let rudderBinNumber = 0;
 
-        let thottleBin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
-        let rudderBin: { binNumber: number; binValue: number } = { binNumber: 0, binValue: 0 };
+        let thottleBin: bin = { binNumber: 0, binValue: 0 };
+        let rudderBin: bin = { binNumber: 0, binValue: 0 };
 
         // The is used to only detect changes if the value is above
         // this percentage (Added when using tablet controller)
