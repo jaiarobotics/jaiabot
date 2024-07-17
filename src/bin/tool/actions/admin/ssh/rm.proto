@@ -25,9 +25,9 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
 import "actions/net.proto";
 
-package jaiabot.config;
+package jaiabot.config.admin.ssh;
 
-message IPTool
+message RemoveTool
 {
     option (goby.msg).cfg.tool = {
         is_tool: true
@@ -39,7 +39,21 @@ message IPTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string host = 2 [(goby.field) = {
-        description: "The host get the IP address of (e.g. b4f2, h1f3, chf4, b10vf1, b2sf2)",
+        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
         cfg { position { enable: true } }
     }];
+
+    optional string pubkey = 3 [(goby.field) = {
+        description: "Either the full public key or an ID corresponding to a public key compiled into this tool.",
+        cfg { position { enable: true } }
+    }];
+
+    optional bool revoked = 4 [
+        default = false,
+        (goby.field) = { description: "Remove all known revoked keys" }
+    ];
+
+    optional string user = 10 [default = "jaia"];
+    optional string authorized_keys_file = 11
+        [default = "/etc/jaiabot/ssh/tmp_authorized_keys"];
 }
