@@ -108,7 +108,7 @@ export default class RCControllerPanel extends React.Component {
     }
     
     /**
-     * Checks to see if what state High Speed
+     * Checks to see if Overdrive has been enabled
      *
      * @returns {void}
      */
@@ -118,12 +118,25 @@ export default class RCControllerPanel extends React.Component {
     }
 
     /**
-     * Switches toggle state for start_echo
+     * Posts a confirmation dialog to confirm use of Overdrive
+     * If confirmed enables Overdrive
      *
      * @returns {void}
      */
     
-    handleOverdriveCheck() {
+    async handleOverdriveCheck() {
+
+        if (!this.state.overdriveEnabled){
+            if (
+                !(await CustomAlert.confirmAsync(
+                    "You are about to enable Overdrive.  \nUse Overdrive with caution as it can make the bots difficult to control",
+                    "Enable Overdrive"
+                ))
+            ) {
+                return;
+            }  
+        }
+
         this.state.overdriveEnabled = !this.state.overdriveEnabled;
         console.log("overdriveEnabled set to %s", this.state.overdriveEnabled?"true":"flase")
         return;
@@ -578,7 +591,7 @@ export default class RCControllerPanel extends React.Component {
         );
 
         driveControlPad = (
-            <div className="rc-dive-labels-container">
+            <div className="rc-labels-container">
                 
                 <div className="rc-labels-left">
                     {selectControlType}
@@ -611,7 +624,7 @@ export default class RCControllerPanel extends React.Component {
 
         if (this.props.rcDiveParameters !== undefined) {
             diveControlPad = (
-                <div className="rc-dive-labels-container">
+                <div className="rc-labels-container">
                     <div className="rc-labels-left">
                         {selectControlType}
                         <div className="rc-dive-info-container">
