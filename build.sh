@@ -30,10 +30,19 @@ script_dir=$(dirname $0)
 ARCH=$(dpkg --print-architecture)
 
 # Make sure we're using the nvm versions of npm and webpack
-source $HOME/.nvm/nvm.sh
+if [ -z "${XDG_CONFIG_HOME-}" ]; then
+    export NVM_DIR="${HOME}/.nvm"
+else
+    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+fi
+
+source ${NVM_DIR}/nvm.sh
 
 set -e -u
 mkdir -p ${script_dir}/build/${ARCH}
+
+# Initialize and update submodules
+git submodule update --init
 
 echo "Configuring..."
 cd ${script_dir}/build/${ARCH}
