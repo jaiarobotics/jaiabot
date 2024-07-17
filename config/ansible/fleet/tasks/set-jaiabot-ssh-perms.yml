@@ -1,0 +1,5 @@
+- name: Set correct permissions on /etc/jaiabot/ssh
+  shell: |
+    {{ RO_ROOT_CMD }} chown -R jaia:jaia /etc/jaiabot/ssh
+    {{ RO_ROOT_CMD }} chmod 700 /etc/jaiabot/ssh
+    {{ RO_ROOT_CMD }} chmod 600 /etc/jaiabot/ssh/*authorized_keys        

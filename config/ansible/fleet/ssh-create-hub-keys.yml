@@ -1,0 +1,41 @@
+---
+- name: Generate or Copy SSH keys to Hubs
+  hosts: hubs
+  gather_facts: yes
+  become: yes
+  vars:
+    SSH_KEY_TYPE: ed25519
+  pre_tasks:
+    - include_tasks: tasks/set-facts.yml
+
+  tasks:    
+    - name: Find all files in /media/root-rw/overlay/home/jaia/.ssh/
+      ansible.builtin.find:
+        paths: /media/root-rw/overlay/home/jaia/.ssh/
+        file_type: file
+      register: ssh_files_to_remove
+
+    - name: Remove all overlay files we are going to modify
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ ssh_files_to_remove.files }}"
+
+    - name: Remove old keys on underlay
+      shell: |
+        {{ RO_CMD }} rm -f {{ HUB_DEST_KEYFILE }} {{ HUB_DEST_KEYFILE }}.pub;
+        
+    - name: Copy Yubikey (real fleet) or generate new SSH key (virtual fleet)
+      block:
+        - name: Copy yubikey
+          when: USE_YUBIKEY
+          include_tasks: tasks/copy-yubikey.yml
+
+        - name: Generate new SSH key for virtual fleet
+          when: not USE_YUBIKEY
+          shell: |
+            {{ RO_CMD }} ssh-keygen -t {{ SSH_KEY_TYPE }} -N '' -f {{ HUB_DEST_KEYFILE }} -C {{ HUB_NAME }}
+        
+    - name: Ensure .ssh/config is configured to use the new SSH key
+      shell: |
+        {{ RO_CMD }} bash -c "grep -q IdentityFile\\ {{ HUB_DEST_KEYFILE }} /home/jaia/.ssh/config || echo IdentityFile {{ HUB_DEST_KEYFILE }} >> /home/jaia/.ssh/config";
