@@ -292,6 +292,8 @@ jobs:
       <<: *environment-template-amd64
     steps:
       - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
       - run:
           name: Get original source tarball
           command: |
@@ -299,9 +301,16 @@ jobs:
             # use tag directly for release/beta builds
             [ -z "${CIRCLE_TAG}" ] && export RAWVERSION="$(git describe --tags HEAD --long)" || export RAWVERSION="${CIRCLE_TAG}"
             export NEWVERSION="$(echo ${RAWVERSION} | sed 's/_/~/' | sed 's/-/+/g')"
-            git config tar.tar.xz.command "xz -c" &&
-            mkdir -p /root/src &&
-            git archive --prefix=jaiabot-${NEWVERSION}/ -o /root/src/jaiabot_${NEWVERSION}.orig.tar.xz HEAD;
+            mkdir -p /root/src
+            export OUTTAR=/root/src/jaiabot_${NEWVERSION}.orig.tar
+            # archive core repo
+            git archive --format tar --prefix=jaiabot-${NEWVERSION}/ -o $OUTTAR HEAD;
+            # archive submodules
+            git submodule --quiet foreach --recursive 'git archive --format tar --prefix=jaiabot-${NEWVERSION}/$displaypath/ -o submodule.tar HEAD'
+            # concatentate submodule tarballs onto core repo
+            TOPDIR=$(pwd) git submodule --quiet foreach --recursive 'cd $TOPDIR; tar --concatenate --file=$OUTTAR $displaypath/submodule.tar; rm -fv $displaypath/submodule.tar'
+            # compress output with XZ
+            xz $OUTTAR
       - run:
           name: Add changelog entry
           command: |

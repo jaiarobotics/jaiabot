@@ -10,7 +10,7 @@ import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../Layers";
 import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
 import { Missions } from "../Missions";
-import { taskData } from "../TaskPackets";
+import { TaskData, taskData } from "../TaskPackets";
 import { HubOrBot } from "../HubOrBot";
 import { createMap } from "../Map";
 import { BotLayers } from "../BotLayers";
@@ -541,7 +541,7 @@ export default class CommandControl extends React.Component {
 
         info("Welcome to Jaia Command & Control!");
 
-        // Search for the Zoom & Reset buttons using classname and assign them new icons.
+        // Search for the Zoom & Reset OpenLayers buttons using classname, assign them new icons, and change their styling to match the rest of the buttons.
         const buttons = document.querySelectorAll(".ol-zoom-in, .ol-zoom-out,.ol-rotate-reset");
         buttons.forEach((button) => {
             if (button.classList.contains("ol-zoom-in")) {
@@ -550,18 +550,30 @@ export default class CommandControl extends React.Component {
 			  <path d="${mdiMagnifyPlusOutline}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; margin-bottom: 15px; background-color: #FFFFFF;",
+                );
             } else if (button.classList.contains("ol-zoom-out")) {
                 button.innerHTML = `
 			<svg viewBox="0 0 24 24" width="40" height="40">
 			  <path d="${mdiMagnifyMinusOutline}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; background-color: #FFFFFF;",
+                );
             } else if (button.classList.contains("ol-rotate-reset")) {
                 button.innerHTML = `
 			<svg viewBox="0 0 24 24" width="40" height="40">
 			  <path d="${mdiRotate3dVariant}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; margin-bottom: 30px; background-color: #FFFFFF;",
+                );
             }
         });
     }
@@ -1040,6 +1052,10 @@ export default class CommandControl extends React.Component {
         }
     }
 
+    
+    /**
+     * Polls the backend to download new task packets, if they exist.
+     */
     pollTaskPackets() {
         this.setTaskPacketDates();
         this.api
@@ -1054,14 +1070,11 @@ export default class CommandControl extends React.Component {
                     if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
                         end = this.state.taskPacketsTimeline.end as string;
                     }
-                    this.api
-                        .getTaskPackets(this.state.taskPacketsTimeline.start as string, end)
-                        .then((taskPackets) => {
-                            this.setTaskPackets(taskPackets);
-                            taskData.updateTaskPacketsLayers(taskPackets);
-                        })
-                        .catch((err) => {
-                            console.error("Task Packets Retrieval Error:", err);
+
+                    taskData
+                        .update(this.state.taskPacketsTimeline.start as string, end)
+                        .then(() => {
+                            this.setTaskPackets(taskData.taskPackets);
                         });
                 }
             })
@@ -2558,15 +2571,9 @@ export default class CommandControl extends React.Component {
         let taskPacketsTimeline = { ...this.state.taskPacketsTimeline };
         // Reset TaskPackets to default time gap
         if (taskPacketsTimeline.isEditing) {
-            this.api
-                .getTaskPackets()
-                .then((taskPackets) => {
-                    this.setTaskPackets(taskPackets);
-                    taskData.updateTaskPacketsLayers(taskPackets);
-                })
-                .catch((err) => {
-                    console.error("Task Packets Retrieval Error:", err);
-                });
+            taskData.update().then(() => {
+                this.setTaskPackets(taskData.taskPackets);
+            });
             this.resetTaskPacketsTimeline(false);
         } else {
             // Trigger the calendar view to open
@@ -2616,16 +2623,9 @@ export default class CommandControl extends React.Component {
             end = taskPacketsTimeline.end as string;
         }
 
-        this.api
-            .getTaskPackets(taskPacketsTimeline.start as string, end)
-            .then((taskPackets) => {
-                this.setTaskPackets(taskPackets);
-                taskData.updateTaskPacketsLayers(taskPackets);
-                success("Getting Task Packets...");
-            })
-            .catch((err) => {
-                console.error("Task Packets Timeline Submission Error:", err);
-            });
+        taskData.update(taskPacketsTimeline.start as string, end).then(() => {
+            this.setTaskPackets(taskData.taskPackets);
+        });
 
         this.setState({ taskPacketsTimeline });
     }
@@ -2640,16 +2640,10 @@ export default class CommandControl extends React.Component {
         // Checkbox goes from unchecked to checked
         // Keep start but reset end to now (by passing no argument for endDate)
         if (!taskPacketsTimeline.keepEndDateCurrent) {
-            this.api
-                .getTaskPackets(taskPacketsTimeline.start as string)
-                .then((taskPackets) => {
-                    this.setTaskPackets(taskPackets);
-                    taskData.updateTaskPacketsLayers(taskPackets);
-                    this.resetTaskPacketsTimeline(true);
-                })
-                .catch((err) => {
-                    console.error("Task Packets Retrieval Error:", err);
-                });
+            taskData.update(taskPacketsTimeline.start as string).then(() => {
+                this.setTaskPackets(taskData.taskPackets);
+                this.resetTaskPacketsTimeline(true);
+            });
         } else {
             // Uncheck the checkbox
             taskPacketsTimeline.keepEndDateCurrent = false;
@@ -3095,13 +3089,6 @@ export default class CommandControl extends React.Component {
                     onClick={this.activateAllClicked.bind(this)}
                 >
                     <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots" />
-                </Button>
-                <Button
-                    className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
-                    title="Add Rally Point"
-                    onClick={this.rallyButtonClicked.bind(this)}
-                >
-                    <img src={rallyIcon} />
                 </Button>
                 <Button
                     className="button-jcc"
@@ -3968,6 +3955,16 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
+        const addRallyPointButton = (
+            <Button
+                className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
+                title="Add Rally Point"
+                onClick={this.rallyButtonClicked.bind(this)}
+            >
+                <img src={rallyIcon} />
+            </Button>
+        );
+
         const missionPanelButton =
             visiblePanel == PanelType.MISSION ? (
                 <Button
@@ -4211,6 +4208,7 @@ export default class CommandControl extends React.Component {
 
                 <div id="viewControls">
                     {missionPanelButton}
+                    {addRallyPointButton}
                     {surveyMissionSettingsButton}
                     {downloadQueueButton}
                     {measureButton}

@@ -6,7 +6,7 @@ set -a
 source /etc/jaiabot/runtime.env
 set +a
 
-IP_PY="/etc/jaiabot/ip.py"
+IP_PY="/usr/bin/jaia-ip.py"
 CLOUDHUB_ID=30
 CLOUDHUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${jaia_fleet_index} --node_id ${CLOUDHUB_ID} --ipv6)
 

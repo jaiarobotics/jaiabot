@@ -7,7 +7,7 @@
   tags: read
       
 - name: Look up IPv6 addresses
-  shell: /etc/jaiabot/ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  shell: /usr/bin/jaia-ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv6
   register: _vpn_ipv6_addresses
   loop: "{{ node_map }}"
   tags: read
@@ -19,7 +19,7 @@
   tags: read
   
 - name: Look up WLAN IPv4 addresses
-  shell: /etc/jaiabot/ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_wlan --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv4
+  shell: /usr/bin/jaia-ip.py addr --node {{ item.node_type }} --node_id {{ item.node_id }} --net vfleet_wlan --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv4
   register: _wlan_ipv4_addresses
   loop: "{{ node_map }}"
   tags: read
