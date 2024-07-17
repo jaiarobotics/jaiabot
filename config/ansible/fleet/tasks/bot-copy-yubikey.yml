@@ -1,0 +1,10 @@
+- name: Set facts for Hub
+  set_fact:
+    HUB_NAME: "{{ hub_inventory_name | replace ('-', '_') }}" # hub1_fleet10
+
+- name: Setup ssh dest variable
+  set_fact:
+    HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
+
+- include_tasks: tasks/copy-yubikey.yml
+- include_tasks: tasks/append-hub-pubkey-to-bot-authorized_keys.yml
