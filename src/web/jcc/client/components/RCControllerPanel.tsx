@@ -112,7 +112,7 @@ export default class RCControllerPanel extends React.Component {
     /**
      * Checks to see if Overdrive has been enabled
      *
-     * @returns {void}
+     * @returns {boolean}
      */
 
     isOverdriveChecked() {
