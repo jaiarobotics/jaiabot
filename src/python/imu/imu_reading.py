@@ -8,7 +8,7 @@ from math import *
 from orientation import Orientation
 from vector3 import Vector3
 from quaternion import Quaternion
-from magnetometer import RawMagnetometer
+from python.imu.raw_output import RawMagnetometer, RawGyroscope, RawAccelerometer
 from jaiabot.messages.imu_pb2 import IMUData
 
 
@@ -27,6 +27,8 @@ class IMUReading:
     quaternion: Quaternion
     angular_velocity: Vector3
     raw_magnetometer: Optional[RawMagnetometer] = field(default=None)
+    raw_gyroscope: Optional[RawGyroscope] = field(default=None)
+    raw_accelerometer: Optional[RawAccelerometer] = field(default=None)
     magnetometer_accuracy: Optional[int] = field(default=-1)
     gyroscope_accuracy: Optional[int] = field(default=-1)
     accelerometer_accuracy: Optional[int] = field(default=-1)
@@ -82,6 +84,16 @@ class IMUReading:
             imu_data.raw_magnetometer.y = self.raw_magnetometer.y
             imu_data.raw_magnetometer.z = self.raw_magnetometer.z
             imu_data.raw_magnetometer.heading = self.raw_magnetometer.heading
+
+        if self.raw_gyroscope is not None:
+            imu_data.raw_gyroscope.x = self.raw_gyroscope.x
+            imu_data.raw_gyroscope.y = self.raw_gyroscope.y
+            imu_data.raw_gyroscope.z = self.raw_gyroscope.z
+        
+        if self.raw_accelerometer is not None:
+            imu_data.raw_accelerometer.x = self.raw_accelerometer.x
+            imu_data.raw_accelerometer.y = self.raw_accelerometer.y
+            imu_data.raw_accelerometer.z = self.raw_accelerometer.z
 
         if self.magnetometer_accuracy is not None:
             imu_data.magnetometer_accuracy = self.magnetometer_accuracy
