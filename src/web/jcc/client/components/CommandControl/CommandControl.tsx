@@ -541,7 +541,7 @@ export default class CommandControl extends React.Component {
 
         info("Welcome to Jaia Command & Control!");
 
-        // Search for the Zoom & Reset buttons using classname and assign them new icons.
+        // Search for the Zoom & Reset OpenLayers buttons using classname, assign them new icons, and change their styling to match the rest of the buttons.
         const buttons = document.querySelectorAll(".ol-zoom-in, .ol-zoom-out,.ol-rotate-reset");
         buttons.forEach((button) => {
             if (button.classList.contains("ol-zoom-in")) {
@@ -550,18 +550,30 @@ export default class CommandControl extends React.Component {
 			  <path d="${mdiMagnifyPlusOutline}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; margin-bottom: 15px; background-color: #FFFFFF;",
+                );
             } else if (button.classList.contains("ol-zoom-out")) {
                 button.innerHTML = `
 			<svg viewBox="0 0 24 24" width="40" height="40">
 			  <path d="${mdiMagnifyMinusOutline}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; background-color: #FFFFFF;",
+                );
             } else if (button.classList.contains("ol-rotate-reset")) {
                 button.innerHTML = `
 			<svg viewBox="0 0 24 24" width="40" height="40">
 			  <path d="${mdiRotate3dVariant}" />
 			</svg>
 		  `;
+                button.setAttribute(
+                    "style",
+                    "border-radius: 8pt; border: 1px #FFFFFF; margin-bottom: 30px; background-color: #FFFFFF;",
+                );
             }
         });
     }
@@ -3079,13 +3091,6 @@ export default class CommandControl extends React.Component {
                     <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots" />
                 </Button>
                 <Button
-                    className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
-                    title="Add Rally Point"
-                    onClick={this.rallyButtonClicked.bind(this)}
-                >
-                    <img src={rallyIcon} />
-                </Button>
-                <Button
                     className="button-jcc"
                     style={{ backgroundColor: "#cc0505" }}
                     onClick={this.sendStopAll.bind(this)}
@@ -3950,6 +3955,16 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
+        const addRallyPointButton = (
+            <Button
+                className={`button-jcc ${this.state.mode === "newRallyPoint" ? "selected" : ""}`}
+                title="Add Rally Point"
+                onClick={this.rallyButtonClicked.bind(this)}
+            >
+                <img src={rallyIcon} />
+            </Button>
+        );
+
         const missionPanelButton =
             visiblePanel == PanelType.MISSION ? (
                 <Button
@@ -4193,6 +4208,7 @@ export default class CommandControl extends React.Component {
 
                 <div id="viewControls">
                     {missionPanelButton}
+                    {addRallyPointButton}
                     {surveyMissionSettingsButton}
                     {downloadQueueButton}
                     {measureButton}
