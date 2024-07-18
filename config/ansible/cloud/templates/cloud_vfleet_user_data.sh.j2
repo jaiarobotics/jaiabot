@@ -12,6 +12,7 @@ cat << EOF >> /home/jaia/.ssh/authorized_keys
 {{ server_ssh_pubkey }}
 {{ user_ssh_pubkeys }}
 EOF
+chown -R jaia:jaia /home/jaia/.ssh
 
 ## Set up VPN
 VIRTUALFLEET_VPN_SERVER_CIDR_64="fd6e:cf0d:aefa"
