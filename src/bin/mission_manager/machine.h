@@ -1159,6 +1159,22 @@ struct Transit
                                   boost::mpl::front_inserter<Base::common_reactions>>::type;
 };
 
+struct Trail
+    : IvPSensorPauseCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>
+{
+    using Base =
+        IvPSensorPauseCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>;
+
+    Trail(typename StateBase::my_context c);
+    ~Trail();
+
+    using local_reactions = boost::mpl::list<>;
+
+    using reactions =
+        typename boost::mpl::copy<local_reactions,
+                                  boost::mpl::front_inserter<Base::common_reactions>>::type;
+};
+
 struct RemoteControl
     : boost::statechart::state<RemoteControl, Movement, remotecontrol::RemoteControlEndSelection>
 {

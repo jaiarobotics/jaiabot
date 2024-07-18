@@ -518,7 +518,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
 
     auto hub_command_subscriber_group_func =
-        [](const protobuf::Command& command) -> goby::middleware::Group {
+        [](const protobuf::Command& command) -> goby::middleware::Group
+    {
         return goby::middleware::Group(
             jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
     };
@@ -531,26 +532,23 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
         {
             if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
             {
-                if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+                protobuf::Command out_command;
+                bool command_valid = handle_command_fragment(input_command, out_command);
+                if (command_valid)
                 {
-                    protobuf::Command out_command;
-                    bool command_valid = handle_command_fragment(input_command, out_command);
-                    if (command_valid)
-                    {
-                        handle_command(out_command);
-                        // republish for logging purposes
-                        interprocess().publish<jaiabot::groups::hub_command>(out_command);
-                    }
-                }
-                else
-                {
-                    handle_command(input_command);
+                    handle_command(out_command);
                     // republish for logging purposes
-                    interprocess().publish<jaiabot::groups::hub_command>(input_command);
+                    interprocess().publish<jaiabot::groups::hub_command>(out_command);
                 }
-            },
-            *groups::hub_command_this_bot, command_subscriber);
-    }
+            }
+            else
+            {
+                handle_command(input_command);
+                // republish for logging purposes
+                interprocess().publish<jaiabot::groups::hub_command>(input_command);
+            }
+        },
+        *groups::hub_command_this_bot, command_subscriber);
 
     if (cfg().has_contact_update_sub_cfg())
     {
