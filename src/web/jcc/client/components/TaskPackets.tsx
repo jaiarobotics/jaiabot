@@ -87,6 +87,28 @@ export class TaskData {
         });
     }
 
+    /**
+     * Updates the task packet data store to the specified time range.
+     *
+     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
+     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
+     * @returns {*}
+     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm
+     */
+    update(startDate?: string, endDate?: string) {
+        return jaiaAPI
+            .getTaskPackets(startDate, endDate)
+            .then((taskPackets) => {
+                this.updateTaskPacketsLayers(taskPackets);
+
+                this._updateInterpolatedDrifts(startDate, endDate);
+                this._updateContourPlot(startDate, endDate);
+            })
+            .catch((err) => {
+                console.error("Task Packets Retrieval Error:", err);
+            });
+    }
+
     getTaskPackets() {
         this.taskPackets;
     }
@@ -237,10 +259,16 @@ export class TaskData {
         return taskCalcs;
     }
 
-    _updateContourPlot() {
+    /**
+     * Download a new contour plot GeoJSON feature set from the backend, with a new date range.
+     *
+     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
+     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
+     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm     */
+    _updateContourPlot(startDate?: string, endDate?: string) {
         // To Do: Figure out how to make multiple contour maps based on time/location
         jaiaAPI
-            .getDepthContours()
+            .getDepthContours(startDate, endDate)
             .catch((error) => {
                 console.error(error);
             })
@@ -293,14 +321,6 @@ export class TaskData {
             }
         }
 
-        if (taskPackets.length >= 2) {
-            this._updateInterpolatedDrifts();
-        }
-
-        if (taskPackets.length >= 3) {
-            this._updateContourPlot();
-        }
-
         this.diveSource.clear();
         this.driftSource.clear();
 
@@ -318,9 +338,9 @@ export class TaskData {
      * @notes
      * To Do: Figure out how to make multiple Drift Maps based on time/location
      */
-    _updateInterpolatedDrifts() {
+    _updateInterpolatedDrifts(startDate?: string, endDate?: string) {
         jaiaAPI
-            .getDriftMap()
+            .getDriftMap(startDate, endDate)
             .then((features) => {
                 if (Array.isArray(features)) {
                     const tFeatures = features.map((feature) => {
