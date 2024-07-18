@@ -25,6 +25,8 @@
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/io/line_based/pty.h>
+#undef ECHO
+
 #include <goby/middleware/io/line_based/serial.h>
 #include <goby/middleware/io/line_based/tcp_client.h>
 #include <goby/middleware/io/line_based/tcp_server.h>
