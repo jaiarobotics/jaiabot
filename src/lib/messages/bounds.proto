@@ -1,19 +1,21 @@
 syntax = "proto2";
 
+import "dccl/option_extensions.proto";
+
 package jaiabot.protobuf;
 
 message SurfaceBounds {
-		optional int32 upper = 1  [default = 1100];
-		optional int32 lower = 2  [default = 1900];
-		optional int32 center = 3 [default = 1500];
+		optional int32 upper = 1  [default = 1100, (dccl.field) = { min: 1000 max: 2000 }];
+		optional int32 lower = 2  [default = 1900, (dccl.field) = { min: 1000 max: 2000 }];
+		optional int32 center = 3 [default = 1500, (dccl.field) = { min: 1000 max: 2000 }];
 	}
 message MotorBounds {
-		optional int32 forwardStart = 1 [default = 1600];
-		optional int32 reverseStart = 2 [default = 1400];
-		optional int32 max_reverse = 3 [default = 1320];
-		optional int32 throttle_zero_net_buoyancy = 4 [default = -35];
-		optional int32 throttle_dive = 5 [default = -35];
-		optional int32 throttle_ascent = 6 [default = 25];
+		optional int32 forwardStart = 1 [default = 1600, (dccl.field) = { min: 1000 max: 2000 }];
+		optional int32 reverseStart = 2 [default = 1400, (dccl.field) = { min: 1000 max: 2000 }];
+		optional int32 max_reverse = 3 [default = 1320, (dccl.field) = { min: 1000 max: 2000 }];
+		optional int32 throttle_zero_net_buoyancy = 4 [default = -35, (dccl.field) = { min: -100 max: 100 }];
+		optional int32 throttle_dive = 5 [default = -35, (dccl.field) = { min: -100 max: 100 }];
+		optional int32 throttle_ascent = 6 [default = 25, (dccl.field) = { min: -100 max: 100 }];
 	}
 
 message Bounds{

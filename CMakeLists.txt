@@ -86,9 +86,18 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 message(STATUS "Version: ${PROJECT_VERSION}")
 set(PROJECT_SOVERSION "1")
 
+# Intervehicle API version
+
+# increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
+# start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
+set(PROJECT_INTERVEHICLE_API_VERSION 7)
+
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
+
+# find NanoPB
+find_package( Nanopb REQUIRED )
 
 # find DCCL
 find_package(DCCL REQUIRED)
@@ -118,6 +127,13 @@ get_filename_component(project_BIN_DIR ${project_BUILD_DIR}/bin ABSOLUTE)
 get_filename_component(project_INC_DIR ${project_BUILD_DIR}/include ABSOLUTE)
 get_filename_component(project_SHARE_DIR ${project_BUILD_DIR}/share ABSOLUTE)
 file(MAKE_DIRECTORY ${project_SHARE_DIR})
+get_filename_component(project_INTERMEDIATE_DIR ${project_BUILD_DIR}/intermediate ABSOLUTE)
+file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
+
+# Write the version to a simple text file for scripts to use
+if(PROJECT_VERSION_GITHASH)
+  file(WRITE ${project_SHARE_DIR}/version.txt ${PROJECT_VERSION_GITDESCRIBE})
+endif()
 
 ## set the cmake defaults for libraries and binaries
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH 
@@ -239,28 +255,29 @@ endif()
 
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR} COPYONLY)
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
+set(scripts_to_install
+  jaiabot-checkloadavg.py
+  # data offload
+  data-offload/jaiahub-dataoffload.sh
+  data-offload/jaiabot-predataoffload.sh
+  data-offload/jaiabot-postdataoffload.sh
+  data-offload/jaiahub-dataoffload-cloudhub.sh
+  # Firmware scripts
+  jaia_firm_backup_date.sh
+  geotiff_format.py
+  geotiff_scan.sh
+  jaia-ip.py
+)
 
-# Cockpit scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-update-packages.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-update-packages.sh ${project_BIN_DIR} COPYONLY)
+# Iterate over each script to install and copy
+foreach(script ${scripts_to_install})
+    install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
+    configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
+endforeach()
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-version-status.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-version-status.sh ${project_BIN_DIR} COPYONLY)
-
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-software-group.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot-software-group.sh ${project_BIN_DIR} COPYONLY)
-
-# Firmware scripts
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
-configure_file(${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh ${project_BIN_DIR} COPYONLY)
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

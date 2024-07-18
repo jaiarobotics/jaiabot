@@ -1,0 +1,177 @@
+#!/bin/bash
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_get jaiabot-embedded/type
+JAIA_TYPE=$RET
+
+db_get jaiabot-embedded/bot_type
+JAIA_BOT_TYPE=$RET
+
+if [ "$JAIA_TYPE" = "bot" ]; then
+    db_get jaiabot-embedded/bot_id
+    BOT_OR_HUB_INDEX=$RET
+    BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 100))
+    if [ "$JAIA_BOT_TYPE" = "none" ]; then
+        JAIA_BOT_TYPE="hydro"
+        db_set jaiabot-embedded/bot_type "hydro"
+    fi
+
+elif [ "$JAIA_TYPE" = "hub" ]; then
+    db_get jaiabot-embedded/hub_id
+    BOT_OR_HUB_INDEX=$RET
+    BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 10))
+fi
+
+db_get jaiabot-embedded/fleet_id
+FLEET_INDEX=$RET
+
+OLD_HOST_NAME=`/bin/hostname`
+NEW_HOST_NAME=${JAIA_TYPE}${BOT_OR_HUB_INDEX}-fleet${FLEET_INDEX}
+
+if [[ "$NEW_HOST_NAME" != "$OLD_HOST_NAME" ]]; then
+    echo ">>>>> Setting hostname to $NEW_HOST_NAME (log out and in again for the prompt to change) ... "
+     /usr/bin/hostnamectl set-hostname $NEW_HOST_NAME
+     sed -i "s/^\(127\.0\.[0-9\.]*\).*${OLD_HOST_NAME}$/\1\t${NEW_HOST_NAME}/" /etc/hosts
+     sed -i "s/^\(10\.23\.[0-9\.]*\).*${OLD_HOST_NAME}$/10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET} ${NEW_HOST_NAME}/" /etc/hosts
+    echo "<<<<< Setting hostname complete!"
+fi
+
+
+echo ">>>>> Updating eth0 configuration ... "
+ETH0_IFACE=eth0
+sed -i "s/\( *address\).*/\1 10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/"  /etc/network/interfaces.d/${ETH0_IFACE}
+sed -i "s/\( *gateway\).*/\1 10.23.${FLEET_INDEX}.1/"  /etc/network/interfaces.d/${ETH0_IFACE}
+echo "<<<<< Updating eth0 configuration complete (IP address changes won't take effect until reboot)!"
+
+echo ">>>>> Updating wifi configuration ... "
+WIFI_IFACE=wlan0
+sed -i "s/\( *wpa-essid\).*/\1 JAIA-HUB-WIFI-${FLEET_INDEX}/"  /etc/network/interfaces.d/${WIFI_IFACE}
+sed -i "s/\( *address\).*/\1 10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/"  /etc/network/interfaces.d/${WIFI_IFACE}
+sed -i "s/\( *gateway\).*/\1 10.23.${FLEET_INDEX}.1/"  /etc/network/interfaces.d/${WIFI_IFACE}
+echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
+
+echo ">>>>> Updating hub0 address ... "
+sed -i "s/.*hub0/10.23.${FLEET_INDEX}.10 hub0/" /etc/hosts
+echo "<<<<< Updating hub0 address complete!"
+
+
+echo ">>>>> Installing and enabling systemd services ... "
+# Install systemd services and enable them
+db_get jaiabot-embedded/mode
+JAIA_MODE=$RET
+
+SYSTEMD_SIM_FLAG=""
+if [[ "$JAIA_MODE" = "simulation" ]]; then
+    db_get jaiabot-embedded/warp
+    JAIA_WARP=$RET
+
+    SYSTEMD_SIM_FLAG="--simulation --warp ${JAIA_WARP}"
+fi
+
+db_get jaiabot-embedded/led_type
+JAIA_LED_TYPE=$RET
+
+db_get jaiabot-embedded/electronics_stack
+JAIA_ELECTRONICS_STACK=$RET
+
+db_get jaiabot-embedded/user_role
+JAIA_USER_ROLE=$RET
+
+db_get jaiabot-embedded/imu_type
+JAIA_IMU_TYPE=$RET
+
+db_get jaiabot-embedded/imu_install_type
+JAIA_IMU_INSTALL_TYPE=$RET
+
+db_get jaiabot-embedded/arduino_type
+JAIA_ARDUINO_TYPE=$RET
+
+db_get jaiabot-embedded/data_offload_ignore_type
+JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
+
+/usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
+                                         --enable \
+                                         --jaiabot_bin_dir=/usr/bin \
+                                         --jaiabot_share_dir=/usr/share \
+                                         --goby_bin_dir=/usr/bin \
+                                         --moos_bin_dir=/usr/bin \
+                                         --gen_dir=/usr/share/jaiabot/config/gen \
+                                         --systemd_dir=/etc/systemd/system \
+                                         --bot_index=${BOT_OR_HUB_INDEX} \
+                                         --hub_index=${BOT_OR_HUB_INDEX} \
+                                         --fleet_index=${FLEET_INDEX} \
+                                         ${SYSTEMD_SIM_FLAG} \
+					 --led_type=${JAIA_LED_TYPE} \
+					 --electronics_stack=${JAIA_ELECTRONICS_STACK} \
+					 --user_role=${JAIA_USER_ROLE} \
+					 --imu_type=${JAIA_IMU_TYPE} \
+					 --arduino_type=${JAIA_ARDUINO_TYPE} \
+					 --bot_type=${JAIA_BOT_TYPE} \
+					 --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
+					 --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE}
+
+echo "<<<<< Installing and enabling systemd services complete!"
+
+shopt -s nullglob
+
+echo ">>>>> Stopping, disabling, and removing jaia gps systemd services if they exist ... "
+for service_file in /etc/systemd/system/gps_*.service; do
+    service_name=$(basename $service_file)
+    echo "Stopping $service_name"
+    /bin/systemctl stop $service_name || true
+    echo "Disabling $service_name"
+    /bin/systemctl disable $service_name
+    echo "Removing $service_file"
+    rm $service_file
+done
+
+echo ">>>>> Starting jaia firmware systemd services ... "
+for service_file in /etc/systemd/system/jaia_firm*.service; do
+    service_name=$(basename $service_file)
+    echo "Starting $service_name"
+    if [ "$service_name" != "jaia_firm_hub-button-led-poweroff_py.service" ]; then
+        /bin/systemctl start $service_name || true
+    fi
+done
+
+echo ">>>>> Restarting gpsd"
+/bin/systemctl restart gpsd.service
+
+if [ "$JAIA_TYPE" = "bot" ]; then
+    if [[ "$JAIA_ARDUINO_TYPE" != "none" ]]; then
+        echo ">>>>> Flashing Arduino ..."
+        /usr/share/jaiabot/arduino/jaiabot_runtime/${JAIA_ARDUINO_TYPE}/upload.sh
+        echo "<<<<< Flashing Arduino complete!"
+    fi
+fi
+
+
+echo ">>>>> Installing (but not enabling) Wireguard VPN ... "
+
+/usr/share/jaiabot/config/gen/wireguard.py ${JAIA_TYPE} \
+                                         --name wg_jaia \
+                                         --bot_index=${BOT_OR_HUB_INDEX} \
+                                         --hub_index=${BOT_OR_HUB_INDEX} \
+                                         --fleet_index=${FLEET_INDEX}
+
+echo ">>>>> Installing Wireguard VPN complete!"
+
+alias_name="j"
+alias_command="jaiabot-status"
+
+# Check if the alias already exists in .bashrc
+if ! grep -q "alias $alias_name=" /home/jaia/.bashrc; then
+  # Add the alias to .bashrc
+  echo "alias $alias_name=\"$alias_command\"" >> /home/jaia/.bashrc
+  echo "Alias added to /home/jaia/.bashrc"
+else
+  echo "jaiabot-status Alias already exists in /home/jaia/.bashrc"
+fi
+
+echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
+
+#DEBHELPER#
+
+exit 0

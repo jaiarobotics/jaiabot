@@ -1,0 +1,10 @@
+{
+    "folders": [
+        {
+            "path": ".",
+        },
+    ],
+    "settings": {
+        "typescript.format.enable": false,
+    },
+}

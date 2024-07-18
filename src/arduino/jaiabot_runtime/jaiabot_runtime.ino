@@ -71,9 +71,9 @@ int motor_max_forward = 1900;
 int motor_max_reverse = 1100;
 
 // Motor Steps
-constexpr int motor_max_step_forward_faster = 3;
+constexpr int motor_max_step_forward_faster = 12;
 constexpr int motor_max_step_forward_slower = 12;
-constexpr int motor_max_step_reverse_faster = 3;
+constexpr int motor_max_step_reverse_faster = 12;
 constexpr int motor_max_step_reverse_slower = 12;
 
 // The thermocouple

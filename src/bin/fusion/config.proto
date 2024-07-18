@@ -25,6 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/imu.proto";
 import "dccl/option_extensions.proto";
 
@@ -43,13 +44,15 @@ message Fusion
 
     required int32 bot_id = 10;
 
-    optional int32 health_report_timeout_seconds = 11 [default = 20];
+    required jaiabot.protobuf.BotStatus.BotType bot_type = 11;
+
+    optional int32 health_report_timeout_seconds = 12 [default = 20];
 
     optional int32 init_data_health_timeout_seconds = 15 [default = 20];
 
     optional int32 data_timeout_seconds = 20 [default = 20];
 
-    optional int32 heading_timeout_seconds = 21 [default = 3];
+    optional int32 heading_timeout_seconds = 21 [default = 15];
 
     repeated jaiabot.protobuf.MissionState discard_location_states = 30;
 
@@ -66,7 +69,7 @@ message Fusion
     optional int32 total_imu_issue_checks = 35 [default = 4];
 
     // When to start detecting imu issues again after detecting one
-    optional int32 imu_detect_timeout = 36 [default = 14]; 
+    optional int32 imu_detect_timeout = 36 [default = 20]; 
 
     // Rate in milliseconds
     optional int32 bot_status_period_ms = 37 [default = 1000]; 

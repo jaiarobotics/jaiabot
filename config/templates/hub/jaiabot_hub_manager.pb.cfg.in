@@ -53,6 +53,13 @@ xbee {
     $xbee_config
 }
 
+data_offload_script: "jaiahub-dataoffload.sh"
+log_staging_dir: "$bot_log_staging_dir"
+log_offload_dir: "$hub_log_offload_dir"
+use_localhost_for_data_offload: $use_localhost_for_data_offload
+
+$vfleet_shutdown_times
+
 hub_gpsd_device: "$hub_gpsd_device"
 
 # Feed bot status as GPS sentences (RMC / HDT)

@@ -1,0 +1,45 @@
+// Copyright 2021:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+import "jaiabot/messages/metadata.proto";
+
+package jaiabot.config;
+
+message Metadata
+{
+    // required parameters for ApplicationBase3 class
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    // required parameters for connecting to 'gobyd'
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    // any specific configuration parameters for your application
+
+    // Xbee configuration
+    optional jaiabot.protobuf.XbeeInfo xbee = 10;
+
+    // Is this a real bot, or just a fantasy?
+    optional bool is_simulation = 11;
+}

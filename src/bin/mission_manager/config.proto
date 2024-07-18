@@ -123,7 +123,7 @@ message MissionManager
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    optional uint32 imu_restart_seconds = 51 [default = 10];
+    optional uint32 imu_restart_seconds = 51 [default = 15];
 
     // Bot not rising timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bot is stuck and is not rising
@@ -162,22 +162,28 @@ message MissionManager
     optional double dive_eps_to_determine_diving = 62
         [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
 
-    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
-    // jaia@hub0:/var/log/jaiabot/bot_offload
-    // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload
-    // to
-    required string data_offload_command = 70;
+    required string data_preoffload_script = 70;
+    required string data_postoffload_script = 71;
 
     // e.g. /var/log/jaiabot/bot/*/
-    required string log_dir = 71;
+    required string log_dir = 72;
 
-    // Set to true if we want to not send goby files to hub during offload,
-    // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 72 [default = false];
+    optional string log_staging_dir = 73 [
+        default = "/var/log/jaiabot/staging"
+    ];  // dir on bot with data to be offloaded
 
-    required int32 hub_start_ip = 73 [default = 10];
+    optional string log_archive_dir = 74 [
+        default = "/var/log/jaiabot/archive"
+    ];  // archived bot data
 
-    required string class_b_network = 74 [default = "10.23"];
+    
+    enum DownloadFileTypes
+    {
+        NONE = 1;
+        GOBY = 2;
+        TASKPACKET = 3;
+    }
+    optional DownloadFileTypes data_offload_exclude = 75;
 
     enum EngineeringTestMode
     {
@@ -207,4 +213,34 @@ message MissionManager
 
     // used to update transitting to waypoint to allow less overshoot
     optional int32 waypoint_with_task_slip_radius = 87 [default = 5];
+
+    message ResolveNoForwardProgress
+    {
+        // time after going into ResolveNoForwardProgress to resume attempting
+        // to move
+        optional int32 resume_timeout = 1
+            [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
+        // angle above which the vehicle is assumed to not be making forward
+        // progress, below which it is
+        optional int32 pitch_threshold = 2 [
+            default = 30,
+            (dccl.field).units = {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        ];
+
+        // desired speed above which the vehicle is expected to be making
+        // forward progress
+        optional int32 desired_speed_threshold = 3
+            [default = 0, (dccl.field).units = { base_dimensions: "LT^-1" }];
+
+        // time after desired speed > desired_speed_threshold but pitch
+        // > pitch_threshold that triggers EvNoForwardProgress
+        optional int32 trigger_timeout = 4
+            [default = 15, (dccl.field).units = { base_dimensions: "T" }];
+    }
+
+    optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
 }

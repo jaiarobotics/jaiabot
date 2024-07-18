@@ -34,6 +34,7 @@
 #include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -229,11 +230,21 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
             if (att.has_heading())
             {
-                auto magneticDeclination = wmm.magneticDeclination(
-                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                // The mean solar year, in seconds
+                const double SECONDS_PER_YEAR = 365.24219 * 24 * 60 * 60;
+                const double UNIX_EPOCH_YEAR = 1970;
+
+                double seconds_since_unix_epoch = double(time(NULL));
+                double years_since_unix_epoch = seconds_since_unix_epoch / SECONDS_PER_YEAR;
+                double year = UNIX_EPOCH_YEAR + years_since_unix_epoch;
+
+                auto magneticDeclination =
+                    wmm.magneticDeclination(latest_node_status_.global_fix().lon(),
+                                            latest_node_status_.global_fix().lat(), year);
                 glog.is_debug2() &&
                     glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                         << "  Magnetic declination: " << magneticDeclination << endl;
+                         << "  Magnetic declination: " << magneticDeclination
+                         << "  Year: " << std::setprecision(10) << year << endl;
                 auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
                 heading = corrected_heading(heading);
@@ -259,10 +270,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         {
             glog.is_debug1() && glog << "Received Attitude update from IMU: "
                                      << imu_data.ShortDebugString() << std::endl;
-
-            auto euler_angles = imu_data.euler_angles();
-            auto calibration_status = imu_data.calibration_status();
-            auto now = goby::time::SteadyClock::now();
 
             if (euler_angles.has_heading())
             {
@@ -305,12 +312,18 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
                 last_data_time_[DataType::ROLL] = now;
             }
+        }
 
-            if (imu_data.has_calibration_status())
-            {
-                latest_bot_status_.set_calibration_status(imu_data.calibration_status());
-            }
-        });
+        if (imu_data.has_calibration_status())
+        {
+            latest_bot_status_.set_calibration_status(imu_data.calibration_status());
+        }
+
+        if (imu_data.has_calibration_state())
+        {
+            latest_bot_status_.set_calibration_state(imu_data.calibration_state());
+        }
+    });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
@@ -494,15 +507,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_active_goal();
             }
 
-            if (report.has_data_offload_percentage())
-            {
-                latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
-            }
-            else
-            {
-                latest_bot_status_.clear_data_offload_percentage();
-            }
-
             if (report.has_repeat_index())
             {
                 latest_bot_status_.set_repeat_index(report.repeat_index());
@@ -681,7 +685,11 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_local_fix()->set_y(0);
 }
 
-void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
+void jaiabot::apps::Fusion::init_bot_status()
+{
+    latest_bot_status_.set_bot_id(cfg().bot_id());
+    latest_bot_status_.set_bot_type(cfg().bot_type());
+}
 
 void jaiabot::apps::Fusion::loop()
 {
@@ -733,7 +741,8 @@ void jaiabot::apps::Fusion::loop()
         {
             glog.is_debug1() && glog << "Publishing queried bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
-            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+            intervehicle().publish<jaiabot::groups::bot_status>(
+                latest_bot_status_, intervehicle::default_publisher<decltype(latest_bot_status_)>);
             latest_engineering_status.set_query_bot_status(false);
         }
 
@@ -745,7 +754,9 @@ void jaiabot::apps::Fusion::loop()
             {
                 glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                          << latest_bot_status_.ShortDebugString() << endl;
-                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+                intervehicle().publish<jaiabot::groups::bot_status>(
+                    latest_bot_status_,
+                    intervehicle::default_publisher<decltype(latest_bot_status_)>);
                 last_bot_status_report_time_ = now;
 
                 // If the rf is disabled and operator enables rf
@@ -881,23 +892,13 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
         {
             // TODO: We should be able to easily configure different error timeouts
             // Temp fix for now
-            if (ep.first == DataType::HEADING && !imu_issue_detected_)
+            if (ep.first == DataType::HEADING)
             {
                 if (!last_data_time_.count(ep.first) ||
                     (last_data_time_[ep.first] +
                          std::chrono::seconds(cfg().heading_timeout_seconds()) <
                      now))
                 {
-                    jaiabot::protobuf::IMUIssue imu_issue;
-                    imu_issue.set_solution(cfg().imu_issue_solution());
-                    interprocess().publish<jaiabot::groups::imu>(imu_issue);
-                    imu_issue_detected_ = true;
-                    last_imu_issue_report_time_ = now;
-
-                    glog.is_debug2() &&
-                        glog << "detect_imu_issue() Post IMU Warning: No heading data "
-                                "indicates imu issue"
-                             << endl;
                     health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                         ->add_error(ep.second);
                     health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
@@ -950,9 +951,6 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
  */
 void jaiabot::apps::Fusion::detect_imu_issue()
 {
-    jaiabot::protobuf::IMUIssue imu_issue;
-    imu_issue.set_solution(cfg().imu_issue_solution());
-
     auto now = goby::time::SteadyClock::now();
 
     glog.is_debug1() && glog << "Entering detect_imu_issue function" << endl;
@@ -1073,6 +1071,20 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         }
         else
         {
+            jaiabot::protobuf::IMUIssue imu_issue;
+            imu_issue.set_solution(cfg().imu_issue_solution());
+            imu_issue.set_type(jaiabot::protobuf::IMUIssue_IssueType::
+                                   IMUIssue_IssueType_HEADING_COURSE_DIFFERENCE_TOO_LARGE);
+            imu_issue.set_mission_state(latest_bot_status_.mission_state());
+            imu_issue.set_imu_heading_course_max_diff(cfg().imu_heading_course_max_diff());
+            imu_issue.set_heading(heading);
+            imu_issue.set_desired_heading(bot_desired_heading_);
+            imu_issue.set_course_over_ground(course);
+            imu_issue.set_heading_course_difference(prev_course_vs_current_diff);
+            imu_issue.set_pitch(latest_bot_status_.attitude().pitch());
+            imu_issue.set_speed_over_ground(latest_bot_status_.speed().over_ground());
+            imu_issue.set_desired_speed(bot_desired_speed_);
+
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             imu_issue_detected_ = true;
             glog.is_debug2() && glog

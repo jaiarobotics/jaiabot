@@ -1,0 +1,7 @@
+- name: Copy Hub keys from repository to bot
+  import_playbook: ssh-copy-hub-keys.yml
+  vars:
+    HUB_IS_PRESENT: false
+    CONFIGURE_VIRTUALFLEET: false
+
+- import_playbook: ../reboot-all.yml

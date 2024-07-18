@@ -1,10 +1,10 @@
-[jaiabot-test-X.y]
+[jaiabot-test-1.y]
 login = dput
 fqdn = packages.jaia.tech
 method = scp
-incoming = /var/www/html/ubuntu/test/X.y/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/test/1.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/test/X.y
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/test/1.y
 
 [jaiabot-continuous-1.y]
 login = dput

@@ -55,7 +55,10 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 
 args=parser.parse_args()
 
@@ -67,6 +70,11 @@ class ARDUINO_TYPE(Enum):
 class IMU_TYPE(Enum):
     BNO055 = 'bno055'
     BNO085 = 'bno085'
+    NONE = 'none'
+
+class IMU_INSTALL_TYPE(Enum):
+    EMBEDDED = 'embedded'
+    RETROFIT = 'retrofit'
     NONE = 'none'
 
 class LED_TYPE(Enum):
@@ -84,6 +92,16 @@ class ELECTRONICS_STACK(Enum):
     STACK_2 = '2'
     STACK_3 = '2'
 
+class BOT_TYPE(Enum):
+    HYDRO = 'HYDRO'
+    ECHO = 'ECHO'
+    NONE = 'NONE'
+
+class DATA_OFFLOAD_IGNORE_TYPE(Enum):
+    GOBY = 'GOBY'
+    TASKPACKET = 'TASKPACKET'
+    NONE = 'NONE'
+
 # Set the arduino type based on the argument
 # Used to set the serial port device
 if args.arduino_type == 'spi':
@@ -99,6 +117,14 @@ elif args.imu_type == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
 else:
     jaia_imu_type = IMU_TYPE.NONE
+
+
+jaia_imu_install_type = IMU_TYPE.NONE
+
+if args.imu_install_type == 'embedded':
+    jaia_imu_install_type = IMU_INSTALL_TYPE.EMBEDDED
+elif args.imu_install_type == 'retrofit':
+    jaia_imu_install_type = IMU_INSTALL_TYPE.RETROFIT
 
 if args.led_type == 'hub_led':
     jaia_led_type = LED_TYPE.HUB_LED
@@ -120,6 +146,20 @@ else:
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
 
+if args.bot_type == 'hydro':
+    jaia_bot_type = BOT_TYPE.HYDRO
+elif args.bot_type == 'echo':
+    jaia_bot_type = BOT_TYPE.ECHO
+else:
+    jaia_bot_type = BOT_TYPE.NONE
+
+jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
+
+if args.data_offload_ignore_type == 'goby':
+    jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.GOBY
+elif args.data_offload_ignore_type == 'taskpacket':
+    jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -140,10 +180,14 @@ class Type(Enum):
     HUB = 'hub'
     BOTH = 'both'
 
+is_cloudhub=False
 if args.type == 'bot':
     jaia_type = Type.BOT
     bot_or_hub_index_str = 'export jaia_bot_index=' + str(args.bot_index) + '; '
 elif args.type == 'hub':
+    cloudhub_id=30
+    if args.hub_index == cloudhub_id:
+        is_cloudhub=True
     jaia_type = Type.HUB
     bot_or_hub_index_str = 'export jaia_hub_index=' + str(args.hub_index) + '; '
 
@@ -160,7 +204,10 @@ subprocess.run('bash -ic "' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
+               'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
+               'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
+               'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -180,6 +227,8 @@ common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_index}.moos'
 common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_index}.moos'
 # unless otherwise specified, apps are run both at runtime and simulation
 common_macros['runs_when'] = Mode.BOTH
+# most apps do not run on CloudHub
+common_macros['runs_on_cloudhub'] = False
 
 try:
     common_macros['user'] = os.getlogin()
@@ -188,6 +237,13 @@ except:
     common_macros['user'] = os.environ['USER']
     common_macros['group'] = os.environ['USER']
 
+# if user/group resolve to root, hardcode them to 'jaia' to avoid privileged execution
+# this can happen in some upgrade scenarios
+# TODO: Debug why this happens and when (Ansible playbook on local?)
+if common_macros['user'] == 'root':
+    common_macros['user'] = 'jaia'
+    common_macros['group'] = 'jaia'
+    
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
@@ -199,12 +255,14 @@ all_goby_apps = []
 jaiabot_apps = [
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
-     'runs_on': Type.BOTH },
+     'runs_on': Type.BOTH,
+     'runs_on_cloudhub': True},
     {'exe': 'gobyd',
      'description': 'Goby Daemon',
      'template': 'gobyd.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBYD',
-     'runs_on': Type.BOTH },
+     'runs_on': Type.BOTH,
+     'runs_on_cloudhub': True },
     {'exe': 'goby_intervehicle_portal',
      'description': 'Goby Intervehicle Portal',
      'template': 'goby-app.service.in',
@@ -218,7 +276,8 @@ jaiabot_apps = [
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
      'runs_on': Type.BOTH,
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',   
+     'runs_on_cloudhub': True},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
      'template': 'goby-app.service.in',
@@ -232,7 +291,8 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
      'runs_on': Type.BOTH,
      'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
-     'wanted_by': 'jaiabot_health.service'},
+     'wanted_by': 'jaiabot_health.service',
+     'runs_on_cloudhub': True},
     {'exe': 'goby_coroner',
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
@@ -245,7 +305,8 @@ jaiabot_apps = [
      'user': 'root', # must run as root to allow restart/reboot
      'group': 'root',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HEALTH',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'runs_on_cloudhub': True},
     {'exe': 'jaiabot_metadata',
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
@@ -256,6 +317,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data offload script
      'runs_on': Type.HUB,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
@@ -274,7 +336,8 @@ jaiabot_apps = [
      'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
      'template': 'liaison-prelaunch.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'runs_on_cloudhub': True},
     {'exe': 'jaiabot_simulator',
      'description': 'JaiaBot Simulator',
      'template': 'goby-app.service.in',
@@ -294,6 +357,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
+     'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
@@ -385,7 +449,8 @@ jaiabot_apps = [
      'description': 'jaiabot_data_vision visualize log data',
      'template': 'jaiabot_data_vision.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'runs_on_cloudhub': True},
     {'exe': 'gpsd',
      'description': 'GPSD for simulator only',
      'template': 'gpsd-sim.service.in',
@@ -404,8 +469,8 @@ if jaia_imu_type.value == 'bno085':
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
-        'subdir': 'adafruit_BNO085',
-        'args': '20000',
+        'subdir': 'adafruit',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000 -d',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -424,8 +489,8 @@ else:
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
-        'subdir': 'adafruit_BNO055',
-        'args': '20000',
+        'subdir': 'adafruit',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000 -d',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -433,6 +498,27 @@ else:
         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
+
+if jaia_bot_type.value == 'echo':
+    jaiabot_apps_echo = [
+        {'exe': 'jaiabot_echo_driver',
+        'description': 'JaiaBot Echo Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_echo.py',
+        'description': 'JaiaBot MAI Echo Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'echo',
+        'args': '20003',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_echo)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
@@ -491,25 +577,31 @@ jaia_firmware = [
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
-     'subdir': 'adafruit_BNO085',
-     'args': '',
+     'subdir': 'adafruit',
+     'args': '--imu_install_type=' + jaia_imu_install_type.value,
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
+     'run_at_boot': False},
+     {'exe': 'jaia_firm_echo_reset_gpio_pin.py',
+     'description': 'Script to reset gpio line for the echo',
+     'template': 'echo-reset-gpio-pin.service.in',
+     'subdir': 'echo',
+     'args': '',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
      'run_at_boot': False}
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
     macros={**common_macros, **app}
-    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode)
+    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
 
 for app in jaiabot_apps:
     if is_app_run(app):
-        # goby_intervehicle_portal does not respond to goby_coroner. When this is fixed, remove the exception: https://github.com/GobySoft/goby3/issues/297
-        if app['template'] == 'goby-app.service.in' and app['exe'] != 'goby_intervehicle_portal':
+        if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
-
         
 for app in jaiabot_apps:
     if is_app_run(app):
@@ -572,6 +664,9 @@ def is_firm_run(firm):
         if (macros['imu_type'] != jaia_imu_type):
             return False
 
+    if(is_cloudhub and not macros['runs_on_cloudhub']):
+        return False
+        
     return True
 
 for firmware in jaia_firmware:

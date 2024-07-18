@@ -1,0 +1,99 @@
+ansible_playbook {
+    file: "cloud/check-virtualfleet-state.yml"
+    name: "[VirtualFleet] Check state (e.g, running, stopped, etc.) of VirtualFleet machines"
+    role: USER
+    output_var {
+        name: "instance_names"
+        display_name: "Name"
+    }
+    output_var {
+        name: "instance_state"
+        display_name: "State"
+    }
+    limit: "localhost"
+}
+
+ansible_playbook {
+    file: "cloud/manage-virtualfleet.yml"
+    name: "[VirtualFleet] Start or Stop VirtualFleet machines"
+    input_var {
+        name: "desired_state"
+        display_name: "Desired State"
+        value: "running"
+        value: "stopped"
+    }
+    output_var {
+        name: "instance_names"
+        display_name: "Name"
+    }
+    output_var {
+        name: "instance_state"
+        display_name: "State"
+    }
+    role: USER
+    limit: "localhost"
+}
+
+ansible_playbook {
+    file: "cloud/manage-virtualfleet.yml"
+    name: "[VirtualFleet] Terminate VirtualFleet machines [DELETES ALL VIRTUALFLEET MACHINE DATA]"
+    input_var {
+        name: "desired_state"
+        display_name: "Desired State"
+        value: "terminated"
+    }
+    role: ADVANCED
+    limit: "localhost"
+    confirmation_required: true
+}
+
+ansible_playbook {
+    file: "cloud/create-virtualfleet.yml"
+    name: "[VirtualFleet] (Re)create VirtualFleet machines [DELETES ALL VIRTUALFLEET MACHINE DATA]"
+    limit: "localhost"
+    role: ADVANCED
+    confirmation_required: true
+    input_var {
+        name: "n_bots"
+        display_name: "Number of Bots"
+        value: "1"
+        value: "2"
+        value: "5"
+        value: "10"
+        value: "15"
+        value: "20"
+        value: "25"
+        value: "50"
+        value: "75"
+        # Bot 89 has port conflict
+        # Can't have more than 99 missions currently
+    }
+}
+
+ansible_playbook {
+    file: "cloud/update-vfleet.yml" 
+    name: "[VirtualFleet] Change JaiaBot repository and update all packages"
+    limit: "all"
+    role: ADVANCED    
+    input_var {
+        name: "repo"
+        display_name: "Repository"
+        value: "release"
+        value: "beta"
+        value: "continuous"
+        value: "test"
+    }
+    input_var {
+        name: "mode"
+        display_name: "Delivery Mode"
+        value: "online"
+        value: "online_with_hub_cache"
+        value: "offline"
+    }
+    input_var {
+        name: "version"
+        display_name: "Version Branch"
+        value: "1.y"
+    }
+    inventory: "/etc/jaiabot/vfleet-inventory.yml"
+}

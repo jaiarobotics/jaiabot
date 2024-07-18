@@ -134,8 +134,8 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     {
         std::string input_vars;
         for (const auto& p : playbook.input_var) input_vars += p.first + "=" + p.second + " ";
-        playbook.pdata.reset(
-            new AnsiblePlaybookConfig::ProcessData(cfg_, playbook.file, input_vars));
+        playbook.pdata.reset(new AnsiblePlaybookConfig::ProcessData(
+            cfg_, playbook.file, playbook.pb_playbook, input_vars));
     }
     catch (const std::exception& e)
     {
@@ -143,6 +143,7 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     }
 
     for (auto& playbook : playbooks_) playbook.run_button->disable();
+    playbook.log_button->disable();
 }
 
 void jaiabot::LiaisonUpgrade::set_input_var(int selection_index, Wt::WComboBox* selection,
@@ -171,7 +172,17 @@ void jaiabot::LiaisonUpgrade::loop()
             else
             {
                 playbook.last_log = playbook.pdata->stdout.get();
-                playbook.log_resource->set_last_log(playbook.last_log);
+
+                if (!playbook.last_log.empty())
+                {
+                    playbook.log_resource->set_last_log(playbook.last_log);
+                }
+                else
+                {
+                    nlohmann::json j_stderr;
+                    j_stderr["stderr"] = playbook.pdata->stderr.get();
+                    playbook.log_resource->set_last_log(j_stderr.dump(2));
+                }
 
                 try
                 {
@@ -231,7 +242,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
                         if (playbook.output_var.count(facts_el.key()))
                             results[host].output_vars[facts_el.key()] =
                                 facts_el.value().is_string() ? facts_el.value().get<std::string>()
-                                                             : facts_el.value().dump();
+                                                             : facts_el.value().dump(2);
                     }
                 }
             }
@@ -310,11 +321,16 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
 //
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
     const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
+    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
     const std::string& input_vars)
 
-    : process(boost::process::search_path("ansible-playbook"), "-i", cfg.ansible_inventory(),
+    : process(cfg.has_ansible_playbook_full_path()
+                  ? boost::filesystem::path(cfg.ansible_playbook_full_path())
+                  : boost::process::search_path("ansible-playbook"),
+              "-i", pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
               playbook_file, "-e", input_vars, boost::process::std_in.close(), "-l",
-              "bots:" + cfg.this_hub(), boost::process::std_out > stdout, io,
+              pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
+              boost::process::std_out > stdout, boost::process::std_err > stderr, io,
               boost::process::env["ANSIBLE_CONFIG"] = cfg.ansible_config()),
       io_thread([this]() { io.run(); })
 {

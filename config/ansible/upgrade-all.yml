@@ -3,28 +3,37 @@
   hosts: all
   become: yes
   gather_facts: yes
+  vars_files:
+    - vars/packages.yml
 
   tasks:
+    # First update jaiabot packages
+    - include_tasks: tasks/install-jaiabot.yml
+
+    # Then, handle system upgrade
     - name: Remount firmware read-write
       shell: "mount -o remount,rw /boot/firmware"
 
     # Can hopefully be removed when we switch to EFI boot
     # For now we get an error with update-grub on amd64 images due to overlay root
-    - name: Hold kernel packages on amd64
-      dpkg_selections:
-        name: linux-image-generic
-        selection: hold
+    # Workaround this by move update-grub so it doesn't exist (thus skipping the update-grub step in the kernel postinst)
+    - name: Move update-grub
+      shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp || true"
       when: ansible_architecture == "x86_64"
-        
-    - name: Upgrade
+
+    - name: Pre-download hub package upgrade (hub cache only)
+      # need to use shell, not apt as download-only isn't supported yet by the ansible module
+      shell: "apt-get -y update && apt-get -y dist-upgrade --download-only"
+      when: using_hub_deb_cache and jaiabot_embedded_type == "hub"
+
+    - name: Upgrade remaining system packages (safe upgrade)
       apt:
         update_cache: yes
-        upgrade: dist
-
-    - include_tasks: tasks/get-version.yml
+        upgrade: safe
 
     - name: Remount firmware read-only
       shell: "mount -o remount,ro /boot/firmware"
 
-    # Do not include as it takes a long time if NTP isn't sync'd
-    #- include_tasks: tasks/restart-jaiabot.yml
+    - name: Restore update-grub
+      shell: "mv /usr/sbin/update-grub.tmp /usr/sbin/update-grub"
+      when: ansible_architecture == "x86_64"

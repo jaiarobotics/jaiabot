@@ -14,23 +14,6 @@ import pyjaia.drift_interpolation
 
 from pathlib import *
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
-parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
-parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
-args = parser.parse_args()
-
-# Setup logging module
-logLevel = logging.getLevelName(args.logLevel.upper())
-logging.getLogger('root').setLevel(logLevel)
-logging.getLogger('werkzeug').setLevel('WARN')
-
-
-# Setup the directory
-jaialogStore = jaialog_store.JaialogStore(args.directory)
-
-app = Flask(__name__)
 
 # Parsing the arguments
 def parseFilenames(input: str):
@@ -49,8 +32,9 @@ def JSONErrorResponse(msg):
     obj = {"error": msg}
     return JSONResponse(obj)
 
-####### Static files
-root = '../client/dist'
+# The flask app
+
+app = Flask(__name__)
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
@@ -96,7 +80,10 @@ def getSeries():
 @app.route('/map', methods=['GET'])
 def getMap():
     log_names = parseFilenames(request.args.get('log'))
-    return JSONResponse(jaialogStore.getMap(log_names))
+    try:
+        return JSONResponse(jaialogStore.getMap(log_names))
+    except Exception as e:
+        return JSONErrorResponse(str(e))
 
 
 @app.route('/commands', methods=['GET'])
@@ -182,10 +169,30 @@ def getH5():
 
 if __name__ == '__main__':
 
-    # Always print the log level to console
-    rootLogger = logging.getLogger('root')
-    logLevelName = logging.getLevelName(rootLogger.getEffectiveLevel())
-    print(f'==> Logging level: {logLevelName}')
+    # Arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
+    parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
+    parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
+    parser.add_argument("-a", dest="appRoot", type=str, default="../../../../build/web_dev/jdv", help="Location from which to serve web app")
+    args = parser.parse_args()
 
-    logging.warning(f'Serving on port {args.port}')
-    app.run(host='0.0.0.0', port=args.port, debug=True)
+    # Setup logging module
+    logLevel = logging.getLevelName(args.logLevel.upper())
+    print(f'==> Logging level: {args.logLevel.upper()}')
+    logging.getLogger('root').setLevel(logLevel)
+    logging.getLogger('werkzeug').setLevel('WARN')
+
+    ####### Static files
+    global root
+    root = args.appRoot
+
+    # Setup the directory
+    jaialogStore = jaialog_store.JaialogStore(args.directory)
+
+    # Print the URL for browser access
+    logging.info(f'Jaiabot Logs directory:           {os.path.abspath(args.directory)}')
+    logging.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
+    logging.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
+
+    app.run(host='0::0', port=args.port, debug=True)

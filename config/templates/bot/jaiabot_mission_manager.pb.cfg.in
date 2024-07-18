@@ -72,11 +72,14 @@ gps_after_dive_hdop_fix: 1.3 # (optional) (default=1.3)
 gps_after_dive_pdop_fix: 2.2 # (optional) (default=2.2)
 
 # Data offload
-data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
+data_preoffload_script: "jaiabot-predataoffload.sh" # log_dir staging_dir [additional exclude]
+data_postoffload_script: "jaiabot-postdataoffload.sh" # log_dir staging_dir archive_dir 
 log_dir: "$log_dir" # (required)
-hub_start_ip: 10 # (required)
-class_b_network: "10.23" # (required)
-data_offload_only_task_packet_file: false # (optional)
+log_staging_dir: "$bot_log_staging_dir"
+log_archive_dir: "$bot_log_archive_dir"
+
+# data_offload_exclude options: (NONE, GOBY, TASKPACKET)
+data_offload_exclude: $jaia_data_offload_ignore_type # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
@@ -97,19 +100,25 @@ use_goal_timeout: false # (default = false)
 tpv_history_max: 15 # (default = 15)
 skip_goal_task: false # (default = false)
 include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
-include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
 include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
-include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+include_goal_timeout_states: IN_MISSION__PAUSE__REACQUIRE_GPS
 
 # Bottom depth safety behavior
 min_depth_safety: -1 # (default = -1)
 
 # IMU Restart State Timeout
-imu_restart_seconds: 10 # (default = 10)
+imu_restart_seconds: 15 # (default = 15)
 
 # If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
 $subscribe_to_hub_on_start
 
 # Waypoint Transit Behavior Updates
 waypoint_with_no_task_slip_radius: 15 # (default = 15)
-waypoint_with_task_slip_radius: 5 # (default = 5)
+waypoint_with_task_slip_radius: 7 # (default = 5)
+
+resolve_no_forward_progress {
+    resume_timeout: 10 # seconds - time after going into ResolveNoForwardProgress to resume attempting to move
+    pitch_threshold: 30 # degrees - angle above which the vehicle is assumed to not be making forward progress
+    desired_speed_threshold: 0 # m/s - desired speed above which the vehicle is expected to be making forward progress
+    trigger_timeout: 15 # seconds - time after desired speed > speed_threshold but pitch > pitch_threshold that triggers EvNoForwardProgress 
+}

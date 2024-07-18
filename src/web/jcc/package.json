@@ -1,0 +1,14 @@
+{
+    "name": "jaia-command-control",
+    "private": true,
+    "version": "1.0.0",
+    "description": "",
+    "main": "server/index.js",
+    "scripts": {
+        "build": "webpack --mode production",
+        "test": "webpack --mode production --watch --progress"
+    },
+    "keywords": [],
+    "author": "Jaia Robotics",
+    "license": ""
+}

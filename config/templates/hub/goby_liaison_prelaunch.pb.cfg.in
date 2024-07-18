@@ -1,7 +1,7 @@
 $app_block
 
 interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
-http_address: "0.0.0.0"
+http_address: "$http_address"
 http_port: $http_port
 
 start_paused: false
@@ -15,7 +15,8 @@ add_commander_tab: false
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
     role: $user_role
 
-    ansible_inventory: "/etc/jaiabot/inventory.yml"
+    $ansible_playbook_full_path
+    ansible_inventory: "$inventory"
     ansible_config: "ansible-liaison.cfg"
     this_hub: "$this_hub"
     ansible_playbook {
@@ -30,7 +31,26 @@ add_commander_tab: false
             value: "release"
             value: "beta"
             value: "continuous"
+            value: "test"
         }
+        input_var {
+            name: "mode"
+            display_name: "Delivery Mode"
+            value: "online"
+            value: "online_with_hub_cache"
+            value: "offline"
+        }
+        input_var {
+            name: "version"
+            display_name: "Version Branch"
+            value: "1.y"
+        }
+        input_var {
+            name: "hub_id"
+            display_name: "Hub ID for offline/hub cache updates"
+            value: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",  "22", "23", "24", "25", "26", "27", "28", "29", "30"]
+        }
+        
     }
     ansible_playbook {
         file: "check-version.yml" 
@@ -136,4 +156,5 @@ add_commander_tab: false
         confirmation_required: true
     }    
 
+    $vfleet_playbooks
 }

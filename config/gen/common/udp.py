@@ -26,7 +26,13 @@ def atlas_ezo_py_udp_port(node_id):
     if is_simulation():
         return 20300 + node_id
     else:
-        return 20002    
+        return 20002
+    
+def imu_port(node_id):
+    if is_simulation():
+        return 20400 + node_id
+    else:
+        return 20000
 
 def contact_gpsd_port(contact_id):
     return 33000 + contact_id

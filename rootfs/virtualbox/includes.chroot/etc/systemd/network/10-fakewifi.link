@@ -1,0 +1,7 @@
+# This systemd link file sets up the second virtual ethernet adaptor as "wlan0" allowing the configuration to be the same as the real bot (but using a virtual Ethernet adaptor instead of a wireless card)
+[Match]
+OriginalName=eth1
+
+[Link]
+Name=wlan0
+MACAddressPolicy=persistent

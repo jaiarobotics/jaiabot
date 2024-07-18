@@ -1,3 +1,5 @@
+#include "jaiabot/intervehicle.h"
+
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
 
@@ -115,13 +117,17 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
     goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
     timeout_stop_ = timeout_start + timeout_duration;
 
-    if (cfg().data_offload_only_task_packet_file())
+    // update which files are excluded from data offload
+    switch (cfg().data_offload_exclude())
     {
-        glog.is_debug1() && glog << "Create a task packet file and only offload that file"
-                                 << "to hub (ignore sending goby files)" << std::endl;
-
-        // Extra exclusions for rsync
-        this->machine().set_data_offload_exclude(" '*.goby'");
+        case config::MissionManager::GOBY:
+            this->machine().set_data_offload_exclude(" '*.goby'");
+            break;
+        case config::MissionManager::TASKPACKET:
+            this->machine().set_data_offload_exclude(" '*.taskpacket'");
+            break;
+        case config::MissionManager::NONE: this->machine().set_data_offload_exclude(""); break;
+        default: this->machine().set_data_offload_exclude(""); break;
     }
 }
 
@@ -198,7 +204,7 @@ jaiabot::statechart::predeployment::Idle::~Idle()
 // Movement::Transit
 jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>(c)
+    : Base(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     int slip_radius = cfg().waypoint_with_no_task_slip_radius();
@@ -260,7 +266,7 @@ jaiabot::statechart::inmission::underway::movement::Trail::~Trail()
 // Recovery::Transit
 jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<Transit, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT>(c)
+    : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -292,8 +298,7 @@ jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()
 // Recovery::StationKeep
 jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, Recovery,
-                        protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>(c)
+    : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -346,10 +351,12 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
 
 jaiabot::statechart::inmission::underway::Task::~Task()
 {
-    if (!has_manual_task_)
+    auto task_complete_event = dynamic_cast<const EvTaskComplete*>(triggering_event());
+    // each time we complete a autonomous task - we should increment the goal index
+    // do not increment for other triggering events, such as EvIMURestart or EvGPSFix
+    if (!has_manual_task_ && task_complete_event)
     {
         goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
-        // each time we complete a autonomous task - we should increment the goal index
         context<InMission>().increment_goal_index();
     }
 
@@ -358,7 +365,7 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        if (cfg().data_offload_only_task_packet_file())
+        if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
         {
             // Convert to json string
             std::string json_string;
@@ -401,7 +408,8 @@ jaiabot::statechart::inmission::underway::Task::~Task()
         {
             glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
                                      << task_packet_.DebugString() << std::endl;
-            intervehicle().publish<groups::task_packet>(task_packet_);
+            intervehicle().publish<groups::task_packet>(
+                task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
         }
     }
 }
@@ -433,6 +441,17 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     auto imu_command = IMUCommand();
     imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+
+    // Is this an echo task?
+    bool start_echo_sensor = context<Task>().current_task()->start_echo();
+
+    if (start_echo_sensor)
+    {
+        // Start echo recording
+        auto echo_command = EchoCommand();
+        echo_command.set_type(EchoCommand::CMD_START);
+        this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+    }
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -466,6 +485,17 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     auto imu_command = IMUCommand();
     imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+
+    // Is this an echo task?
+    bool stop_echo_sensor = context<Task>().current_task()->start_echo();
+
+    if (stop_echo_sensor)
+    {
+        // Stop echo recording
+        auto echo_command = EchoCommand();
+        echo_command.set_type(EchoCommand::CMD_STOP);
+        this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+    }
 }
 
 // Task::Dive::DivePrep
@@ -1252,6 +1282,49 @@ void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const
         post_event(EvTaskComplete());
 }
 
+// Pause::ReacquireGPS
+jaiabot::statechart::inmission::pause::ReacquireGPS::ReacquireGPS(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+    {
+        // in indoor mode, simply post that we've received a fix
+        // (even though we haven't as there's no GPS)
+        post_event(statechart::EvGPSFix());
+    }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
+}
+
+// Pause::ResolveNoForwardProgress
+jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::ResolveNoForwardProgress(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point resolve_start = goby::time::SteadyClock::now();
+    auto resume_duration = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+        cfg().resolve_no_forward_progress().resume_timeout_with_units());
+    resume_timeout_ = resolve_start + resume_duration;
+}
+
+void jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+
+    // for now, simply wait a period of time and then resume
+    if (now >= resume_timeout_)
+    {
+        post_event(EvForwardProgressResolved());
+    }
+}
+
+jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::~ResolveNoForwardProgress()
+{
+    this->machine().erase_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
+}
+
 // Dive::ReacquireGPS
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
     typename StateBase::my_context c)
@@ -1279,7 +1352,7 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGP
 // Task::StationKeep
 jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>(c)
+    : Base(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
@@ -1297,6 +1370,18 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
             this->machine().mission_plan().speeds().stationkeep_outer_with_units());
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = goal.get().task().station_keep().station_keep_time();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+void jaiabot::statechart::inmission::underway::task::StationKeep::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvTaskComplete());
 }
 
 // Dive::ConstantHeading
@@ -1368,8 +1453,7 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::RemoteControl
 // Movement::RemoteControl::StationKeep
 jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : AcquiredGPSCommon<StationKeep, RemoteControl,
-                        protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP>(c)
+    : Base(c)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
         this->machine().mission_plan().speeds().transit_with_units(),
@@ -1429,12 +1513,17 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
-// PostDeployment::DataProcessing
-jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
-    typename StateBase::my_context c)
+// PostDeployment::DataOffload
+jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().data_offload_only_task_packet_file())
+    glog.is_verbose() && glog << "Stop Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+    request.set_close_log(true);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+
+    if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
     {
         // Reset if recovered
         // If bot is activated again and more task packets
@@ -1443,122 +1532,128 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
         this->machine().set_create_task_packet_file(true);
     }
 
-    // currently we do not do any data processing on the bot
-    post_event(EvDataProcessingComplete());
+    // run preoffload script and then do nothing (actual offload handled by jaiabot_hub_manager)
+    if (!run_command(CommandType::PRE_OFFLOAD))
+    {
+        glog.is_warn() && glog << "Pre offload command Failed" << std::endl;
+        this->machine().insert_warning(
+            jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
+        post_event(EvDataOffloadFailed());
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Pre offload command Succeeded" << std::endl;
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
+    }
 }
 
-// PostDeployment::DataOffload
-jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
-    : StateBase(c)
+bool jaiabot::statechart::postdeployment::DataOffload::run_command(CommandType type)
 {
-    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
-    this->set_offload_command(cfg().data_offload_command() + " " + cfg().class_b_network() + "." +
-                              std::to_string(cfg().fleet_id()) + "." +
-                              std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
-                              this->machine().data_offload_exclude() + " 2>&1");
+    std::string human_command_type;
+    std::string command;
+    bool success = false;
 
-    auto offload_func = [this]()
+    if (type == CommandType::PRE_OFFLOAD)
     {
-        glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
-                                 << "]" << std::endl;
+        human_command_type = "pre-data offload";
+        command = cfg().data_preoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + this->machine().data_offload_exclude() + " 2>&1";
+    }
+    else if (type == CommandType::POST_OFFLOAD)
+    {
+        human_command_type = "post-data offload";
+        command = cfg().data_postoffload_script() + " " + cfg().log_dir() + " " +
+                  cfg().log_staging_dir() + " " + cfg().log_archive_dir() + " 2>&1";
+    }
 
-        FILE* pipe = popen(this->offload_command().c_str(), "r");
-        if (!pipe)
+    glog.is_debug1() && glog << "Performing " << human_command_type << " with command: [" << command
+                             << "]" << std::endl;
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+    {
+        glog.is_warn() && glog << "Error opening pipe to " << human_command_type
+                               << " command: " << strerror(errno) << std::endl;
+    }
+    else
+    {
+        std::string stdout;
+        std::array<char, 256> buffer;
+        while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
         {
-            glog.is_warn() && glog << "Error opening pipe to data offload command: "
-                                   << strerror(errno) << std::endl;
+            glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
+                                     << std::flush;
+            stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+        }
+
+        if (!feof(pipe))
+        {
+            pclose(pipe);
+            glog.is_warn() && glog << "Error reading output while executing " << human_command_type
+                                   << " command" << std::endl;
         }
         else
         {
-            std::string stdout;
-            std::array<char, 256> buffer;
-            while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
+            int status = pclose(pipe);
+            if (status < 0)
             {
-                glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
-                                         << std::flush;
-                stdout.append(buffer.begin(), buffer.begin() + bytes_read);
-
-                // Check if the line contains progress information
-                std::string percent_complete_str = "";
-                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
-                size_t pos = percent_complete_str.find("%");
-                if (pos != std::string::npos)
-                {
-                    if (pos >= 3)
-                    {
-                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
-                                                 << std::endl;
-
-                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
-                        this->set_data_offload_percentage(percent);
-                    }
-                }
-            }
-
-            if (!feof(pipe))
-            {
-                pclose(pipe);
-                glog.is_warn() && glog
-                                      << "Error reading output while executing data offload command"
-                                      << std::endl;
+                glog.is_warn() && glog << "Error executing  " << human_command_type
+                                       << " command: " << strerror(errno) << ", output: " << stdout
+                                       << std::endl;
             }
             else
             {
-                int status = pclose(pipe);
-                if (status < 0)
+                if (WIFEXITED(status))
                 {
-                    glog.is_warn() &&
-                        glog << "Error executing data offload command: " << strerror(errno)
-                             << ", output: " << stdout << std::endl;
+                    int exit_status = WEXITSTATUS(status);
+                    if (exit_status == 0)
+                        success = true;
+                    else
+                        glog.is_warn() && glog << "Error: " << human_command_type
+                                               << " command returned normally but with "
+                                                  "non-zero exit code "
+                                               << exit_status << ", output: " << stdout
+                                               << std::endl;
                 }
+
                 else
                 {
-                    if (WIFEXITED(status))
-                    {
-                        int exit_status = WEXITSTATUS(status);
-                        if (exit_status == 0)
-                            offload_success_ = true;
-                        else
-                            glog.is_warn() &&
-                                glog << "Error: Offload command returned normally but with "
-                                        "non-zero exit code "
-                                     << exit_status << ", output: " << stdout << std::endl;
-                    }
-
-                    else
-                    {
-                        glog.is_warn() &&
-                            glog << "Error: Offload command exited abnormally. output: " << stdout
-                                 << std::endl;
-                    }
+                    glog.is_warn() && glog << "Error:  " << human_command_type
+                                           << " command exited abnormally. output: " << stdout
+                                           << std::endl;
                 }
             }
         }
-        offload_complete_ = true;
-    };
+    }
 
-    offload_thread_.reset(new std::thread(offload_func));
+    return success;
 }
 
-void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
+jaiabot::statechart::postdeployment::DataOffload::~DataOffload()
 {
-    if (offload_complete_)
+    auto offload_complete_event = dynamic_cast<const EvDataOffloadComplete*>(triggering_event());
+
+    // run post offload only on successful data offload
+    if (offload_complete_event)
     {
-        offload_thread_->join();
-
-        if (cfg().is_sim())
+        if (!run_command(CommandType::POST_OFFLOAD))
         {
-            offload_success_ = true;
-        }
-
-        if (!offload_success_)
+            glog.is_warn() && glog << "Post offload command failed" << std::endl;
             this->machine().insert_warning(
-                jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
-        else // clear any previous offload failed warning
-            this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
-
-        post_event(EvDataOffloadComplete());
+                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+        }
+        else
+        {
+            glog.is_debug1() && glog << "Post offload command Succeeded" << std::endl;
+            this->machine().erase_warning(
+                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+        }
     }
+
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
 }
 
 // PostDeployment::Idle
@@ -1583,6 +1678,17 @@ jaiabot::statechart::postdeployment::Idle::~Idle()
         interprocess().publish<goby::middleware::groups::logger_request>(request);
     }
 }
+
+// PostDeployment::Failed
+jaiabot::statechart::postdeployment::Failed::Failed(typename StateBase::my_context c) : StateBase(c)
+{
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+}
+
+jaiabot::statechart::postdeployment::Failed::~Failed() {}
 
 // PostDeployment::ShuttingDown
 jaiabot::statechart::postdeployment::ShuttingDown::ShuttingDown(typename StateBase::my_context c)

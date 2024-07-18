@@ -1,7 +1,8 @@
 $app_block
 $interprocess_block
 
-http_address: "0.0.0.0"
+# also listens on IPv4
+http_address: "$http_address"
 http_port: $http_port
 load_shared_library: "libjaiabot_messages.so.1"
 load_shared_library: "libjaiabot_config.so.1"

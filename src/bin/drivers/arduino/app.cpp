@@ -65,11 +65,13 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
     std::vector<int> splitVersion(const std::string& version);
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
+    int calculateMotorMicroseconds(const int& input);
 
     int64_t lastAckTime_;
 
@@ -100,6 +102,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
+    bool is_driver_connected_{false};
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
     bool arduino_restarting_{false};
@@ -158,15 +161,20 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                               << std::endl;
 
     // Setup our bounds configuration
-    bounds_ = cfg().bounds();
-
-    if (bounds_.motor().has_max_reverse())
-    {
-        max_reverse_ = bounds_.motor().max_reverse();
-    }
+    setBounds(cfg().bounds());
 
     // Publish to meatadata group to record bounds file used
     interprocess().publish<groups::metadata>(bounds_);
+
+    // Subscribe to engineering commands for:
+    // * bounds config changes
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& engineering) {
+            if (engineering.has_bounds())
+            {
+                setBounds(engineering.bounds());
+            }
+        });
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -193,6 +201,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 if (is_settings_ack_)
                 {
                     // Reset to check compatibility again
+                    is_driver_connected_ = false;
                     is_driver_compatible_ = false;
 
                     // Reset to false because the arduino restarted
@@ -214,16 +223,18 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             }
 
             glog.is_debug2() &&
-                glog << group("main") << "Arduino Driver Compatible: " << is_driver_compatible_
+                glog << group("main") << "Arduino Driver Connected: " << is_driver_connected_
+                     << "Arduino Driver Compatible: " << is_driver_compatible_
                      << ", Arduino Version: " << arduino_response.version()
                      << ", Arduino Driver Has Verision: "
                      << arduino_version_compatibility_.count(arduino_response.version())
                      << std::endl;
 
             // Check if the driver is compatible
-            if (!is_driver_compatible_ &&
+            if (!is_driver_connected_ &&
                 arduino_version_compatibility_.count(arduino_response.version()))
             {
+                is_driver_connected_ = true;
                 auto compatible_from =
                     arduino_version_compatibility_.at(arduino_response.version()).first;
                 auto compatible_to =
@@ -297,6 +308,28 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
+}
+
+/**
+ * @brief Updates the bounds configuration for the Arduino actuators
+ * 
+ * @param bounds - the new bounds configuration to use
+ */
+void jaiabot::apps::ArduinoDriver::setBounds(const jaiabot::protobuf::Bounds& bounds)
+{
+    bounds_.MergeFrom(bounds);
+
+    glog.is_debug1() && glog << "Setting bounds to " << bounds.ShortDebugString() << endl;
+
+    if (bounds_.motor().has_max_reverse())
+    {
+        max_reverse_ = bounds_.motor().max_reverse();
+    }
+
+    // Publish an engineering_status message, so the current bounds can be queried in engineering_status
+    interprocess().publish<jaiabot::groups::engineering_status>(bounds);
+
+    is_settings_ack_ = false; // Ensures that we re-send our bounds to the Arduino
 }
 
 /**
@@ -393,11 +426,22 @@ int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lowe
     return microseconds;
 }
 
+/**
+ * @brief Converts motor percentage to microseconds
+ * 
+ * @param input Throttle percentage
+ * @return int Microseconds for the ESC to take in
+ */
+int jaiabot::apps::ArduinoDriver::calculateMotorMicroseconds(const int& input)
+{
+    return motor_off_ + (input / 100.0) * 400;
+}
+
 void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
     if (control_surfaces.has_motor())
     {
-        target_motor_ = motor_off_ + (control_surfaces.motor() / 100.0) * 400;
+        target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
 
         // Do not go lower than max_reverse
         if (target_motor_ < max_reverse_)
@@ -458,6 +502,7 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
     {
         arduino_settings.set_forward_start(bounds_.motor().forwardstart());
         arduino_settings.set_reverse_start(bounds_.motor().reversestart());
+
         *arduino_cmd.mutable_settings() = arduino_settings;
     }
     else if (is_settings_ack_ && is_driver_compatible_)
@@ -527,11 +572,20 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (!is_driver_compatible_)
+    if (!is_driver_connected_)
     {
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
+    }
+    else
+    {
+        if (!is_driver_compatible_)
+        {
+            health_state = goby::middleware::protobuf::HEALTH__FAILED;
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+        }
     }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
@@ -549,6 +603,6 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
+            ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
     }
 }

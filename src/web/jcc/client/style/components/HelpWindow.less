@@ -1,0 +1,60 @@
+div.help-window {
+    position: absolute;
+    top: 75pt;
+    left: 75pt;
+    bottom: 75pt;
+    right: 75pt;
+    padding: 10pt;
+
+    background-color: whitesmoke;
+    border-radius: 10pt;
+    box-shadow: 2px 2px 10px #222222ff;
+
+    overflow-y: scroll;
+
+    .help-titlebar {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 20pt;
+
+        .help-title {
+            flex-grow: 1;
+            vertical-align: middle;
+            text-align: center;
+            font-weight: bold;
+            font-size: x-large;
+        }
+    }
+
+    table {
+        thead {
+            padding: 20pt 10pt 20pt 10pt;
+            th {
+                font-weight: bold;
+                padding-bottom: 20pt;
+                td.button-icon {
+                    width: 10%;
+                }
+                td.button-name {
+                    width: 20%;
+                }
+            }
+        }
+
+        tbody {
+            tr {
+                td {
+                    vertical-align: middle;
+                    padding: 10pt;
+                }
+                td.button-icon {
+                    width: 10%;
+                }
+                td.button-name {
+                    width: 20%;
+                }
+            }
+        }
+    }
+}

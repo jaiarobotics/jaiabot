@@ -1,0 +1,170 @@
+#!/bin/bash
+
+## Set up VPNs
+(umask 077; wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey)
+SERVER_VPN_PRIVATEKEY=$(cat /etc/wireguard/privatekey)
+SERVER_VPN_PUBKEY=$(cat /etc/wireguard/publickey)
+
+cat <<EOF > /etc/sysctl.d/wg.conf
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.eth0.accept_ra = 2
+EOF
+
+cat <<EOF > /etc/wireguard/wg_virtualfleet.conf
+##########################
+#### VirtualFleet #########
+###########################
+
+[Interface]
+
+# VPN Address for server
+Address = {{VIRTUALFLEET_VPN_SERVER_IPV6}}/64
+
+# VPN Server Port
+ListenPort = 51820
+
+# PrivateKey (contents of /etc/wireguard/privatekey)
+PrivateKey = ${SERVER_VPN_PRIVATEKEY}
+
+PostUp = iptables -w 60 -A FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -A FORWARD -i wg_virtualfleet -j ACCEPT;
+PostDown = iptables -w 60 -D FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE;ip6tables -D FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -D FORWARD -i wg_virtualfleet -j ACCEPT;
+
+[Peer]
+# Initial Setup Client
+PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
+AllowedIPs = {{VIRTUALFLEET_VPN_CLIENT_IPV6}}/128
+EOF
+
+systemctl enable wg-quick@wg_virtualfleet
+
+cat <<EOF > /etc/wireguard/wg_cloudhub.conf
+##########################
+#### CloudHub VPN #########
+###########################
+
+[Interface]
+
+# VPN Address for server
+Address = {{CLOUDHUB_VPN_SERVER_IPV6}}/64
+
+# VPN Server Port
+ListenPort = 51821
+
+# PrivateKey (contents of /etc/wireguard/privatekey)
+PrivateKey = ${SERVER_VPN_PRIVATEKEY}
+
+PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -A FORWARD -i wg_cloudhub -j ACCEPT;
+PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -D FORWARD -i wg_cloudhub -j ACCEPT;
+
+[Peer]
+# Initial Setup Client
+PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
+AllowedIPs = {{CLOUDHUB_VPN_CLIENT_IPV6}}/128
+EOF
+
+systemctl enable wg-quick@wg_cloudhub
+
+## SSH Keys
+mkdir -p /home/jaia/.ssh
+cat << EOF >> /home/jaia/.ssh/authorized_keys
+{{SSH_PUBKEYS}}
+EOF
+chown -R jaia:jaia /home/jaia/.ssh
+
+## Restore network interfaces file for reboot after first-boot config
+mv /etc/network/vmimport.interfaces /etc/network/interfaces
+
+## Restore default hostname
+hostnamectl set-hostname "jaia-unnamed"
+
+## Store useful data for VirtualFleet
+
+cat <<EOF > /etc/jaiabot/cloud.env
+jaia_fleet_index={{FLEET_ID}}
+jaia_cloudhub_wg_pubkey=${SERVER_VPN_PUBKEY}
+jaia_cloudhub_public_ipv4_address={{PUBLIC_IPV4_ADDRESS}}
+jaia_aws_vpc_id={{VPC_ID}}
+jaia_aws_customer="{{JAIA_CUSTOMER_NAME}}"
+jaia_aws_region={{REGION}}
+jaia_aws_cloudhub_subnet_id={{SUBNET_CLOUDHUB_ID}}
+jaia_aws_virtualfleet_wlan_subnet_id={{SUBNET_VIRTUALFLEET_WLAN_ID}}
+jaia_aws_account_id={{ACCOUNT_ID}}
+jaia_aws_virtualfleet_security_group={{VIRTUALFLEET_SECURITY_GROUP_ID}}
+jaia_aws_virtualfleet_repository={{REPO}}
+jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
+jaia_jcc_hub_ip={{JCC_HUB_IP}}
+EOF
+
+## Add inventory for CloudHub prelaunch GUI (rather than run fleet-config.sh on one machine)
+cat <<EOF > /etc/jaiabot/inventory.yml
+hubs:
+  hosts:
+    hub30-fleet{{FLEET_ID}}:
+      ansible_connection: local
+    localhost:
+      ansible_connection: local
+EOF
+
+## Install latest ansible in venv using pip (required for ansible AWS to work)
+(
+    python3 -m venv /opt/jaia_cloudhub_venv
+    source /opt/jaia_cloudhub_venv/bin/activate
+    pip install ansible botocore boto3
+    deactivate
+)
+
+# also need latest boto3
+pip3 install -U boto3
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+
+## Add s3 entry for data
+cat <<EOF >> /etc/fstab
+{{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}} 0 0
+EOF
+
+## Preseed jaiabot
+mount -o remount,rw /boot/firmware
+mkdir -p /boot/firmware/jaiabot/init
+cat << EOF | tee /boot/firmware/jaiabot/init/first-boot.preseed
+
+jaia_run_first_boot=true
+jaia_stress_tests=false
+
+########################################################
+# Network
+########################################################
+jaia_disable_ethernet=false
+jaia_configure_wifi=false
+jaia_wifi_ssid=dummy
+jaia_wifi_password=dummy
+
+#########################################################
+# Preseed jaiabot-embedded package debconf queries
+# See jaiabot-embedded.templates from jaiabot-debian 
+# https://github.com/jaiarobotics/jaiabot-debian/blob/1.y/jaiabot-embedded.templates
+# To dump config in the correct format on a bot that is configured use: "debconf-get-selections  | grep jaia"
+#########################################################
+jaia_install_jaiabot_embedded=true
+jaia_embedded_debconf=\$(cat << EOM
+jaiabot-embedded	jaiabot-embedded/fleet_id	select	{{FLEET_ID}}
+jaiabot-embedded	jaiabot-embedded/type	select	hub
+jaiabot-embedded	jaiabot-embedded/mode	select	runtime
+jaiabot-embedded	jaiabot-embedded/warp	select	1
+jaiabot-embedded	jaiabot-embedded/bot_id	select	0
+jaiabot-embedded	jaiabot-embedded/hub_id	select	{{CLOUDHUB_ID}}
+jaiabot-embedded	jaiabot-embedded/arduino_type	select	none
+jaiabot-embedded	jaiabot-embedded/electronics_stack	select	2
+jaiabot-embedded	jaiabot-embedded/led_type	select	none
+EOM
+)
+
+jaia_reboot=true
+
+EOF
+
+systemctl restart first_boot
+

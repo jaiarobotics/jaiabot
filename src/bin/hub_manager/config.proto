@@ -53,7 +53,27 @@ message HubManager
     optional int32 fleet_id = 15 [default = 0];
     optional int32 health_report_timeout_seconds = 16 [default = 20];
 
-    required string hub_gpsd_device = 20;  // gpsd device for hub itself
+    message VirtualFleetData
+    {
+        // used by VirtualHub to shut down system after idle (no commands received)
+        // to avoid running up EC2 costs unexpectedly
+        required int32 shutdown_after_last_command_seconds = 1 [default = 3600];
+        // delay shutting down hub after this time since last BotStatus message
+        required int32 hub_shutdown_delay_seconds = 2 [default = 300];
+    }
+    optional VirtualFleetData vfleet = 20;
+    
+  // data offload
+    required string data_offload_script = 30;
+    optional string log_staging_dir = 31 [default = "/var/log/jaiabot/staging"];
+    optional string log_offload_dir = 32
+        [default = "/var/log/jaiabot/bot_offload"];
+    optional int32 bot_start_ip = 33 [default = 100];
+    optional string class_b_network = 34 [default = "10.23"];
+    optional bool use_localhost_for_data_offload = 35 [default = false];
+
+
+    required string hub_gpsd_device = 40;  // gpsd device for hub itself
 
     message ContactGPS
     {
@@ -62,7 +82,7 @@ message HubManager
         optional bool use_cog = 3 [default = false];
     }
     repeated ContactGPS contact_gps =
-        21;  // GPSD device feeds for contacts to
+        41;  // GPSD device feeds for contacts to
              // send to vehicles (e.g., to trail, to avoid, etc.)
 
     message BotToGPS
@@ -77,9 +97,10 @@ message HubManager
             goby.middleware.protobuf.TCPServerConfig tcp_server = 6;
         }
     }
-    repeated BotToGPS bot_to_gps = 22;  // feed BotStatus as pseudo-GPS message
+    repeated BotToGPS bot_to_gps = 42;  // feed BotStatus as pseudo-GPS message
                                         // over various transport options
 
-    optional int32 contact_blackout_seconds = 23
+    optional int32 contact_blackout_seconds = 43
         [default = 2];  // don't send a contact update more often than this
+
 }

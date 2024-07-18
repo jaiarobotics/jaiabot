@@ -10,34 +10,39 @@ fi
 
 # Allow user to set nproc for their system, if desired
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
-    JAIA_BUILD_NPROC=`nproc`
+    MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+    MEMORY_PER_PROCESS_KB="2000000"
+    MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
+    NPROC=`nproc`
+
+    if [ $MEMORY_NPROC -gt $NPROC ]; then
+        JAIA_BUILD_NPROC=$NPROC
+    else
+        JAIA_BUILD_NPROC=$MEMORY_NPROC
+    fi
+
+    echo "Auto nproc = $JAIA_BUILD_NPROC"
+
 fi
 
 script_dir=$(dirname $0)
 
 ARCH=$(dpkg --print-architecture)
 
+# Make sure we're using the nvm versions of npm and webpack
+if [ -z "${XDG_CONFIG_HOME-}" ]; then
+    export NVM_DIR="${HOME}/.nvm"
+else
+    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+fi
+
+source ${NVM_DIR}/nvm.sh
+
 set -e -u
 mkdir -p ${script_dir}/build/${ARCH}
 
-# install clang-format hook if not installed
-[ ! -e ${script_dir}/.git/hooks/pre-commit ] && ${script_dir}/scripts/clang-format-hooks/git-pre-commit-format install
-
-# install nvm if not installed
-if [ ! -d "${HOME}/.nvm" ]
-then
-        echo "nvm not installed! Installing...";
-  curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-  npm install -g npm@9.6.4
-  nvm install v18.12.1
-  nvm use v18.12.1
-  npm install i -g --no-audit webpack webpack-cli
-fi
+# Initialize and update submodules
+git submodule update --init
 
 echo "Configuring..."
 cd ${script_dir}/build/${ARCH}

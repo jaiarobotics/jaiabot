@@ -1,6 +1,6 @@
-# Building JaiaBot software
+# Building and Installing JaiaBot software
 
-JaiaBot development is done on Ubuntu Linux, generally the latest LTS version.
+JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supported aligned with the `jaiabot` release branch (see [Repository](page19_repository.md) page).
 
 ## Dependencies
 
@@ -252,26 +252,50 @@ deb http://packages.jaia.tech/ubuntu/gobysoft/beta/1.y/ @DISTRIBUTION@/
 - When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
 - Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.
 
-## Offline updates
+## Alternative Debian package update options
+
+The default update path assumes a reasonably fast internet connection to the public Ubuntu repositories and packages.jaia.tech. This is not always the case, so two alternative update pathways are provided:
+
+- online with hub caching (bots/hubs have a slow or metered internet connection)
+- offline (bots/hub that are never internet connected)
+
+![Update pathways](../figures/alternative-updates.png)
+
+
+The Ansible playbook `jaiabot/config/ansible/change-sources.yml` can be used to change the update mode for a given fleet (this can also be run with the Liaison pre-launch UI with role == ADVANCED or higher).
+
+### Online updates with Hub Caching
+
+Update many bots at once can place high demands on the internet connection as they all have to fetch the same .deb packages. To reduce this load, we can configure the hub to act as a caching proxy using the `squid-deb-proxy` package. In this case, the hub will cache any packages requested so that future requests are served locally by the hub rather than requiring another internet download.
+
+To enable online mode with hub caching:
+```
+ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online_with_hub_cache -e version=1.y -e repo=release
+```
+
+### Offline updates
 
 For some scenarios, the fleet must be updated without connecting it to the internet. For this reason, each CircleCI build of Debian packages also creates an `.iso` (CD image) that contains the `jaiabot-embedded` Debian package and all its dependencies (recursively, based of the base ubuntu Docker image). Additionally it includes the required Python wheels used by pip when installing `jaiabot-python`.
 
 This `.iso` is then burned to a CD or `dd`'d to a USB key and connected to `hub0` of the fleet. The `/etc/fstab` will already include the mount point (based off the ISO label: `updates`), so simply running `sudo mount -a` or rebooting the hub will mount this disk to `/var/www/html/updates` (which is served by Apache2 as http://hub0/updates).
 
-The following files must be commented out to disable internet updates:
-- `/etc/apt/sources.list` (Ubuntu sources)
-- `/etc/apt/sources.list.d/jaiabot.list` (JaiaBot packages)
-- `/etc/apt/sources.list.d/gobysoft.list` (GobySoft mirror)
-
-Then, the following files should be uncommented to enable the local updates:
-- /etc/pip.conf (pip sources)
-- /etc/apt/sources.list.d/local.list (`.iso` served via Apache2/HTTP from hub0)
-
-This process can be automatically performed by the `fleet-config.sh` script, choosing the "offline" update mode. To revert to internet sources, this process is inverted (or fleet_config.sh is run again choosing the "online" update mode).
+To enable offline mode:
+```
+ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=offline
+```
 
 At this point each bot and hub in the fleet can be updated by simply running `sudo apt update && sudo apt dist-upgrade`, exactly as if it was connected to the internet.
 
-![Update pathways](../figures/offline-updates.png)
+**Please keep in mind that the offline updates do not include the usual Ubuntu security patches so are not suitable for internet-connected machines (use the Online or Online update with Hub Caching in this case to ensure security updates are installed).**
+
+
+### Online (default mode)
+
+To revert to "normal" online updates after using one of the alternatives (or to switch the repo or version), you can use the same playbook:
+
+```
+ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online -e repo=release -e version=1.y
+```
 
 
 ## Cross-compiling locally using Docker

@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
@@ -13,9 +14,16 @@ message IMUCommand
         STOP_WAVE_HEIGHT_SAMPLING = 2;
         START_BOTTOM_TYPE_SAMPLING = 3;
         STOP_BOTTOM_TYPE_SAMPLING = 4;
+        START_CALIBRATION = 5;
     }
 
     required IMUCommandType type = 1;
+}
+
+enum IMUCalibrationState
+{
+        IN_PROGRESS = 1;
+        COMPLETE = 2;
 }
 
 message IMUData
@@ -56,21 +64,60 @@ message IMUData
 
     optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional bool bot_rolled_over = 5 [default = false];
+    optional IMUCalibrationState calibration_state = 5;
 
-    optional double significant_wave_height = 6 [(dccl.field) = {units {
+    optional bool bot_rolled_over = 6 [default = false];
+
+    optional double significant_wave_height = 7 [(dccl.field) = {units {
             derived_dimensions: "length"
             system: "si"
             }}
         ];
 
     // For bottom characterization
-    optional double max_acceleration = 7
+    optional double max_acceleration = 8
         [(dccl.field) = {units {
             derived_dimensions: "acceleration"
             system: "si"
             }}
         ];
+    
+    message AngularVelocity {
+        optional double x = 1
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+        optional double y = 2
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+        optional double z = 3
+            [(dccl.field) = {
+                units {
+                    derived_dimensions: "angular_velocity"
+                    system: "si"
+                }
+            }];
+    }
+
+    optional AngularVelocity angular_velocity = 9;
+
+    message Quaternion {
+        optional double w = 1;
+        optional double x = 2;
+        optional double y = 3;
+        optional double z = 4;
+    }
+
+    optional Quaternion quaternion = 10;
+
+    optional string imu_type = 11;
 
 }
 
@@ -90,4 +137,63 @@ message IMUIssue
     }
 
     required SolutionType solution = 1;
+    
+    enum IssueType {
+        HEADING_COURSE_DIFFERENCE_TOO_LARGE = 0;
+    }
+
+    optional IssueType type = 2;
+
+    optional MissionState mission_state = 3;
+
+    optional double imu_heading_course_max_diff = 30 [default = 45];
+
+    optional double heading = 31 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double desired_heading = 32 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double course_over_ground = 33 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double heading_course_difference = 34 [(dccl.field) = {
+        min: 0
+        max: 360
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double pitch = 35 [(dccl.field) = {
+        min: -180
+        max: 180
+        precision: 0
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+    
+    optional double speed_over_ground = 36 [(dccl.field) = {
+        min: -5
+        max: 10
+        precision: 1
+        units { derived_dimensions: "velocity" system: "si" }
+    }];
+
+    optional double desired_speed = 37 [(dccl.field) = {
+        min: -5
+        max: 10
+        precision: 1
+        units { derived_dimensions: "velocity" system: "si" }
+    }];
 }

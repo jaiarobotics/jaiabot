@@ -1,0 +1,23 @@
+This work was packaged for Debian by:
+
+    Toby Schneider <toby@gobysoft.org> on Tue, 20 Apr 2021 17:46:53 +0000
+
+It was downloaded from:
+
+    http://github.com/jaiarobotics/jaiabot
+ 
+Upstream Author(s):
+
+    See http://github.com/jaiarobotics
+
+Copyright:
+
+    See source files (generally: LGPL for libraries / GPL for binaries).
+
+The Debian packaging is:
+
+    Copyright (C) 2021 JaiaRobotics LLC
+
+and is licensed under the GPL version 3,
+see "/usr/share/common-licenses/GPL-3".
+

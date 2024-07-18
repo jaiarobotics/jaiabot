@@ -16,8 +16,8 @@ message Command
     Actual maximum size of message: 179 bytes / 1432 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1422
-        padding to full byte...................2
+        body................................1423
+        padding to full byte...................1
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -31,6 +31,7 @@ message Command
     required uint64 time = 2 [(dccl.field) = {
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
+        precision: -6  // second precision
     }];
 
     enum CommandType
@@ -41,10 +42,12 @@ message Command
         START_MISSION = 3;
         MISSION_PLAN_FRAGMENT = 4;
 
-        // during any mission
+        // during any mission 
         NEXT_TASK = 10;
         RETURN_TO_HOME = 11;
         STOP = 12;
+        PAUSE = 13;
+        RESUME = 14;
 
         // during remote control mission
         REMOTE_CONTROL_SETPOINT = 20;
@@ -55,6 +58,8 @@ message Command
         RECOVERED = 30;
         SHUTDOWN = 31;
         RETRY_DATA_OFFLOAD = 32;
+        DATA_OFFLOAD_COMPLETE = 33;
+        DATA_OFFLOAD_FAILED = 34;
 
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;
@@ -80,17 +85,13 @@ message Command
 message CommandForHub
 {
     option (dccl.msg) = {
-        id: 90
-        max_bytes: 250
-        codec_version: 4
         unit_system: "si"
     };
 
-    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
+    required uint32 hub_id = 1;
+    required uint64 time = 2 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
 
     enum HubCommandType
     {
@@ -100,20 +101,25 @@ message CommandForHub
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
         SHUTDOWN_COMPUTER = 42;
+
+        // simulator commands
+        SET_HUB_LOCATION = 80;
     }
 
     required HubCommandType type = 10;
     optional uint32 scan_for_bot_id = 11;
+
+    optional GeographicCoordinate hub_location = 80;
 }
 
 message BotStatus
 {
     /*
-    Actual maximum size of message: 53 bytes / 424 bits
-            dccl.id head...........................8
-            user head..............................0
-            body.................................415
-            padding to full byte...................1
+    Actual maximum size of message: 54 bytes / 432 bits
+        dccl.id head...........................8
+        user head..............................0
+        body.................................417
+        padding to full byte...................7
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -136,6 +142,12 @@ message BotStatus
     optional goby.middleware.protobuf.HealthState health_state = 4;
     repeated Error error = 5 [(dccl.field).max_repeat = 5];
     repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
+    enum BotType
+    {
+        HYDRO = 1;
+        ECHO = 2;
+    }
+    optional BotType bot_type = 7;
 
     optional GeographicCoordinate location = 10;
 
@@ -255,12 +267,11 @@ message BotStatus
 
     optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
-    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional IMUCalibrationState calibration_state = 59;
 
-    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional double hdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 data_offload_percentage = 61
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
     optional int32 wifi_link_quality_percentage = 62
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];

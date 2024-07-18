@@ -25,11 +25,15 @@ launchdelay=100
 cat <<EOF > ${launchfile}
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
 
-[env=jaia_mode=simulation,env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
+[env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
 EOF
 
 for i in `seq 1 $((n_bots-1))`; do
-    echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_mode=simulation,env=jaia_warp=${warp},env=jaia_electronics_stack=2] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
+    echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_warp=${warp},env=jaia_electronics_stack=2,env=jaia_bot_type=HYDRO] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
+
+echo "Setting excutable permissions for all.launch"
+
+chmod 755 ${launchfile}
 
 echo "Generated all.launch with $((n_bots-1)) bots @ warp ${warp}x"

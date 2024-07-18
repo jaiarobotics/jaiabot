@@ -1,0 +1,10 @@
+# linux-image-raspi
+flash-kernel
+
+#if DISTRIBUTION focal
+linux-firmware-raspi2
+#endif
+
+#if DISTRIBUTION jammy
+linux-firmware-raspi
+#endif

@@ -3,6 +3,9 @@ import json
 import bisect
 import socket
 import threading
+import ipaddress
+import itertools
+import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -22,6 +25,9 @@ from datetime import *
 from math import *
 
 import logging
+
+# Threshold time interval for adding bot locations to the bot_path list (microseconds)
+BOT_PATH_UTIME_THRESHOLD = 2_000_000
 
 
 def now():
@@ -46,6 +52,55 @@ def protobufMessageToDict(message):
     return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
 
 
+def filterDuplicateTaskPackets(taskPackets: List[dict]):
+    """Filters duplicate task packets that can occur after data offloading. This works
+    by indexing the task packets by a (bot_id, reduced_time) tuple and checking neighboring
+    reduced_time values for duplicates.
+
+    Args:
+        taskPackets (List[dict]): Unfiltered list of task packets.
+    Returns:
+        (List[dict]): Filtered list of task packets.
+    """
+    # Maps (bot_id, reduced_time) to TaskPacket
+    taskPacketLookup: Dict[tuple, dict] = {}
+
+    for taskPacket in taskPackets:
+        bot_id = taskPacket['bot_id']
+        reducedStartTime = reduceTime(taskPacket['start_time'])
+
+        # Check neighboring bins as well for task packets, just in case start_time was on
+        # the cusp of being rounded up/down
+        if (bot_id, reducedStartTime) in taskPacketLookup or \
+           (bot_id, reducedStartTime - 1) in taskPacketLookup or \
+           (bot_id, reducedStartTime + 1) in taskPacketLookup:
+            continue
+        else:
+            taskPacketLookup[(bot_id, reducedStartTime)] = taskPacket
+        
+    return list(taskPacketLookup.values())
+
+def reduceTime(time: int):
+        """Does integer division to give the floored Unix timestamp in seconds.
+
+        Args:
+            time (int): Unix timestamp in microseconds.
+
+        Returns:
+            int: Unix timestamp in seconds, rounded down.
+        """
+        # This BIN_LENGTH can be adjusted if desired, but DCCL time2 codec rounds to the nearest 
+        # second, (1 million microseconds)
+        BIN_LENGTH = 1_000_000
+        return int(time) // BIN_LENGTH
+
+
+class BotPathPoint(NamedTuple):
+    utime: int
+    lon: float
+    lat: float
+
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -56,8 +111,8 @@ class Interface:
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
-    # List of all TaskPackets received from bots with comms
-    live_task_packets = []
+    # Dict from bot_id => list of BotPathPoints
+    bot_paths: Dict[str, Deque[BotPathPoint]] = {}
 
     # ClientId that is currently in control
     controllingClientId = None
@@ -65,18 +120,10 @@ class Interface:
     # MetaData
     metadata = {}
 
-    # Contacts
-    contacts = {}
-
-    # Path to taskpacket files
-    taskPacketPath = '/var/log/jaiabot/bot_offload/'
-    # Data from taskpacket files
-    offloaded_task_packet_dates: List[str] = []
-    offloaded_task_packets: List[Dict] = []
+    all_task_packets = []
     offloaded_task_packet_files_prev = -1
     offloaded_task_packet_files_curr = 0
-
-    merge_task_packet_list = []
+    taskPacketPath = '/var/log/jaiabot/bot_offload/'
 
     # Set the initial time for checking for task packet files
     start_task_packet_check_time = now()
@@ -84,11 +131,30 @@ class Interface:
     # Time between checking for task packet files (10 Seconds)
     task_packet_check_interval = 10_000_000
 
-    check_for_offloaded_task_packets = False
-
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        try:
+            # Resolve the hostname to an IP address
+            addr_info = socket.getaddrinfo(goby_host[0], goby_host[1], socket.AF_UNSPEC, socket.SOCK_DGRAM)
+            # addr_info is a list of 5-tuples with the address family, socket type, protocol, canonical name, and socket address
+            # Extract the first resolved address (IP and port)
+            first_resolved_address = addr_info[0][4][0]
+            # Parse the IP address
+            ip = ipaddress.ip_address(first_resolved_address)
+            # Determine the socket type based on IP address version
+            if ip.version == 4:
+                # IPv4
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            elif ip.version == 6:
+                # IPv6
+                self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            else:
+                raise ValueError("Invalid IP address format")
+            
+        except socket.gaierror:
+            raise ValueError("Hostname could not be resolved")
+        
         self.sock.settimeout(5)
 
         self.read_only = read_only
@@ -149,12 +215,26 @@ class Interface:
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
 
+                # Add position to bot_paths
+                #if msg.bot_status.HasField('location'):
+                #    bot_location = msg.bot_status.location
+                #    bot_path = self.bot_paths.setdefault(str(bot_id), collections.deque(maxlen=1800)) # Circular buffer for 1 hour of bot_path data
+                #
+                #    try:
+                #        last_bot_path_point_time = bot_path[-1].utime
+                #    except IndexError:
+                #        last_bot_path_point_time = 0
+                #
+                #    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
+                #        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
+
                 if msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
             if msg.HasField('engineering_status'):
                 botEngineering = protobufMessageToDict(msg.engineering_status)
                 self.bots_engineering[botEngineering['bot_id']] = botEngineering
+                pprint(f'Got engineering_status: {botEngineering}')
 
             if msg.HasField('hub_status'):
                 hubStatus = protobufMessageToDict(msg.hub_status)
@@ -199,7 +279,7 @@ class Interface:
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
-        logging.warning('🏓 Pinging server')
+        logging.warning(f'🏓 Pinging server {self.goby_host[0]}:{self.goby_host[1]}')
         msg = ClientToPortalMessage()
         msg.ping = True
         self.send_message_to_portal(msg, True)
@@ -390,6 +470,18 @@ class Interface:
             pass
 
         return status
+    
+    def get_status_hubs(self):
+        """Gets status for all online hubs
+        Returns:
+            {[hub_id: int]: HubStatus}: The status for all online hubs
+        """
+        for hub in self.hubs.values():
+            # Add the time since last status
+            if not 'portalStatusAge' in hub:
+                hub['portalStatusAge'] = now() - hub['lastStatusReceivedTime']
+        
+        return self.hubs
 
     def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
@@ -425,7 +517,7 @@ class Interface:
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
-        self.live_task_packets.append(task_packet)
+        self.all_task_packets.append(task_packet)
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -434,50 +526,44 @@ class Interface:
         except IndexError:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
-    def get_task_packets_subset(self, task_packets_list, start_date, end_date):
+    def get_task_packets_subset(self, start_date, end_date):
+        """Selects TaskPackets between the provided date bounds
+        Args:
+            start_date (str): Provides the lower bound
+            end_date (str): Provides the upper bound
+        Returns:
+            list: Subset of TaskPackets between specified dates
+        """
         start_index = bisect.bisect_left(
-            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)), 
+            list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)), 
             utime(start_date)
         )
 
         if end_date == "":
-            return task_packets_list[start_index:]
+            return self.all_task_packets[start_index:]
         
         end_index = bisect.bisect_right(
-            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)),
+            list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)),
             utime(end_date)
         )
-        return task_packets_list[start_index: end_index]
+        
+        return self.all_task_packets[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
         if start_date is None or end_date is None:
-            return self.live_task_packets
+            return []
 
-        offloaded_task_packets_subset = self.get_task_packets_subset(
-            self.offloaded_task_packets, start_date, end_date
-        )
-        live_task_packets_subset = self.get_task_packets_subset(
-            self.live_task_packets, start_date, end_date
-        )
-
-        combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
-        # Filter out duplicates with dict comprehenson, then convert to list
-        unique_task_packets = list(
-            {f"{task_packet['bot_id']}-{task_packet['start_time']}": task_packet for task_packet in combined_task_packets}.values()
-        ) 
-
-        return unique_task_packets
+        return self.get_task_packets_subset(start_date, end_date)
     
     def get_total_task_packets_count(self):
-        total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
-        # Use set constructor to eliminate duplicate TaskPackets
-        count = len(
-            set(map(lambda task_packet: f'{task_packet["bot_id"]}-{task_packet["start_time"]}', total_combined_task_packets))
-        )
-        return count 
+        """Gets the count of all TaskPackets
+        Returns:
+            int: The count of all TaskPackets
+        """
+        return len(self.all_task_packets)
 
     # Contour map
-
+    
     def get_depth_contours(self, start_date, end_date):
         return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
@@ -485,6 +571,18 @@ class Interface:
 
     def get_drift_map(self, start_date, end_date):
         return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(start_date, end_date))
+
+    # Bot paths
+
+    def get_bot_paths(self, since_utime: int=None):
+        since_utime = since_utime or 0
+
+        bot_paths: Dict[str, List[BotPathPoint]] = {}
+        for bot_id, bot_path in self.bot_paths.items():
+            start_index = bisect.bisect_right(list(map(lambda point: point.utime, bot_path)), since_utime)
+            bot_paths[bot_id] = list(itertools.islice(bot_path, start_index, None))
+        return bot_paths
+
 
     # Controlling clientId
 
@@ -497,11 +595,17 @@ class Interface:
         return self.metadata
 
     def load_taskpacket_files(self):
+        """Appends TaskPackets from *.taskpacket files in the bot_offload directory 
+           to the list of all TaskPackets. Removes duplicates between offloaded and live
+           TaskPackets and sorts the list by start time.
+        Returns: None
+        """
         self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
 
         if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
-            self.check_for_offloaded_task_packets = True
             self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
+        else:
+            return
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
@@ -509,17 +613,9 @@ class Interface:
             for line in open(filePath):
                 try:
                     taskPacket: Dict = json.loads(line)
-                    self.offloaded_task_packets.append(taskPacket)
+                    self.all_task_packets.append(taskPacket)
                 except json.JSONDecodeError as e:
                     logging.warning(f"Error decoding JSON line: {line} because {e}")
 
-        self.offloaded_task_packets = list(
-            filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
-        )
-        self.offloaded_task_packets = sorted(
-            self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time'])
-        )
-
-        self.offloaded_task_packet_dates = (
-            [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
-        )
+        self.all_task_packets = filterDuplicateTaskPackets(self.all_task_packets)
+        self.all_task_packets.sort(key=lambda taskPacket: int(taskPacket['start_time']))

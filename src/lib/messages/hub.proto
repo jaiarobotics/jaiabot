@@ -31,4 +31,12 @@ message HubStatus
     repeated uint32 bot_ids_in_radio_file = 11 [(dccl.field).max_repeat = 255];
 
     optional LinuxHardwareStatus linux_hardware_status = 12;
+
+    message BotOffloadData
+    {
+        required uint32 bot_id = 1;
+        optional int32 data_offload_percentage = 2;
+        optional bool offload_succeeded = 3;
+    }
+    optional BotOffloadData bot_offload = 13;
 }

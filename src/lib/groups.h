@@ -25,6 +25,8 @@
 
 #include "goby/middleware/group.h"
 
+#include "jaiabot/version.h"
+
 namespace jaiabot
 {
 namespace groups
@@ -41,6 +43,7 @@ constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+constexpr goby::middleware::Group echo{"jaiabot::echo"};
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
@@ -68,16 +71,18 @@ constexpr goby::middleware::Group systemd_report{"jaiabot::systemd_report"};
 constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ack"};
 
 // DCCL (intervehicle)
+// The group used is an API version integer that allows us to check for incompatible
+// versions of Jaiabot running on various hubs/bots
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
-                                             goby::middleware::Group::broadcast_group};
-constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
-                                              goby::middleware::Group::broadcast_group};
+                                             jaiabot::INTERVEHICLE_API_VERSION};
+constexpr goby::middleware::Group hub_command{"jaiabot::hub_command"};
 constexpr goby::middleware::Group task_packet{"jaiabot::task_packet",
-                                              goby::middleware::Group::broadcast_group};
-constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_command",
-                                                      goby::middleware::Group::broadcast_group};
+                                              jaiabot::INTERVEHICLE_API_VERSION};
+constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_command"};
+
 constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_status",
-                                                     goby::middleware::Group::broadcast_group};
+                                                     jaiabot::INTERVEHICLE_API_VERSION};
+
 constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
                                                  goby::middleware::Group::broadcast_group};
 
@@ -99,6 +104,9 @@ constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 // Bot Comms
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};
+
+// simulator
+constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"};
 
 } // namespace groups
 } // namespace jaiabot
