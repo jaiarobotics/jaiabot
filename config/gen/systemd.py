@@ -557,7 +557,7 @@ if args.imu_type_secondary == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver Secondary',
         'template': 'py-app.service.in',
         'subdir': 'imu',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20011 -d -o second', # For test, if reversing primary, switch this line
+        'args': f'-t {IMU_TYPE.BNO085.value} -n embedded -p 20013 -d -o second', # For test, if reversing primary, switch this line
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
