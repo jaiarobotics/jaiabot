@@ -245,6 +245,12 @@ elif common.app == 'jaiabot_adafruit_BNO085_driver':
                                      interprocess_block = interprocess_common,
                                      adafruit_bno085_report_in_simulation=is_simulation(),
                                      imu_port=common.udp.bno085_port(node_id)))
+elif common.app == 'jaiabot_adafruit_BNO085_secondary_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_secondary_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     adafruit_bno085_report_in_simulation=is_simulation(),
+                                     imu_port=common.udp.bno085_secondary_port(node_id)))
 elif common.app == 'jaiabot_naviguider_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_naviguider_driver.pb.cfg.in',
                                      app_block=app_common,

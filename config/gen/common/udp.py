@@ -51,3 +51,9 @@ def naviguider_port(node_id):
         return 20400 + node_id
     else:
         return 20012
+
+def bno085_secondary_port(node_id):
+    if is_simulation():
+        return 20400 + node_id
+    else:
+        return 20013
