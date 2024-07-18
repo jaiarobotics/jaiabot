@@ -1,8 +1,0 @@
-  load_protobuf { 
-    name: "jaiabot.protobuf.IMUIssue"
-    publish_to {
-      group: "jaiabot::imu" 
-      layer: LAYER_INTERPROCESS
-    }
-  } 
-

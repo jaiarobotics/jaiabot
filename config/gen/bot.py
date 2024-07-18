@@ -158,7 +158,6 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                             ack_timeout=ack_timeout)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
-liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_load.pb.cfg.in')
 
 liaison_bind_addr='0.0.0.0'
 if common.is_vfleet:
@@ -212,7 +211,7 @@ elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
                                      http_port=liaison_port,
                                      http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
-                                     load_protobufs=liaison_load_block))
+                                     load_protobufs=''))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
