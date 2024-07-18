@@ -693,14 +693,15 @@ export interface Recovery {
 }
 
 export interface MissionPlan {
-    start?: MissionStart
-    movement?: MovementType
-    goal?: Goal[]
-    recovery?: Recovery
-    speeds?: Speeds
-    fragment_index?: number
-    expected_fragments?: number
-    repeats?: number
+    start?: MissionStart;
+    movement?: MovementType;
+    goal?: Goal[];
+    recovery?: Recovery;
+    speeds?: Speeds;
+    bottomDepthSafetyParams?: BottomDepthSafetyParams;
+    fragment_index?: number;
+    expected_fragments?: number;
+    repeats?: number;
 }
 
 export interface TransitUpdate {
