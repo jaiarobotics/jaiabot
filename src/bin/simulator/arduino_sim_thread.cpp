@@ -60,9 +60,6 @@ void jaiabot::apps::ArduinoSimThread::loop()
         if (voltage_start_ < reset_voltage_level_)
         {
             voltage_start_ = cfg().voltage_start();
-        }
-        if (voltage_mid_start_ < 9.0)
-        {
             voltage_mid_start_ = cfg().voltage_mid_start(); 
         }
     }
