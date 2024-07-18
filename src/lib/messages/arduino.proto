@@ -47,6 +47,7 @@ message ArduinoResponse
     optional float vcccurrent = 4;
     optional float vvcurrent = 5;
     optional int32 motor = 6;
+    optional float vmidvoltage = 7; 
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;

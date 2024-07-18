@@ -126,4 +126,5 @@ message ArduinoSimThread
     optional double voltage_step_decrease = 2 [default = 0.1];
     optional double voltage_start = 3 [default = 24.0];
     optional double reset_voltage_level = 4 [default = 15.0];
+    optional double voltage_mid_start = 5 [default = 12.0]; 
 }

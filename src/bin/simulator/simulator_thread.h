@@ -69,6 +69,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
     double reset_voltage_level_{15};
+    double voltage_mid_start_{12.0}; 
     goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
 };
 

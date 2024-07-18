@@ -1013,6 +1013,7 @@ export interface BotStatus {
     vv_current?: number;
     vcc_current?: number;
     vcc_voltage?: number;
+    vmid_voltage?: number;
     battery_percent?: number;
     calibration_status?: number;
     hdop?: number;

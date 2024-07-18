@@ -130,6 +130,7 @@
   * optional double thermocouple_temperature
   * optional double vv_current
   * optional double vcc_current
+  * optional double vmid_voltage
   * optional double vcc_voltage
   * optional double battery_percent
   * optional IMUData.CalibrationStatus calibration_status
@@ -595,6 +596,7 @@
   * optional float vccvoltage
   * optional float vcccurrent
   * optional float vvcurrent
+  * optional float vmidvoltage
   * optional uint32 crc
   * optional uint32 calculated_crc
   * optional uint32 version

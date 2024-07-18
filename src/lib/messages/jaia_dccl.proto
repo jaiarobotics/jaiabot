@@ -275,6 +275,13 @@ message BotStatus
 
     optional int32 wifi_link_quality_percentage = 62
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    
+    optional double vmid_voltage = 63 [(dccl.field) = {
+        min: 0
+        max: 13
+        precision: 2
+        units { derived_dimensions: "electric_potential" system: "si" }
+    }];
 }
 
 message DriftPacket

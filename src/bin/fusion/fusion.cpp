@@ -472,6 +472,21 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.set_battery_percent(battery_percentage);
             }
 
+            if (arduino_response.has_vmidvoltage())
+            {
+                latest_bot_status_.set_vmid_voltage(arduino_response.vmidvoltage());
+
+                //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
+                std::map<float, float> mid_voltage_to_battery_percent_{
+                    {10.5, 0.0},   {11.31, 10}, {11.58, 20.0},
+                    {12.42, 80.0}, {12.5, 90.0}, {12.7, 100.0}}; // map of voltage to battery %
+
+                float mid_battery_percentage = goby::util::linear_interpolate(
+                    arduino_response.vmidvoltage(), mid_voltage_to_battery_percent_);
+
+                // latest_bot_status_.set_battery_percent(battery_percentage);
+            }
+
             if (arduino_response.has_vcccurrent())
             {
                 latest_bot_status_.set_vcc_current(arduino_response.vcccurrent());

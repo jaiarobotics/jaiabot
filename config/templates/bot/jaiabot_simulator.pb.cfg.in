@@ -58,6 +58,7 @@ arduino_config {
     voltage_period: 3 # (default = 1)
     voltage_step_decrease: 0.0 # (default = 0.1)
     voltage_start: 24.0 # (default = 24.0)
+    voltage_mid_start: 12.0 # (default = 12.0)
     reset_voltage_level: 15.0 # (default = 15.0)
 } 
 

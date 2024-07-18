@@ -98,6 +98,7 @@ bool target_led_switch_on = false;
 constexpr int VvCurrent = A3;
 constexpr int VccCurrent = A2;
 constexpr int VccVoltage = A0;
+constexpr int VmidVoltage = A6;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -161,6 +162,8 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
 
   ack.vccvoltage = analogRead(VccVoltage)*.0306;
   ack.has_vccvoltage = true;
+  ack.vmidvoltage = analogRead(VmidVoltage)*.0306; 
+  ack.has_vmidvoltage = true; 
   ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
   ack.has_vvcurrent = true;
 
@@ -208,6 +211,7 @@ void setup()
 
   pinMode(VccCurrent, INPUT);
   pinMode(VccVoltage, INPUT);
+  pinMode(VmidVoltage, INPUT); 
   pinMode(VvCurrent, INPUT);
   pinMode(LED_D1_PIN, OUTPUT);
   

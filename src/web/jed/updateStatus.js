@@ -60,6 +60,7 @@ function updateStatus(status) {
         innerHTML += "<td>" + (bot.salinity?.toFixed(1) || "?") + "</td>";
 
         innerHTML += "<td>" + (bot.vcc_voltage?.toFixed(1) || "?") + "</td>";
+        innerHTML += "<td>" + (bot.vmid_voltage?.toFixed(1) || "?") + "</td>";
         innerHTML += "<td>" + (bot.vcc_current?.toFixed(1) || "?") + "</td>";
         innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>";
 

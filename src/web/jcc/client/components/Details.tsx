@@ -1423,6 +1423,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                                         <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
                                                     </tr>
                                                     <tr>
+                                                        <td>Vmid Voltage</td>
+                                                        <td>{bot.vmid_voltage?.toFixed(prec)} V</td>
+                                                    </tr>
+                                                    <tr>
                                                         <td>Vcc Current</td>
                                                         <td>{bot.vcc_current?.toFixed(prec)} A</td>
                                                     </tr>

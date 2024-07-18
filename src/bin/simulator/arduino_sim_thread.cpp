@@ -35,6 +35,7 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
     voltage_step_decrease_ = cfg.voltage_step_decrease();
     voltage_period_ = cfg.voltage_period();
     voltage_start_ = cfg.voltage_start();
+    voltage_mid_start_ = cfg.voltage_mid_start(); 
     reset_voltage_level_ = cfg.reset_voltage_level();
 }
 
@@ -51,12 +52,18 @@ void jaiabot::apps::ArduinoSimThread::loop()
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)
     {
         voltage_start_ = voltage_start_ - voltage_step_decrease_;
+        voltage_mid_start_ = voltage_mid_start_ - voltage_step_decrease_; 
         arduino_response.set_vccvoltage(voltage_start_);
+        arduino_response.set_vmidvoltage(voltage_mid_start_);
         voltage_updated_ = goby::time::SteadyClock::now();
 
         if (voltage_start_ < reset_voltage_level_)
         {
             voltage_start_ = cfg().voltage_start();
+        }
+        if (voltage_mid_start_ < 9.0)
+        {
+            voltage_mid_start_ = cfg().voltage_mid_start(); 
         }
     }
 
