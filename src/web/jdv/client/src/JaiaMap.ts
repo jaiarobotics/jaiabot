@@ -323,6 +323,11 @@ export default class JaiaMap {
         return taskPacketLayerGroup;
     }
 
+    /**
+     * Creates a layer for displaying depth contour information.
+     *
+     * @returns {VectorLayer<VectorSource<Geometry>>}
+     */
     createDepthContourLayer() {
         return new VectorLayer({
             properties: {

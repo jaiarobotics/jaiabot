@@ -100,6 +100,16 @@ def geojson(features):
 
 
 def interpolate(dive0: BottomDive, dive1: BottomDive, depth: float):
+    """Returns the lat/lon coordinates of a point on the line between `dive0` and `dive1`, that would interpolate/extrapolate to `depth`.
+
+    Args:
+        dive0 (BottomDive): The first dive object.
+        dive1 (BottomDive): The second dive object.
+        depth (float): The depth interpolate/extrapolate to.
+
+    Returns:
+        List[float]: A list of form [lon, lat] indicating the calculated interpolated point location.
+    """
     if dive0.depth == dive1.depth:
         fraction = 0
     else:
@@ -112,6 +122,14 @@ def interpolate(dive0: BottomDive, dive1: BottomDive, depth: float):
 
 
 def getSimplices(bottomDives: List[BottomDive]):
+    """Gets a list of simplices (a tuple of 3 indices) representing the set of Delaunay triangles corresponding to a set of bottom dive coordinates.
+
+    Args:
+        bottomDives (List[BottomDive]): A set of bottom dives.
+
+    Returns:
+        NDArray[intc]: An array of simplices (a tuple of 3 indices) representing the set of Delaunay triangles corresponding to a set of bottom dive coordinates.
+    """
     if len(bottomDives) < 3:
         return []
 
@@ -127,6 +145,18 @@ def getSimplices(bottomDives: List[BottomDive]):
 
 
 def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
+    """Gets an array of equally-spaced contour values spanning the rand of depths for a set of `BottomDive` objects.
+
+    Args:
+        bottomDives (List[BottomDive]): The input list of `BottomDive` objects.
+        contourCount (int, optional): The number of contours to use. Defaults to 10.
+
+    Raises:
+        Exception: when all of `bottomDives` have the same depth.
+
+    Returns:
+        NDArray[float]: An array of equally-spaced contour values spanning the rand of depths for the `bottomDive` objects.
+    """
     # Get contour values
     values = [b.depth for b in bottomDives]
     minValue = min(values)
@@ -140,6 +170,18 @@ def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
 
 
 def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float]):
+    """Gets a list of GeoJSON polygons representing a color contour map for a trio of input `BottomDive` objects.
+
+    Args:
+        bottomDives (List[BottomDive]): A list of three input bottom dives.
+        contourValues (List[float]): The array of contour values that will correspond to each color in the returned color map.
+
+    Raises:
+        Exception: When no revelant contour values span this triangle simplex.
+
+    Returns:
+        list[dict]: A list of dictionaries representing GeoJSON for the resulting filled colormap polygons for this simplex.
+    """
     # Sort vertex depths by their value
     sortedDives = sorted(bottomDives, key=lambda t: t.depth)
     minDive = sortedDives[0]
@@ -161,7 +203,7 @@ def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float
             break
 
     if len(relevantContourValues) < 2:
-        raise Exception()
+        raise Exception('No revelant contour values span this triangle simplex.')
 
     polygons: List[Dict] = []
     lines: List[Dict] = []
@@ -200,7 +242,15 @@ def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float
     return polygons + lines
 
 
-def taskPacketsToColorMap(taskPackets):
+def taskPacketsToColorMap(taskPackets: List[Dict]):
+    """Gets a GeoJSON dictionary representing a depth color map for the bottom dives contained in an input set of task packets.
+
+    Args:
+        taskPackets (list[Dict]): A list of dictionaries representing `TaskPacket` objects.
+
+    Returns:
+        dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives contained in `taskPackets`.
+    """
     bottomDives = getBottomDives(taskPackets)
 
     simplices = getSimplices(bottomDives)

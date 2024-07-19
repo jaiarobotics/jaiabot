@@ -559,7 +559,16 @@ class Interface:
 
     # Contour map
     
-    def get_depth_contours(self, start_date, end_date):
+    def get_depth_contours(self, start_date: datetime, end_date: datetime):
+        """Gets the depth contours as a colormap for the current set of bottom dives.
+
+        Args:
+            start_date (datetime): Start date for the range of bottom dives to consider.
+            end_date (datetime): End date for the range of bottom dives to consider.
+
+        Returns:
+            dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives.
+        """
         return pyjaia.contours.taskPacketsToColorMap(self.get_task_packets(start_date, end_date))
 
     # Drift map
