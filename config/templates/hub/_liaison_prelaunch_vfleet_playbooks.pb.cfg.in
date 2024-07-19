@@ -1,5 +1,5 @@
 ansible_playbook {
-    file: "cloud-check-virtualfleet-state.yml"
+    file: "cloud/check-virtualfleet-state.yml"
     name: "[VirtualFleet] Check state (e.g, running, stopped, etc.) of VirtualFleet machines"
     role: USER
     output_var {
@@ -14,7 +14,7 @@ ansible_playbook {
 }
 
 ansible_playbook {
-    file: "cloud-manage-virtualfleet.yml"
+    file: "cloud/manage-virtualfleet.yml"
     name: "[VirtualFleet] Start or Stop VirtualFleet machines"
     input_var {
         name: "desired_state"
@@ -35,7 +35,7 @@ ansible_playbook {
 }
 
 ansible_playbook {
-    file: "cloud-manage-virtualfleet.yml"
+    file: "cloud/manage-virtualfleet.yml"
     name: "[VirtualFleet] Terminate VirtualFleet machines [DELETES ALL VIRTUALFLEET MACHINE DATA]"
     input_var {
         name: "desired_state"
@@ -48,7 +48,7 @@ ansible_playbook {
 }
 
 ansible_playbook {
-    file: "cloud-create-virtualfleet.yml"
+    file: "cloud/create-virtualfleet.yml"
     name: "[VirtualFleet] (Re)create VirtualFleet machines [DELETES ALL VIRTUALFLEET MACHINE DATA]"
     limit: "localhost"
     role: ADVANCED
@@ -71,7 +71,7 @@ ansible_playbook {
 }
 
 ansible_playbook {
-    file: "cloud-update-vfleet.yml" 
+    file: "cloud/update-vfleet.yml" 
     name: "[VirtualFleet] Change JaiaBot repository and update all packages"
     limit: "all"
     role: ADVANCED    
