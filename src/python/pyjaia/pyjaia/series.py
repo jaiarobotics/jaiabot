@@ -51,7 +51,7 @@ class Series:
 
                 series.utime, schemes, series.y_values = zip(*s)
             except (ValueError, KeyError) as e:
-                logging.warning(f'Exception: {e}')
+                logging.warning(f'Exception: {e} {__file__} {e.__traceback__.tb_lineno}')
                 logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
                 series.utime = []
                 series.schemes = []
