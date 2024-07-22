@@ -64,6 +64,11 @@ export default class RCControllerPanel extends React.Component {
     props: Props;
     state: State;
 
+    /**
+     * Constructor for the RCControllerPanel.
+     * Defines props and state used by the panel and provides initial settings.
+     * @param props properties passed down from parent
+     */
     constructor(props: Props) {
         super(props);
         this.api = props.api;
@@ -114,7 +119,6 @@ export default class RCControllerPanel extends React.Component {
      *
      * @returns {boolean}
      */
-
     isOverdriveChecked() {
         return this.state.overdriveEnabled;
     }
@@ -125,7 +129,6 @@ export default class RCControllerPanel extends React.Component {
      *
      * @returns {void}
      */
-    
     async handleOverdriveCheck() {
 
         if (!this.state.overdriveEnabled){
@@ -187,12 +190,17 @@ export default class RCControllerPanel extends React.Component {
             throttleBin.binValue = -10;
         }
     }
-
+    /**
+     * Sets the Throttle Value and Direction to 0 when stopped
+     */
     updateThrottleDirectionStop() {
         this.props.remoteControlValues.pid_control.throttle = 0;
         this.setState({ throttleDirection: "", throttleBinNumber: 0 });
     }
-
+    /**
+     * Updates the ruder direction when rudder "joystic" is moved on a tablet
+     * @param event Event data from Joystick widget
+     */
     updateRudderDirectionMove(event: IJoystickUpdateEvent) {
         let rudderBin: Bin = { binNumber: 0, binValue: 0 };
         // The is used to only detect changes if the value is above
@@ -206,6 +214,13 @@ export default class RCControllerPanel extends React.Component {
         });
     }
 
+    /**
+     * Sets Rudder values
+     * @param position value from Joystick 
+     * @param rudderBin current Bin values for the rudder
+     * @param deadzonePercent deadzone in percentage of joystick movement to ignore
+     * @returns {void}
+     */
     calcRudderBinNum(
         position: number,
         rudderBin: Bin,
@@ -238,11 +253,18 @@ export default class RCControllerPanel extends React.Component {
         }
     }
 
+    /**
+     * Sets rudder values to 0 when stopped
+     */
     updateRudderDirectionStop() {
         this.props.remoteControlValues.pid_control.rudder = 0;
         this.setState({ rudderDirection: "", rudderBinNumber: 0 });
     }
 
+    /**
+     * Sets Throttle and Rudder values for Solo Controller
+     * @param event Event data from the Joystick widget
+     */
     moveSoloController(event: IJoystickUpdateEvent) {
         let throttleDirection = "";
         let rudderDirection = "";
@@ -737,17 +759,17 @@ export default class RCControllerPanel extends React.Component {
         );
 
         /**
-         * Toggle minimize/maximize state of the RC panel.
-         * Tapping anywhere on the heading will toggle this.
-         */
+        * Toggle minimize/maximize state of the RC panel.
+        * Tapping anywhere on the heading will toggle this.
+        */
         const toggleMinimize = () => {
             this.setState({ isMaximized: !this.state.isMaximized });
         };
 
         /**
-         * Buttons to indicate the ability to toggle the minimize/maximize state.
-         * They don't need an onClick handler, because the whole heading is sensitive to clicks.
-         */
+        * Buttons to indicate the ability to toggle the minimize/maximize state.
+        * They don't need an onClick handler, because the whole heading is sensitive to clicks.
+        */
         const toggleMinimizeIndicator = (
             <Button>
                 <Typography>{this.state.isMaximized ? "^" : "˅"}</Typography>
