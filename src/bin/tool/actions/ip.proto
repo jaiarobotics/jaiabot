@@ -31,7 +31,7 @@ message IPTool
 {
     option (goby.msg).cfg.tool = {
         is_tool: true
-        has_subtools: true
+        has_subtools: false
         has_help_action: false
     };
 
@@ -39,11 +39,7 @@ message IPTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string host = 2 [(goby.field) = {
-        description: "The host get the IP address of (e.g. b4f2, h1f3, or chf4)",
+        description: "The host get the IP address of (e.g. b4f2, h1f3, chf4, b10vf1, b2sf2)",
         cfg { position { enable: true } }
     }];
-
-    optional Net net = 3 [default = wlan];
-
-    optional bool ipv6 = 4 [default = false];
 }

@@ -159,17 +159,19 @@ class JaiaH5FileSet:
             # Search for Command items
             for path in log_file.keys():
 
-                HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
+                HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*')
                 m = HUB_COMMAND_RE.match(path)
                 if m is not None:
-                    bot_id = m.group(1)
                     hub_command_path = path
 
-                    if bot_id not in results:
-                        results[bot_id] = []
                     
                     command_path = hub_command_path + '/jaiabot.protobuf.Command'
                     commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
+
+                    try:
+                        bot_id = commands[0]['bot_id']
+                    except IndexError: # No commands
+                        continue
 
                     results[bot_id] = commands
 
@@ -191,8 +193,8 @@ class JaiaH5FileSet:
             bot_id = re.findall(bot_id_pattern, log.filename)
             bot_id_string = str(bot_id[0])
 
-            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path, invalid_values=[0])
-            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path, invalid_values=[0])
+            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path)
+            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path)
             heading_series = Series.loadFromH5File(log=log, path=NodeStatus_heading_path)
             course_over_ground_series = Series.loadFromH5File(log=log, path=NodeStatus_course_over_ground_path)
 
@@ -204,8 +206,8 @@ class JaiaH5FileSet:
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
                 thisSeries.append([
                     lat_series.utime[i], 
-                    lat_series.y_values[i], 
-                    lon_series.y_values[i], 
+                    lat_series.y_values[i] or None, 
+                    lon_series.y_values[i] or None, 
                     heading_series.y_values[i], 
                     course_over_ground_series.y_values[i], 
                     most_recent_desired_heading
@@ -222,7 +224,7 @@ class JaiaH5FileSet:
         # A dictionary mapping bot_id to an array of active_goal dictionaries
         results: Dict[str, List] = {}
 
-        BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.BotStatus$')
+        BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*/jaiabot.protobuf.BotStatus$')
 
         for log_file in self.h5Files:
 
@@ -230,10 +232,6 @@ class JaiaH5FileSet:
                 m = BOT_STATUS_RE.match(name)
 
                 if m is not None:
-                    bot_id = m.group(1)
-                    if bot_id not in results:
-                        results[bot_id] = []
-
                     _utime_ = h5_get_series(log_file[name + '/_utime_'])
                     bot_ids = h5_get_series(log_file[name + '/bot_id'])
                     active_goals = h5_get_series(log_file[name + '/active_goal'])
@@ -241,6 +239,10 @@ class JaiaH5FileSet:
                     last_active_goal = None
                     for i in range(len(_utime_)):
                         if active_goals[i] != last_active_goal:
+                            bot_id = bot_ids[i]
+                            if bot_id not in results:
+                                results[bot_id] = []
+
                             results[bot_id].append({
                                 '_utime_': _utime_[i],
                                 'active_goal': active_goals[i]
