@@ -19,4 +19,4 @@ rootfs:
 
 github-actions:
   - changed-files:
-      - any-glob-to-any-file: 'jaiabot/.github/workflows/**'
+      - any-glob-to-any-file: 'jaiabot/.github/**'
