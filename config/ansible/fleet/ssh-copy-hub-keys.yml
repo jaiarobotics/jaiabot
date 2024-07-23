@@ -65,3 +65,4 @@
         loop_var: hub_inventory_name
 
     - include_tasks: tasks/set-jaiabot-ssh-perms.yml
+    - include_tasks: tasks/clear-tmp-authorized-keys.yml
