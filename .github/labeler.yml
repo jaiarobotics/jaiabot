@@ -1,8 +1,22 @@
+# Labels on branch name
+feature:
+  - head-branch: ['feature/*', 'feat/*']
+
+bug:
+  - head-branch: 'bug/*'
+
+task:
+  - head-branch: 'task/*'
+
+# Labels on changed files
 debian:
-  - 'jaiabot/debian/**'
+  - changed-files:
+      - any-glob-to-any-file: 'jaiabot/debian/**'
 
 rootfs:
-  - 'jaiabot/rootfs/**'
+  - changed-files:
+      - any-glob-to-any-file: 'jaiabot/rootfs/**'
 
 actions:
-  - 'jaiabot/.github/workflows/**'
+  - changed-files:
+      - any-glob-to-any-file: 'jaiabot/.github/workflows/**'
