@@ -20,3 +20,13 @@ rootfs:
 github-actions:
   - changed-files:
       - any-glob-to-any-file: '.github/**'
+
+circleci:
+  - changed-files:
+      - any-glob-to-any-file: '.circleci/**'
+
+systemd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'config/gen/systemd*'
+          - 'config/templates/systemd/**'
