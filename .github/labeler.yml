@@ -1,0 +1,8 @@
+debian:
+  - 'jaiabot/debian/**'
+
+rootfs:
+  - 'jaiabot/rootfs/**'
+
+actions:
+  - 'jaiabot/.github/workflows/**'
