@@ -7,6 +7,8 @@ import logging
 from typing import *
 from dataclasses import dataclass
 from pprint import pprint
+from math import *
+from .constrain import *
 
 
 @dataclass
@@ -115,9 +117,11 @@ def interpolate(dive0: BottomDive, dive1: BottomDive, depth: float):
     else:
         fraction = (depth - dive0.depth) / (dive1.depth - dive0.depth)
 
+    lonDelta = constrainLon(dive1.lon - dive0.lon)
+
     return [
-        dive0.lon + fraction * (dive1.lon - dive0.lon),
-        dive0.lat + fraction * (dive1.lat - dive0.lat)
+        constrainLon(dive0.lon + fraction * lonDelta),
+        constrainLat(dive0.lat + fraction * (dive1.lat - dive0.lat))
     ]
 
 
