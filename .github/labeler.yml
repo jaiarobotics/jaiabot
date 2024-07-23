@@ -11,12 +11,12 @@ task:
 # Labels on changed files
 debian:
   - changed-files:
-      - any-glob-to-any-file: 'jaiabot/debian/**'
+      - any-glob-to-any-file: 'debian/**'
 
 rootfs:
   - changed-files:
-      - any-glob-to-any-file: 'jaiabot/rootfs/**'
+      - any-glob-to-any-file: 'rootfs/**'
 
 github-actions:
   - changed-files:
-      - any-glob-to-any-file: 'jaiabot/.github/**'
+      - any-glob-to-any-file: '.github/**'
