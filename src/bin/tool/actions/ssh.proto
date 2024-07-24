@@ -39,12 +39,9 @@ message SshTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string host = 2 [(goby.field) = {
-        description: "The host to log into (e.g. b4f2, h1f3, or chf4)",
+        description: "The host get the IP address of (e.g. b4f2, h1f3, chf4, b10vf1, b2sf2)",
         cfg { position { enable: true } }
     }];
 
-    optional Net net = 3 [default = wlan];
-
-    optional bool ipv6 = 4 [default = false];
-    optional string user = 5 [default = "jaia"];
+    optional string user = 3 [default = "jaia"];
 }

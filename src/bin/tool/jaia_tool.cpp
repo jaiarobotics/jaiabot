@@ -29,6 +29,7 @@
 #include "actions/ssh.h"
 #include "actions/version.h"
 #include "actions/ip.h"
+#include "actions/admin.h"
 #include "config.pb.h"
 
 using goby::glog;
@@ -118,6 +119,13 @@ jaiabot::apps::Tool::Tool()
                                 .help<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>(
                                     action_for_help);
                             break;
+
+                        case jaiabot::config::Tool::admin:
+                            tool_helper
+                                .help<jaiabot::apps::AdminTool, jaiabot::apps::AdminToolConfigurator>(
+                                    action_for_help);
+                            break;
+                            
                             
                         default:
                             throw(goby::Exception(
@@ -156,6 +164,12 @@ jaiabot::apps::Tool::Tool()
                     .run_subtool<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>();
                 break;
 
+            case jaiabot::config::Tool::admin:
+                tool_helper
+                    .run_subtool<jaiabot::apps::AdminTool, jaiabot::apps::AdminToolConfigurator>();
+                break;
+
+                
             default:
                 throw(goby::Exception("Action was expected to be handled by external tool"));
                 break;
