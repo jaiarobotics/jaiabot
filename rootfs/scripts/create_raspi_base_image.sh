@@ -388,5 +388,6 @@ if [ ! -z "$VIRTUALBOX" ]; then
     echo "Virtualbox OVA created at $OUTPUT_IMAGE_OVA, VDI created at $OUTPUT_IMAGE_VDI, img at $OUTPUT_IMAGE_IMG"
 else
     sudo chroot rootfs apt-get -y install linux-image-raspi
+    sudo chroot rootfs /bin/bash -c "export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
     echo "Raspberry Pi image created at $OUTPUT_IMAGE_PATH"
 fi
