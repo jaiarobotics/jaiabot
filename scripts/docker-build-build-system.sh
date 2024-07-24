@@ -5,7 +5,7 @@ set -e
 script_dir=$(dirname $0)
 jaia_root=${script_dir}/..
 
-default_version=$(<release_branch)
+default_version=$(<${script_dir}/release_branch)
 repo=${jaiabot_repo:-release}
 version=${jaiabot_version:-${default_version}}
 version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
