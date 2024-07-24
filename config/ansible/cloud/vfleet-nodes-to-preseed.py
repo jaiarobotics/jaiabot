@@ -4,7 +4,7 @@ import sys
 
 # Check if the command line argument (n_bots) is provided
 if len(sys.argv) < 2:
-    print("Usage: cloud-vfleet-nodes-to-preseed.py <n_bots>")
+    print("Usage: vfleet-nodes-to-preseed.py <n_bots>")
     sys.exit(1)
 
 # Read the number of bots from the first command line argument

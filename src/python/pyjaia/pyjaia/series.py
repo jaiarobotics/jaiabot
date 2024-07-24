@@ -66,9 +66,9 @@ class Series:
 
                 series.utime, schemes, series.y_values = zip(*s)
             except (ValueError, KeyError) as e:
-                msg = f'No valid data found for log: {log.filename}, series path: {path}, reason: {e}'
-                logging.warning(msg)
-                raise Exception(msg)
+                errorMessage = f'No valid data found for log: {log.filename}, series path: {path}, cause: {e}'
+                logging.warning(errorMessage)
+                raise Exception(errorMessage)
 
             series.hovertext = h5_get_enum_map(log[path]) or {}
 

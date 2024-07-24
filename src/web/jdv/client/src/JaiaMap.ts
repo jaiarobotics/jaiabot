@@ -354,6 +354,19 @@ export default class JaiaMap {
         this.updatePath();
     }
 
+    /**
+     * Compares the difference between two data points to catch outliers
+     *
+     * @param {number} prevPoint Used as baseline in comparison
+     * @param {number} currentPoint Data point that needs outlier checking
+     * @param {number} epsilon Sets the bounds on the outlier detection
+     *
+     * @returns {boolean} Whether or not an outlier is detected
+     */
+    checkOutlier(prevPoint: number, currentPoint: number, epsilon: number) {
+        return Math.abs(prevPoint - currentPoint) > epsilon;
+    }
+
     updatePath() {
         let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER];
 
@@ -376,7 +389,17 @@ export default class JaiaMap {
 
             // Filter to only keep points within the time range
             var path = [];
+            var startPt = null;
+            var endPt = null;
+
             for (const pt of ptArray) {
+                const lat = pt[1];
+                const lon = pt[2];
+                if (lat == null || lon == null) continue;
+
+                if (startPt == null) startPt = pt;
+                endPt = pt;
+
                 // Contribute to tMin and tMax
                 const t = pt[0];
                 if (this.tMin == null || t < this.tMin) this.tMin = t;
@@ -388,7 +411,7 @@ export default class JaiaMap {
                 }
 
                 if (t > timeRange[0]) {
-                    path.push(this.fromLonLat([pt[2], pt[1]])); // API gives lat/lon, OpenLayers uses lon/lat
+                    path.push(this.fromLonLat([lon, lat])); // API gives lat/lon, OpenLayers uses lon/lat
                 }
             }
 
@@ -405,9 +428,8 @@ export default class JaiaMap {
             this.botPathVectorSource.addFeature(pathFeature);
 
             // Add start and end markers
-            if (ptArray.length > 0) {
-                // parameters: {title?, lon, lat, style?, time?, popupHTML?}
-                const startPt = ptArray[0];
+
+            if (startPt) {
                 const startMarker = createMarker2(this.map, {
                     title: "Start",
                     lon: startPt[2],
@@ -416,8 +438,9 @@ export default class JaiaMap {
                     style: Styles.startMarker,
                 });
                 this.botPathVectorSource.addFeature(startMarker);
+            }
 
-                const endPt = ptArray[ptArray.length - 1];
+            if (endPt) {
                 const endMarker = createMarker2(this.map, {
                     title: "End",
                     lon: endPt[2],
@@ -456,14 +479,12 @@ export default class JaiaMap {
 
     updateToTimestamp(timestamp_micros: number) {
         this.timestamp = timestamp_micros;
-        // console.log('updateToTimestamp', timestamp_micros, this.timestamp)
 
         this.updateBotMarkers(timestamp_micros);
         this.updateMissionLayer(timestamp_micros);
     }
 
     getTimestamp(): number {
-        // console.log('get timestamp', this.timestamp)
         return this.timestamp;
     }
 

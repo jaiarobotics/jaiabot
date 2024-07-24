@@ -1,0 +1,6 @@
+- name: Copy Hub keys from repository to hub
+  import_playbook: ssh-create-hub-keys.yml
+  vars:
+    CONFIGURE_VIRTUALFLEET: false
+    
+- import_playbook: ../reboot-all.yml

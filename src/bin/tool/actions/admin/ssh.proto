@@ -1,0 +1,69 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+import "actions/net.proto";
+
+package jaiabot.config.admin;
+
+message SSHTool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
+        has_help_action: true
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia admin ssh help [action]\""
+        }];
+        add = 1 [(goby.ev).cfg = {
+            short_help_msg: "Add authorized SSH key (by default to tmp_authorized_keys)",
+        }];
+        rm = 2 [(goby.ev).cfg = {
+            short_help_msg: "Remove authorized SSH key (by default from tmp_authorized_keys)",
+        }];
+        list = 3 [(goby.ev).cfg = {
+            short_help_msg: "List authorized SSH keys",
+        }];
+        clear = 4 [(goby.ev).cfg = {
+            short_help_msg: "Clear authorized SSH keys (by default those in tmp_authorized_keys)",
+        }];
+    }
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position: { enable: true }, cli_short: "A", action: HIDDEN }
+        }
+    ];
+    
+}

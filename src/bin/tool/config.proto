@@ -74,7 +74,8 @@ message Tool
                            "Example commands:\n"
                            "  jaia ip b4f10: IP address for bot4 on fleet10\n"
                            "  jaia ip h1f2: IP address for hub1 on fleet2\n"
-                           "  jaia ip --net=fleet_vpn b5f3: IP address for bot5 fleet3 on the fleet vpn\n"
+                           "  jaia ip b5sf3: IP address for bot5 fleet3 on the service vpn\n"
+                           "  jaia ip b5vf3: IP address for bot5 fleet3 on the VirtualFleet vpn\n"
         }];
         ssh = 6 [(goby.ev).cfg = {
             short_help_msg: "Use SSH to login to jaiabots and hubs",
@@ -84,8 +85,8 @@ message Tool
                            "Example commands:\n"
                            "  jaia ssh b4f10: SSH into bot4 on fleet10\n"
                            "  jaia ssh h1f2: SSH into hub1 on fleet2\n"
-                           "  jaia ssh --net=fleet_vpn b5f3: SSH into bot5 fleet3 over fleet vpn\n"
-                           "  jaia ssh --net=fleet_vpn b5f3 -A -v: SSH into bot5 fleet3 over fleet vpn using 'ssh -A -v'\n"
+                           "  jaia ssh b5sf3: SSH into bot5 fleet3 over service vpn\n"
+                           "  jaia ssh b5vf3 -A -v: SSH into bot5 fleet3 over VirtualFleet vpn using 'ssh -A -v'\n"
         }];
         ping = 7 [(goby.ev).cfg = {
             short_help_msg: "Use ping to test connectivity to jaiabots and hubs",
@@ -95,9 +96,12 @@ message Tool
                            "Example commands:\n"
                            "  jaia ping b4f10: ping bot4 on fleet10\n"
                            "  jaia ping h1f2: ping hub1 on fleet2\n"
-                           "  jaia ping --net=fleet_vpn b5f3: ping bot5 fleet3 over fleet vpn\n"
-                           "  jaia ping --net=fleet_vpn b5f3 -i 10: ping bot5 fleet3 over fleet vpn using 'ping -i 10'\n"
+                           "  jaia ping b5f3: ping bot5 fleet3 over service vpn\n"
+                           "  jaia ping b5vf3 -i 10: ping bot5 fleet3 over VirtualFleet vpn using 'ping -i 10'\n"
         }];
+        admin = 8 [
+            (goby.ev).cfg = { short_help_msg: "System administration commands" }
+        ];
     }
     optional Action action = 2 [
         default = help,
