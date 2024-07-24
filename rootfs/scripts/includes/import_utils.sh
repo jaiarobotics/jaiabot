@@ -43,10 +43,10 @@ jaia_wifi_ssid=dummy
 jaia_wifi_password=dummy
 
 ########################################################
-# SSH temp keys (to allow first boot to be run)
+# SSH authorized keys
 ########################################################
 jaia_do_add_authorized_keys=true
-jaia_authorized_keys=$(cat << EOM
+jaia_perm_authorized_keys=\$(cat << EOM
 ${ssh_keys}
 EOM
 )
