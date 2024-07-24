@@ -33,7 +33,22 @@ class Series:
         self.hovertext = {}
 
     @staticmethod
-    def loadFromH5File(log=None, path=None, scheme=1, invalid_values=set(), name="Untitled") -> "Series":
+    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=set(), name="Untitled") -> "Series":
+        """Load a Series object from a Jaia HDF5 log and a path.
+
+        Args:
+            log (h5py.File, optional): An HDF5 File object to load data from. Defaults to None.
+            path (str, optional): Path to the Jaia dataset to load. Defaults to None.
+            scheme (int, optional): The Goby transport scheme to filter out. Defaults to 1.
+            invalid_values (Set[Any], optional): A set of values to consider "invalid" and replace with None. Defaults to set().
+            name (str, optional): Name of the Series object. Defaults to "Untitled".
+
+        Raises:
+            Exception: When we cannot load the dataset array, or its _utime_ or _scheme_ arrays.
+
+        Returns:
+            Series: The Series object representing this data series.
+        """
         series = Series(name)
 
         series.utime = []
@@ -51,14 +66,9 @@ class Series:
 
                 series.utime, schemes, series.y_values = zip(*s)
             except (ValueError, KeyError) as e:
-                logging.warning(f'Exception: {e}')
-                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
-                series.utime = []
-                series.schemes = []
-                series.y_values = []
-                series.hovertext = {}
-
-                return
+                msg = f'No valid data found for log: {log.filename}, series path: {path}, reason: {e}'
+                logging.warning(msg)
+                raise Exception(msg)
 
             series.hovertext = h5_get_enum_map(log[path]) or {}
 

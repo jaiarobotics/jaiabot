@@ -275,21 +275,33 @@ class JaiaH5FileSet:
         return results
 
     def getSeries(self, paths: List[str]):
+        """Load a list of datasets corresponding to a list of path strings.
+
+        Args:
+            paths (List[str]): List of path strings.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing the dataset arrays.
+        """
+        logging.info(f'Loading from paths: {paths}')
+        logging.info(f'Loading from files: {self.h5Filenames}')
         series_list = []
 
         paths = [path.lstrip('/') for path in paths.split(',')]
 
         # Get the series from the logs
         for path in paths:
+            logging.info(f"Loading path: {path}")
             series_description = jaia_get_description(path) or {}
             invalid_values = set(series_description.get('invalid_values', []))
 
             series = Series()
 
             for log in self.h5Files:
+                logging.info(f'  Loading from: {log.filename}')
                 try:
                     series = series.extend(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
-                except KeyError as e:
+                except Exception as e:
                     logging.warn(e)
                     continue
 
