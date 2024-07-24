@@ -33,6 +33,13 @@ import { CustomAlert, CustomAlertProps } from "./shared/CustomAlert";
 
 import "./index.css";
 
+function exceptionCatcher(exception: Error) {
+    CustomAlert.presentAlert({
+        title: exception.name,
+        text: exception.message,
+    });
+}
+
 const loadingImage = require("./images/loading.gif");
 
 var Plotly = require("plotly.js-dist");
@@ -314,7 +321,6 @@ class LogApp extends React.Component {
                         });
                     },
                 );
-
                 // Get the command dictionary (botId => [Command])
                 const getCommandsJob = LogApi.getCommands(this.state.chosenLogs).then(
                     (command_dict) => {
@@ -358,9 +364,11 @@ class LogApp extends React.Component {
                     getTaskPacketsJob,
                     getDepthContoursJob,
                     getDriftInterpolationsJob,
-                ]).finally(() => {
-                    this.stopBusyIndicator();
-                });
+                ])
+                    .catch(exceptionCatcher)
+                    .finally(() => {
+                        this.stopBusyIndicator();
+                    });
             } else {
                 this.map.clear();
             }

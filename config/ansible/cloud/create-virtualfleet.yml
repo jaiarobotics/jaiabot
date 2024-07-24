@@ -10,18 +10,18 @@
     server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
 
   tasks:
-    - include_tasks: tasks/cloud-gen-node-map.yml
+    - include_tasks: tasks/gen-node-map.yml
 
     - name: Read cloud.env
-      include_tasks: tasks/cloud-read-env.yml
+      include_tasks: tasks/read-env.yml
       tags: read
 
     - name: VirtualFleet VPN setup
-      include_tasks: tasks/cloud-vfleet-vpn-setup.yml
+      include_tasks: tasks/vfleet-vpn-setup.yml
       tags: read
 
     - name: Read IP addresses
-      include_tasks: tasks/cloud-read-ip-addresses.yml    
+      include_tasks: tasks/read-ip-addresses.yml    
       tags: read
 
     - name: Read publickeys configured on Cloudhub and use these for VirtualFleet
@@ -116,13 +116,13 @@
       shell: "systemctl restart wg-quick@wg_virtualfleet"
 
     - name: Write /etc/hosts
-      include_tasks: tasks/cloud-write-etc-hosts.yml
+      include_tasks: tasks/write-etc-hosts.yml
 
     - name: Wait for hosts
-      include_tasks: tasks/cloud-wait-hosts.yml
+      include_tasks: tasks/wait-hosts.yml
 
     - name: Run fleet-config.sh
-      include_tasks: tasks/cloud-run-fleet-config.yml
+      include_tasks: tasks/run-fleet-config.yml
 
     - name: Copy VirtualFleet inventory (created by fleet-config.sh)
       shell: |
@@ -130,16 +130,16 @@
       become: yes
 
     - name: Stop instances state
-      include_tasks: tasks/cloud-instance-state.yml
+      include_tasks: tasks/instance-state.yml
       vars: 
         - do_wait: true
         - desired_state: stopped
 
     - name: Start instances state
-      include_tasks: tasks/cloud-instance-state.yml
+      include_tasks: tasks/instance-state.yml
       vars: 
         - do_wait: true
         - desired_state: running
 
     - name: Wait for hosts
-      include_tasks: tasks/cloud-wait-hosts.yml
+      include_tasks: tasks/wait-hosts.yml

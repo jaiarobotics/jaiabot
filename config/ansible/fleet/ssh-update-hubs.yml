@@ -1,0 +1,34 @@
+---
+
+- name: Determine active bots
+  gather_facts: no
+  become: no
+  hosts: all
+  tasks:
+    - name: Active bots fact
+      set_fact:
+        active_bots: "{{ groups['bots'] | intersect(ansible_play_batch) }}"
+
+- name: Update Hubs known_hosts with new Bot(s)
+  hosts: hubs
+  gather_facts: no
+  become: yes
+
+  pre_tasks:
+    - include_tasks: tasks/set-facts.yml
+
+  tasks:
+    - name: Remove all overlay files we are going to modify
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /media/root-rw/overlay/etc/hosts
+        - /media/root-rw/overlay/home/jaia/.ssh/known_hosts
+
+    - name: Append bots to /etc/hosts and .ssh/known_hosts
+      include_tasks: tasks/hub-add-known-host.yml
+      loop: "{{ active_bots }}"
+      loop_control:
+        loop_var: bot_inventory_name
+      
