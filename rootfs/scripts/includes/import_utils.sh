@@ -24,6 +24,8 @@ function write_preseed()
     vboximg-mount -i "${DISKUUID}" --rw --root "${VBOX_MOUNT_PATH}"
     sudo mount "${VBOX_MOUNT_PATH}/vol0" /mnt
 
+    ssh_keys=$(cat $HOME/.ssh/*.pub)
+    
     cat <<EOF | sudo tee /mnt/jaiabot/init/first-boot.preseed
 # Preseed configuration. Booleans can be "true" or "yes"
 # This is a bash script so any bash command is allowed
@@ -39,6 +41,15 @@ jaia_disable_ethernet=true
 jaia_configure_wifi=true
 jaia_wifi_ssid=dummy
 jaia_wifi_password=dummy
+
+########################################################
+# SSH temp keys (to allow first boot to be run)
+########################################################
+jaia_do_add_authorized_keys=true
+jaia_authorized_keys=$(cat << EOM
+${ssh_keys}
+EOM
+)
 
 #########################################################
 # Preseed jaiabot-embedded package debconf queries
@@ -63,14 +74,6 @@ EOM
 jaia_reboot=true
 EOF
 
-    sudo umount /mnt
-
-    ## ROOTFS 
-    sudo mount "${VBOX_MOUNT_PATH}/vol1" /mnt
-    # install all host public keys as authorized_keys
-    sudo mkdir -p /mnt/home/jaia/.ssh
-    cat $HOME/.ssh/*.pub | sudo tee /mnt/home/jaia/.ssh/authorized_keys   
-    sudo chown -R 1000:1000 /mnt/home/jaia/.ssh
     sudo umount /mnt
     
     sudo umount -l "${VBOX_MOUNT_PATH}"

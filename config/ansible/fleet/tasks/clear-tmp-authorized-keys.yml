@@ -1,4 +1,4 @@
 - name: Remove tmp_authorized_keys on underlay (typically from rootfs image for initial fleet config)
   shell: |
-    {{ RO_CMD }} rm -f /etc/jaiabot/ssh/tmp_authorized_keys
+    {{ RO_ROOT_CMD }} rm -f /etc/jaiabot/ssh/tmp_authorized_keys
         
