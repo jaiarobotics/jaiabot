@@ -67,7 +67,8 @@ export default class RCControllerPanel extends React.Component {
     /**
      * Constructor for the RCControllerPanel.
      * Defines props and state used by the panel and provides initial settings.
-     * @param props properties passed down from parent
+     * 
+     * @param {Props} props Properties passed down from parent
      */
     constructor(props: Props) {
         super(props);
@@ -149,9 +150,10 @@ export default class RCControllerPanel extends React.Component {
     /**
      * Creates the bins for throttle that are used as output for the operator
      *
-     * @param {number} speed is the position of the input that is used to determine bin number
-     * @param {string} throttleDirection determines the direction of the throttle (FORWARD, BACKWARD)
-     * @param {Bin} throttleBin used to pass the bin number and value
+     * @param {number} speed Is the position of the input that is used to determine bin number
+     * @param {string} throttleDirection Determines the direction of the throttle (FORWARD, BACKWARD)
+     * @param {Bin} throttleBin Used to pass the bin number and value
+     * 
      * @returns {number}
      *
      * @notes
@@ -192,6 +194,8 @@ export default class RCControllerPanel extends React.Component {
     }
     /**
      * Sets the Throttle Value and Direction to 0 when stopped
+     * 
+     * @returns {void}
      */
     updateThrottleDirectionStop() {
         this.props.remoteControlValues.pid_control.throttle = 0;
@@ -199,7 +203,10 @@ export default class RCControllerPanel extends React.Component {
     }
     /**
      * Updates the ruder direction when rudder "joystic" is moved on a tablet
-     * @param event Event data from Joystick widget
+     * 
+     * @param {IJoystickUpdateEvent} event Event data from Joystick widget
+     * 
+     * @returns {void}
      */
     updateRudderDirectionMove(event: IJoystickUpdateEvent) {
         let rudderBin: Bin = { binNumber: 0, binValue: 0 };
@@ -216,9 +223,11 @@ export default class RCControllerPanel extends React.Component {
 
     /**
      * Sets Rudder values
-     * @param position value from Joystick 
-     * @param rudderBin current Bin values for the rudder
-     * @param deadzonePercent deadzone in percentage of joystick movement to ignore
+     * 
+     * @param {number} position Value from Joystick 
+     * @param {Bin} rudderBin Current Bin values for the rudder
+     * @param {number} deadzonePercent Deadzone in percentage of joystick movement to ignore
+     * 
      * @returns {void}
      */
     calcRudderBinNum(
@@ -255,6 +264,8 @@ export default class RCControllerPanel extends React.Component {
 
     /**
      * Sets rudder values to 0 when stopped
+     * 
+     * @returns {void}
      */
     updateRudderDirectionStop() {
         this.props.remoteControlValues.pid_control.rudder = 0;
@@ -263,7 +274,10 @@ export default class RCControllerPanel extends React.Component {
 
     /**
      * Sets Throttle and Rudder values for Solo Controller
-     * @param event Event data from the Joystick widget
+     * 
+     * @param {IJoystickUpdateEvent} event Event data from the Joystick widget
+     * 
+     * @returns {void}
      */
     moveSoloController(event: IJoystickUpdateEvent) {
         let throttleDirection = "";
@@ -310,8 +324,11 @@ export default class RCControllerPanel extends React.Component {
     /**
      * This handles the input from the xbox controller by mapping the value
      * of the inputs to a bin number and direction to give the user feedback
-     * @param axisName string - indicates the analog stick that is being controlled
-     * @param value number - indicates the position of the analog stick
+     * 
+     * @param {string} axisName Indicates the analog stick that is being controlled
+     * @param {number} value Indicates the position of the analog stick
+     * 
+     * @returns {void}
      */
     handleGamepadAxisChange(axisName: string, value: number) {
         const controlType = this.state.controlType;
@@ -420,7 +437,7 @@ export default class RCControllerPanel extends React.Component {
     /**
      * Clears the interval to send RC commands and sends a dive task
      *
-     * returns {void}
+     * @returns {void}
      */
     handleDiveButtonClick() {
         const diveParametersNum: { [diveParam: string]: number } = {};
@@ -761,6 +778,8 @@ export default class RCControllerPanel extends React.Component {
         /**
         * Toggle minimize/maximize state of the RC panel.
         * Tapping anywhere on the heading will toggle this.
+        * 
+        * @returns {void}
         */
         const toggleMinimize = () => {
             this.setState({ isMaximized: !this.state.isMaximized });
