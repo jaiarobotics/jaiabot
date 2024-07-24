@@ -3,6 +3,7 @@ import { Log } from "./Log";
 import download from "downloadjs";
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
+import { CustomAlert } from "./shared/CustomAlert";
 
 export type ActiveGoals = {
     [key: string]: {
@@ -66,10 +67,6 @@ export class LogApi {
                 } else {
                     return response_object;
                 }
-            })
-            .catch((err) => {
-                console.error(err);
-                throw err;
             });
     }
 

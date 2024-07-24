@@ -61,7 +61,20 @@ def h5_get_float(dataset, index):
 
 
 def h5_get_series(dataset: h5py.Dataset):
-    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
+    """Get a filtered representation of an h5 dataset as an array of `int` or `float`
+
+    Args:
+        dataset (h5py.Dataset): The h5 dataset to be filtered.
+
+    Raises:
+        Exception: If the field is multi-dimensional, usually a string field.
+
+    Returns:
+        list[int | float | None]: The h5 dataset filtering out the "invalid" values as a list of numbers.
+    """
+    if len(dataset.shape) > 1: # Multi-dimensional arrays (usually strings) not supported yet
+        raise Exception('This field is multi-dimensional.  It may be a string field.')
+
     dtype: numpy.dtype = dataset.dtype
 
     def from_float(x):
