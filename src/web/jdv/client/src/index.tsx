@@ -50,7 +50,8 @@ const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeSt
 
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string: string) {
-    return Date.parse(iso_date_string) * 1e3;
+    const millis = Date.parse(iso_date_string);
+    return isNaN(millis) ? null : millis * 1e3;
 }
 
 interface LogAppProps {}
@@ -587,11 +588,19 @@ class LogApp extends React.Component {
                         return;
                     }
 
+                    console.debug(`Plot relayout with eventdata:`);
+                    console.debug(eventdata);
+
                     const t0 = iso_date_to_micros(String(eventdata["xaxis.range[0]"]));
                     const t1 = iso_date_to_micros(String(eventdata["xaxis.range[1]"]));
 
-                    self.map.timeRange = [t0, t1];
-                    self.map.updatePath();
+                    if (t0 == null || t1 == null) {
+                        self.map.timeRange = null;
+                        self.map.updatePath();
+                    } else {
+                        self.map.timeRange = [t0, t1];
+                        self.map.updatePath();
+                    }
                 },
             );
         });
