@@ -499,9 +499,6 @@ class LogApp extends React.Component {
                     }
                 }
 
-                console.log("components");
-                console.log(components);
-
                 // Concat the components, with <br> if necessary
                 var lines: string[] = [];
                 var line = "";
@@ -527,9 +524,6 @@ class LogApp extends React.Component {
                 if (line.length > 0) {
                     lines.push(line);
                 }
-
-                console.log("lines");
-                console.log(lines);
 
                 return lines.join("<br>");
             }
