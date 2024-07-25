@@ -5,7 +5,7 @@ import copy
 import bisect
 from typing import *
 from datetime import *
-import statistics
+import re
 
 from .time_range import *
 from .h5_tools import *
@@ -48,12 +48,39 @@ class Series:
 
         Returns:
             Series: The Series object representing this data series.
+
+        Note:
+            If `path` contains a post-semicolon component, it will match any string beyond that point in the component.
+                For example:
+                    `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state` will match the path
+                    `jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state`
         """
         series = Series(name)
 
         series.utime = []
         series.y_values = []
         series.hovertext = {}
+
+
+        # If this path contains a semi-colon-delimited integer, we want to use a fuzzy search in case that part is different in this log file
+        #   For example, the path 
+        #   "jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state" should match the path
+        #   "jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state"
+        match = re.search(r';.+?/', path)
+        if match:
+            pathRegExString = path.replace(match.group(0), r';.+?/')
+            pathRegEx = re.compile(pathRegExString)
+            matchedPath = log.visit(lambda name: name if pathRegEx.match(name) else None)
+            if matchedPath is None:
+                msg = f'RegEx {pathRegExString}, (from {path}) did not match any series in file {log.filename}'
+                logging.warning(msg)
+                raise Exception(msg)
+            
+            logging.info(f'Used a fuzzy search for')
+            logging.info(f'  {path} and found')
+            logging.info(f'  {matchedPath}')
+            path = matchedPath
+
 
         if log:
             try:
