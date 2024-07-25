@@ -429,6 +429,11 @@ class LogApp extends React.Component {
         this.setState({ isBusy: false });
     }
 
+    /**
+     * Load the selected paths and update the interface.
+     *
+     * @param {string[]} pathArray An array of paths that the user selected.
+     */
     didSelectPaths(pathArray: string[]) {
         console.debug(`Selected paths: ${pathArray}`);
 
@@ -443,7 +448,7 @@ class LogApp extends React.Component {
                 }
             })
             .catch((err) => {
-                CustomAlert.presentAlert({ text: err });
+                alert(`Failed to load series.\n${err}`);
             })
             .finally(() => {
                 this.stopBusyIndicator();
