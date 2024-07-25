@@ -48,8 +48,13 @@ const APP_NAME = "Jaia Data Vision";
 
 const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" });
 
-// Convert from an ISO date string to microsecond UNIX timestamp
-function iso_date_to_micros(iso_date_string: string) {
+/**
+ * Convert from an ISO date string to UNIX timestamp in microseconds.
+ *
+ * @param {string} iso_date_string The date string to convert, in ISO date format.
+ * @returns {number} The UNIX timestamp in microseconds, or `null` if the conversion could not be made.
+ */
+function ISODateToMicros(iso_date_string: string) {
     const millis = Date.parse(iso_date_string);
     return isNaN(millis) ? null : millis * 1e3;
 }
@@ -461,7 +466,7 @@ class LogApp extends React.Component {
         if (range == null) {
             return [0, 2 ** 60];
         } else {
-            return range.map(iso_date_to_micros);
+            return range.map(ISODateToMicros);
         }
     }
 
@@ -573,7 +578,7 @@ class LogApp extends React.Component {
             let self = this;
             this.plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
                 let dateString = String(data.points[0].data.x[data.points[0].pointIndex]);
-                let date_timestamp_micros = iso_date_to_micros(dateString);
+                let date_timestamp_micros = ISODateToMicros(dateString);
                 self.map.updateToTimestamp(date_timestamp_micros);
                 self.setState({ t: date_timestamp_micros });
             });
@@ -596,8 +601,8 @@ class LogApp extends React.Component {
                     console.debug(`Plot relayout with eventdata:`);
                     console.debug(eventdata);
 
-                    const t0 = iso_date_to_micros(String(eventdata["xaxis.range[0]"]));
-                    const t1 = iso_date_to_micros(String(eventdata["xaxis.range[1]"]));
+                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"]));
+                    const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"]));
 
                     if (t0 == null || t1 == null) {
                         self.map.timeRange = null;
