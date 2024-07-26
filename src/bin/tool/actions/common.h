@@ -27,6 +27,13 @@
 
 #include "actions/net.pb.h"
 
+namespace jaiabot
+{
+namespace apps
+{
+namespace tool
+{
+
 inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
     if (host_code == "self")
@@ -135,3 +142,9 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
     }
     return "";
 }
+
+constexpr const char* tmp_authorized_keys_file = "/etc/jaiabot/ssh/tmp_authorized_keys";
+constexpr const char* perm_authorized_keys_file = "/home/jaia/.ssh/authorized_keys";
+} // namespace tool
+} // namespace apps
+} // namespace jaiabot

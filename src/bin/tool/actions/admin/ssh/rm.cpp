@@ -51,12 +51,23 @@ jaiabot::apps::admin::ssh::RemoveTool::RemoveTool()
 
     glog.is_debug1() && glog << "Sed pattern: " << sed_pattern << std::endl;
 
+    std::string authorized_keys_files;
+    if (app_cfg().has_authorized_keys_file())
+    {
+        authorized_keys_files = app_cfg().authorized_keys_file();
+    }
+    else
+    {
+        // default to remove from both tmp and perm
+        authorized_keys_files =
+            std::string() + tool::tmp_authorized_keys_file + " " + tool::perm_authorized_keys_file;
+    }
+
     // Run 'jaia ssh' with command to remove key from tmp_authorized_keys
     goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
     subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
-    subtool_cfg.add_extra_cli_param("sudo sed -i '" + sed_pattern + "' " +
-                                    app_cfg().authorized_keys_file());
+    subtool_cfg.add_extra_cli_param("sudo sed -i '" + sed_pattern + "' " + authorized_keys_files);
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,
                                              jaiabot::config::Tool::Action_descriptor());
 

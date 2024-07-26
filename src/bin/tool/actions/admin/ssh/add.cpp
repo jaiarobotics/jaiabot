@@ -79,7 +79,7 @@ jaiabot::apps::admin::ssh::AddTool::AddTool()
     {
         // default permanent keys to /home/jaia/.ssh/authorized_keys
         if (!app_cfg().has_authorized_keys_file())
-            authorized_keys_file = "/home/jaia/.ssh/authorized_keys";
+            authorized_keys_file = tool::perm_authorized_keys_file;
     }
     else
     {
