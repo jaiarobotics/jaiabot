@@ -108,9 +108,9 @@ jaiabot::apps::admin::ssh::AddTool::AddTool()
     goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
     subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
-    subtool_cfg.add_extra_cli_param(
-        "sudo sed -i '\\|" + pubkey.b64_key + "|d' " + authorized_keys_file + "; " + "echo '" +
-        pubkey.to_str() + "' | sudo tee -a " + app_cfg().authorized_keys_file() + "> /dev/null");
+    subtool_cfg.add_extra_cli_param("sudo sed -i '\\|" + pubkey.b64_key + "|d' " +
+                                    authorized_keys_file + "; " + "echo '" + pubkey.to_str() +
+                                    "' | sudo tee -a " + authorized_keys_file + "> /dev/null");
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,
                                              jaiabot::config::Tool::Action_descriptor());
 
