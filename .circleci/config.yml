@@ -170,7 +170,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "task/manufacturer-tmp-keys/jaia-1507"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -187,7 +186,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "1.y"
-        - "task/manufacturer-tmp-keys/jaia-1507"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
