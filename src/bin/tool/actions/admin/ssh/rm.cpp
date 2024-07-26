@@ -58,9 +58,10 @@ jaiabot::apps::admin::ssh::RemoveTool::RemoveTool()
     }
     else
     {
-        // default to remove from both tmp and perm
+        // default to remove from all authorized_keys files
         authorized_keys_files =
-            std::string() + tool::tmp_authorized_keys_file + " " + tool::perm_authorized_keys_file;
+            std::string() + tool::tmp_authorized_keys_file + " " + tool::perm_authorized_keys_file +
+            "  " + tool::root_authorized_keys_file + "  " + tool::hub_authorized_keys_file;
     }
 
     // Run 'jaia ssh' with command to remove key from tmp_authorized_keys

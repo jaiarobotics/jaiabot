@@ -143,8 +143,10 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
     return "";
 }
 
-constexpr const char* tmp_authorized_keys_file = "/etc/jaiabot/ssh/tmp_authorized_keys";
 constexpr const char* perm_authorized_keys_file = "/home/jaia/.ssh/authorized_keys";
+constexpr const char* tmp_authorized_keys_file = "/etc/jaiabot/ssh/tmp_authorized_keys";
+constexpr const char* hub_authorized_keys_file = "/etc/jaiabot/ssh/hub_authorized_keys";
+constexpr const char* root_authorized_keys_file = "/etc/jaiabot/ssh/root_authorized_keys";
 } // namespace tool
 } // namespace apps
 } // namespace jaiabot
