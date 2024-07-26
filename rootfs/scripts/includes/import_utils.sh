@@ -50,6 +50,7 @@ jaia_perm_authorized_keys=\$(cat << EOM
 ${ssh_keys}
 EOM
 )
+jaia_tmp_authorized_keys=
 
 #########################################################
 # Preseed jaiabot-embedded package debconf queries

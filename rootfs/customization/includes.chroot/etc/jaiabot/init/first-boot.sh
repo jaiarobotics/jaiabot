@@ -161,6 +161,7 @@ run_wt_inputbox jaia_perm_authorized_keys "SSH permanent authorized keys" \
             "Enter permanent authorized public SSH keys as formatted for .ssh/authorized_keys"
 perm_authorized_keys=${WT_TEXT}
 
+mkdir -p /home/jaia/.ssh
 cat << EOF >> /home/jaia/.ssh/authorized_keys
 ${perm_authorized_keys}
 EOF
