@@ -77,7 +77,7 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::ListTool,
                                         jaiabot::apps::admin::ssh::ListToolConfigurator>();
                 break;
-                
+
             case jaiabot::config::admin::SSHTool::clear:
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::ClearTool,
                                         jaiabot::apps::admin::ssh::ClearToolConfigurator>();

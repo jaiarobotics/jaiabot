@@ -4,7 +4,6 @@ import { ProjectionLike } from "ol/proj";
 
 const equirectangular = "EPSG:4326";
 
-
 /**
  * Transforms a depth contour GeoJSON string, document, buffer, or element into an array of OpenLayers geometries.
  *
@@ -35,7 +34,6 @@ export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojso
 
     return features;
 }
-
 
 /**
  * Transforms a GeoJSON string, document, buffer, or element into an array of OpenLayers geometries.

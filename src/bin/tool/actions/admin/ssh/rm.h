@@ -36,13 +36,13 @@ namespace admin
 {
 namespace ssh
 {
-
 class RemoveToolConfigurator
     : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::ssh::RemoveTool>
 {
   public:
     RemoveToolConfigurator(int argc, char* argv[])
-        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::ssh::RemoveTool>(argc, argv)
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::ssh::RemoveTool>(argc,
+                                                                                          argv)
     {
         auto& cfg = mutable_cfg();
     }

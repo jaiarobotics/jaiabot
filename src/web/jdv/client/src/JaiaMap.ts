@@ -413,7 +413,6 @@ export default class JaiaMap {
                 if (t > timeRange[0]) {
                     path.push(this.fromLonLat([lon, lat])); // API gives lat/lon, OpenLayers uses lon/lat
                 }
-
             }
 
             // const pathLineString = new LineString(path)
