@@ -2369,7 +2369,7 @@ export default class CommandControl extends React.Component {
             num: rallyNum,
             id: Math.random(),
             location: getGeographicCoordinate(coordinate, map),
-            disableDrag: true,
+            enableDrag: false,
         });
         rallyFeature.setStyle(getRallyStyle(rallyNum));
 
