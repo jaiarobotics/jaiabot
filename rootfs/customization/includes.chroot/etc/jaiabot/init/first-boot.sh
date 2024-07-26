@@ -166,6 +166,8 @@ cat << EOF >> /home/jaia/.ssh/authorized_keys
 ${perm_authorized_keys}
 EOF
 
+chown -R jaia:jaia /home/jaia/.ssh
+chown -R jaia:jaia /etc/jaiabot/ssh
 )
 
 echo "###############################################"
