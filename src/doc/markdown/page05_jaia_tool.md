@@ -36,9 +36,9 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page56_cl
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Finally, as a special case "CloudHub" can be referred to as `chfM` for fleet M.
+Finally, as a special case "CloudHub" can be referred to as `chfM` for fleet M, or "self" can be used to refer to the machine that `jaia` is being run on (that is, localhost).
 
-The regex for this host shorthand is `[bh][0-9]+[svc]?f[0-9]+|chf[0-9]+`.
+The regex for this host shorthand is `[bh][0-9]+[svc]?f[0-9]+|chf[0-9]+|self`.
 
 ## ip, ping, ssh
 

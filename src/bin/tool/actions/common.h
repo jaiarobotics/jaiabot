@@ -29,6 +29,9 @@
 
 inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
+    if (host_code == "self")
+        return "::1";
+
     std::regex host_pattern("([bh])([0-9]+)([svc]?)f([0-9]+)|(ch)f([0-9]+)");
     std::smatch host_matches;
 
