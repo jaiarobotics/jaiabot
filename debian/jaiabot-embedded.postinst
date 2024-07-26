@@ -170,6 +170,14 @@ else
   echo "jaiabot-status Alias already exists in /home/jaia/.bashrc"
 fi
 
+if ! grep -q "source /etc/jaiabot/runtime.env" /home/jaia/.bashrc; then
+  echo "source /etc/jaiabot/runtime.env" >> /home/jaia/.bashrc
+  echo "source runtime.env added to /home/jaia/.bashrc"
+else
+  echo "source runtime.env already exists in /home/jaia/.bashrc"
+fi
+
+
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 
 #DEBHELPER#
