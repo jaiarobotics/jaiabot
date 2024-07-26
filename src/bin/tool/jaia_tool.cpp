@@ -24,12 +24,12 @@
 #include <goby/middleware/application/interface.h>
 #include <goby/middleware/application/tool.h>
 
+#include "actions/admin.h"
 #include "actions/ctl.h"
+#include "actions/ip.h"
 #include "actions/ping.h"
 #include "actions/ssh.h"
 #include "actions/version.h"
-#include "actions/ip.h"
-#include "actions/admin.h"
 #include "config.pb.h"
 
 using goby::glog;
@@ -121,12 +121,10 @@ jaiabot::apps::Tool::Tool()
                             break;
 
                         case jaiabot::config::Tool::admin:
-                            tool_helper
-                                .help<jaiabot::apps::AdminTool, jaiabot::apps::AdminToolConfigurator>(
-                                    action_for_help);
+                            tool_helper.help<jaiabot::apps::AdminTool,
+                                             jaiabot::apps::AdminToolConfigurator>(action_for_help);
                             break;
-                            
-                            
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -169,7 +167,6 @@ jaiabot::apps::Tool::Tool()
                     .run_subtool<jaiabot::apps::AdminTool, jaiabot::apps::AdminToolConfigurator>();
                 break;
 
-                
             default:
                 throw(goby::Exception("Action was expected to be handled by external tool"));
                 break;
