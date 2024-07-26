@@ -33,7 +33,6 @@ namespace apps
 {
 namespace admin
 {
-
 class SSHToolConfigurator
     : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::SSHTool>
 {

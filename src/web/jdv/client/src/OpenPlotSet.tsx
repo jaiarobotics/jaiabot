@@ -53,8 +53,6 @@ export class OpenPlotSet extends React.Component {
             return row;
         });
 
-        console.log(plotSetItems);
-
         return (
             <div className="dialog">
                 <div className="dialogHeader">Open Plot Set</div>
