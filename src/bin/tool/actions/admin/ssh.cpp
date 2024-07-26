@@ -2,9 +2,9 @@
 
 #include "ssh.h"
 #include "ssh/add.h"
+#include "ssh/clear.h"
 #include "ssh/list.h"
 #include "ssh/rm.h"
-#include "ssh/clear.h"
 
 #include <boost/filesystem.hpp>
 
@@ -41,13 +41,12 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                                 action_for_help);
                             break;
 
-
                         case jaiabot::config::admin::SSHTool::clear:
                             tool_helper.help<jaiabot::apps::admin::ssh::ClearTool,
                                              jaiabot::apps::admin::ssh::ClearToolConfigurator>(
                                 action_for_help);
                             break;
-                            
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -70,7 +69,7 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::ListTool,
                                         jaiabot::apps::admin::ssh::ListToolConfigurator>();
                 break;
-                
+
             case jaiabot::config::admin::SSHTool::clear:
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::ClearTool,
                                         jaiabot::apps::admin::ssh::ClearToolConfigurator>();

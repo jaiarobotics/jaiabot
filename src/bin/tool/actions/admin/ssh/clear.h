@@ -35,7 +35,6 @@ namespace admin
 {
 namespace ssh
 {
-
 class ClearToolConfigurator
     : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::ssh::ClearTool>
 {
