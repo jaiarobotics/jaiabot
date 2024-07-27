@@ -3,8 +3,10 @@
 ##
 
 from queue import Queue
+from typing import *
 import threading
 import logging
+import bisect
 
 
 from common.time import utc_now_microseconds
@@ -22,6 +24,37 @@ class Data:
     # MetaData
     metadata = {}
 
+    # Task Packets
+    task_packets = []
+
+    def get_task_packets(self, start_date_microseconds: Union[int, None], end_date_microseconds: Union[int, None]):
+        """Gets a list of task packets occurring during a timespan.
+
+        Args:
+            start_date_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_date_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+
+        Returns:
+            List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
+        """
+        # Sort the task packets by dates
+        self.task_packets.sort(key=lambda task_packet: task_packet.start_time)
+
+        # bisect module doesn't have key functions till python 3.10!
+        start_times = [task_packet.start_time for task_packet in self.task_packets]
+
+        if start_date_microseconds is not None:
+            start_index = bisect.bisect_left(start_times, start_date_microseconds)
+        else:
+            start_index = 0
+
+        if end_date_microseconds is not None:
+            end_index = bisect.bisect_right(start_times, end_date_microseconds)
+        else:
+            end_index = len(self.task_packets)
+        
+        return self.task_packets[start_index:end_index]
+
     def process_portal_to_client_message(self, msg):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()
@@ -37,7 +70,7 @@ class Data:
         if msg.HasField('task_packet'):
             logging.info('Task packet received')
             packet = msg.task_packet
-            #self.process_task_packet(packet)
+            self.task_packets.append(packet)
 
         if msg.HasField('device_metadata'):
             self.metadata = msg.device_metadata
