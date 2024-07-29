@@ -60,13 +60,10 @@ def metadata(jaia_request):
 
     return jaia_response
 
-### NEEDs IMPLEMENTING
 def task_packets(jaia_request):
    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
    with common.shared_data.data_lock:
-        start_date_micros = iso_date_microseconds(jaia_request.task_packets.start_date)
-        end_date_micros = iso_date_microseconds(jaia_request.task_packets.end_date)
-        task_packets = common.shared_data.data.get_task_packets(start_date_micros, end_date_micros)
+        task_packets = common.shared_data.data.get_task_packets(jaia_request.task_packets.start_date, jaia_request.task_packets.end_date)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
 

@@ -9,9 +9,8 @@ package jaiabot.protobuf;
 
 message TaskPacketsRequest
 {
-    required string start_date = 1
-        [(jaia.field).rest_api.presence = GUARANTEED];
-    required string end_date = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    required uint64 start_date = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    required uint64 end_date = 2 [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message CommandResult
