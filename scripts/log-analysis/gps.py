@@ -7,6 +7,7 @@ import h5py
 import datetime
 import pytz
 import fnmatch 
+import re
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
@@ -283,6 +284,7 @@ def hdop_draw_summaries(summary, data, global_data, file_name):
 
     chart.suptitle(f'Bot {bot_id} HDOP Analysis\n{filename}', fontsize=16)
     
+    path, (ax3) = plt.subplots(figsize=(fig_width, fig_height))     
     ax3.scatter(final_data['Longitude'], final_data['Latitude'], c=final_data['Color'], s=1, alpha=0.5)
     ax3.scatter(cleaned_bot_data['bot_lon'], cleaned_bot_data['bot_lat'], c='green', s=1, alpha=0.5)
     ax3.set_title(f'Path of Bot {bot_id}\n{filename}')
@@ -363,7 +365,7 @@ def get_data(file_list, global_data):
         void
     """
     global filename
-    for filename in os.listdir(directory):
+    for filename in file_list:
         if filename.endswith('.h5'): 
             global lats
             global lons
@@ -384,21 +386,34 @@ def get_data(file_list, global_data):
 
         print(f'Analyzing {filename}')
 
-        with h5py.File(file_path, 'r') as file:
+        with h5py.File(filename, 'r') as file:
+
+            #print(filename)
+            groups = file.keys()
+
+            # Groups we're interested in
+            task_pattern = re.compile(r'jaiabot::task_packet;.')
+            status_pattern = re.compile(r'jaiabot::bot_status;.')
+
+            for group in groups:
+                if task_pattern.search(group):
+                    task_packet = file[group]
+                elif status_pattern.search(group):
+                    bot_status = file[group]
+
             tpv = file["/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity"] #Time, Position, Velocity data
             sky = file["/goby::middleware::groups::gpsd::sky/goby.middleware.protobuf.gpsd.SkyView"] #Sky view data
-            bot_status = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus"] #Bot_status data
-            bot_id = file["jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/bot_id"][0] #Bot ID of the current file
+            bot_id = bot_status["jaiabot.protobuf.BotStatus/bot_id"][0] #Bot ID of the current file
             desired_setpoints = file["jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints"] #Desired-setpoints data
 
             #Desried_setpoints data
             ds_utimes = np.array(desired_setpoints['_utime_'])
 
             #bot_status data
-            states = np.array(bot_status['mission_state'])
-            bot_utimes = np.array(bot_status['_utime_'])
-            bots_lats = np.array(bot_status['location/lat'])
-            bots_lons = np.array(bot_status['location/lon'])
+            states = np.array(bot_status['jaiabot.protobuf.BotStatus/mission_state'])
+            bot_utimes = np.array(bot_status['jaiabot.protobuf.BotStatus/_utime_'])
+            bots_lats = np.array(bot_status['jaiabot.protobuf.BotStatus/location/lat'])
+            bots_lons = np.array(bot_status['jaiabot.protobuf.BotStatus/location/lon'])
             bots_lats_series = pd.Series(bots_lats)
             bots_lons_series = pd.Series(bots_lons)
             bots_lats_series = bots_lats_series.rename('bot_lat')
