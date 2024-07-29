@@ -48,9 +48,15 @@ const APP_NAME = "Jaia Data Vision";
 
 const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" });
 
-// Convert from an ISO date string to microsecond UNIX timestamp
-function iso_date_to_micros(iso_date_string: string) {
-    return Date.parse(iso_date_string) * 1e3;
+/**
+ * Convert from an ISO date string to UNIX timestamp in microseconds.
+ *
+ * @param {string} iso_date_string The date string to convert, in ISO date format.
+ * @returns {number} The UNIX timestamp in microseconds, or `null` if the conversion could not be made.
+ */
+function ISODateToMicros(iso_date_string: string) {
+    const millis = Date.parse(iso_date_string);
+    return isNaN(millis) ? null : millis * 1e3;
 }
 
 interface LogAppProps {}
@@ -428,6 +434,11 @@ class LogApp extends React.Component {
         this.setState({ isBusy: false });
     }
 
+    /**
+     * Load the selected paths and update the interface.
+     *
+     * @param {string[]} pathArray An array of paths that the user selected.
+     */
     didSelectPaths(pathArray: string[]) {
         console.debug(`Selected paths: ${pathArray}`);
 
@@ -442,7 +453,7 @@ class LogApp extends React.Component {
                 }
             })
             .catch((err) => {
-                CustomAlert.presentAlert({ text: err });
+                alert(`Failed to load series.\n${err}`);
             })
             .finally(() => {
                 this.stopBusyIndicator();
@@ -455,7 +466,7 @@ class LogApp extends React.Component {
         if (range == null) {
             return [0, 2 ** 60];
         } else {
-            return range.map(iso_date_to_micros);
+            return range.map(ISODateToMicros);
         }
     }
 
@@ -494,9 +505,6 @@ class LogApp extends React.Component {
                     }
                 }
 
-                console.log("components");
-                console.log(components);
-
                 // Concat the components, with <br> if necessary
                 var lines: string[] = [];
                 var line = "";
@@ -522,9 +530,6 @@ class LogApp extends React.Component {
                 if (line.length > 0) {
                     lines.push(line);
                 }
-
-                console.log("lines");
-                console.log(lines);
 
                 return lines.join("<br>");
             }
@@ -567,7 +572,7 @@ class LogApp extends React.Component {
             let self = this;
             this.plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
                 let dateString = String(data.points[0].data.x[data.points[0].pointIndex]);
-                let date_timestamp_micros = iso_date_to_micros(dateString);
+                let date_timestamp_micros = ISODateToMicros(dateString);
                 self.map.updateToTimestamp(date_timestamp_micros);
                 self.setState({ t: date_timestamp_micros });
             });
@@ -587,11 +592,19 @@ class LogApp extends React.Component {
                         return;
                     }
 
-                    const t0 = iso_date_to_micros(String(eventdata["xaxis.range[0]"]));
-                    const t1 = iso_date_to_micros(String(eventdata["xaxis.range[1]"]));
+                    console.debug(`Plot relayout with eventdata:`);
+                    console.debug(eventdata);
 
-                    self.map.timeRange = [t0, t1];
-                    self.map.updatePath();
+                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"]));
+                    const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"]));
+
+                    if (t0 == null || t1 == null) {
+                        self.map.timeRange = null;
+                        self.map.updatePath();
+                    } else {
+                        self.map.timeRange = [t0, t1];
+                        self.map.updatePath();
+                    }
                 },
             );
         });

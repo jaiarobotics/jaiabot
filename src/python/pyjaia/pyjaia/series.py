@@ -5,7 +5,7 @@ import copy
 import bisect
 from typing import *
 from datetime import *
-import statistics
+import re
 
 from .time_range import *
 from .h5_tools import *
@@ -33,12 +33,54 @@ class Series:
         self.hovertext = {}
 
     @staticmethod
-    def loadFromH5File(log=None, path=None, scheme=1, invalid_values=set(), name="Untitled") -> "Series":
+    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=set(), name="Untitled") -> "Series":
+        """Load a Series object from a Jaia HDF5 log and a path.
+
+        Args:
+            log (h5py.File, optional): An HDF5 File object to load data from. Defaults to None.
+            path (str, optional): Path to the Jaia dataset to load. Defaults to None.
+            scheme (int, optional): The Goby transport scheme to filter out. Defaults to 1.
+            invalid_values (Set[Any], optional): A set of values to consider "invalid" and replace with None. Defaults to set().
+            name (str, optional): Name of the Series object. Defaults to "Untitled".
+
+        Raises:
+            Exception: When we cannot load the dataset array, or its _utime_ or _scheme_ arrays.
+
+        Returns:
+            Series: The Series object representing this data series.
+
+        Note:
+            If `path` contains a post-semicolon component, it will match any string beyond that point in the component.
+                For example:
+                    `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state` will match the path
+                    `jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state`
+        """
         series = Series(name)
 
         series.utime = []
         series.y_values = []
         series.hovertext = {}
+
+
+        # If this path contains a semi-colon-delimited integer, we want to use a fuzzy search in case that part is different in this log file
+        #   For example, the path 
+        #   "jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state" should match the path
+        #   "jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state"
+        match = re.search(r';.+?/', path)
+        if match:
+            pathRegExString = path.replace(match.group(0), r';.+?/')
+            pathRegEx = re.compile(pathRegExString)
+            matchedPath = log.visit(lambda name: name if pathRegEx.match(name) else None)
+            if matchedPath is None:
+                msg = f'RegEx {pathRegExString}, (from {path}) did not match any series in file {log.filename}'
+                logging.warning(msg)
+                raise Exception(msg)
+            
+            logging.info(f'Used a fuzzy search for')
+            logging.info(f'  {path} and found')
+            logging.info(f'  {matchedPath}')
+            path = matchedPath
+
 
         if log:
             try:
@@ -51,9 +93,14 @@ class Series:
 
                 series.utime, schemes, series.y_values = zip(*s)
             except (ValueError, KeyError) as e:
-                errorMessage = f'No valid data found for log: {log.filename}, series path: {path}, cause: {e}'
-                logging.warning(errorMessage)
-                raise Exception(errorMessage)
+                logging.warning(f'Exception: {e} {__file__} {e.__traceback__.tb_lineno}')
+                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
+                series.utime = []
+                series.schemes = []
+                series.y_values = []
+                series.hovertext = {}
+
+                return
 
             series.hovertext = h5_get_enum_map(log[path]) or {}
 

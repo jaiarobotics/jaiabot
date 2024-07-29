@@ -87,7 +87,6 @@ export class TaskData {
         });
     }
 
-    
     /**
      * Updates the task packet data store to the specified time range.
      *
@@ -260,7 +259,6 @@ export class TaskData {
         return taskCalcs;
     }
 
-    
     /**
      * Download a new contour plot GeoJSON feature set from the backend, with a new date range.
      *

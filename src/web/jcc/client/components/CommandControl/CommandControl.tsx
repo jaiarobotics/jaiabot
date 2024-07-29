@@ -1053,7 +1053,6 @@ export default class CommandControl extends React.Component {
         }
     }
 
-    
     /**
      * Polls the backend to download new task packets, if they exist.
      */
@@ -2370,7 +2369,7 @@ export default class CommandControl extends React.Component {
             num: rallyNum,
             id: Math.random(),
             location: getGeographicCoordinate(coordinate, map),
-            disableDrag: true,
+            enableDrag: false,
         });
         rallyFeature.setStyle(getRallyStyle(rallyNum));
 
