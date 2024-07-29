@@ -40,10 +40,10 @@ enum APIErrorCode
     API_ERROR__NO_ACTION_SPECIFIED = 12
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
+    API_ERROR__INVALID_TYPE = 13 [(jaia.ev).rest_api.presence = GUARANTEED];
+
     // Unimplemented
     API_ERROR__NOT_IMPLEMENTED = 20;
-    
-
 }
 
 message APIError

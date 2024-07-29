@@ -150,26 +150,33 @@ def parse_get_args(jaia_request_action, action_field_desc):
         if get_var is not None:
             if field.label == google.protobuf.descriptor.FieldDescriptor.LABEL_REPEATED:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Repeated fields are not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
-            
+                
             elif field.cpp_type in (field.CPPTYPE_INT32, 
                                     field.CPPTYPE_INT64,
                                     field.CPPTYPE_UINT32,
                                     field.CPPTYPE_UINT64):
-                setattr(jaia_request_action, field.name, int(get_var))
+                try:
+                    setattr(jaia_request_action, field.name, int(get_var))
+                except ValueError:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected integer value for field {field.name}, got "{get_var}"')
             elif field.cpp_type in (field.CPPTYPE_DOUBLE, 
                                     field.CPPTYPE_FLOAT):
-                setattr(jaia_request_action, field.name, float(get_var))
+                try:
+                    setattr(jaia_request_action, field.name, float(get_var))
+                except ValueError:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected floating point value for field {field.name}, got "{get_var}"')
             elif field.type == field.TYPE_ENUM:
                 enum_type = field.enum_type
                 if get_var in enum_type.values_by_name.keys():
                     setattr(jaia_request_action, field.name, enum_type.values_by_name[get_var].number)
                 else:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Invalid enum '" + get_var + " for field " + field.name + ". Valid options are: " + ", ".join(e for e in enum_type.values_by_name.keys()))
-
+                
             elif field.cpp_type == field.CPPTYPE_STRING:
                 setattr(jaia_request_action, field.name, get_var)                
             else:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
+                
     return (api_key_get, jaia_request_action)
 
 
