@@ -90,7 +90,7 @@ export class Interactions {
 
         this.translateInteraction = new Interaction.Translate({
             filter: function (feature) {
-                return !feature.get("disableDrag");
+                return feature.get("enableDrag");
             },
         });
     }
