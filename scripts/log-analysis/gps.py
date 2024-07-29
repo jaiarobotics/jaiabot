@@ -8,6 +8,7 @@ import datetime
 import pytz
 import fnmatch 
 import re
+from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
@@ -514,30 +515,16 @@ def get_data(file_list, global_data):
         all_hdop = []
         all_pdop = []    
 
-def get_files(dir_path, recursive):
-    """Gets all .h5 files in the dir_path if not recursive, and all of its subdirectories if recursive.
-    
-        Args:
-            dir_path (string): Path to the parent directory the user would like to search
-            recurisve (boolean): Whether the user input the -r (recursive) flag in their input
-            
-        Returns: 
-            files (list of strings): List of the paths of each file in the parent directory and/or subdirectory (Based on the value of 'recursive')
-    """
-    files = []
-
-    #If recursive, look for .h5 files in the current and all sub-directories
-    if recursive:
-        for root, dirnames, filenames in os.walk(dir_path):
-            for filename in fnmatch.filter(filenames, '*.h5'):
-                files.append(os.path.join(root, filename))
-    #If not recursive, then only look for .h5 files in the given directory
+def get_files(path, recursive):
+    if os.path.isdir(path):
+        if recursive:
+            return list(Path(path).rglob('*.h5'))
+        else:
+            return list(Path(path).glob('*.h5'))
+    elif os.path.isfile(path) and path.endswith('.h5'):
+        return [path]
     else:
-        for filename in os.listdir(dir_path):
-            if fnmatch.fnmatch(filename, '*.h5'):
-                files.append(os.path.join(dir_path, filename))
-
-    return files
+        print("File or Directory does not exist or File is not an h5. Try again.")
 
 def main():
     global bin_width
