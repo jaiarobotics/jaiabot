@@ -40,11 +40,15 @@ def print_markdown(content, output, raw=False):
     elif raw:
         print(content)
     else:
-        from rich.console import Console
-        from rich.markdown import Markdown
-        console = Console()
-        markdown = Markdown(content)
-        console.print(markdown)
+        try:
+            from rich.console import Console
+            from rich.markdown import Markdown
+            console = Console()
+            markdown = Markdown(content)
+            console.print(markdown)
+        except:
+            sys.stderr.write("Failed to load python.rich - make sure you have the module available. Generated --raw instead.\n")
+            print(content)            
 
 def print_markdown_file(file_path, output, raw=False):
     """Print the content of a markdown file using rich."""
