@@ -130,7 +130,7 @@ def generate_simple_variant(action):
         jaia_request_action = getattr(jaia_request, action_field_desc.name)
         for field in jaia_request_action.DESCRIPTOR.fields:
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-            if presence != jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
+            if presence != jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 continue
             elif field.label == google.protobuf.descriptor.FieldDescriptor.LABEL_REPEATED:
                 continue
@@ -198,18 +198,13 @@ def generate_full_variant(action):
 ### Full API Syntax (POST)
 
 """
-
-    oneof_selection=dict()
-    for oneof_name, oneof_desc in oneofs.items():
-        oneof_selection[oneof_name]=oneof_desc.fields[0].name
-
     def add_variant(jaia_request, action, oneof_selection):
         enums = introspect_and_populate(jaia_request, action, oneof_selection)
         
         jaia_request.api_key="<API_KEY_STRING>"
-        jaia_request.target.hubs.clear()
+        del jaia_request.target.hubs[:]
         jaia_request.target.hubs.append(1)
-        jaia_request.target.bots.clear()
+        del jaia_request.target.bots[:]
         for i in range(1,3):
             jaia_request.target.bots.append(i)
         jaia_request.target.all=False
@@ -235,16 +230,21 @@ Request JSON:
 """
         return variant
 
-    if oneof_selection:
-        for oneof_name, oneof_desc in oneofs.items():
-            for oneof_field in oneof_desc.fields:
-                presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-                if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
-                    oneof_selection[oneof_name]=oneof_field.name
-                    content += f"#### Variant: {oneof_name} = {oneof_field.name}\n"
-                    content += add_variant(jaia_request, action, oneof_selection)
-    else:
-        content += add_variant(jaia_request, action, oneof_selection)
+    oneof_selection=dict()
+    content += add_variant(jaia_request, action, oneof_selection)
+
+    for oneof_name, oneof_desc in oneofs.items():
+        oneof_selection[oneof_name]=oneof_desc.fields[0].name
+
+    for oneof_name, oneof_desc in oneofs.items():
+        for oneof_field in oneof_desc.fields:
+            presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
+            if presence == jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
+                oneof_selection[oneof_name]=oneof_field.name
+                content += f"#### Variant: {oneof_name} = {oneof_field.name}\n"
+                doc = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
+                content += f"{doc}\n"
+                content += add_variant(jaia_request, action, oneof_selection)
 
     return content
 
@@ -259,10 +259,6 @@ def generate_response(action):
 ### Response Syntax
 
 """
-
-    oneof_selection=dict()
-    for oneof_name, oneof_desc in oneofs.items():
-        oneof_selection[oneof_name]=oneof_desc.fields[0].name
 
     def add_variant(jaia_response, action, oneof_selection):
         enums = introspect_and_populate(jaia_response, action, oneof_selection)
@@ -294,16 +290,19 @@ Response JSON:
 """
         return variant
 
-    if oneof_selection:
-        for oneof_name, oneof_desc in oneofs.items():
-            for oneof_field in oneof_desc.fields:
-                presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-                if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
-                    oneof_selection[oneof_name]=oneof_field.name
-                    content += f"#### Variant: {oneof_name} = {oneof_field.name}\n"
-                    content += add_variant(jaia_response, action, oneof_selection)
-    else:
-        content += add_variant(jaia_response, action, oneof_selection)
+    oneof_selection=dict()
+    content += add_variant(jaia_response, action, oneof_selection)
+    
+    for oneof_name, oneof_desc in oneofs.items():
+        oneof_selection[oneof_name]=oneof_desc.fields[0].name
+
+    for oneof_name, oneof_desc in oneofs.items():
+        for oneof_field in oneof_desc.fields:
+            presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
+            if presence == jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
+                oneof_selection[oneof_name]=oneof_field.name
+                content += f"#### Variant: {oneof_name} = {oneof_field.name}\n"
+                content += add_variant(jaia_response, action, oneof_selection)
 
     return content
 
@@ -315,7 +314,7 @@ def add_enum(enums, enum_type):
     enums[enum_type.name]=list()
     for val, val_desc in enum_type.values_by_name.items():
         presence = val_desc.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.ev].rest_api.presence
-        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED or enum_type.full_name[0:4] == 'goby':
+        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED or enum_type.full_name[0:4] == 'goby':
             enums[enum_type.name].append((val, True))
         else:
             enums[enum_type.name].append((val, False))
@@ -345,7 +344,7 @@ def introspect_and_populate(message, action, oneof_selection):
         n_repeats = 2
         for field in msg.DESCRIPTOR.fields:
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-            if presence != jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
+            if presence != jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 continue
 
             if field.containing_oneof is not None:
@@ -353,7 +352,10 @@ def introspect_and_populate(message, action, oneof_selection):
                     if field.name != action:
                         continue
                 else:
-                    if oneof_selection[field.containing_oneof.name] != field.name:
+                    try:
+                        if oneof_selection[field.containing_oneof.name] != field.name:
+                            continue
+                    except:
                         continue
             
             if field.type == field.TYPE_MESSAGE:
