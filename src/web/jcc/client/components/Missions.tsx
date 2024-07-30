@@ -104,7 +104,7 @@ export class Missions {
      * @param speed {Speeds} The speeds to use for transit and station keep 
      * @returns {Command} This is the trail command that gets created
      */
-    static TrailMode(botId: number, contactId: number, datumLocation: GeographicCoordinate, speed: Speeds) {
+    static TrailMode(botId: number, contactId: number, datumLocation: GeographicCoordinate, speed: Speeds, range: number, angle: number) {
         let millisecondsSinceEpoch = new Date().getTime();
         let command: Command
         command = {
@@ -123,9 +123,9 @@ export class Missions {
                     contact: contactId,
                     angle_relative: true,
                     // relative to contact, so this would be directly behind.
-                    angle: 180,
+                    angle: angle,
                     // meters
-                    range: 50 
+                    range: range 
                 }
             }
         }

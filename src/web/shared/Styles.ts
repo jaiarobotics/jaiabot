@@ -213,7 +213,7 @@ export function contactMarker(feature: Feature): Style[] {
 
     const contactStatus = feature.get('contact') as ContactStatus
 
-    const heading = (contactStatus?.heading ?? 0.0) * DEG
+    const heading = (contactStatus?.heading_or_cog ?? 0.0) * DEG
 
     const headingDelta = angleToXY(heading)
 

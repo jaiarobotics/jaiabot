@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Icon from '@mdi/react'
 import { mdiClose } from '@mdi/js'
 
@@ -16,6 +16,11 @@ import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { CustomAlert } from './shared/CustomAlert';
 
+// Utilities
+import {
+    validateNumInput,
+} from "../../../shared/Utilities";
+
 interface Props {
     setVisiblePanel: (panelType: PanelType) => void,
     contact: ContactStatus,
@@ -27,6 +32,8 @@ let botAssigned = -1 as number
 
 export default function ContactInfoPanel(props: Props) {
     
+    const [trailRange, settrailRange] = useState(50);
+    const [trailAngle, settrailAngle] = useState(180);
 
     /**
      * Sends a trail command
@@ -34,6 +41,7 @@ export default function ContactInfoPanel(props: Props) {
      * @returns {void}
      */
     const handleTrailClick = () => {
+        console.log(props)
         let datumLocation = props.contact.location 
         let speed = GlobalSettings.missionPlanSpeeds
 
@@ -41,7 +49,7 @@ export default function ContactInfoPanel(props: Props) {
             datumLocation = {lat: 0, lon: 0}
         }
         
-        const botMission = Missions.TrailMode(botAssigned, props.contact?.contact, datumLocation, speed)
+        const botMission = Missions.TrailMode(botAssigned, props.contact?.contact, datumLocation, speed, trailRange, trailAngle)
 
         CustomAlert.confirm(`Are you sure you'd like bot: ` + botAssigned?.toString() 
             + ` to trail contact: ` + props.contact?.contact?.toString(), 
@@ -64,6 +72,30 @@ export default function ContactInfoPanel(props: Props) {
     const handleBotSelectionChange = (event: SelectChangeEvent) => {
         const newBotId = Number(event.target.value)
         botAssigned = newBotId
+    }
+
+    /**
+     * Updates the trail range value based on input changes
+     *
+     * @param {Event} evt Contains the trail range value (in meters)
+     * @returns {void}
+     */
+    const handleTrailRangeChange = (evt: Event) => {
+        const element = evt.target as HTMLInputElement;
+        const value = validateNumInput(Number(element.value));
+        settrailRange(value)
+    }
+
+    /**
+     * Updates the trail angle value based on input changes
+     *
+     * @param {Event} evt Contains the trail angle value (in degrees)
+     * @returns {void}
+     */
+    const handleTrailAngleChange = (evt: Event) => {
+        const element = evt.target as HTMLInputElement;
+        const value = validateNumInput(Number(element.value));
+        settrailAngle(value)
     }
 
     return (
@@ -91,6 +123,9 @@ export default function ContactInfoPanel(props: Props) {
                                     label="Assign"
                                     onChange={(evt: SelectChangeEvent) => handleBotSelectionChange(evt)}
                                 >
+                                    <MenuItem key={-1} value={-1}>
+                                        Unassigned
+                                    </MenuItem>
                                     {
                                         props.botIds.map((id) => {
                                             return <MenuItem key={id} value={id}>{`Bot-${id}`}</MenuItem>
@@ -99,6 +134,30 @@ export default function ContactInfoPanel(props: Props) {
                                 </Select>
                             </FormControl>
                         </Box>
+                        <div className="contact-info-label">Trail Range (m):</div>
+                        <div className="contact-info-input">
+                            <input
+                                className="contact-info-num-input"
+                                value={trailRange}
+                                name="trailRange"
+                                onChange={handleTrailRangeChange.bind(this)}
+                                min="0"
+                                max="500"
+                                step="1"
+                            />{" "}
+                        </div>
+                        <div className="contact-info-label">Trail Angle (&deg;):</div>
+                        <div className="contact-info-input">
+                            <input
+                                className="contact-info-num-input"
+                                value={trailAngle}
+                                name="trailAngle"
+                                onChange={handleTrailAngleChange.bind(this)}
+                                min="0"
+                                max="180"
+                                step="1"
+                            />{" "}
+                        </div>
                         <div className="contact-info-line-break"></div>
                         <button className="contact-info-btn" onClick={() => handleTrailClick()}>Trail Contact</button>
                     </div>

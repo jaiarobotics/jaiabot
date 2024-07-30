@@ -1214,5 +1214,5 @@ export interface ContactStatus {
     contact?: number,
     location: GeographicCoordinate,
     speed_over_ground?: number,
-    heading?: number
+    heading_or_cog?: number
 }

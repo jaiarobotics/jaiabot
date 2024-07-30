@@ -23,7 +23,7 @@ export class ContactLayers {
 
     constructor(map: Map) {
         this.map = map
-		this.zIndex = 3000
+		this.zIndex = 3005
 		this.contactGroup = new LayerGroup({
 			properties: { 
 				title: 'Contacts',

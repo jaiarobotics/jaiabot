@@ -108,6 +108,9 @@ class Interface:
     # Dict from bot_id => botStatus
     bots = {}
 
+    # Dict from contact_id => contact
+    contacts = {}
+
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 

@@ -60,6 +60,14 @@
     grid-column: 2 / 3;
     text-align: center;
   }
+
+  .contact-info-num-input {
+    all: unset;
+    width: 75px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    padding: 6px;
+}
   
   .contact-info-button-container {
     grid-column: 1 / 3;
