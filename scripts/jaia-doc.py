@@ -4,8 +4,6 @@ import os
 import sys
 import re
 import importlib.util
-from rich.console import Console
-from rich.markdown import Markdown
 import argparse
 
 md_name_replacements = [(r'^page\d+_', ''), ('\.md$', '')]
@@ -36,15 +34,16 @@ def list_generated_pages(directory):
 
 def print_markdown(content, output, raw=False):
     """Print the content as markdown using rich."""
-    console = Console()
-    markdown = Markdown(content)
-
     if output:
         with open(output, 'w') as file:
             file.write(content)
     elif raw:
         print(content)
     else:
+        from rich.console import Console
+        from rich.markdown import Markdown
+        console = Console()
+        markdown = Markdown(content)
         console.print(markdown)
 
 def print_markdown_file(file_path, output, raw=False):
