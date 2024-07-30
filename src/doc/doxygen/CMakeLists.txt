@@ -13,6 +13,7 @@ add_custom_command(
   COMMAND ${DOXYGEN_EXECUTABLE}
   ARGS ${CMAKE_BINARY_DIR}/src/doc/jaiabot.doxy
   DEPENDS ${CMAKE_BINARY_DIR}/src/doc/jaiabot.doxy
+  generated_markdown
   ${MD_FILES}
   ${project_goby_interfaces_figures}
   )

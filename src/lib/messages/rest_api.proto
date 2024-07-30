@@ -67,13 +67,26 @@ message APIRequest
 
     oneof action
     {
-        bool status = 11 [(jaia.field).rest_api.presence = GUARANTEED];
-        bool metadata = 12 [(jaia.field).rest_api.presence = GUARANTEED];
-        TaskPacketsRequest task_packets = 13
-            [(jaia.field).rest_api.presence = GUARANTEED];
-        Command command = 14 [(jaia.field).rest_api.presence = GUARANTEED];
-        CommandForHub command_for_hub = 15
-            [(jaia.field).rest_api.presence = GUARANTEED];
+        bool status = 11 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query the status of bots/hubs."
+        }];
+        bool metadata = 12 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query the metadata of the hub."
+        }];
+        TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query task packets from a given range of time."
+        }];
+        Command command = 14 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send a command to one or more bots."
+        }];
+        CommandForHub command_for_hub = 15 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send a command to the hub."
+        }];
     }
 }
 

@@ -170,6 +170,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
+        - "task/update-web-api-doc/jaia-1550"        
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds

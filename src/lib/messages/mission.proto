@@ -3,6 +3,7 @@ syntax = "proto2";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/gpsd.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
@@ -83,7 +84,7 @@ message BottomDepthSafetyParams
     option (dccl.msg) = {
         unit_system: "si"
     };
-    
+
     required double constant_heading = 1 [
         default = 0,
         (dccl.field) = {
@@ -278,42 +279,58 @@ message MissionPlan
 
     enum MissionStart
     {
-        START_IMMEDIATELY = 1;
-        START_ON_COMMAND = 2;
+        START_IMMEDIATELY = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        START_ON_COMMAND = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
         // START_IN_WATER_DETECT = 3;
         // START_AFTER_DELAY = 4;
     }
-    optional MissionStart start = 1 [default = START_ON_COMMAND];
+    optional MissionStart start = 1 [
+        default = START_ON_COMMAND,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     enum MovementType
     {
-        TRANSIT = 1;
-        REMOTE_CONTROL = 2;
+        TRANSIT = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        REMOTE_CONTROL = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
-    optional MovementType movement = 2 [default = TRANSIT];
+    optional MovementType movement = 2
+        [default = TRANSIT, (jaia.field).rest_api.presence = GUARANTEED];
 
     message Goal
     {
         optional string name = 1 [(dccl.field).omit = true];
-        required GeographicCoordinate location = 2;
-        optional MissionTask task = 3;
+        required GeographicCoordinate location = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        optional MissionTask task = 3
+            [(jaia.field).rest_api.presence = GUARANTEED];
         optional bool moveWptMode = 4;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 10];
+    repeated Goal goal = 3 [
+        (dccl.field).max_repeat = 10,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     message Recovery
     {
-        optional bool recover_at_final_goal = 1 [default = true];
-        optional GeographicCoordinate location = 2;
+        optional bool recover_at_final_goal = 1
+            [default = true, (jaia.field).rest_api.presence = GUARANTEED];
+        optional GeographicCoordinate location = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
     }
-    optional Recovery recovery = 4;
+    optional Recovery recovery = 4 [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional Speeds speeds = 5;
-    optional BottomDepthSafetyParams bottom_depth_safety_params = 6;
+    optional Speeds speeds = 5 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional BottomDepthSafetyParams bottom_depth_safety_params = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
     optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 3 }];
-    optional uint32 repeats = 9 [default = 1, (dccl.field) = {min: 1 max: 100 }];
+    optional uint32 repeats = 9 [
+        default = 1,
+        (jaia.field).rest_api.presence = GUARANTEED,
+        (dccl.field) = { min: 1 max: 100 }
+    ];
 }
 
 message IvPBehaviorUpdate

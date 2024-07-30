@@ -165,6 +165,11 @@ def parse_get_args(jaia_request_action, action_field_desc):
                     setattr(jaia_request_action, field.name, float(get_var))
                 except ValueError:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected floating point value for field {field.name}, got "{get_var}"')
+            elif field.cpp_type == field.CPPTYPE_BOOL:
+                try:
+                    setattr(jaia_request_action, field.name, bool(get_var))
+                except ValueError:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected boolean value for field {field.name}, got "{get_var}"')
             elif field.type == field.TYPE_ENUM:
                 enum_type = field.enum_type
                 if get_var in enum_type.values_by_name.keys():

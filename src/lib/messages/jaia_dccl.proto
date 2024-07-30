@@ -84,7 +84,7 @@ message Command
         MissionPlan plan = 20 [(jaia.field).rest_api.presence = GUARANTEED];
 
         // required for type == REMOTE_CONTROL_SETPOINT
-        RemoteControl rc = 30;
+        RemoteControl rc = 30 [(jaia.field).rest_api.presence = GUARANTEED];
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;

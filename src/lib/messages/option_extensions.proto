@@ -13,6 +13,7 @@ message RestAPI
         OMITTED = 2;
     }
     optional Presence presence = 1 [default = NOT_GUARANTEED];
+    optional string doc = 2;
 }
 
 message FieldOptions
