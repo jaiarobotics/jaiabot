@@ -304,6 +304,7 @@ export default class CommandControl extends React.Component {
             podStatus: {
                 bots: {},
                 hubs: {},
+                contacts: {},
                 controllingClientId: null,
             },
             podStatusVersion: 0,

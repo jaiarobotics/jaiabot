@@ -1,6 +1,6 @@
 import Stroke from "ol/style/Stroke";
 import { Feature } from "ol";
-import { Goal, HubStatus, TaskType } from "./JAIAProtobuf";
+import { Goal, HubStatus, TaskType, ContactStatus } from "./JAIAProtobuf";
 import { LineString, Point, Circle } from "ol/geom";
 import { fromLonLat } from 'ol/proj';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";
