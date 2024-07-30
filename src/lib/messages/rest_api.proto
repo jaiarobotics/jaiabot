@@ -1,0 +1,115 @@
+syntax = "proto2";
+
+import "jaiabot/messages/jaia_dccl.proto";
+import "jaiabot/messages/hub.proto";
+import "jaiabot/messages/metadata.proto";
+import "jaiabot/messages/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message TaskPacketsRequest
+{
+    required string start_date = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    required string end_date = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message CommandResult
+{
+    required bool command_sent = 1;
+}
+
+enum APIErrorCode
+{
+    // REST API URL errors
+    API_ERROR__UNSUPPORTED_API_VERSION = 1
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__INVALID_ACTION = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__TARGETS_STRING_MALFORMATTED = 3
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__ACTION_REQUIRES_JSON_POST_DATA = 4
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // Parse errors
+    API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON = 10
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // Missing fields
+    API_ERROR__REQUEST_NOT_INITIALIZED = 11
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__NO_ACTION_SPECIFIED = 12
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    API_ERROR__INVALID_TYPE = 13 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // Unimplemented
+    API_ERROR__NOT_IMPLEMENTED = 20;
+}
+
+message APIError
+{
+    required APIErrorCode code = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string details = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message APIRequest
+{
+    message Nodes
+    {
+        repeated int32 hubs = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+        repeated int32 bots = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+        optional bool all = 3
+            [default = false, (jaia.field).rest_api.presence = GUARANTEED];
+    }
+    required Nodes target = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string api_key = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+
+    oneof action
+    {
+        bool status = 11 [(jaia.field).rest_api.presence = GUARANTEED];
+        bool metadata = 12 [(jaia.field).rest_api.presence = GUARANTEED];
+        TaskPacketsRequest task_packets = 13
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        Command command = 14 [(jaia.field).rest_api.presence = GUARANTEED];
+        CommandForHub command_for_hub = 15
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+}
+
+message APIResponse
+{
+    message Nodes
+    {
+        repeated int32 hubs = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+        repeated int32 bots = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+    optional Nodes target = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    message Statuses
+    {
+        repeated BotStatus bots = 1
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        repeated HubStatus hubs = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+    message TaskPackets
+    {
+        repeated TaskPacket packets = 1
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+
+    oneof action
+    {
+        APIError error = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+        Statuses status = 11 [(jaia.field).rest_api.presence = GUARANTEED];
+        DeviceMetadata metadata = 12
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        TaskPackets task_packets = 13
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        CommandResult command_result = 14
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+
+    // copy of original request
+    required APIRequest request = 20;
+}
