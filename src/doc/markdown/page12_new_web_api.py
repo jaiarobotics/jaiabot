@@ -1,14 +1,12 @@
 import jaiabot.messages.rest_api_pb2
 import google.protobuf.json_format
+import json
+
 max_int32 = (2**31) - 1
 max_uint32 = (2**32) - 1
 max_int64 = (2**63) - 1
 max_uint64 = (2**64) - 1
 float_dummy = 1.2345
-    
-valid_actions={}
-for field in jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'].fields:
-    valid_actions[field.name]=field
 
 def generate():
     content = """
@@ -31,10 +29,11 @@ There are 2 variants of the API:
 The URL expected for the simple variant of the API is:
 
 ```
-https://fleet0.jaia.tech/jaia/v1/<action>/<target>?api_key=<API_KEY_STRING>&var1=val1&var2=val2
+https://fleet<N>.jaia.tech/jaia/v1/<action>/<target>?api_key=<API_KEY_STRING>&var1=val1&var2=val2
 ```
 
 Where:
+  - `fleet<N>` is the fleet to command
   - `<action>` is one of the specified actions (below)
   - `<target>` is the target bots and or hubs in the following format:
     - 'all' for all known bots and the hub (if relevant)
@@ -48,10 +47,10 @@ Where:
 The URL expected for the full variant of the API is:
 
 ```
-https://fleet0.jaia.tech/jaia/v1
+https://fleet<N>.jaia.tech/jaia/v1
 ```
 
-All data are expected to be sent as a POST request using the JSON formatted version of the APIRequest message as the POST variable 'json'. For example, to request status from all the bots you would POST the following to the above URL, for example using Python:
+All data are expected to be sent as a POST request using the JSON formatted version of the APIRequest message as the POST variable 'json'. For example, to request status from all the bots you would POST the following to the above URL, for example using Python to command Fleet0:
 
 
 ```
@@ -60,10 +59,11 @@ import requests
 
 jaia_request={"target": {"all": True}, "status": True, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}
 
-res = requests.post(f'https://fleet<N>.jaia.tech/jaia/v1', json=jaia_request)
+res = requests.post(f'https://fleet0.jaia.tech/jaia/v1', json=jaia_request)
 ```
 
-
+"""
+    content += f"""
 Key for placeholders: 
  - `<API_KEY_STRING>`: API Key string field
  - `<STRING>`: String field
@@ -73,13 +73,17 @@ Key for placeholders:
  - `{max_uint32}`: UInt32 field
  - `{max_int64}`: Int64 field
  - `{max_uint64}`: UInt64 field
-
-
-See the action documentation below for more details.
-
 """
-    for action in valid_actions:
-        content += generate_action(action)
+    
+
+    content += """
+See the action documentation below for more details.
+"""
+    
+    for field in jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'].fields:
+        content += generate_action(field.name)
+    for field in jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action'].fields:
+        content += generate_response_action(field.name)
     return content
 
 def generate_action(action):
@@ -87,7 +91,7 @@ def generate_action(action):
     doc = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
     
     content = f"""
-## Action: {action}
+## Request Action: {action}
 
 {doc}
 
@@ -97,6 +101,21 @@ def generate_action(action):
     content += generate_full_variant(action)
     
     return content
+
+def generate_response_action(action):
+    field = jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.fields_by_name[action]
+    doc = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
+    
+    content = f"""
+## Response Action: {action}
+
+{doc}
+
+"""
+    content += generate_response(action)
+    
+    return content
+
 
 def generate_simple_variant(action):
     get_vars=dict()
@@ -169,13 +188,10 @@ def generate_enum_str(enums):
         enum_str = 'Enumerations: \n\n' + enum_str
         
     return enum_str
-
-    
 def generate_full_variant(action):
     jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
 
     oneofs = discover_all_oneofs(jaia_request, action)
-    print(f'oneofs={oneofs}')
    
     
     content = f"""
@@ -187,8 +203,6 @@ def generate_full_variant(action):
     for oneof_name, oneof_desc in oneofs.items():
         oneof_selection[oneof_name]=oneof_desc.fields[0].name
 
-    print(oneof_selection)
-
     def add_variant(jaia_request, action, oneof_selection):
         enums = introspect_and_populate(jaia_request, action, oneof_selection)
         
@@ -196,29 +210,29 @@ def generate_full_variant(action):
         jaia_request.target.hubs.clear()
         jaia_request.target.hubs.append(1)
         jaia_request.target.bots.clear()
-        for i in range(1,6):
+        for i in range(1,3):
             jaia_request.target.bots.append(i)
         jaia_request.target.all=False
         
         # Convert the message to a dictionary
-        json = google.protobuf.json_format.MessageToDict(jaia_request)
+        request_json = google.protobuf.json_format.MessageToDict(jaia_request)
             
         enum_first_val=dict()
         for type,val_list in enums.items():
             enum_first_val[val_list[0][0]] = type
             # Replace certain dummy values
-            replace_dummy_values(json, enum_first_val)    
+            replace_dummy_values(request_json, enum_first_val)    
             
         enum_str = generate_enum_str(enums)
-            
+        
         variant=f"""
 {enum_str}
 
+Request JSON:
 ```
-jaia_request={json}
+{json.dumps(request_json, indent=2)}
 ```
 """
-        print(variant)
         return variant
 
     if oneof_selection:
@@ -234,13 +248,74 @@ jaia_request={json}
 
     return content
 
+    
+def generate_response(action):
+    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+
+    oneofs = discover_all_oneofs(jaia_response, action)
+   
+    
+    content = f"""
+### Response Syntax
+
+"""
+
+    oneof_selection=dict()
+    for oneof_name, oneof_desc in oneofs.items():
+        oneof_selection[oneof_name]=oneof_desc.fields[0].name
+
+    def add_variant(jaia_response, action, oneof_selection):
+        enums = introspect_and_populate(jaia_response, action, oneof_selection)
+        
+        jaia_response.target.hubs.clear()
+        jaia_response.target.hubs.append(1)
+        jaia_response.target.bots.clear()
+        for i in range(1,3):
+            jaia_response.target.bots.append(i)
+        
+        # Convert the message to a dictionary
+        response_json = google.protobuf.json_format.MessageToDict(jaia_response)
+            
+        enum_first_val=dict()
+        for type,val_list in enums.items():
+            enum_first_val[val_list[0][0]] = type
+            # Replace certain dummy values
+            replace_dummy_values(response_json, enum_first_val)    
+            
+        enum_str = generate_enum_str(enums)
+            
+        variant=f"""
+{enum_str}
+
+Response JSON:
+```
+{json.dumps(response_json, indent=2)}
+```
+"""
+        return variant
+
+    if oneof_selection:
+        for oneof_name, oneof_desc in oneofs.items():
+            for oneof_field in oneof_desc.fields:
+                presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
+                if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
+                    oneof_selection[oneof_name]=oneof_field.name
+                    content += f"#### Variant: {oneof_name} = {oneof_field.name}\n"
+                    content += add_variant(jaia_response, action, oneof_selection)
+    else:
+        content += add_variant(jaia_response, action, oneof_selection)
+
+    return content
+
+
+
 
 # enums is dictionary of enum type -> tuple of (value, is_guaranteed)
 def add_enum(enums, enum_type):
     enums[enum_type.name]=list()
     for val, val_desc in enum_type.values_by_name.items():
         presence = val_desc.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.ev].rest_api.presence
-        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED:
+        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.GUARANTEED or enum_type.full_name[0:4] == 'goby':
             enums[enum_type.name].append((val, True))
         else:
             enums[enum_type.name].append((val, False))
@@ -254,7 +329,7 @@ def discover_all_oneofs(message, action):
             if field.containing_oneof is not None and field.containing_oneof.name != 'action':
                 oneofs[field.containing_oneof.name] = field.containing_oneof
             if field.type == field.TYPE_MESSAGE:
-                if field.containing_oneof != jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'] or field.name == action:
+                if (field.containing_oneof != jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'] and field.containing_oneof != jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action']) or field.name == action:
                     discover_oneofs(field.message_type, action)
                     
     discover_oneofs(message.DESCRIPTOR, action) 
@@ -274,11 +349,10 @@ def introspect_and_populate(message, action, oneof_selection):
                 continue
 
             if field.containing_oneof is not None:
-                if field.containing_oneof == jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action']:
+                if field.containing_oneof == jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'] or field.containing_oneof == jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action']:
                     if field.name != action:
                         continue
                 else:
-                    print(f'{oneof_selection[field.containing_oneof.name]}, {field.name}')
                     if oneof_selection[field.containing_oneof.name] != field.name:
                         continue
             
@@ -311,8 +385,8 @@ def introspect_and_populate(message, action, oneof_selection):
                         getattr(msg, field.name).append(True)
                     elif field.cpp_type == field.CPPTYPE_ENUM:
                         add_enum(enums, field.enum_type)
-                        enum_value = msg.DESCRIPTOR.enum_types_by_name[field.enum_type.name].values[0].number
-                        getattr(msg.field.name).append(enum_value)
+                        enum_value = field.enum_type.values[0].number
+                        getattr(msg, field.name).append(enum_value)
                     
             else:
                 # Populate scalar fields with dummy values
@@ -332,7 +406,8 @@ def introspect_and_populate(message, action, oneof_selection):
                 elif field.cpp_type == field.CPPTYPE_BOOL:
                     setattr(msg, field.name, True)
                 elif field.cpp_type == field.CPPTYPE_ENUM:
-                    enum_value = msg.DESCRIPTOR.enum_types_by_name[field.enum_type.name].values[0].number
+
+                    enum_value = field.enum_type.values[0].number
                     setattr(msg, field.name, enum_value)
                     add_enum(enums, field.enum_type)
                     

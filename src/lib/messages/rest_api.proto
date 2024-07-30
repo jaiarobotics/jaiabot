@@ -16,7 +16,8 @@ message TaskPacketsRequest
 
 message CommandResult
 {
-    required bool command_sent = 1;
+    required bool command_sent = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 enum APIErrorCode
@@ -69,23 +70,23 @@ message APIRequest
     {
         bool status = 11 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Query the status of bots/hubs."
+            doc: "Query the status of bots/hubs. Expect a response of type 'status'."
         }];
         bool metadata = 12 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Query the metadata of the hub."
+            doc: "Query the metadata of the hub. Expect a response of type 'metadata'."
         }];
         TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Query task packets from a given range of time."
+            doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
         }];
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Send a command to one or more bots."
+            doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
         }];
         CommandForHub command_for_hub = 15 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Send a command to the hub."
+            doc: "Send a command to the hub. Expect a response of type 'command_result'."
         }];
     }
 }
@@ -113,14 +114,26 @@ message APIResponse
 
     oneof action
     {
-        APIError error = 10 [(jaia.field).rest_api.presence = GUARANTEED];
-        Statuses status = 11 [(jaia.field).rest_api.presence = GUARANTEED];
-        DeviceMetadata metadata = 12
-            [(jaia.field).rest_api.presence = GUARANTEED];
-        TaskPackets task_packets = 13
-            [(jaia.field).rest_api.presence = GUARANTEED];
-        CommandResult command_result = 14
-            [(jaia.field).rest_api.presence = GUARANTEED];
+        APIError error = 10 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Error with API Request. This can be sent in response to any failed Request action."
+        }];
+        Statuses status = 11 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Bot/Hub status. This is sent in response to a successful Request 'status' action."
+        }];
+        DeviceMetadata metadata = 12 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Metadata response. This is sent in response to a successful Request 'metadata' action."
+        }];
+        TaskPackets task_packets = 13 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Task packet response. This is sent in response to a successful Request 'task_packet' action."
+        }];
+        CommandResult command_result = 14 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
+        }];
     }
 
     // copy of original request
