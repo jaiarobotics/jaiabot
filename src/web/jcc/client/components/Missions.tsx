@@ -94,6 +94,42 @@ export class Missions {
         return command;
     }
 
+    /**
+     * This is a helper function for creating the trail command
+     * 
+     * @param {number} botId The bot the command is for
+     * @param {GeographicCoordinate} datumLocation The location to use for recovery
+     * @param {Speeds} speed The speeds to use for transit and station keep 
+     * @returns {Command} This is the trail command that gets created
+     */
+    static TrailMode(botId: number, datumLocation: GeographicCoordinate, speed: Speeds) {
+        let millisecondsSinceEpoch = new Date().getTime();
+        let command: Command
+        command = {
+            bot_id: botId,
+            time: millisecondsSinceEpoch,
+            type: CommandType.MISSION_PLAN,
+            plan: {
+                start: MissionStart.START_IMMEDIATELY,
+                movement: MovementType.TRAIL,
+                recovery: {
+                    recover_at_final_goal: false,
+                    location: datumLocation
+                },
+                speeds: speed,
+                trail: {
+                    contact: botId,
+                    angle_relative: true,
+                    // relative to contact, so this would be directly behind.
+                    angle: 180,
+                    // meters
+                    range: 50 
+                }
+            }
+        }
+        return command
+    }
+
     static commandWithWaypoints(botId: number, locations: GeographicCoordinate[]) {
         if (!Array.isArray(locations)) {
             locations = [locations];

@@ -702,6 +702,7 @@ export interface MissionPlan {
     fragment_index?: number;
     expected_fragments?: number;
     repeats?: number;
+    trail?: TrailParameters;
 }
 
 export interface TransitUpdate {
@@ -1207,4 +1208,11 @@ interface BotOffloadData {
     bot_id: number;
     data_offload_percentage?: number;
     offload_succeeded?: boolean;
+}
+
+export interface ContactStatus {
+    contact?: number,
+    location: GeographicCoordinate,
+    speed_over_ground?: number,
+    heading?: number
 }

@@ -2,7 +2,7 @@ import React from 'react'
 import Icon from '@mdi/react'
 import { mdiClose } from '@mdi/js'
 
-import { PanelType } from './CommandControl'
+import { PanelType } from './CommandControl/CommandControl'
 import '../style/components/ContactInfoPanel.css'
 import { ContactStatus } from './shared/JAIAProtobuf'
 import { Missions } from './Missions'
