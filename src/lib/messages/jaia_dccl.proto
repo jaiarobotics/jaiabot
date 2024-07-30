@@ -81,10 +81,10 @@ message Command
     oneof command_data
     {
         // required for type == MISSION_PLAN
-        MissionPlan plan = 20 [(jaia.field).rest_api.presence = GUARANTEED];
+        MissionPlan plan = 20  [(jaia.field).rest_api = { presence: GUARANTEED, doc: "Used with \"command\": { \"type\" : \"MISSION_PLAN\" }"}];
 
         // required for type == REMOTE_CONTROL_SETPOINT
-        RemoteControl rc = 30 [(jaia.field).rest_api.presence = GUARANTEED];
+        RemoteControl rc = 30 [(jaia.field).rest_api = { presence: GUARANTEED, doc: "Used with \"command\": { \"type\" : \"REMOTE_CONTROL_SETPOINT\" }"}];
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
