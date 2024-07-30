@@ -440,21 +440,11 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
 
 void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
-    // Start trying to enter command mode
-    try_enter_command_mode();
-}
-
-/**
- * @brief Keep trying to enter command mode until the expected result
- * 
- */
-void jaiabot::comms::XBeeDevice::try_enter_command_mode()
-{
     std::string buffer;
     std::string deliminiter = "";
     int timeout_seconds = 5;
     
-    //Triggers menu to appear for bypass
+    // Triggers menu to appear for bypass
     write("\r");
 
     this->async_read_with_timeout(
@@ -484,7 +474,7 @@ void jaiabot::comms::XBeeDevice::try_enter_command_mode()
                                     << "| ERROR Result Hex: " << convertToHex(result)
                                     << std::endl;
                     
-                    try_enter_command_mode();
+                    enter_command_mode();
                 } 
                 
             });
@@ -550,7 +540,7 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
 }
 
 /**
- * @brief Function to convert the string to hexadecimal format and return as a string
+ * @brief Function to convert the string to a hexadecimal formatted string
  * 
  * @param str String to convert into Hex
  * @return std::string Hex string
