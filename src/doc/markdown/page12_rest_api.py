@@ -263,9 +263,9 @@ def generate_response(action):
     def add_variant(jaia_response, action, oneof_selection):
         enums = introspect_and_populate(jaia_response, action, oneof_selection)
         
-        jaia_response.target.hubs.clear()
+        del jaia_response.target.hubs[:]
         jaia_response.target.hubs.append(1)
-        jaia_response.target.bots.clear()
+        del jaia_response.target.bots[:]
         for i in range(1,3):
             jaia_response.target.bots.append(i)
         
