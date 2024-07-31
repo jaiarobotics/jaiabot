@@ -542,7 +542,7 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
 /**
  * @brief Function to convert the string to a hexadecimal formatted string
  * 
- * @param str String to convert into Hex
+ * @param std::string String to convert into hex
  * @return std::string Hex string
  */
 std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str) 
