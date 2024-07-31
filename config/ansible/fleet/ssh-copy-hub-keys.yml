@@ -1,0 +1,67 @@
+---
+- name: Gather SSH public key from hubs (non-Yubikey mode - requires hubs to be present)
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  pre_tasks:
+    - name: Set facts
+      include_tasks: tasks/set-facts.yml
+      when: HUB_IS_PRESENT        
+  tasks:
+    - name: Gather keys
+      when: HUB_IS_PRESENT
+      block:
+        - include_tasks: tasks/set-facts.yml
+
+        - name: Slurp SSH public key
+          ansible.builtin.slurp:
+            src: "/media/root-ro{{ HUB_DEST_KEYFILE }}.pub"
+          register: hub_key_content
+
+        - name: Save SSH public key content in a fact
+          set_fact:
+            hub_ssh_pub_key: "{{ hub_key_content['content'] | b64decode | trim }}"
+          delegate_to: localhost
+
+- name: Determine active hubs
+  gather_facts: no
+  become: no
+  hosts: all
+  tasks:
+    - name: Active hubs fact
+      set_fact:
+        active_hubs: "{{ groups['hubs'] | intersect(ansible_play_batch) }}"
+
+- name: Distribute SSH public key to bots
+  hosts: bots
+  gather_facts: no
+  become: yes
+  tasks:
+    - include_tasks: tasks/set-facts.yml
+
+    - name: Remove all overlay files we are going to modify
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /media/root-rw/overlay/etc/jaiabot/ssh/sshd_config
+        - /media/root-rw/overlay/etc/ssh/sshd_config.d/jaia_sshd.conf        
+        - /media/root-rw/overlay/etc/jaiabot/ssh/hub_authorized_keys
+        - /media/root-rw/overlay/etc/jaiabot/ssh/root_authorized_keys
+        - /media/root-rw/overlay/etc/jaiabot/ssh/tmp_authorized_keys
+        
+    - name: Gather / copy keys read from Hubs
+      when: HUB_IS_PRESENT
+      include_tasks: tasks/bot-write-pubkey-from-hostvars.yml
+      loop: "{{ active_hubs }}"
+      loop_control:
+        loop_var: hub_inventory_name
+
+    - name: Copy Yubikey from stored directory (does not require Hub to be present)
+      when: not HUB_IS_PRESENT
+      include_tasks: tasks/bot-copy-yubikey.yml
+      loop: "{{ active_hubs }}"
+      loop_control:
+        loop_var: hub_inventory_name
+
+    - include_tasks: tasks/set-jaiabot-ssh-perms.yml

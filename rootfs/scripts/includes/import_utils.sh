@@ -68,7 +68,9 @@ EOF
     ## ROOTFS 
     sudo mount "${VBOX_MOUNT_PATH}/vol1" /mnt
     # install all host public keys as authorized_keys
+    sudo mkdir -p /mnt/home/jaia/.ssh
     cat $HOME/.ssh/*.pub | sudo tee /mnt/home/jaia/.ssh/authorized_keys   
+    sudo chown -R 1000:1000 /mnt/home/jaia/.ssh
     sudo umount /mnt
     
     sudo umount -l "${VBOX_MOUNT_PATH}"

@@ -10,7 +10,7 @@ import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../Layers";
 import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
 import { Missions } from "../Missions";
-import { taskData } from "../TaskPackets";
+import { TaskData, taskData } from "../TaskPackets";
 import { HubOrBot } from "../HubOrBot";
 import { createMap } from "../Map";
 import { BotLayers } from "../BotLayers";
@@ -113,6 +113,7 @@ import {
     mdiMagnifyPlusOutline,
     mdiMagnifyMinusOutline,
     mdiRotate3dVariant,
+    mdiDownloadMultiple,
 } from "@mdi/js";
 import "./CommandControl.less";
 
@@ -1052,6 +1053,9 @@ export default class CommandControl extends React.Component {
         }
     }
 
+    /**
+     * Polls the backend to download new task packets, if they exist.
+     */
     pollTaskPackets() {
         this.setTaskPacketDates();
         this.api
@@ -1066,14 +1070,11 @@ export default class CommandControl extends React.Component {
                     if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
                         end = this.state.taskPacketsTimeline.end as string;
                     }
-                    this.api
-                        .getTaskPackets(this.state.taskPacketsTimeline.start as string, end)
-                        .then((taskPackets) => {
-                            this.setTaskPackets(taskPackets);
-                            taskData.updateTaskPacketsLayers(taskPackets);
-                        })
-                        .catch((err) => {
-                            console.error("Task Packets Retrieval Error:", err);
+
+                    taskData
+                        .update(this.state.taskPacketsTimeline.start as string, end)
+                        .then(() => {
+                            this.setTaskPackets(taskData.taskPackets);
                         });
                 }
             })
@@ -2368,7 +2369,7 @@ export default class CommandControl extends React.Component {
             num: rallyNum,
             id: Math.random(),
             location: getGeographicCoordinate(coordinate, map),
-            disableDrag: true,
+            enableDrag: false,
         });
         rallyFeature.setStyle(getRallyStyle(rallyNum));
 
@@ -2570,15 +2571,9 @@ export default class CommandControl extends React.Component {
         let taskPacketsTimeline = { ...this.state.taskPacketsTimeline };
         // Reset TaskPackets to default time gap
         if (taskPacketsTimeline.isEditing) {
-            this.api
-                .getTaskPackets()
-                .then((taskPackets) => {
-                    this.setTaskPackets(taskPackets);
-                    taskData.updateTaskPacketsLayers(taskPackets);
-                })
-                .catch((err) => {
-                    console.error("Task Packets Retrieval Error:", err);
-                });
+            taskData.update().then(() => {
+                this.setTaskPackets(taskData.taskPackets);
+            });
             this.resetTaskPacketsTimeline(false);
         } else {
             // Trigger the calendar view to open
@@ -2628,16 +2623,9 @@ export default class CommandControl extends React.Component {
             end = taskPacketsTimeline.end as string;
         }
 
-        this.api
-            .getTaskPackets(taskPacketsTimeline.start as string, end)
-            .then((taskPackets) => {
-                this.setTaskPackets(taskPackets);
-                taskData.updateTaskPacketsLayers(taskPackets);
-                success("Getting Task Packets...");
-            })
-            .catch((err) => {
-                console.error("Task Packets Timeline Submission Error:", err);
-            });
+        taskData.update(taskPacketsTimeline.start as string, end).then(() => {
+            this.setTaskPackets(taskData.taskPackets);
+        });
 
         this.setState({ taskPacketsTimeline });
     }
@@ -2652,16 +2640,10 @@ export default class CommandControl extends React.Component {
         // Checkbox goes from unchecked to checked
         // Keep start but reset end to now (by passing no argument for endDate)
         if (!taskPacketsTimeline.keepEndDateCurrent) {
-            this.api
-                .getTaskPackets(taskPacketsTimeline.start as string)
-                .then((taskPackets) => {
-                    this.setTaskPackets(taskPackets);
-                    taskData.updateTaskPacketsLayers(taskPackets);
-                    this.resetTaskPacketsTimeline(true);
-                })
-                .catch((err) => {
-                    console.error("Task Packets Retrieval Error:", err);
-                });
+            taskData.update(taskPacketsTimeline.start as string).then(() => {
+                this.setTaskPackets(taskData.taskPackets);
+                this.resetTaskPacketsTimeline(true);
+            });
         } else {
             // Uncheck the checkbox
             taskPacketsTimeline.keepEndDateCurrent = false;
@@ -3121,6 +3103,9 @@ export default class CommandControl extends React.Component {
                     onClick={this.playClicked.bind(this)}
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
+                </Button>
+                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                    <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
                     <Icon path={mdiArrowULeftTop} title="Undo" />
@@ -4150,7 +4135,6 @@ export default class CommandControl extends React.Component {
                         downloadableBots={this.state.botDownloadQueue}
                         removeBotFromQueue={this.removeBotFromQueue.bind(this)}
                         getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
-                        processDownloadAllBots={this.processDownloadAllBots.bind(this)}
                     />
                 );
                 break;

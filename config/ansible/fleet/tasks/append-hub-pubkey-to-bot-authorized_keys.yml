@@ -1,0 +1,9 @@
+- name: Set yubikey touch settings
+  set_fact:
+    no_touch_string: "{{ 'no-touch-required ' if USE_YUBIKEY else '' }}"
+  
+- name: Append public key to authorized_keys
+  shell: |
+    {{ RO_ROOT_CMD }} mkdir -p /etc/jaiabot/ssh
+    {{ RO_ROOT_CMD }} sed -i "/{{ HUB_NAME }}/d" /etc/jaiabot/ssh/hub_authorized_keys
+    {{ RO_ROOT_CMD }} bash -c "echo -n '{{ no_touch_string }}' | cat - {{ HUB_DEST_KEYFILE }}.pub >> /etc/jaiabot/ssh/hub_authorized_keys"

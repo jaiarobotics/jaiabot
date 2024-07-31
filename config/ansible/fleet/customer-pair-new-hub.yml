@@ -1,0 +1,11 @@
+- name: Copy Hub keys from hub
+  import_playbook: ssh-copy-hub-keys.yml
+  vars:
+    HUB_IS_PRESENT: true
+    CONFIGURE_VIRTUALFLEET: false
+- name: Update hub known hosts and /etc/hosts
+  import_playbook: ssh-update-hubs.yml
+  vars:
+    CONFIGURE_VIRTUALFLEET: false
+    
+- import_playbook: ../reboot-all.yml
