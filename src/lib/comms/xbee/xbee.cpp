@@ -406,7 +406,6 @@ void jaiabot::comms::XBeeDevice::write(const string& raw)
     port->write_some(buffer(raw.c_str(), raw.size()));
     glog.is_debug2() && glog << group(glog_group) << "Wrote: " << raw << endl;
     glog.is_debug2() && glog << group(glog_group) << "  hex: " << hexadecimal(raw) << endl;
-    sleep(1);
 }
 
 string jaiabot::comms::XBeeDevice::read_until(const string& delimiter)
@@ -457,10 +456,20 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
                 if (result.find("B-Bypass") != std::string::npos || 
                         result == "timeout")
                 {
-                    // Send b to bypass
-                    write("b");
+                    // If bypass appears then send b to bypass
+                    if (result.find("B-Bypass") != std::string::npos) 
+                    {
+                        // Send b to bypass
+                        write("b");
+
+                        sleep(1);
+                    }
+                    
                     // Send +++ to enter command mode
                     write("+++");
+
+                    sleep(1);
+
                     // Wait for ok to proceed
                     read_until("OK\r");
                     // Stop io context to exit and continue
