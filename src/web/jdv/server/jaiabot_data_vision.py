@@ -131,14 +131,18 @@ def getMOOSMessages():
 
 @app.route('/depth-contours', methods=['GET'])
 def getDepthContours():
-    '''Get a GeoJSON of contours for the depth soundings in this mission'''
+    """Get a GeoJSON of contours for the depth soundings in this mission
+
+    Returns:
+        Response: A response containing the GeoJSON for the current depth contours.
+    """
     log_names = parseFilenames(request.args.get('log'))
 
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
     taskPackets = jaialogStore.getTaskPacketDicts(log_names)
-    return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
+    return JSONResponse(pyjaia.contours.taskPacketsToColorMap(taskPackets))
 
 
 @app.route('/interpolated-drifts', methods=['GET'])

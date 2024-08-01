@@ -1,0 +1,32 @@
+# Labels on branch name
+feature:
+  - head-branch: ['feature/*', 'feat/*']
+
+bug:
+  - head-branch: 'bug/*'
+
+task:
+  - head-branch: 'task/*'
+
+# Labels on changed files
+debian:
+  - changed-files:
+      - any-glob-to-any-file: 'debian/**'
+
+rootfs:
+  - changed-files:
+      - any-glob-to-any-file: 'rootfs/**'
+
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+circleci:
+  - changed-files:
+      - any-glob-to-any-file: '.circleci/**'
+
+systemd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'config/gen/systemd*'
+          - 'config/templates/systemd/**'
