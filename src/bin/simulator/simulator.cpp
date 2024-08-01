@@ -258,6 +258,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
                     tpv.mutable_location()->set_lat_with_units(location.lat_with_units());
                     tpv.mutable_location()->set_lon_with_units(location.lon_with_units());
+                    tpv.set_device(sim_cfg_.hub_gpsd_device());
                     interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 
                     // Publish a datum change
@@ -276,6 +277,7 @@ void jaiabot::apps::SimulatorTranslation::sim_hub_status()
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
     tpv.mutable_location()->set_lat(sim_cfg_.start_location().lat());
     tpv.mutable_location()->set_lon(sim_cfg_.start_location().lon());
+    tpv.set_device(sim_cfg_.hub_gpsd_device());
 
     interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 }

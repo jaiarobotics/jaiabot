@@ -186,7 +186,8 @@ elif common.app == 'goby_gps':
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common)) 
+                                     interprocess_block = interprocess_common,
+                                     hub_gpsd_device=common.hub.gpsd_device(node_id))) 
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
