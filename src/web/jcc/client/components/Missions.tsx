@@ -98,10 +98,12 @@ export class Missions {
     /**
      * This is a helper function for creating the trail command
      * 
-     * @param botId {number} The bot the command is for
-     * @param contactId {number} The contact to trail
-     * @param datumLocation {GeographicCoordinate} The location to use for recovery
-     * @param speed {Speeds} The speeds to use for transit and station keep 
+     * @param {number} botId The bot the command is for
+     * @param {number} contactId The contact to trail
+     * @param {GeographicCoordinate} datumLocation The location to use for recovery
+     * @param {Speeds} speed The speeds to use for transit and station keep 
+     * @param {number} range Relative distance to the contact to set the trail-point
+     * @param {number} angle Relative angle to the contact to set the trail-point
      * @returns {Command} This is the trail command that gets created
      */
     static TrailMode(botId: number, contactId: number, datumLocation: GeographicCoordinate, speed: Speeds, range: number, angle: number) {
