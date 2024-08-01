@@ -472,8 +472,10 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
 
                     // Wait for ok to proceed
                     read_until("OK\r");
+
                     // Stop io context to exit and continue
                     io->stop();
+                    
                     return;
                 }
                 else
