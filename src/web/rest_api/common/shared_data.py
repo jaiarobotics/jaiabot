@@ -9,6 +9,8 @@ import logging
 import bisect
 
 
+from common.time import utc_now_microseconds
+
 class Data:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -25,7 +27,7 @@ class Data:
     # Task Packets
     task_packets = []
 
-    def get_task_packets(self, start_date_microseconds: Union[int, None], end_date_microseconds: Union[int, None]):
+    def get_task_packets(self, bot_ids: Union[Iterable[int], None], start_date_microseconds: Union[int, None], end_date_microseconds: Union[int, None]):
         """Gets a list of task packets occurring during a timespan.
 
         Args:
@@ -38,8 +40,15 @@ class Data:
         # Sort the task packets by dates
         self.task_packets.sort(key=lambda task_packet: task_packet.start_time)
 
+        # Filter by bot_id if we got a set of bot_ids
+        if bot_ids is not None:
+            bot_ids_set = set(bot_ids)
+            filtered_task_packets = list(filter(lambda task_packet: task_packet.bot_id in bot_ids_set, self.task_packets))
+        else:
+            filtered_task_packets = self.task_packets
+
         # bisect module doesn't have key functions till python 3.10!
-        start_times = [task_packet.start_time for task_packet in self.task_packets]
+        start_times = [task_packet.start_time for task_packet in filtered_task_packets]
 
         if start_date_microseconds is not None:
             start_index = bisect.bisect_left(start_times, start_date_microseconds)
@@ -49,9 +58,9 @@ class Data:
         if end_date_microseconds is not None:
             end_index = bisect.bisect_right(start_times, end_date_microseconds)
         else:
-            end_index = len(self.task_packets)
+            end_index = len(filtered_task_packets)
         
-        return self.task_packets[start_index:end_index]
+        return filtered_task_packets[start_index:end_index]
 
     def process_portal_to_client_message(self, msg):
         if msg.HasField('bot_status'):

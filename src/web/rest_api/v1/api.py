@@ -6,7 +6,7 @@ import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
 
 import common.shared_data
-from common.time import utc_now_microseconds, iso_date_microseconds
+from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
 def process_request(jaia_request):
@@ -63,7 +63,12 @@ def metadata(jaia_request):
 def task_packets(jaia_request):
    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
    with common.shared_data.data_lock:
-        task_packets = common.shared_data.data.get_task_packets(jaia_request.task_packets.start_date, jaia_request.task_packets.end_date)
+        if jaia_request.target.all:
+            bot_ids = None
+        else:
+            bot_ids = jaia_request.target.bots
+
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_date, jaia_request.task_packets.end_date)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
 
