@@ -68,7 +68,7 @@ def task_packets(jaia_request):
         else:
             bot_ids = jaia_request.target.bots
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_date, jaia_request.task_packets.end_date)
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
 
