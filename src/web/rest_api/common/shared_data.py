@@ -9,8 +9,6 @@ import logging
 import bisect
 
 
-from common.time import utc_now_microseconds
-
 class Data:
     # Dict from hub_id => hubStatus
     hubs = {}
