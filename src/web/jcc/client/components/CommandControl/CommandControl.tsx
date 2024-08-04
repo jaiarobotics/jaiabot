@@ -116,6 +116,7 @@ import {
     mdiMagnifyPlusOutline,
     mdiMagnifyMinusOutline,
     mdiRotate3dVariant,
+    mdiDownloadMultiple,
 } from "@mdi/js";
 import "./CommandControl.less";
 
@@ -1066,7 +1067,6 @@ export default class CommandControl extends React.Component {
         }
     }
 
-    
     /**
      * Polls the backend to download new task packets, if they exist.
      */
@@ -2399,7 +2399,7 @@ export default class CommandControl extends React.Component {
             num: rallyNum,
             id: Math.random(),
             location: getGeographicCoordinate(coordinate, map),
-            disableDrag: true,
+            enableDrag: false,
         });
         rallyFeature.setStyle(getRallyStyle(rallyNum));
 
@@ -3133,6 +3133,9 @@ export default class CommandControl extends React.Component {
                     onClick={this.playClicked.bind(this)}
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
+                </Button>
+                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                    <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
                     <Icon path={mdiArrowULeftTop} title="Undo" />
@@ -4172,7 +4175,6 @@ export default class CommandControl extends React.Component {
                         downloadableBots={this.state.botDownloadQueue}
                         removeBotFromQueue={this.removeBotFromQueue.bind(this)}
                         getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
-                        processDownloadAllBots={this.processDownloadAllBots.bind(this)}
                     />
                 );
                 break;

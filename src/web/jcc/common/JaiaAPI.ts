@@ -161,7 +161,6 @@ export class JaiaAPI {
         return this.get(`jaia/task-packets-count`);
     }
 
-    
     /**
      * Get a set of depth contours from the backend in GeoJSON format.
      *

@@ -237,7 +237,15 @@ class JaialogStore:
 
 
     def getSeries(self, log_names: List[str], paths: List[str]):
-        '''Get a series'''
+        """Gets a list of series path datasets from a list of log names.
+
+        Args:
+            log_names (List[str]): List of log names.
+            paths (List[str]): List of paths to the datasets to load.
+
+        Returns:
+            List[Dict]: List of series dictionaries representing the series that were loaded.
+        """
 
         if log_names is None or paths is None:
             return []

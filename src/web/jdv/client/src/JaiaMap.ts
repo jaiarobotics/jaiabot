@@ -323,13 +323,19 @@ export default class JaiaMap {
         return taskPacketLayerGroup;
     }
 
+    /**
+     * Creates a layer for displaying depth contour information.
+     *
+     * @returns {VectorLayer<VectorSource<Geometry>>}
+     */
     createDepthContourLayer() {
         return new VectorLayer({
             properties: {
                 title: "Depth Contours",
             },
             source: this.depthContourVectorSource,
-            zIndex: 13,
+            opacity: 0.5,
+            zIndex: 6,
         });
     }
 
@@ -413,7 +419,6 @@ export default class JaiaMap {
                 if (t > timeRange[0]) {
                     path.push(this.fromLonLat([lon, lat])); // API gives lat/lon, OpenLayers uses lon/lat
                 }
-
             }
 
             // const pathLineString = new LineString(path)

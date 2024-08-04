@@ -253,6 +253,12 @@ if(install_motd)
   install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 endif()
 
+option(install_ssh_authorized_keys "Install SSH authorized keys to /etc/jaiabot/ssh" ON)
+if(install_ssh_authorized_keys)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/rootfs/customization/includes.chroot/etc/jaiabot/ssh DESTINATION /etc/jaiabot)
+endif()
+
+
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
 # for use by Docker build install
