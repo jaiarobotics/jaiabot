@@ -210,7 +210,7 @@ def generate_full_variant(action):
         jaia_request.target.all=False
         
         # Convert the message to a dictionary
-        request_json = google.protobuf.json_format.MessageToDict(jaia_request)
+        request_json = google.protobuf.json_format.MessageToDict(jaia_request, preserving_proto_field_name=True)
             
         enum_first_val=dict()
         for type,val_list in enums.items():
@@ -270,7 +270,7 @@ def generate_response(action):
             jaia_response.target.bots.append(i)
         
         # Convert the message to a dictionary
-        response_json = google.protobuf.json_format.MessageToDict(jaia_response)
+        response_json = google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True)
             
         enum_first_val=dict()
         for type,val_list in enums.items():
