@@ -388,5 +388,12 @@ if [ ! -z "$VIRTUALBOX" ]; then
     echo "Virtualbox OVA created at $OUTPUT_IMAGE_OVA, VDI created at $OUTPUT_IMAGE_VDI, img at $OUTPUT_IMAGE_IMG"
 else
     sudo chroot rootfs apt-get -y install linux-image-raspi
+
+    ## Run flash-kernel manually once as it will not run automatically in CHROOT / EFI
+    # Jammy flash-kernel checks for /sys/firmware/efi and bails
+    sudo umount "$ROOTFS_PARTITION"/sys
+    # Noble flash-kernel added FK_IGNORE_EFI
+    sudo chroot rootfs /bin/bash -c "export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
+    
     echo "Raspberry Pi image created at $OUTPUT_IMAGE_PATH"
 fi

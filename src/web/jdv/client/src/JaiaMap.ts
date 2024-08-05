@@ -323,13 +323,19 @@ export default class JaiaMap {
         return taskPacketLayerGroup;
     }
 
+    /**
+     * Creates a layer for displaying depth contour information.
+     *
+     * @returns {VectorLayer<VectorSource<Geometry>>}
+     */
     createDepthContourLayer() {
         return new VectorLayer({
             properties: {
                 title: "Depth Contours",
             },
             source: this.depthContourVectorSource,
-            zIndex: 13,
+            opacity: 0.5,
+            zIndex: 6,
         });
     }
 
@@ -352,6 +358,19 @@ export default class JaiaMap {
         this.timeRange = null;
         this.botIdToMapSeries = botIdToMapSeries;
         this.updatePath();
+    }
+
+    /**
+     * Compares the difference between two data points to catch outliers
+     *
+     * @param {number} prevPoint Used as baseline in comparison
+     * @param {number} currentPoint Data point that needs outlier checking
+     * @param {number} epsilon Sets the bounds on the outlier detection
+     *
+     * @returns {boolean} Whether or not an outlier is detected
+     */
+    checkOutlier(prevPoint: number, currentPoint: number, epsilon: number) {
+        return Math.abs(prevPoint - currentPoint) > epsilon;
     }
 
     updatePath() {
@@ -380,7 +399,9 @@ export default class JaiaMap {
             var endPt = null;
 
             for (const pt of ptArray) {
-                if (pt[1] == null || pt[2] == null) continue;
+                const lat = pt[1];
+                const lon = pt[2];
+                if (lat == null || lon == null) continue;
 
                 if (startPt == null) startPt = pt;
                 endPt = pt;
@@ -396,7 +417,7 @@ export default class JaiaMap {
                 }
 
                 if (t > timeRange[0]) {
-                    path.push(this.fromLonLat([pt[2], pt[1]])); // API gives lat/lon, OpenLayers uses lon/lat
+                    path.push(this.fromLonLat([lon, lat])); // API gives lat/lon, OpenLayers uses lon/lat
                 }
             }
 
@@ -464,14 +485,12 @@ export default class JaiaMap {
 
     updateToTimestamp(timestamp_micros: number) {
         this.timestamp = timestamp_micros;
-        // console.log('updateToTimestamp: ', timestamp_micros)
 
         this.updateBotMarkers(timestamp_micros);
         this.updateMissionLayer(timestamp_micros);
     }
 
     getTimestamp(): number {
-        // console.log('get timestamp', this.timestamp)
         return this.timestamp;
     }
 

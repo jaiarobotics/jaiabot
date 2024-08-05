@@ -3,26 +3,26 @@
   hosts: localhost
   gather_facts: no
   tasks:
-    - include_tasks: tasks/cloud-gen-node-map.yml
+    - include_tasks: tasks/gen-node-map.yml
 
     - name: Read cloud.env
-      include_tasks: tasks/cloud-read-env.yml
+      include_tasks: tasks/read-env.yml
       tags: read
 
     - name: Run fleet-config
-      include_tasks: tasks/cloud-run-fleet-config.yml
+      include_tasks: tasks/run-fleet-config.yml
 
     - name: Stop instances state
-      include_tasks: tasks/cloud-instance-state.yml
+      include_tasks: tasks/instance-state.yml
       vars: 
         - do_wait: true
         - desired_state: stopped
 
     - name: Start instances state
-      include_tasks: tasks/cloud-instance-state.yml
+      include_tasks: tasks/instance-state.yml
       vars: 
         - do_wait: true
         - desired_state: running
 
     - name: Wait for hosts
-      include_tasks: tasks/cloud-wait-hosts.yml
+      include_tasks: tasks/wait-hosts.yml
