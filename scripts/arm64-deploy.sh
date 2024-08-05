@@ -21,16 +21,25 @@ else
     exit 1
 fi
 
-echo "🟢 Creating python virtual environment (venv)"
 pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
-    /usr/bin/python3 -m venv venv/
-    source venv/bin/activate
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
     sudo mkdir -p /var/log/tmp
     sudo chmod a+rwx /var/log/tmp
     export TMPDIR=/var/log/tmp
+
+    echo "🟢 Creating python virtual environment (venv)"
+    /usr/bin/python3 -m venv venv/
+    source venv/bin/activate
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
+
+    echo "🟢 Creating minimal python virtual environment (minimal_venv)"
+    /usr/bin/python3 -m venv minimal_venv/
+    source minimal_venv/bin/activate
+    python3 -m pip -q install wheel
+    python3 -m pip install -q ./pyjaiaprotobuf
+
+    # Cleanup
     sudo rm -rf /var/log/tmp
 popd
 
