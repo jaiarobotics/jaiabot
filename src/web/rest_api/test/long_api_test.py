@@ -15,9 +15,14 @@ except KeyError:
 parser = argparse.ArgumentParser(description="Parse API host and port from command line.")
 parser.add_argument('--api_host', type=str, default="127.0.0.1", help='The API host')
 parser.add_argument('--api_port', type=int, default=9092, help='The API port')
+parser.add_argument('--https', action='store_true', help='Use HTTPS')
+parser.add_argument('--https-skip-verify', action='store_true', help='Skip https verification')
 
 args = parser.parse_args()
-    
+
+verify=True
+if args.https_skip_verify:
+    verify=False
     
 def is_subset(subset, superset):
     """
@@ -39,12 +44,16 @@ def is_subset(subset, superset):
 
 def run_request(url_path, get_vars='', post_json='', expected_response_subset=dict()):
 
-    base_url=f'http://{args.api_host}:{args.api_port}/jaia/v1'
+    http='http'
+    if args.https or args.api_port == 443:
+        http='https'
+        
+    base_url=f'{http}://{args.api_host}:{args.api_port}/jaia/v1'
     url = base_url + url_path
     if get_vars:
         print("#### GET REQUEST ####")
         print(url + get_vars)
-        res = requests.get(url + get_vars)
+        res = requests.get(url + get_vars, verify=verify)
         assert(res.ok)
         print("#### GET RESPONSE ####")
         print(json.dumps(res.json()))
@@ -54,7 +63,7 @@ def run_request(url_path, get_vars='', post_json='', expected_response_subset=di
         print("#### POST REQUEST ####")
         print(url)
         print(json.dumps(post_json))
-        res = requests.post(url, json = post_json)
+        res = requests.post(url, json = post_json, verify=verify)
         assert(res.ok)
         print("#### POST RESPONSE ####")
         print(json.dumps(res.json()))
