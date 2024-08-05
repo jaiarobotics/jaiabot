@@ -217,7 +217,7 @@ def is_omitted(parts, descriptor):
     else: 
         field = descriptor.fields_by_name[parts[0]]
         presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.OMITTED:
+        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.OMITTED:
             return True
         else:
             return is_omitted(parts[1:], field.message_type)
@@ -231,7 +231,7 @@ def check_api_key(key):
 def main():
     streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
     streaming_thread.start()
-    app.run(host='127.0.0.1', port=args.bindPort, debug=False)
+    app.run(host='0.0.0.0', port=args.bindPort, debug=False)
     
 if __name__ == '__main__':
     main()
