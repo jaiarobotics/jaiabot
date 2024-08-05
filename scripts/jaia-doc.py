@@ -5,15 +5,16 @@ import sys
 import re
 import importlib.util
 import argparse
+import gzip
 
-md_name_replacements = [(r'^page\d+_', ''), ('\.md$', '')]
+md_name_replacements = [(r'^page\d+_', ''), ('\.md$', ''), ('\.md\.gz$', '')]
 path_name_replacements = [('\.py$', '.md')]
-
 
 def list_markdown_files(directory):
     """List all markdown files in the given directory."""
     files = [f for f in os.listdir(directory) if f.endswith('.md')]
-    return files
+    gzipped_files=[f for f in os.listdir(directory) if f.endswith('.md.gz')]
+    return files + gzipped_files
 
 
 def list_generated_pages(directory):
@@ -33,7 +34,7 @@ def list_generated_pages(directory):
     return pages
 
 def print_markdown(content, output, raw=False):
-    """Print the content as markdown using rich."""
+    """Print the content as markdown to output file or stdout using rich (if installed)."""
     if output:
         with open(output, 'w') as file:
             file.write(content)
@@ -51,9 +52,13 @@ def print_markdown(content, output, raw=False):
             print(content)            
 
 def print_markdown_file(file_path, output, raw=False):
-    """Print the content of a markdown file using rich."""
-    with open(file_path, 'r') as file:
-        content = file.read()
+    """Print the content of a markdown file."""
+    if file_path.endswith('.gz'):
+        with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+            content = f.read()
+    else:
+        with open(file_path, 'r') as f:
+            content = f.read()
     print_markdown(content, output, raw)
     
 def main():
