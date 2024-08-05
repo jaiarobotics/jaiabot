@@ -27,26 +27,30 @@ def status(jaia_request):
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             for bot_id,bot_status in common.shared_data.data.bots.items():
-                jaia_response.status.bots.append(bot_status)
+                jaia_response.status.bots.extend([bot_status])
                 jaia_response.target.bots.append(bot_id)
 
             for hub_id,hub_status in common.shared_data.data.hubs.items():
-                jaia_response.status.hubs.append(hub_status)
+                jaia_response.status.hubs.extend([hub_status])
                 jaia_response.target.hubs.append(hub_id)
         else:
             for bot_id in jaia_request.target.bots:
                 if bot_id in common.shared_data.data.bots.keys():
-                    jaia_response.status.bots.append(common.shared_data.data.bots[bot_id])
+                    jaia_response.status.bots.extend([common.shared_data.data.bots[bot_id]])
                     jaia_response.target.bots.append(bot_id)
                 else: # empty bot status to indicate we haven't heard from this bot
-                    jaia_response.status.bots.append(jaiabot.messages.jaia_dccl_pb2.BotStatus(bot_id=bot_id, time=0))
+                    empty = jaia_response.status.bots.add()
+                    empty.bot_id=bot_id
+                    empty.time=0
 
             for hub_id in jaia_request.target.hubs:
                 if hub_id in common.shared_data.data.hubs.keys():
-                    jaia_response.status.hubs.append(common.shared_data.data.hubs[hub_id])
+                    jaia_response.status.hubs.extend([common.shared_data.data.hubs[hub_id]])
                     jaia_response.target.hubs.append(hub_id)
                 else: # empty bot status to indicate we haven't heard from this bot
-                    jaia_response.status.hubs.append(jaiabot.messages.hub_pb2.HubStatus(hub_id=hub_id, time=0))
+                    empty = jaia_response.status.hubs.add()
+                    empty.bot_id=bot_id
+                    empty.time=0
     return jaia_response
 
 def metadata(jaia_request):
@@ -55,7 +59,7 @@ def metadata(jaia_request):
     with common.shared_data.data_lock:
         if common.shared_data.data.hubs:
             # we only currently store metadata for a single hub
-            jaia_response.target.hubs.append(list(common.shared_data.data.hubs)[0])
+            jaia_response.target.hubs.extend([list(common.shared_data.data.hubs)[0]])
             jaia_response.metadata.CopyFrom(common.shared_data.data.metadata)
 
     return jaia_response

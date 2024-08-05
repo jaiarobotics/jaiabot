@@ -1,46 +1,69 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
 message XbeeInfo
 {
-    optional string node_id = 1 [default = "Not Available"];
-    optional string serial_number = 2 [default = "Not Available"];
+    optional string node_id = 1 [
+        default = "Not Available",
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional string serial_number = 2 [
+        default = "Not Available",
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }
 
 message DeviceMetadata
 {
-    optional string name = 1;
+    optional string name = 1 [(jaia.field).rest_api.presence = GUARANTEED];
 
     message Version
     {
-        required string major = 1;
-        required string minor = 2;
-        required string patch = 3;
-        optional string git_hash = 4;
-        optional string git_branch = 5;
-        optional string deb_repository = 6;
-        optional string deb_release_branch = 7;
+        required string major = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+        required string minor = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+        required string patch = 3 [(jaia.field).rest_api.presence = GUARANTEED];
+        optional string git_hash = 4
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        optional string git_branch = 5
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        optional string deb_repository = 6
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        optional string deb_release_branch = 7
+            [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
-    optional Version jaiabot_version = 2;
-    optional string goby_version = 3;
-    optional string moos_version = 4;
+    optional Version jaiabot_version = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string goby_version = 3
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string moos_version = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional string ivp_version = 5;
+    optional string ivp_version = 5
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional string xbee_node_id = 6;
-    optional string xbee_serial_number = 7;
+    optional string xbee_node_id = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string xbee_serial_number = 7
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional string raspi_firmware_version = 8;
-    optional string jaiabot_image_version = 9;
-    optional string jaiabot_image_build_date = 10;
-    optional string jaiabot_image_first_boot_date = 11;
+    optional string raspi_firmware_version = 8
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string jaiabot_image_version = 9
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string jaiabot_image_build_date = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string jaiabot_image_first_boot_date = 11
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional uint32 intervehicle_api_version = 12;
-    optional bool is_simulation = 13;
+    optional uint32 intervehicle_api_version = 12
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional bool is_simulation = 13
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message QueryDeviceMetaData

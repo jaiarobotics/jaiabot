@@ -170,6 +170,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
+        - "feature/app-for-api/jaia-1460"        
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
