@@ -29,3 +29,13 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
         ./venv/bin/pip install -q wheel
         ./venv/bin/pip install -q -r requirements.txt
     popd > /dev/null
+
+# Build the venv
+echo 🟢 Building the minimal \(protobuf message only\) python venv into ${TARGET_DIR}
+
+    # Create the venv
+    pushd ${TARGET_DIR} > /dev/null
+        python3 -m venv minimal_venv --system-site-packages
+        ./minimal_venv/bin/pip install -q wheel
+        ./minimal_venv/bin/pip install -q ./pyjaiaprotobuf
+    popd > /dev/null
