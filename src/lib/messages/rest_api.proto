@@ -9,7 +9,8 @@ package jaiabot.protobuf;
 
 message TaskPacketsRequest
 {
-    required uint64 start_time = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    required uint64 start_time = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
     required uint64 end_time = 2 [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
@@ -29,6 +30,7 @@ enum APIErrorCode
         [(jaia.ev).rest_api.presence = GUARANTEED];
     API_ERROR__ACTION_REQUIRES_JSON_POST_DATA = 4
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__INVALID_TARGET = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // Parse errors
     API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON = 10
@@ -86,6 +88,10 @@ message APIRequest
         TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
+            example {
+                request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
+            }
         }];
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
