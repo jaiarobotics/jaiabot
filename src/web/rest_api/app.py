@@ -51,6 +51,7 @@ valid_actions={}
 for field in jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'].fields:
     valid_actions[field.name]=field
     
+@app.route("/v<int:version>", methods=['POST'])
 @app.route("/jaia/v<int:version>", methods=['POST'])
 def jaia_api_short(version):
     jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
@@ -79,6 +80,7 @@ def jaia_api_short(version):
     return finalize_response(jaia_response, jaia_request)
 
 
+@app.route("/v<int:version>/<string:action>/<string:target_str>", methods=['GET', 'POST'])
 @app.route("/jaia/v<int:version>/<string:action>/<string:target_str>", methods=['GET', 'POST'])
 def jaia_api_long(version, action, target_str):
     jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
@@ -228,9 +230,11 @@ def check_api_key(key):
     else:
         return key == api_key
 
+
+streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
+streaming_thread.start()
+
 def main():
-    streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
-    streaming_thread.start()
     app.run(host='0.0.0.0', port=args.bindPort, debug=False)
     
 if __name__ == '__main__':
