@@ -1,5 +1,2 @@
-messages/
 build/
 *.egg-info/
-dccl/
-goby/
