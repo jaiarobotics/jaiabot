@@ -246,6 +246,26 @@ Request JSON:
                 content += f"{doc}\n"
                 content += add_variant(jaia_request, action, oneof_selection)
 
+                
+    field = jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.fields_by_name[action]
+    ex_req = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.example.request
+    ex_resp = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.example.response
+
+    if ex_req and ex_resp:
+        content += f"""
+### Full API Example
+
+Request JSON:
+```
+{json.dumps(json.loads(ex_req), indent=2)}
+```
+
+Response JSON:
+```
+{json.dumps(json.loads(ex_resp), indent=2)}
+```
+"""
+                
     return content
 
     
@@ -277,6 +297,8 @@ def generate_response(action):
             enum_first_val[val_list[0][0]] = type
             # Replace certain dummy values
             replace_dummy_values(response_json, enum_first_val)    
+
+        response_json["request"] = {'copy of original request': '...'}
             
         enum_str = generate_enum_str(enums)
             

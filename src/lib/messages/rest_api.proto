@@ -71,10 +71,18 @@ message APIRequest
         bool status = 11 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query the status of bots/hubs. Expect a response of type 'status'."
+            example {
+                request: '{"api_key": "4vS6s2jnulxVjrKSB-__tQ", "status": true, "target": {"all": true}}'
+                response: '{"request":{"status":true,"target":{"all":true}},"status":{"bots":[{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":1,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":0.25,"health_state":"HEALTH__OK","location":{"lat":41.657645,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":2.07,"received_time":"1722893284636801","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.06,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100},{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":2,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":1.03,"health_state":"HEALTH__OK","location":{"lat":41.65765,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":1.47,"received_time":"1722893284635458","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.04,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100}],"hubs":[{"bot_ids_in_radio_file":[1,2],"fleet_id":0,"health_state":"HEALTH__OK","hub_id":1,"linux_hardware_status":{"wifi":{"is_connected":true,"link_quality":70,"link_quality_percentage":100,"noise_level":0,"signal_level":33}},"location":{"lat":41.66268,"lon":-71.273018},"received_time":"1722893284552504","time":"8614394422756020"}]},"target":{"bots":[1,2],"hubs":[1]}}'
+            }
         }];
         bool metadata = 12 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query the metadata of the hub. Expect a response of type 'metadata'."
+            example {
+                request: '{ "target": {"all": true },"metadata": true, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"metadata": {"goby_version": "3.1.5a", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu22.04.1", "jaiabot_image_build_date": "Wed 20 Dec 2023 02:28:56 AM UTC", "jaiabot_image_first_boot_date": "Wed Dec 20 15:53:29 UTC 2023", "jaiabot_image_version": "1.0.0~alpha1+130+gea8f449", "jaiabot_version": {"git_branch": "task/update-web-api-doc/jaia-1550", "git_hash": "f8a56c0cf9501b9022cc16d99eb25d81a46c90cf-dirty", "major": "1", "minor": "11", "patch": "0+0+gf8a56c0c-dirty"}, "moos_version": "10.4.0", "name": "aubergine", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "metadata": true, "target": {"all": true}}, "target": {"hubs": [1]}}'
+            }
         }];
         TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
@@ -83,10 +91,18 @@ message APIRequest
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
+            example {
+                request: '{"target": {"all": true}, "command": {"type": "STOP"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command": {"bot_id": 1, "time": "1722895468966813", "type": "STOP"}, "target": {"all": true}}, "target": {"bots": [2, 1]}}'
+            }
         }];
         CommandForHub command_for_hub = 15 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to the hub. Expect a response of type 'command_result'."
+            example {
+                request: '{"target": {"all": true}, "command_for_hub": {"type": "SET_HUB_LOCATION", "hub_location": {"lat": 41.7, "lon": -70.3}}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
+            }
         }];
     }
 }
@@ -137,5 +153,6 @@ message APIResponse
     }
 
     // copy of original request
-    required APIRequest request = 20;
+    required APIRequest request = 20
+        [(jaia.field).rest_api = { presence: GUARANTEED }];
 }

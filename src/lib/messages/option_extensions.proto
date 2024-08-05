@@ -14,7 +14,12 @@ message RestAPI
     }
     optional Presence presence = 1 [default = NOT_GUARANTEED];
     optional string doc = 2;
-        
+    message Example
+    {
+        required string request = 1;
+        required string response = 2;
+    }
+    optional Example example = 3;
 }
 
 message FieldOptions
