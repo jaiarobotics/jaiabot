@@ -60,14 +60,21 @@ def metadata(jaia_request):
 
     return jaia_response
 
-### NEEDs IMPLEMENTING
-#def task_packets(jaia_request):
-#    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
-#    return jaia_response
+def task_packets(jaia_request):
+   jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+   with common.shared_data.data_lock:
+        if jaia_request.target.all:
+            bot_ids = None
+        else:
+            bot_ids = jaia_request.target.bots
+
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time)
+        jaia_response.task_packets.packets.extend(task_packets)
+   return jaia_response
 
 def command(jaia_request):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
-    bots = list()    
+    bots = list()
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             # all the bots we know about
