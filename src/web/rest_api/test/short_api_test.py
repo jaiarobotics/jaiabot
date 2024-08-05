@@ -4,11 +4,19 @@ import requests
 import json
 import datetime
 import os
+import argparse
 
 try: 
     api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
 except KeyError:
     api_key=""
+
+parser = argparse.ArgumentParser(description="Parse API host and port from command line.")
+parser.add_argument('--api_host', type=str, default="127.0.0.1", help='The API host')
+parser.add_argument('--api_port', type=int, default=9092, help='The API port')
+
+args = parser.parse_args()
+    
 
 
 def is_subset(subset, superset):
@@ -33,7 +41,7 @@ def is_subset(subset, superset):
 def run_request(req_json, expected_response_subset=dict()):
     print("#### REQUEST ####")
     print(json.dumps(req_json))
-    res = requests.post('http://127.0.0.1:9092/jaia/v1', json=req_json)
+    res = requests.post(f'http://{args.api_host}:{args.api_port}/jaia/v1', json=req_json)
     assert(res.ok)
     print("#### RESPONSE ####")
     print(json.dumps(res.json()))
