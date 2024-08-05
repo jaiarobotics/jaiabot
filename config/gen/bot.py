@@ -38,12 +38,7 @@ else:
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
 
-if jaia_imu_type == "bno055":
-    imu_detection_solution='RESTART_IMU_PY'
-elif jaia_imu_type == 'bno085':
-    imu_detection_solution='REBOOT_BNO085_IMU_AND_RESTART_IMU_PY'
-else:
-    imu_detection_solution='RESTART_IMU_PY'
+imu_detection_solution='REPORT_IMU'
 
 if "jaia_arduino_type" in os.environ:
     jaia_arduino_type=os.environ['jaia_arduino_type']
