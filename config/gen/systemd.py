@@ -456,6 +456,22 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_tsys01_temperature_sensor_driver',
+     'description': 'JaiaBot TSYS01 Temperature Sensor Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_tsys01.py',
+     'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'tsys01_temperature_sensor',
+     'args': '',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
 ]
 
 if jaia_imu_type.value == 'bno085':
