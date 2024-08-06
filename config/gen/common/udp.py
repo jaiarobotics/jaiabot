@@ -15,6 +15,12 @@ def bar30_py_udp_port(node_id):
         return 20000 + node_id
     else:
         return 20001
+    
+def tsys01_cpp_udp_port():
+    return 0
+
+def tsys01_py_udp_port():
+    return 20005 
 
 def atlas_ezo_cpp_udp_port(node_id):
     if is_simulation():

@@ -108,7 +108,8 @@ verbosities = \
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG3' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -232,6 +233,12 @@ elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
                                      bind_port=common.udp.bar30_cpp_udp_port(node_id),
                                      remote_port=common.udp.bar30_py_udp_port(node_id),
                                      blue_robotics_pressure_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_tsys01_temperature_sensor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_tsys01_temperature_sensor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bind_port=common.udp.tsys01_cpp_udp_port(),
+                                     remote_port=common.udp.tsys01_py_udp_port()))
 elif common.app == 'jaiabot_adafruit_BNO055_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
                                      app_block=app_common,
