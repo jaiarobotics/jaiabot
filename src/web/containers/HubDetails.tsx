@@ -38,10 +38,6 @@ export function HubDetails() {
 
     const hubContext = useContext(HubContext);
 
-    if (hubContext === null || !globalContext.showHubDetails) {
-        return <div></div>;
-    }
-
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
             transitions: {
@@ -53,6 +49,10 @@ export function HubDetails() {
     useEffect(() => {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
     }, []);
+
+    if (hubContext === null || !globalContext.showHubDetails) {
+        return <div></div>;
+    }
 
     const firstKey = Number(Object.keys(hubContext.hubStatuses)[0]);
     const hubStatus = hubContext.hubStatuses[firstKey];
