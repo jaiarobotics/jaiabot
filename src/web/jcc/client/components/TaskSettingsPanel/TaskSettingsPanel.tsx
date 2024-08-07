@@ -141,6 +141,7 @@ function TaskOptionsPanel(props: Props) {
 
         let newTask = deepcopy(task);
 
+
         if (dive.bottom_dive) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
 
@@ -160,6 +161,9 @@ function TaskOptionsPanel(props: Props) {
 
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
         }
+
+        console.log("handleToggle newTask=")
+        console.log(newTask);
 
         props.onChange(newTask);
 
@@ -376,6 +380,7 @@ function TaskOptionsPanel(props: Props) {
                                     <td className="task-label">Max Depth</td>
                                     <td className="input-row">
                                         <input
+                                            title="Max Depth"
                                             type="number"
                                             step="0.1"
                                             min="0"
@@ -629,7 +634,13 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.constant_heading = deepcopy(GlobalSettings.constantHeadingParameters);
                 break;
             case TaskType.DIVE:
-                newTask.dive = deepcopy(GlobalSettings.diveParameters);
+                if (GlobalSettings.diveParameters.bottom_dive) {
+                    //Bottom Dives should not include other dive parameters
+                    newTask.dive = {bottom_dive: true}
+                    } 
+                    else {
+                    newTask.dive = deepcopy(GlobalSettings.diveParameters);
+                    }
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters);
                 break;
             case TaskType.SURFACE_DRIFT:
@@ -639,7 +650,8 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
-
+        console.log("onChangeTaskType newTask=")
+        console.log(newTask);
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
             props.scrollTaskSettingsIntoView();
