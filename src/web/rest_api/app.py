@@ -165,6 +165,11 @@ def parse_get_args(jaia_request_action, action_field_desc):
                     setattr(jaia_request_action, field.name, float(get_var))
                 except ValueError:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected floating point value for field {field.name}, got "{get_var}"')
+            elif field.cpp_type == field.CPPTYPE_BOOL:
+                try:
+                    setattr(jaia_request_action, field.name, bool(get_var))
+                except ValueError:
+                    raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, f'Expected boolean value for field {field.name}, got "{get_var}"')
             elif field.type == field.TYPE_ENUM:
                 enum_type = field.enum_type
                 if get_var in enum_type.values_by_name.keys():
@@ -212,7 +217,7 @@ def is_omitted(parts, descriptor):
     else: 
         field = descriptor.fields_by_name[parts[0]]
         presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
-        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.Presence.OMITTED:
+        if presence == jaiabot.messages.option_extensions_pb2.RestAPI.OMITTED:
             return True
         else:
             return is_omitted(parts[1:], field.message_type)
@@ -223,10 +228,12 @@ def check_api_key(key):
     else:
         return key == api_key
 
+
+streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
+streaming_thread.start()
+
 def main():
-    streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
-    streaming_thread.start()
-    app.run(host='127.0.0.1', port=args.bindPort, debug=False)
+    app.run(host='0.0.0.0', port=args.bindPort, debug=False)
     
 if __name__ == '__main__':
     main()

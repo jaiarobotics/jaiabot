@@ -9,10 +9,11 @@ file(GLOB MD_FILES ${project_SRC_DIR}/doc/markdown/*.md)
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/src/doc/latex/refman.tex ${CMAKE_BINARY_DIR}/src/doc/html/index.html
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/doc/markdown
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src/doc/markdown
   COMMAND ${DOXYGEN_EXECUTABLE}
   ARGS ${CMAKE_BINARY_DIR}/src/doc/jaiabot.doxy
   DEPENDS ${CMAKE_BINARY_DIR}/src/doc/jaiabot.doxy
+  generated_markdown
   ${MD_FILES}
   ${project_goby_interfaces_figures}
   )
