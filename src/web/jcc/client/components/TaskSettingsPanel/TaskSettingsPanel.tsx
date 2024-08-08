@@ -141,6 +141,7 @@ function TaskOptionsPanel(props: Props) {
 
         let newTask = deepcopy(task);
 
+
         if (dive.bottom_dive) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
 
@@ -161,7 +162,7 @@ function TaskOptionsPanel(props: Props) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
         }
 
-        console.log("handleToggle newTask=");
+        console.log("handleToggle newTask=")
         console.log(newTask);
 
         props.onChange(newTask);
@@ -635,10 +636,11 @@ export function TaskSettingsPanel(props: Props) {
             case TaskType.DIVE:
                 if (GlobalSettings.diveParameters.bottom_dive) {
                     //Bottom Dives should not include other dive parameters
-                    newTask.dive = { bottom_dive: true };
-                } else {
+                    newTask.dive = {bottom_dive: true}
+                    } 
+                    else {
                     newTask.dive = deepcopy(GlobalSettings.diveParameters);
-                }
+                    }
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters);
                 break;
             case TaskType.SURFACE_DRIFT:
@@ -648,7 +650,7 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
-        console.log("onChangeTaskType newTask=");
+        console.log("onChangeTaskType newTask=")
         console.log(newTask);
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
@@ -662,11 +664,20 @@ export function TaskSettingsPanel(props: Props) {
                 data-testid="taskSelect"
                 onChange={(evt) => onChangeTaskType(evt)}
                 value={props.task?.type ?? "NONE"}
+                // Can't figure out how to set this prop
+                // idea from https://lukebrown.dev/writing/how-to-test-a-mui-select
+                //                SelectDisplayProps={{ 
+                //                   [data-testid]:"taskSelectAlt",
+                //               }
+                // similar idea at https://stackoverflow.com/questions/59567234/materialui-react-testing-library-unit-test-select-menuitem-breaks-after-upgra
+                //SelectProps={{
+                //    SelectDisplayProps: {
+                //       "data-testid": "id-country"
+                //    }
+                //}}
             >
                 <MenuItem value={"NONE"}>None</MenuItem>
-                <MenuItem value={"DIVE"} data-testid="taskSelectDive">
-                    Dive
-                </MenuItem>
+                <MenuItem value={"DIVE"} data-testid="taskSelectDive">Dive</MenuItem>
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
