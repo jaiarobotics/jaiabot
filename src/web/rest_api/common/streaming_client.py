@@ -61,12 +61,15 @@ async def streaming_main(goby_host, goby_port):
     print("Starting endpoint for Jaia streaming protocol")
 
     loop = asyncio.get_running_loop()
-    
-    goby_ip = socket.gethostbyname(goby_host)
-    goby_endpoint=(goby_ip, goby_port)
+
+    # Resolve the hostname to an IP address
+    addr_info = socket.getaddrinfo(goby_host, goby_port)
+    # addr_info is a list of 5-tuples with the address family, socket type, protocol, canonical name, and socket address
+    # Extract the first resolved address (IP and port)
+    goby_endpoint = addr_info[0][4]
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: UDPPortalProtocol(goby_endpoint),
-        remote_addr=goby_endpoint)
+        remote_addr=(goby_endpoint[0], goby_endpoint[1]))
     
     try:
         
