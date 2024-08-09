@@ -31,6 +31,10 @@
         update_cache: yes
         upgrade: safe
 
+    - name: Remove unnecessary packages
+      apt:
+        autoremove: yes
+
     - name: Remount firmware read-only
       shell: "mount -o remount,ro /boot/firmware"
 
