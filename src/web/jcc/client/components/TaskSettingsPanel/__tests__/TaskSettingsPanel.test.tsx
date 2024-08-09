@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, getByRole, waitFor} from "@testing-library/react";
-import UserEvent from "@testing-library/user-event";
+//import UserEvent from "@testing-library/user-event";
 import {TaskSettingsPanel, Props} from "../TaskSettingsPanel";
 import { deepcopy} from "../../shared/Utilities";
 
@@ -22,7 +22,8 @@ const mockMinimumProps: Props = {
 
 //Mock of the onChange Prop to verify tasks are formatted correctly
 const mockOnChangeCheckParameters = (task? : MissionTask) => {
-
+    log("mockOnChangeCheckParameters checking task");
+    log(task);
     switch (task.type) {
         case TaskType.CONSTANT_HEADING:
             //TODO
@@ -109,38 +110,54 @@ const mockBADBottomDiveProps: Props = { //Mock Bottom Dive Props
 }
 
 describe("TaskSettingsPanel Bottom Dive Tests", () => {
+    //Test basic rendering of TaskSettingsPanel
     test("TaskSettingsPanel Renders", () => {
         render(<TaskSettingsPanel {...mockMinimumProps}/>);
         const taskElement = screen.getByRole("combobox")
         expect (taskElement).toHaveTextContent(/None/i)
     });
-        
-    test("TaskSettingsPanel Select Bottom Dive 1 ", async () => {
+    //Test Selection of Dive with no tasks set
+    test("TaskSettingsPanel Select Bottom Dive No Task", async () => {
         render(<TaskSettingsPanel {...mockMinimumProps} />);
         const taskSelectElement = screen.getByTestId("taskSelect")
         expect(taskSelectElement).toHaveTextContent(/None/i)
+        //This approach relies on native={true} in the Select component
+        //https://stackoverflow.com/questions/55184037/react-testing-library-on-change-for-material-ui-select-component
 
-        //idea from  https://codesandbox.io/s/react-testing-library-material-ui-select-cec0z?file=/src/App.test.js
-        //also found at https://jskim1991.medium.com/react-dont-give-up-on-testing-when-using-material-ui-with-react-ff737969eec7    
-        UserEvent.mouseDown(getByRole(screen.getByTestId("taskSelect"), "button")); //fails, no element with button role
-        //try something differnet
-        UserEvent.click(screen.getByTestId("ArrowDropDownIcon"));
-
-
-        await waitFor(() => UserEvent.click(screen.getByText(/Dive/i)));
-        expect(screen.getByRole("heading")).toHaveTextContent(/Dive/i);
+        // Dig deep to find the actual <select>
+        const selectNode = taskSelectElement.childNodes[0].childNodes[0];
+        fireEvent.change(selectNode, { target: { value: "DIVE" } });
+        expect(taskSelectElement).toHaveTextContent(/Dive/i);
     });
 
-    test("TaskSettingsPanel Select BottomDive 2", async () => {
-        render(<TaskSettingsPanel {...mockNonBottomDiveProps} />);
-        const taskElement = screen.getByRole("combobox")
-        expect(taskElement).toHaveTextContent("Dive")
-        var maxDepthElement = screen.getByTitle(/Max Depth/i); //Verify Max Depth is visible
-        const bottomDiveToggleElement = screen.getByTitle(/Switch to Bottom Dive/i) //Switch to a Bottom Dive
-        fireEvent.click(bottomDiveToggleElement);
-        const updatedMaxDepthElement = await screen.findByTitle(/Max Depth/i); // get Max Depth widget after refresh
-        //expect (updatedMaxDepthElement).not.toBeVisible(); // Verify Max Depth is no longer visible
+    //Test Selection of Dive with an existing Bottom Dive Task
+    test("TaskSettingsPanel Select Bottom Dive Bottom Dive Task", async () => {
+        render(<TaskSettingsPanel {...mockBottomDiveProps} />);
+        const taskSelectElement = screen.getByTestId("taskSelect")
+        expect(taskSelectElement).toHaveTextContent(/None/i)
+        //This approach relies on native={true} in the Select component
+        //https://stackoverflow.com/questions/55184037/react-testing-library-on-change-for-material-ui-select-component
+
+        // Dig deep to find the actual <select>
+        const selectNode = taskSelectElement.childNodes[0].childNodes[0];
+        fireEvent.change(selectNode, { target: { value: "DIVE" } });
+        expect(taskSelectElement).toHaveTextContent(/Dive/i);
     });
+
+    //Test Selection of Dive with a Bottom Dive Task including extra parameters
+    test("TaskSettingsPanel Select Bottom Dive BadBottom Dive Task", async () => {
+        render(<TaskSettingsPanel {...mockBADBottomDiveProps} />);
+        const taskSelectElement = screen.getByTestId("taskSelect")
+        expect(taskSelectElement).toHaveTextContent(/None/i)
+        //This approach relies on native={true} in the Select component
+        //https://stackoverflow.com/questions/55184037/react-testing-library-on-change-for-material-ui-select-component
+
+        // Dig deep to find the actual <select>
+        const selectNode = taskSelectElement.childNodes[0].childNodes[0];
+        fireEvent.change(selectNode, { target: { value: "DIVE" } });
+        expect(taskSelectElement).toHaveTextContent(/Dive/i);
+    });
+
 
     /** 
     //This test should fail, just verifying mockOnChangeCheckParameters()

@@ -661,23 +661,13 @@ export function TaskSettingsPanel(props: Props) {
     return (
         <FormControl sx={{ minWidth: 120 }} size="small" disabled={!props?.isEditMode}>
             <Select
+                native={true}
                 data-testid="taskSelect"
                 onChange={(evt) => onChangeTaskType(evt)}
                 value={props.task?.type ?? "NONE"}
-                // Can't figure out how to set this prop
-                // idea from https://lukebrown.dev/writing/how-to-test-a-mui-select
-                //                SelectDisplayProps={{ 
-                //                   [data-testid]:"taskSelectAlt",
-                //               }
-                // similar idea at https://stackoverflow.com/questions/59567234/materialui-react-testing-library-unit-test-select-menuitem-breaks-after-upgra
-                //SelectProps={{
-                //    SelectDisplayProps: {
-                //       "data-testid": "id-country"
-                //    }
-                //}}
             >
                 <MenuItem value={"NONE"}>None</MenuItem>
-                <MenuItem value={"DIVE"} data-testid="taskSelectDive">Dive</MenuItem>
+                <MenuItem value={"DIVE"}>Dive</MenuItem>
                 <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
                 <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
                 <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
