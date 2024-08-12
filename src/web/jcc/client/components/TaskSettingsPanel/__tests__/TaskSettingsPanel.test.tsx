@@ -66,7 +66,7 @@ const mockNonBottomDiveProps: Props = {
     task: mockNonBottomDiveTask,
     isEditMode: true,
     enableEcho: false,
-    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task)
+    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task),
 };
 //Bottom Dive Prop Setup
 const bottomDiveParameters: DiveParameters = {
@@ -84,7 +84,7 @@ const mockBottomDiveProps: Props = {
     task: mockBottomDiveTask,
     isEditMode: true,
     enableEcho: false,
-    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task)
+    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task),
 };
 //Bad Bottom Dive Prop Setup
 const badBottomDiveParameters: DiveParameters = {
@@ -105,7 +105,7 @@ const mockBADBottomDiveProps: Props = {
     task: mockBadBottomDiveTask,
     isEditMode: true,
     enableEcho: false,
-    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task)
+    onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task),
 };
 
 describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
@@ -152,12 +152,9 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
     });
 
     //Test selection of Dive with different Gloabla Parameters
-    test.each([
-        nonBottomDiveParameters, 
-        bottomDiveParameters, 
-        badBottomDiveParameters
-    ])(
-        "TaskSettingsPanel Select Bottom Dive With %s", async (diveParameters) => {
+    test.each([nonBottomDiveParameters, bottomDiveParameters, badBottomDiveParameters])(
+        "TaskSettingsPanel Select Bottom Dive With %s",
+        async (diveParameters) => {
             GlobalSettings.diveParameters["max_depth"] = diveParameters["max_depth"];
             GlobalSettings.diveParameters["depth_interval"] = diveParameters["depth_interval"];
             GlobalSettings.diveParameters["hold_time"] = diveParameters["hold_time"];
