@@ -20,7 +20,6 @@ import { Point } from "ol/geom";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import JaiaToggle from "../JaiaToggle";
 
-
 // For keeping heading angles in the [0, 360] range
 
 /**
@@ -294,7 +293,7 @@ function TaskOptionsPanel(props: Props) {
                 </tr>
             );
         }
-        return <div></div>;
+        return <tr></tr>;
     }
 
     /**
@@ -614,7 +613,7 @@ export function TaskSettingsPanel(props: Props) {
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
-        console.log("*** onChangeTaskType ***")
+        console.log("*** onChangeTaskType ***");
 
         // No change
         if (newTaskType == oldTaskType) return;
@@ -666,11 +665,11 @@ export function TaskSettingsPanel(props: Props) {
                 onChange={(evt) => onChangeTaskType(evt)}
                 value={props.task?.type ?? "NONE"}
             >
-                <MenuItem value={"NONE"}>None</MenuItem>
-                <MenuItem value={"DIVE"}>Dive</MenuItem>
-                <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
-                <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
-                <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
+                <option value={"NONE"}>None</option>
+                <option value={"DIVE"}>Dive</option>
+                <option value={"SURFACE_DRIFT"}>Surface Drift</option>
+                <option value={"STATION_KEEP"}>Station Keep</option>
+                <option value={"CONSTANT_HEADING"}>Constant Heading</option>
             </Select>
             {TaskOptionsPanel(props)}
         </FormControl>
