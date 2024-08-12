@@ -121,6 +121,7 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
         render(<TaskSettingsPanel {...mockBADBottomDiveProps} />);
         const taskSelectElement = screen.getByTestId("taskSelect");
         expect(taskSelectElement).toHaveTextContent(/None/i);
+        expect(taskSelectElement).toHaveTextContent(/Dive/i);
         //This approach relies on native={true} in the Select component
         //https://stackoverflow.com/questions/55184037/react-testing-library-on-change-for-material-ui-select-component
 
@@ -151,9 +152,12 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
     });
 
     //Test selection of Dive with different Gloabla Parameters
-    test.each([nonBottomDiveParameters, bottomDiveParameters, badBottomDiveParameters])(
-        "TaskSettingsPanel Select Bottom Dive With %s",
-        async (diveParameters) => {
+    test.each([
+        nonBottomDiveParameters, 
+        bottomDiveParameters, 
+        badBottomDiveParameters
+    ])(
+        "TaskSettingsPanel Select Bottom Dive With %s", async (diveParameters) => {
             GlobalSettings.diveParameters["max_depth"] = diveParameters["max_depth"];
             GlobalSettings.diveParameters["depth_interval"] = diveParameters["depth_interval"];
             GlobalSettings.diveParameters["hold_time"] = diveParameters["hold_time"];
