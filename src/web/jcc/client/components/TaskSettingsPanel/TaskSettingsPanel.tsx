@@ -20,6 +20,7 @@ import { Point } from "ol/geom";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import JaiaToggle from "../JaiaToggle";
 
+
 // For keeping heading angles in the [0, 360] range
 
 /**
@@ -141,7 +142,6 @@ function TaskOptionsPanel(props: Props) {
 
         let newTask = deepcopy(task);
 
-
         if (dive.bottom_dive) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
 
@@ -162,7 +162,7 @@ function TaskOptionsPanel(props: Props) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
         }
 
-        console.log("handleToggle newTask=")
+        console.log("handleToggle newTask=");
         console.log(newTask);
 
         props.onChange(newTask);
@@ -614,6 +614,7 @@ export function TaskSettingsPanel(props: Props) {
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
+        console.log("*** onChangeTaskType ***")
 
         // No change
         if (newTaskType == oldTaskType) return;
@@ -636,11 +637,10 @@ export function TaskSettingsPanel(props: Props) {
             case TaskType.DIVE:
                 if (GlobalSettings.diveParameters.bottom_dive) {
                     //Bottom Dives should not include other dive parameters
-                    newTask.dive = {bottom_dive: true}
-                    } 
-                    else {
+                    newTask.dive = { bottom_dive: true };
+                } else {
                     newTask.dive = deepcopy(GlobalSettings.diveParameters);
-                    }
+                }
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters);
                 break;
             case TaskType.SURFACE_DRIFT:
@@ -650,7 +650,7 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
-        console.log("onChangeTaskType newTask=")
+        console.log("onChangeTaskType newTask=");
         console.log(newTask);
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
