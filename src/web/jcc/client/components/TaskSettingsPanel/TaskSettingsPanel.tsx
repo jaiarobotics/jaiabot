@@ -161,9 +161,6 @@ function TaskOptionsPanel(props: Props) {
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
         }
 
-        console.log("handleToggle newTask=");
-        console.log(newTask);
-
         props.onChange(newTask);
 
         //Save bottom dive to local storage
@@ -613,7 +610,6 @@ export function TaskSettingsPanel(props: Props) {
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
-        console.log("*** onChangeTaskType ***");
 
         // No change
         if (newTaskType == oldTaskType) return;
