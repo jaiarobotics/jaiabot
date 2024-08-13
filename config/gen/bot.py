@@ -171,6 +171,8 @@ if is_simulation():
 else:
     imu_type = jaia_imu_type
 
+# We are loosening the imu detection code for retrofit
+# IMU's based on test results gathered from Tiger Team
 if imu_install_type == "retrofit":
     total_imu_issue_checks = 10
 else:
