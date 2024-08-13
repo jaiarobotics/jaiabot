@@ -157,6 +157,10 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
         badBottomDiveParameters,
     ])("TaskSettingsPanel Select Bottom Dive With Global Settings %s", async (diveParameters) => {
             GlobalSettings.diveParameters = { ...GlobalSettings.diveParameters, ...diveParameters };
+            // Code above was suggested but does not do what we want, it does a merge
+            // Code below should do what we want but raises 
+            // TypeError: value._localStorageKeyFunc is not a function
+            //GlobalSettings.diveParameters = { ...diveParameters };
             Save(GlobalSettings.diveParameters);
             //eventual combine with tests above 
             render(<TaskSettingsPanel {...mockBottomDiveProps} />);
