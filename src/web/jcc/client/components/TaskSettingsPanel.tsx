@@ -290,7 +290,7 @@ function TaskOptionsPanel(props: Props) {
                 </tr>
             );
         }
-        return <div></div>;
+        return <tr></tr>;
     }
 
     /**
@@ -629,7 +629,12 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.constant_heading = deepcopy(GlobalSettings.constantHeadingParameters);
                 break;
             case TaskType.DIVE:
-                newTask.dive = deepcopy(GlobalSettings.diveParameters);
+                if (GlobalSettings.diveParameters.bottom_dive) {
+                    //Bottom Dives should not include other dive parameters
+                    newTask.dive = { bottom_dive: true };
+                } else {
+                    newTask.dive = deepcopy(GlobalSettings.diveParameters);
+                }
                 newTask.surface_drift = deepcopy(GlobalSettings.driftParameters);
                 break;
             case TaskType.SURFACE_DRIFT:
@@ -639,7 +644,6 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
-
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
             props.scrollTaskSettingsIntoView();
