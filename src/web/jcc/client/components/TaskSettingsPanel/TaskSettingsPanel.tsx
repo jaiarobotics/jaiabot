@@ -645,8 +645,6 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
-        console.log("onChangeTaskType newTask=");
-        console.log(newTask);
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
             props.scrollTaskSettingsIntoView();
@@ -656,7 +654,7 @@ export function TaskSettingsPanel(props: Props) {
     return (
         <FormControl sx={{ minWidth: 120 }} size="small" disabled={!props?.isEditMode}>
             <Select
-                native={true}
+                native={true} // Use native mode to support testing
                 data-testid="taskSelect"
                 onChange={(evt) => onChangeTaskType(evt)}
                 value={props.task?.type ?? "NONE"}

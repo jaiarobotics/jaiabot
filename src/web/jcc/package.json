@@ -5,9 +5,8 @@
     "description": "",
     "main": "server/index.js",
     "scripts": {
-        "build": "webpack --mode production",
-        "test": "jest"
-    },
+        "build": "webpack --mode production"
+        },
     "keywords": [],
     "author": "Jaia Robotics",
     "license": ""
