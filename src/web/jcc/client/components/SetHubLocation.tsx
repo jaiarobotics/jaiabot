@@ -132,7 +132,7 @@ export default function SetHubLocation(props: Props) {
                     id="set-hub-location-latitude"
                     ref={latitudeInputElementRef}
                     name="latitude"
-                    defaultValue={hubLocation.lat.toFixed(6)}
+                    defaultValue={hubLocation?.lat.toFixed(6)}
                 />
 
                 <div>Longitude</div>
@@ -141,7 +141,7 @@ export default function SetHubLocation(props: Props) {
                     id="set-hub-location-longitude"
                     name="longitude"
                     ref={longitudeInputElementRef}
-                    defaultValue={hubLocation.lon.toFixed(6)}
+                    defaultValue={hubLocation?.lon.toFixed(6)}
                 />
             </div>
 
