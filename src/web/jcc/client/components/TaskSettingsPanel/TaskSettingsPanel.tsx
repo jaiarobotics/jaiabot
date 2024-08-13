@@ -19,7 +19,6 @@ import { Vector as VectorSource } from "ol/source";
 import { Point } from "ol/geom";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import JaiaToggle from "../JaiaToggle";
-import { log } from "console";
 
 // For keeping heading angles in the [0, 360] range
 
@@ -614,7 +613,7 @@ export function TaskSettingsPanel(props: Props) {
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
-        log("*** onChangeTaskType ***");
+        console.log("*** onChangeTaskType ***");
 
         // No change
         if (newTaskType == oldTaskType) return;
