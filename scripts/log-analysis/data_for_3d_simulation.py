@@ -120,7 +120,6 @@ def get_data(file_list, time_range = 10):
                         stop_to_transit_loc[len(stop_to_transit_loc)] = i
                 # print(stop_to_transit_loc)
 
-
                 transit_to_stop_indices = np.where(mission_state == 110)[0]
                 # print("Transit to stop")
                 transit_to_stop_loc = pd.Series()
@@ -128,7 +127,6 @@ def get_data(file_list, time_range = 10):
                     if i < len(mission_state)-1 and mission_state[i+1] == 142:
                         transit_to_stop_loc[len(transit_to_stop_loc)] = i
                 # print(transit_to_stop_loc)
-
 
                 drift_to_dive_indices = np.where(mission_state == 121)[0]
                 # print("Number of drifts: ", len(drift_to_dive_indices))
@@ -138,7 +136,6 @@ def get_data(file_list, time_range = 10):
                     if i < len(mission_state)-1 and mission_state[i+1] in range(123, 129):
                         drift_to_dive_loc[len(drift_to_dive_loc)] = i
                 # print(drift_to_dive_loc)
-
 
                 dive_to_drift_indices = np.where((mission_state >= 123) & (mission_state <= 128))[0]
                 # print("Dive to drift")
@@ -276,8 +273,6 @@ def export_data(stop_to_transit_data, transit_to_stop_data, drift_to_dive_data, 
         dive_to_drift_concat = pd.concat([dive_to_drift_concat, arr], axis=0)
         add_blank_rows(dive_to_drift_concat, 3)
 
-
-    
 
     # with pd.ExcelWriter(out_path, mode='a', if_sheet_exists='overlay') as writer: 
     with pd.ExcelWriter(out_path, mode='w') as writer: 
