@@ -38,7 +38,11 @@ else:
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
 
-imu_detection_solution='REPORT_IMU'
+if "imu_install_type" in os.environ:
+    imu_install_type = os.environ["imu_install_type"]
+else:
+    # Default debian config option
+    imu_install_type = "embedded"
 
 if "jaia_arduino_type" in os.environ:
     jaia_arduino_type=os.environ['jaia_arduino_type']
@@ -158,13 +162,19 @@ liaison_bind_addr='0.0.0.0'
 if common.is_vfleet:
     liaison_bind_addr='0::0'
 
-# IMU driver config
+# IMU config
 imu_port = common.udp.imu_port(node_id)
+imu_detection_solution='REPORT_IMU'
+
 if is_simulation():
     imu_type = 'sim'
 else:
     imu_type = jaia_imu_type
 
+if imu_install_type == "retrofit":
+    total_imu_issue_checks = 10
+else:
+    total_imu_issue_checks = 4
 
 if common.app == 'gobyd':    
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
@@ -263,6 +273,7 @@ elif common.app == 'jaiabot_fusion':
                                      bot_type=bot_type,
                                      fusion_in_simulation=is_simulation(),
                                      bot_status_period=bot_status_period,
+                                     total_imu_issue_checks=total_imu_issue_checks,
                                      imu_detection_solution=imu_detection_solution))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
