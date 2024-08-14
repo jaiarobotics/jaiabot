@@ -1,5 +1,13 @@
 #!/bin/bash
 
+## Update DNS to include IPv6
+cat <<EOF > /etc/resolv.conf
+nameserver 2606:4700:4700::1111
+nameserver 2001:4860:4860::8888
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+EOF
+
 ## Set up VPNs
 (umask 077; wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey)
 SERVER_VPN_PRIVATEKEY=$(cat /etc/wireguard/privatekey)
