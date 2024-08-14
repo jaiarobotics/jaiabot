@@ -156,7 +156,6 @@ def get_data(file_list, time_range = 10):
                 status_datetime.name = 'Date/Time'
 
                 status_datetime = status_datetime.astype(str)
-
                 for i in range(len(status_datetime)):
                     status_datetime[i] = status_datetime[i][0:19]
                 # print(status_datetime)
@@ -169,9 +168,7 @@ def get_data(file_list, time_range = 10):
                     start_utime = status_utime[start_idx]
 
                     end_utime = status_utime[i] + time_range * MICRO_FACTOR
-
                     end_idx = (status_utime - end_utime).abs().idxmin()
-
                     # print(status_utime[start_idx:end_idx])
                     
                     instances = pd.concat([status_roll[start_idx:end_idx], status_pitch[start_idx:end_idx], status_yaw[start_idx:end_idx], bot_lat[start_idx:end_idx], bot_long[start_idx:end_idx], status_depth[start_idx:end_idx], mission_state[start_idx:end_idx], status_datetime[start_idx:end_idx]], axis=1)
@@ -185,10 +182,7 @@ def get_data(file_list, time_range = 10):
                     start_utime = status_utime[start_idx]
 
                     end_utime = status_utime[i] + time_range * MICRO_FACTOR
-
                     end_idx = (status_utime - end_utime).abs().idxmin()
-
-                    # print(status_utime[start_idx:end_idx])
 
                     instances = pd.concat([status_roll[start_idx:end_idx], status_pitch[start_idx:end_idx], status_yaw[start_idx:end_idx], bot_lat[start_idx:end_idx], bot_long[start_idx:end_idx], status_depth[start_idx:end_idx], mission_state[start_idx:end_idx], status_datetime[start_idx:end_idx]], axis=1)
 
@@ -201,10 +195,7 @@ def get_data(file_list, time_range = 10):
                     start_utime = status_utime[start_idx]
 
                     end_utime = status_utime[i] + time_range * MICRO_FACTOR
-
                     end_idx = (status_utime - end_utime).abs().idxmin()
-
-                    # print(status_utime[start_idx:end_idx])
 
                     instances = pd.concat([status_roll[start_idx:end_idx], status_pitch[start_idx:end_idx], status_yaw[start_idx:end_idx], bot_lat[start_idx:end_idx], bot_long[start_idx:end_idx], status_depth[start_idx:end_idx], mission_state[start_idx:end_idx], status_datetime[start_idx:end_idx]], axis=1)
 
@@ -217,10 +208,7 @@ def get_data(file_list, time_range = 10):
                     start_utime = status_utime[start_idx]
 
                     end_utime = status_utime[i] + time_range * MICRO_FACTOR
-
                     end_idx = (status_utime - end_utime).abs().idxmin()
-
-                    # print(status_utime[start_idx:end_idx])
 
                     instances = pd.concat([status_roll[start_idx:end_idx], status_pitch[start_idx:end_idx], status_yaw[start_idx:end_idx], bot_lat[start_idx:end_idx], bot_long[start_idx:end_idx], status_depth[start_idx:end_idx], mission_state[start_idx:end_idx], status_datetime[start_idx:end_idx]], axis=1)
 
@@ -250,7 +238,7 @@ def get_files(path, recursive):
     else:
         print("File or Directory does not exist or File is not an h5. Try again.")
 
-def export_data(stop_to_transit_data, transit_to_stop_data, drift_to_dive_data, dive_to_drift_data, combine_files=False, out_path="..\\..\\..\\..\\test.xlsx"):
+def export_data(stop_to_transit_data, transit_to_stop_data, drift_to_dive_data, dive_to_drift_data, out_path="..\\..\\..\\..\\3d_Sim_Data.xlsx"):
 
     stop_to_transit_concat = pd.DataFrame()
     for arr in stop_to_transit_data:
