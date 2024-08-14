@@ -180,7 +180,7 @@ export default class JaiaMap {
                 this.createMissionLayer(),
                 this.createTaskPacketLayer(),
                 this.createDepthContourLayer(),
-                this.createDriftInterpolationLayer(),
+                //this.createDriftInterpolationLayer(),
             ],
             view: view,
             controls: [
@@ -348,6 +348,7 @@ export default class JaiaMap {
             zIndex: 13,
             style: Styles.driftMapStyle,
             opacity: 0.6,
+            visible: false
         });
 
         return layer;
