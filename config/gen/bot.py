@@ -38,8 +38,8 @@ else:
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
 
-if "imu_install_type" in os.environ:
-    imu_install_type = os.environ["imu_install_type"]
+if "jaia_imu_install_type" in os.environ:
+    imu_install_type = os.environ["jaia_imu_install_type"]
 else:
     # Default debian config option
     imu_install_type = "embedded"
