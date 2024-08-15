@@ -114,6 +114,8 @@ class HubManager : public ApplicationBase
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
     std::atomic<uint32_t> data_offload_percentage_{0};
+
+    std::map<int, goby::time::MicroTime> known_bots_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -175,9 +177,8 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
-        });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
@@ -348,6 +349,14 @@ void jaiabot::apps::HubManager::loop()
         latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
     }
 
+    latest_hub_status_.clear_known_bot();
+    for (const auto& known_bot_p : known_bots_)
+    {
+        auto* known_bot = latest_hub_status_.add_known_bot();
+        known_bot->set_id(known_bot_p.first);
+        known_bot->set_last_status_time_with_units(known_bot_p.second);
+    }
+
     if (latest_hub_status_.IsInitialized())
     {
         glog.is_debug1() &&
@@ -414,9 +423,11 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     node_status.set_name("BOT" + std::to_string(dccl_nav.bot_id()));
 
     // rewarp the time if needed
-    node_status.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
+    auto rewarped_dccl_nav_time = goby::time::convert<goby::time::MicroTime>(
         goby::time::SystemClock::warp(goby::time::convert<std::chrono::system_clock::time_point>(
-            dccl_nav.time_with_units()))));
+            dccl_nav.time_with_units())));
+
+    node_status.set_time_with_units(rewarped_dccl_nav_time);
 
     if (dccl_nav.attitude().has_heading())
         node_status.mutable_pose()->set_heading_with_units(
@@ -449,6 +460,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     }
 
     latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
+
+    known_bots_[dccl_nav.bot_id()] = rewarped_dccl_nav_time;
 
     // publish for opencpn interface
     if (node_status.IsInitialized())
@@ -742,7 +755,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]() {
+    auto offload_func = [this, offload_command]()
+    {
         glog.is_debug1() && glog << "Offloading data with command: [" << offload_command << "]"
                                  << std::endl;
 
