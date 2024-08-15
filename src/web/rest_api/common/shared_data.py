@@ -16,6 +16,8 @@ import json
 
 from common.time import utc_now_microseconds
 
+log = logging.getLogger()
+
 class Data:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -51,7 +53,7 @@ class Data:
         taskpacket_filenames_to_load = task_packet_filenames - self.task_packet_loaded_filenames
 
         for filePath in taskpacket_filenames_to_load:
-            logging.warning(f'Loading from {filePath}')
+            log.debug(f'Loading from {filePath}')
             filePath = Path(filePath)
 
             for line in open(filePath):
@@ -59,11 +61,11 @@ class Data:
                     taskPacketDict: Dict = json.loads(line)
                     taskPacket = ParseDict(taskPacketDict, TaskPacket())
                     self.task_packets.append(taskPacket)
-                    logging.warning(f'Loaded task packet start_time={taskPacket.start_time}')
+                    log.debug(f'Loaded task packet start_time={taskPacket.start_time}')
                 except json.JSONDecodeError as e:
-                    logging.warning(f"Error decoding JSON line: {line} because {e}")
+                    log.debug(f"Error decoding JSON line: {line} because {e}")
 
-        logging.warning(f'Loaded {len(self.task_packets)} task packets')
+        log.debug(f'Loaded {len(self.task_packets)} task packets')
 
         self.sort_and_filter_task_packets()
 
@@ -87,6 +89,7 @@ class Data:
                 continue
             else:
                 filtered_task_packets.append(task_packet)
+                latest_task_packet_start_times[bot_id] = start_time
             
         self.task_packets = filtered_task_packets
 
@@ -140,7 +143,7 @@ class Data:
             self.hubs[msg.hub_status.hub_id] = msg.hub_status
             
         if msg.HasField('task_packet'):
-            logging.info('Task packet received')
+            log.info('Task packet received')
             packet = msg.task_packet
             self.task_packets.append(packet)
 
