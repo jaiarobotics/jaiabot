@@ -12,7 +12,10 @@ const mockMinimumProps: Props = {
     enableEcho: false,
 };
 
-const sendEventToParentWindowMock = jest.fn();
+const sendEventToParentWindowMock = jest.fn(() => {
+    log("** sendEventToParentWindowMock called **");
+});
+
 //Mock of the onChange Prop to verify tasks are formatted correctly
 const mockOnChangeCheckParameters = (task?: MissionTask) => {
     log("mockOnChangeCheckParameters checking task");
@@ -125,7 +128,7 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
         fireEvent.change(selectNode, { target: { value: "DIVE" } });
         expect(selectNode).toHaveValue("DIVE");
         expect(selectNode).not.toHaveValue("NONE");
-       //mockOnChangeCheckParameters()
+        //mockOnChangeCheckParameters()
     });
 
     //Test Selection of Dive with a Different Dive Task Props
@@ -148,21 +151,19 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
         //This is setting the element to be Dive however onChangeTaskType is not being called!!!
         expect(sendEventToParentWindowMock).toHaveBeenCalled;
         // no idea why this passes, mockOnChangeCheckParameters not being called due to ^
-});
+    });
 
     //Test selection of Dive with different Gloabla Parameters
-    test.each([
-        nonBottomDiveParameters,
-        bottomDiveParameters,
-        badBottomDiveParameters,
-    ])("TaskSettingsPanel Select Bottom Dive With Global Settings %s", async (diveParameters) => {
+    test.each([nonBottomDiveParameters, bottomDiveParameters, badBottomDiveParameters])(
+        "TaskSettingsPanel Select Bottom Dive With Global Settings %s",
+        async (diveParameters) => {
             GlobalSettings.diveParameters = { ...GlobalSettings.diveParameters, ...diveParameters };
             // Code above was suggested but does not do what we want, it does a merge
-            // Code below should do what we want but raises 
+            // Code below should do what we want but raises
             // TypeError: value._localStorageKeyFunc is not a function
             //GlobalSettings.diveParameters = { ...diveParameters };
             Save(GlobalSettings.diveParameters);
-            //eventual combine with tests above 
+            //eventual combine with tests above
             render(<TaskSettingsPanel {...mockBottomDiveProps} />);
             const taskSelectElement = screen.getByTestId("taskSelect");
             // Dig deep to find the actual <select>
@@ -173,8 +174,8 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
             expect(selectNode).toHaveValue("DIVE");
             expect(selectNode).not.toHaveValue("NONE");
             //This is setting the element to be Dive however onChangeTaskType is not being called!!!
-            expect(sendEventToParentWindowMock).toHaveBeenCalled;
-            // no idea why this passes, mockOnChangeCheckParameters not being called due to ^
+            //expect(sendEventToParentWindowMock).toHaveBeenCalledTimes(1);
+            //^ this fails, mockOnChangeCheckParameters not being called due to ^
         },
     );
 });
