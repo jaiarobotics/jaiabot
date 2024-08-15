@@ -440,55 +440,51 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
 void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     std::string buffer;
-    std::string deliminiter = "";
+    std::string delimiter = "B-Bypass";
     int timeout_seconds = 5;
     
     // Triggers menu to appear for bypass
     write("\r");
 
     this->async_read_with_timeout(
-            buffer, deliminiter, timeout_seconds, [this](const std::string& result) {
-                      
-                glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
-                                       << "\nResult is empty: " << result.empty()
-                                       << std::endl;
+        buffer, delimiter, timeout_seconds, [this](const std::string& result) {
+            glog.is_debug1() && glog << group(glog_group) << "Result: " << result
+                                     << "\nResult is empty: " << result.empty() << std::endl;
 
-                if (result.find("B-Bypass") != std::string::npos || 
-                        result == "timeout")
+            if (result.find("B-Bypass") != std::string::npos || result == "timeout")
+            {
+                // If bypass appears then send b to bypass
+                if (result.find("B-Bypass") != std::string::npos)
                 {
-                    // If bypass appears then send b to bypass
-                    if (result.find("B-Bypass") != std::string::npos) 
-                    {
-                        // Send b to bypass
-                        write("b");
-
-                        sleep(1);
-                    }
-                    
-                    // Send +++ to enter command mode
-                    write("+++");
+                    // Send b to bypass
+                    write("b");
 
                     sleep(1);
-
-                    // Wait for ok to proceed
-                    read_until("OK\r");
-
-                    // Stop io context to exit and continue
-                    io->stop();
-                    
-                    return;
                 }
-                else
-                {
-                    // Log an error and retry
-                    glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result 
-                                    << "| ERROR Result Hex: " << convertToHex(result)
-                                    << std::endl;
-                    
-                    enter_command_mode();
-                } 
-                
-            });
+
+                // Send +++ to enter command mode
+                write("+++");
+
+                sleep(1);
+
+                // Wait for ok to proceed
+                read_until("OK\r");
+
+                // Stop io context to exit and continue
+                io->stop();
+
+                return;
+            }
+            else
+            {
+                // Log an error and retry
+                glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result
+                                       << "| ERROR Result Hex: " << convertToHex(result)
+                                       << std::endl;
+
+                enter_command_mode();
+            }
+        });
 }
 
 /**
