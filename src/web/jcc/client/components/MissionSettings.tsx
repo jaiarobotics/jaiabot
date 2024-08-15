@@ -12,7 +12,7 @@ import {
 } from "./shared/JAIAProtobuf";
 import { getGeographicCoordinate } from "./shared/Utilities";
 import { FormControl, MenuItem } from "@mui/material";
-import { TaskSettingsPanel } from "./TaskSettingsPanel";
+import { TaskSettingsPanel } from "./TaskSettingsPanel/TaskSettingsPanel";
 import { MissionInterface } from "./CommandControl/CommandControl";
 import { Geometry } from "ol/geom";
 import { Feature } from "ol";
