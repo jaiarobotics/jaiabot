@@ -52,21 +52,11 @@ class Metadata : public ApplicationBase
         interprocess().subscribe<jaiabot::groups::metadata>(
             [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata)
             { publish_metadata(); });
-
-        interprocess().subscribe<jaiabot::groups::bot_status>(
-            [this](const jaiabot::protobuf::BotStatus& bot_status)
-            {
-                if (!known_bots_.count(bot_status.bot_id()))
-                    known_bots_.insert(bot_status.bot_id());
-            });
     }
 
   private:
     void loop() override;
     void publish_metadata();
-
-  private:
-    std::set<int> known_bots_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -98,8 +88,6 @@ void jaiabot::apps::Metadata::publish_metadata()
         metadata.set_hub_id(cfg().hub_id());
     else if (cfg().has_bot_id())
         metadata.set_bot_id(cfg().bot_id());
-
-    for (auto bot_id : known_bots_) metadata.add_known_bots(bot_id);
 
     glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
 
