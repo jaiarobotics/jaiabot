@@ -7,9 +7,9 @@ import {
     ConstantHeadingParameters,
     GeographicCoordinate,
     StationKeepParameters,
-} from "./shared/JAIAProtobuf";
-import { GlobalSettings, Save } from "./Settings";
-import { deepcopy, getGeographicCoordinate } from "./shared/Utilities";
+} from "../shared/JAIAProtobuf";
+import { GlobalSettings, Save } from "../Settings";
+import { deepcopy, getGeographicCoordinate } from "../shared/Utilities";
 import { Button, FormControl, MenuItem } from "@mui/material";
 import * as turf from "@turf/turf";
 import Map from "ol/Map";
@@ -18,7 +18,7 @@ import { Vector as VectorLayer } from "ol/layer";
 import { Vector as VectorSource } from "ol/source";
 import { Point } from "ol/geom";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import JaiaToggle from "./JaiaToggle";
+import JaiaToggle from "../JaiaToggle";
 
 // For keeping heading angles in the [0, 360] range
 
@@ -39,7 +39,7 @@ function fmod(a: number, b: number) {
     return Number((a - Math.floor(a / b) * b).toPrecision(8));
 }
 
-interface Props {
+export interface Props {
     map?: Map;
     title?: string;
     task?: MissionTask;
@@ -160,6 +160,9 @@ function TaskOptionsPanel(props: Props) {
 
             newTask.surface_drift["drift_time"] = surface_drift.drift_time;
         }
+
+        console.log("handleToggle newTask=");
+        console.log(newTask);
 
         props.onChange(newTask);
 
@@ -376,6 +379,7 @@ function TaskOptionsPanel(props: Props) {
                                     <td className="task-label">Max Depth</td>
                                     <td className="input-row">
                                         <input
+                                            title="Max Depth"
                                             type="number"
                                             step="0.1"
                                             min="0"
@@ -609,6 +613,7 @@ export function TaskSettingsPanel(props: Props) {
     function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
+        console.log("*** onChangeTaskType ***");
 
         // No change
         if (newTaskType == oldTaskType) return;
@@ -644,6 +649,8 @@ export function TaskSettingsPanel(props: Props) {
                 newTask.station_keep = deepcopy(GlobalSettings.stationKeepParameters);
                 break;
         }
+        console.log("onChangeTaskType newTask=");
+        console.log(newTask);
         props.onChange(newTask);
         if (props.scrollTaskSettingsIntoView !== undefined) {
             props.scrollTaskSettingsIntoView();
@@ -652,12 +659,17 @@ export function TaskSettingsPanel(props: Props) {
 
     return (
         <FormControl sx={{ minWidth: 120 }} size="small" disabled={!props?.isEditMode}>
-            <Select onChange={(evt) => onChangeTaskType(evt)} value={props.task?.type ?? "NONE"}>
-                <MenuItem value={"NONE"}>None</MenuItem>
-                <MenuItem value={"DIVE"}>Dive</MenuItem>
-                <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
-                <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
-                <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
+            <Select
+                native={true}
+                data-testid="taskSelect"
+                onChange={(evt) => onChangeTaskType(evt)}
+                value={props.task?.type ?? "NONE"}
+            >
+                <option value={"NONE"}>None</option>
+                <option value={"DIVE"}>Dive</option>
+                <option value={"SURFACE_DRIFT"}>Surface Drift</option>
+                <option value={"STATION_KEEP"}>Station Keep</option>
+                <option value={"CONSTANT_HEADING"}>Constant Heading</option>
             </Select>
             {TaskOptionsPanel(props)}
         </FormControl>

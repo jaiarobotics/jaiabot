@@ -1,0 +1,3 @@
+The code in this directory is a working example of testing the MUI Select component.
+It was created by chatGPT (took a lot of trying!)
+Note it only works using the local package.json there is something in our environment that is causing issues.
