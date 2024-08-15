@@ -215,11 +215,13 @@ elif common.app == 'goby_terminate':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
 elif common.app == 'jaiabot_metadata':
-    print(config.template_substitute(templates_dir+'/hub/jaiabot_metadata.pb.cfg.in',
+    print(config.template_substitute(templates_dir+'/jaiabot_metadata.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      xbee_info=xbee_info,
-                                     is_simulation=str(is_simulation()).lower()))
+                                     is_simulation=str(is_simulation()).lower(),
+                                     node_id=f'hub_id: {hub_index}',
+                                     fleet_id=fleet_index))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:

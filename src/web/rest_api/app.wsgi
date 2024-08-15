@@ -8,7 +8,7 @@ print("Path: ", path)
 
 sys.path.append(path)
 
-# If we're a CloudHub, read the remote real hub's IP address
+# If we're a CloudHub, read the remote real hubs' IP address(es) and other data
 cloud_env_file = '/etc/jaiabot/cloud.env'
 if os.path.exists(cloud_env_file):
     with open(cloud_env_file, 'r') as file:
@@ -16,6 +16,8 @@ if os.path.exists(cloud_env_file):
             key, value = line.strip().split('=', 1)
             if key == 'jaia_jcc_hub_ip':
                 os.environ['JCC_HUB_IP'] = value
+            elif key == 'jaia_hub_endpoints':
+                os.environ['JAIA_REST_API_HUB_ENDPOINTS'] = value
             elif key == 'jaia_rest_api_private_key':
                 os.environ['JAIA_REST_API_PRIVATE_KEY'] = value
 else:

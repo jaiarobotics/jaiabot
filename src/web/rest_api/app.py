@@ -19,11 +19,11 @@ from common.api_exception import APIException
 import common.target as target
 import common.streaming_client as streaming_client
 import common.shared_data as shared_data
+import common.endpoint_parse as endpoint_parse
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
-parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
+parser.add_argument("-e", "--streaming_endpoint", type=str, nargs="?", default=os.environ.get("JAIA_REST_API_HUB_ENDPOINTS"), help="HubID:Hostname:Port for streaming API (jaiabot_web_portal) - more than one hub can be comma delimited, e.g. '1:[fd0f:77ac:4fdf::1]:40000,2:[fd0f:77ac:4fdf::2]:40000'")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-b", dest='bindPort', type=int, default=9092, help="bind port for flask server")
 
@@ -34,9 +34,15 @@ logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 
-if args.hostname is None:
-    logging.warning('no ip specified, using localhost')    
-    args.hostname = "localhost"
+if args.streaming_endpoint is None:
+    if os.environ.get("JCC_HUB_IP") is not None:
+        # Fall back to JCC single HUB IP and default port
+        hub_ip=os.environ.get("JCC_HUB_IP")
+        logging.warning(f'no ip specified, using JCC_HUB_IP env var with HUB 1 at {hub_ip}:40000')
+        args.streaming_endpoint = f"1:{hub_ip}:40000"
+    else:
+        logging.warning('no ip specified, using HUB 1 at localhost:40000')
+        args.streaming_endpoint = "1:localhost:40000"
 
 try: 
     api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
@@ -228,9 +234,15 @@ def check_api_key(key):
     else:
         return key == api_key
 
+streaming_endpoints = endpoint_parse.parse_all(args.streaming_endpoint)
 
-streaming_thread = threading.Thread(target=streaming_client.start_streaming, args=(args.hostname, args.port))
-streaming_thread.start()
+with shared_data.data_lock:
+    shared_data.create_queues(streaming_endpoints)
+
+streaming_thread=dict()
+for hub_id,endpoint in streaming_endpoints.items():
+    streaming_thread[hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(hub_id, endpoint))
+    streaming_thread[hub_id].start()
 
 def main():
     app.run(host='0.0.0.0', port=args.bindPort, debug=False)

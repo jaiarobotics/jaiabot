@@ -28,8 +28,8 @@ class Data:
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
     
-    # MetaData
-    metadata = {}
+    # Dict from hub_id => MetaData
+    hub_metadata = {}
 
     # Task Packets
     task_packets = []
@@ -130,7 +130,7 @@ class Data:
         return filtered_task_packets[start_index:end_index]
 
 
-    def process_portal_to_client_message(self, msg):
+    def process_portal_to_client_message(self, hub_id, msg):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()
             self.bots[msg.bot_status.bot_id] = msg.bot_status
@@ -148,7 +148,7 @@ class Data:
             self.task_packets.append(packet)
 
         if msg.HasField('device_metadata'):
-            self.metadata = msg.device_metadata
+            self.hub_metadata[hub_id] = msg.device_metadata
 
 
 # Access must be locked!    
@@ -156,5 +156,11 @@ data = Data()
 # protects Data
 data_lock = threading.Lock()
 
-# thread safe queue for outbound messages
-to_portal_queue = Queue()
+to_portal_queue = dict()
+def create_queues(streaming_endpoints):
+    for hub_id in streaming_endpoints.keys():
+        # thread safe queue for outbound messages
+        to_portal_queue[hub_id] = Queue()
+
+def get_queue(hub_id):
+    return to_portal_queue[hub_id]

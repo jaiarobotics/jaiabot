@@ -127,6 +127,13 @@ message APIResponse
         repeated HubStatus hubs = 2
             [(jaia.field).rest_api.presence = GUARANTEED];
     }
+
+    message Metadatas
+    {
+        repeated DeviceMetadata hubs = 1
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+
     message TaskPackets
     {
         repeated TaskPacket packets = 1
@@ -143,7 +150,7 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Bot/Hub status. This is sent in response to a successful Request 'status' action."
         }];
-        DeviceMetadata metadata = 12 [(jaia.field).rest_api = {
+        Metadatas metadata = 12 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Metadata response. This is sent in response to a successful Request 'metadata' action."
         }];

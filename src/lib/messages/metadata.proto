@@ -64,6 +64,15 @@ message DeviceMetadata
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional bool is_simulation = 13
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional uint32 fleet_id = 20 [(jaia.field).rest_api.presence = GUARANTEED];
+    oneof node_type
+    {
+        uint32 hub_id = 21 [(jaia.field).rest_api.presence = GUARANTEED];
+        uint32 bot_id = 22 [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+    repeated uint32 known_bots = 23
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message QueryDeviceMetaData
