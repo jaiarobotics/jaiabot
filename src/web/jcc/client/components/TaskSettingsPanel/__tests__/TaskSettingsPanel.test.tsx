@@ -50,6 +50,7 @@ const mockDriftParameters: DriftParameters = {
     //Mock Drift Parameters
     drift_time: 0,
 };
+
 //Non-Bottom Dive Prop Setup
 const nonBottomDiveParameters: DiveParameters = {
     //Mock Non-Bottom Dive Parameters
@@ -71,6 +72,7 @@ const mockNonBottomDiveProps: Props = {
     enableEcho: false,
     onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task),
 };
+
 //Bottom Dive Prop Setup
 const bottomDiveParameters: DiveParameters = {
     //Mock Bottom Dive Parameters
@@ -89,6 +91,7 @@ const mockBottomDiveProps: Props = {
     enableEcho: false,
     onChange: (task?: MissionTask) => mockOnChangeCheckParameters(task),
 };
+
 //Bad Bottom Dive Prop Setup
 const badBottomDiveParameters: DiveParameters = {
     //Mock ill-formed Bottom Dive Parameters
