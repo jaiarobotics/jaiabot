@@ -1,0 +1,44 @@
+// I used comment syntax to identify differences between this and jaiabot/src/web/package.json
+{
+    "name": "mui-select-testing",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject" //"test": "jest" when changed tests fail
+    },
+    "dependencies": {
+        "@emotion/react": "^11.11.1", //"^11.10.5"
+        "@emotion/styled": "^11.11.1", //"^11.10.5"
+        "@mui/material": "^5.15.8", //"^5.14.16"
+        "react": "^18.2.0", //"^18.2.0" Same but ours is in devDepenencies
+        "react-dom": "^18.2.0", //"^18.2.0" Same but ours is in devDepenencies
+        "react-scripts": "5.0.1", //NOT Found in our package
+        "typescript": "^4.9.5" //"^4.9.5" Same now but this was originally ^5.1.6
+        //react-scripts@5.0.1 has a peer dependency on typescript version ^3.2.1 || ^4
+        //but ours is in devDepenencies
+    },
+    "devDependencies": {
+        "@testing-library/jest-dom": "^5.17.0", //"^6.4.5" ours is in dependencies
+        "@testing-library/react": "^14.0.0", //"^15.0.7"
+        "@testing-library/user-event": "^14.4.3", //NOT in our package (probably not needed yet)
+        "@types/jest": "^29.5.3", //"^29.5.12"
+        "@types/node": "^20.6.2", //"^20.6.3"
+        "@types/react": "^18.2.15", //"^18.3.2"
+        "@types/react-dom": "^18.2.7" //"^18.3.0"
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    }
+}

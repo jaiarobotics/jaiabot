@@ -1,0 +1,117 @@
+// I used comment syntax to identify packages that are not included in jaiabot/src/web/jcc/client/components/MuiSelectTestChatGpt/package.json
+// X = Not there
+// + = verstion here is newer
+// - = verstion here is older
+{
+    "scripts": {
+        "prepare": "cd ../.. && husky"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.10.5", // -
+        "@emotion/styled": "^11.10.5", // -
+        "@fortawesome/free-regular-svg-icons": "^6.1.2", // X
+        "@fortawesome/free-solid-svg-icons": "^6.1.2", // X
+        "@fortawesome/react-fontawesome": "^0.2.0", // X
+        "@mdi/js": "^7.0.96", // X
+        "@mdi/react": "^1.6.1", // X 
+        "@mui/icons-material": "^5.10.9", // X
+        "@mui/joy": "^5.0.0-alpha.89", // X
+        "@mui/material": "^5.14.16", // -
+        "@testing-library/jest-dom": "^6.4.5", // +
+        "buffer": "^6.0.3", // X
+        "chroma-js": "^2.4.2", // X 
+        "es6-promise": "^4.2.8", // X
+        "geotiff": "^2.1.3", // X
+        "isomorphic-fetch": "^3.0.0", // X
+        "jquery": "^3.6.0", // X
+        "jquery-ui": "^1.13.2", // X
+        "lodash.clonedeep": "^4.5.0", // X
+        "mdi": "^2.2.43", // X
+        "ol": "7.2.2", // X 
+        "ol-layerswitcher": "^4.1.0", // X
+        "p-limit": "^5.0.0", // X
+        "package.json": "^2.0.1", // X
+        "plotly.js-dist": "^2.16.4", // X
+        "proj4": "^2.11.0", // X
+        "react-joystick-component": "^6.1.0", // X
+        "reset-css": "^5.0.1", // X
+        "resolve-cwd": "^3.0.0", // X
+        "toastr": "^2.1.4" // X
+    },
+    "devDependencies": {
+        "@babel/core": "^7.18.9", // X 
+        "@babel/plugin-proposal-class-properties": "^7.18.6", // X
+        "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6", // X
+        "@babel/plugin-proposal-optional-chaining": "^7.21.0", // X
+        "@babel/preset-env": "^7.18.9", // X
+        "@babel/preset-react": "^7.18.6", // X
+        // I think the reason the MUI Select example does not include these is 
+        // because they run tests with "react-scripts test" as opposed to just "jest"
+        // jest relies on babel to produce javascript, this is bundled in the functionality 
+        // of "react-scripts test"
+        "@fortawesome/fontawesome-svg-core": "^6.4.0", // X
+        "@jest/globals": "^29.7.0", // X
+        "@testing-library/dom": "^10.1.0", // X 
+        "@testing-library/react": "^15.0.7", // +
+        "@turf/turf": "^6.5.0", // X
+        "@types/chroma-js": "^2.4.4", // X
+        "@types/downloadjs": "^1.4.4", // X
+        "@types/jest": "^29.5.12", // +
+        "@types/jquery": "^3.5.14", // X
+        "@types/jqueryui": "^1.12.16", // X
+        "@types/lodash.clonedeep": "^4.5.7", // X
+        "@types/node": "^20.6.3", // +
+        "@types/plotly.js": "^2.12.10", // X
+        "@types/proj4": "^2.5.5", // X
+        "@types/react": "^18.3.2", // +
+        "@types/react-dom": "^18.3.0", // +
+        "@types/react-gamepad": "^1.0.3", // X
+        "@types/toastr": "^2.1.40", // X
+        "@webpack-cli/generators": "^3.0.7", // X
+        "babel-eslint": "^10.1.0", // X
+        "babel-jest": "^29.7.0", // X
+        "babel-loader": "^9.1.3", // X
+        "babel-plugin-transform-react-remove-prop-types": "^0.4.24", // X
+        "babel-polyfill": "^6.26.0", // X
+        "clean-webpack-plugin": "^4.0.0", // X
+        "copy-webpack-plugin": "11.0.0", // X
+        "css-loader": "^4.3.0", // X
+        "dotenv-webpack": "^8.0.0", // X
+        "downloadjs": "^1.4.7", // X
+        "eslint": "^8.21.0",  // X
+        "eslint-plugin-import": "^2.26.0", // X
+        "eslint-plugin-jsx-a11y": "^6.6.1", // X
+        "eslint-plugin-react": "^7.30.1", // X
+        "fake-indexeddb": "^6.0.0", // X
+        "html-webpack-plugin": "^5.5.3", // X 
+        "husky": "^9.0.11", // X
+        "idb": "^7.0.2", // X 
+        "jest": "^29.7.0", // X
+        "jest-environment-jsdom": "^29.7.0", // X
+        "json-loader": "^0.5.7", // X
+        "jszip": "^3.10.1", // X
+        "less": "^3.13.1", // X
+        "less-loader": "^11.1.0", // X
+        "less-vars-loader": "^1.1.0", // X
+        "node": "^19.8.1", // X
+        "npm": "^9.2.0", // X 
+        "plotly": "^1.0.6",// X
+        "prettier": "3.2.5", // X
+        "react": "^18.2.0", // Same but they have it in dependencies
+        "react-dom": "^18.2.0", // Same but they have it in dependencies
+        "react-router-dom": "^6.3.0", // X
+        "romans": "^2.0.8", // X 
+        "style-loader": "^1.3.0", // X
+        "terser-webpack-plugin": "^4.2.3", // X
+        "ts-jest": "^29.1.2", // X
+        "ts-loader": "^9.4.2", // X
+        "typescript": "^4.9.5", // X
+        "url-loader": "^4.1.1", // X
+        "webpack": "^5.75.0", // X
+        "webpack-cli": "^4.10.0", // X
+        "webpack-dev-server": "^4.9.3" // X
+    },
+    "scripts": {
+        "test": "jest"
+    }
+}
