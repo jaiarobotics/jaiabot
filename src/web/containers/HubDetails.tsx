@@ -57,6 +57,10 @@ export function HubDetails() {
     const firstKey = Number(Object.keys(hubContext.hubStatuses)[0]);
     const hubStatus = hubContext.hubStatuses[firstKey];
 
+    if (!hubStatus) {
+        return <div></div>;
+    }
+
     /**
      * Dispatches an action to close the HubDetails panel
      *
@@ -123,8 +127,8 @@ export function HubDetails() {
         const isControlTaken = await takeControl(globalContext.clientID);
         if (isControlTaken) {
             globalDispatch({ type: GlobalActions.TAKE_CONTROL_SUCCESS });
+            sendHubCommand(hubStatus.hub_id, command);
         }
-        sendHubCommand(hubStatus.hub_id, command);
     }
 
     /**
