@@ -155,7 +155,7 @@ function handleClosedHubDetails(mutableState: GlobalContextType) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleClickedHubTab(mutableState: GlobalContextType, hubID: number) {
-    if (!hubID) throw new Error("Invalid hubID");
+    if (isNaN(hubID)) throw new Error("Invalid hubID");
 
     const isHubSelected =
         mutableState.selectedPodElement !== null &&
@@ -207,7 +207,7 @@ function handleClickedBotTab(mutableState: GlobalContextType) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleClickedHubMapIcon(mutableState: GlobalContextType, hubID: number) {
-    if (!hubID) throw new Error("Invalid hubID");
+    if (isNaN(hubID)) throw new Error("Invalid hubID");
 
     const isHubSelected =
         mutableState.selectedPodElement !== null &&

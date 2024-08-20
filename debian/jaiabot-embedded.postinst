@@ -174,4 +174,7 @@ echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' ja
 
 #DEBHELPER#
 
+# Remove Goby intervehicle subscription file from hub to prevent non-connected bots from appearing in JCC
+rm /var/log/jaiabot/hub/goby_intervehicle_subscriptions_hub.pb.txt
+
 exit 0
