@@ -20,7 +20,7 @@ export function convertMicrosecondsToSeconds(microseconds: number) {
 
 export function formatLatitude(lat: number, prec = 5) {
     if (lat == null) {
-        return "?";
+        return "N/A";
     }
     if (lat > 0) {
         return abs(lat).toFixed(prec) + "° N";
@@ -31,7 +31,7 @@ export function formatLatitude(lat: number, prec = 5) {
 
 export function formatLongitude(lon: number, prec = 5) {
     if (lon == null) {
-        return "?";
+        return "N/A";
     }
     if (lon > 0) {
         return abs(lon).toFixed(prec) + "° E";

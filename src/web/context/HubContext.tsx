@@ -9,13 +9,15 @@ import { jaiaAPI } from "../jcc/common/JaiaAPI";
 // Utilities
 import { isError } from "lodash";
 
+type HubStatuses = { [key: number]: PortalHubStatus };
+
 interface HubContextType {
-    hubStatus: PortalHubStatus;
+    hubStatuses: HubStatuses;
 }
 
 interface Action {
     type: string;
-    hubStatus?: PortalHubStatus;
+    hubStatuses?: HubStatuses;
 }
 
 interface HubContextProviderProps {
@@ -24,7 +26,7 @@ interface HubContextProviderProps {
 
 const HUB_POLL_TIME = 1000; // ms
 
-export const HubContext = createContext(null);
+export const HubContext = createContext<HubContextType>(null);
 export const HubDispatchContext = createContext(null);
 
 /**
@@ -38,7 +40,7 @@ function hubReducer(state: HubContextType, action: Action) {
     let mutableState = { ...state };
     switch (action.type) {
         case HubActions.HUB_STATUS_POLLED:
-            return handleHubStatusPolled(mutableState, action.hubStatus);
+            return handleHubStatusPolled(mutableState, action.hubStatuses);
         default:
             return state;
     }
@@ -50,9 +52,9 @@ function hubReducer(state: HubContextType, action: Action) {
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
  */
-function handleHubStatusPolled(mutableState: HubContextType, hubStatus: PortalHubStatus) {
-    if (!hubStatus) throw new Error("Invalid hubStatus");
-    mutableState.hubStatus = hubStatus;
+function handleHubStatusPolled(mutableState: HubContextType, hubStatuses: HubStatuses) {
+    if (!hubStatuses) throw new Error("Invalid hubStatuses");
+    mutableState.hubStatuses = hubStatuses;
     return mutableState;
 }
 
@@ -89,7 +91,7 @@ function pollHubStatus(dispatch: React.Dispatch<Action>) {
         if (!isError(response)) {
             dispatch({
                 type: HubActions.HUB_STATUS_POLLED,
-                hubStatus: response,
+                hubStatuses: response,
             });
         }
     }, HUB_POLL_TIME);
