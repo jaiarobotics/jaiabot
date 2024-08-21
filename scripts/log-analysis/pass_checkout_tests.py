@@ -362,6 +362,8 @@ def get_data(file_list):
 
     bot_df = pd.DataFrame(columns=["Bot ID", "IMU Issues", "Total bot runtime", "IMU Issues per hour", "Percentage of time at calibration level 0", "Percentage of time at calibration level 1", "Percentage of time at calibration level 2", "Percentage of time at calibration level 3"])
     
+    bot_data = SortedDict({})
+
     for key in sd:
         print("\n---------------------\n", key)
         # print(sd[key])
@@ -374,9 +376,13 @@ def get_data(file_list):
         print("Total dives: ", total_dives[key])
         print("False dives: ", total_false_dives[key])
         print("Non-dive reaquire GPS states: ", reaquire_gps_total[key])
+        reaquire_gps_data = 0
         if reaquire_gps_total[key] != 0:
+            reaquire_gps_data = round(reaquire_gps_time[key]/reaquire_gps_total[key], 2)
             print("Non-dive average time to reaquire GPS: ", round(reaquire_gps_time[key]/reaquire_gps_total[key], 2), " seconds")
+        dive_reaquire_gps_data = 0
         if dive_reaquire_gps_total[key] != 0:
+            dive_reaquire_gps_data = round(dive_reaquire_gps_time[key]/dive_reaquire_gps_total[key], 2)
             print("Average time to reaquire GPS post-dive: ", round(dive_reaquire_gps_time[key]/dive_reaquire_gps_total[key], 2), " seconds")
         print("Number of false transits: ", bot_false_transits[key])
 
@@ -396,10 +402,17 @@ def get_data(file_list):
             bot_passes_tests += "\n - Inconsistent depth during dive holds"
         
         print("---------------------")
+        bot_passes_tests_message = ""
         if bot_passes_tests == "":
             print("Bot passes tests.")
+            bot_passes_tests_message = "Bot passes tests."
         else:
             print("Bot fails tests because of:", bot_passes_tests)
+            bot_passes_tests_message = "Bot fails tests because of:" + bot_passes_tests
+
+        instance = pd.DataFrame(columns=["Bot ID", "Total bot runtime (hours)", "Total IMU Issues", "Total dives", "False dives", "Non-dive reaquire GPS states", "Non-dive average time to reaquire GPS", "Average time to reaquire GPS post-dive", "Number of false transits", "Does bot pass factory acceptance tests?"])
+        instance.loc[0] = [key, str(round(total_runtime[key], 2)), str(issues_per_bot[key]), str(total_dives[key]), str(total_false_dives[key]), str(reaquire_gps_total[key]), str(reaquire_gps_data), str(dive_reaquire_gps_data), str(bot_false_transits[key]), str(bot_passes_tests_message)]
+        bot_data[key] = instance
 
         # print("IMU issues per hour: ", round(issues_per_bot[key]/total_runtime[key], 2))
 
@@ -416,7 +429,7 @@ def get_data(file_list):
     data_list['Start datetime'] = data_list['Start datetime'].str[5:]
     data_list['End datetime'] = data_list['End datetime'].str[5:]
 
-    return bot_df, data_list
+    return bot_data
 
 def get_files(path, recursive):
     if os.path.isdir(path):
@@ -429,51 +442,12 @@ def get_files(path, recursive):
     else:
         print("File or Directory does not exist or File is not an h5. Try again.")
 
-def export_data(bot_df, data_list, combine_files=False, out_path="..\\..\\..\\..\\imu-data-dashboard.xlsx"):
+def export_data(bot_data, out_path="..\\..\\..\\..\\test.xlsx"):
 
-    instance_data = data_list
+    with pd.ExcelWriter(out_path, mode='w') as writer: 
 
-    new_data_list = pd.DataFrame(columns=data_list.copy().drop(['Bot ID', 'Start datetime', 'End datetime', 'Start date'], axis=1).columns)
-    new_data_list.insert(0, 'Date', [])
-
-    if combine_files:
-        for date in data_list['Start date'].copy().drop_duplicates().tolist():
-            files_from_date = data_list.copy().loc[data_list['Start date'] == date]
-            runtime_sum = sum(files_from_date['Hours running'])
-
-            files_from_date['Proportion of files'] = files_from_date['Hours running'] / runtime_sum
-
-            date_data = [date, sum(files_from_date['IMU issues']), round(sum(files_from_date['Hours running']), 2), 
-                                   round(sum(files_from_date['IMU issues']) / sum(files_from_date['Hours running']), 2), 
-                                   round(sum(files_from_date['Proportion of files'] * files_from_date['Proportion of time at cal 0']), 2),
-                                   round(sum(files_from_date['Proportion of files'] * files_from_date['Proportion of time at cal 1']), 2),
-                                   round(sum(files_from_date['Proportion of files'] * files_from_date['Proportion of time at cal 2']), 2),
-                                   round(sum(files_from_date['Proportion of files'] * files_from_date['Proportion of time at cal 3']), 2)]
-            
-            new_data_list.loc[len(new_data_list)] = date_data
-
-        data_list = new_data_list
-
-
-    bot_df[' '] = '     '
-    bot_df['  '] = '     '
-
-    if combine_files:
-        pd.concat([bot_df, data_list], axis=1).to_excel(out_path, sheet_name='Summary') 
-    else:
-        pd.concat([bot_df, data_list.drop(['Start date'], axis=1)], axis=1).to_excel(out_path, sheet_name='Summary') 
-
-    with pd.ExcelWriter(out_path, mode='a', if_sheet_exists='overlay') as writer: 
-
-        if combine_files:
-            for date in data_list['Date']:
-                instance_data.loc[instance_data['Start date'] == date].drop(['Start date'], axis=1).to_excel(writer, sheet_name = date)
-        else:
-            for bot_id in bot_df['Bot ID']:                
-                curr_bot_data = data_list.loc[data_list['Bot ID'] == bot_id]
-
-                pd.concat([bot_df.loc[bot_df['Bot ID'] == bot_id], curr_bot_data.drop(['Start date'], axis=1)], axis=1).to_excel(writer, sheet_name = bot_id)
-
+        for key in bot_data:
+            bot_data[key].transpose().to_excel(writer, sheet_name=key)
 
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
@@ -496,13 +470,12 @@ def main():
     parser = argparse.ArgumentParser(description='Dynamically allow users to parse through a series of datafiles.')
     parser.add_argument("file_path", type=str, help="Path to directory .h5 file.")
     parser.add_argument("-r", "--recursive", action="store_true", help="Recursively find all .h5 files in a directory and all of its subdirectories.")
-    parser.add_argument("-c", "--combine", action="store_true", help="Combine all files that begin on the same day.")
     args = parser.parse_args()
 
     file_list = get_files(args.file_path, args.recursive)
-    bot_df, data_list = get_data(file_list)
+    bot_data = get_data(file_list)
 
-    # export_data(bot_df, data_list, args.combine)
+    export_data(bot_data)
 
 
 if __name__ == '__main__':
