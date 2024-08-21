@@ -275,7 +275,9 @@ set(scripts_to_install
   jaia_firm_backup_date.sh
   geotiff_format.py
   geotiff_scan.sh
+  # Utilities
   jaia-ip.py
+  jaia-doc.py
 )
 
 # Iterate over each script to install and copy

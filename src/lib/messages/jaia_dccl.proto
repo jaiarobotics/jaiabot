@@ -7,6 +7,7 @@ import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
@@ -27,27 +28,34 @@ message Command
         unit_system: "si"
     };
 
-    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-        precision: -6  // second precision
-    }];
+    required uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 },
+        (jaia.field).rest_api.presence = OMITTED  // specified in 'targets'
+    ];
+    required uint64 time = 2 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+            precision: -6  // second precision
+
+        },
+        (jaia.field).rest_api.presence = OMITTED  // written by API server
+    ];
 
     enum CommandType
     {
         // pre mission
-        MISSION_PLAN = 1;
-        ACTIVATE = 2;
-        START_MISSION = 3;
+        MISSION_PLAN = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        ACTIVATE = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+        START_MISSION = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
         MISSION_PLAN_FRAGMENT = 4;
 
-        // during any mission 
-        NEXT_TASK = 10;
-        RETURN_TO_HOME = 11;
-        STOP = 12;
-        PAUSE = 13;
-        RESUME = 14;
+        // during any mission
+        NEXT_TASK = 10 [(jaia.ev).rest_api.presence = GUARANTEED];
+        RETURN_TO_HOME = 11 [(jaia.ev).rest_api.presence = GUARANTEED];
+        STOP = 12 [(jaia.ev).rest_api.presence = GUARANTEED];
+        PAUSE = 13 [(jaia.ev).rest_api.presence = GUARANTEED];
+        RESUME = 14 [(jaia.ev).rest_api.presence = GUARANTEED];
 
         // during remote control mission
         REMOTE_CONTROL_SETPOINT = 20;
@@ -55,8 +63,8 @@ message Command
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
         // post mission
-        RECOVERED = 30;
-        SHUTDOWN = 31;
+        RECOVERED = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
+        SHUTDOWN = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
         RETRY_DATA_OFFLOAD = 32;
         DATA_OFFLOAD_COMPLETE = 33;
         DATA_OFFLOAD_FAILED = 34;
@@ -67,15 +75,16 @@ message Command
         SHUTDOWN_COMPUTER = 42;
     }
 
-    required CommandType type = 10;
+    required CommandType type = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     oneof command_data
     {
         // required for type == MISSION_PLAN
-        MissionPlan plan = 20;
+        MissionPlan plan = 20  [(jaia.field).rest_api = { presence: GUARANTEED, doc: "Used with \"command\": { \"type\" : \"MISSION_PLAN\" }"}];
 
         // required for type == REMOTE_CONTROL_SETPOINT
-        RemoteControl rc = 30;
+        RemoteControl rc = 30 [(jaia.field).rest_api = { presence: GUARANTEED, doc: "Used with \"command\": { \"type\" : \"REMOTE_CONTROL_SETPOINT\" }"}];
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
@@ -88,9 +97,10 @@ message CommandForHub
         unit_system: "si"
     };
 
-    required uint32 hub_id = 1;
+    required uint32 hub_id = 1 [(jaia.field).rest_api.presence = OMITTED];
     required uint64 time = 2 [
-        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } },
+        (jaia.field).rest_api.presence = OMITTED
     ];
 
     enum HubCommandType
@@ -103,13 +113,16 @@ message CommandForHub
         SHUTDOWN_COMPUTER = 42;
 
         // simulator commands
-        SET_HUB_LOCATION = 80;
+        SET_HUB_LOCATION = 80 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
 
-    required HubCommandType type = 10;
+    required HubCommandType type = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
     optional uint32 scan_for_bot_id = 11;
 
-    optional GeographicCoordinate hub_location = 80;
+    optional GeographicCoordinate hub_location = 80
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message BotStatus
@@ -129,72 +142,120 @@ message BotStatus
         unit_system: "si"
     };
 
-    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-    optional uint64 last_command_time = 3 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
+    required uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    required uint64 time = 2 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" },
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional uint64 last_command_time = 3 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    optional goby.middleware.protobuf.HealthState health_state = 4;
-    repeated Error error = 5 [(dccl.field).max_repeat = 5];
-    repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
+    optional goby.middleware.protobuf.HealthState health_state = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    repeated Error error = 5 [
+        (dccl.field).max_repeat = 5,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    repeated Warning warning = 6 [
+        (dccl.field).max_repeat = 5,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
     enum BotType
     {
-        HYDRO = 1;
-        ECHO = 2;
+        HYDRO = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        ECHO = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
-    optional BotType bot_type = 7;
+    optional BotType bot_type = 7 [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional GeographicCoordinate location = 10;
+    optional GeographicCoordinate location = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional double depth = 11 [(dccl.field) = {
-        min: -1
-        max: 100
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
+    optional double depth = 11 [
+        (dccl.field) = {
+            min: -1
+            max: 100
+            precision: 1
+            units: { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     message Attitude
     {
-        optional double roll = 1 [(dccl.field) = {
-            min: -180
-            max: 180
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
-        optional double pitch = 2 [(dccl.field) = {
-            min: -180
-            max: 180
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
-        optional double heading = 3 [(dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
-        optional double course_over_ground = 4 [(dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
+        optional double roll = 1 [
+            (dccl.field) = {
+                min: -180
+                max: 180
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+        optional double pitch = 2 [
+            (dccl.field) = {
+                min: -180
+                max: 180
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+        optional double heading = 3 [
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+        optional double course_over_ground = 4 [
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
     }
-    optional Attitude attitude = 20;
+    optional Attitude attitude = 20
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     message Speed
     {
-        optional double over_ground = 1 [(dccl.field) = {
-            min: -5
-            max: 10
-            precision: 1
-            units { derived_dimensions: "velocity" }
-        }];
+        optional double over_ground = 1 [
+            (dccl.field) = {
+                min: -5
+                max: 10
+                precision: 1
+                units { derived_dimensions: "velocity" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
         optional double over_water = 2 [(dccl.field) = {
             min: -5
             max: 10
@@ -202,27 +263,39 @@ message BotStatus
             units { derived_dimensions: "velocity" }
         }];
     }
-    optional Speed speed = 30;
+    optional Speed speed = 30 [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional MissionState mission_state = 40;
+    optional MissionState mission_state = 40
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     // bounds should match MissionPlan.goal max_repeat value *
     // expected_fragments max
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 29 }];
-    optional double distance_to_active_goal = 42 [(dccl.field) = {
-        min: 0
-        max: 1000
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
-    optional uint32 active_goal_timeout = 43 [(dccl.field) = {
-        min: 0
-        max: 3600
-        precision: 0
-        units { base_dimensions: "T" }
-    }];
-    optional int32 repeat_index = 44
-        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
+    optional int32 active_goal = 41 [
+        (dccl.field) = { min: 0 max: 29 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional double distance_to_active_goal = 42 [
+        (dccl.field) = {
+            min: 0
+            max: 1000
+            precision: 1
+            units: { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional uint32 active_goal_timeout = 43 [
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: 0
+            units { base_dimensions: "T" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional int32 repeat_index = 44 [
+        (dccl.field) = { min: 0 max: 1000 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -262,8 +335,10 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
-    optional double battery_percent = 57
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional double battery_percent = 57 [
+        (dccl.field) = { min: 0 max: 100 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     optional int32 calibration_status = 58 [(dccl.field) = { min: 0 max: 3 }];
 
@@ -273,8 +348,18 @@ message BotStatus
 
     optional double pdop = 61 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional int32 wifi_link_quality_percentage = 62
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional int32 wifi_link_quality_percentage = 62 [
+        (dccl.field) = { min: 0 max: 100 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional uint64 received_time = 63 [
+        (dccl.field) = {
+            omit: true
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }
 
 message DriftPacket
@@ -290,42 +375,58 @@ message DriftPacket
             max: 3600
             precision: -1
             units { base_dimensions: "T" }
-        }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
     ];
 
     message EstimatedDrift
     {
-        required double speed = 1 [(dccl.field) = {
-            min: 0
-            max: 10
-            precision: 1
-            units { derived_dimensions: "velocity" }
-        }];
+        required double speed = 1 [
+            (dccl.field) = {
+                min: 0
+                max: 10
+                precision: 1
+                units { derived_dimensions: "velocity" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
 
-        optional double heading = 3 [(dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
+        optional double heading = 3 [
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
     }
 
     // should correspond to ocean current velocity
-    optional EstimatedDrift estimated_drift = 10;
+    optional EstimatedDrift estimated_drift = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     // location C
-    optional GeographicCoordinate start_location = 11;
+    optional GeographicCoordinate start_location = 11
+        [(jaia.field).rest_api.presence = GUARANTEED];
     // location D
-    optional GeographicCoordinate end_location = 12;
+    optional GeographicCoordinate end_location = 12
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     // Significant wave height is defined as the average wave height,
     // from trough to crest, of the highest one-third of the waves
-    optional double significant_wave_height = 13 [(dccl.field) = {
-        min: 0
-        max: 50
-        precision: 3
-        units: { derived_dimensions: "length" }
-    }];
+    optional double significant_wave_height = 13 [
+        (dccl.field) = {
+            min: 0
+            max: 50
+            precision: 3
+            units: { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }
 
 message DivePacket
@@ -334,88 +435,121 @@ message DivePacket
         unit_system: "si"
     };
 
-    required double dive_rate = 10 [(dccl.field) = {
-        min: 0
-        max: 10
-        precision: 1
-        units { derived_dimensions: "velocity" }
-    }];
+    required double dive_rate = 10 [
+        (dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    optional double unpowered_rise_rate = 11 [(dccl.field) = {
-        min: 0
-        max: 10
-        precision: 1
-        units { derived_dimensions: "velocity" }
-    }];
+    optional double unpowered_rise_rate = 11 [
+        (dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    optional double powered_rise_rate = 12 [(dccl.field) = {
-        min: 0
-        max: 10
-        precision: 1
-        units { derived_dimensions: "velocity" }
-    }];
+    optional double powered_rise_rate = 12 [
+        (dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    required double depth_achieved = 13 [(dccl.field) = {
-        min: 0
-        max: 100
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
-
-    message Measurements
-    {
-        optional double mean_depth = 1 [(dccl.field) = {
+    required double depth_achieved = 13 [
+        (dccl.field) = {
             min: 0
             max: 100
             precision: 1
             units: { derived_dimensions: "length" }
-        }];
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-        optional double mean_temperature = 2 [(dccl.field) = {
-            min: -1
-            max: 50
-            precision: 1
-            units { derived_dimensions: "temperature" system: "celsius" }
-        }];
+    message Measurements
+    {
+        optional double mean_depth = 1 [
+            (dccl.field) = {
+                min: 0
+                max: 100
+                precision: 1
+                units: { derived_dimensions: "length" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
 
-        optional double mean_salinity = 3
-            [(dccl.field) = { min: 0 max: 45 precision: 1 }];
+        optional double mean_temperature = 2 [
+            (dccl.field) = {
+                min: -1
+                max: 50
+                precision: 1
+                units { derived_dimensions: "temperature" system: "celsius" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+
+        optional double mean_salinity = 3 [
+            (dccl.field) = { min: 0 max: 45 precision: 1 },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 50 }];
+    repeated Measurements measurement = 14 [
+        (dccl.field) = { max_repeat: 50 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     // location A
-    optional GeographicCoordinate start_location = 15;
+    optional GeographicCoordinate start_location = 15
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional double duration_to_acquire_gps = 16 [(dccl.field) = {
-        min: 0
-        max: 120
-        precision: 1
-        units { base_dimensions: "T" }
-    }];
+    optional double duration_to_acquire_gps = 16 [
+        (dccl.field) = {
+            min: 0
+            max: 120
+            precision: 1
+            units { base_dimensions: "T" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     // Did we reach seafloor?
-    optional bool bottom_dive = 17 [default = false];
+    optional bool bottom_dive = 17
+        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     // Did we reach min depth?
-    optional bool reached_min_depth = 18 [default = false];
+    optional bool reached_min_depth = 18
+        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     // If we reached bottom, what was the bottom type
     enum BottomType
     {
-        HARD = 1;
-        SOFT = 2;
+        HARD = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        SOFT = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
 
-    optional BottomType bottom_type = 19;
+    optional BottomType bottom_type = 19
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     // For bottom characterization
-    optional double max_acceleration = 20 [(dccl.field) = {
-        min: 0
-        max: 100
-        precision: 1
-        units { derived_dimensions: "acceleration" }
-    }];
+    optional double max_acceleration = 20 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 1
+            units { derived_dimensions: "acceleration" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }
 
 message TaskPacket
@@ -435,17 +569,28 @@ message TaskPacket
         unit_system: "si"
     };
 
-    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 start_time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-    required uint64 end_time = 3 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-    required MissionTask.TaskType type = 4;
+    required uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    required uint64 start_time = 2 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    required uint64 end_time = 3 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    required MissionTask.TaskType type = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional DivePacket dive = 10;
-    optional DriftPacket drift = 11;
+    optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional DriftPacket drift = 11
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
