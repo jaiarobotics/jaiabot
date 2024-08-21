@@ -36,8 +36,6 @@ maximum_threshold_to_reenter_dive_depth = 1 # In meters
 
 def get_data(file_list):
     
-    data_list = pd.DataFrame(columns=["Bot ID", "Start datetime", "End datetime", "IMU issues", "Hours running", "IMU issues per hour", "Proportion of time at cal 0", "Proportion of time at cal 1", "Proportion of time at cal 2", "Proportion of time at cal 3"])
-
     sd = SortedDict({})
     issues_per_bot = SortedDict({})
     total_runtime = SortedDict({})
@@ -101,7 +99,6 @@ def get_data(file_list):
                 except:
                     print("Continue")
                     
-                # desired_depth.reset_index(drop=True, inplace=True)
 
                 status_utime = status_utime_unfiltered[status_scheme != 1]
                 bot_id = bot_id_unfiltered[status_scheme != 1]
@@ -117,20 +114,9 @@ def get_data(file_list):
 
                 instance_bot_number = max(bot_id)
 
-                # print("Desired depth length before: ", len(desired_depth))
-
                 desired_depth = desired_depth.reindex(range(len(status_depth)), method='ffill')
                 desired_depth.reset_index(drop=True, inplace=True)
-                
-                # print("Desired depth length after: ", len(desired_depth))
-                # print(desired_depth)
-                # print("Desired depth drop na", len(desired_depth.dropna()))
-                # desired_depth = desired_depth.dropna()
-                # desired_depth = desired_depth[desired_depth!=0]
-                # print("Status depth length: ", len(status_depth))
-                # print(desired_depth)
-                # length_diff = abs(len(desired_depth) - len(status_depth))
-                # print("Length difference: ", length_diff)
+
                 
                 # Amount of IMU Issues that we detected
                 imu_issues = 0
@@ -212,9 +198,6 @@ def get_data(file_list):
                         inst_end_time = str(status_datetime[i])[0:-13]
                         inst_end_time = inst_end_time[-8:]
 
-                        # print(inst_start_time)
-                        # print(inst_end_time)
-
                         time_diff = datetime.strptime(inst_end_time, "%H:%M:%S") - datetime.strptime(inst_start_time, "%H:%M:%S")
 
                         reaquire_gps_lengths[len(reaquire_gps_lengths)-1] = time_diff.total_seconds()
@@ -238,8 +221,6 @@ def get_data(file_list):
                         inst_end_time = str(status_datetime[i])[0:-13]
                         inst_end_time = inst_end_time[-8:]
 
-                        # print(inst_start_time)
-                        # print(inst_end_time)
 
                         time_diff = datetime.strptime(inst_end_time, "%H:%M:%S") - datetime.strptime(inst_start_time, "%H:%M:%S")
 
@@ -275,7 +256,6 @@ def get_data(file_list):
 
                         reentered_dive_threshold_count = 0
                         while reentered_dive_threshold_count < 2 and mission_state[i] == 125:
-                                # print("Pass")
                                 max_depth_achieved = max(max_depth_achieved, status_depth[i])
 
                                 if status_depth[i] - desired_depth[i] < maximum_threshold_to_reenter_dive_depth:
@@ -284,15 +264,11 @@ def get_data(file_list):
 
                         while mission_state[i] == 125:
                             if desired_depth[i] != 0 and not np.isnan(desired_depth[i]):
-                                # print("Status depth: ", status_depth[i])
-                                # print("Desired depth: ", desired_depth[i])
                                 if abs(status_depth[i] - desired_depth[i]) > maximum_distance_off_desired_dive_hold_depth:
                                     time_at_incorrect_depth += 1
                                     if time_at_incorrect_depth > maximum_time_at_incorrect_dive_hold_depth  and max_depth_achieved > desired_depth[i] - maximum_distance_off_desired_dive_hold_depth:
                                         holds_dive += 1
                                         time_at_incorrect_depth = 0
-                                        # print("Status depth: ", status_depth[i-15:i])
-                                        # print("Desired depth: ", desired_depth[i-15:i])
                                 else:
                                     time_at_incorrect_depth = 0
                             i += 1
@@ -315,8 +291,6 @@ def get_data(file_list):
 
                 instance_bot_id = "Fleet " + str(instance_fleet_number) + " Bot " + str(instance_bot_number)# + "\nIMU Type: " + str(instance_bot_imu_type)
                 
-                data_list.loc[len(data_list)] = [instance_bot_id, str(instance_start_time), str(instance_end_time), imu_issues, round(hours_running, 2), round(imu_issues/hours_running, 2), round(time_at_cal0/indices_searched, 2), round(time_at_cal1/indices_searched, 2), round(time_at_cal2/indices_searched, 2), round(time_at_cal3/indices_searched, 2)]
-
                 if(instance_bot_id in sd):
                     bot_time_at_cal0[instance_bot_id] += time_at_cal0
                     bot_time_at_cal1[instance_bot_id] += time_at_cal1
@@ -360,18 +334,12 @@ def get_data(file_list):
                 print(f"Error {e}")
                 continue
 
-    bot_df = pd.DataFrame(columns=["Bot ID", "IMU Issues", "Total bot runtime", "IMU Issues per hour", "Percentage of time at calibration level 0", "Percentage of time at calibration level 1", "Percentage of time at calibration level 2", "Percentage of time at calibration level 3"])
     
     bot_data = SortedDict({})
 
     for key in sd:
         print("\n---------------------\n", key)
-        # print(sd[key])
         print("---------------------\nTotal bot runtime: ", round(total_runtime[key], 2), " hours")
-        # print("Total time spent at calibration level 0: ", round((bot_time_at_cal0[key] / cal_data_length[key]), 2))
-        # print("Total time spent at calibration level 1: ", round((bot_time_at_cal1[key] / cal_data_length[key]), 2))
-        # print("Total time spent at calibration level 2: ", round((bot_time_at_cal2[key] / cal_data_length[key]), 2))
-        # print("Total time spent at calibration level 3: ", round((bot_time_at_cal3[key] / cal_data_length[key]), 2))
         print("Total IMU Issues: ", issues_per_bot[key])
         print("Total dives: ", total_dives[key])
         print("False dives: ", total_false_dives[key])
@@ -386,9 +354,6 @@ def get_data(file_list):
             print("Average time to reaquire GPS post-dive: ", round(dive_reaquire_gps_time[key]/dive_reaquire_gps_total[key], 2), " seconds")
         print("Number of false transits: ", bot_false_transits[key])
 
-
-
-        
 
 
         bot_passes_tests = ""
@@ -414,20 +379,7 @@ def get_data(file_list):
         instance.loc[0] = [key, str(round(total_runtime[key], 2)), str(issues_per_bot[key]), str(total_dives[key]), str(total_false_dives[key]), str(reaquire_gps_total[key]), str(reaquire_gps_data), str(dive_reaquire_gps_data), str(bot_false_transits[key]), str(bot_passes_tests_message)]
         bot_data[key] = instance
 
-        # print("IMU issues per hour: ", round(issues_per_bot[key]/total_runtime[key], 2))
-
-        bot_data_column = [key, issues_per_bot[key], round(total_runtime[key], 2), round(issues_per_bot[key]/total_runtime[key], 2), round((bot_time_at_cal0[key] / cal_data_length[key]), 2),
-                               round((bot_time_at_cal1[key] / cal_data_length[key]), 2), round((bot_time_at_cal2[key] / cal_data_length[key]), 2),
-                               round((bot_time_at_cal3[key] / cal_data_length[key]), 2)]
         
-        bot_df.loc[len(bot_df)] = bot_data_column
-
-
-    data_list['Start date'] = data_list['Start datetime'].str[:10]
-    data_list = data_list.sort_values(by=['Start date', 'Bot ID'])
-
-    data_list['Start datetime'] = data_list['Start datetime'].str[5:]
-    data_list['End datetime'] = data_list['End datetime'].str[5:]
 
     return bot_data
 
