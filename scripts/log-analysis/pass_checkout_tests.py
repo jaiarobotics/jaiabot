@@ -380,7 +380,6 @@ def get_data(file_list):
         bot_data[key] = instance
 
         
-
     return bot_data
 
 def get_files(path, recursive):
@@ -394,7 +393,7 @@ def get_files(path, recursive):
     else:
         print("File or Directory does not exist or File is not an h5. Try again.")
 
-def export_data(bot_data, out_path="..\\..\\..\\..\\test.xlsx"):
+def export_data(bot_data, out_path="factory_acceptance_test_results.xlsx"):
 
     with pd.ExcelWriter(out_path, mode='w') as writer: 
 
