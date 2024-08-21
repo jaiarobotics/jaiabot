@@ -46,7 +46,6 @@ def get_data(file_list, time_range = 10):
             # str_filename = str(filename).split('_')
             # instance_fleet_number = str_filename[-2][5:]
 
-
             try:
                 for group in groups:
                     if task_pattern.search(group):
@@ -129,7 +128,6 @@ def get_data(file_list, time_range = 10):
                 # print(transit_to_stop_loc)
 
                 drift_to_dive_indices = np.where(mission_state == 121)[0]
-                # print("Number of drifts: ", len(drift_to_dive_indices))
                 # print("Drift to dive")
                 drift_to_dive_loc = pd.Series()
                 for i in drift_to_dive_indices:
@@ -141,8 +139,6 @@ def get_data(file_list, time_range = 10):
                 # print("Dive to drift")
                 dive_to_drift_loc = pd.Series()
                 for i in dive_to_drift_indices:
-                    # if(mission_state[i+1] != 110 and mission_state[i+1] not in range(123, 131)):
-                    #     print(mission_state[i+1])
                     if i < len(mission_state)-1 and mission_state[i+1] == 129:
                         dive_to_drift_loc[len(dive_to_drift_loc)] = i
                 # print(dive_to_drift_loc)
@@ -238,7 +234,7 @@ def get_files(path, recursive):
     else:
         print("File or Directory does not exist or File is not an h5. Try again.")
 
-def export_data(stop_to_transit_data, transit_to_stop_data, drift_to_dive_data, dive_to_drift_data, out_path="..\\..\\..\\..\\3d_Sim_Data.xlsx"):
+def export_data(stop_to_transit_data, transit_to_stop_data, drift_to_dive_data, dive_to_drift_data, out_path="3d_Sim_Data.xlsx"):
 
     stop_to_transit_concat = pd.DataFrame()
     for arr in stop_to_transit_data:
