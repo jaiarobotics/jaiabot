@@ -120,7 +120,7 @@ def get_files(path, recursive):
     else:
         print("File or Directory does not exist or File is not an h5. Try again.")
 
-def export_data(bot_data, out_path="..\\..\\..\\..\\Simulated_Mission_Data.xlsx"):    
+def export_data(bot_data, out_path="Simulated_Mission_Data.xlsx"):    
 
     # with pd.ExcelWriter(out_path, mode='a', if_sheet_exists='overlay') as writer: 
     with pd.ExcelWriter(out_path, mode='w') as writer: 
