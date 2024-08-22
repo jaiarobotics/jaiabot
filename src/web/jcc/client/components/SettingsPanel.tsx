@@ -1,4 +1,4 @@
-import React, { ReactElement, useState, useContext } from "react";
+import React, { ReactElement, useState, useContext, useEffect } from "react";
 import {
     GlobalContext,
     GlobalDispatchContext,
@@ -83,6 +83,9 @@ export function SettingsPanel(props: Props) {
         }),
     );
 
+    // Source: Facebook's Slingshot
+    const [isMobile, setIsMobile] = useState(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+
     const handleClusterToggleClick = () => {
         // Task packets within this distance (meters) will be clustered
         const defaultDistance = 30;
@@ -126,6 +129,23 @@ export function SettingsPanel(props: Props) {
         }
     };
 
+    const fullscreenToggle = (): ReactElement => {
+        if (isMobile) {
+            return (
+                <div className="settings-card">
+                    <div className="settings-label" style={{ color: "white" }}>
+                        Full Screen:
+                    </div>
+                    <JaiaToggle
+                        checked={() => globalContext.isFullscreen}
+                        onClick={() => globalDispatch({ type: GlobalActions.TOGGLED_FULLSCREEN })}
+                    />
+                </div>
+            );
+        }
+        return <div></div>;
+    };
+
     const simulationAccordion = (): ReactElement => {
         if (!props.isSimulation) {
             return null;
@@ -159,17 +179,7 @@ export function SettingsPanel(props: Props) {
             <div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
                 <div className="settings-card-container">
-                    <div className="settings-card">
-                        <div className="settings-label" style={{ color: "white" }}>
-                            Full Screen:
-                        </div>
-                        <JaiaToggle
-                            checked={() => globalContext.isFullscreen}
-                            onClick={() =>
-                                globalDispatch({ type: GlobalActions.TOGGLED_FULLSCREEN })
-                            }
-                        />
-                    </div>
+                    {fullscreenToggle()}
                     <div className="settings-card">
                         <div className="settings-label" style={{ color: "white" }}>
                             Track Pod:

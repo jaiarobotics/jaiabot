@@ -283,7 +283,7 @@ function handleToggleFullscreen(mutableState: GlobalContextType) {
     mutableState.isFullscreen = !mutableState.isFullscreen;
 
     if (mutableState.isFullscreen) {
-        (() => document.querySelector("body").requestFullscreen())();
+        (() => document.documentElement.requestFullscreen())();
     } else {
         (() => document.exitFullscreen())();
     }
