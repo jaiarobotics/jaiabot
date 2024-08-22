@@ -12,6 +12,7 @@ export interface GlobalContextType {
     showHubDetails: boolean;
     hubAccordionStates: HubAccordionStates;
     isRCMode: boolean;
+    isFullscreen: boolean;
 }
 
 export interface SelectedPodElement {
@@ -54,6 +55,7 @@ export const globalDefaultContext: GlobalContextType = {
     showHubDetails: false,
     hubAccordionStates: defaultHubAccordionStates,
     isRCMode: false,
+    isFullscreen: false,
 };
 
 export const GlobalContext = createContext(null);
@@ -95,6 +97,9 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
 
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
+
+        case GlobalActions.TOGGLED_FULLSCREEN:
+            return handleToggleFullscreen(mutableState);
 
         default:
             return state;
@@ -265,6 +270,24 @@ function handleClickedHubAccordion(mutableState: GlobalContextType, accordionNam
             hubAccordionStates.links = !hubAccordionStates.links;
             break;
     }
+    return mutableState;
+}
+
+/**
+ * Updates the state of the full screen toggle and subsequently enters or exits full screen mode
+ *
+ * @param mutableState State object ref for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleToggleFullscreen(mutableState: GlobalContextType) {
+    mutableState.isFullscreen = !mutableState.isFullscreen;
+
+    if (mutableState.isFullscreen) {
+        (() => document.querySelector("body").requestFullscreen())();
+    } else {
+        (() => document.exitFullscreen())();
+    }
+
     return mutableState;
 }
 

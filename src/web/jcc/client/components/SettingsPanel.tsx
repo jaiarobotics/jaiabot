@@ -1,4 +1,10 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useState, useContext } from "react";
+import {
+    GlobalContext,
+    GlobalDispatchContext,
+    GlobalContextType,
+} from "../../../context/GlobalContext";
+import { GlobalActions } from "../../../context/actions/GlobalActions";
 
 import { Map } from "ol";
 
@@ -65,6 +71,9 @@ enum AccordionTabs {
  * @returns {string} Web content of Settings Panel
  */
 export function SettingsPanel(props: Props) {
+    const globalContext: GlobalContextType = useContext(GlobalContext);
+    const globalDispatch = useContext(GlobalDispatchContext);
+
     const [openAccordionTabs, setOpenAccordionTabs] = useState([]);
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
@@ -150,6 +159,17 @@ export function SettingsPanel(props: Props) {
             <div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
                 <div className="settings-card-container">
+                    <div className="settings-card">
+                        <div className="settings-label" style={{ color: "white" }}>
+                            Full Screen:
+                        </div>
+                        <JaiaToggle
+                            checked={() => globalContext.isFullscreen}
+                            onClick={() =>
+                                globalDispatch({ type: GlobalActions.TOGGLED_FULLSCREEN })
+                            }
+                        />
+                    </div>
                     <div className="settings-card">
                         <div className="settings-label" style={{ color: "white" }}>
                             Track Pod:
