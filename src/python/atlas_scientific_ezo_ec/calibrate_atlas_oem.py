@@ -3,10 +3,16 @@
 import atlas_oem
 from time import sleep
 from timedinput import timedinput
+from sortedcontainers import SortedDict
+import pandas as pd
 
 probe = atlas_oem.AtlasOEM()
 probe.setActiveHibernate(1)
 
+probe_calibration_data = SortedDict({})
+EC_values = pd.Series()
+
+sleep_time = 5 # In seconds
 
 def clearScreen():
     print('\033[2J\033[H')
@@ -38,6 +44,8 @@ def presentMenu(menu, clear_screen = True, repeat = True):
             func = item_func_dict[choice]
 
             if func is None:
+                if menu['title'] == 'Main Menu':
+                    dataToExcel()
                 return
             else:
                 func()
@@ -67,6 +75,15 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
+    global probe_calibration_data
+    global EC_values
+
+    probe_df = pd.DataFrame(columns=['Time', 'EC values'])
+    probe_df['Time'] = range(0, sleep_time*len(EC_values), sleep_time)[:len(EC_values)]
+    probe_df['EC values'] = EC_values
+
+    probe_calibration_data[description] = probe_df
+
     if description != 'DRY':
         value = input(f'{description} calibration value (giving no input will assume standard values for dual point calibration): ')
         if value == "":
@@ -142,6 +159,8 @@ def calibrate(clear_screen = True):
 def updatingProbeValues():
     clearCalibration()
 
+    global EC_values
+
     done = False
     try:
         previous_EC = probe.EC()
@@ -154,11 +173,11 @@ def updatingProbeValues():
 
     time_at_plateau_threshold = 0 # In seconds
 
-    sleep_time = 5 # In seconds
-
     clearScreen()
 
     print("Press Enter to stop calibrating.")
+
+    EC_values = pd.Series()
 
     while not done:
         # clearScreen()
@@ -167,6 +186,8 @@ def updatingProbeValues():
             if previous_EC == 0:
                 previous_EC = 1
             percent_change_in_EC = round(abs((probe.EC()-previous_EC)/previous_EC) * 100, 3)
+
+            EC_values[len(EC_values)-1] = probe.EC()
 
             print("---------------")
             print("EC (μS/cm): ", probe.EC())
@@ -190,8 +211,9 @@ def updatingProbeValues():
                 break
             
             previous_EC = probe.EC()
-        except:
+        except IOError as e:
             print("Error retrieving probe data.")
+            print(f"Error {e}")
             time_at_plateau_threshold = 0
 
         try: 
@@ -201,6 +223,31 @@ def updatingProbeValues():
 
         if user_input != ".":
             done = True
+
+
+def dataToExcel():
+    global probe_calibration_data
+
+    out_path = '/etc/jaiabot/EC_data.xlsx'
+
+    with pd.ExcelWriter(out_path, mode='w') as writer: 
+        for key in probe_calibration_data:
+            probe_calibration_data[key].to_excel(writer, sheet_name=key)
+        
+        for sheet_name in writer.sheets:
+            worksheet = writer.sheets[sheet_name]
+            
+            for col in worksheet.columns:
+                max_length = 0
+                column = col[0].column_letter # Get the column name
+                for cell in col:
+                    try: # Necessary to avoid error on empty cells
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2) * 1.2
+                worksheet.column_dimensions[column].width = adjusted_width
 
 
 presentMenu({
