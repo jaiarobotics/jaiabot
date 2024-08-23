@@ -158,13 +158,13 @@ def get_data(file_list):
                 # issues = pd.Series()
 
                 for i in range(len(mission_state)):
-                    if mission_state[i] in deg_90 and status_pitch[i] != 85:
+                    if mission_state[i] in deg_90 and status_pitch[i] != 85 and status_pitch[i] == 0:
                         # issues[len(issues)-1] = "State: " + str(mission_state[i]) + "  Pitch: " + str(status_pitch[i])
                         status_pitch[i] = 85
-                    if mission_state[i] in deg_81 and status_pitch[i] != 85:
+                    if mission_state[i] in deg_81 and status_pitch[i] != 85 and status_pitch[i] == 0:
                         # issues[len(issues)-1] = "State: " + str(mission_state[i]) + "  Pitch: " + str(status_pitch[i])
                         status_pitch[i] = 85
-                    if mission_state[i] in deg_9 and status_pitch[i] != 0:
+                    if mission_state[i] in deg_9 and status_pitch[i] != 0 and status_pitch[i] == 85:
                         # issues[len(issues)-1] = "State: " + str(mission_state[i]) + "  Pitch: " + str(status_pitch[i])
                         status_pitch[i] = 0
 
