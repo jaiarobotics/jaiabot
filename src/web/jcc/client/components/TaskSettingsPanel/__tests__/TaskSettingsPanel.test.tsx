@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from '@testing-library/user-event'
 import { TaskSettingsPanel, Props } from "../TaskSettingsPanel";
 
 import { MissionTask, TaskType, DiveParameters, DriftParameters } from "../../shared/JAIAProtobuf";
@@ -182,3 +183,11 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
         },
     );
 });
+
+test("Toggle Bottom Dive ", async () => {
+    render(<TaskSettingsPanel {...mockNonBottomDiveProps} />);
+    const bottomToggleElement = screen.getByTitle("Switch to Bottom Dive")
+    expect(bottomToggleElement).not.toBeChecked();
+    userEvent.click(bottomToggleElement)
+    expect(bottomToggleElement).toBeChecked();
+})
