@@ -10,6 +10,7 @@ import * as Style from "ol/style";
 import * as Styles from "./shared/Styles";
 import { getBotPathColor } from "./shared/BotPathColors";
 import { EventEmitter } from "events";
+import { annotations, Annotations } from "./Annotations";
 
 export class Layers {
     missionLayerSource = new VectorSource();
@@ -155,6 +156,16 @@ export class Layers {
         wrapX: false,
     });
 
+    annotationsLayer = new VectorLayer({
+        properties: {
+            title: "Annotations",
+        },
+        visible: true,
+        zIndex: 1000,
+        source: annotations.source,
+        style: annotations.styleFunction,
+    });
+
     dragAndDropVectorLayer = new VectorLayer();
     baseLayerGroup = createBaseLayerGroup();
     chartLayerGroup = createChartLayerGroup();
@@ -179,6 +190,7 @@ export class Layers {
             this.graticuleLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
+            this.annotationsLayer,
             //this.botPathsGroup
         ];
     }

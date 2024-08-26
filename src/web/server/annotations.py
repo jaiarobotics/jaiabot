@@ -1,8 +1,12 @@
 import geojson
+import geojson.utils
+
+
+features = [geojson.utils.generate_random('Point') for i in range(10)]
 
 
 class Annotations:
-    featureCollection = geojson.FeatureCollection([])
+    featureCollection = geojson.FeatureCollection(features)
     """A GeoJSON FeatureCollection of annotation features."""
     version = 0
     """Current version number of the annotations collection."""
