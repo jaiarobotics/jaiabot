@@ -14,6 +14,7 @@ import jaia_portal
 import missions
 from geotiffs import GeoTiffs
 from annotations import Annotations
+from math import *
 
 def parseDate(date):
     if date is None or date == '':
@@ -312,7 +313,7 @@ def jaia_v0_annotations():
         # `version` is the last version of the annotations GeoJSON that we retrieved.  
         # If there has been no change since then, we can return a 304 Not Modified response.
         try:
-            version = int(request.args.get('version'))
+            version = floor(request.args.get('version'))
         except TypeError:
             version = None
 

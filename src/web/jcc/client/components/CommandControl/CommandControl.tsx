@@ -120,6 +120,7 @@ import "./CommandControl.less";
 // Utility
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow";
+import { AnnotationPanel } from "../AnnotationPanel";
 
 const rallyIcon = require("../../../../shared/rally.svg") as string;
 
@@ -148,6 +149,7 @@ export enum PanelType {
     RALLY_POINT = "RALLY_POINT",
     TASK_PACKET = "TASK_PACKET",
     SETTINGS = "SETTINGS",
+    ANNOTATION = "ANNOTATION",
 }
 
 export enum Mode {
@@ -211,6 +213,7 @@ interface State {
 
     selectedFeatures?: OlCollection<OlFeature>;
     selectedHubOrBot?: HubOrBot;
+    selectedAnnotation?: OlFeature;
     measureFeature?: OlFeature;
     rallyCounter: number;
     reusableRallyNums: number[];
@@ -2086,7 +2089,16 @@ export default class CommandControl extends React.Component {
 
         if (feature) {
             // Allow an operator to click on certain features while edit mode is off
-            const editModeExemptions = ["dive", "drift", "rallyPoint", "bot", "hub", "wpt", "line"];
+            const editModeExemptions = [
+                "dive",
+                "drift",
+                "rallyPoint",
+                "bot",
+                "hub",
+                "wpt",
+                "line",
+                "annotation",
+            ];
             const isCollection = feature.get("features");
 
             if (
@@ -2242,7 +2254,7 @@ export default class CommandControl extends React.Component {
                     end_time: { value: endTime.toLocaleString(), units: "" },
                 };
 
-                this.setTaskPacketInterval(driftFeature, "drfit");
+                this.setTaskPacketInterval(driftFeature, "drift");
 
                 this.setState(
                     {
@@ -2262,6 +2274,18 @@ export default class CommandControl extends React.Component {
                 if (extent) {
                     map.getView().fit(extent, { duration: 1000, padding: [50, 50, 50, 50] });
                 }
+
+                return;
+            }
+
+            // Clicked on an annotation
+            if (feature.get("type") === "annotation") {
+                this.setState(
+                    {
+                        selectedAnnotation: feature,
+                    },
+                    () => this.setVisiblePanel(PanelType.ANNOTATION),
+                );
 
                 return;
             }
@@ -3104,7 +3128,11 @@ export default class CommandControl extends React.Component {
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
                 </Button>
-                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                <Button
+                    id="downloadAll"
+                    className={`button-jcc`}
+                    onClick={this.processDownloadAllBots.bind(this)}
+                >
                     <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
@@ -4154,6 +4182,14 @@ export default class CommandControl extends React.Component {
                     <TaskPacketPanel
                         type={this.state.taskPacketType}
                         taskPacketData={this.state.taskPacketData}
+                        setVisiblePanel={this.setVisiblePanel.bind(this)}
+                    />
+                );
+                break;
+            case PanelType.ANNOTATION:
+                visiblePanelElement = (
+                    <AnnotationPanel
+                        annotation={this.state.selectedAnnotation}
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
                     />
                 );

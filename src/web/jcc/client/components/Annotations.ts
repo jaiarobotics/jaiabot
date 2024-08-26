@@ -6,6 +6,7 @@ import { Circle, Fill, Icon, Stroke, Style } from "ol/style";
 import { jaiaAPI, JaiaResponse } from "../../common/JaiaAPI";
 import { FeatureCollection } from "@turf/turf";
 import { GeoJSON } from "ol/format";
+import { colorNameToHex } from "./shared/Color";
 
 interface AnnotationsResult {
     version: number;
@@ -16,12 +17,24 @@ export class Annotations {
     source = new VectorSource();
     version: number = undefined;
     projection = "EPSG:3857"; // mercator
+
     styleFunction = (feature: Feature) => {
+        const properties = feature.getProperties();
+
+        const radii: { [key: string]: number } = {
+            small: 3,
+            medium: 5,
+            large: 7,
+        };
+
+        const markerRadius = radii[properties["marker-size"]] ?? 5;
+        let markerColor = properties["marker-color"] ?? "#f00";
+
         const fill = new Fill({
-            color: "#ff000070",
+            color: markerColor,
         });
         const stroke = new Stroke({
-            color: "#ff0000",
+            color: "white",
             width: 1.25,
         });
         return [
@@ -29,7 +42,7 @@ export class Annotations {
                 image: new Circle({
                     fill: fill,
                     stroke: stroke,
-                    radius: 5,
+                    radius: markerRadius,
                 }),
                 fill: fill,
                 stroke: stroke,
@@ -64,6 +77,11 @@ export class Annotations {
                     dataProjection: "EPSG:4326", // equirectangular
                     featureProjection: this.projection,
                 }).readFeatures(response.result.annotations);
+
+                features.forEach((feature) => {
+                    feature.set("type", "annotation");
+                });
+
                 this.source.clear();
                 this.source.addFeatures(features);
                 this.version = response.result.version;
