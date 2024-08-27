@@ -38,6 +38,7 @@
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/util/util.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -754,30 +755,7 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
         }
         else
         {
-            std::string stdout;
-            std::array<char, 256> buffer;
-            while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
-            {
-                glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
-                                         << std::flush;
-                stdout.append(buffer.begin(), buffer.begin() + bytes_read);
-
-                // Check if the line contains progress information
-                std::string percent_complete_str = "";
-                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
-                size_t pos = percent_complete_str.find("%");
-                if (pos != std::string::npos)
-                {
-                    if (pos >= 3)
-                    {
-                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
-                                                 << std::endl;
-
-                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
-                        data_offload_percentage_ = percent;
-                    }
-                }
-            }
+            jaiabot::util::get_rsync_progress(pipe, data_offload_percentage_);
 
             if (!feof(pipe))
             {

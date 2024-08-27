@@ -23,11 +23,36 @@
 #ifndef JAIABOT_SRC_LIB_UTIL_H
 #define JAIABOT_SRC_LIB_UTIL_H
 
+#include <array>
+#include <stdio.h>
+#include <string>
+
 namespace jaiabot
 {
 namespace util
 {
-void get_rsync_progress(FILE* pipe, uint32_t& percentage);
+template <typename T> void get_rsync_progress(FILE* pipe, T& percentage);
+
+template <typename T> void get_rsync_progress(FILE* pipe, T& percentage)
+{
+    std::string stdout;
+    std::array<char, 256> buffer;
+
+    while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
+    {
+        stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+        std::string rsync_output = "";
+        rsync_output.append(buffer.begin(), buffer.begin() + bytes_read);
+        size_t pos = rsync_output.find("%");
+        if (pos != std::string::npos)
+        {
+            if (pos >= 3)
+            {
+                percentage = std::stoi(rsync_output.substr(pos - 3, 3));
+            }
+        }
+    }
+}
 } // namespace util
 } // namespace jaiabot
 

@@ -11,6 +11,7 @@ target_link_libraries(${APP}
   goby_zeromq
   jaiabot_messages
   jaiabot_xbee
+  jaiabot_util
   )
 
 if(export_goby_interfaces)

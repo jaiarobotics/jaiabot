@@ -1,10 +1,7 @@
 #define BOOST_TEST_MODULE jaiabot_test_util
 
-#include <array>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/tools/output_test_stream.hpp>
-#include <stdio.h>
-#include <string>
 
 #include "jaiabot/util/util.h"
 

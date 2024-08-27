@@ -20,35 +20,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <array>
-#include <string>
-
 #include "util.h"
 
 namespace jaiabot
 {
 namespace util
 {
-void get_rsync_progress(FILE* pipe, uint32_t& percentage)
-{
-    std::string stdout;
-    std::array<char, 256> buffer;
-
-    while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
-    {
-        stdout.append(buffer.begin(), buffer.begin() + bytes_read);
-        std::string rsync_output = "";
-        rsync_output.append(buffer.begin(), buffer.begin() + bytes_read);
-        size_t pos = rsync_output.find("%");
-        if (pos != std::string::npos)
-        {
-            if (pos >= 3)
-            {
-                percentage = std::stoi(rsync_output.substr(pos - 3, 3));
-            }
-        }
-    }
-}
-
 } // namespace util
 } // namespace jaiabot
