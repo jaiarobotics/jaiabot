@@ -129,6 +129,8 @@ get_filename_component(project_SHARE_DIR ${project_BUILD_DIR}/share ABSOLUTE)
 file(MAKE_DIRECTORY ${project_SHARE_DIR})
 get_filename_component(project_INTERMEDIATE_DIR ${project_BUILD_DIR}/intermediate ABSOLUTE)
 file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
+get_filename_component(project_TEST_DIR ${project_BUILD_DIR}/test ABSOLUTE)
+file(MAKE_DIRECTORY ${project_TEST_DIR})
 
 # Write the version to a simple text file for scripts to use
 if(PROJECT_VERSION_GITHASH)
