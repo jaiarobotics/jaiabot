@@ -5,6 +5,8 @@ from math import *
 
 
 class Annotations:
+    """Contains the user-added annotations"""
+
     featureCollection = geojson.FeatureCollection([])
     """A GeoJSON FeatureCollection of annotation features."""
     version = floor(random.uniform(0, 1 << 16))
@@ -16,6 +18,8 @@ class Annotations:
 
 
     def generateRandomPoints(self):
+        """Generates a set of random point features for testing.
+        """
         for i in range(1000):
             geometry = geojson.utils.generate_random('Point')
             properties = {

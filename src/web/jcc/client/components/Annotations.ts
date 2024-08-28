@@ -13,11 +13,22 @@ interface AnnotationsResult {
     annotations: FeatureCollection;
 }
 
+/**
+ * Polls the backend `annotations` endpoint for new GeoJSON markers, and adds them to its source for display on a VectorLayer.
+ *
+ * @class Annotations
+ */
 export class Annotations {
     source = new VectorSource();
     version: number = undefined;
     projection = "EPSG:3857"; // mercator
 
+    /**
+     * Style function for the annotations layer.
+     *
+     * @param {Feature} feature The annotation feature.
+     * @returns {Style[]} An array of styles for the provided feature.
+     */
     styleFunction = (feature: Feature) => {
         const properties = feature.getProperties();
 
@@ -54,6 +65,7 @@ export class Annotations {
         setInterval(this.pollAnnotations.bind(this), 1000);
     }
 
+    /** Polls the backend for new annotations, updating the feature source if there are new ones. */
     pollAnnotations() {
         jaiaAPI
             .getAnnotations(this.version)
@@ -92,4 +104,9 @@ export class Annotations {
     }
 }
 
+/**
+ * Singleton object that polls for new and updated annotations from the backend, and provides an OL feature source with the annotations.
+ *
+ * @type {Annotations}
+ */
 export let annotations = new Annotations();

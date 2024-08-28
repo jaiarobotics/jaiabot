@@ -9,6 +9,12 @@ interface Props {
     setVisiblePanel: (panelType: PanelType) => void;
 }
 
+/**
+ * The panel that comes up when user clicks on a user-submitted annotation.
+ *
+ * @param {Props} props
+ * @returns {*} The React panel.
+ */
 export function AnnotationPanel(props: Props) {
     let annotation = props.annotation;
     const data: { [key: string]: number } = annotation.get("data") ?? {};

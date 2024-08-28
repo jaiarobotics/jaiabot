@@ -156,6 +156,9 @@ export class Layers {
         wrapX: false,
     });
 
+    /**
+     * Layer for the user-added annotation features.
+     */
     annotationsLayer = new VectorLayer({
         properties: {
             title: "Annotations",

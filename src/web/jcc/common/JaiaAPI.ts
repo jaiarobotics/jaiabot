@@ -242,6 +242,12 @@ export class JaiaAPI {
         }
     }
 
+    /**
+     * Get a GeoJSON object with the user-added annotation layer.
+     *
+     * @param {?number} [version] The last version retrieved by this client.  If no changes to the layer have occured on the backend, the cached data will be left alone.
+     * @returns {Promise<Response>} The backend response, containing the features in GeoJSON format.
+     */
     async getAnnotations(version?: number) {
         var queryParameters = [];
         if (version != null) {
