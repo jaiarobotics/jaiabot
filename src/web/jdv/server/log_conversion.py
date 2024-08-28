@@ -5,6 +5,7 @@ from pathlib import *
 from os import *
 
 import logging
+import tempfile
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,7 +40,7 @@ class LogConversionManager:
                 logName = self.logNamesQueue.pop(0)
                 goby_path = Path(self.logRootPath, logName + '.goby')
                 h5_path   = Path(self.logRootPath, logName + '.h5')
-                temp_path = Path(self.logRootPath, logName + '.h5.temp')
+                temp_path = Path(tempfile.gettempdir(), logName + '.h5.temp')
 
                 if h5_path.is_file():
                     logging.info(f'File already exists: {h5_path}')
