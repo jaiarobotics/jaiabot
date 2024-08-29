@@ -2,21 +2,23 @@
 
 import sys
 import os
-import numpy as np 
 import h5py
 import datetime
 import pytz
 import fnmatch 
 import re
-from pathlib import Path
+import argparse
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
 import matplotlib.lines as mlines
 import matplotlib.lines as mlines
 import pandas as pd
-from math import *
+import numpy as np 
 
+from math import *
+from pathlib import Path
 
 MICROSECOND_FACTOR = 1_000_000
 
@@ -25,6 +27,12 @@ MICROSECOND_FACTOR = 1_000_000
     to your .h5 files in the terminal (e.g. 'python GPS_characterizer.py ~/path/to/.h5_directory/').
 
     Flags:
+        -b: (Bin width)
+        -dt: (Drift tolerance)
+        -dst: (Desired speed tolerance)
+        -ht: (HDOP tolerance)
+        -pt: (PDOP tolerance)
+        -nt: (NSAT tolerance)
         -r: (Recursive search) Recursively search through the input file and all its subdirectories to analyze. 
         -g: (Global) Combine all the data analyzed into a single chart and datasheet. Excludes bot paths.
 """
@@ -367,7 +375,7 @@ def get_data(file_list, global_data):
     """
     global filename
     for filename in file_list:
-        if filename.endswith('.h5'): 
+        if str(filename).endswith('.h5'): 
             global lats
             global lons
             global bots_lats
@@ -534,45 +542,29 @@ def main():
     global drift_tolerance 
     global desired_speed_tolerance
     
+    # Default parameters
     bin_width = 0.5
     drift_tolerance = 0 #Meters
     desired_speed_tolerance = 0
     hdop_tolerance = 1.3
-    pdop_tolerance = 1.5
+    pdop_tolerance = 2.2
     nsat_tolerance = 1
     
-
-    argc = len(sys.argv)
-    input_dir = sys.argv[1]
-    recursive = '-r' in sys.argv
-    global_data = '-g' in sys.argv
-
-    #Prevent the flags from messing up the indices of argv
-    if recursive:
-        sys.argv.remove('-r')
-        argc -= 1
-
-    if global_data:
-        sys.argv.remove('-g')
-        argc -= 1
-
-    #Get user input
-    if argc >= 3:
-        bin_width = float(sys.argv[2])
-    if argc >= 4:
-        drift_tolerance = float(sys.argv[3])
-    if argc >= 5:
-        desired_speed_tolerance = float(sys.argv[4])
-    if argc >= 6:
-        hdop_tolerance = float(sys.argv[5])
-    if argc >= 7:
-        pdop_tolerance = float(sys.argv[6])
-    if argc == 8:
-        nsat_tolerance = int(sys.argv[7])
+    parser = argparse.ArgumentParser(description="Adds modularity for users looking to characterize GPS issues.")
+    parser.add_argument("path", type=str, help="Path to directory or h5 file.")
+    parser.add_argument("-b", "--bin_width", type=float, help="Width of bins foHDOP/PDOP analysis.")
+    parser.add_argument("-dt", "--drift_tolerance", type=float, help="Acceptable tolerance for a drift.")
+    parser.add_argument("-dst", "--desired_speed_tolerance", type=float, help="Acceptable tolerance for desired speed.")
+    parser.add_argument("-ht", "--hdop_tolerance", type=float, help="Acceptable tolerance for HDOP values.")
+    parser.add_argument("-pt", "--pdop_tolerance", type=float, help="Acceptable tolerance for PDOP values.")
+    parser.add_argument("-nt", "--nsat_tolerance", type=int, help="Acceptable tolerance for NSAT values.")
+    parser.add_argument("-r", "--recursive", action="store_true", help="Recursively find all h5 files through all subdirectories")
+    parser.add_argument("-g", "--global_data", action="store_true", help="Glob data all together into one output.")
+    args = parser.parse_args()
         
-    file_list = get_files(input_dir, recursive)
+    file_list = get_files(args.path, args.recursive)
 
-    get_data(file_list, global_data)
+    get_data(file_list, args.global_data)
 
 if __name__ == "__main__":
     main()
