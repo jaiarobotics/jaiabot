@@ -1,16 +1,17 @@
 // MySelect.tsx
 import React, { useState } from "react";
-import { Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+import { Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
 
 interface MySelectProps {
-    handleChange?: (event: React.ChangeEvent<{ value: unknown }>) => void;
+    handleChange?: (event: SelectChangeEvent) => void;
 }
 
-export const MySelect: React.FC<MySelectProps> = ({ handleChange }) => {
+export function MySelect(props: MySelectProps) {
+    const handleChange = props.handleChange
     const [value, setValue] = useState<string>("");
 
-    const onChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-        setValue(event.target.value as string);
+    const onChange = (event: SelectChangeEvent<string>) => {
+        setValue(event.target.value);
         if (handleChange) {
             handleChange(event);
         }
