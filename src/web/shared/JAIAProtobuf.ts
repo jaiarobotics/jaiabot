@@ -646,6 +646,8 @@ export interface ConstantHeadingParameters {
 
 export interface StationKeepParameters {
     station_keep_time?: number;
+    station_keep_outer_radius?: number;
+    station_keep_inner_radius?: number;
 }
 
 export interface SRPParameters {

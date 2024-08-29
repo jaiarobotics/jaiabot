@@ -172,7 +172,7 @@ message MissionManager
 
     optional string log_archive_dir = 74 [
         default = "/var/log/jaiabot/archive"
-    ];  // archived bot data
+    ];  // archived bot data 
 
     
     enum DownloadFileTypes
@@ -241,4 +241,8 @@ message MissionManager
     }
 
     optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
+
+    optional int32 station_keep_outer_radius = 89 [default = 10];
+
+    optional int32 station_keep_inner_radius = 90 [default = 5];
 }

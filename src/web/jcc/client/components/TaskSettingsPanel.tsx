@@ -468,6 +468,40 @@ function TaskOptionsPanel(props: Props) {
                                     s
                                 </td>
                             </tr>
+                            <tr className="task-param-container">
+                                <td className="task_label"> Inner Radius</td>
+                                <td className="input-row">
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        min="5"
+                                        max="30"
+                                        className="NumberInput"
+                                        name="station_keep_inner_radius"
+                                        value={station_keep?.station_keep_inner_radius}
+                                        onChange={onChangeStationKeepParameter}
+                                        disabled={!props?.isEditMode}
+                                    />
+                                    m
+                                </td>
+                            </tr>
+                            <tr className="task-param-container">
+                                <td className="task_label"> Outer Radius</td>
+                                <td className="input-row">
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        min="1"
+                                        max="10"
+                                        className="NumberInput"
+                                        name="station_keep_inner_radius"
+                                        value={station_keep?.station_keep_outer_radius}
+                                        onChange={onChangeStationKeepParameter}
+                                        disabled={!props?.isEditMode}
+                                    />
+                                    m
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

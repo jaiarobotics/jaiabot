@@ -105,9 +105,11 @@ export let GlobalSettings = {
         constant_heading_time: 10,
     }),
 
-    // Default station keep time when creating a new station keep task
+    // Default station keep parameters when creating a new station keep task
     stationKeepParameters: Load<StationKeepParameters>("stationKeepParameters", {
         station_keep_time: 10,
+        station_keep_outer_radius: 10,
+        station_keep_inner_radius: 5,
     }),
 
     srpParameters: Load<SRPParameters>("srpSafetyDepth", {

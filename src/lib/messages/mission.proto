@@ -407,17 +407,26 @@ message IvPBehaviorUpdate
 
         required bool active = 1;
 
-        optional double x = 2
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
-        optional double y = 3
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double x = 2 [
+            (dccl.field).units = { base_dimensions: "L" }  // meters
+        ];  
+        optional double y = 3 [
+            (dccl.field).units = { base_dimensions: "L" }  // meters
+        ];  
         optional double outer_speed = 4 [
-            (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+            (dccl.field).units = { base_dimensions: "LT^-1" }  // meters/second
+        ];  
         optional double transit_speed = 5 [
-            (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
-        optional bool center_activate = 6 [default = false];
+            (dccl.field).units = { base_dimensions: "LT^-1" }  // meters/second
+        ];
+        optional double inner_radius = 6 [
+            (dccl.field).units = { base_dimensions: "L" }  // meters
+        ];
+        optional double outer_radius = 7 [
+            (dccl.field).units = { base_dimensions: "L" }  // meters
+        ];
+        
+        optional bool center_activate = 8 [default = false];
     }
 
     message ConstantHeadingUpdate

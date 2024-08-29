@@ -34,7 +34,7 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
 
 jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
     const jaiabot::protobuf::GeographicCoordinate& location, quantity<si::velocity> transit_speed,
-    quantity<si::velocity> outer_speed, const goby::util::UTMGeodesy& geodesy)
+    quantity<si::velocity> outer_speed, const goby::util::UTMGeodesy& geodesy, const int& outer_radius, const int& inner_radius)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
@@ -49,6 +49,8 @@ jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
     stationkeep.set_transit_speed_with_units(transit_speed);
     stationkeep.set_outer_speed_with_units(outer_speed);
     stationkeep.set_center_activate(false);
+    stationkeep.set_outer_radius(outer_radius);
+    stationkeep.set_inner_radius(inner_radius);
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -276,20 +278,24 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
+
+    int station_keep_outer_radius = cfg().station_keep_outer_radius()
+    int station_keep_inner_radius = cfg().station_keep_inner_radius()
+
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<InMission>().final_goal();
         update = create_location_stationkeep_update(
             final_goal.location(), this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
-            this->machine().geodesy());
+            this->machine().geodesy(), station_keep_outer_radius, station_keep_inner_radius);
     }
     else
     {
         update = create_location_stationkeep_update(
             recovery.location(), this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
-            this->machine().geodesy());
+            this->machine().geodesy(), station_keep_outer_radius, station_keep_inner_radius);
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
