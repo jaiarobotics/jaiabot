@@ -307,6 +307,26 @@ message MissionTask
             },
             (jaia.field).rest_api.presence = GUARANTEED
         ];
+        optional int32 station_keep_outer_radius = 2 [
+            default = 10,
+            (dccl.field) = {
+                min: 5, 
+                max: 50,
+                precision: -1,
+                units { base_dimensions: "L"}
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+        optional int32 station_keep_inner_radius = 3 [
+            default = 10,
+            (dccl.field) = {
+                min: 0, 
+                max: 25,
+                precision: -1,
+                units { base_dimensions: "L"}
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
     }
 
     // for type == STATION_KEEP
@@ -419,10 +439,10 @@ message IvPBehaviorUpdate
         optional double transit_speed = 5 [
             (dccl.field).units = { base_dimensions: "LT^-1" }  // meters/second
         ];
-        optional double inner_radius = 6 [
+        optional double station_keep_inner_radius = 6 [
             (dccl.field).units = { base_dimensions: "L" }  // meters
         ];
-        optional double outer_radius = 7 [
+        optional double station_keep_outer_radius = 7 [
             (dccl.field).units = { base_dimensions: "L" }  // meters
         ];
         

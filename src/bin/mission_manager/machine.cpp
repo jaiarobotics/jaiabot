@@ -49,8 +49,8 @@ jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
     stationkeep.set_transit_speed_with_units(transit_speed);
     stationkeep.set_outer_speed_with_units(outer_speed);
     stationkeep.set_center_activate(false);
-    stationkeep.set_outer_radius(outer_radius);
-    stationkeep.set_inner_radius(inner_radius);
+    stationkeep.set_station_keep_outer_radius(outer_radius);
+    stationkeep.set_station_keep_inner_radius(inner_radius);
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -60,7 +60,9 @@ jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
 
 jaiabot::protobuf::IvPBehaviorUpdate
 create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
-                                          quantity<si::velocity> outer_speed)
+                                          quantity<si::velocity> outer_speed,
+                                          const int& station_keep_outer_radius, 
+                                          const int& station_keep_inner_radius)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
@@ -71,6 +73,10 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
     stationkeep.set_transit_speed_with_units(transit_speed);
     stationkeep.set_outer_speed_with_units(outer_speed);
     stationkeep.set_center_activate(true);
+    stationkeep.set_station_keep_outer_radius(station_keep_outer_radius);
+    stationkeep.set_station_keep_inner_radius(station_keep_inner_radius);
+
+    std::cout << "Hit waypoint" << std::endl;
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -279,8 +285,8 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
 
-    int station_keep_outer_radius = cfg().station_keep_outer_radius()
-    int station_keep_inner_radius = cfg().station_keep_inner_radius()
+    int station_keep_outer_radius = cfg().station_keep_outer_radius();
+    int station_keep_inner_radius = cfg().station_keep_inner_radius();
 
     if (recovery.recover_at_final_goal())
     {
@@ -1334,6 +1340,9 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
     : Base(c)
 {
+    int station_keep_outer_radius = cfg().station_keep_outer_radius();
+    int station_keep_inner_radius = cfg().station_keep_inner_radius();
+
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -1343,11 +1352,11 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
         update = create_location_stationkeep_update(
             goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
-            this->machine().geodesy());
+            this->machine().geodesy(), station_keep_outer_radius, station_keep_inner_radius);
     else // just use our current position
         update = create_center_activate_stationkeep_update(
             this->machine().mission_plan().speeds().transit_with_units(),
-            this->machine().mission_plan().speeds().stationkeep_outer_with_units());
+            this->machine().mission_plan().speeds().stationkeep_outer_with_units(), station_keep_outer_radius, station_keep_inner_radius);
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 
@@ -1437,7 +1446,9 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
 {
     jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
         this->machine().mission_plan().speeds().transit_with_units(),
-        this->machine().mission_plan().speeds().stationkeep_outer_with_units());
+        this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
+        cfg().station_keep_outer_radius(), 
+        cfg().station_keep_inner_radius());
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 

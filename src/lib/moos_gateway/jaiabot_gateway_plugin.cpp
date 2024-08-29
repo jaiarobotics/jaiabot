@@ -70,16 +70,17 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
             std::stringstream update_ss;
             if (update.stationkeep().active())
             {
-                if (update.stationkeep().center_activate())
+                if (update.stationkeep().center_activate()) {
                     update_ss << "center_activate=true";
-                else
+                    std::cout << "Entered Active state" << std::endl;
+                } else 
                     update_ss << "center_activate=false#station_pt=" << update.stationkeep().x()
                               << "," << update.stationkeep().y();
 
                 update_ss << "#outer_speed=" << update.stationkeep().outer_speed()
                           << "#transit_speed=" << update.stationkeep().transit_speed()
-                          << "#inner_radius=" << update.stationkeep().inner_radius()
-                          << "#outer_radius=" << update.stationkeep().outer_radius();
+                          << "#inner_radius=" << update.stationkeep().station_keep_inner_radius()
+                          << "#outer_radius=" << update.stationkeep().station_keep_outer_radius();
                 moos().comms().Notify("JAIABOT_STATIONKEEP_UPDATES", update_ss.str());
             }
 
