@@ -8,6 +8,7 @@ import { GlobalSettings, Save } from "../../Settings";
 import { log } from "console";
 import { type } from "os";
 import { SafetyCheck } from "@mui/icons-material";
+import { userEventApi } from "@testing-library/user-event/dist/types/setup/api";
 
 const mockMinimumProps: Props = {
     enableEcho: false,
@@ -169,12 +170,13 @@ describe("TaskSettingsPanel Bottom Dive Integration Tests", () => {
             Save(GlobalSettings.diveParameters);
             //eventual combine with tests above
             render(<TaskSettingsPanel {...mockBottomDiveProps} />);
-            const taskSelectElement = screen.getByTestId("taskSelect");
+            const taskSelectElement = screen.getByTestId();
             // Dig deep to find the actual <select>
             const selectNode = taskSelectElement.childNodes[0].childNodes[0];
             expect(selectNode).toHaveValue("NONE");
             expect(selectNode).not.toHaveValue("DIVE");
-            fireEvent.change(selectNode, { target: { value: "DIVE" } });
+            //fireEvent.change(selectNode, { target: { value: "DIVE" } });
+            userEvent.click(taskSelectElement);
             expect(selectNode).toHaveValue("DIVE");
             expect(selectNode).not.toHaveValue("NONE");
             //This is setting the element to be Dive however onChangeTaskType is not being called!!!

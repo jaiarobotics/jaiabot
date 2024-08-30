@@ -344,6 +344,7 @@ function TaskOptionsPanel(props: Props) {
                                         onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
                                         title="Switch to Bottom Dive"
+                                        
                                     />
                                 </td>
                             </tr>

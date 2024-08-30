@@ -37,6 +37,9 @@ export default function JaiaToggle(props: Props) {
                         checked={props.checked()}
                         disabled={props?.disabled ? props.disabled() : false}
                         onClick={() => props.onClick()}
+                        inputProps={{
+                            data-testid: "taskSelectInput"
+                        }}
                     />
                 }
                 label={props?.label ? props.label : ""}
