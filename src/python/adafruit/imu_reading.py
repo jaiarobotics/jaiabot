@@ -10,6 +10,7 @@ from quaternion import Quaternion
 from jaiabot.messages.imu_pb2 import IMUData
 
 
+@dataclass
 class Accuracies:
     # These range from 0 (inaccurate) to 3 (very accurate)
     magnetometer: int
