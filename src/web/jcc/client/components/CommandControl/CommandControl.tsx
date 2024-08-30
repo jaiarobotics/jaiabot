@@ -7,6 +7,7 @@ import RCControllerPanel from "../RCControllerPanel";
 import DownloadPanel from "../DownloadPanel";
 import RunInfoPanel from "../RunInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
+import { Test } from "../Test/Test";
 import { layers } from "../Layers";
 import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
 import { Missions } from "../Missions";
@@ -3104,7 +3105,11 @@ export default class CommandControl extends React.Component {
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
                 </Button>
-                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                <Button
+                    id="downloadAll"
+                    className={`button-jcc`}
+                    onClick={this.processDownloadAllBots.bind(this)}
+                >
                     <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
@@ -4253,6 +4258,8 @@ export default class CommandControl extends React.Component {
                 ) : null}
 
                 {this.state.customAlert}
+
+                <Test />
             </div>
         );
     }
