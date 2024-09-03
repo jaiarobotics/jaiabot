@@ -1,4 +1,10 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useState, useContext, useEffect } from "react";
+import {
+    GlobalContext,
+    GlobalDispatchContext,
+    GlobalContextType,
+} from "../../../context/GlobalContext";
+import { GlobalActions } from "../../../context/actions/GlobalActions";
 
 import { Map } from "ol";
 
@@ -65,6 +71,9 @@ enum AccordionTabs {
  * @returns {string} Web content of Settings Panel
  */
 export function SettingsPanel(props: Props) {
+    const globalContext: GlobalContextType = useContext(GlobalContext);
+    const globalDispatch = useContext(GlobalDispatchContext);
+
     const [openAccordionTabs, setOpenAccordionTabs] = useState([]);
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
@@ -73,6 +82,9 @@ export function SettingsPanel(props: Props) {
             },
         }),
     );
+
+    // Source: Facebook's Slingshot
+    const [isMobile, setIsMobile] = useState(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
 
     const handleClusterToggleClick = () => {
         // Task packets within this distance (meters) will be clustered
@@ -117,6 +129,23 @@ export function SettingsPanel(props: Props) {
         }
     };
 
+    const fullscreenToggle = (): ReactElement => {
+        if (isMobile) {
+            return (
+                <div className="settings-card">
+                    <div className="settings-label" style={{ color: "white" }}>
+                        Full Screen:
+                    </div>
+                    <JaiaToggle
+                        checked={() => globalContext.isFullscreen}
+                        onClick={() => globalDispatch({ type: GlobalActions.TOGGLED_FULLSCREEN })}
+                    />
+                </div>
+            );
+        }
+        return <div></div>;
+    };
+
     const simulationAccordion = (): ReactElement => {
         if (!props.isSimulation) {
             return null;
@@ -150,6 +179,7 @@ export function SettingsPanel(props: Props) {
             <div className="panel-heading">Settings</div>
             <div className="settings-inner-container">
                 <div className="settings-card-container">
+                    {fullscreenToggle()}
                     <div className="settings-card">
                         <div className="settings-label" style={{ color: "white" }}>
                             Track Pod:
