@@ -55,6 +55,7 @@ enum ControlTypes {
     MANUAL_DUAL = "MANUAL_DUAL",
     MANUAL_SINGLE = "MANUAL_SINGLE",
     DIVE = "DIVE",
+    PUMP = "PUMP",
 }
 
 type Bin = { binNumber: number; binValue: number };
@@ -402,7 +403,7 @@ export default class RCControllerPanel extends React.Component {
             this.setJoyStickStatus([JoySticks.SOLE]);
         } else if (controlType === ControlTypes.MANUAL_DUAL) {
             this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT]);
-        } else if (controlType === ControlTypes.DIVE) {
+        } else if (controlType === ControlTypes.DIVE || controlType === ControlTypes.PUMP) {
             this.setJoyStickStatus([]);
         }
         this.setState({ controlType });
@@ -555,6 +556,9 @@ export default class RCControllerPanel extends React.Component {
                         <MenuItem key={3} value={ControlTypes.DIVE}>
                             Dive
                         </MenuItem>
+                        <MenuItem key={4} value={ControlTypes.PUMP}>
+                            eDNA Pump
+                        </MenuItem>
                     </Select>
                 </ThemeProvider>
             </div>
@@ -565,6 +569,7 @@ export default class RCControllerPanel extends React.Component {
         let soleController: ReactElement;
         let driveControlPad: ReactElement;
         let diveControlPad: ReactElement;
+        let pumpControlPad: ReactElement;
 
         leftController = (
             <div
@@ -732,6 +737,15 @@ export default class RCControllerPanel extends React.Component {
                     </div>
                 </div>
             );
+
+            pumpControlPad = (
+                <div className="rc-labels-container">
+                    <div className="rc-labels-left">
+                        {selectControlType}
+                        <div>Pump Controls</div>
+                    </div>
+                </div>
+            )
         }
 
         if (this.props.bot?.bot_id !== undefined) {
@@ -745,7 +759,11 @@ export default class RCControllerPanel extends React.Component {
                     ? leftController
                     : soleController}
 
-                {this.state.controlType === ControlTypes.DIVE ? diveControlPad : driveControlPad}
+                {this.state.controlType === ControlTypes.DIVE 
+                    ? diveControlPad 
+                    : this.state.controlType === ControlTypes.PUMP 
+                    ? pumpControlPad 
+                    : driveControlPad}
 
                 {rightController}
 
