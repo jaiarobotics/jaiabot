@@ -14,7 +14,8 @@ export default function JaiaTogglePage() {
             </Typography>
             <Box sx={{ margin: 2 }}>
                 {/* 👀 */}
-                <JaiaToggle onChange={() => setState(!state)} />
+                <JaiaToggle onClick={() => setState(!state)}
+                            checked={() => state} />
                 <br />
                 {state.toString()}
                 {/* 🙈 */}
