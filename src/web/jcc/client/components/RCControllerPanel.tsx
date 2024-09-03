@@ -24,6 +24,7 @@ interface Props {
     isRCModeActive: boolean;
     remoteControlValues: Engineering;
     rcDiveParameters: { [diveParam: string]: string };
+    rcPumpControl: boolean,
     createInterval: () => void;
     deleteInterval: () => void;
     weAreInControl: () => boolean;
@@ -43,6 +44,7 @@ interface State {
     botId: number;
     isMaximized: boolean;
     overdriveEnabled: boolean;
+    pumpTurnedOn: boolean;
 }
 
 enum JoySticks {
@@ -98,6 +100,7 @@ export default class RCControllerPanel extends React.Component {
             botId: 0,
             isMaximized: true,
             overdriveEnabled: false,
+            pumpTurnedOn: false,
         };
     }
 
@@ -145,6 +148,25 @@ export default class RCControllerPanel extends React.Component {
         }
 
         this.setState({overdriveEnabled: !this.state.overdriveEnabled});
+        return;
+    }
+
+    /**
+     * Checks to see if the eDNA pump is turned on
+     *
+     * @returns {boolean}
+     */
+    isPumpOn() {
+        return this.state.pumpTurnedOn;
+    }
+
+    /**
+     * Updates value of pumpTurnedOn in the state if the eDNA pump is turned on
+     * 
+     * @returns {void} 
+     */
+    async handlePumpTurnedOn() {
+        this.setState({ pumpTurnedOn: !this.state.pumpTurnedOn });
         return;
     }
 
@@ -742,7 +764,14 @@ export default class RCControllerPanel extends React.Component {
                 <div className="rc-labels-container">
                     <div className="rc-labels-left">
                         {selectControlType}
-                        <div>Pump Controls</div>
+                        <div>eDNA Pump</div>
+                        <JaiaToggle
+                            checked={() => this.isPumpOn()}
+                            onClick={() => this.handlePumpTurnedOn()}
+                            disabled={() => false}
+                            label="On/Off"
+                            title="eDNA Pump"
+                        />
                     </div>
                 </div>
             )
