@@ -343,7 +343,7 @@ function TaskOptionsPanel(props: Props) {
                                         checked={() => isBottomDiveChecked()}
                                         onClick={() => handleToggle()}
                                         disabled={() => !props?.isEditMode}
-                                        title="Switch to Bottom Dive"
+                                        title=
                                         
                                     />
                                 </td>
@@ -611,7 +611,7 @@ export function TaskSettingsPanel(props: Props) {
      * @param {SelectChangeEvent} evt Provides the new Task type
      * @returns {void}
      */
-    function onChangeTaskType(evt: SelectChangeEvent) {
+    function (evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType;
         const oldTaskType = props.task?.type ?? TaskType.NONE;
         console.log("*** onChangeTaskType ***");
