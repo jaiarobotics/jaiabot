@@ -180,7 +180,7 @@ export default class JaiaMap {
                 this.createMissionLayer(),
                 this.createTaskPacketLayer(),
                 this.createDepthContourLayer(),
-                this.createDriftInterpolationLayer(),
+                //this.createDriftInterpolationLayer(),
             ],
             view: view,
             controls: [
@@ -323,13 +323,19 @@ export default class JaiaMap {
         return taskPacketLayerGroup;
     }
 
+    /**
+     * Creates a layer for displaying depth contour information.
+     *
+     * @returns {VectorLayer<VectorSource<Geometry>>}
+     */
     createDepthContourLayer() {
         return new VectorLayer({
             properties: {
                 title: "Depth Contours",
             },
             source: this.depthContourVectorSource,
-            zIndex: 13,
+            opacity: 0.5,
+            zIndex: 6,
         });
     }
 
@@ -342,6 +348,7 @@ export default class JaiaMap {
             zIndex: 13,
             style: Styles.driftMapStyle,
             opacity: 0.6,
+            visible: false
         });
 
         return layer;

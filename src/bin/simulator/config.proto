@@ -113,6 +113,8 @@ message Simulator
     }];
     optional double salinity_stdev = 42;
 
+    optional string hub_gpsd_device = 43;
+
     optional ArduinoSimThread arduino_config = 60;
 }
 
