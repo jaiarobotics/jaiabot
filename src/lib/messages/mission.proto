@@ -3,54 +3,79 @@ syntax = "proto2";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/gpsd.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
 enum MissionState
 {
-    PRE_DEPLOYMENT__STARTING_UP = 0;
-    PRE_DEPLOYMENT__IDLE = 1;
-    PRE_DEPLOYMENT__SELF_TEST = 2;
-    PRE_DEPLOYMENT__FAILED = 3;
-    PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4;
-    PRE_DEPLOYMENT__READY = 5;
+    PRE_DEPLOYMENT__STARTING_UP = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
+    PRE_DEPLOYMENT__IDLE = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+    PRE_DEPLOYMENT__SELF_TEST = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+    PRE_DEPLOYMENT__FAILED = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
+    PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    PRE_DEPLOYMENT__READY = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    IN_MISSION__UNDERWAY__REPLAN = 100;
+    IN_MISSION__UNDERWAY__REPLAN = 100
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = 110;
-    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 112;
-    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 113;
-    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114;
+    IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = 110
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 112
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 113
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114
+        [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = 115;
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
-    IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
-    IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP = 123;
-    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 124;
-    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 125;
-    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 126;
-    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 127;
-    IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 128;
-    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 129;
-    IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = 130;
-    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 131;
+    IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP = 123
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 124
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 125
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 126
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 127
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 128
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 129
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = 130
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 131
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 140;
-    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 141;
-    IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 142;
+    IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 140
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 141
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 142
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     IN_MISSION__UNDERWAY__ABORT = 150;
 
     IN_MISSION__PAUSE__IMU_RESTART = 160;
-    IN_MISSION__PAUSE__REACQUIRE_GPS = 161;
-    IN_MISSION__PAUSE__MANUAL = 162;
+    IN_MISSION__PAUSE__REACQUIRE_GPS = 161
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
-    POST_DEPLOYMENT__RECOVERED = 200;
-    POST_DEPLOYMENT__DATA_OFFLOAD = 202;
-    POST_DEPLOYMENT__IDLE = 203;
-    POST_DEPLOYMENT__SHUTTING_DOWN = 204;
-    POST_DEPLOYMENT__FAILED = 205;
+    POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
+    POST_DEPLOYMENT__DATA_OFFLOAD = 202
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    POST_DEPLOYMENT__IDLE = 203 [(jaia.ev).rest_api.presence = GUARANTEED];
+    POST_DEPLOYMENT__SHUTTING_DOWN = 204
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    POST_DEPLOYMENT__FAILED = 205 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message Speeds
@@ -84,7 +109,7 @@ message BottomDepthSafetyParams
     option (dccl.msg) = {
         unit_system: "si"
     };
-    
+
     required double constant_heading = 1 [
         default = 0,
         (dccl.field) = {
@@ -161,13 +186,14 @@ message MissionTask
 
     enum TaskType
     {
-        NONE = 0;
-        DIVE = 1;
-        STATION_KEEP = 2;
-        SURFACE_DRIFT = 3;
-        CONSTANT_HEADING = 4;
+        NONE = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
+        DIVE = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+        SURFACE_DRIFT = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
+        CONSTANT_HEADING = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
-    optional TaskType type = 1 [default = NONE];
+    optional TaskType type = 1
+        [default = NONE, (jaia.field).rest_api.presence = GUARANTEED];
 
     message DiveParameters
     {
@@ -178,7 +204,8 @@ message MissionTask
                 max: 60
                 precision: 1
                 units { base_dimensions: "L" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
         optional double depth_interval = 2 [
             default = inf,
@@ -187,7 +214,8 @@ message MissionTask
                 max: 60
                 precision: 1
                 units { base_dimensions: "L" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
         optional double hold_time = 3 [
             default = 0,
@@ -196,13 +224,16 @@ message MissionTask
                 max: 3600
                 precision: 0
                 units { base_dimensions: "T" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
-        optional bool bottom_dive = 4 [default = false];
+        optional bool bottom_dive = 4
+            [default = false, (jaia.field).rest_api.presence = GUARANTEED];
     }
 
     // for type == DIVE
-    optional DiveParameters dive = 2;
+    optional DiveParameters dive = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     message DriftParameters
     {
@@ -213,21 +244,29 @@ message MissionTask
                 max: 3600
                 precision: -1
                 units { base_dimensions: "T" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
 
     // for type == SURFACE_DRIFT and type == DIVE
-    optional DriftParameters surface_drift = 3;
+    optional DriftParameters surface_drift = 3
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     message ConstantHeadingParameters
     {
-        optional double constant_heading = 1 [(dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
+        optional double constant_heading = 1 [
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
 
         optional int32 constant_heading_time = 2 [
             default = 0,
@@ -236,7 +275,8 @@ message MissionTask
                 max: 3600
                 precision: -1
                 units { base_dimensions: "T" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
 
         optional double constant_heading_speed = 3 [
@@ -246,13 +286,16 @@ message MissionTask
                 max: 3.0,
                 precision: 1,
                 units { base_dimensions: "LT^-1" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
 
     // for type == CONSTANT_HEADING
-    optional ConstantHeadingParameters constant_heading = 4;
-    optional bool start_echo = 5 [default = false];
+    optional ConstantHeadingParameters constant_heading = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional bool start_echo = 5
+        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     message StationKeepParameters
     {
@@ -263,12 +306,14 @@ message MissionTask
                 max: 3600,
                 precision: -1,
                 units { base_dimensions: "T" }
-            }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
 
     // for type == STATION_KEEP
-    optional StationKeepParameters station_keep = 6;
+    optional StationKeepParameters station_keep = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message MissionPlan
@@ -279,43 +324,55 @@ message MissionPlan
 
     enum MissionStart
     {
-        START_IMMEDIATELY = 1;
-        START_ON_COMMAND = 2;
+        START_IMMEDIATELY = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        START_ON_COMMAND = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
         // START_IN_WATER_DETECT = 3;
         // START_AFTER_DELAY = 4;
     }
-    optional MissionStart start = 1 [default = START_ON_COMMAND];
+    optional MissionStart start = 1 [
+        default = START_ON_COMMAND,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     enum MovementType
     {
-        TRANSIT = 1;
-        REMOTE_CONTROL = 2;
-        TRAIL = 3;
+        TRANSIT = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+        REMOTE_CONTROL = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+        TRAIL = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
-    optional MovementType movement = 2 [default = TRANSIT];
+    optional MovementType movement = 2
+        [default = TRANSIT, (jaia.field).rest_api.presence = GUARANTEED];
 
     message Goal
     {
         optional string name = 1 [(dccl.field).omit = true];
-        required GeographicCoordinate location = 2;
-        optional MissionTask task = 3;
+        required GeographicCoordinate location = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
+        optional MissionTask task = 3
+            [(jaia.field).rest_api.presence = GUARANTEED];
         optional bool moveWptMode = 4;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 10];
+    repeated Goal goal = 3 [
+        (dccl.field).max_repeat = 10,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
     message Recovery
     {
-        optional bool recover_at_final_goal = 1 [default = true];
-        optional GeographicCoordinate location = 2;
+        optional bool recover_at_final_goal = 1
+            [default = true, (jaia.field).rest_api.presence = GUARANTEED];
+        optional GeographicCoordinate location = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
     }
-    optional Recovery recovery = 4;
+    optional Recovery recovery = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional Speeds speeds = 5;
-    optional BottomDepthSafetyParams bottom_depth_safety_params = 6;
+    optional Speeds speeds = 5 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional BottomDepthSafetyParams bottom_depth_safety_params = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
     optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 3 }];
-    optional uint32 repeats = 9 [default = 1, (dccl.field) = {min: 1 max: 100 }];
 
     message TrailParam
     {
@@ -354,6 +411,12 @@ message MissionPlan
     {
         TrailParam trail = 10;
     }
+
+    optional uint32 repeats = 9 [
+        default = 1,
+        (jaia.field).rest_api.presence = GUARANTEED,
+        (dccl.field) = { min: 1 max: 100 }
+    ];
 
 }
 

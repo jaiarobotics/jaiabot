@@ -105,11 +105,11 @@ export class JaiaAPI {
     }
 
     getMetadata() {
-        return this.get("jaia/metadata");
+        return this.get("jaia/v0/metadata");
     }
 
     getStatus() {
-        return this.get("jaia/status");
+        return this.get("jaia/v0/status");
     }
 
     /**
@@ -118,11 +118,11 @@ export class JaiaAPI {
      * @returns {{[key: string]: PortalHubStatus}} Object containing most recent status for hub(s)
      */
     getStatusHubs() {
-        return this.get("jaia/status-hubs");
+        return this.get("jaia/v0/status-hubs");
     }
 
     getBotPaths(since_utime?: number): Promise<JaiaResponse<BotPaths>> {
-        var url = "jaia/bot-paths";
+        var url = "jaia/v0/bot-paths";
 
         if (since_utime) {
             url += `?since-utime=${since_utime}`;
@@ -147,18 +147,18 @@ export class JaiaAPI {
         if (startDate && endDate) {
             const startDateStr = convertHTMLStrDateToISO(startDate);
             const endDateStr = convertHTMLStrDateToISO(endDate);
-            return this.get(`jaia/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`);
+            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`);
         } else if (startDate && !endDate) {
             const startDateStr = convertHTMLStrDateToISO(startDate);
-            return this.get(`jaia/task-packets?startDate=${startDateStr}`);
+            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}`);
         } else {
             // Let server set default date values
-            return this.get(`jaia/task-packets`);
+            return this.get(`jaia/v0/task-packets`);
         }
     }
 
     getTaskPacketsCount() {
-        return this.get(`jaia/task-packets-count`);
+        return this.get(`jaia/v0/task-packets-count`);
     }
 
     /**
@@ -187,11 +187,11 @@ export class JaiaAPI {
         if (queryParameters.length > 0) {
             const queryParameterString = queryParameters.join("&");
             return (await this.get(
-                `jaia/depth-contours?${queryParameterString}`,
+                `jaia/v0/depth-contours?${queryParameterString}`,
             )) as FeatureCollection<Geometry>;
         } else {
             // Let server set default date values
-            return (await this.get(`jaia/depth-contours`)) as FeatureCollection<Geometry>;
+            return (await this.get(`jaia/v0/depth-contours`)) as FeatureCollection<Geometry>;
         }
     }
 
@@ -216,7 +216,7 @@ export class JaiaAPI {
 
         if (queryParameters.length > 0) {
             const queryParameterString = queryParameters.join("&");
-            return this.get(`jaia/drift-map?${queryParameterString}`)
+            return this.get(`jaia/v0/drift-map?${queryParameterString}`)
                 .then((geoJSON) => {
                     const features = new GeoJSON().readFeatures(geoJSON);
                     return features;
@@ -226,7 +226,7 @@ export class JaiaAPI {
                 });
         } else {
             // Let server set default date values
-            return this.get(`jaia/drift-map`)
+            return this.get(`jaia/v0/drift-map`)
                 .then((geoJSON) => {
                     const features = new GeoJSON().readFeatures(geoJSON);
                     return features;
@@ -238,39 +238,39 @@ export class JaiaAPI {
     }
 
     allStop() {
-        return this.post("jaia/all-stop");
+        return this.post("jaia/v0/all-stop");
     }
 
     allActivate() {
-        return this.post("jaia/all-activate", null);
+        return this.post("jaia/v0/all-activate", null);
     }
 
     nextTaskAll() {
-        return this.post("jaia/next-task-all", null);
+        return this.post("jaia/v0/next-task-all", null);
     }
 
     allRecover() {
-        return this.post("jaia/all-recover", null);
+        return this.post("jaia/v0/all-recover", null);
     }
 
     postCommand(command: Command) {
-        return this.post("jaia/command", command);
+        return this.post("jaia/v0/command", command);
     }
 
     postCommandForHub(command: CommandForHub) {
-        return this.post("jaia/command-for-hub", command);
+        return this.post("jaia/v0/command-for-hub", command);
     }
 
     postEngineeringPanel(engineeringPanelCommand: Engineering) {
-        return this.post("jaia/ep-command", engineeringPanelCommand);
+        return this.post("jaia/v0/ep-command", engineeringPanelCommand);
     }
 
     takeControl() {
-        return this.post("jaia/take-control", null);
+        return this.post("jaia/v0/take-control", null);
     }
 
     postEngineering(engineeringCommand: Engineering) {
-        return this.post("jaia/engineering-command", engineeringCommand);
+        return this.post("jaia/v0/engineering-command", engineeringCommand);
     }
 
     postMissionFilesCreate(descriptor: any) {

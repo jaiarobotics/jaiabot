@@ -9,10 +9,7 @@ setup(name='pyjaia',
       url='https://www.jaia.tech',
       packages=[
           'pyjaia',
-          'pyjaia.waves',
-          'dccl', 
-          'goby.middleware.protobuf', 
-          'jaiabot.messages'],
+          'pyjaia.waves'],
       install_requires=[
           'wheel', 
           'protobuf==3.20.0', 

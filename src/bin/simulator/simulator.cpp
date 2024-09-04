@@ -444,7 +444,11 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
         imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                              si::radians);
-        imu_data.set_calibration_status(3);
+
+        auto accuracies = imu_data.mutable_accuracies();
+        accuracies->set_accelerometer(3);
+        accuracies->set_gyroscope(3);
+        accuracies->set_magnetometer(3);
         interprocess().publish<groups::imu>(imu_data);
     }
 

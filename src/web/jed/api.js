@@ -36,7 +36,7 @@ class JaiaAPI {
 
         this.apiThrottleEndTime = Date.now() + 1000;
 
-        return fetch("/jaia/engineering-command", {
+        return fetch("/jaia/v0/engineering-command", {
             method: "POST",
             headers: this.headers,
             body: JSON.stringify(command),
@@ -55,7 +55,7 @@ class JaiaAPI {
      * @returns {*}
      */
     getStatus() {
-        return fetch("/jaia/status", { headers: this.headers })
+        return fetch("/jaia/v0/status", { headers: this.headers })
             .then((response) => response.json())
             .then((status) => {
                 this.inControl =
@@ -70,7 +70,7 @@ class JaiaAPI {
     }
 
     takeControl() {
-        return fetch("/jaia/take-control", {
+        return fetch("/jaia/v0/take-control", {
             method: "POST",
             headers: this.headers,
         }).then((response) => response.json());
