@@ -440,14 +440,14 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
 void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     std::string buffer;
-    std::string deliminiter = "";
+    std::string delimiter = "B-Bypass";
     int timeout_seconds = 5;
     
     // Triggers menu to appear for bypass
     write("\r");
 
     this->async_read_with_timeout(
-            buffer, deliminiter, timeout_seconds, [this](const std::string& result) {
+            buffer, delimiter, timeout_seconds, [this](const std::string& result) {
                       
                 glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
                                        << "\nResult is empty: " << result.empty()

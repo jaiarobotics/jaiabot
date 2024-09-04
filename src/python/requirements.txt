@@ -69,4 +69,5 @@ watchdog==3.0
 werkzeug==2.3.7
 zipp==3.17.0
 ./pyjaia
+./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
