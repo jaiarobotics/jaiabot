@@ -1,6 +1,6 @@
 # Devices gpsd should collect to at boot time.
 # They need to be read/writeable, either by user gpsd or the group dialout.
-DEVICES="/dev/gps0"
+DEVICES="/dev/gps0 udp://0.0.0.0:33001 udp://0.0.0.0:33002 udp://0.0.0.0:33003"
 
 # Other options you want to pass to gpsd
 GPSD_OPTIONS="-b"

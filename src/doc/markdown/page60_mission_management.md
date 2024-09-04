@@ -244,3 +244,26 @@ To run the bot without GPS (e.g. indoors in a tank), the following mode can be u
 test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
 ```
 
+### Trail Movement state
+
+The `Movement::Trail` state must have a **contact** available for the bot to trail. The contact data is sent to the bots from the hub via the `ContactUpdate` message from `jaiabot_hub_manager`. Currently the source of this contact data is only from `gpsd` (from the $xxRMC message, primarily) on UDP ports 33001 through 33003 which corresponds to contact id 1 through 3. The `ContactUpdate` message itself supports 15 contacts, for future use from other non-GPS sources (e.g., AIS). 
+
+The configuration in `jaiabot_hub_manager` is given as:
+
+```
+contact_gps { contact: 1  gpsd_device: "udp://0.0.0.0:33001" use_cog: true}
+contact_gps { contact: 2  gpsd_device: "udp://0.0.0.0:33002" use_cog: true}
+contact_gps { contact: 3  gpsd_device: "udp://0.0.0.0:33003" use_cog: true}
+```
+
+The `use_cog: true` means to use the contact course over ground (COG) rather than heading. If set to `false`, the contact true heading is used (requires $xxHDT message to be provided).  
+
+To trail one of the fleet's bots, the BotStatus message can be output as the appropriate GPS sentences ($GPRMC and $GPHDT) using the following `jaiabot_hub_manager` configuration:
+
+```
+bot_to_gps  { bot_id: 1   udp { remote_address: "127.0.0.1" remote_port: 33001 }}
+```
+
+This feature can also be used to send the bot position data to another GPS data sink (chart plotter, another robotic user interface, etc.). The `bot_to_gps` configuration supports TCP server/client, serial, and PTY in addition to UDP. 
+
+At present the only way to perform a Task when using Trail is using the REMOTE_CONTROL_TASK command type. In the future it may be helpful to be have temporally or distance-travelled triggered transitions to a given Task.
