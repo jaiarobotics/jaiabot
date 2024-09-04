@@ -28,7 +28,7 @@ enum MissionState
         [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = 115;
+    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = 115
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120

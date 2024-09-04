@@ -2159,7 +2159,7 @@ export default class CommandControl extends React.Component {
             }
 
             // Clicked on contact
-			const isContact = feature.get('type') as ContactStatus
+			const isContact = feature.get('type') === "contact"
 			if (isContact) {
                 
 				const contactFeature = feature.get('contact')
