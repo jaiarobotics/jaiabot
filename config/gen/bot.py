@@ -86,22 +86,23 @@ bot_status_period=1000
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
-{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'WARN'  }},
+  'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'WARN'  }},
+  'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN'  }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
+  'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET','log': 'QUIET' }},
+  'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'VERBOSE' }},
-  'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
+  'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'},  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'},  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_edna_pump_driver':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN'  }},
   'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
@@ -263,6 +264,11 @@ elif common.app == 'jaiabot_echo_driver':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      echo_report_in_simulation=is_simulation()))
+elif common.app == 'jaiabot_edna_pump_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_edna_pump_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     edna_report_in_simulation=is_simulation()))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,

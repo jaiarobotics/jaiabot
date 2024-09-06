@@ -57,7 +57,7 @@ parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
-parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'edna', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 
 args=parser.parse_args()
@@ -95,6 +95,7 @@ class ELECTRONICS_STACK(Enum):
 class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
     ECHO = 'ECHO'
+    ENDA = 'EDNA'
     NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
@@ -150,6 +151,8 @@ if args.bot_type == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
 elif args.bot_type == 'echo':
     jaia_bot_type = BOT_TYPE.ECHO
+elif args.bot_tyoe == 'edna':
+    jaia_bot_type = BOT_TYPE.EDNA
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
@@ -519,6 +522,26 @@ if jaia_bot_type.value == 'echo':
         'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_echo)
+elif jaia_bot_type.value == 'edna':
+    jaiabot_apps_edna = [
+        {'exe': 'jaiabot_edna_pump_driver',
+        'description': 'JaiaBot eDNA pump driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ENDA_PUMP_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_edna_pump.py',
+        'description': 'Jaiabot eDNA Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'edna',
+        'args': '20003',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_edna)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

@@ -3,6 +3,7 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
 import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/edna_pump.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/edna_pump.proto";
 

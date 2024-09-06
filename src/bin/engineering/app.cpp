@@ -30,6 +30,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/edna_pump.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"

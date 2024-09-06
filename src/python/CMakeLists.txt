@@ -11,6 +11,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia DESTINATION ${project_SHARE_DIR}/ja
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pyjaiaprotobuf DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/edna_pump DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
+
 
 
 # Building the JaiaBot Goby message python modules into the pyjaiaprotobuf python package
