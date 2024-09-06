@@ -17,6 +17,10 @@ def presentMenu(menu):
     done = False
     while not done:
         clearScreen()
+        probe.dump()
+        print()
+        print()
+        print()
         print(menu['title'])
         print('============')
         print()
@@ -39,6 +43,19 @@ def presentMenu(menu):
             print('Invalid choice.')
             input()
 
+
+def pollEC():
+    print('Getting 10 seconds of data...')
+    ec_old = None
+    for i in range(0, 10):
+        ec = probe.EC()
+        if ec_old:
+            delta_percent = abs(ec - ec_old) / ec_old * 100
+        else:
+            delta_percent = 0.0
+        print(f'EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
+        ec_old = ec
+        time.sleep(1)
 
 def setProbeType():
     value = input('Enter probe type value (K value) > ')
@@ -87,7 +104,7 @@ def doCalibration(description: str, type: int):
                 delta_percent = abs(ec - ec_old) / ec_old * 100
             else:
                 delta_percent = 0.0
-            print(f'EC: {ec: 6.2f}  delta: {delta_percent: 3.1f}%')
+            print(f'EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
             ec_old = ec
             time.sleep(1)
         if input('Calibrate now (Y/n)?').lower() in ['', 'y']:
@@ -137,14 +154,14 @@ def calibrate():
                 'func': singlePointCalibration
             },
             {
-                'description': 'Dual Point High Calibration',
-                'key': 'h',
-                'func': highCalibration
-            },
-            {
                 'description': 'Dual Point Low Calibration',
                 'key': 'l',
                 'func': lowCalibration
+            },
+            {
+                'description': 'Dual Point High Calibration',
+                'key': 'h',
+                'func': highCalibration
             },
             {
                 'description': 'Exit Menu',
@@ -162,6 +179,11 @@ presentMenu({
             'description': 'Print probe status',
             'key': 's',
             'func': printProbeStatus
+        },
+        {
+            'description': 'Poll EC for 10 seconds',
+            'key': 'l',
+            'func': pollEC
         },
         {
             'description': 'Set probe type',
