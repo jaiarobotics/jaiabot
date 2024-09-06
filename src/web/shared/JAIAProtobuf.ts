@@ -625,6 +625,7 @@ export enum TaskType {
     STATION_KEEP = "STATION_KEEP",
     SURFACE_DRIFT = "SURFACE_DRIFT",
     CONSTANT_HEADING = "CONSTANT_HEADING",
+    EDNA_PUMP = "EDNA_PUMP",
 }
 
 export interface DiveParameters {
@@ -659,6 +660,7 @@ export interface MissionTask {
     constant_heading?: ConstantHeadingParameters;
     station_keep?: StationKeepParameters;
     start_echo?: boolean;
+    start_pump?: boolean;
 }
 
 export enum MissionStart {
@@ -1163,6 +1165,18 @@ export interface Echo {
     start_echo?: boolean;
     stop_echo?: boolean;
     echo_state?: EchoState;
+}
+
+export enum eDNAPumpState {
+    START = 0,
+    STOP = 1,
+    RUNNING,
+}
+
+export interface eDNAPump { 
+    start_pump?: boolean;
+    stop_pump?: boolean;
+    pump_state?: eDNAPumpState;
 }
 
 export interface Engineering {

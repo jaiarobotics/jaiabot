@@ -152,25 +152,6 @@ export default class RCControllerPanel extends React.Component {
     }
 
     /**
-     * Checks to see if the eDNA pump is turned on
-     *
-     * @returns {boolean}
-     */
-    isPumpOn() {
-        return this.state.pumpTurnedOn;
-    }
-
-    /**
-     * Updates value of pumpTurnedOn in the state if the eDNA pump is turned on
-     * 
-     * @returns {void} 
-     */
-    async handlePumpTurnedOn() {
-        this.setState({ pumpTurnedOn: !this.state.pumpTurnedOn });
-        return;
-    }
-
-    /**
      * Creates the bins for throttle that are used as output for the operator
      *
      * @param {number} speed Is the position of the input that is used to determine bin number
@@ -458,6 +439,43 @@ export default class RCControllerPanel extends React.Component {
     }
 
     /**
+     * Checks to see if the eDNA pump is turned on
+     *
+     * @returns {boolean}
+     */
+    isPumpOn() {
+        return this.state.pumpTurnedOn;
+    }
+
+    /**
+     * Updates value of pumpTurnedOn in the state if the eDNA pump is turned on
+     * 
+     * @returns {void} 
+     */
+    async handlePumpTurnedOn() {
+        const rcPumpCommand = {
+            bot_id: this.props.bot?.bot_id,
+            type: CommandType.REMOTE_CONTROL_TASK,
+            rc_task: {
+                type: TaskType.EDNA_PUMP,
+                start_pump: this.state.pumpTurnedOn ? true : false,
+            }
+        }
+
+        this.api.postCommand(rcPumpCommand).then((response) => {
+            if (response.message) {
+                console.log("ERROR: ",  response.message)
+                error("Unable to post RC eDNA Pump command");
+            } else {
+                success("eDNA Pump Activated")
+            }
+        })
+
+        this.setState({ pumpTurnedOn: !this.state.pumpTurnedOn });
+        return;
+    }
+
+    /**
      * Clears the interval to send RC commands and sends a dive task
      *
      * @returns {void}
@@ -491,7 +509,7 @@ export default class RCControllerPanel extends React.Component {
             if (response.message) {
                 error("Unable to post RC dive command");
             } else {
-                success("Beginning RC dive");
+                success("Beginning RC dive"); 
             }
         });
     }

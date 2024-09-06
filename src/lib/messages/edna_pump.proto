@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+// import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message eDNACommand
+{
+    enum eDNACommandType
+    {
+        CMD_START = 0;
+        CMD_END = 1;
+    }
+
+    required eDNACommandType type = 1;
+}

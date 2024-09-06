@@ -4,6 +4,7 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
 import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/edna_pump.proto";
 
 package jaiabot.protobuf;
 
@@ -122,6 +123,16 @@ message Echo
     optional EchoState echo_state = 3 [default = BOOTING];
 }
 
+message eDNA_pump
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool start_pump = 1 [default = false];
+    optional bool stop_pump = 2 [default = false];
+}
+
 message Engineering
 {
     /*
@@ -164,6 +175,8 @@ message Engineering
     optional IMUCalibration imu_cal = 18;
 
     optional Echo echo = 19;
+
+    optional eDNA_pump edna_pump = 20;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

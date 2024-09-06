@@ -318,7 +318,7 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
     {
         protobuf::EchoCommand echo_command;
         if (command.echo().start_echo())
-        {
+        {  
             echo_command.set_type(protobuf::EchoCommand::CMD_START);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
@@ -326,6 +326,20 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
         {
             echo_command.set_type(protobuf::EchoCommand::CMD_STOP);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
+        }
+    }
+    else if (command.has_edna_pump())
+    {
+        protobuf::eDNACommand edna_command;
+        if (command.edna_pump().start_pump())
+        {
+            edna_command.set_type(protobuf::eDNACommand::CMD_START);
+            interprocess().publish<jaiabot::groups::eDNA>(edna_command);
+        }
+        else if (command.edna_pump().stop_pump())
+        {
+            edna_command.set_type(protobuf::eDNACommand::CMD_STOP);
+            interprocess().publish<jaiabot::groups::eDNA>(edna_command);
         }
     }
 
