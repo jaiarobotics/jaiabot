@@ -768,6 +768,7 @@ export interface DesiredCourse {
 export enum BotType {
     HYDRO = "HYDRO",
     ECHO = "ECHO",
+    EDNA = "EDNA",
 }
 
 export enum VehicleType {

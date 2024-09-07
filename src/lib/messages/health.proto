@@ -131,6 +131,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 124
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_EDNA_PUMP_DRIVER = 125
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_FIX = 200

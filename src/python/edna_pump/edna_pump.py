@@ -13,10 +13,10 @@ import RPi.GPIO as GPIO
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('echo')
+log = logging.getLogger('eDNA')
 
 # eDNA_pin pin
-eDNA_pin = 23
+eDNA_pin = 27
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(eDNA_pin, GPIO.OUT)  

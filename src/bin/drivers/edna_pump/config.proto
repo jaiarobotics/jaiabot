@@ -30,7 +30,7 @@ import "jaiabot/messages/edna_pump.proto";
 
 package jaiabot.config;
 
-message eDNADriver
+message eDNAPumpDriver
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
@@ -38,4 +38,9 @@ message eDNADriver
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
+
+    optional int32 edna_pump_report_timeout_seconds = 10 [default = 20];
+    optional bool edna_pump_report_in_simulation = 11 [default = true];
+    optional jaiabot.protobuf.eDNAPumpIssue.SolutionType edna_pump_issue_solution = 12 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
+    optional int32 edna_pump_trigger_issue_timeout_seconds = 12 [default = 20];
 }

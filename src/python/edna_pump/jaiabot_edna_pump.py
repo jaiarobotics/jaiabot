@@ -8,7 +8,7 @@ from edna_pump import *
 from math import *
 from threading import Thread
 from dataclasses import dataclass
-from jaiabot.messages.edna_pump_pb2 import eDNAPumpData, eDNAPumpCommand
+from jaiabot.messages.edna_pump_pb2 import eDNAData, eDNACommand
 from google.protobuf import text_format
 
 parser = argparse.ArgumentParser(description='eDNA Pump data, and publish them over UDP port')

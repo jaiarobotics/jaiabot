@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-import "dccl/option_extensions.proto";
+// import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
@@ -10,7 +10,19 @@ message eDNACommand
     {
         CMD_START = 0;
         CMD_END = 1;
+        CMD_STATUS = 2;
     }
 
     required eDNACommandType type = 1;
+}
+
+enum eDNAState
+{
+    ON = 0;
+    OFF = 1;
+}
+
+message eDNAData
+{
+    optional eDNAState edna_state = 1 [default = OFF];
 }

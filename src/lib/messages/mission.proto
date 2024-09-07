@@ -189,6 +189,7 @@ message MissionTask
         STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
         SURFACE_DRIFT = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
         CONSTANT_HEADING = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
+        EDNA_PUMP = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional TaskType type = 1
         [default = NONE, (jaia.field).rest_api.presence = GUARANTEED];
@@ -312,6 +313,10 @@ message MissionTask
     // for type == STATION_KEEP
     optional StationKeepParameters station_keep = 6
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    // for type == EDNA_PUMP 
+    optional bool start_pump = 7
+        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message MissionPlan
