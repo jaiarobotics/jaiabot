@@ -312,10 +312,7 @@ def jaia_v0_annotations():
     if request.method == 'GET':
         # `version` is the last version of the annotations GeoJSON that the client retrieved.  
         # If there has been no change since then, we can return a 304 Not Modified response.
-        try:
-            version = floor(request.args.get('version'))
-        except TypeError:
-            version = None
+        version = request.args.get('version', None, int)
 
         if annotations.version == version:
             return Response(None, 304) # 304 Not Modified

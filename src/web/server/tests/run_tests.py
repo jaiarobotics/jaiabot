@@ -3,6 +3,7 @@ import geojson.utils
 import requests
 from pprint import pprint
 import geojson
+import random
 
 
 def show(response: requests.Response):
@@ -25,7 +26,7 @@ def show(response: requests.Response):
 url = 'http://localhost:40001/jaia/v0/annotations'
 
 
-pointFeature = geojson.Feature(1, geometry=geojson.utils.generate_random('Point'), properties={
+pointFeature = geojson.Feature(random.randint(0, 1_000_000), geometry=geojson.utils.generate_random('Point'), properties={
     'title': 'Tada!',
     'marker-size': 'large',
     'marker-color': 'green',
