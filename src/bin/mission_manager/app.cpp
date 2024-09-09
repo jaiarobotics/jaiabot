@@ -48,7 +48,7 @@ namespace apps
 namespace groups
 {
 std::unique_ptr<goby::middleware::DynamicGroup> hub_command_this_bot;
-}
+} // namespace groups
 
 class MissionManagerConfigurator
     : public goby::middleware::ProtobufConfigurator<config::MissionManager>
@@ -472,6 +472,21 @@ jaiabot::apps::MissionManager::~MissionManager()
         intervehicle().unsubscribe_dynamic<protobuf::Command>(*groups::hub_command_this_bot,
                                                               command_subscriber);
     }
+
+    if (cfg().has_contact_update_sub_cfg())
+    {
+        auto on_contact_update_unsubscribed =
+            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
+        goby::middleware::Subscriber<protobuf::ContactUpdate> contact_update_subscriber{
+            latest_contact_update_sub_cfg_, on_contact_update_unsubscribed};
+
+        intervehicle().unsubscribe<jaiabot::groups::contact_update>(contact_update_subscriber);
+    }
 }
 
 void jaiabot::apps::MissionManager::intervehicle_subscribe(
@@ -532,6 +547,66 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             }
         },
         *groups::hub_command_this_bot, command_subscriber);
+
+    if (cfg().has_contact_update_sub_cfg())
+    {
+        glog.is_verbose() && glog << "Subscribing for Contact Updates from hub "
+                                  << hub_info.hub_id() << " (modem id " << hub_info.modem_id()
+                                  << ")" << std::endl;
+
+        auto on_contact_update_subscribed =
+            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
+
+        latest_contact_update_sub_cfg_ = cfg().contact_update_sub_cfg();
+
+        // set contact_update publisher to the hub that triggered this subscribe
+        latest_contact_update_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
+        latest_contact_update_sub_cfg_.mutable_intervehicle()->add_publisher_id(
+            hub_info.modem_id());
+
+        goby::middleware::Subscriber<protobuf::ContactUpdate> contact_update_subscriber{
+            latest_contact_update_sub_cfg_, on_contact_update_subscribed};
+
+        intervehicle().subscribe<jaiabot::groups::contact_update, protobuf::ContactUpdate>(
+            [this](const protobuf::ContactUpdate& contact_update) {
+                glog.is_debug1() && glog << "Received contact update: "
+                                         << contact_update.ShortDebugString() << std::endl;
+
+                // republish for logging
+                interprocess().publish<jaiabot::groups::contact_update>(contact_update);
+
+                if (!machine_->has_geodesy())
+                {
+                    glog.is_debug1() && glog << "No geodesy yet, ignore contact update"
+                                             << std::endl;
+                    return;
+                }
+
+                jaiabot::protobuf::IvPBehaviorUpdate ivp_update;
+                jaiabot::protobuf::IvPBehaviorUpdate::ContactUpdate& ivp_contact =
+                    *ivp_update.mutable_contact();
+
+                ivp_contact.set_contact(contact_update.contact());
+                auto xy = machine_->geodesy().convert({contact_update.location().lat_with_units(),
+                                                       contact_update.location().lon_with_units()});
+
+                ivp_contact.set_x_with_units(xy.x);
+                ivp_contact.set_y_with_units(xy.y);
+                ivp_contact.set_speed_with_units(contact_update.speed_over_ground_with_units());
+                ivp_contact.set_heading_or_cog_with_units(
+                    contact_update.heading_or_cog_with_units());
+
+                glog.is_verbose() && glog << group("movement") << "Sending update to pHelmIvP: "
+                                          << ivp_update.ShortDebugString() << std::endl;
+                interprocess().publish<jaiabot::groups::mission_ivp_behavior_update>(ivp_update);
+            },
+            contact_update_subscriber);
+    }
 }
 
 void jaiabot::apps::MissionManager::loop()
@@ -549,7 +624,7 @@ void jaiabot::apps::MissionManager::loop()
         report.set_repeat_index(in_mission->repeat_index());
     }
 
-    // only report the goal index when not in recovery
+    // only report the goal index when not in recovery or trail
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
         // Set Active Goal Index + 1 for User Interface And Log Review.
@@ -564,7 +639,7 @@ void jaiabot::apps::MissionManager::loop()
         }
         goal_speed = machine_->mission_plan().speeds().transit();
     }
-    else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
+    else if (in_mission && (in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX))
     {
         if (machine_->mission_plan().recovery().has_recover_at_final_goal())
         {

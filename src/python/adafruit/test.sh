@@ -2,5 +2,6 @@
 
 set -e
 
-./analyze.py data/bot3_fleet12_20240225T232808.h5 
-python3 acceleration_analyzer.py data/bot3_fleet12_20240225T232808.h5 
+rsync -zaP -r ../ b2f2:python/
+
+ssh b2f2 'cd python/adafruit; ./remote_test.sh'

@@ -24,10 +24,18 @@
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/io/line_based/pty.h>
+#undef ECHO
+
+#include <goby/middleware/io/line_based/serial.h>
+#include <goby/middleware/io/line_based/tcp_client.h>
+#include <goby/middleware/io/line_based/tcp_server.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/linebasedcomms/gps_sentence.h>
 
-#include <goby/zeromq/application/single_thread.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
@@ -41,12 +49,15 @@
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::HubManager>;
+using ApplicationBase = goby::zeromq::MultiThreadApplication<jaiabot::config::HubManager>;
 
 namespace jaiabot
 {
 namespace apps
 {
+constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
+constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
+
 class HubManager : public ApplicationBase
 {
   public:
@@ -114,6 +125,22 @@ class HubManager : public ApplicationBase
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
     std::atomic<uint32_t> data_offload_percentage_{0};
+
+    // map GPSD device name to contact ID
+    struct Contact
+    {
+        int id;
+        bool use_cog;
+        goby::time::SteadyClock::time_point next_send_time;
+    };
+
+    std::map<std::string, Contact> contact_gps_;
+    // map GPSD device name to heading
+    std::map<std::string, boost::units::quantity<boost::units::degree::plane_angle>>
+        contact_heading_;
+
+    // set of Bot IDs with bot_to_gps in use
+    std::set<int> bot_to_gps_ids_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -139,6 +166,47 @@ jaiabot::apps::HubManager::HubManager()
         }
     }
 
+    for (auto contact_gps : cfg().contact_gps())
+    {
+        contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(),
+                                           Contact({contact_gps.contact(), contact_gps.use_cog(),
+                                                    goby::time::SteadyClock::now()})));
+    }
+
+    for (auto bot_to_gps : cfg().bot_to_gps())
+    {
+        switch (bot_to_gps.transport_case())
+        {
+            case jaiabot::config::HubManager::BotToGPS::kUdp:
+                launch_thread<goby::middleware::io::UDPPointToPointThread<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.udp());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kPty:
+                launch_thread<goby::middleware::io::PTYThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.pty());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kSerial:
+                launch_thread<goby::middleware::io::SerialThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.serial());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kTcpClient:
+                launch_thread<
+                    goby::middleware::io::TCPClientThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.tcp_client());
+                break;
+            case jaiabot::config::HubManager::BotToGPS::kTcpServer:
+                launch_thread<
+                    goby::middleware::io::TCPServerThreadLineBased<bot_gps_in, bot_gps_out>>(
+                    bot_to_gps.bot_id(), bot_to_gps.tcp_server());
+
+                break;
+            case jaiabot::config::HubManager::BotToGPS::TRANSPORT_NOT_SET: break;
+        }
+
+        if (bot_to_gps.transport_case() != jaiabot::config::HubManager::BotToGPS::TRANSPORT_NOT_SET)
+            bot_to_gps_ids_.insert(bot_to_gps.bot_id());
+    }
+
     for (auto id : managed_bot_modem_ids_) intervehicle_subscribe(id);
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
@@ -161,12 +229,73 @@ jaiabot::apps::HubManager::HubManager()
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
-            if (tpv.has_location())
+            if (tpv.device() == cfg().hub_gpsd_device())
             {
-                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
-                latest_hub_status_.mutable_location()->set_lat_with_units(lat);
-                latest_hub_status_.mutable_location()->set_lon_with_units(lon);
+                if (tpv.has_location())
+                {
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    latest_hub_status_.mutable_location()->set_lat_with_units(lat);
+                    latest_hub_status_.mutable_location()->set_lon_with_units(lon);
+                }
             }
+            else if (contact_gps_.count(tpv.device()))
+            {
+                if (tpv.has_location())
+                {
+                    protobuf::ContactUpdate update;
+                    Contact& contact_param = contact_gps_[tpv.device()];
+                    update.set_contact(contact_param.id);
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    update.mutable_location()->set_lat_with_units(lat);
+                    update.mutable_location()->set_lon_with_units(lon);
+                    if (tpv.has_speed())
+                        update.set_speed_over_ground_with_units(tpv.speed_with_units());
+
+                    if (contact_param.use_cog)
+                    {
+                        if (tpv.has_track())
+                            update.set_heading_or_cog_with_units(tpv.track_with_units());
+                    }
+                    else
+                    {
+                        auto it = contact_heading_.find(tpv.device());
+                        if (it != contact_heading_.end())
+                            update.set_heading_or_cog_with_units(it->second);
+                    }
+
+                    if (goby::time::SteadyClock::now() > contact_param.next_send_time)
+                    {
+                        glog.is_debug2() && glog << group("main") << "Sending contact update: "
+                                                 << update.ShortDebugString() << std::endl;
+
+                        intervehicle().publish<jaiabot::groups::contact_update>(update);
+
+                        contact_param.next_send_time =
+                            goby::time::SteadyClock::now() +
+                            (std::chrono::seconds(cfg().contact_blackout_seconds()) *
+                             managed_bot_modem_ids_
+                                 .size()); // spread out contact transmissions based on number of bots. TODO: use broadcast to send contacts if we can.
+                    }
+                    else
+                    {
+                        glog.is_debug2() &&
+                            glog << group("main")
+                                 << "Skipping contact update (not time to send again yet): "
+                                 << update.ShortDebugString() << std::endl;
+                    }
+                }
+            }
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::att>(
+        [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
+            glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
+                                     << std::endl;
+
+            if (att.has_heading())
+                contact_heading_[att.device()] = att.heading_with_units();
         });
 
     // automatically subscribe to bots that send us subscriptions
@@ -453,6 +582,47 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     // publish for opencpn interface
     if (node_status.IsInitialized())
         interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+
+    if (bot_to_gps_ids_.count(dccl_nav.bot_id()))
+    {
+        goby::util::gps::RMC rmc;
+        goby::util::gps::HDT hdt;
+
+        rmc.time =
+            goby::time::convert<goby::time::SystemClock::time_point>(node_status.time_with_units());
+
+        if (dccl_nav.has_location())
+            rmc.status = goby::util::gps::RMC::DataValid;
+        else
+            rmc.status = goby::util::gps::RMC::NavigationReceiverWarning;
+
+        if (dccl_nav.has_location())
+        {
+            rmc.latitude = dccl_nav.location().lat_with_units();
+            rmc.longitude = dccl_nav.location().lon_with_units();
+        }
+        if (dccl_nav.has_speed())
+            rmc.speed_over_ground = dccl_nav.speed().over_ground_with_units();
+
+        if (dccl_nav.attitude().has_course_over_ground())
+            rmc.course_over_ground = dccl_nav.attitude().course_over_ground_with_units();
+
+        {
+            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+            io_data->set_index(dccl_nav.bot_id());
+            io_data->set_data(rmc.serialize().message_cr_nl());
+            interthread().publish<bot_gps_out>(io_data);
+        }
+
+        if (dccl_nav.attitude().has_heading())
+        {
+            hdt.true_heading = dccl_nav.attitude().heading_with_units();
+            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+            io_data->set_index(dccl_nav.bot_id());
+            io_data->set_data(hdt.serialize().message_cr_nl());
+            interthread().publish<bot_gps_out>(io_data);
+        }
+    }
 }
 
 void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)

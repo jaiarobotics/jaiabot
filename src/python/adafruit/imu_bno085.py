@@ -28,7 +28,7 @@ class AdafruitBNO085(IMU):
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
 
                 self.is_setup = True
-                self.calibration_status = None
+                self.magnetometer_accuracy = None
                 self.calibration_state = None
                 # set the duration for checking calibration (seconds)
                 self.wait_to_check_calibration_duration = 1
@@ -54,7 +54,6 @@ class AdafruitBNO085(IMU):
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
-            calibration_status = self.calibration_status
             calibration_state = self.calibration_state
 
             self.checkCalibration()
@@ -76,7 +75,7 @@ class AdafruitBNO085(IMU):
                         linear_acceleration=linear_acceleration, 
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
-                        calibration_status=calibration_status,
+                        accuracies=self.sensor.accuracies,
                         calibration_state=calibration_state,
                         quaternion=quaternion,
                         angular_velocity=angular_velocity)
@@ -105,11 +104,11 @@ class AdafruitBNO085(IMU):
             try:
                 # set the calibration status to save when we are not querying a 
                 # new calibration status
-                self.calibration_status = self.sensor.calibration_status
+                self.magnetometer_accuracy = self.sensor.accuracies.magnetometer
 
                 if self.calibration_state == CalibrationState.IN_PROGRESS:
                     logging.debug("Calibrating imu")
-                    if not self.calibration_good_at and self.calibration_status > 2:
+                    if not self.calibration_good_at and self.magnetometer_accuracy > 2:
                         self.calibration_good_at = time.monotonic()
                         logging.debug("Record time of good calibration")
                     if self.calibration_good_at and (time.monotonic() - self.calibration_good_at > 5.0):

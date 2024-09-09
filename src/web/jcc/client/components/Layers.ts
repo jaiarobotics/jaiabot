@@ -84,7 +84,7 @@ export class Layers {
             title: "Hub Comms Limit Circles",
         },
         source: new VectorSource(),
-        visible: false,
+        visible: true,
         zIndex: 500,
     });
 

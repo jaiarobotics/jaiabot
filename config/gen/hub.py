@@ -186,7 +186,8 @@ elif common.app == 'goby_gps':
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common)) 
+                                     interprocess_block = interprocess_common,
+                                     hub_gpsd_device=common.hub.gpsd_device(node_id))) 
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
@@ -204,7 +205,8 @@ elif common.app == 'jaiabot_hub_manager':
                                      hub_log_offload_dir=common.hub_log_offload_dir,
                                      # if we're using localhost for wifi comms, use it for data offload as well
                                      use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
-                                     vfleet_shutdown_times=vfleet_shutdown_times))
+                                     vfleet_shutdown_times=vfleet_shutdown_times,
+                                     hub_gpsd_device=common.hub.gpsd_device(node_id)))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
@@ -220,6 +222,10 @@ elif common.app == 'jaiabot_metadata':
                                      interprocess_block = interprocess_common,
                                      xbee_info=xbee_info,
                                      is_simulation=str(is_simulation()).lower()))
+elif common.app == 'gpsd':
+    # Run for forwarding contacts
+    devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])
+    print('-S {} {}'.format(common.hub.gpsd_port(node_id), devices_str))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:
