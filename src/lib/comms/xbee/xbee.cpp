@@ -195,6 +195,75 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         assert_ok();
     }
 
+    {
+        /*
+        TX Power Level
+        Sets or displays the power level at which the device transmits conducted power. Power levels are approximate.
+        */
+        stringstream cmd;
+        cmd << "ATPL2" << '\r'; 
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        RF Data Rate
+        Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data over-the-air).
+        */
+        stringstream cmd;
+        cmd << "ATBR2" << '\r'; 
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Mesh Unicast Retries
+        Set or read the maximum number of network packet delivery attempts. If MR is non-zero, the packets a device sends request a network acknowledgment, and can be resent up to MR+1 times if the device does not receive an acknowledgment.
+        */
+        stringstream cmd;
+        cmd << "ATMR1" << '\r'; 
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Unicast Mac Retries
+        Set the number of retries for mesh packet delivery (RR)
+        This specifies how many times a node will retry to send a packet through the mesh.
+        Specifies how many times the modem retries sending a packet if no acknowledgment (ACK) is received.
+        Set retries to 3
+        */
+        stringstream cmd;
+        cmd << "ATRR3" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Network Delay slots
+        Set or read the maximum random number of network delay slots before rebroadcasting a network packet.
+        */
+        stringstream cmd;
+        cmd << "ATNN3" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Broadcast Multi Transmits
+        Set or read the number of additional MAC-level broadcast transmissions. All broadcast packets are transmitted MT+1 times to ensure they are received.
+        */
+        stringstream cmd;
+        cmd << "ATMT3" << '\r'; 
+        write(cmd.str());
+        assert_ok();
+    }
+
     exit_command_mode();
 
     get_maximum_payload_size();
