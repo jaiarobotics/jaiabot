@@ -7,6 +7,7 @@ import { jaiaAPI, JaiaResponse } from "../../common/JaiaAPI";
 import { FeatureCollection } from "@turf/turf";
 import { GeoJSON } from "ol/format";
 import { colorNameToHex } from "./shared/Color";
+import { ResponseCodes } from "./shared/ResponseCodes";
 
 interface AnnotationsResult {
     version: number;
@@ -70,11 +71,11 @@ export class Annotations {
         jaiaAPI
             .getAnnotations(this.version)
             .then((response) => {
-                if (response.status == 304) {
+                if (response.status == ResponseCodes.NOT_MODIFIED) {
                     return null;
                 }
 
-                if (response.status == 200) {
+                if (response.status == ResponseCodes.OK) {
                     return response.json() as JaiaResponse<AnnotationsResult>;
                 }
 
