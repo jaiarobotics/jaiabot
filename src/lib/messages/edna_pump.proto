@@ -26,3 +26,15 @@ message eDNAData
 {
     optional eDNAState edna_state = 1 [default = OFF];
 }
+
+message eDNAPumpIssue
+{
+    enum SolutionType
+    {
+        REPORT_EDNA_PUMP = 0;
+        RESTART_EDNA_PUMP = 1;
+        REBOOT_EDNA_PUMP_AND_RESTART_EDNA_PUMP_PY = 3;
+    }
+
+    required SolutionType solution = 1;
+}

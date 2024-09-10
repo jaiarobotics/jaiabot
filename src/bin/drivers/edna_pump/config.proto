@@ -41,6 +41,6 @@ message eDNAPumpDriver
 
     optional int32 edna_pump_report_timeout_seconds = 10 [default = 20];
     optional bool edna_pump_report_in_simulation = 11 [default = true];
-    optional jaiabot.protobuf.eDNAPumpIssue.SolutionType edna_pump_issue_solution = 12 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
-    optional int32 edna_pump_trigger_issue_timeout_seconds = 12 [default = 20];
+    optional jaiabot.protobuf.eDNAPumpIssue.SolutionType edna_pump_issue_solution = 12 [default = REBOOT_EDNA_PUMP_AND_RESTART_EDNA_PUMP_PY];
+    optional int32 edna_pump_trigger_issue_timeout_seconds = 13 [default = 20];
 }

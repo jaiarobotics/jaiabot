@@ -161,15 +161,13 @@ void jaiabot::apps::eDNAPumpDriver::check_last_report(
         glog.is_warn() && glog << "Timeout on eDNA pump" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::ERROR__NOT_RESPONDING__JAIABOT_EDNA_PUMP_DRIVER);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_EDNA_PUMP_DRIVER);
 
         // Wait a certain amount of time before publishing issue
-        if (last_edna_pump_trigger_issue_time_ +
-                std::chrono::seconds(cfg().edna_pump_trigger_issue_timeout_seconds()) <
-            goby::time::SteadyClock::now())
+        if (last_edna_pump_trigger_issue_time_ + std::chrono::seconds(cfg().edna_pump_trigger_issue_timeout_seconds()) < goby::time::SteadyClock::now())
         {
-            jaiabot::protobuf::EchoIssue echo_issue;
-            // edna_pump_issue_solution.set_solution(cfg().edna_pump_issue_solution());
+            jaiabot::protobuf::eDNAPumpIssue edna_pump_issue;
+            edna_pump_issue.set_solution(cfg().edna_pump_issue_solution());
             interprocess().publish<jaiabot::groups::edna>(edna_pump_issue);
             last_edna_pump_trigger_issue_time_ = goby::time::SteadyClock::now();
         }
