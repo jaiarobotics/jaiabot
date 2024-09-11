@@ -22,6 +22,8 @@ message MissionManager
     required int32 fleet_id = 9;
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
+    optional goby.middleware.protobuf.TransporterConfig contact_update_sub_cfg =
+        13;
 
     // timeout to allow all applications to report HEALTH__OK
     optional double startup_timeout = 12

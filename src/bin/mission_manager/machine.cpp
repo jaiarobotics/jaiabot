@@ -237,6 +237,32 @@ jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
+// Movement::Trail
+jaiabot::statechart::inmission::underway::movement::Trail::Trail(typename StateBase::my_context c)
+    : Base(c)
+{
+    // next goal (after trailing) is recovery
+    context<InMission>().set_goal_index_to_recovery();
+
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_trail()->set_active(true);
+    if (this->machine().mission_plan().has_trail())
+        *update.mutable_trail()->mutable_param() = this->machine().mission_plan().trail();
+
+    glog.is_verbose() && glog << group("movement")
+                              << "Sending update to pHelmIvP: " << update.ShortDebugString()
+                              << std::endl;
+
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+jaiabot::statechart::inmission::underway::movement::Trail::~Trail()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_trail()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
 // Recovery::Transit
 jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     typename StateBase::my_context c)

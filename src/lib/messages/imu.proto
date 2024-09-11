@@ -62,7 +62,13 @@ message IMUData
     optional Acceleration linear_acceleration = 2;
     optional Acceleration gravity = 3;
 
-    optional int32 calibration_status = 4 [(dccl.field) = { min: 0 max: 3 }];
+    message Accuracies {
+        optional int32 accelerometer = 1 [(dccl.field) = { min: 0 max: 3 }];
+        optional int32 gyroscope = 2 [(dccl.field) = { min: 0 max: 3 }];
+        optional int32 magnetometer = 3 [(dccl.field) = { min: 0 max: 3 }];
+    }
+
+    optional Accuracies accuracies = 4;
 
     optional IMUCalibrationState calibration_state = 5;
 

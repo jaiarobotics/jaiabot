@@ -316,9 +316,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         }
 
-        if (imu_data.has_calibration_status())
+        if (imu_data.has_accuracies())
         {
-            latest_bot_status_.set_calibration_status(imu_data.calibration_status());
+            latest_bot_status_.set_calibration_status(imu_data.accuracies().magnetometer());
         }
 
         if (imu_data.has_calibration_state())

@@ -576,6 +576,7 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP",
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT",
+    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = "IN_MISSION__UNDERWAY__MOVEMENT__TRAIL",
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = "IN_MISSION__UNDERWAY__TASK__STATION_KEEP",
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT",
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS",
@@ -653,6 +654,13 @@ export interface SRPParameters {
     safety_depth: number;
 }
 
+export interface TrailParameters {
+    contact?: number
+    angle?: number
+    angle_relative?: boolean
+    range?: number
+}
+
 export interface MissionTask {
     type?: TaskType;
     dive?: DiveParameters;
@@ -671,6 +679,7 @@ export enum MissionStart {
 export enum MovementType {
     TRANSIT = "TRANSIT",
     REMOTE_CONTROL = "REMOTE_CONTROL",
+    TRAIL = "TRAIL"
 }
 
 export interface Goal {
@@ -695,6 +704,7 @@ export interface MissionPlan {
     fragment_index?: number;
     expected_fragments?: number;
     repeats?: number;
+    trail?: TrailParameters;
 }
 
 export interface TransitUpdate {
@@ -1213,4 +1223,11 @@ interface BotOffloadData {
     bot_id: number;
     data_offload_percentage?: number;
     offload_succeeded?: boolean;
+}
+
+export interface ContactStatus {
+    contact?: number,
+    location: GeographicCoordinate,
+    speed_over_ground?: number,
+    heading_or_cog?: number
 }
