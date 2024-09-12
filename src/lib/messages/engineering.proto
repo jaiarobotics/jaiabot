@@ -131,6 +131,7 @@ message eDNA_pump
 
     optional bool start_pump = 1 [default = false];
     optional bool stop_pump = 2 [default = false];
+    optional eDNAState edna_state = 3 [default = EDNA_STOP];
 }
 
 message Engineering

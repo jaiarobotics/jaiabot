@@ -123,7 +123,7 @@ class Echo:
                         log.warning("No state")
                 if 'ERROR' in cc:
                     self.echo_state = None
-
+ 
         except Exception as error:
             log.warning("Error trying to get status!")
 

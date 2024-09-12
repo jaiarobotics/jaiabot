@@ -522,7 +522,8 @@ if jaia_bot_type.value == 'echo':
         'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_echo)
-elif jaia_bot_type.value == 'edna':
+
+elif jaia_bot_type.value == 'hydro':
     jaiabot_apps_edna = [
         {'exe': 'jaiabot_edna_pump_driver',
         'description': 'JaiaBot eDNA pump driver',
@@ -600,7 +601,7 @@ jaia_firmware = [
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
-     'subdir': 'adafruit',
+     'subdir': 'adafruit', 
      'args': '--imu_install_type=' + jaia_imu_install_type.value,
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,

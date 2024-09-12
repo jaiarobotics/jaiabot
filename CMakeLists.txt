@@ -90,7 +90,7 @@ set(PROJECT_SOVERSION "1")
 
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
-set(PROJECT_INTERVEHICLE_API_VERSION 12)
+set(PROJECT_INTERVEHICLE_API_VERSION 14)
 
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
@@ -107,7 +107,6 @@ message("Using DCCL in ${DCCL_INCLUDE_DIR}")
 include_directories("${DCCL_INCLUDE_DIR}")
 protobuf_include_dirs("${DCCL_INCLUDE_DIR}")
 
-# find MOOS
 find_package(MOOS 10 REQUIRED)
 
 # find Goby3

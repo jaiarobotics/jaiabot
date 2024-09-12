@@ -18,13 +18,14 @@ message eDNACommand
 
 enum eDNAState
 {
-    ON = 0;
-    OFF = 1;
+    EDNA_START = 0;
+    EDNA_STOP = 1;
+    EDNA_RUNNING = 2;
 }
 
 message eDNAData
 {
-    optional eDNAState edna_state = 1 [default = OFF];
+    optional eDNAState edna_state = 1 [default = EDNA_STOP];
 }
 
 message eDNAPumpIssue
@@ -32,7 +33,7 @@ message eDNAPumpIssue
     enum SolutionType
     {
         REPORT_EDNA_PUMP = 0;
-        RESTART_EDNA_PUMP = 1;
+        RESTART_EDNA_PUMP_PY = 1;
         REBOOT_EDNA_PUMP_AND_RESTART_EDNA_PUMP_PY = 3;
     }
 

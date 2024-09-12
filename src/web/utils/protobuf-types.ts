@@ -1,3 +1,5 @@
+import { eDNAPumpState } from "../shared/JAIAProtobuf";
+
 export interface FileDescriptorSet {
     file?: FileDescriptorProto[];
 }
@@ -653,6 +655,7 @@ export interface MissionTask {
     surface_drift?: DriftParameters;
     constant_heading?: ConstantHeadingParameters;
     start_echo?: boolean;
+    start_pump?: boolean;
 }
 
 export enum MissionStart {
@@ -1151,6 +1154,18 @@ export interface Echo {
     echo_state?: EchoState;
 }
 
+export enum eDNAState {
+    START = 0,
+    STOP = 1,
+    RUNNING = 2,
+}
+
+export interface eDNAPump {
+    start_pump?: boolean;
+    stop_pump?: boolean;
+    edna_state?: eDNAPumpState
+}
+
 export interface Engineering {
     bot_id?: number;
     time?: number;
@@ -1163,6 +1178,7 @@ export interface Engineering {
     rf_disable_options?: RFDisableOptions;
     bottom_depth_safety_params?: BottomDepthSafetyParams;
     echo?: Echo;
+    edna_pump?: eDNAPump;
     flag?: number;
     bounds?: Bounds;
 }

@@ -111,6 +111,15 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::eDNAData& edna_data)
+            {
+                if (edna_data.has_edna_state())
+                {
+                    latest_engineering.mutable_edna_pump()->set_edna_state(edna_data.edna_state());
+                }
+            });
+
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status) {
                 if (engineering_status.has_bot_status_rate())
                 {

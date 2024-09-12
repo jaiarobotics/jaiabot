@@ -31,9 +31,10 @@ class eDNACommands(Enum):
     CMD_STOP = b'$REC,STOP'
 
 class eDNAPump:
-    _lock = Lock
+    _lock: Lock
 
     def __init__(self):
+        log.info("EDNA INIT")
         self._lock = Lock()
 
     def start_pump():
