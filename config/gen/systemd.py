@@ -151,7 +151,7 @@ if args.bot_type == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
 elif args.bot_type == 'echo':
     jaia_bot_type = BOT_TYPE.ECHO
-elif args.bot_tyoe == 'edna':
+elif args.bot_type == 'edna':
     jaia_bot_type = BOT_TYPE.EDNA
 else:
     jaia_bot_type = BOT_TYPE.NONE
