@@ -78,6 +78,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_ECHO = 36
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_EDNA = 37
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -131,7 +133,7 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 124
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__NOT_RESPONDING__JAIABOT_EDNA_PUMP_DRIVER = 125
+    ERROR__NOT_RESPONDING__JAIABOT_EDNA_DRIVER = 125
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion

@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import *
 import logging
+import os
 from math import *
-from jaiabot.messages.edna_pump_pb2 import eDNAData
+from jaiabot.messages.edna_pb2 import eDNAData
 import serial
 import time
 from datetime import datetime
@@ -12,8 +13,8 @@ from threading import *
 import RPi.GPIO as GPIO
 
 
-logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('eDNA')
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+log = logging.getLogger(__name__)
 
 # eDNA_pin pin
 eDNA_pin = 27
@@ -30,17 +31,18 @@ class eDNACommands(Enum):
     CMD_START = b'$REC,START'
     CMD_STOP = b'$REC,STOP'
 
-class eDNAPump:
+class eDNA:
     _lock: Lock
 
     def __init__(self):
-        log.info("EDNA INIT")
+        log.debug("EDNA INIT")
         self._lock = Lock()
 
-    def start_pump():
+    def start_edna():
+        log.debug("Start EDNA")
         GPIO.output(eDNA_pin, GPIO.HIGH)
 
-    def stop_pump():
+    def stop_edna():
         GPIO.output(eDNA_pin, GPIO.LOW)
 
 

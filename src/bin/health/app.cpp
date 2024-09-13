@@ -76,8 +76,8 @@ class Health : public ApplicationBase
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_echo() { system("systemctl start jaia_firm_echo_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
-    void restart_edna_py() { system("systemctl restart jaiabot_edna_pump_py"); }
-    void reboot_edna() { system("systemctl restart jaiabot_edna_pump_py"); }
+    void restart_edna_py() { system("systemctl restart jaiabot_edna_py"); }
+    void reboot_edna() { system("systemctl restart jaiabot_edna_py"); }
 
   private:
     goby::time::SteadyClock::time_point next_check_time_;
@@ -264,19 +264,19 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::edna>(
-        [this](const jaiabot::protobuf::eDNAPumpIssue& edna_issue)
+        [this](const jaiabot::protobuf::eDNAIssue& edna_issue)
         {
             glog.is_debug2() && glog << "Received eDNA Issue " << edna_issue.ShortDebugString()
                                      << std::endl;
 
             switch (edna_issue.solution())
             {
-                case protobuf::eDNAPumpIssue::REPORT_EDNA_PUMP: break;
-                case protobuf::eDNAPumpIssue::RESTART_EDNA_PUMP_PY:
+                case protobuf::eDNAIssue::REPORT_EDNA: break;
+                case protobuf::eDNAIssue::RESTART_EDNA_PY:
                     glog.is_debug2() && glog << "EDNA ERROR: RESTART EDNA PY. " << std::endl;
                     restart_edna_py();
                     break;
-                case protobuf::eDNAPumpIssue::REBOOT_EDNA_PUMP_AND_RESTART_EDNA_PUMP_PY:
+                case protobuf::eDNAIssue::REBOOT_EDNA_AND_RESTART_EDNA_PY:
                     glog.is_debug2() && glog << "EDNA ERROR: RESTART EDNA PY. " << std::endl;
                     reboot_edna();
                     restart_edna_py();

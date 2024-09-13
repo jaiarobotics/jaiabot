@@ -24,7 +24,6 @@ interface Props {
     isRCModeActive: boolean;
     remoteControlValues: Engineering;
     rcDiveParameters: { [diveParam: string]: string };
-    rcPumpControl: boolean,
     createInterval: () => void;
     deleteInterval: () => void;
     weAreInControl: () => boolean;
@@ -44,7 +43,7 @@ interface State {
     botId: number;
     isMaximized: boolean;
     overdriveEnabled: boolean;
-    pumpTurnedOn: boolean;
+    eDNATurnedOn: boolean;
 }
 
 enum JoySticks {
@@ -57,7 +56,7 @@ enum ControlTypes {
     MANUAL_DUAL = "MANUAL_DUAL",
     MANUAL_SINGLE = "MANUAL_SINGLE",
     DIVE = "DIVE",
-    PUMP = "PUMP",
+    EDNA = "EDNA",
 }
 
 type Bin = { binNumber: number; binValue: number };
@@ -100,7 +99,7 @@ export default class RCControllerPanel extends React.Component {
             botId: 0,
             isMaximized: true,
             overdriveEnabled: false,
-            pumpTurnedOn: false,
+            eDNATurnedOn: false,
         };
     }
 
@@ -406,7 +405,7 @@ export default class RCControllerPanel extends React.Component {
             this.setJoyStickStatus([JoySticks.SOLE]);
         } else if (controlType === ControlTypes.MANUAL_DUAL) {
             this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT]);
-        } else if (controlType === ControlTypes.DIVE || controlType === ControlTypes.PUMP) {
+        } else if (controlType === ControlTypes.DIVE || controlType === ControlTypes.EDNA) {
             this.setJoyStickStatus([]);
         }
         this.setState({ controlType });
@@ -443,35 +442,39 @@ export default class RCControllerPanel extends React.Component {
      *
      * @returns {boolean}
      */
-    isPumpOn() {
-        return this.state.pumpTurnedOn;
+    iseDNAOn() {
+        return this.state.eDNATurnedOn;
     }
 
     /**
-     * Updates value of pumpTurnedOn in the state if the eDNA pump is turned on
+     * Updates value of eDNATurnedOn in the state if the eDNA pump is turned on
      * 
      * @returns {void} 
      */
-    async handlePumpTurnedOn() {
-        const rcPumpCommand = {
+    async handleeDNATurnedOn() {
+
+        // delete interval so the bot does not receive engineering commands
+        this.props.deleteInterval();
+
+        this.setState({ eDNATurnedOn: !this.state.eDNATurnedOn })
+
+        const rceDNACommand = {
             bot_id: this.props.bot?.bot_id,
             type: CommandType.REMOTE_CONTROL_TASK,
             rc_task: {
-                type: TaskType.EDNA_PUMP,
-                start_pump: this.state.pumpTurnedOn ? true : false,
+                type: TaskType.EDNA,
+                start_edna: this.iseDNAOn(),
             }
         }
 
-        this.api.postCommand(rcPumpCommand).then((response) => {
+        this.api.postCommand(rceDNACommand).then((response) => {
             if (response.message) {
-                console.log("ERROR: ",  response.message)
                 error("Unable to post RC eDNA Pump command");
             } else {
                 success("eDNA Pump Activated")
             }
         })
 
-        this.setState({ pumpTurnedOn: !this.state.pumpTurnedOn });
         return;
     }
 
@@ -596,7 +599,7 @@ export default class RCControllerPanel extends React.Component {
                         <MenuItem key={3} value={ControlTypes.DIVE}>
                             Dive
                         </MenuItem>
-                        <MenuItem key={4} value={ControlTypes.PUMP}>
+                        <MenuItem key={4} value={ControlTypes.EDNA}>
                             eDNA Pump
                         </MenuItem>
                     </Select>
@@ -609,7 +612,7 @@ export default class RCControllerPanel extends React.Component {
         let soleController: ReactElement;
         let driveControlPad: ReactElement;
         let diveControlPad: ReactElement;
-        let pumpControlPad: ReactElement;
+        let eDNAControlPad: ReactElement;
 
         leftController = (
             <div
@@ -778,14 +781,14 @@ export default class RCControllerPanel extends React.Component {
                 </div>
             );
 
-            pumpControlPad = (
+            eDNAControlPad = (
                 <div className="rc-labels-container">
                     <div className="rc-labels-left">
                         {selectControlType}
                         <div>eDNA Pump</div>
                         <JaiaToggle
-                            checked={() => this.isPumpOn()}
-                            onClick={() => this.handlePumpTurnedOn()}
+                            checked={() => this.iseDNAOn()}
+                            onClick={() => this.handleeDNATurnedOn()}
                             disabled={() => false}
                             label="On/Off"
                             title="eDNA Pump"
@@ -808,8 +811,8 @@ export default class RCControllerPanel extends React.Component {
 
                 {this.state.controlType === ControlTypes.DIVE 
                     ? diveControlPad 
-                    : this.state.controlType === ControlTypes.PUMP 
-                    ? pumpControlPad 
+                    : this.state.controlType === ControlTypes.EDNA
+                    ? eDNAControlPad 
                     : driveControlPad}
 
                 {rightController}

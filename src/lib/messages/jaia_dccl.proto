@@ -175,7 +175,6 @@ message BotStatus
     {
         HYDRO = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
         ECHO = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-        EDNA = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional BotType bot_type = 7 [(jaia.field).rest_api.presence = GUARANTEED];
 

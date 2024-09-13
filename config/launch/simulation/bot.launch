@@ -47,4 +47,4 @@ jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver
 jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
 
 # eDNA sensor
-#jaiabot_edna_pump_driver <(../../gen/bot.py jaiabot_edna_pump_driver) -vv
+#jaiabot_edna_driver <(../../gen/bot.py jaiabot_edna_driver) -vv

@@ -4,11 +4,11 @@ import argparse
 import socket
 import traceback
 import logging
-from edna_pump import *
+from src.python.edna.edna import *
 from math import *
 from threading import Thread
 from dataclasses import dataclass
-from jaiabot.messages.edna_pump_pb2 import eDNAData, eDNACommand
+from jaiabot.messages.edna_pb2 import eDNAData, eDNACommand
 from google.protobuf import text_format
 
 parser = argparse.ArgumentParser(description='eDNA Pump data, and publish them over UDP port')
@@ -19,10 +19,10 @@ args = parser.parse_args()
 logging.warning(args)
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('jaiabot_edna_pump')
+log = logging.getLogger('jaiabot_edna')
 log.setLevel(args.logging_level)
 
-def do_port_loop(edna_pump: eDNAPump):
+def do_port_loop(edna: eDNA):
     # Create socket
     port = args.port
     if port is None:
@@ -39,24 +39,24 @@ def do_port_loop(edna_pump: eDNAPump):
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         try:
             # Deserialize the message
-            command = eDNACommands()
+            command = eDNACommand()
             command.ParseFromString(data)
             log.debug(f'Received command:\n{command}')
 
             # Execute the command
-            if command.type == eDNACommands.CMD_START:
-                edna_pump.startPump()
-            elif command.type == eDNACommands.CMD_STOP:
-                edna_pump.stopPump()
+            if command.type == eDNACommand.CMD_START:
+                edna.starteDNA()
+            elif command.type == eDNACommand.CMD_STOP:
+                edna.stopeDNA()
 
         except Exception as e:
             traceback.print_exc()
 
 if __name__ == "__main__":
-    edna_pump = eDNAPump()
+    edna = eDNA()
 
     # Start the thread that responds to EchoCommands over the port
-    portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[edna_pump])
+    portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[edna])
     portThread.start()
 
     # Main loop

@@ -30,7 +30,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/echo.pb.h"
-#include "jaiabot/messages/edna_pump.pb.h"
+#include "jaiabot/messages/edna.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"
@@ -115,7 +115,7 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             {
                 if (edna_data.has_edna_state())
                 {
-                    latest_engineering.mutable_edna_pump()->set_edna_state(edna_data.edna_state());
+                    latest_engineering.mutable_edna()->set_edna_state(edna_data.edna_state());
                 }
             });
 
@@ -338,15 +338,15 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
             interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
     }
-    else if (command.has_edna_pump())
+    else if (command.has_edna())
     {
         protobuf::eDNACommand edna_command;
-        if (command.edna_pump().start_pump())
+        if (command.edna().start_edna())
         {
             edna_command.set_type(protobuf::eDNACommand::CMD_START);
             interprocess().publish<jaiabot::groups::edna>(edna_command);
         }
-        else if (command.edna_pump().stop_pump())
+        else if (command.edna().stop_edna())
         {
             edna_command.set_type(protobuf::eDNACommand::CMD_END);
             interprocess().publish<jaiabot::groups::edna>(edna_command);

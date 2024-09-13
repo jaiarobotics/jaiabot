@@ -64,6 +64,7 @@ import {
     BottomDepthSafetyParams,
     BotType,
     ContactStatus,
+    eDNAState,
 } from "../shared/JAIAProtobuf";
 import {
     getGeographicCoordinate,
@@ -243,7 +244,7 @@ interface State {
     remoteControlValues: Engineering;
     remoteControlInterval?: ReturnType<typeof setInterval>;
     rcDives: { [botId: number]: { [taskParams: string]: string } };
-    rcPump: { [botId: number]: boolean }
+    rceDNA: { [botId: number]: boolean }
 
     taskPacketType: string;
     taskPacketData: { [key: string]: { [key: string]: string } };
@@ -412,7 +413,7 @@ export default class CommandControl extends React.Component {
                 },
             },
             rcDives: {},
-            rcPump: {},
+            rceDNA: {},
 
             taskPacketType: "",
             taskPacketData: {},
@@ -3902,7 +3903,6 @@ export default class CommandControl extends React.Component {
                     isRCModeActive={this.isRCModeActive(this.selectedBotId())}
                     remoteControlValues={this.state.remoteControlValues}
                     rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
-                    rcPumpControl={this.state.rcPump[this.selectedBotId()]}
                     createInterval={this.createRemoteControlInterval.bind(this)}
                     deleteInterval={this.clearRemoteControlInterval.bind(this)}
                     weAreInControl={this.weAreInControl.bind(this)}
