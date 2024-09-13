@@ -1,7 +1,4 @@
 {
-    "scripts": {
-        "prepare": "cd ../.. && husky"
-    },
     "dependencies": {
         "@emotion/react": "^11.10.5",
         "@emotion/styled": "^11.10.5",
@@ -104,6 +101,7 @@
         "webpack-dev-server": "^4.9.3"
     },
     "scripts": {
-        "test": "jest"
+        "test": "jest",
+        "prepare": "cd ../.. && husky"
     }
 }
