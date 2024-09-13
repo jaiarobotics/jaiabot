@@ -1,4 +1,4 @@
-from machine import Pin, PWM
+#from machine import Pin, PWM
 from dataclasses import dataclass
 from enum import Enum
 from typing import *

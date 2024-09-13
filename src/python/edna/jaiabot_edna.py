@@ -4,7 +4,7 @@ import argparse
 import socket
 import traceback
 import logging
-from src.python.edna.edna import *
+from edna import *
 from math import *
 from threading import Thread
 from dataclasses import dataclass
