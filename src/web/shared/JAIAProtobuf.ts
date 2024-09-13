@@ -646,6 +646,10 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number;
 }
 
+export interface eDNAParameters {
+    start?: boolean;
+}
+
 export interface StationKeepParameters {
     station_keep_time?: number;
 }
@@ -668,7 +672,7 @@ export interface MissionTask {
     constant_heading?: ConstantHeadingParameters;
     station_keep?: StationKeepParameters;
     start_echo?: boolean;
-    start_pump?: boolean;
+    start_edna?: boolean;
 }
 
 export enum MissionStart {
@@ -1213,7 +1217,7 @@ export interface HubStatus {
     time?: number;
     health_state?: HealthState;
     error?: Error[];
-    warning?: Warning[];
+    warning?: Warning[]; 
     location?: GeographicCoordinate;
     bot_ids_in_radio_file?: number[];
     linux_hardware_status?: LinuxHardwareStatus;

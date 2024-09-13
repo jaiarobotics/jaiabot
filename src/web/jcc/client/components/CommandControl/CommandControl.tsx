@@ -244,7 +244,6 @@ interface State {
     remoteControlValues: Engineering;
     remoteControlInterval?: ReturnType<typeof setInterval>;
     rcDives: { [botId: number]: { [taskParams: string]: string } };
-    rceDNA: { [botId: number]: boolean }
 
     taskPacketType: string;
     taskPacketData: { [key: string]: { [key: string]: string } };
@@ -411,9 +410,11 @@ export default class CommandControl extends React.Component {
                     rudder: 0,
                     timeout: 1,
                 },
+                edna: {
+                    start_edna: false,
+                },
             },
             rcDives: {},
-            rceDNA: {},
 
             taskPacketType: "",
             taskPacketData: {},
@@ -2872,6 +2873,16 @@ export default class CommandControl extends React.Component {
         newRCDives[this.selectedBotId()].driftTime = diveParams.driftTime;
         this.setState({ rcDives: newRCDives });
     }
+
+    toggleeDNA(eDNAState: boolean) {
+        let neweDNA = cloneDeep(this.state.remoteControlValues);
+        neweDNA.bot_id = this.selectedBotId();
+        neweDNA.edna.start_edna = !eDNAState;
+        neweDNA.edna.stop_edna = eDNAState;
+        neweDNA.edna.edna_state = 2;
+        this.setState({ remoteControlValues: neweDNA });
+        console.log("eDNA Toggled")
+    }
     //
     // RC Mode (End)
     //
@@ -3909,6 +3920,7 @@ export default class CommandControl extends React.Component {
                     weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
                     setRCDiveParameters={this.setRCDiveParams.bind(this)}
                     initRCDivesParams={this.initRCDivesParams.bind(this)}
+                    toggleeDNA={this.toggleeDNA.bind(this)}
                 />
             );
         }

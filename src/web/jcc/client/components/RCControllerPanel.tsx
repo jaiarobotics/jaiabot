@@ -30,6 +30,7 @@ interface Props {
     weHaveInterval: () => boolean;
     setRCDiveParameters: (diveParams: { [param: string]: string }) => void;
     initRCDivesParams: (botId: number) => void;
+    toggleeDNA: (eDNAState: boolean) => void;
 }
 
 interface State {
@@ -435,7 +436,7 @@ export default class RCControllerPanel extends React.Component {
 
         diveParams[paramType] = input;
         this.props.setRCDiveParameters(diveParams);
-    }
+    } 
 
     /**
      * Checks to see if the eDNA pump is turned on
@@ -456,16 +457,17 @@ export default class RCControllerPanel extends React.Component {
         // delete interval so the bot does not receive engineering commands
         this.props.deleteInterval();
 
-        this.setState({ eDNATurnedOn: !this.state.eDNATurnedOn })
+        this.setState({ eDNATurnedOn: this.props.remoteControlValues.edna.start_edna })
 
         const rceDNACommand = {
             bot_id: this.props.bot?.bot_id,
             type: CommandType.REMOTE_CONTROL_TASK,
             rc_task: {
                 type: TaskType.EDNA,
-                start_edna: this.iseDNAOn(),
+                start_edna: this.props.remoteControlValues.edna.start_edna,
             }
         }
+
 
         this.api.postCommand(rceDNACommand).then((response) => {
             if (response.message) {
@@ -475,6 +477,7 @@ export default class RCControllerPanel extends React.Component {
             }
         })
 
+        this.props.toggleeDNA(this.state.eDNATurnedOn)
         return;
     }
 

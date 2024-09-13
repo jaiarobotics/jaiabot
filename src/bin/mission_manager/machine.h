@@ -29,8 +29,10 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/edna.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 using jaiabot::protobuf::EchoCommand;
+using jaiabot::protobuf::eDNACommand;
 using jaiabot::protobuf::IMUCommand;
 
 namespace jaiabot
