@@ -61,7 +61,7 @@ class AdafruitBNO055(IMU):
                         linear_acceleration=linear_acceleration, 
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=gravity,
-                        calibration_status=calibration_status[0], # This comes as a tuple
+                        accuracies=Accuracies(gyroscope=calibration_status[1], accelerometer=calibration_status[2], magnetometer=calibration_status[3]), # This comes as a tuple
                         calibration_state=CalibrationState.COMPLETE,
                         quaternion=quaternion,
                         angular_velocity=angular_velocity)

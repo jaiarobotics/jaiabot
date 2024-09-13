@@ -121,6 +121,39 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
             break;
         }
 
+        case protobuf::IvPBehaviorUpdate::kTrail:
+        {
+            glog.is_verbose() && glog << "kTrail: " << update.ShortDebugString() << std::endl;
+            std::stringstream update_ss;
+            if (update.trail().active())
+            {
+                update_ss << "contact=CONTACT_" << update.trail().param().contact()
+                          << "#trail_angle=" << update.trail().param().angle()
+                          << "#trail_angle_type="
+                          << (update.trail().param().angle_relative() ? "relative" : "absolute")
+                          << "#trail_range=" << update.trail().param().range();
+                moos().comms().Notify("JAIABOT_TRAIL_UPDATES", update_ss.str());
+            }
+
+            moos().comms().Notify("JAIABOT_TRAIL_ACTIVE",
+                                  update.trail().active() ? "true" : "false");
+
+            break;
+        }
+
+        case protobuf::IvPBehaviorUpdate::kContact:
+        {
+            glog.is_verbose() && glog << "kContact: " << update.ShortDebugString() << std::endl;
+            std::stringstream update_ss;
+            update_ss << "NAME=CONTACT_" << update.contact().contact()
+                      << ",TIME=" << static_cast<std::uint64_t>(MOOSTime())
+                      << ",X=" << update.contact().x() << ",Y=" << update.contact().y()
+                      << ",SPD=" << update.contact().speed()
+                      << ",HDG=" << update.contact().heading_or_cog();
+            moos().comms().Notify("NODE_REPORT", update_ss.str());
+            break;
+        }
+
         case protobuf::IvPBehaviorUpdate::BEHAVIOR_NOT_SET: break;
     }
 }

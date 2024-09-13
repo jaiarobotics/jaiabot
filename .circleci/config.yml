@@ -169,8 +169,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
-        - "feature/app-for-api/jaia-1460"        
+        - "1.y"       
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -264,15 +263,23 @@ workflows:
           requires:
             - upload
 
-      # rootfs jobs
+      # rootfs jobs - require upload first so we install the same release (not previous release) onto the rootfs
       - raspi-image-create-focal:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - virtualbox-image-create-focal:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - raspi-image-create-jammy:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - virtualbox-image-create-jammy:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - aws-sync:
           requires:
             - raspi-image-create-jammy

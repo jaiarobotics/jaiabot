@@ -20,7 +20,7 @@ export function convertMicrosecondsToSeconds(microseconds: number) {
 
 export function formatLatitude(lat: number, prec = 5) {
     if (lat == null) {
-        return "?";
+        return "N/A";
     }
     if (lat > 0) {
         return abs(lat).toFixed(prec) + "° N";
@@ -31,7 +31,7 @@ export function formatLatitude(lat: number, prec = 5) {
 
 export function formatLongitude(lon: number, prec = 5) {
     if (lon == null) {
-        return "?";
+        return "N/A";
     }
     if (lon > 0) {
         return abs(lon).toFixed(prec) + "° E";
@@ -298,4 +298,24 @@ export function getHTMLTimeString(date: Date) {
  */
 export function convertHTMLStrDateToISO(strDate: string) {
     return new Date(strDate).toISOString().replace("T", " ").split(".")[0];
+}
+
+/**
+ * Prevents negative values from being entered by operator
+ *
+ * @param {number} value Input value to be checked
+ * @returns {number} The value passed or DEFAULT_VALUE
+ *
+ * @notes
+ * Zero cannot be used in the creation of a survey mission but if 0 cannot display
+ * in the input box it makes it difficult to enter values that don't start with 1.
+ * To balance user experience and the survey mission calculations, there is a final
+ * input check to catch zeros just before the preview is created. (SurveyLines.ts)
+ */
+export function validateNumInput(value: number) {
+    const DEFAULT_VALUE = 0;
+    if (value < DEFAULT_VALUE || Number.isNaN(value)) {
+        return DEFAULT_VALUE;
+    }
+    return value;
 }
