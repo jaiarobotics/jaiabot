@@ -9,6 +9,7 @@ from flask import Flask, request, jsonify, abort
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.option_extensions_pb2
 import google.protobuf.json_format
+from google.protobuf import text_format
 import importlib
 import re
 import os
@@ -21,20 +22,39 @@ import common.streaming_client as streaming_client
 import common.shared_data as shared_data
 import common.endpoint_parse as endpoint_parse
 
+from jaiabot.messages.rest_api_pb2 import APIConfig
+
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--streaming_endpoint", type=str, nargs="?", default=os.environ.get("JAIA_REST_API_HUB_ENDPOINTS"), help="HubID:Hostname:Port for streaming API (jaiabot_web_portal) - more than one hub can be comma delimited, e.g. '1:[fd0f:77ac:4fdf::1]:40000,2:[fd0f:77ac:4fdf::2]:40000'")
+parser.add_argument("-e", "--streaming_endpoint", type=str, nargs="?", help="HubID:Hostname:Port for streaming API (jaiabot_web_portal) - more than one hub can be comma delimited, e.g. '1:[fd0f:77ac:4fdf::1]:40000,2:[fd0f:77ac:4fdf::2]:40000'")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
-parser.add_argument("-b", dest='bindPort', type=int, default=9092, help="bind port for flask server")
+parser.add_argument("-b", dest='bindPort', type=int, nargs="?", help="bind port for flask server")
+parser.add_argument("-c", dest='cfgFile', type=str, default='/etc/jaiabot/rest_api.pb.cfg',  help="Configuration file (TextFormat version of jaiabot.protobuf.APIConfig)")
 
 args = parser.parse_args()
-
+    
 logLevel = getattr(logging, args.logLevel.upper())
 logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
+# Parse configuration file
+cfg = APIConfig()
+try:
+    with open(args.cfgFile, 'r') as f:
+        text_data = f.read()
+        text_format.Parse(text_data, cfg)
+except FileNotFoundError:
+    logging.warning(f'The configuration file {args.cfgFile} was not found. Using command line parameters only.')
+except text_format.ParseError as e:
+    logging.warning(f'Failed to parse Protobuf Text Format from {args.cfgFile}: {e}')
+    exit(1)
 
-if args.streaming_endpoint is None:
+# Overwrite configuration file with command line parameters
+if args.bindPort is not None:
+    cfg.flask_bind_port = args.bindPort
+
+# Fallback to default streaming endpoint
+if args.streaming_endpoint is None and not cfg.streaming_endpoint:
     if os.environ.get("JCC_HUB_IP") is not None:
         # Fall back to JCC single HUB IP and default port
         hub_ip=os.environ.get("JCC_HUB_IP")
@@ -44,12 +64,39 @@ if args.streaming_endpoint is None:
         logging.warning('no ip specified, using HUB 1 at localhost:40000')
         args.streaming_endpoint = "1:localhost:40000"
 
+if args.streaming_endpoint is not None:
+    streaming_endpoints = endpoint_parse.parse_all(args.streaming_endpoint)
+    for hub_id,endpoint in streaming_endpoints.items():
+        ep = cfg.streaming_endpoint.add()
+        ep.hub_id = hub_id
+        ep.hostname = endpoint[0]
+        ep.port = endpoint[1]
+
+# Parse legacy JAIA_REST_API_PRIVATE_KEY environmental variable
 try: 
     api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
+    if api_key == '':
+        # only consider an empty string to be no key required if no keys are explicitly set
+        if not cfg.HasField('no_key_required') and not cfg.key:
+            cfg.no_key_required = True
+    else:
+        k = cfg.key.add()
+        k.private_key = api_key
+        k.permission.append(APIConfig.APIKey.ALL)
 except KeyError:
-    print("Environment variable JAIA_REST_API_PRIVATE_KEY does not exist. It must be explicitly set to the empty string if you wish to bypass API key checking.")
+    pass
+
+if cfg.no_key_required == False and not cfg.key:
+    logging.warning('API Key required (no_key_required: false) but no keys provided. Please check configuration file or explicitly set environmental variable JAIA_REST_API_PRIVATE_KEY="" (to the empty string)')
     exit(1)
 
+if cfg.no_key_required == True and cfg.key:
+    logging.warning('API Key not required (no_key_required: true) but keys are provided. Please remove keys from the configuration file.')
+    exit(1)
+
+    
+logging.info(f'Starting up with configuration: {cfg}')
+    
 app = Flask(__name__)
 
 valid_versions=[1]
@@ -70,11 +117,11 @@ def jaia_api_short(version):
 
         check_initialized(jaia_request)
 
-        if not check_api_key(jaia_request.api_key):
-            abort(403) # forbidden
-        
         if jaia_request.WhichOneof("action") is None:
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NO_ACTION_SPECIFIED, "An action must be specified. Valid actions are: " + ", ".join(str(a) for a in valid_actions.keys()))
+        
+        if not check_api_key(jaia_request.api_key, jaia_request.WhichOneof("action")):
+            abort(403) # forbidden
 
         jaia_response.CopyFrom(process_request(version, jaia_request))
         
@@ -135,7 +182,7 @@ def jaia_api_long(version, action, target_str):
                 
         check_initialized(jaia_request)
 
-        if not check_api_key(jaia_request.api_key):
+        if not check_api_key(jaia_request.api_key, action):
             abort(403) # forbidden
 
         jaia_response.CopyFrom(process_request(version, jaia_request))
@@ -149,7 +196,6 @@ def jaia_api_long(version, action, target_str):
 
 def parse_get_args(jaia_request_action, action_field_desc):    
     api_key_get = request.args.get("api_key")
-    print(api_key_get)
     
     for field in jaia_request_action.DESCRIPTOR.fields:
         get_var = request.args.get(field.name)
@@ -228,24 +274,34 @@ def is_omitted(parts, descriptor):
         else:
             return is_omitted(parts[1:], field.message_type)
 
-def check_api_key(key):
-    if not api_key:
+def check_api_key(key, action):
+    if cfg.no_key_required:
         return True
     else:
-        return key == api_key
-
-streaming_endpoints = endpoint_parse.parse_all(args.streaming_endpoint)
+        for k in cfg.key:
+            if key == k.private_key:
+                for perm in k.permission:
+                    enum_descriptor = APIConfig.APIKey.Permission.DESCRIPTOR
+                    enum_val_descriptor = enum_descriptor.values_by_number[perm]
+                    permitted_actions = enum_val_descriptor.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.ev].rest_api.permitted_action
+                    for a in permitted_actions:
+                        if a == action:
+                            return True
+                logging.info(f'Key found, but no permission to use action {action}')
+                return False
+        logging.info('Key not found')
+        return False
 
 with shared_data.data_lock:
-    shared_data.create_queues(streaming_endpoints)
+    shared_data.create_queues(cfg.streaming_endpoint)
 
 streaming_thread=dict()
-for hub_id,endpoint in streaming_endpoints.items():
-    streaming_thread[hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(hub_id, endpoint))
-    streaming_thread[hub_id].start()
+for ep in cfg.streaming_endpoint:
+    streaming_thread[ep.hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(ep.hub_id, (ep.hostname, ep.port)))
+    streaming_thread[ep.hub_id].start()
 
 def main():
-    app.run(host='0.0.0.0', port=args.bindPort, debug=False)
+    app.run(host='0.0.0.0', port=cfg.flask_bind_port, debug=False)
     
 if __name__ == '__main__':
     main()

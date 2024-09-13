@@ -168,3 +168,58 @@ message APIResponse
     required APIRequest request = 20
         [(jaia.field).rest_api = { presence: GUARANTEED }];
 }
+
+message APIConfig
+{
+    message StreamingEndpoint
+    {
+        required int32 hub_id = 1;
+        required string hostname = 2;
+        required int32 port = 3;
+    }
+
+    repeated StreamingEndpoint streaming_endpoint = 1;
+
+    optional int32 flask_bind_port = 2 [default = 9092];
+
+    // set true if no API key is required
+    optional bool no_key_required = 3 [default = false];
+
+    message APIKey
+    {
+        required string private_key = 1;
+
+        enum Permission
+        {
+            ALL = 0 [(jaia.ev).rest_api = {
+                permitted_action: [
+                    'status',
+                    'metadata',
+                    'task_packets',
+                    'command',
+                    'command_for_hub'
+                ]
+            }];
+            READ = 1 [(jaia.ev).rest_api = {
+                permitted_action: [ 'status', 'metadata', 'task_packets' ]
+            }];
+            WRITE = 2 [(jaia.ev).rest_api = {
+                permitted_action: [ 'command', 'command_for_hub' ]
+            }];
+            STATUS = 3
+                [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
+            METADATA = 4
+                [(jaia.ev).rest_api = { permitted_action: [ 'metadata' ] }];
+            TASK_PACKETS = 5
+                [(jaia.ev).rest_api = { permitted_action: [ 'task_packets' ] }];
+            COMMAND = 6
+                [(jaia.ev).rest_api = { permitted_action: [ 'command' ] }];
+            COMMAND_FOR_HUB = 7 [
+                (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
+            ];
+        }
+
+        repeated Permission permission = 2;
+    }
+    repeated APIKey key = 4;
+}

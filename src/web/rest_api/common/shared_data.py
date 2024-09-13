@@ -158,9 +158,9 @@ data_lock = threading.Lock()
 
 to_portal_queue = dict()
 def create_queues(streaming_endpoints):
-    for hub_id in streaming_endpoints.keys():
+    for ep in streaming_endpoints:
         # thread safe queue for outbound messages
-        to_portal_queue[hub_id] = Queue()
+        to_portal_queue[ep.hub_id] = Queue()
 
 def get_queue(hub_id):
     return to_portal_queue[hub_id]

@@ -16,8 +16,6 @@ if os.path.exists(cloud_env_file):
             key, value = line.strip().split('=', 1)
             if key == 'jaia_jcc_hub_ip':
                 os.environ['JCC_HUB_IP'] = value
-            elif key == 'jaia_hub_endpoints':
-                os.environ['JAIA_REST_API_HUB_ENDPOINTS'] = value
             elif key == 'jaia_rest_api_private_key':
                 os.environ['JAIA_REST_API_PRIVATE_KEY'] = value
 else:
