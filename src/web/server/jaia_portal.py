@@ -280,7 +280,7 @@ class Interface:
             logging.info(f'Sent {len(data)} bytes')
         except Exception as e:
             logging.error(f'Failed to send data: {e}')
-        return False
+            return False
 
         return True
 
