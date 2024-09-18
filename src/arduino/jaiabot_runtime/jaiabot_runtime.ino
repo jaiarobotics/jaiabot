@@ -176,8 +176,8 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   ack.has_motor = true;
   ack.motor = motor_actual;
 
-  ack.has_thermistor_temperature = true;
-  ack.thermistor_temperature = analogRead(thermistor_pin);
+  ack.has_thermistor_resistance = true;
+  ack.thermistor_resistance = analogRead(thermistor_pin);
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;

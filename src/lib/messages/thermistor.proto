@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message Thermistor {
+    optional float temperature = 1;
+}
