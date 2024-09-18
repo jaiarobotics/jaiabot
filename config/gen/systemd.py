@@ -381,7 +381,7 @@ jaiabot_apps = [
      {'exe': 'jaiabot_edna_driver', 
      'description': 'JaiaBot eDNA driver',
      'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ENDA_DRIVER',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_EDNA_DRIVER',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
