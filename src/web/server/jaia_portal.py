@@ -275,8 +275,12 @@ class Interface:
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
-        self.sock.sendto(data, self.goby_host)
-        logging.info(f'Sent {len(data)} bytes')
+        try:
+            self.sock.sendto(data, self.goby_host)
+            logging.info(f'Sent {len(data)} bytes')
+        except Exception as e:
+            logging.error(f'Failed to send data: {e}')
+            return False
 
         return True
 
