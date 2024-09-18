@@ -35,6 +35,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/thermistor.pb.h"
 #include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -283,6 +284,13 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
+
+            
+            if (arduino_response.has_thermistor_temperature()) {
+                jaiabot::protobuf::Thermistor thermistor_msg;
+                thermistor_msg.set_temperature(arduino_response.thermistor_temperature());
+                interprocess().publish<groups::thermistor>(thermistor_msg);
+            }
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
             last_arduino_report_time_ = goby::time::SteadyClock::now();
