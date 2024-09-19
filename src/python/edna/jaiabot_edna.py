@@ -27,7 +27,7 @@ def do_port_loop(edna: eDNA):
     port = args.port
     if port is None:
         log.error(f'Must specify port number')
-        exit(1)
+        exit(1) 
 
     log.info(f'Socket mode: listening on port {port}.')
 
@@ -44,6 +44,11 @@ def do_port_loop(edna: eDNA):
             log.debug(f'Received command:\n{command}')
 
             # Execute the command
+            if command.type == eDNACommand.CMD_STATUS:
+                ednaData = eDNAData()
+                log.debug(f'State: State')
+                sock.sendto(ednaData.SerializeToString(), addr)
+            
             if command.type == eDNACommand.CMD_START:
                 edna.starteDNA()
             elif command.type == eDNACommand.CMD_STOP:

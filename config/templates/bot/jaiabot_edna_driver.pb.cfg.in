@@ -4,7 +4,7 @@ $interprocess_block
 udp_config { 
     bind_port: 0
     remote_address: "127.0.0.1"
-    remote_port: 20003
+    remote_port: 20004
 }
 
 edna_report_in_simulation: $edna_report_in_simulation 
