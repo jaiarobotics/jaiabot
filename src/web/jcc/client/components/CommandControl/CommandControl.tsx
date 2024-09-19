@@ -6,7 +6,7 @@ import * as MissionFeatures from "../shared/MissionFeatures";
 import RCControllerPanel from "../RCControllerPanel";
 import DownloadPanel from "../DownloadPanel";
 import RunInfoPanel from "../RunInfoPanel";
-import ContactInfoPanel from '../ContactInfoPanel'
+import ContactInfoPanel from "../ContactInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../Layers";
 import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
@@ -16,7 +16,7 @@ import { HubOrBot } from "../HubOrBot";
 import { createMap } from "../Map";
 import { BotLayers } from "../BotLayers";
 import { HubLayers } from "../HubLayers";
-import { ContactLayers } from '../ContactLayers'
+import { ContactLayers } from "../ContactLayers";
 import { HubDetails } from "../../../../containers/HubDetails";
 import { CommandList } from "../Missions";
 import { SurveyLines } from "../SurveyLines";
@@ -151,7 +151,7 @@ export enum PanelType {
     RALLY_POINT = "RALLY_POINT",
     TASK_PACKET = "TASK_PACKET",
     SETTINGS = "SETTINGS",
-    CONTACT_INFO = 'CONTACT_INFO'
+    CONTACT_INFO = "CONTACT_INFO",
 }
 
 export enum Mode {
@@ -203,7 +203,7 @@ interface State {
         runNum: number;
         botId: number;
     };
-    contactClickedInfo: ContactStatus,
+    contactClickedInfo: ContactStatus;
     goalBeingEdited: {
         goal?: Goal;
         originalGoal?: Goal;
@@ -285,7 +285,7 @@ export default class CommandControl extends React.Component {
     mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
     botLayers: BotLayers;
     hubLayers: HubLayers;
-    contactLayers: ContactLayers
+    contactLayers: ContactLayers;
     oldPodStatus?: PodStatus;
     missionPlans?: CommandList = null;
     taskPackets: TaskPacket[];
@@ -353,11 +353,11 @@ export default class CommandControl extends React.Component {
                 botId: -1,
             },
             contactClickedInfo: {
-				location: {
-					lat: 0,
-					lon: 0
-				}
-			},
+                location: {
+                    lat: 0,
+                    lon: 0,
+                },
+            },
             goalBeingEdited: {},
 
             selectedHubOrBot: null,
@@ -527,7 +527,7 @@ export default class CommandControl extends React.Component {
         // Class that keeps track of the bot layers, and updates them
         this.botLayers = new BotLayers(map);
         this.hubLayers = new HubLayers(map);
-        this.contactLayers = new ContactLayers(map)
+        this.contactLayers = new ContactLayers(map);
 
         const viewport = document.getElementById(this.mapDivId);
         map.setTarget(this.mapDivId);
@@ -629,7 +629,7 @@ export default class CommandControl extends React.Component {
                 this.props.globalContext.selectedPodElement,
             );
             this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot);
-            this.contactLayers.update(this.state.podStatus?.contacts)
+            this.contactLayers.update(this.state.podStatus?.contacts);
             this.updateHubCommsCircles();
             this.updateActiveMissionLayer();
             this.updateBotCourseOverGroundLayer();
@@ -945,6 +945,13 @@ export default class CommandControl extends React.Component {
     pollMetadata() {
         this.api.getMetadata().then(
             (result) => {
+                // Create hook for first metadata poll
+                if (Object.keys(this.state.metadata).length === 0) {
+                    if (result.is_simulation) {
+                        this.createSimulationBanner();
+                        document.title = "Simulation - Jaia Command & Control";
+                    }
+                }
                 this.setState({ metadata: result });
             },
             (err) => {
@@ -1277,6 +1284,20 @@ export default class CommandControl extends React.Component {
                 },
             );
         }
+    }
+
+    /**
+     * Creates the simulation indicator in the JCC
+     *
+     * @returns {void}
+     */
+    createSimulationBanner() {
+        const jccContainer = document.getElementById("jcc_container");
+        const simulationBanner = document.createElement("div");
+        const textConent = document.createTextNode("Simulation");
+        simulationBanner.setAttribute("id", "simulation-banner");
+        simulationBanner.appendChild(textConent);
+        jccContainer.appendChild(simulationBanner);
     }
 
     /**
@@ -2099,9 +2120,18 @@ export default class CommandControl extends React.Component {
         }
 
         if (feature) {
-            console.log(feature)
+            console.log(feature);
             // Allow an operator to click on certain features while edit mode is off
-            const editModeExemptions = ["dive", "drift", "rallyPoint", "bot", "hub", "wpt", "line", "contact"];
+            const editModeExemptions = [
+                "dive",
+                "drift",
+                "rallyPoint",
+                "bot",
+                "hub",
+                "wpt",
+                "line",
+                "contact",
+            ];
             const isCollection = feature.get("features");
 
             if (
@@ -2159,19 +2189,18 @@ export default class CommandControl extends React.Component {
             }
 
             // Clicked on contact
-			const isContact = feature.get('type') === "contact"
-			if (isContact) {
-                
-				const contactFeature = feature.get('contact')
-                console.log(contactFeature)
-				const contactClickedInfo = contactFeature
+            const isContact = feature.get("type") === "contact";
+            if (isContact) {
+                const contactFeature = feature.get("contact");
+                console.log(contactFeature);
+                const contactClickedInfo = contactFeature;
 
-				this.setState({ contactClickedInfo }, () => {
-					this.setVisiblePanel(PanelType.CONTACT_INFO)	
-				})
+                this.setState({ contactClickedInfo }, () => {
+                    this.setVisiblePanel(PanelType.CONTACT_INFO);
+                });
 
-				return false
-			}
+                return false;
+            }
 
             // Clicked on mission planning point
             if (this.state.mode == Mode.MISSION_PLANNING) {
@@ -3134,7 +3163,11 @@ export default class CommandControl extends React.Component {
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
                 </Button>
-                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                <Button
+                    id="downloadAll"
+                    className={`button-jcc`}
+                    onClick={this.processDownloadAllBots.bind(this)}
+                >
                     <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
@@ -4137,11 +4170,11 @@ export default class CommandControl extends React.Component {
                     <ContactInfoPanel
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
                         contact={this.state.contactClickedInfo}
-                        botIds={this.getBotIdList()} 
+                        botIds={this.getBotIdList()}
                         api={this.api}
                     />
-                )
-                break
+                );
+                break;
             case PanelType.GOAL_SETTINGS:
                 visiblePanelElement = (
                     <GoalSettingsPanel
