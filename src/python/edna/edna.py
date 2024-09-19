@@ -36,13 +36,13 @@ class eDNA:
     _lock: Lock
 
     def __init__(self):
-        log.debug("EDNA INIT")
+        log.warning("EDNA INIT")
 
-    def start_edna():
-        log.debug("Start EDNA")
+    def start_edna(self):
+        log.warning("Start EDNA")
         GPIO.output(eDNA_pin, GPIO.HIGH)
 
-    def stop_edna():
+    def stop_edna(self):
         GPIO.output(eDNA_pin, GPIO.LOW)
 
 
