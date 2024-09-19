@@ -77,9 +77,13 @@ def xbee_mac_slots(node_id):
                 if 'bot_id' in line:
                     bot_id_count += 1
 
-        # hubs can currently send commands that are 250 bytes
+        # Max message size is 250 bytes
+        # Transmission time per message (at 200 kbps) is about 11-12 milliseconds (including DigiMesh overhead).
+        # This means a 20 ms time slice would be enough if:
+        #     The communication is direct (no hops).
+        #     There are no retries or significant processing delays.
+
         hub_mac_cycle_time = 0.1
-        # bots send bot status messages that are ~50 bytes
         bot_mac_cycle_time = 0.1
         # we found in testing that 4 bots sending bot status 
         # messages worked as expected
