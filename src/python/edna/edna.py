@@ -43,6 +43,7 @@ class eDNA:
         GPIO.output(eDNA_pin, GPIO.HIGH)
 
     def stop_edna(self):
+        log.warning("End EDNA")
         GPIO.output(eDNA_pin, GPIO.LOW)
 
 
@@ -57,3 +58,4 @@ motor_IN2.freq(1000)
 motor_IN1.duty_u16(0)
 motor_IN2.duty_u16(65025)
 """
+

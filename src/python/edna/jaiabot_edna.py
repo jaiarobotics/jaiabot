@@ -29,7 +29,7 @@ def do_port_loop(edna: eDNA):
         log.error(f'Must specify port number')
         exit(1) 
 
-    log.info(f'Socket mode: listening on port {port}.')
+    log.warning(f'Socket mode: listening on port {port}.')
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
@@ -37,16 +37,19 @@ def do_port_loop(edna: eDNA):
     while True:
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
         try:
             # Deserialize the message
             command = eDNACommand()
             command.ParseFromString(data)
-            log.debug(f'Received command:\n{command}')
-
+            log.warning(f'Received command:\n{command}')
+        
             # Execute the command    
             if command.type == eDNACommand.CMD_START:
+                log.warning("Start eDNA")
                 edna.start_edna()
             elif command.type == eDNACommand.CMD_END:
+                log.warning("End eDNA")
                 edna.stop_edna()
             else: 
                 pass
@@ -66,4 +69,4 @@ if __name__ == "__main__":
     portThread.start()
 
     # Main loop
-    portThread.join() 
+    portThread.join()
