@@ -2881,7 +2881,8 @@ export default class CommandControl extends React.Component {
         neweDNA.edna.stop_edna = eDNAState;
         neweDNA.edna.edna_state = 2;
         this.setState({ remoteControlValues: neweDNA });
-        console.log("eDNA Toggled")
+        this.api.postEngineering(neweDNA)
+        console.log(this.state.remoteControlValues)
     }
     //
     // RC Mode (End)

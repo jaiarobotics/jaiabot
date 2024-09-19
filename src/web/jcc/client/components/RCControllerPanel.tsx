@@ -457,7 +457,8 @@ export default class RCControllerPanel extends React.Component {
         // delete interval so the bot does not receive engineering commands
         this.props.deleteInterval();
 
-        this.setState({ eDNATurnedOn: this.props.remoteControlValues.edna.start_edna })
+        this.props.toggleeDNA(this.state.eDNATurnedOn)
+        this.setState({ eDNATurnedOn: !this.props.remoteControlValues.edna.start_edna })
 
         const rceDNACommand = {
             bot_id: this.props.bot?.bot_id,
@@ -468,7 +469,6 @@ export default class RCControllerPanel extends React.Component {
             }
         }
 
-
         this.api.postCommand(rceDNACommand).then((response) => {
             if (response.message) {
                 error("Unable to post RC eDNA Pump command");
@@ -476,8 +476,7 @@ export default class RCControllerPanel extends React.Component {
                 success("eDNA Pump Activated")
             }
         })
-
-        this.props.toggleeDNA(this.state.eDNATurnedOn)
+        
         return;
     }
 
@@ -790,7 +789,7 @@ export default class RCControllerPanel extends React.Component {
                         {selectControlType}
                         <div>eDNA Pump</div>
                         <JaiaToggle
-                            checked={() => this.iseDNAOn()}
+                            checked={() => this.state.eDNATurnedOn}
                             onClick={() => this.handleeDNATurnedOn()}
                             disabled={() => false}
                             label="On/Off"
