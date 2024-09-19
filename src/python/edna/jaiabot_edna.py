@@ -43,16 +43,15 @@ def do_port_loop(edna: eDNA):
             command.ParseFromString(data)
             log.debug(f'Received command:\n{command}')
 
-            # Execute the command
-            if command.type == eDNACommand.CMD_STATUS:
-                ednaData = eDNAData()
-                log.debug(f'State: State')
-                sock.sendto(ednaData.SerializeToString(), addr)
-            
+            # Execute the command    
             if command.type == eDNACommand.CMD_START:
-                edna.starteDNA()
+                edna.start_edna()
             elif command.type == eDNACommand.CMD_STOP:
-                edna.stopeDNA()
+                edna.stop_edna()
+
+            data = eDNAData()
+            data.edna_state = 2
+            sock.sendto(data.SerializeToString(), addr)
 
         except Exception as e:
             traceback.print_exc()

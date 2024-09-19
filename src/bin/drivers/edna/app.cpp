@@ -144,7 +144,7 @@ void jaiabot::apps::eDNADriver::health(goby::middleware::protobuf::ThreadHealth&
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    //Check to see if the echo is responding
+    //Check to see if the eDNA is responding
     if (!cfg().edna_report_in_simulation())
     {
         check_last_report(health, health_state);

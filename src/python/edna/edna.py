@@ -28,15 +28,15 @@ class eDNAState(Enum):
     RUNNING = 2
 
 class eDNACommands(Enum):
-    CMD_START = b'$REC,START'
-    CMD_STOP = b'$REC,STOP'
+    CMD_START = 'CMD_START'
+    CMD_STOP = 'CMD_STOP'
+    CMD_STATUS = 'CMD_STATUS'
 
 class eDNA:
     _lock: Lock
 
     def __init__(self):
         log.debug("EDNA INIT")
-        self._lock = Lock()
 
     def start_edna():
         log.debug("Start EDNA")
