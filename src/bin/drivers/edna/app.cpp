@@ -136,6 +136,7 @@ void jaiabot::apps::eDNADriver::loop()
     interthread().publish<edna_udp_out>(io_data);
 
     glog.is_debug2() && glog << "Requesting status from python driver" << endl;
+    glog.is_debug1() && glog << "Requesting status from python driver" << endl;
 }
 
 void jaiabot::apps::eDNADriver::health(goby::middleware::protobuf::ThreadHealth& health)

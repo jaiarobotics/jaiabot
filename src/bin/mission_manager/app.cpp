@@ -397,6 +397,10 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 handle_bottom_dive_safety_params(command.bottom_depth_safety_params());
             }
+            if (command.has_edna())
+            {
+                interprocess().publish<jaiabot::groups::edna>(command);
+            }
 
             // Publish only when we get a query for status
             if (command.query_engineering_status())
