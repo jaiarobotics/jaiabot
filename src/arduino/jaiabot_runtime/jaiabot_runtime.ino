@@ -176,8 +176,9 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   ack.has_motor = true;
   ack.motor = motor_actual;
 
-  ack.has_thermistor_resistance = true;
-  ack.thermistor_resistance = analogRead(thermistor_pin);
+  ack.has_thermistor_voltage = true;
+  // Arduino yields resolution between readings of 5V over 1024 units
+  ack.thermistor_voltage = analogRead(thermistor_pin) * 5 / 1024.0;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;

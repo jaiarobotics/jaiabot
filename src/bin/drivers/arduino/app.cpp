@@ -332,14 +332,17 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
 
-            
-            if (arduino_response.has_thermistor_resistance()) {
+            if (arduino_response.has_thermistor_voltage())
+            {
+                float voltage = arduino_response.thermistor_voltage();
+                float resistance = 10000 * voltage / (5 - voltage);
+                float temperature =
+                    goby::util::linear_interpolate(resistance, resistance_to_temperature_);
+
                 jaiabot::protobuf::Thermistor thermistor_msg;
-
-                float temperature = goby::util::linear_interpolate(
-                    arduino_response.thermistor_resistance(), resistance_to_temperature_);
-
                 thermistor_msg.set_temperature(temperature);
+                thermistor_msg.set_resistance(resistance);
+                thermistor_msg.set_voltage(voltage);
                 interprocess().publish<groups::thermistor>(thermistor_msg);
             }
 

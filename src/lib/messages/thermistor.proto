@@ -4,4 +4,6 @@ package jaiabot.protobuf;
 
 message Thermistor {
     optional float temperature = 1;
+    optional float resistance = 2;
+    optional float voltage = 3;
 }
