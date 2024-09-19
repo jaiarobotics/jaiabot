@@ -255,7 +255,7 @@ elif common.app == 'jaiabot_adafruit_BNO085_driver':
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common,
+                                     interprocess_block = interprocess_common, 
                                      bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
                                      remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
                                      atlas_salinity_report_in_simulation=is_simulation()))

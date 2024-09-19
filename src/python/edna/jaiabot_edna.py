@@ -46,8 +46,10 @@ def do_port_loop(edna: eDNA):
             # Execute the command    
             if command.type == eDNACommand.CMD_START:
                 edna.start_edna()
-            elif command.type == eDNACommand.CMD_STOP:
+            elif command.type == eDNACommand.CMD_END:
                 edna.stop_edna()
+            else: 
+                pass
 
             data = eDNAData()
             data.edna_state = 2
