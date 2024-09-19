@@ -411,7 +411,7 @@ jaiabot_apps = [
      'description': 'Jaiabot eDNA Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'edna',
-     'args': '20003',
+     'args': '20004',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_EDNA',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
