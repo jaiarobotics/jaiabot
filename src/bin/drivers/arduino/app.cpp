@@ -338,9 +338,10 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 float resistance = 10000 * voltage / (5 - voltage);
                 float temperature =
                     goby::util::linear_interpolate(resistance, resistance_to_temperature_);
+                float temperature_celsius = (temperature - 32) / 1.8;
 
                 jaiabot::protobuf::Thermistor thermistor_msg;
-                thermistor_msg.set_temperature(temperature);
+                thermistor_msg.set_temperature(temperature_celsius);
                 thermistor_msg.set_resistance(resistance);
                 thermistor_msg.set_voltage(voltage);
                 interprocess().publish<groups::thermistor>(thermistor_msg);
