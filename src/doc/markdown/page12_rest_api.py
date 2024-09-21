@@ -1,5 +1,6 @@
 import jaiabot.messages.rest_api_pb2
 import google.protobuf.json_format
+from google.protobuf.descriptor import *
 import json
 
 max_int32 = (2**31) - 1
@@ -97,6 +98,7 @@ def generate_action(action):
 
 """
 
+    content += generate_parameter_section(action)
     content += generate_simple_variant(action)
     content += generate_full_variant(action)
     
@@ -114,6 +116,49 @@ def generate_response_action(action):
 """
     content += generate_response(action)
     
+    return content
+
+
+def generate_parameter_section(action):
+    action_field_desc = jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.fields_by_name[action]
+    if action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
+        return ""
+
+    action_desc: Descriptor = action_field_desc.message_type
+
+    jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
+    jaia_request_action = getattr(jaia_request, action_field_desc.name)
+
+    parameter_docs = []
+
+    # Function to recursively get the parameter doc strings
+    def get_parameter_docs(desc: Descriptor):
+        parameter_docs = []
+        for field in desc.fields:
+            field: FieldDescriptor
+            
+            if field.type == field.TYPE_MESSAGE:
+                parameter_docs.extend(get_parameter_docs(field.message_type))
+
+            else:
+                doc = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
+                if doc:
+                    parameter_docs.append(f'* {field.name}: {doc}')
+        return parameter_docs
+
+    parameter_docs = get_parameter_docs(action_desc)
+
+    if len(parameter_docs) == 0:
+        return ''
+    
+    content = f"""
+### Parameters
+
+"""
+    
+    for parameter_doc in parameter_docs:
+        content += (parameter_doc + '\n')
+
     return content
 
 
@@ -356,7 +401,7 @@ def discover_all_oneofs(message, action):
     discover_oneofs(message.DESCRIPTOR, action) 
     return oneofs
 
-            
+
 def introspect_and_populate(message, action, oneof_selection):
 
     enums=dict()
@@ -368,6 +413,8 @@ def introspect_and_populate(message, action, oneof_selection):
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
             if presence != jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 continue
+
+            
 
             if field.containing_oneof is not None:
                 if field.containing_oneof == jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'] or field.containing_oneof == jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action']:
