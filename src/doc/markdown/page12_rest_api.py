@@ -143,7 +143,7 @@ def generate_parameter_section(action):
             else:
                 doc = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
                 if doc:
-                    parameter_docs.append(f'* {field.name}: {doc}')
+                    parameter_docs.append(f'* `{field.name}`  {doc}')
         return parameter_docs
 
     parameter_docs = get_parameter_docs(action_desc)
