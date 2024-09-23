@@ -170,7 +170,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "feature/cloud-data-offload-using-aws-commands/jaia-1710"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -178,7 +177,6 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "1.y"
-        - "feature/cloud-data-offload-using-aws-commands/jaia-1710"
 
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -188,7 +186,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "1.y"
-        - "feature/cloud-data-offload-using-aws-commands/jaia-1710"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -198,7 +195,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "1.y"
-        - "feature/cloud-data-offload-using-aws-commands/jaia-1710"
 
 ## Begin actual config
 version: 2.1
