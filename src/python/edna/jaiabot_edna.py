@@ -46,12 +46,15 @@ def do_port_loop(edna: eDNA):
         
             # Execute the command    
             if command.type == eDNACommand.CMD_START:
+                # Turn pump on for CMD_START
                 log.warning("Start eDNA")
                 edna.start_edna()
             elif command.type == eDNACommand.CMD_END:
+                # Turn pump on for CMD_END
                 log.warning("End eDNA")
                 edna.stop_edna()
             else: 
+                # Handle CMD_STATUS case
                 pass
 
             data = eDNAData()
@@ -64,7 +67,7 @@ def do_port_loop(edna: eDNA):
 if __name__ == "__main__":
     edna = eDNA()
 
-    # Start the thread that responds to EchoCommands over the port
+    # Start the thread that responds to eDNACommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[edna])
     portThread.start()
 

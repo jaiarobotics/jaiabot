@@ -439,16 +439,7 @@ export default class RCControllerPanel extends React.Component {
     } 
 
     /**
-     * Checks to see if the eDNA pump is turned on
-     *
-     * @returns {boolean}
-     */
-    iseDNAOn() {
-        return this.state.eDNATurnedOn;
-    }
-
-    /**
-     * Updates value of eDNATurnedOn in the state if the eDNA pump is turned on
+     * Calls the toggleeDNA() function from this.props to toggle truth value for the eDNA Pump
      * 
      * @returns {void} 
      */
@@ -741,7 +732,7 @@ export default class RCControllerPanel extends React.Component {
                                     this.handleTaskParamInputChange(evt)
                                 }
                                 autoComplete="off"
-                            />
+                         />
                             <div>m</div>
 
                             <div>Hold Time:</div>

@@ -2874,6 +2874,12 @@ export default class CommandControl extends React.Component {
         this.setState({ rcDives: newRCDives });
     }
 
+    /**
+     * Used to flip the state of the eDNA pump. Used within the RCControllerPanel
+     * 
+     * @param {boolean} eDNAState New state the eDNA pump should adopt
+     * @returns {void}
+     */
     toggleeDNA(eDNAState: boolean) {
         let neweDNA = cloneDeep(this.state.remoteControlValues);
         neweDNA.bot_id = this.selectedBotId();

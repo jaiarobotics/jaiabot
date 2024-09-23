@@ -110,6 +110,7 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                 }
             });
 
+        // Subscribe to the eDNA driver so that its RC control works
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::eDNAData& edna_data)
             {

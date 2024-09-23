@@ -7,5 +7,4 @@ udp_config {
     remote_port: 20500
 }
 
-edna_issue_solution: REPORT_EDNA
 edna_report_in_simulation: $edna_report_in_simulation 

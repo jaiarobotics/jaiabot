@@ -263,6 +263,7 @@ jaiabot::apps::Health::Health()
             }
         });
 
+    // Subscribe to eDNA messages
     interprocess().subscribe<jaiabot::groups::edna>(
         [this](const jaiabot::protobuf::eDNAIssue& edna_issue)
         {

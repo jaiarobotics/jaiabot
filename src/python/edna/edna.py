@@ -16,7 +16,7 @@ import RPi.GPIO as GPIO
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 log = logging.getLogger(__name__)
 
-# eDNA_pin pin
+# eDNA GPIO pin output
 eDNA_pin = 27
 
 GPIO.setmode(GPIO.BCM)
@@ -36,26 +36,14 @@ class eDNA:
     _lock: Lock
 
     def __init__(self):
-        log.warning("EDNA INIT")
+        log.warning("EDNA Init")
 
+    # Turn eDNA Pump on
     def start_edna(self):
         log.warning("Start EDNA")
         GPIO.output(eDNA_pin, GPIO.HIGH)
 
+    # Turn eDNA Pump off
     def stop_edna(self):
-        log.warning("End EDNA")
+        log.warning("Stop EDNA")
         GPIO.output(eDNA_pin, GPIO.LOW)
-
-
-
-"""
-motor_IN1 = PWM(Pin(15))
-motor_IN2 = PWM(Pin(14))
-motor_IN1.freq(1000)
-motor_IN2.freq(1000)
-
-#turn pump on CW
-motor_IN1.duty_u16(0)
-motor_IN2.duty_u16(65025)
-"""
-
