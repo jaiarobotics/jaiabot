@@ -7,6 +7,6 @@
 # <file system> <mount point>            <type>  <options>                                   <dump>  <pass>
 LABEL=rootfs     /                       ext4   rw                                           0       1
 LABEL=boot       /boot/firmware          vfat   ro                                           0       1
-tmpfs            /tmp                    tmpfs  rw,nosuid,nodev                              0       1
+tmpfs            /tmp                    tmpfs  rw,nosuid,nodev,size=256M                    0       1
 LABEL=data       /var/log                btrfs  defaults,nofail,x-systemd.device-timeout=30  0       1
 LABEL=updates    /var/www/html/updates   auto   defaults,nofail,x-systemd.device-timeout=10  0       1
