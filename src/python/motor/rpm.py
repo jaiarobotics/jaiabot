@@ -70,3 +70,5 @@ def main():
     calculate_rpm()
 
     port_thread.join()
+
+main()
