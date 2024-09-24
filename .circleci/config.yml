@@ -141,6 +141,7 @@ job-template-deb-amd64: &job-template-deb-amd64
         command: |
           apt-get update && apt-get -y install rsync python3-venv python3-dev
           cd ${CIRCLE_WORKING_DIRECTORY}/src/python
+          unset CC CXX
           ./build_venv.sh /tmp/jaiabot-python-test
     - persist_to_workspace: &persist-debs
         root: /root/deb
