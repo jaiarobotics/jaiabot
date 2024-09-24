@@ -394,6 +394,7 @@ jobs:
       - run: &run-install-apt-raspi
           name: Install apt dependencies
           command: sudo apt-get update && sudo apt-get -y install pigz dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget
+      - run: *run-set-deb-rep-and-version
       - run: &run-create-image
           name: Create filesystem image
           command: |
@@ -405,7 +406,7 @@ jobs:
             export ROOTFS_BUILD_TAG="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"
             export TMP_IMG_NAME=jaiabot
             mkdir /tmp/images
-            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} ${CREATE_IMAGE_ARGS}
+            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} --repo ${JAIABOT_APT_REPO} --version ${JAIABOT_APT_VERSION} ${CREATE_IMAGE_ARGS}
             source ${TMP_IMG_NAME}.metadata.txt
             for filename in ${TMP_IMG_NAME}.*; do
               extension="${filename#*.}"
@@ -435,6 +436,7 @@ jobs:
       - run: &run-install-apt-vbox
           name: Install apt dependencies
           command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox
+      - run: *run-set-deb-rep-and-version
       - run: *run-create-image
       - run: &run-move-vbox
           name: Move image for storage
