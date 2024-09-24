@@ -52,6 +52,12 @@
 #     --distribution
 #         Desired Ubuntu distribution codename (e.g., "focal" or "jammy")
 # 
+#     --repo
+#         Desired Jaiabot repo ("release", "continuous", "beta", "test")
+#
+#     --version
+#         Desired Jaiabot version ("1.y", "2.y")
+# 
 #     --mindisk
 #         Create an image with a smaller disk image size than the default (useful for Cloud machines)
 #
@@ -78,7 +84,10 @@ ROOTFS_BUILD_PATH="$TOPLEVEL/rootfs"
 DEFAULT_IMAGE_NAME=jaiabot_img-"$ROOTFS_BUILD_TAG".img
 OUTPUT_IMAGE_PATH="$(pwd)"/"$DEFAULT_IMAGE_NAME"
 ROOTFS_TARBALL=
-DISTRIBUTION=focal
+DISTRIBUTION=$(<${TOPLEVEL}/scripts/ubuntu_release)
+JAIABOT_VERSION=$(<${TOPLEVEL}/scripts/release_branch)
+JAIABOT_REPO=release
+
 
 # Ensure user is root
 if [ "$UID" -ne 0 ]; then
@@ -157,11 +166,20 @@ while [[ $# -gt 0 ]]; do
     DISTRIBUTION="$1"
     shift
     ;;
+  --repo)
+    JAIABOT_REPO="$1"
+    shift
+    ;;
+  --version)
+    JAIABOT_VERSION="$1"
+    shift
+    ;;
   *)
     echo "Unexpected argument: $KEY" >&2
     exit 1
   esac
 done
+
 
 if [[ "$NATIVE" == "1" ]]; then
     if [[ $(arch) != "aarch64"  ]]; then
@@ -177,9 +195,8 @@ elif ! enable_binfmt_rule qemu-aarch64; then
     exit 1
 fi
 
-
 # Let's go!
-echo "Building bootable Raspberry Pi image in $WORKDIR"
+echo "Building bootable Raspberry Pi image in $WORKDIR: distro=${DISTRIBUTION}, version=${JAIABOT_VERSION}, repo=${JAIABOT_REPO}"
 cd "$WORKDIR"
 
 # Create a 17.0 GiB image
@@ -253,6 +270,10 @@ if [ -z "$ROOTFS_TARBALL" ]; then
     echo "JAIABOT_IMAGE_VERSION=$ROOTFS_BUILD_TAG" >> config/includes.chroot/etc/jaiabot/version
     echo "JAIABOT_IMAGE_BUILD_DATE=\"`date -u`\""  >> config/includes.chroot/etc/jaiabot/version
     echo "RASPI_FIRMWARE_VERSION=$RASPI_FIRMWARE_VERSION"  >> config/includes.chroot/etc/jaiabot/version
+
+    sed -i "s/@DISTRIBUTION@/${DISTRIBUTION}/" config/archives/jaiabot.list.chroot
+    sed -i "s/@JAIABOT_REPO@/${JAIABOT_REPO}/" config/archives/jaiabot.list.chroot
+    sed -i "s/@JAIABOT_VERSION@/${JAIABOT_VERSION}/" config/archives/jaiabot.list.chroot
 
     # Do not include cloud packages in Raspi image - cloud-init seems to cause long hangs on first-boot
     [ -z "$VIRTUALBOX" ] && rm config/package-lists/cloud.list.chroot
