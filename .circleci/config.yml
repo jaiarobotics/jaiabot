@@ -238,8 +238,14 @@ workflows:
       # rootfs jobs
       - raspi-image-create-noble:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
+
       - virtualbox-image-create-noble:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
+
       - aws-sync:
           requires:
             - raspi-image-create-noble
