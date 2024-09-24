@@ -20,28 +20,19 @@ environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=4 nocheck"
 
-environment-template-focal: &environment-template-focal
-  DISTRO_RELEASE_CODENAME: "focal"
-  DISTRO_RELEASE_VERSION: "ubuntu20.04"
-
-environment-template-jammy: &environment-template-jammy
-  DISTRO_RELEASE_CODENAME: "jammy"
-  DISTRO_RELEASE_VERSION: "ubuntu22.04"
+environment-template-noble: &environment-template-noble
+  DISTRO_RELEASE_CODENAME: "noble"
+  DISTRO_RELEASE_VERSION: "ubuntu24.04"
 
 ## Pre-declare Docker containers
 
-docker-base-focal: &docker-base-focal
-  - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
-docker-arm64-focal: &docker-arm64-focal
-  - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
-
-docker-base-jammy: &docker-base-jammy
-  - image: gobysoft/jaiabot-ubuntu-amd64:22.04.1
-docker-arm64-jammy: &docker-arm64-jammy
-  - image: gobysoft/jaiabot-ubuntu-arm64:22.04.1
+docker-base-noble: &docker-base-noble
+  - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
+docker-arm64-noble: &docker-arm64-noble
+  - image: gobysoft/jaiabot-ubuntu-arm64:24.04.1
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:22.04.1
+  - image: gobysoft/ubuntu-build-base:24.04.1
 
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
@@ -169,14 +160,15 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
+        - "task/2.y-init"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
-        - "1.y"
+        - "2.y"
 
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -185,7 +177,8 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
+        - "task/2.y-init"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -194,7 +187,8 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
+        - "task/2.y-init"
 
 ## Begin actual config
 version: 2.1
@@ -205,28 +199,17 @@ workflows:
   version: 2
   commit:
     jobs:
-      - amd64-focal-build:
-          <<: *filter-template-normal-builds
-      - amd64-jammy-build:
+      - amd64-noble-build:
           <<: *filter-template-normal-builds
 
       - get-orig-source:
           <<: *filter-template-debian-builds
 
-      - amd64-focal-deb-build:
+      - amd64-noble-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
-      - arm64-focal-deb-build:
-          <<: *filter-template-debian-builds
-          requires:
-            - get-orig-source
-
-      - amd64-jammy-deb-build:
-          <<: *filter-template-debian-builds
-          requires:
-            - get-orig-source
-      - arm64-jammy-deb-build:
+      - arm64-noble-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
@@ -239,22 +222,11 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - amd64-focal-deb-build
-            - arm64-focal-deb-build
-            - amd64-jammy-deb-build
-            - arm64-jammy-deb-build
+            - amd64-noble-deb-build
+            - arm64-noble-deb-build
 
       # bundle after each package upload
-      - bundle-focal:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-          requires:
-            - upload
-
-      - bundle-jammy:
+      - bundle-noble:
           filters:
             tags:
               only: /.*/
@@ -264,18 +236,14 @@ workflows:
             - upload
 
       # rootfs jobs
-      - raspi-image-create-focal:
+      - raspi-image-create-noble:
           <<: *filter-template-rootfs-builds
-      - virtualbox-image-create-focal:
-          <<: *filter-template-rootfs-builds
-      - raspi-image-create-jammy:
-          <<: *filter-template-rootfs-builds
-      - virtualbox-image-create-jammy:
+      - virtualbox-image-create-noble:
           <<: *filter-template-rootfs-builds
       - aws-sync:
           requires:
-            - raspi-image-create-jammy
-            - virtualbox-image-create-jammy
+            - raspi-image-create-noble
+            - virtualbox-image-create-noble
           <<: *filter-template-aws-rootfs-builds
 
 jobs:
@@ -285,7 +253,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -324,57 +292,34 @@ jobs:
             - "*.tar.xz"
             - "changelog"
 
-  amd64-focal-build:
+  amd64-noble-build:
     <<: *job-template-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-noble
       <<: *environment-template-amd64
 
-  amd64-focal-deb-build:
+  amd64-noble-deb-build:
     <<: *job-template-deb-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-noble
       <<: *environment-template-amd64
-  arm64-focal-deb-build:
+  arm64-noble-deb-build:
     <<: *job-template-deb-cross
-    docker: *docker-arm64-focal
+    docker: *docker-arm64-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
-      <<: *environment-template-arm64
-
-  amd64-jammy-build:
-    <<: *job-template-amd64
-    docker: *docker-base-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
-      <<: *environment-template-amd64
-
-  amd64-jammy-deb-build:
-    <<: *job-template-deb-amd64
-    docker: *docker-base-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
-      <<: *environment-template-amd64
-  arm64-jammy-deb-build:
-    <<: *job-template-deb-cross
-    docker: *docker-arm64-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-arm64
 
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -398,13 +343,13 @@ jobs:
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
-  bundle-focal:
+  bundle-noble:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
-      <<: *environment-template-focal
+      <<: *environment-template-noble
     steps:
       - checkout
       - run: *run-set-deb-rep-and-version
@@ -422,27 +367,14 @@ jobs:
       - store_artifacts: &store-bundle-artifacts
           path: /tmp/bundle/result
 
-  bundle-jammy:
-    working_directory: /tmp/bundle/jaiabot
-    machine:
-      image: ubuntu-2204:current
-    resource_class: arm.medium
-    environment:
-      <<: *environment-template-jammy
-    steps:
-      - checkout
-      - run: *run-set-deb-rep-and-version
-      - run: *run-bundle-package
-      - store_artifacts: *store-bundle-artifacts
-
   # rootfs jobs
-  raspi-image-create-jammy:
+  raspi-image-create-noble:
     machine:
       image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
       CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
       DEBIAN_FRONTEND: "noninteractive"
     steps:
       - checkout
@@ -477,13 +409,13 @@ jobs:
             - "images/*.img.gz"
             - "images/*.metadata.txt"
 
-  virtualbox-image-create-jammy:
+  virtualbox-image-create-noble:
     machine:
       image: ubuntu-2204:current
     resource_class: medium
     environment:
       CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
       DEBIAN_FRONTEND: "noninteractive"
     steps:
       - checkout
@@ -504,43 +436,13 @@ jobs:
           paths:
             - "vbox/*.ova"
 
-  raspi-image-create-focal:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: arm.medium
-    environment:
-      CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "focal"
-      DEBIAN_FRONTEND: "noninteractive"
-    steps:
-      - checkout
-      - run: *run-install-apt-raspi
-      - run: *run-create-image
-      - run: *run-compress-image-raspi
-      - store_artifacts: *store-raspi
-
-  virtualbox-image-create-focal:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    environment:
-      CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
-      DISTRO_RELEASE_CODENAME: "focal"
-      DEBIAN_FRONTEND: "noninteractive"
-    steps:
-      - checkout
-      - run: *run-install-apt-vbox
-      - run: *run-create-image
-      - run: *run-move-vbox
-      - store_artifacts: *store-vbox
-
   aws-sync:
     docker:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-east-1"
       # only upload latest Ubuntu version to AWS
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
     resource_class: medium
     steps:
       - checkout

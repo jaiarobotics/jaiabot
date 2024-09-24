@@ -12,11 +12,11 @@ It consists of source code that is compiled into a variety of binary application
 
 `jaiabot` manages several release series at once:
 
-- Legacy (N/A) - Will be 1.y in the future.
- - Stable (1.y) - Stable code that receives primarily bug fixes and low risk features 
- - Testing (2.y) - Superset of stable that includes most of the new development.
+ - Active (2.y) - Code under active development until first release
+ - Stable (2.y) - Stable code that receives primarily bug fixes and low risk features 
+ - Maintenance (N/A) - Will be 1.y when 2.y becomes Stable.
 
-Over time the Stable release will become Legacy, the Testing will become Stable, and a new Testing release branch will be created.
+Over time the Stable release will become Maintenance, the Active will become Stable, and a new Active release branch will be created with the next release of Ubuntu.
 
 ## Ubuntu Releases
 Each `jaiabot` release series is aligned to an long-term support (LTS) release of Ubuntu (except 1.y which supports two LTS releases as a special case):
@@ -28,9 +28,10 @@ Each `jaiabot` release series is aligned to an long-term support (LTS) release o
 
 Whenever a new release branch is created, the following must be done:
 
-- Update text in this document for Legacy/Stable/Testing branches.
+- Update text in this document for Active/Stable/Maintenance branches.
 - Create new release branch (X.y) where X is one greater than the current Testing. For example, `git checkout -b 2.y 1.y`
 - Update `jaiabot/scripts/release_branch` with this new release branch (e.g., '2.y').
+- Update `jaiabot/scripts/ubuntu_release` with the new Ubuntu version to support by default (e.g., 'noble')
 - Update `jaiabot/scripts/packages/update_gobysoft_mirror.sh` to include an entry for the new release branch and add a 'distros_for_releases' key mapping the supported Ubuntu distros for this release branch (comma separated).
   -  Copy to /opt/jaia_packages on packages.jaia.tech.
   - Run ./update_gobysoft_mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.

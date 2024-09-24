@@ -11,7 +11,7 @@
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
 ## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the contents of "release_branch" will be used (the default for this current branch).
-## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, "focal" will be used.
+## Env var "jaiabot_distro" can be set to one of: noble which will set the Ubuntu distribution to use. If unset, the contents of "ubuntu_release" will be used.
 
 set -e
 
@@ -28,7 +28,8 @@ repo=${jaiabot_repo:-release}
 default_version=$(<release_branch)
 version=${jaiabot_version:-${default_version}}
 version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
-distro=${jaiabot_distro:-focal}
+default_distro=$(<ubuntu_release)
+distro=${jaiabot_distro:-${default_distro}}
 
 # install clang-format hook if not installed
 [ ! -e ${script_dir}/../.git/hooks/pre-commit ] && ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
