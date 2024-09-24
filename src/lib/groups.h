@@ -45,6 +45,9 @@ constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 
+// motor
+constexpr goby::middleware::Group motor{"jaiabot::motor"};
+
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
