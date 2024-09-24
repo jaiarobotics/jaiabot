@@ -38,7 +38,7 @@ Whenever a new release branch is created, the following must be done:
 - Update `jaiabot/.circleci/config.yml`:
 	-  Change to new release branch in all the "filter-template-*" lists.
 	-  Change distros targeted by this release branch.
-- Add new entries for release, beta, continuous, and test for the new release branch to `jaiabot/.circleci/dput.cf`.
+- Update entries for release, beta, continuous, and test for the new release branch to `jaiabot/.circleci/dput.cf`.
 - Add new directories to packages.jaia.tech:
 ```
 release_branch=2.y

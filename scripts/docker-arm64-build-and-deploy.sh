@@ -37,7 +37,7 @@ distro=${jaiabot_distro:-${default_distro}}
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     cd ${script_dir}/..
 
-    build_dir=build/amd64-vbox   
+    build_dir=build/${distro}-${repo}-amd64-vbox   
     mkdir -p ${build_dir}
 
     image_name=jaia_build_vbox_${distro}_${repo}_${version_lower}
@@ -48,13 +48,13 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
         ./scripts/docker-build-build-system.sh
     fi
 
-    echo "🟢 Building jaiabot apps using docker ${image_name} image"
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh"
+    echo "🟢 Building jaiabot apps using docker ${image_name} image to ${build_dir}"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh ${build_dir}"
 
 else    
     cd ${script_dir}/..
 
-    build_dir=build/arm64
+    build_dir=build/${distro}-${repo}-arm64
     mkdir -p ${build_dir}
     image_name=jaia_build_${distro}_${repo}_${version_lower}
 
@@ -65,8 +65,8 @@ else
         ./scripts/docker-build-build-system.sh
     fi
 
-    echo "🟢 Building jaiabot apps using docker ${image_name} image"
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh"
+    echo "🟢 Building jaiabot apps using docker ${image_name} image to ${build_dir}"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh ${build_dir}"
 fi
 
 # Get goby and dccl versions currently installed into the build image
