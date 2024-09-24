@@ -80,6 +80,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_MOTOR_DRIVER = 37
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER = 37
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
