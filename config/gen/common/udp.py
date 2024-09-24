@@ -36,3 +36,9 @@ def imu_port(node_id):
 
 def contact_gpsd_port(contact_id):
     return 33000 + contact_id
+
+def motor_cpp_udp_port():
+    return 0
+
+def motor_py_udp_port():
+    return 20005 
