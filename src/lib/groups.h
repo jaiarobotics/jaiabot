@@ -46,6 +46,9 @@ constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group thermistor{"jaiabot::thermistor"};
 
+// motor
+constexpr goby::middleware::Group motor{"jaiabot::motor"};
+
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};

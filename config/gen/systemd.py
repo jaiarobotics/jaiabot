@@ -456,6 +456,22 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_motor_driver',
+     'description': 'JaiaBot Motor Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_MOTOR_DRIVER',
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'rpm.py',
+     'description': 'JaiaBot Motor Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'motor',
+     'args': '',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
 ]
 
 if jaia_imu_type.value == 'bno085':

@@ -107,7 +107,8 @@ verbosities = \
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_motor_driver':                         { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG3' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -342,6 +343,13 @@ elif common.app == 'frontseat_sim':
     print(common.vehicle.simulator_port(vehicle_id))
 elif common.app == 'log_file':
     print(log_file_dir)
+
+elif common.app == 'jaiabot_motor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_motor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bind_port=common.udp.motor_cpp_udp_port(),
+                                     remote_port=common.udp.motor_py_udp_port()))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
