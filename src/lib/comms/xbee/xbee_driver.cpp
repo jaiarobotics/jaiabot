@@ -107,10 +107,18 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     auto xbee_info_location = config_extension().xbee_info_location();
     bool use_encryption = config_extension().use_xbee_encryption();
     std::string encryption_password = config_extension().xbee_encryption_password();
+    std::string tx_power_level = config_extension().xbee_tx_power_level();
+    std::string rf_data_rate = config_extension().xbee_rf_data_rate();
+    std::string mesh_unicast_retries = config_extension().xbee_mesh_unicast_retries();
+    std::string unicast_mac_retries = config_extension().xbee_unicast_mac_retries();
+    std::string network_delay_slots = config_extension().xbee_network_delay_slots();
+    std::string broadcast_multi_transmits = config_extension().xbee_broadcast_multi_transmits();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
-                    use_encryption, encryption_password);
+                    use_encryption, encryption_password, tx_power_level, rf_data_rate,
+                    mesh_unicast_retries, unicast_mac_retries, network_delay_slots,
+                    broadcast_multi_transmits);
 
     for (auto peer : config_extension().peers())
     {
