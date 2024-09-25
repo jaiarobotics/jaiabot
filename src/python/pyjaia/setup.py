@@ -15,7 +15,7 @@ setup(name='pyjaia',
           'jaiabot.messages'],
       install_requires=[
           'wheel', 
-          'protobuf==3.20.0', 
+          'protobuf', 
           'scipy', 
           'numpy', 
           'cmocean',
