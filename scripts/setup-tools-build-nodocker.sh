@@ -38,6 +38,6 @@ fi
 nvm install --lts
 nvm use --lts
 # Now npm can upgrade itself
-npm install -g npm@9.6.4
+npm install -g npm@10.8.2
 # Then, npm can install webpack
 npm install -g --no-audit webpack@5.89.0 webpack-cli@5.1.4
