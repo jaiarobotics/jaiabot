@@ -23,13 +23,15 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(RPM_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 rpm = 0
-state_change_count = 0
-start_interval = time.time()
-current_state = "HIGH"
-prev_state = "HIGH"
 
 def calculate_rpm():
     try:
+        global rpm
+        state_change_count = 0
+        start_interval = time.time()
+        current_state = "HIGH"
+        prev_state = "HIGH"
+
         while True:
             now = time.time()
 
