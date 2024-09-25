@@ -56,13 +56,16 @@ def calculate_rpm():
         GPIO.cleanup()
 
 def query_rpm():
-    motor_data = Motor()
-    motor_data.rpm = rpm
-    try:
-        data, addr = sock.recvfrom(buffer_size)
-        sock.sendto(motor_data.SerializeToString(), addr)
-    except Exception as e:
-        print(e)
+    while True:
+
+        motor_data = Motor()
+        motor_data.rpm = rpm
+        try:
+            data, addr = sock.recvfrom(buffer_size)
+            #print("Sending motor data")
+            sock.sendto(motor_data.SerializeToString(), addr)
+        except Exception as e:
+            print(e)
 
 
 def main():
