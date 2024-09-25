@@ -80,13 +80,13 @@ message Config
     ];
 
     optional string xbee_rf_data_rate = 11 [
-        default = "2",
+        default = "1",
         (goby.field).description =
             "Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data over-the-air)."
     ];
 
     optional string xbee_mesh_unicast_retries = 12 [
-        default = "1",
+        default = "0",
         (goby.field).description =
             "Set or read the maximum number of network packet delivery attempts."
     ];
@@ -98,13 +98,13 @@ message Config
     ];
 
     optional string xbee_network_delay_slots = 14 [
-        default = "3",
+        default = "5",
         (goby.field).description =
             "Set or read the maximum random number of network delay slots before rebroadcasting a network packet."
     ];
 
     optional string xbee_broadcast_multi_transmits = 15 [
-        default = "3",
+        default = "0",
         (goby.field).description =
             "Set or read the number of additional MAC-level broadcast transmissions."
     ];
