@@ -26,7 +26,6 @@ Flask==3.0.3
 fonttools==4.54.1
 geojson==3.1.0
 geopandas==1.0.1
-gpg==1.18.0
 gpiozero==2.0.1
 gyp==0.1
 h5py==3.12.0
@@ -57,7 +56,6 @@ pyparsing==3.1.4
 pyproj==3.6.1
 pyserial==3.5
 python-dateutil==2.9.0.post0
-python-debian==0.1.49+ubuntu2
 pytz==2024.2
 pyusb==1.2.1
 pyxdg==0.28
