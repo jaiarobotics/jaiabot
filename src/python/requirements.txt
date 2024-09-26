@@ -26,7 +26,6 @@ fonttools==4.54.1
 geojson==3.1.0
 geopandas==1.0.1
 gpiozero==2.0.1
-gyp==0.1
 h5py==3.11.0
 idna==3.10
 importlib_metadata==8.5.0
