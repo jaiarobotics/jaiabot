@@ -42,7 +42,6 @@ pandas==2.0.3
 pbr==6.1.0
 pillow==10.2.0
 pip==20.0.2
-pkg-resources==0.0.0
 plotly==5.15.0
 protobuf==3.20.0
 pyftdi==0.54.0

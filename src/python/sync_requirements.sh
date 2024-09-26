@@ -12,6 +12,7 @@ docker run -w $(realpath ${script_dir}) -v ${jaia_root}:${jaia_root} -t gobysoft
 
 sed -i '/=.*ubuntu.*/d' requirements.txt
 sed -i '/gpg/d' requirements.txt
+sed -i '/pkg-resources/d' requirements.txt
 
 sed -i '/pyjaia/d' requirements.txt
 sed -i '/pyjaiaprotobuf/d' requirements.txt
