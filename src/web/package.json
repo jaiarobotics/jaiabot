@@ -76,7 +76,6 @@
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-router-dom": "^6.26.2",
-        "rimraf": "6.0.1",
         "romans": "^2.0.16",
         "style-loader": "^4.0.0",
         "terser-webpack-plugin": "^5.3.10",
