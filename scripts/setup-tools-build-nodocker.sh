@@ -22,6 +22,8 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
 # Install nvm, npm, and webpack
 curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 
+export NODE_VERSION=v20.17.0
+
 if [ -z "${XDG_CONFIG_HOME-}" ]; then
     export NVM_DIR="${HOME}/.nvm"
 else
@@ -34,10 +36,11 @@ fi
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# Now we use nvm to install the LTS version of node FIRST, so npm is compatible
-nvm install --lts
-nvm use --lts
+# Now we use nvm to install the correct version of node FIRST, so npm is compatible
+nvm install ${NODE_VERSION}
+nvm alias default ${NODE_VERSION}
+nvm use ${NODE_VERSION}
 # Now npm can upgrade itself
 npm install -g npm@10.8.2
 # Then, npm can install webpack
-npm install -g --no-audit webpack@5.89.0 webpack-cli@5.1.4
+npm install -g --no-audit webpack@5.95.0 webpack-cli@5.1.4
