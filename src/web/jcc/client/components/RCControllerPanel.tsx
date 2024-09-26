@@ -401,6 +401,11 @@ export default class RCControllerPanel extends React.Component {
     }
 
     controlChange(event: SelectChangeEvent) {
+        // Reset eDNA pump to "off" when RC Control Type changes
+        if (this.state.controlType === ControlTypes.EDNA) {
+            this.handleeDNATurnedOn()
+        }
+
         const controlType = event.target.value.toUpperCase();
         if (controlType === ControlTypes.MANUAL_SINGLE) {
             this.setJoyStickStatus([JoySticks.SOLE]);
@@ -456,15 +461,18 @@ export default class RCControllerPanel extends React.Component {
             type: CommandType.REMOTE_CONTROL_TASK,
             rc_task: {
                 type: TaskType.EDNA,
-                start_edna: this.props.remoteControlValues.edna.start_edna,
+                start_edna: !this.props.remoteControlValues.edna.start_edna,
             }
         }
 
         this.api.postCommand(rceDNACommand).then((response) => {
             if (response.message) {
                 error("Unable to post RC eDNA Pump command");
-            } else {
+            }
+            else if (rceDNACommand.rc_task.start_edna === true) {
                 success("eDNA Pump Activated")
+            } else {
+                success("eDNA Pump Deactivated")
             }
         })
         
@@ -783,7 +791,7 @@ export default class RCControllerPanel extends React.Component {
                             checked={() => this.state.eDNATurnedOn}
                             onClick={() => this.handleeDNATurnedOn()}
                             disabled={() => false}
-                            label="On/Off"
+                            label="Off/On"
                             title="eDNA Pump"
                         />
                     </div>
