@@ -168,7 +168,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
-        - "task/2.y-init"
+#        - "task/2.y-init"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -176,6 +176,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "2.y"
+        - "task/2.y-init"
 
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -245,13 +246,13 @@ workflows:
       # rootfs jobs
       - raspi-image-create-noble:
           <<: *filter-template-rootfs-builds
-          requires:
-            - upload
+#          requires:
+#            - upload
 
       - virtualbox-image-create-noble:
           <<: *filter-template-rootfs-builds
-          requires:
-            - upload
+#          requires:
+#            - upload
 
       - aws-sync:
           requires:
@@ -383,7 +384,7 @@ jobs:
   # rootfs jobs
   raspi-image-create-noble:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
       CREATE_IMAGE_ARGS: "--native"
@@ -425,7 +426,7 @@ jobs:
 
   virtualbox-image-create-noble:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     environment:
       CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
