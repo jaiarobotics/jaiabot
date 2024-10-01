@@ -459,7 +459,7 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
     this->async_read_with_timeout(
             buffer, delimiter, timeout_seconds, [this](const std::string& result) {
                       
-                glog.is_warn() && glog << group(glog_group) << "Result: " << result 
+                glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
                                        << "\nResult is empty: " << result.empty()
                                        << std::endl;
 
