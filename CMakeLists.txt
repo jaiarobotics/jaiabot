@@ -90,7 +90,7 @@ set(PROJECT_SOVERSION "1")
 
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
-set(PROJECT_INTERVEHICLE_API_VERSION 7)
+set(PROJECT_INTERVEHICLE_API_VERSION 9)
 
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
@@ -275,7 +275,9 @@ set(scripts_to_install
   jaia_firm_backup_date.sh
   geotiff_format.py
   geotiff_scan.sh
+  # Utilities
   jaia-ip.py
+  jaia-doc.py
 )
 
 # Iterate over each script to install and copy

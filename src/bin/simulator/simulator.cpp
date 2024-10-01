@@ -36,6 +36,7 @@
 #include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/util/sci.h>
 #include <goby/util/seawater.h>
+
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -257,6 +258,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
                     tpv.mutable_location()->set_lat_with_units(location.lat_with_units());
                     tpv.mutable_location()->set_lon_with_units(location.lon_with_units());
+                    tpv.set_device(sim_cfg_.hub_gpsd_device());
                     interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 
                     // Publish a datum change
@@ -275,6 +277,7 @@ void jaiabot::apps::SimulatorTranslation::sim_hub_status()
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
     tpv.mutable_location()->set_lat(sim_cfg_.start_location().lat());
     tpv.mutable_location()->set_lon(sim_cfg_.start_location().lon());
+    tpv.set_device(sim_cfg_.hub_gpsd_device());
 
     interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 }
@@ -441,7 +444,11 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
         imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                              si::radians);
-        imu_data.set_calibration_status(3);
+
+        auto accuracies = imu_data.mutable_accuracies();
+        accuracies->set_accelerometer(3);
+        accuracies->set_gyroscope(3);
+        accuracies->set_magnetometer(3);
         interprocess().publish<groups::imu>(imu_data);
     }
 
