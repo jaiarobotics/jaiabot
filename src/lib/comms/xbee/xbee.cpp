@@ -440,11 +440,21 @@ size_t jaiabot::comms::XBeeDevice::bytes_available()
 void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     std::string buffer;
-    std::string delimiter = "B-Bypass";
-    int timeout_seconds = 5;
+    std::string delimiter = "OK\r";
+    int timeout_seconds = 2;
     
     // Triggers menu to appear for bypass
     write("\r");
+
+    sleep(2);
+
+    // Send b to bypass
+    write("b");
+
+    sleep(2);
+    
+    // Send +++ to enter command mode
+    write("+++");
 
     this->async_read_with_timeout(
             buffer, delimiter, timeout_seconds, [this](const std::string& result) {
@@ -453,26 +463,8 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
                                        << "\nResult is empty: " << result.empty()
                                        << std::endl;
 
-                if (result.find("B-Bypass") != std::string::npos || 
-                        result == "timeout")
+                if (result.find("OK") != std::string::npos)
                 {
-                    // If bypass appears then send b to bypass
-                    if (result.find("B-Bypass") != std::string::npos) 
-                    {
-                        // Send b to bypass
-                        write("b");
-
-                        sleep(1);
-                    }
-                    
-                    // Send +++ to enter command mode
-                    write("+++");
-
-                    sleep(1);
-
-                    // Wait for ok to proceed
-                    read_until("OK\r");
-
                     // Stop io context to exit and continue
                     io->stop();
                     
