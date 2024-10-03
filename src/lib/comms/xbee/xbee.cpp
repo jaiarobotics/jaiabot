@@ -80,8 +80,6 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
                                          const std::string& xbee_info_location,
                                          const bool& use_encryption,
                                          const std::string& encryption_password,
-                                         const std::string& tx_power_level,
-                                         const std::string& rf_data_rate,
                                          const std::string& mesh_unicast_retries,
                                          const std::string& unicast_mac_retries,
                                          const std::string& network_delay_slots,
