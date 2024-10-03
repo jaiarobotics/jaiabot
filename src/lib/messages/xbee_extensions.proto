@@ -73,37 +73,25 @@ message Config
             "Location to write a file with last hub id received from to initialize to that hub on restart."
     ];
 
-    optional string xbee_tx_power_level = 10 [
-        default = "2",
-        (goby.field).description =
-            "Sets or displays the power level at which the device transmits conducted power."
-    ];
-
-    optional string xbee_rf_data_rate = 11 [
-        default = "1",
-        (goby.field).description =
-            "Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data over-the-air)."
-    ];
-
-    optional string xbee_mesh_unicast_retries = 12 [
+    optional string xbee_mesh_unicast_retries = 10 [
         default = "0",
         (goby.field).description =
             "Set or read the maximum number of network packet delivery attempts."
     ];
 
-    optional string xbee_unicast_mac_retries = 13 [
-        default = "3",
+    optional string xbee_unicast_mac_retries = 11 [
+        default = "0",
         (goby.field).description =
             "Set or read the maximum number of MAC level packet delivery attempts for unicasts."
     ];
 
-    optional string xbee_network_delay_slots = 14 [
+    optional string xbee_network_delay_slots = 12 [
         default = "5",
         (goby.field).description =
             "Set or read the maximum random number of network delay slots before rebroadcasting a network packet."
     ];
 
-    optional string xbee_broadcast_multi_transmits = 15 [
+    optional string xbee_broadcast_multi_transmits = 13 [
         default = "0",
         (goby.field).description =
             "Set or read the number of additional MAC-level broadcast transmissions."

@@ -80,8 +80,6 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
                                          const std::string& xbee_info_location,
                                          const bool& use_encryption,
                                          const std::string& encryption_password,
-                                         const std::string& tx_power_level,
-                                         const std::string& rf_data_rate,
                                          const std::string& mesh_unicast_retries,
                                          const std::string& unicast_mac_retries,
                                          const std::string& network_delay_slots,
@@ -224,39 +222,6 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         glog.is_verbose() && glog << group(glog_group) << "Enable Encryption: " << enable_encryption
                                   << endl;
         cmd << "ATEE=" + enable_encryption << '\r';
-        write(cmd.str());
-        assert_ok();
-    }
-
-    {
-        /*
-        TX Power Level
-        Sets or displays the power level at which the device transmits conducted power. Power levels are
-        approximate.
-        Parameter range - 0 - 2, Default = 2
-        */
-        stringstream cmd;
-        glog.is_verbose() && glog << group(glog_group) << "TX Power Level: " << tx_power_level
-                                  << endl;
-        cmd << "ATPL" << tx_power_level << '\r'; 
-        write(cmd.str());
-        assert_ok();
-    }
-
-    {
-        /*
-        RF Data Rate
-        Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data
-        over-the-air).
-        Synchronous sleep is not supported when BR = 0. All devices on the network must have the same BR
-        value set in order to communicate. BR directly affects the range of the device. The higher the RF data
-        rate, the lower the receive sensitivity.
-        Parameter range - 0 - 2, Default = 2
-        */
-        stringstream cmd;
-        glog.is_verbose() && glog << group(glog_group) << "RF Data Rate: " << rf_data_rate
-                                  << endl;
-        cmd << "ATBR" << rf_data_rate << '\r'; 
         write(cmd.str());
         assert_ok();
     }
@@ -1056,9 +1021,32 @@ string jaiabot::comms::XBeeDevice::api_transmit_request(const SerialNumber& dest
                              << "   TX REQ for data:" << hexadecimal(data_string) << endl;
     glog.is_debug2() && glog << group(glog_group) << "   dest: " << hexadecimal(dest_string)
                              << endl;
-    string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
-               string("\xff\xfe\x00\x00", 4) + data_string;
-    return s;
+
+    // Frame Type: Transmit Request (0x10)
+    string frame_type = string("\x10", 1);                      
+
+    // Frame ID
+    string frame_id_string = string((char*)&frame_id, 1);
+
+    // 16-bit Network Address (0xFFFE)
+    string network_address = string("\xff\xfe", 2);   
+
+    // Broadcast Radius (0 = max hops)
+    string broadcast_radius = string("\x00", 1);               
+
+    // Directed broadcast mode (TO = 0x80)
+    string transmit_options = string("\x80", 1);
+
+    // Construct the full frame by combining the parts
+    string frame = frame_type
+                 + frame_id_string
+                 + dest_string
+                 + network_address
+                 + broadcast_radius
+                 + transmit_options
+                 + data_string;
+
+    return frame;
 }
 
 // This function is used to send a test between two links
