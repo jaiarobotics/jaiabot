@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
@@ -8,17 +9,23 @@ message GeographicCoordinate
 {
     option (dccl.msg).unit_system = "si";
 
-    required double lat = 1 [(dccl.field) = {
-        min: -90
-        max: 90
-        precision: 6
-        units { derived_dimensions: "plane_angle" system: "angle::degree" }
-    }];
+    required double lat = 1 [
+        (dccl.field) = {
+            min: -90
+            max: 90
+            precision: 6
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    required double lon = 2 [(dccl.field) = {
-        min: -180
-        max: 180
-        precision: 6
-        units { derived_dimensions: "plane_angle" system: "angle::degree" }
-    }];
+    required double lon = 2 [
+        (dccl.field) = {
+            min: -180
+            max: 180
+            precision: 6
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }

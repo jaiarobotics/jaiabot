@@ -210,6 +210,7 @@ namespace movement
 struct MovementSelection;
 struct Transit;
 struct RemoteControl;
+struct Trail;
 namespace remotecontrol
 {
 struct RemoteControlEndSelection;
@@ -803,6 +804,11 @@ struct InMission
         // Sets goal index to be the final goal index
         goal_index_ = (this->machine().mission_plan().goal_size() - 1);
     }
+    void set_goal_index_to_recovery()
+    {
+        // Sets goal index to be the recovery goal
+        goal_index_ = RECOVERY_GOAL_INDEX;
+    }
 
     void set_mission_complete() { mission_complete_ = true; }
 
@@ -1119,6 +1125,7 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
         {
             case protobuf::MissionPlan::TRANSIT: return transit<Transit>();
             case protobuf::MissionPlan::REMOTE_CONTROL: return transit<RemoteControl>();
+            case protobuf::MissionPlan::TRAIL: return transit<Trail>();
         }
 
         // should never reach here but if does, abort the mission
@@ -1146,6 +1153,22 @@ struct Transit
     using local_reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>>;
+
+    using reactions =
+        typename boost::mpl::copy<local_reactions,
+                                  boost::mpl::front_inserter<Base::common_reactions>>::type;
+};
+
+struct Trail
+    : IvPSensorPauseCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>
+{
+    using Base =
+        IvPSensorPauseCommon<Trail, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRAIL>;
+
+    Trail(typename StateBase::my_context c);
+    ~Trail();
+
+    using local_reactions = boost::mpl::list<>;
 
     using reactions =
         typename boost::mpl::copy<local_reactions,

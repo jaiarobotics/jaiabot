@@ -9,6 +9,7 @@ if(build_doc)
   # doc install
   install(DIRECTORY ${project_BUILD_DIR}/src/doc/html DESTINATION share/doc/jaiabot)
   install(DIRECTORY ${project_BUILD_DIR}/src/doc/figures DESTINATION share/doc/jaiabot)
+  install(DIRECTORY ${project_BUILD_DIR}/src/doc/markdown DESTINATION share/doc/jaiabot)
 
 endif()
 

@@ -40,5 +40,6 @@ message PortalToClientMessage
 
     // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
     optional MissionPlan active_mission_plan = 6;
+    optional ContactUpdate contact_update = 7;
 
 }
