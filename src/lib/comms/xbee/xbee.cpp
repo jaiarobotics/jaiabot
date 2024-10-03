@@ -153,7 +153,7 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         Node Identifier
         Stores the node identifier string for a device, which is a user-defined name or description of the
         device. This can be up to 20 ASCII characters.
-        n XCTU prevents you from exceeding the string limit of 20 characters for this command. If you
+        XCTU prevents you from exceeding the string limit of 20 characters for this command. If you
         are using another software application to send the string, you can enter longer strings, but the
         software on the device returns an error.
         Parameter range - A string of case-sensitive ASCII printable characters from 0 to 20 bytes in length. A carriage return
@@ -233,7 +233,7 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         a device sends request a network acknowledgment, and can be resent up to MR+1 times if the device
         does not receive an acknowledgment.
         Changing this value dramatically changes how long a route request takes.
-        We recommend that you set this value to 1.
+        Digi recommends that you set this value to 1 if you have DigiMesh enabled.
         Parameter range - 0 - 7 mesh unicast retries, Default = 1
         */
         stringstream cmd;
