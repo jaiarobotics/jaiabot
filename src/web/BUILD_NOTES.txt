@@ -460,3 +460,57 @@ ERROR in /home/jeff/jaiabot/src/web/jcc/common/JaiaAPI.ts
       TS2724: '"@turf/turf"' has no exported member named 'FeatureCollection'. Did you mean 'featureCollection'?
 
 webpack 5.95.0 compiled with 15 errors in 32016 ms
+
+=====================================================================================================================================================================
+
+AFTER SWITCHING FROM TYPES IN turf.helpers TO geojson
+
+ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts
+./jcc/client/components/Interactions.ts 45:29-32
+[tsl] ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts(45,30)
+      TS2322: Type 'typeof KMZ' is not assignable to type 'typeof FeatureFormat | FeatureFormat<Feature<Geometry>>'.
+  Type 'typeof KMZ' is not assignable to type 'typeof FeatureFormat'.
+    Types of construct signatures are incompatible.
+      Type 'new (inputOptions: any) => KMZ' is not assignable to type 'new <FeatureType extends FeatureLike = Feature<Geometry>>() => FeatureFormat<FeatureType>'.
+        Target signature provides too few arguments. Expected 1 or more, but got 0.
+
+ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts
+./jcc/client/components/Interactions.ts 45:34-37
+[tsl] ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts(45,35)
+      TS2322: Type 'typeof GPX' is not assignable to type 'typeof FeatureFormat | FeatureFormat<Feature<Geometry>>'.
+  Types of construct signatures are incompatible.
+    Type 'new (options?: Options) => GPX' is not assignable to type 'new <FeatureType extends FeatureLike = Feature<Geometry>>() => FeatureFormat<FeatureType>'.
+      Construct signature return types 'GPX' and 'FeatureFormat<FeatureType>' are incompatible.
+        The types of 'featureClass' are incompatible between these types.
+          Type 'typeof Feature' is not assignable to type 'FeatureToFeatureClass<FeatureType>'.
+
+ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts
+./jcc/client/components/Interactions.ts 45:48-51
+[tsl] ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts(45,49)
+      TS2322: Type 'typeof IGC' is not assignable to type 'typeof FeatureFormat | FeatureFormat<Feature<Geometry>>'.
+  Types of construct signatures are incompatible.
+    Type 'new (options?: Options) => IGC' is not assignable to type 'new <FeatureType extends FeatureLike = Feature<Geometry>>() => FeatureFormat<FeatureType>'.
+      Construct signature return types 'IGC' and 'FeatureFormat<FeatureType>' are incompatible.
+        The types of 'featureClass' are incompatible between these types.
+          Type 'typeof Feature' is not assignable to type 'FeatureToFeatureClass<FeatureType>'.
+
+ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts
+./jcc/client/components/Interactions.ts 45:53-56
+[tsl] ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts(45,54)
+      TS2322: Type 'typeof KML' is not assignable to type 'typeof FeatureFormat | FeatureFormat<Feature<Geometry>>'.
+  Types of construct signatures are incompatible.
+    Type 'new (options?: Options) => KML' is not assignable to type 'new <FeatureType extends FeatureLike = Feature<Geometry>>() => FeatureFormat<FeatureType>'.
+      Construct signature return types 'KML' and 'FeatureFormat<FeatureType>' are incompatible.
+        The types of 'featureClass' are incompatible between these types.
+          Type 'typeof Feature' is not assignable to type 'FeatureToFeatureClass<FeatureType>'.
+
+ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts
+./jcc/client/components/Interactions.ts 45:58-66
+[tsl] ERROR in /home/jeff/jaiabot/src/web/jcc/client/components/Interactions.ts(45,59)
+      TS2322: Type 'typeof TopoJSON' is not assignable to type 'typeof FeatureFormat | FeatureFormat<Feature<Geometry>>'.
+  Types of construct signatures are incompatible.
+    Type 'new (options?: Options) => TopoJSON' is not assignable to type 'new <FeatureType extends FeatureLike = Feature<Geometry>>() => FeatureFormat<FeatureType>'.
+      Construct signature return types 'TopoJSON' and 'FeatureFormat<FeatureType>' are incompatible.
+        The types of 'featureClass' are incompatible between these types.
+          Type 'typeof Feature' is not assignable to type 'FeatureToFeatureClass<FeatureType>'.
+

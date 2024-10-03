@@ -1,6 +1,7 @@
 import React from "react";
 import Map from "ol/Map";
 import turf from "@turf/turf";
+import { Feature as GjFeature, LineString as GjLineString } from "geojson";
 import JaiaToggle from "./JaiaToggle";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import {
@@ -15,7 +16,7 @@ import { FormControl, MenuItem } from "@mui/material";
 import { TaskSettingsPanel } from "./TaskSettingsPanel";
 import { MissionInterface } from "./CommandControl/CommandControl";
 import { Geometry } from "ol/geom";
-import { Feature } from "ol";
+import { Feature as OlFeature } from "ol";
 import { CustomAlert } from "./shared/CustomAlert";
 
 import "../style/components/MissionSettings.css";
@@ -44,14 +45,14 @@ interface Props {
     missionParams: MissionParams;
     setMissionParams: (missionParams: MissionParams) => void;
     missionPlanningGrid: { [key: string]: number[][] };
-    missionPlanningFeature: Feature<Geometry>;
+    missionPlanningFeature: OlFeature<Geometry>;
     missionBaseGoal: Goal;
     missionStartTask: MissionTask;
     missionEndTask: MissionTask;
-    rallyFeatures: Feature<Geometry>[];
-    startRally: Feature<Geometry>;
-    endRally: Feature<Geometry>;
-    centerLineString: turf.helpers.Feature<turf.helpers.LineString>;
+    rallyFeatures: OlFeature<Geometry>[];
+    startRally: OlFeature<Geometry>;
+    endRally: OlFeature<Geometry>;
+    centerLineString: GjFeature<GjLineString>;
     runList: MissionInterface;
     bottomDepthSafetyParams: BottomDepthSafetyParams;
     setBottomDepthSafetyParams: (params: BottomDepthSafetyParams) => void;
@@ -62,14 +63,14 @@ interface Props {
 
     onClose: () => void;
     onMissionApply: (
-        startRally: Feature<Geometry>,
-        endRally: Feature<Geometry>,
+        startRally: OlFeature<Geometry>,
+        endRally: OlFeature<Geometry>,
         missionStartTask: MissionTask,
         missionEndTask: MissionTask,
     ) => void;
     onMissionChangeEditMode: () => void;
     onTaskTypeChange: () => void;
-    setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void;
+    setSelectedRallyPoint: (rallyPoint: OlFeature<Geometry>, isStart: boolean) => void;
     onChange?: () => void;
     areThereRuns: () => boolean;
 }
@@ -473,7 +474,7 @@ export class MissionSettingsPanel extends React.Component {
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
         const rallyNum = evt.target.value;
-        let selectedRallyFeature: Feature<Geometry> = null;
+        let selectedRallyFeature: OlFeature<Geometry> = null;
         for (const rallyFeature of this.props.rallyFeatures) {
             if (rallyFeature.get("num") === rallyNum) {
                 selectedRallyFeature = rallyFeature;

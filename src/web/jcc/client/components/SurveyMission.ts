@@ -10,6 +10,7 @@ import { MissionTask } from "./shared/JAIAProtobuf";
 import { CommandList } from "./Missions";
 import { deepcopy } from "./shared/Utilities";
 import * as turf from "@turf/turf";
+import { Position } from "geojson";
 import { TaskType } from "./shared/JAIAProtobuf";
 import { Command } from "./shared/JAIAProtobuf";
 import { MovementType } from "./shared/JAIAProtobuf";
@@ -113,9 +114,9 @@ export function getSurveyMissionPlans(
         botGoals.push(botGoal);
 
         // Mission Goals
-        const botMissionGoalPositions: turf.helpers.Position[] = mpg[key];
+        const botMissionGoalPositions: Position[] = mpg[key];
 
-        botMissionGoalPositions.forEach((goal: turf.helpers.Position, index: number) => {
+        botMissionGoalPositions.forEach((goal: Position, index: number) => {
             let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0];
 
             // For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
