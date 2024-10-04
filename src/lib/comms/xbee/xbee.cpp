@@ -79,7 +79,11 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
                                          const std::string& _my_node_id, const uint16_t network_id,
                                          const std::string& xbee_info_location,
                                          const bool& use_encryption,
-                                         const std::string& encryption_password)
+                                         const std::string& encryption_password,
+                                         const std::string& mesh_unicast_retries,
+                                         const std::string& unicast_mac_retries,
+                                         const std::string& network_delay_slots,
+                                         const std::string& broadcast_multi_transmits)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -99,36 +103,43 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
     enter_command_mode();
 
     // Set the configuration parameters, so we're on the same network as other XBee modems
-
-    // RE (Restore Defaults)
-    // Restore device parameters to factory defaults.
     {
+        /*
+        Restore Defaults
+        Restore device parameters to factory defaults.
+        */
         stringstream cmd;
         cmd << "ATRE" << '\r';
         write(cmd.str());
         assert_ok();
     }
 
-    // HP (Preamble ID)
-    // The preamble ID for which the device communicates. Only devices with matching preamble IDs can
-    // communicate with each other. Different preamble IDs minimize interference between multiple sets of
-    // devices operating in the same vicinity. When receiving a packet, the device checks this before the
-    // network ID, as it is encoded in the preamble, and the network ID is encoded in the MAC header.
     {
+        /*
+        Preamble ID
+        The preamble ID for which the device communicates. Only devices with matching preamble IDs can
+        communicate with each other. Different preamble IDs minimize interference between multiple sets of
+        devices operating in the same vicinity. When receiving a packet, the device checks this before the
+        network ID, as it is encoded in the preamble, and the network ID is encoded in the MAC header.
+        Parameter range - 0 - 9 (usually), Default = 0
+        */
         stringstream cmd;
         cmd << "ATHP=00" << '\r';
         write(cmd.str());
         assert_ok();
     }
 
-    // ID (Network ID)
-    // Set or read the user network identifier.
-    // Devices must have the same network identifier to communicate with each other.
-    // Devices can only communicate with other devices that have the same network identifier and channel
-    // configured.
-    // When receiving a packet, the device check this after the preamble ID. If you are using Original
-    // equipment manufacturer (OEM) network IDs, 0xFFFF uses the factory value.
     {
+        /*
+        Network ID
+        Set or read the user network identifier.
+        Devices must have the same network identifier to communicate with each other.
+        Devices can only communicate with other devices that have the same network identifier and channel
+        configured.
+        When receiving a packet, the device check this after the preamble ID. If you are using Original
+        equipment manufacturer (OEM) network IDs, 0xFFFF uses the factory value.
+        Parameter range - 0 - 0x7FFF, Default = 0x7FFF
+        */
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group) << "Network ID: " << setw(4) << network_id
                                   << endl;
@@ -137,11 +148,17 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         assert_ok();
     }
 
-    // NI (Node Identifier)
-    // Stores the node identifier string for a device, which is a user-defined name or description of the
-    // device. This can be up to 20 ASCII characters.
     {
-        // Set the node_id to the modem_id
+        /*
+        Node Identifier
+        Stores the node identifier string for a device, which is a user-defined name or description of the
+        device. This can be up to 20 ASCII characters.
+        XCTU prevents you from exceeding the string limit of 20 characters for this command. If you
+        are using another software application to send the string, you can enter longer strings, but the
+        software on the device returns an error.
+        Parameter range - A string of case-sensitive ASCII printable characters from 0 to 20 bytes in length. A carriage return
+            or a comma automatically ends the command. Default = 0x20 (an ASCII space character)
+        */
         stringstream cmd;
         cmd << "ATNI" << my_node_id << '\r';
         write(cmd.str());
@@ -149,7 +166,15 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
     }
 
     {
-        // Set modem to API mode (packets instead of a plain serial port)
+        /*
+        API Enable
+        Set or read the API mode setting. The device can format the RF packets it receives into API frames and
+        send them out the serial port.
+        When you enable API, you must format the serial data as API frames because Transparent operating
+        mode is disabled.
+        Enables API Mode. The device ignores this command when using SPI. API mode 1 is always used.
+        Parameter range - 0 - 2, Default = 0
+        */
         stringstream cmd;
         cmd << "ATAP=1" << '\r';
         write(cmd.str());
@@ -157,7 +182,12 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
     }
 
     {
-        // Set modem API options to 0 (not explicit frames)
+        /*
+        API Options
+        The API data frame output format for RF packets received.
+        Use AO to enable different API output frames.
+        Parameter range - 0 - 2, Default = 0
+        */
         stringstream cmd;
         cmd << "ATAO=0" << '\r';
         write(cmd.str());
@@ -166,12 +196,11 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
 
     {
         /*
-        Sets the network security key value that the device uses for encryption and decryption.
+        AES Encryption Key
+        Sets the 256-bit network security key value that the device uses for encryption and decryption.
         This command is write-only. If you attempt to read KY, the device returns an OK status.
         Set this command parameter the same on all devices in a network.
-        The value passes in as hex characters when you set it from AT command mode, and as binary bytes
-        when you set it in API mode.
-        128 bit value (16 bytes)
+        Parameter range - 256-bit value (64 Hexadecimal digits), Default = 0
         */
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group)
@@ -183,14 +212,81 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
 
     {
         /*
-        Enables or disables Advanced Encryption Standard (AES) encryption.
+        Encryption Enable
+        Enable or disable 256-bit Advanced Encryption Standard (AES) encryption.
         Set this command parameter the same on all devices in a network.
         1 = encryption enabled
+        Parameter range - 0 - 1, Default = 0
         */
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group) << "Enable Encryption: " << enable_encryption
                                   << endl;
         cmd << "ATEE=" + enable_encryption << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Mesh Unicast Retries
+        Set or read the maximum number of network packet delivery attempts. If MR is non-zero, the packets
+        a device sends request a network acknowledgment, and can be resent up to MR+1 times if the device
+        does not receive an acknowledgment.
+        Changing this value dramatically changes how long a route request takes.
+        Digi recommends that you set this value to 1 if you have DigiMesh enabled.
+        Parameter range - 0 - 7 mesh unicast retries, Default = 1
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Mesh Unicast Retries: " << mesh_unicast_retries
+                                  << endl;
+        cmd << "ATMR" << mesh_unicast_retries << '\r'; 
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Unicast Mac Retries
+        Set or read the maximum number of MAC level packet delivery attempts for unicasts. If RR is nonzero,
+        the sent unicast packets request an acknowledgment from the recipient. Unicast packets can be
+        retransmitted up to RR times if the transmitting device does not receive a successful
+        acknowledgment.
+        Parameter range - 0 - 0xF, Default = 0xA (10 retries)
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Unicast Mac Retries: " << unicast_mac_retries
+                                  << endl;
+        cmd << "ATRR" << unicast_mac_retries << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Network Delay slots
+        Set or read the maximum random number of network delay slots before rebroadcasting a network
+        packet.
+        Parameter range - 1 - 0x5 network delay slots, Default = 3
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Network Delay slots: " << network_delay_slots
+                                  << endl;
+        cmd << "ATNN" << network_delay_slots << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Broadcast Multi Transmits
+        Set or read the number of additional MAC-level broadcast transmissions. All broadcast packets are
+        transmitted MT+1 times to ensure they are received.
+        Parameter range - 0 - 5, Default = 3
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Broadcast Multi Transmits: " << broadcast_multi_transmits
+                                  << endl;
+        cmd << "ATMT" << broadcast_multi_transmits << '\r'; 
         write(cmd.str());
         assert_ok();
     }
@@ -925,9 +1021,32 @@ string jaiabot::comms::XBeeDevice::api_transmit_request(const SerialNumber& dest
                              << "   TX REQ for data:" << hexadecimal(data_string) << endl;
     glog.is_debug2() && glog << group(glog_group) << "   dest: " << hexadecimal(dest_string)
                              << endl;
-    string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
-               string("\xff\xfe\x00\x00", 4) + data_string;
-    return s;
+
+    // Frame Type: Transmit Request (0x10)
+    string frame_type = string("\x10", 1);                      
+
+    // Frame ID
+    string frame_id_string = string((char*)&frame_id, 1);
+
+    // 16-bit Network Address (0xFFFE)
+    string network_address = string("\xff\xfe", 2);   
+
+    // Broadcast Radius (0 = max hops)
+    string broadcast_radius = string("\x00", 1);               
+
+    // Directed broadcast mode (TO = 0x80)
+    string transmit_options = string("\x80", 1);
+
+    // Construct the full frame by combining the parts
+    string frame = frame_type
+                 + frame_id_string
+                 + dest_string
+                 + network_address
+                 + broadcast_radius
+                 + transmit_options
+                 + data_string;
+
+    return frame;
 }
 
 // This function is used to send a test between two links
