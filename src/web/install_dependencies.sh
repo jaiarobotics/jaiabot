@@ -7,7 +7,5 @@ echo 🟢 Installing npm dependencies in ${PACKAGE_JSON_DIR}
 
 pushd ${PACKAGE_JSON_DIR} > /dev/null
     # Shut up unless there's an error!
-    # TODO restore before merging
-    # npm install --no-audit --no-progress --silent || npm install --no-audit --no-progress --quiet
-    npm install
+    npm install --no-audit --no-progress --silent || npm install --no-audit --no-progress --quiet
 popd > /dev/null
