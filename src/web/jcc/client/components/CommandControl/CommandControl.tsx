@@ -81,21 +81,14 @@ import OlCollection from "ol/Collection";
 import LayerGroup from "ol/layer/Group";
 import OlLayerSwitcher from "ol-layerswitcher";
 import OlMultiLineString from "ol/geom/MultiLineString";
-import { Coordinate } from "ol/coordinate";
 import { Interaction } from "ol/interaction";
 import { boundingExtent } from "ol/extent.js";
 import { MapBrowserEvent } from "ol";
 import { getLength as OlGetLength } from "ol/sphere";
 import { Geometry, LineString as OlLineString, Point } from "ol/geom";
-import {
-    Circle as OlCircleStyle,
-    Fill as OlFillStyle,
-    Stroke as OlStrokeStyle,
-    Style as OlStyle,
-} from "ol/style";
+import { Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from "ol/style";
 
 // TurfJS
-import * as turf from "@turf/turf";
 import { Feature as GjFeature, LineString as GjLineString } from "geojson";
 
 // Styling
@@ -449,7 +442,6 @@ export default class CommandControl extends React.Component {
         this.interactions = new Interactions(this, map);
         map.addInteraction(this.interactions.pointerInteraction);
         map.addInteraction(this.interactions.translateInteraction);
-        map.addInteraction(this.interactions.dragAndDropInteraction);
         // Center persistence
         map.getView().setCenter(mapSettings.center);
         map.getView().on("change:center", function () {

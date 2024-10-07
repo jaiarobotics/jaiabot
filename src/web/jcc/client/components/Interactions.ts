@@ -5,11 +5,7 @@ import * as Events from "ol/events";
 import { DrawEvent } from "ol/interaction/Draw";
 import CommandControl from "./CommandControl/CommandControl";
 import { unByKey } from "ol/Observable";
-import GeoJSON from "ol/format/GeoJSON";
-import { GPX, IGC, KML, TopoJSON } from "ol/format";
 import { Map } from "ol";
-import VectorLayer from "ol/layer/Vector";
-import { DragAndDropEvent } from "ol/interaction/DragAndDrop";
 import PointerInteraction from "ol/interaction/Pointer";
 import { getElementById } from "./shared/Utilities";
 import FeatureFormat from "ol/format/Feature";
@@ -46,11 +42,6 @@ export class Interactions {
     measureListener: Events.EventsKey;
 
     FormatConstructor = 0;
-
-    dragAndDropInteraction = new Interaction.DragAndDrop({
-        formatConstructors: [GPX, GeoJSON, IGC, KML, TopoJSON] as FormatConstructor[],
-    });
-
     pointerInteraction: PointerInteraction;
 
     selectInteraction = new Interaction.Select();
@@ -74,21 +65,6 @@ export class Interactions {
             unByKey(this.measureListener);
             commandControl.changeInteraction();
         });
-
-        // Set addFeatures interaction
-        this.dragAndDropInteraction.on("addfeatures", function (event: DragAndDropEvent) {
-            const vectorSource = new Source.Vector({
-                features: event.features as any,
-            });
-            map.addLayer(
-                new VectorLayer({
-                    source: vectorSource,
-                    zIndex: 2000,
-                }),
-            );
-            map.getView().fit(vectorSource.getExtent());
-        });
-
         this.pointerInteraction = new PointerInteraction({
             handleEvent: commandControl.handleEvent.bind(commandControl),
             stopDown: commandControl.stopDown.bind(commandControl),
