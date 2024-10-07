@@ -7,12 +7,16 @@ import CommandControl from "./CommandControl/CommandControl";
 import { unByKey } from "ol/Observable";
 import GeoJSON from "ol/format/GeoJSON";
 import { GPX, IGC, KML, TopoJSON } from "ol/format";
-import { KMZ } from "./KMZ";
 import { Map } from "ol";
 import VectorLayer from "ol/layer/Vector";
 import { DragAndDropEvent } from "ol/interaction/DragAndDrop";
 import PointerInteraction from "ol/interaction/Pointer";
 import { getElementById } from "./shared/Utilities";
+import FeatureFormat from "ol/format/Feature";
+import { Feature } from "ol";
+import { Geometry } from "ol/geom";
+
+type FormatConstructor = typeof FeatureFormat | FeatureFormat<Feature<Geometry>>;
 
 export class Interactions {
     measureInteraction = new Interaction.Draw({
@@ -41,8 +45,10 @@ export class Interactions {
 
     measureListener: Events.EventsKey;
 
+    FormatConstructor = 0;
+
     dragAndDropInteraction = new Interaction.DragAndDrop({
-        formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+        formatConstructors: [GPX, GeoJSON, IGC, KML, TopoJSON] as FormatConstructor[],
     });
 
     pointerInteraction: PointerInteraction;
