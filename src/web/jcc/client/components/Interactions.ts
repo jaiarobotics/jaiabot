@@ -8,11 +8,6 @@ import { unByKey } from "ol/Observable";
 import { Map } from "ol";
 import PointerInteraction from "ol/interaction/Pointer";
 import { getElementById } from "./shared/Utilities";
-import FeatureFormat from "ol/format/Feature";
-import { Feature } from "ol";
-import { Geometry } from "ol/geom";
-
-type FormatConstructor = typeof FeatureFormat | FeatureFormat<Feature<Geometry>>;
 
 export class Interactions {
     measureInteraction = new Interaction.Draw({
@@ -41,7 +36,6 @@ export class Interactions {
 
     measureListener: Events.EventsKey;
 
-    FormatConstructor = 0;
     pointerInteraction: PointerInteraction;
 
     selectInteraction = new Interaction.Select();
