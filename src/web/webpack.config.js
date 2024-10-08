@@ -94,6 +94,7 @@ module.exports = (env, argv) => {
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jed/"),
             filename: "script.js",
+            clean: true,
         },
         plugins: [
             new CopyWebpackPlugin({
@@ -115,6 +116,7 @@ module.exports = (env, argv) => {
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
             filename: "[name].js",
+            clean: true,
         },
         plugins: [
             new HtmlWebpackPlugin({
