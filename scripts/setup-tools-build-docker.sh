@@ -18,7 +18,7 @@ docker run hello-world
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 # Build the container
-cd ../.docker/focal/arm64
-docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
+cd ../.docker/noble/arm64
+docker build -t gobysoft/jaiabot-ubuntu-arm64:24.04.1 .
 # Optionally, push to docker hub
-docker push gobysoft/jaiabot-ubuntu-arm64:20.04.1
+docker push gobysoft/jaiabot-ubuntu-arm64:24.04.1
