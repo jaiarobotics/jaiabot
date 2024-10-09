@@ -82,4 +82,5 @@ wheel==0.44.0
 xdg==5
 zipp==3.20.2
 ./pyjaia
+./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e 
 
 # Kill all descendants if we exit or are killed
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT

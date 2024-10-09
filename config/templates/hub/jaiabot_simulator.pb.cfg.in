@@ -7,3 +7,5 @@ start_location {
 }
 
 is_bot_sim: false
+
+hub_gpsd_device: "$hub_gpsd_device"

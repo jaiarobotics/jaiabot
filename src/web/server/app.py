@@ -105,11 +105,11 @@ def JaiaResponse(result: any):
     return Response(json.dumps(responseObject), mimetype='application/json')
 
 
-@app.route('/jaia/status', methods=['GET'])
+@app.route('/jaia/v0/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
-@app.route('/jaia/status-bots', methods=['GET'])
+@app.route('/jaia/v0/status-bots', methods=['GET'])
 def getStatusBots():
     """Gets dictionary of most up-to-date bot statuses
 
@@ -118,7 +118,7 @@ def getStatusBots():
     """
     return JSONResponse(jaia_interface.get_status_bots())
 
-@app.route('/jaia/status-hubs', methods=['GET'])
+@app.route('/jaia/v0/status-hubs', methods=['GET'])
 def getStatusHubs():
     """Gets dictionary of most up-to-date hub statuses
 
@@ -127,58 +127,58 @@ def getStatusHubs():
     """
     return JSONResponse(jaia_interface.get_status_hubs())
 
-@app.route('/jaia/metadata', methods=['GET'])
+@app.route('/jaia/v0/metadata', methods=['GET'])
 def getMetadata():
     return JSONResponse(jaia_interface.get_Metadata())
 
 ####### Commands
 
-@app.route('/jaia/command', methods=['POST'])
+@app.route('/jaia/v0/command', methods=['POST'])
 def postCommand():
     response = jaia_interface.post_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/command-for-hub', methods=['POST'])
+@app.route('/jaia/v0/command-for-hub', methods=['POST'])
 def postCommandForHub():
     response = jaia_interface.post_command_for_hub(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/take-control', methods=['POST'])
+@app.route('/jaia/v0/take-control', methods=['POST'])
 def postTakeControl():
     response = jaia_interface.post_take_control(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/all-stop', methods=['POST'])
+@app.route('/jaia/v0/all-stop', methods=['POST'])
 def postAllStop():
     response = jaia_interface.post_all_stop(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/all-activate', methods=['POST'])
+@app.route('/jaia/v0/all-activate', methods=['POST'])
 def postAllActivate():
     response = jaia_interface.post_all_activate(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/next-task-all', methods=['POST'])
+@app.route('/jaia/v0/next-task-all', methods=['POST'])
 def postNextTaskAll():
     response = jaia_interface.post_next_task_all(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/all-recover', methods=['POST'])
+@app.route('/jaia/v0/all-recover', methods=['POST'])
 def postAllRecover():
     response = jaia_interface.post_all_recover(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/engineering-command', methods=['POST'])
+@app.route('/jaia/v0/engineering-command', methods=['POST'])
 def postPidCommand():
     jaia_interface.post_engineering_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
-@app.route('/jaia/ep-command', methods=['POST'])
+@app.route('/jaia/v0/ep-command', methods=['POST'])
 def postEngineeringPanel():
     jaia_interface.post_ep_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
-@app.route('/jaia/single-waypoint-mission', methods=['POST'])
+@app.route('/jaia/v0/single-waypoint-mission', methods=['POST'])
 def postSingleWaypointMission():
     jaia_interface.post_single_waypoint_mission(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
@@ -234,24 +234,24 @@ def jedRoot():
 
 ######## TaskPackets
 
-@app.route('/jaia/task-packets', methods=['GET'])
+@app.route('/jaia/v0/task-packets', methods=['GET'])
 def getPackets():
     """
     Date Format: yyyy-mm-dd hh:mm:ss
     Timezone: GMT
-    Example Request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
+    Example Request: http://10.23.1.10/jaia/v0/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
     """
     startDate = parseDate(request.args.get('startDate', (datetime.now(timezone.utc) - timedelta(hours=14))))
     endDate = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
 
-@app.route('/jaia/task-packets-count', methods=['GET'])
+@app.route('/jaia/v0/task-packets-count', methods=['GET'])
 def getPacketsCount():
     return JSONResponse(jaia_interface.get_total_task_packets_count())
 
 ######## Contour map
 
-@app.route('/jaia/depth-contours', methods=['GET'])
+@app.route('/jaia/v0/depth-contours', methods=['GET'])
 def get_deth_contours():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
     end_date = parseDate(request.args.get('endDate', ''))
@@ -259,7 +259,7 @@ def get_deth_contours():
 
 ######## Drift map
 
-@app.route('/jaia/drift-map', methods=['GET'])
+@app.route('/jaia/v0/drift-map', methods=['GET'])
 def get_drift_map():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
     end_date = parseDate(request.args.get('endDate', ''))
@@ -268,7 +268,7 @@ def get_drift_map():
 
 ######## Bot paths
 
-@app.route('/jaia/bot-paths', methods=['GET'])
+@app.route('/jaia/v0/bot-paths', methods=['GET'])
 def get_bot_paths():
     since_utime: int
 
