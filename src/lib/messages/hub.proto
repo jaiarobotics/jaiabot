@@ -4,6 +4,7 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
@@ -13,20 +14,27 @@ message HubStatus
         unit_system: "si"
     };
 
-    required uint32 hub_id = 1;
-    required uint32 fleet_id = 2;
+    required uint32 hub_id = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    required uint32 fleet_id = 2 [(jaia.field).rest_api.presence = GUARANTEED];
     required uint64 time = 3 [
-        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } },
+        (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional goby.middleware.protobuf.HealthState health_state = 4;
+    optional goby.middleware.protobuf.HealthState health_state = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
     repeated Error error = 5 [
-        (dccl.field).max_repeat = 255
+        (dccl.field).max_repeat = 255,
+        (jaia.field).rest_api.presence = GUARANTEED
     ];  // set max_repeat to a high value as we're not sending this over DCCL
-        // for now, but populate_status_from_health uses this value
-    repeated Warning warning = 6 [(dccl.field).max_repeat = 255];
+    // for now, but populate_status_from_health uses this value
+    repeated Warning warning = 6 [
+        (dccl.field).max_repeat = 255,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 
-    optional GeographicCoordinate location = 10;
+    optional GeographicCoordinate location = 10
+        [(jaia.field).rest_api.presence = GUARANTEED];
 
     repeated uint32 bot_ids_in_radio_file = 11 [(dccl.field).max_repeat = 255];
 
@@ -39,4 +47,12 @@ message HubStatus
         optional bool offload_succeeded = 3;
     }
     optional BotOffloadData bot_offload = 13;
+
+    optional uint64 received_time = 14 [
+        (dccl.field) = {
+            omit: true
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
 }
