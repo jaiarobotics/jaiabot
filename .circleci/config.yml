@@ -168,7 +168,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
-#        - "task/2.y-init"
+        - "task/2.y-init"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
