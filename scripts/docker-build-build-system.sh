@@ -6,7 +6,7 @@ script_dir=$(dirname $0)
 jaia_root=${script_dir}/..
 
 set -a; source ${script_dir}/common-versions.env; set +a 
-(cd ..; cmake -P cmake/ConfigureDockerfiles.cmake)
+(cd ${jaia_root}; cmake -P cmake/ConfigureDockerfiles.cmake)
 
 default_version=${jaia_version_release_branch}
 repo=${jaiabot_repo:-release}
