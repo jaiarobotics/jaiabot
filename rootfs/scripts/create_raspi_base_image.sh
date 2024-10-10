@@ -351,7 +351,7 @@ echo "export JAIABOT_VERSION='$JAIABOT_VERSION'" >> ${OUTPUT_METADATA}
 echo "export GOBY_VERSION='$GOBY_VERSION'" >> ${OUTPUT_METADATA}
 
 if [ ! -z "$VIRTUALBOX" ]; then
-    sudo chroot rootfs apt-get -y install linux-image-generic
+    sudo chroot rootfs apt-get -y install linux-image-virtual
     
     # ensure VM uses eth0, etc. naming like Raspi
     sudo chroot rootfs sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0"/' /etc/default/grub
