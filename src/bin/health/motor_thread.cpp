@@ -25,7 +25,6 @@
 #include "goby/util/sci.h" // for linear_interpolate
 
 #include "jaiabot/messages/motor.pb.h"
-#include "jaiabot/messages/thermistor.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 
 #include "system_thread.h"
@@ -41,6 +40,8 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(
     const jaiabot::config::MotorStatusConfig& cfg)
     : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
 {
+    status_.set_motor_harness_info_type(cfg.motor_harness_info_type());
+
     interthread().subscribe<jaiabot::groups::motor_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
         jaiabot::protobuf::Motor motor;
         if (!motor.ParseFromString(data.data()))
@@ -51,6 +52,8 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(
         }
         glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
                                  << std::endl;
+
+        status_.set_rpm(motor.rpm());          
         last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
     });
 
@@ -64,12 +67,9 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(
                     goby::util::linear_interpolate(resistance, resistance_to_temperature_);
                 float temperature_celsius = (temperature - 32) / 1.8;
 
-                jaiabot::protobuf::Thermistor thermistor_msg;
-                thermistor_msg.set_temperature(temperature_celsius);
-                thermistor_msg.set_resistance(resistance);
-                thermistor_msg.set_voltage(voltage);
-
-                *status_.mutable_thermistor() = thermistor_msg;
+                status_.mutable_thermistor()->set_temperature(temperature_celsius);
+                status_.mutable_thermistor()->set_resistance(resistance);
+                status_.mutable_thermistor()->set_voltage(voltage);
 
                 last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
             }

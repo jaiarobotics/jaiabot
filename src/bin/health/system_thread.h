@@ -127,7 +127,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     void send_rpm_query();
 
   private:
-    jaiabot::protobuf::MotorStatus status_;
+    jaiabot::protobuf::Motor status_;
     goby::time::SteadyClock::time_point last_motor_rpm_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
 

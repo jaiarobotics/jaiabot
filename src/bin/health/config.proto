@@ -26,6 +26,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/motor.proto";
 
 package jaiabot.config;
 
@@ -79,6 +80,7 @@ message MotorStatusConfig
 
     optional int32 motor_rpm_report_timeout_seconds = 10 [default = 40];
     optional int32 motor_thermistor_report_timeout_seconds = 11 [default = 40];
+    optional jaiabot.protobuf.MotorHarnessInfoType motor_harness_info_type = 12 [default = NONE];
 }
 
 message Health

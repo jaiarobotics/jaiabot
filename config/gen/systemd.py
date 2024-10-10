@@ -58,7 +58,8 @@ parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
-parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for data offload ignore type')
+parser.add_argument('--motor_harness_info_type', choices=['none', 'rpm_and_thermistor'], help='If set, configure services for motor harness info type')
 
 args=parser.parse_args()
 
@@ -101,6 +102,10 @@ class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     GOBY = 'GOBY'
     TASKPACKET = 'TASKPACKET'
     NONE = 'NONE'
+
+class MOTOR_HARNESS_INFO_TYPE(Enum):
+    NONE = 'NONE'
+    RPM_AND_THERMISTOR = 'RPM_AND_THERMISTOR'
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
@@ -160,6 +165,11 @@ if args.data_offload_ignore_type == 'goby':
 elif args.data_offload_ignore_type == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
 
+jaia_motor_harness_info_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
+
+if args.motor_harness_info_type == 'rpm_and_thermistor':
+    jaia_motor_harness_info_type = MOTOR_HARNESS_INFO_TYPE.RPM_AND_THERMISTOR
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -208,6 +218,7 @@ subprocess.run('bash -ic "' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
+               'export jaia_motor_harness_info_type=' + str(jaia_motor_harness_info_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
