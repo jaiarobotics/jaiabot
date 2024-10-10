@@ -467,18 +467,6 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION},
-    {'exe': 'rpm.py',
-     'description': 'JaiaBot Motor Python Driver',
-     'template': 'py-app.service.in',
-     'user': 'root', # must run as root to allow interaction with GPIO Pin
-     'group': 'root',
-     'subdir': 'motor',
-     'args': '',
-     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service',
-     'restart': 'on-failure'},
 ]
 
 if jaia_imu_type.value == 'bno085':
@@ -542,6 +530,23 @@ if jaia_bot_type.value == 'echo':
         'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_echo)
+
+if jaia_motor_harness_info_type.value == 'rpm_and_thermistor':
+    jaiabot_apps_motor_harness_info_type = [
+        {'exe': 'rpm.py',
+        'description': 'JaiaBot Motor Python Driver',
+        'template': 'py-app.service.in',
+        'user': 'root', # must run as root to allow interaction with GPIO Pin
+        'group': 'root',
+        'subdir': 'motor',
+        'args': '',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'}
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_motor_harness_info_type)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
