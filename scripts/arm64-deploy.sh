@@ -2,11 +2,7 @@
 
 # This script is executed on the remote hub/bot, when using the docker-arm64-build-and-deploy.sh script
 
-if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
-    build_dir=build/amd64-vbox   
-else    
-    build_dir=build/arm64
-fi
+build_dir=$1
 
 echo "🟢 Verifying goby and dccl versions match"
 local_libgoby_version=$(apt show libgoby3 | sed -n 's/^Version: \(.*\)~.*$/\1/p')

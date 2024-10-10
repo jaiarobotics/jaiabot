@@ -39,7 +39,7 @@ distro=${jaiabot_distro:-${jaia_version_ubuntu_codename}}
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     cd ${script_dir}/..
 
-    build_dir=build/amd64-vbox   
+    build_dir=build/${distro}-${version_lower}-amd64-vbox   
     mkdir -p ${build_dir}
 
     image_name=jaia_build_vbox_${distro}_${repo}_${version_lower}
@@ -56,7 +56,7 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
 else    
     cd ${script_dir}/..
 
-    build_dir=build/arm64
+    build_dir=build/${distro}-${version_lower}-arm64
     mkdir -p ${build_dir}
     image_name=jaia_build_${distro}_${repo}_${version_lower}
 
@@ -91,7 +91,7 @@ else
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./src/web/jcc.conf ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
-        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh ${build_dir}"
 
         if [ ! -z $jaiabot_systemd_type ]; then
             echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"

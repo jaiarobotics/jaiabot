@@ -81,7 +81,7 @@ RUN source $NVM_DIR/nvm.sh \
     && npm install -g npm@@JAIA_VERSION_NPM@ \
     && nvm install $NODE_VERSION \
     && nvm use --delete-prefix $NODE_VERSION \
-    && npm i -g webpack@@JAIA_VERSION_WEBPACK@ webpack-cli@@JAIA_VERSION_WEBPACK_CLI@
+    && npm i -g webpack webpack-cli
 
 # NVM Post Install Setup
 ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin

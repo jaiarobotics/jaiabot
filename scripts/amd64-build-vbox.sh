@@ -7,8 +7,12 @@ set -a; source ${script_dir}/common-versions.env; set +a
 
 build_dir=${script_dir}/../build
 
-mkdir -p ${script_dir}/../build/amd64-vbox
-cd ${script_dir}/../build/amd64-vbox
+distro=$(grep "VERSION_CODENAME" /etc/os-release | cut -d'=' -f2)
+release_branch=${jaia_version_release_branch}
+
+full_build_dir=${script_dir}/../build/${distro}-${release_branch}-amd64-vbox
+mkdir -p ${full_build_dir}
+cd ${full_build_dir}
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
