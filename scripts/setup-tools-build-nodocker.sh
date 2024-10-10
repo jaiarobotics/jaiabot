@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-script_dir=$(dirname $0)
+script_dir=$(dirname $BASH_SOURCE)
 set -a; source ${script_dir}/common-versions.env; set +a 
 
 # Install packages to allow apt to use a repository over HTTPS:

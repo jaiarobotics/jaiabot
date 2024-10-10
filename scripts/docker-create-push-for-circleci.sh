@@ -6,6 +6,7 @@ set -e -u -x
 
 script_dir=$(dirname $0)
 set -a; source ${script_dir}/common-versions.env; set +a 
+(cd ..; cmake -P cmake/ConfigureDockerfiles.cmake)
 
 distro=${1:-${jaia_version_ubuntu_codename}}
 release_branch=${2:-${jaia_version_release_branch}}
