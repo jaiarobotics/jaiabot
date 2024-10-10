@@ -24,6 +24,7 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/udp_config.proto";
 import "dccl/option_extensions.proto";
 
 package jaiabot.config;
@@ -70,6 +71,16 @@ message HelmIVPStatusConfig
     optional int32 time_out_helm_status = 10 [default = 20];
 }
 
+message MotorStatusConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional int32 motor_rpm_report_timeout_seconds = 10 [default = 40];
+    optional int32 motor_thermistor_report_timeout_seconds = 11 [default = 40];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -78,6 +89,7 @@ message Health
 
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
     optional bool auto_restart = 10 [default = true];
     optional int32 auto_restart_timeout = 11
@@ -93,4 +105,5 @@ message Health
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
+    optional MotorStatusConfig motor = 42;
 }

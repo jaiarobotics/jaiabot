@@ -23,6 +23,7 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/multi_thread.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -100,6 +101,8 @@ jaiabot::apps::Health::Health()
                            cfg().auto_restart_init_grace_period_with_units())),
       process_to_not_responding_error_(create_process_to_not_responding_error_map())
 {
+    using MotorRPMUDPThread = goby::middleware::io::UDPPointToPointThread<jaiabot::groups::motor_udp_in, jaiabot::groups::motor_udp_out>;
+
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
         [this](const protobuf::Command& command) {
@@ -292,6 +295,8 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<NTPStatusThread>(cfg().ntp());
+        launch_thread<MotorRPMUDPThread>(cfg().udp_config());
+        launch_thread<MotorStatusThread>(cfg().motor());
     }
 
     // Only run these on the bot

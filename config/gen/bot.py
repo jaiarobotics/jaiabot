@@ -200,6 +200,8 @@ elif common.app == 'jaiabot_health':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
+                                     bind_port=common.udp.motor_cpp_udp_port(),
+                                     remote_port=common.udp.motor_py_udp_port(),
                                      # do not power off or restart the simulator computer unless we're a VirtualFleet
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation()))

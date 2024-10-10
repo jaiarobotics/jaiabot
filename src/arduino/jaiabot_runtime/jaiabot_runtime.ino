@@ -98,6 +98,7 @@ bool target_led_switch_on = false;
 constexpr int VvCurrent = A3;
 constexpr int VccCurrent = A2;
 constexpr int VccVoltage = A0;
+constexpr int thermistor_pin = A4;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -174,6 +175,10 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   // Current motor value
   ack.has_motor = true;
   ack.motor = motor_actual;
+
+  ack.has_thermistor_voltage = true;
+  // Arduino yields resolution between readings of 5V over 1024 units
+  ack.thermistor_voltage = analogRead(thermistor_pin) * 5 / 1024.0;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;

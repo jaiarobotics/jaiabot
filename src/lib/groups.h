@@ -44,9 +44,7 @@ constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temper
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
-
-// motor
-constexpr goby::middleware::Group motor{"jaiabot::motor"};
+constexpr goby::middleware::Group thermistor{"jaiabot::thermistor"};
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
@@ -72,6 +70,9 @@ constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware
 constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
 constexpr goby::middleware::Group systemd_report{"jaiabot::systemd_report"};
 constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ack"};
+constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
+constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
+constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible

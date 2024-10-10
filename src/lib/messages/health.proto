@@ -3,6 +3,7 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/thermistor.proto";
 
 package jaiabot.protobuf;
 
@@ -240,8 +241,6 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 105
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__NOT_RESPONDING__JAIABOT_MOTOR_DRIVER = 106
-        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     WARNING__MISSING_DATA__PITCH = 200
@@ -284,6 +283,12 @@ enum Warning
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // From Motor Status Thread
+    WARNING__NOT_RESPONDING__JAIABOT_RPM_DRIVER = 600
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_ARDUINO_MOTOR_TEMP = 601
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_mission_manager
@@ -484,6 +489,16 @@ message HelmIVPStatus
     optional bool helm_ivp_desired_heading = 3 [default = false];
     optional bool helm_ivp_desired_depth = 4 [default = false];
     optional bool helm_ivp_data = 5 [default = false];
+}
+
+message MotorStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double rpm = 1;
+    optional Thermistor thermistor = 2;
 }
 
 message ThreadHealth
