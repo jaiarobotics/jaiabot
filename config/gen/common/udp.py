@@ -1,6 +1,8 @@
 from common import is_simulation, is_runtime
 from common import comms
 
+# Binding a UDP socket to port 0 allows the operating system to automatically assign an available port
+
 def wifi_udp_port(node_id):
     return 31000 + comms.wifi_modem_id(node_id)
 
