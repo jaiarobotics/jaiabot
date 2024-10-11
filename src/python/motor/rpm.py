@@ -44,13 +44,12 @@ def calculate_rpm():
                 state_change_count += 1
                 prev_state = current_state
 
-            # 1 second elapsed | Revolutions per second
+            # 0.2 second elapsed | Revolutions per second
             if (now - start_interval >= 0.2):
                 rps = (state_change_count / REVOLUTION_CONSTANT) / 0.2
                 rpm = rps * 60
                 start_interval = now
                 state_change_count = 0
-                print("RPM:", rpm, "| Time:", now)
 
     finally:
         GPIO.cleanup()
