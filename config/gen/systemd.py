@@ -467,6 +467,19 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION},
+    {'exe': 'esc_temp.py',
+     'description': 'JaiaBot esc temperature output driver',
+     'template': 'py-app.service.in', 
+     'user': 'root',
+     'group': 'root',
+     'subdir': 'esc_temp',
+     'args': '',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ESC_TEMP_DRIVER',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on_failure'
+    }
 ]
 
 if jaia_imu_type.value == 'bno085':

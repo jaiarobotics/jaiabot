@@ -42,3 +42,9 @@ def motor_cpp_udp_port():
 
 def motor_py_udp_port():
     return 20005 
+
+def esc_temp_cpp_udp_port():
+    return 0
+
+def esc_temp_py_udp_port():
+    return 20006

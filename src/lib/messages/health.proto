@@ -83,6 +83,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER = 38
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_ESC_TEMP_DRIVER = 39
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_ESC_DRIVER = 40
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -138,7 +142,9 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_MOTOR_DRIVER = 125
         [(jaia.ev).rest_api.presence = GUARANTEED];
-
+    ERROR__NOT_RESPONDING__JAIABOT_ESC_DRIVER = 126
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+ 
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_FIX = 200
         [(jaia.ev).rest_api.presence = GUARANTEED];

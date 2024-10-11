@@ -83,6 +83,15 @@ message MotorStatusConfig
     optional jaiabot.protobuf.MotorHarnessInfoType motor_harness_info_type = 12 [default = NONE];
 }
 
+message EscTempStatusConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    
+    optional int32 esc_temp_report_timeout_seconds = 10 [default = 40];
+}
+
 message Health
 {
     option (dccl.msg) = {
