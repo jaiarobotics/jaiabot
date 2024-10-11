@@ -1,7 +1,7 @@
 #!/bin/sh  
 
 echo "I: create jaia user"
-adduser --gecos jaia --disabled-login jaia
+adduser --gecos jaia jaia
 
 echo "I: set jaia user password"
 echo "jaia:jaia" | chpasswd
