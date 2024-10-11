@@ -5,7 +5,7 @@ udp_config {
     bind_port: $bind_port
     remote_address: "127.0.0.1"
     remote_port: $remote_port
-}+
+}
 
 auto_restart: false
 auto_restart_timeout: 20

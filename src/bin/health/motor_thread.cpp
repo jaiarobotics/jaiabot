@@ -53,7 +53,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(
         glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
                                  << std::endl;
 
-        status_.set_rpm(motor.rpm());          
+        rpm_value_ = motor.rpm();        
         last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
     });
 
@@ -72,6 +72,25 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(
                 status_.mutable_thermistor()->set_voltage(voltage);
 
                 last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
+            }
+
+            if (arduino_response.has_motor())
+            {
+                if (arduino_response.motor() > 1500)
+                {
+                    // motor is positive 
+                    status_.set_rpm(std::abs(rpm_value_));
+                }
+                else if (arduino_response.motor() < 1500)
+                {
+                    // motor is negative
+                    status_.set_rpm(-std::abs(rpm_value_));
+                }
+                else
+                {
+                    // motor is off
+                    status_.set_rpm(0);
+                }
             }
         });
 }

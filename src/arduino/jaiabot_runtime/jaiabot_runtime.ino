@@ -15,7 +15,7 @@
 // If you are increasing this version than update
 // arduino driver configuration to include the new
 // version
-const int arduino_version = 1;
+const int arduino_version = 2;
 
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...

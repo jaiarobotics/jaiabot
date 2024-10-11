@@ -3,7 +3,6 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/option_extensions.proto";
-import "jaiabot/messages/motor.proto";
 
 package jaiabot.protobuf;
 
