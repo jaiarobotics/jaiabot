@@ -1,0 +1,46 @@
+// Copyright 2021:
+//   JaiaRobotics LLC
+// File authors:
+//   Matthew Ferro <matt.ferro@jaia.tech>
+//
+//
+// This file is part of the JaiaBot Hydro Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+import "jaiabot/messages/feather.proto";
+import "goby/middleware/protobuf/udp_config.proto";
+import "jaiabot/messages/esc_temp.proto";
+
+package jaiabot.config;
+
+message escTempDriver
+{
+    // required parameters for ApplicationBase3 class
+    optional goby.middleware.protobuf.AppConfig app = 1;
+
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
+
+    optional int32 esc_temp_report_timeout_seconds = 10 [default = 20];
+    optional bool esc_temp_report_in_simulation = 11 [default = true];
+    optional jaiabot.protobuf.EscTempIssue.SolutionType esc_temp_issue_solution = 12 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
+    optional int32 esc_temp_trigger_issue_timeout_seconds = 13 [default = 20];
+}
