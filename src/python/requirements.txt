@@ -1,86 +1,86 @@
+cmocean==4.0.3
+turfpy==0.0.7
 Adafruit-Blinka==8.47.0
 adafruit-circuitpython-busdevice==5.2.9
-adafruit-circuitpython-connectionmanager==3.1.1
 adafruit-circuitpython-register==1.10.0
+adafruit-circuitpython-connectionmanager==3.1.1
 adafruit-circuitpython-requests==4.1.6
 adafruit-circuitpython-typing==1.11.0
 Adafruit-PlatformDetect==3.74.0
 Adafruit-PureIO==1.1.11
-attrs==24.2.0
-binho-host-adapter==0.1.6
-blinker==1.8.2
-certifi==2024.8.30
-chardet==5.2.0
-charset-normalizer==3.3.2
-click==8.1.7
-click-plugins==1.1.1
-cligj==0.7.2
-cmocean==4.0.3
-colorzero==2.0
-contourpy==1.3.0
-cycler==0.12.1
-dataclasses-json==0.6.7
-fiona==1.10.1
-Flask==3.0.3
-fonttools==4.54.1
-geojson==3.1.0
-geopandas==1.0.1
-gpiozero==2.0.1
-h5py==3.11.0
-idna==3.10
-importlib_metadata==8.5.0
-itsdangerous==2.2.0
-Jinja2==3.1.4
-kiwisolver==1.4.7
-MarkupSafe==2.1.5
-marshmallow==3.22.0
-marshmallow-enum==1.5.1
-matplotlib==3.9.2
-munch==4.0.0
-mypy-extensions==1.0.0
-netifaces==0.11.0
-networkx==3.3
-numpy==2.1.1
-packaging==24.1
-pandas==2.2.3
-pbr==6.1.0
-pillow==10.4.0
-pip==24.0
-plotly==5.24.1
-protobuf==3.20.0
-pyftdi==0.55.4
-pyogrio==0.9.0
-pyparsing==3.1.4
-pyproj==3.6.1
-pyserial==3.5
-python-dateutil==2.9.0.post0
-pytz==2024.2
-pyusb==1.2.1
-pyxdg==0.28
-requests==2.32.3
-RPi.GPIO==0.7.1
-rpi_ws281x==5.0.0
-scipy==1.14.1
-scour==0.38.2
-setuptools==75.1.0
-shapely==2.0.6
-simplejson==3.19.3
-six==1.16.0
-smbus==1.1.post2
-spidev==3.6
-sysv_ipc==1.1.0
-tenacity==9.0.0
-testresources==2.0.1
-turfpy==0.0.7
-typing-inspect==0.9.0
-typing_extensions==4.12.2
-tzdata==2024.2
-urllib3==2.2.3
-watchdog==5.0.2
-Werkzeug==3.0.4
-wheel==0.44.0
-xdg==5
-zipp==3.20.2
+# gpiozero==2.0.1
+# RPi.GPIO==0.7.1
+# attrs==24.2.0
+# binho-host-adapter==0.1.6
+# blinker==1.8.2
+# certifi==2024.8.30
+# chardet==5.2.0
+# charset-normalizer==3.3.2
+# click==8.1.7
+# click-plugins==1.1.1
+# cligj==0.7.2
+# colorzero==2.0
+# contourpy==1.3.0
+# cycler==0.12.1
+# dataclasses-json==0.6.7
+# fiona==1.10.1
+# Flask==3.0.3
+# fonttools==4.54.1
+# geojson==3.1.0
+# geopandas==1.0.1
+# h5py==3.11.0
+# idna==3.10
+# importlib_metadata==8.5.0
+# itsdangerous==2.2.0
+# Jinja2==3.1.4
+# kiwisolver==1.4.7
+# MarkupSafe==2.1.5
+# marshmallow==3.22.0
+# marshmallow-enum==1.5.1
+# matplotlib==3.9.2
+# munch==4.0.0
+# mypy-extensions==1.0.0
+# netifaces==0.11.0
+# networkx==3.3
+# numpy==2.1.1
+# packaging==24.1
+# pandas==2.2.3
+# pbr==6.1.0
+# pillow==10.4.0
+# pip==24.0
+# plotly==5.24.1
+# protobuf==3.20.0
+# pyftdi==0.55.4
+# pyogrio==0.9.0
+# pyparsing==3.1.4
+# pyproj==3.6.1
+# pyserial==3.5
+# python-dateutil==2.9.0.post0
+# pytz==2024.2
+# pyusb==1.2.1
+# pyxdg==0.28
+# requests==2.32.3
+# rpi_ws281x==5.0.0
+# scipy==1.14.1
+# scour==0.38.2
+# setuptools==75.1.0
+# shapely==2.0.6
+# simplejson==3.19.3
+# six==1.16.0
+# smbus==1.1.post2
+# spidev==3.6
+# sysv_ipc==1.1.0
+# tenacity==9.0.0
+# testresources==2.0.1
+# typing-inspect==0.9.0
+# typing_extensions==4.12.2
+# tzdata==2024.2
+# urllib3==2.2.3
+# watchdog==5.0.2
+# Werkzeug==3.0.4
+# wheel==0.44.0
+# xdg==5
+# zipp==3.20.2
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
