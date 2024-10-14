@@ -28,6 +28,8 @@ enum MissionState
         [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__UNDERWAY__MOVEMENT__TRAIL = 115
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -336,6 +338,7 @@ message MissionPlan
     {
         TRANSIT = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
         REMOTE_CONTROL = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+        TRAIL = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional MovementType movement = 2
         [default = TRANSIT, (jaia.field).rest_api.presence = GUARANTEED];
@@ -370,11 +373,51 @@ message MissionPlan
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 3 }];
+
+    message TrailParam
+    {
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        optional int32 contact = 1
+            [default = 0, (dccl.field) = { min: 0, max: 7 }];
+
+        optional double angle = 2 [
+            default = 180,
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            }
+        ];
+        optional bool angle_relative = 3 [default = true];
+        optional double range = 4 [
+            default = 50,
+            (dccl.field) = {
+                min: 0
+                max: 500
+                precision: 0
+                units: { derived_dimensions: "length" }
+            }
+        ];
+    }
+
+    oneof movement_params
+    {
+        TrailParam trail = 10;
+    }
+
     optional uint32 repeats = 9 [
         default = 1,
         (jaia.field).rest_api.presence = GUARANTEED,
         (dccl.field) = { min: 1 max: 100 }
     ];
+
 }
 
 message IvPBehaviorUpdate
@@ -451,12 +494,46 @@ message IvPBehaviorUpdate
         ];  // meters/second
     }
 
+    message TrailUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional MissionPlan.TrailParam param = 2;
+    }
+
+    message ContactUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+        optional int32 contact = 1;
+        optional double x = 2
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double y = 3
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double speed = 4 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+        optional double heading_or_cog = 5 [(dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }];  // degrees
+    }
+
     oneof behavior
     {
         TransitUpdate transit = 1;
         StationkeepUpdate stationkeep = 2;
         ConstantHeadingUpdate constantHeading = 3;
         ConstantSpeedUpdate constantSpeed = 4;
+        TrailUpdate trail = 5;
+        ContactUpdate contact = 6;
     }
 }
 

@@ -27,7 +27,6 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 
-import "jaiabot/messages/feather.proto";
 import "jaiabot/messages/imu.proto";
 
 package jaiabot.config;

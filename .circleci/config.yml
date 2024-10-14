@@ -263,15 +263,23 @@ workflows:
           requires:
             - upload
 
-      # rootfs jobs
+      # rootfs jobs - require upload first so we install the same release (not previous release) onto the rootfs
       - raspi-image-create-focal:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - virtualbox-image-create-focal:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - raspi-image-create-jammy:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - virtualbox-image-create-jammy:
           <<: *filter-template-rootfs-builds
+          requires:
+            - upload
       - aws-sync:
           requires:
             - raspi-image-create-jammy

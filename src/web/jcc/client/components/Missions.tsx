@@ -5,6 +5,7 @@ import {
     CommandType,
     MissionStart,
     MovementType,
+    Speeds
 } from "./shared/JAIAProtobuf";
 import { MissionInterface, RunInterface } from "./CommandControl/CommandControl";
 import { deepcopy } from "./shared/Utilities";
@@ -92,6 +93,45 @@ export class Missions {
         };
 
         return command;
+    }
+
+    /**
+     * This is a helper function for creating the trail command
+     * 
+     * @param {number} botId The bot the command is for
+     * @param {number} contactId The contact to trail
+     * @param {GeographicCoordinate} datumLocation The location to use for recovery
+     * @param {Speeds} speed The speeds to use for transit and station keep 
+     * @param {number} range Relative distance to the contact to set the trail-point
+     * @param {number} angle Relative angle to the contact to set the trail-point
+     * @returns {Command} This is the trail command that gets created
+     */
+    static TrailMode(botId: number, contactId: number, datumLocation: GeographicCoordinate, speed: Speeds, range: number, angle: number) {
+        let millisecondsSinceEpoch = new Date().getTime();
+        let command: Command
+        command = {
+            bot_id: botId,
+            time: millisecondsSinceEpoch,
+            type: CommandType.MISSION_PLAN,
+            plan: {
+                start: MissionStart.START_IMMEDIATELY,
+                movement: MovementType.TRAIL,
+                recovery: {
+                    recover_at_final_goal: false,
+                    location: datumLocation
+                },
+                speeds: speed,
+                trail: {
+                    contact: contactId,
+                    angle_relative: true,
+                    // relative to contact, so this would be directly behind.
+                    angle: angle,
+                    // meters
+                    range: range 
+                }
+            }
+        }
+        return command
     }
 
     static commandWithWaypoints(botId: number, locations: GeographicCoordinate[]) {

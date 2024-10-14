@@ -10,6 +10,14 @@ from quaternion import Quaternion
 from jaiabot.messages.imu_pb2 import IMUData
 
 
+@dataclass
+class Accuracies:
+    # These range from 0 (inaccurate) to 3 (very accurate)
+    magnetometer: int
+    gyroscope: int
+    accelerometer: int
+
+
 class CalibrationState(Enum):
     IN_PROGRESS = 1
     COMPLETE = 2
@@ -20,7 +28,7 @@ class IMUReading:
     linear_acceleration: Vector3
     linear_acceleration_world: Vector3
     gravity: Vector3
-    calibration_status: int
+    accuracies: Accuracies
     calibration_state: CalibrationState
     quaternion: Quaternion
     angular_velocity: Vector3
@@ -60,9 +68,10 @@ class IMUReading:
         imu_data.quaternion.y = self.quaternion.y
         imu_data.quaternion.z = self.quaternion.z
 
-        if self.calibration_status is not None:
-            # only send the mag cal
-            imu_data.calibration_status = self.calibration_status
+        if self.accuracies is not None:
+            imu_data.accuracies.gyroscope = self.accuracies.gyroscope
+            imu_data.accuracies.accelerometer = self.accuracies.accelerometer
+            imu_data.accuracies.magnetometer = self.accuracies.magnetometer
 
         if self.calibration_state is not None:
             # .value converts enum type to int (which the protobuf side is looking for)
