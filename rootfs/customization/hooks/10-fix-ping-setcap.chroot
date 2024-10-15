@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# For some reason this doesn't get set properly by Debian package when installed in chroot
+
+setcap cap_net_raw+ep /bin/ping

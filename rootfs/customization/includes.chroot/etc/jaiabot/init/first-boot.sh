@@ -93,8 +93,10 @@ echo "## Setting up wifi                           ##"
 echo "###############################################"
 
 run_wt_yesno jaia_disable_ethernet "Wired ethernet (eth0)" \
-             "Do you want to disable the wired Ethernet interface (eth0)?" && sed -i 's/^ *auto eth0/#auto eth0/' /etc/network/interfaces.d/eth0
-
+             "Do you want to disable the wired Ethernet interface (eth0)?" && cat <<EOF >> /etc/systemd/network/30-eth0.network
+[Link]
+ActivationPolicy=manual
+EOF
 
 run_wt_yesno jaia_configure_wifi "Wireless ethernet (wlan0)" \
              "Do you want to configure the wireless Ethernet interface (wlan0)?" &&
@@ -108,20 +110,26 @@ run_wt_inputbox jaia_wifi_password "SSID Password" \
 wlan_password=${WT_TEXT}
 
 # IP addresses will be overwritten by jaiabot-embedded after choice of hub/bot info
-cat << EOF > /etc/network/interfaces.d/wlan0
-auto wlan0
-iface wlan0 inet static
-   wpa-essid ${wlan_ssid}
-   wpa-psk ${wlan_password}
-   address 10.23.XXX.YYY
-   netmask 255.255.255.0
-   gateway 10.23.XXX.1
+cat << EOF > /etc/systemd/network/20-wlan0-fleet.network
+[Match]
+Name=wlan0
+SSID=${wlan_ssid}
 
+[Network]
+Address=10.23.XXX.YYY/24
+Gateway=10.23.XXX.1
+DNS=1.1.1.1
 EOF
+
+sed -i "s/ssid=\"_JAIA_ESSID_\"/ssid=\"${wlan_ssid}\"/" /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+sed -i "s/psk=\"_JAIA_WPA_PSK_\"/ssid=\"${wlan_password}\"/" /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+
 
 # for real ethernet acting as wlan0 (VirtualBox)
 if [[ "${wlan_ssid}" = "" || "${wlan_ssid}" = "dummy" ]]; then
-    sed -i 's/\(.*wpa.*\)/# \1/' /etc/network/interfaces.d/wlan0
+    sed -i 's/\(.*SSID=.*\)/# \1/' /etc/systemd/network/20-wlan0-fleet.network
+else
+    systemctl enable wpa_supplicant@wlan0
 fi
 )
 

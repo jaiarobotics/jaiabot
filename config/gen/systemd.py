@@ -456,6 +456,11 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION},
+    {'exe': 'update_ufw_rules',
+     'description': 'Jaia Firewall/Wifi Updater',
+     'template': 'wifi_ufw_update.service.in',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME}
 ]
 
 if jaia_imu_type.value == 'bno085':

@@ -265,7 +265,6 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
 set(scripts_to_install
-  jaiabot-checkloadavg.py
   # data offload
   data-offload/jaiahub-dataoffload.sh
   data-offload/jaiabot-predataoffload.sh
@@ -278,6 +277,9 @@ set(scripts_to_install
   # Utilities
   jaia-ip.py
   jaia-doc.py
+  # System scripts
+  system/jaiabot-checkloadavg.py
+  system/jaia_update_ufw_rules.sh
 )
 
 # Iterate over each script to install and copy

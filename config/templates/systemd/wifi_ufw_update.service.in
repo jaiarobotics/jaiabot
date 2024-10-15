@@ -1,0 +1,10 @@
+[Unit]
+Description=$description
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/wpa_cli -i wlan0 -a $jaiabot_bin_dir/jaia_update_ufw_rules.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
