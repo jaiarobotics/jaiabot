@@ -13,6 +13,7 @@ import {
     formatLongitude,
 } from "../shared/Utilities";
 import { CommandInfo, hubCommands, sendHubCommand, takeControl } from "../utils/commands";
+import { getIPPrefix } from "../shared/IPPrefix";
 
 // Styles
 import Button from "@mui/material/Button";
@@ -37,6 +38,8 @@ export function HubDetails() {
     const globalDispatch = useContext(GlobalDispatchContext);
 
     const hubContext = useContext(HubContext);
+
+    const IPPrefix = getIPPrefix(location.hostname);
 
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
@@ -139,7 +142,7 @@ export function HubDetails() {
     function openJDV() {
         const hubOctet = 10 + hubStatus.hub_id;
         const fleetOctet = hubStatus.fleet_id;
-        const url = `http://10.23.${fleetOctet}.${hubOctet}:40010`;
+        const url = `http://${IPPrefix}.${fleetOctet}.${hubOctet}:40010`;
         window.open(url, "_blank");
     }
 
@@ -150,7 +153,7 @@ export function HubDetails() {
      */
     function openRouterPage() {
         const fleetOctet = hubStatus.fleet_id;
-        const url = `http://10.23.${fleetOctet}.1`;
+        const url = `http://${IPPrefix}.${fleetOctet}.1`;
         window.open(url, "_blank");
     }
 
@@ -162,7 +165,7 @@ export function HubDetails() {
     function openUpgradePage() {
         const hubOctet = 10 + hubStatus.hub_id;
         const fleetOctet = hubStatus.fleet_id;
-        const url = `http://10.23.${fleetOctet}.${hubOctet}:9091`;
+        const url = `http://${IPPrefix}.${fleetOctet}.${hubOctet}:9091`;
         window.open(url, "_blank");
     }
 
