@@ -13,15 +13,20 @@ class LogConversionManager:
     '''This class runs on a thread, and converts the logs given to it'''
 
     logRootPath: str
+    tempPath: str
     logNamesQueue: List[str] = []
 
     thread: Thread
     isConverting: bool = False
 
 
-    def __init__(self, logRootPath: str) -> None:
+    def __init__(self, logRootPath: str, tempPath: str=None) -> None:
         self.logRootPath = logRootPath
 
+        if tempPath is None:
+            self.tempPath = str(Path(logRootPath).parent)
+        else:
+            self.tempPath = tempPath
 
     def addLogName(self, logName: str):
         if logName not in self.logNamesQueue:
@@ -39,7 +44,7 @@ class LogConversionManager:
                 logName = self.logNamesQueue.pop(0)
                 goby_path = Path(self.logRootPath, logName + '.goby')
                 h5_path   = Path(self.logRootPath, logName + '.h5')
-                temp_path = Path(self.logRootPath, logName + '.h5.temp')
+                temp_path = Path(self.tempPath, logName + '.h5.temp')
 
                 if h5_path.is_file():
                     logging.info(f'File already exists: {h5_path}')
