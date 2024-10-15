@@ -536,7 +536,7 @@ if jaia_trinket_harness_info_type.value == 'USB':
         {'exe': 'trinket.py',
          'description': 'JaiaBot Trinket Python Driver',
          'template': 'py-app.service.in',
-         'user': 'root'
+         'user': 'root',
          'group': 'root',
          'subdir': 'trinket',
          'args': '',
@@ -544,7 +544,7 @@ if jaia_trinket_harness_info_type.value == 'USB':
          'runs_on': Type.BOT,
          'runs_when': Mode.RUNTIME,
          'wanted_by': 'jaiabot_health.service',
-         'restart': 'on-failure'}
+         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_trinket_info_type)
     
