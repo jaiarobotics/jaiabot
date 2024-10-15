@@ -59,7 +59,7 @@ parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
-parser.add_argument('--trinket_harness_info_type', choices=['NONE', 'USB'], help='If set, configure services for trinket harness info type')
+#parser.add_argument('--trinket_harness_info_type', choices=['NONE', 'USB'], help='If set, configure services for trinket harness info type')
 
 args=parser.parse_args()
 
@@ -165,10 +165,12 @@ if args.data_offload_ignore_type == 'goby':
 elif args.data_offload_ignore_type == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
 
-jaia_trinket_harness_info_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
+jaia_trinket_harness_info_type = DATA_OFFLOAD_IGNORE_TYPE.USB # Hardcoded to USB - change back to NONE
 
+"""
 if args.trinket_harness_info_type == 'USB':
     jaia_trinket_harness_info_type = TRINKET_HARNESS_INFO_TYPE.USB
+"""
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
