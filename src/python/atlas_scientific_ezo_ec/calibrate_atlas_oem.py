@@ -73,7 +73,7 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
-    if description is not 'DRY':
+    if description != 'DRY':
         value = input(f'{description} calibration value: ')
     else:
         value = 0
