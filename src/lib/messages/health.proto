@@ -81,7 +81,7 @@ enum Error
     ERROR__FAILED__JAIABOT_TRINKET_DRIVER = 37
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_TRINKET_DRIVER = 38
-        [(jaia.ev).rest_apt.presence = GUARANTEED];
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)

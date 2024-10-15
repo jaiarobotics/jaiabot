@@ -10,7 +10,7 @@ enum TrinketHarnessInfoType
     USB = 2;
 }
 
-message TrinketHarnessInfoType
+message Trinket
 {
     message TrinketData {
         optional float a0_voltage = 1;
@@ -24,5 +24,5 @@ message TrinketHarnessInfoType
     }
 
     optional TrinketData trinket_data = 1;
-    optional TrinketHarnessInfoType trinket_harness_info_type = 2 [default = NONE];
+    optional TrinketHarnessInfoType trinket_harness_info_type = 2;
 }

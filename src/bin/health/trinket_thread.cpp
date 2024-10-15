@@ -32,7 +32,7 @@
 
 using goby::glog;
 
-jaiabot::apps:TrinketStatusThread::TrinketStatusThread(
+jaiabot::apps::TrinketStatusThread::TrinketStatusThread(
     const jaiabot::config::TrinketStatusConfig& cfg)
     : HealthMonitorThread(cfg, "trinket_status", 5.0 * boost::units::si::hertz)
 {
@@ -48,9 +48,26 @@ jaiabot::apps:TrinketStatusThread::TrinketStatusThread(
         }
         glog.is_debug2() && glog << "Publishing Trinket message: " << trinket.ShortDebugString() << std::endl;
 
-        trinket_output = trinket.output();
-        last_trinket_report_time = goby::time::SteadyClock::now();
+        a0_voltage = trinket.a0_voltage();
+        a4_voltage = trinket.a4_voltage();
+
+        a0_resistance = trinket.a0_resistance();
+        a4_resistance = trinket.a4_resistance();
+
+        a0_temperature = trinket.a0_temperature();
+        a4_temperature = trinket.a4_temperature();
+
+        last_trinket_report_time_ = goby::time::SteadyClock::now();
     });
+}
+
+void jaiabot::apps::TrinketStatusThread::send_temp_query()
+{
+    glog.is_debug2() && glog << group(thread_name()) << "Sending temp query: " << std::endl;
+
+    auto io_data = std::make_shared<goby::middleware:protobuf::IOData>();
+    io_data->set_data("hello\n");
+    interthread().publish<jaiabot::groups::motor_udp_out>(io_data);
 }
 
 void jaiabot::apps::TrinketStatusThread::issue_status_summary()

@@ -90,7 +90,7 @@ set(PROJECT_SOVERSION "1")
 
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
-set(PROJECT_INTERVEHICLE_API_VERSION 9)
+set(PROJECT_INTERVEHICLE_API_VERSION 1)
 
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)

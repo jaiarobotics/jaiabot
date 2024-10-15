@@ -129,8 +129,16 @@ class TrinketStatusThread : public HealthMonitorThread<jaiabot::config::TrinketS
   private:
     jaiabot::protobuf::Trinket status_;
     goby::time::SteadyClock::time_point last_trinket_report_time_{std::chrono::seconds(0)};
-    char trinket_output{""};
-}
+    double a0_voltage{0};
+    double a4_voltage{0};
+
+    double a0_resistance{0};
+    double a4_resistance{0};
+
+    double a0_temperature{0};
+    double a4_temperature{0};
+
+};
 } // namespace apps
 } // namespace jaiabot
 
