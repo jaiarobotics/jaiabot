@@ -39,24 +39,24 @@ jaiabot::apps::TrinketStatusThread::TrinketStatusThread(
     status_.set_trinket_harness_info_type(cfg.trinket_harness_info_type());
 
     interthread().subscribe<jaiabot::groups::trinket_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-        jaiabot::protobuf::trinket trinket;
+        jaiabot::protobuf::Trinket trinket;
         if (!trinket.ParseFromString(data.data()))
         {
             glog.is_warn() && glog << "Couldn't deserialize Trinknet message from UDP packet" << std::endl;
 
-            return;.    
+            return;
             
         }
         glog.is_debug2() && glog << "Publishing Trinket message: " << trinket.ShortDebugString() << std::endl;
 
-        a0_voltage = trinket.a0_voltage();
-        a4_voltage = trinket.a4_voltage();
+        a0_voltage = trinket.trinket_data().a0_voltage();
+        a4_voltage = trinket.trinket_data().a4_voltage();
 
-        a0_resistance = trinket.a0_resistance();
-        a4_resistance = trinket.a4_resistance();
+        a0_resistance = trinket.trinket_data().a0_resistance();
+        a4_resistance = trinket.trinket_data().a4_resistance();
 
-        a0_temperature = trinket.a0_temperature();
-        a4_temperature = trinket.a4_temperature();
+        a0_temperature = trinket.trinket_data().a0_temperature();
+        a4_temperature = trinket.trinket_data().a4_temperature();
 
         last_trinket_report_time_ = goby::time::SteadyClock::now();
     });
@@ -66,9 +66,9 @@ void jaiabot::apps::TrinketStatusThread::send_temp_query()
 {
     glog.is_debug2() && glog << group(thread_name()) << "Sending temp query: " << std::endl;
 
-    auto io_data = std::make_shared<goby::middleware:protobuf::IOData>();
+    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
-    interthread().publish<jaiabot::groups::motor_udp_out>(io_data);
+    interthread().publish<jaiabot::groups::trinket_udp_out>(io_data);
 }
 
 void jaiabot::apps::TrinketStatusThread::issue_status_summary()
@@ -81,14 +81,14 @@ void jaiabot::apps::TrinketStatusThread::issue_status_summary()
 
 void jaiabot::apps::TrinketStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    auto health_state = goby::middleware::protobuf::HEALTH_OK;
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     if (last_trinket_report_time_ + std::chrono::seconds(cfg().trinket_report_timeout_seconds()) < goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on trinket data" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH_DEGRADED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_TRINKET);
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING_JAIABOT_TRINKET_DRIVER);
     }
 
     health.set_state(health_state);
