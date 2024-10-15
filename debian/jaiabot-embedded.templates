@@ -110,3 +110,8 @@ Choices: embedded, retrofit, none
 Default: embedded
 Description: What type of imu installation does your system have?
 
+Template: jaiabot-embedded/trinket_harness_info_type
+Type: select
+Choices: NONE, USB
+Default: NONE
+Description: What type of trinket harness info does your bot provide?

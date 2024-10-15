@@ -4,7 +4,7 @@
 //   Toby Schneider <toby@gobysoft.org>
 //
 //
-// This file is part of the JaiaBot Project Binaries
+// This file is part of the JaiaBot Project Binari
 // ("The Jaia Binaries").
 //
 // The Jaia Binaries are free software: you can redistribute them and/or modify
@@ -24,7 +24,9 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/udp_config.proto";
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/trinket.proto";
 
 package jaiabot.config;
 
@@ -70,6 +72,15 @@ message HelmIVPStatusConfig
     optional int32 time_out_helm_status = 10 [default = 20];
 }
 
+message TrinketStatusConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional int32 trinket_report_timeout_seconds = 10 [default = 40];
+    optional jaiabot.protobuf.TrinketHarnessInfoType trinket_harness_info_type = 12 [default = NONE];
+}
 message Health
 {
     option (dccl.msg) = {
@@ -78,6 +89,7 @@ message Health
 
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
     optional bool auto_restart = 10 [default = true];
     optional int32 auto_restart_timeout = 11

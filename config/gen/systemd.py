@@ -535,8 +535,19 @@ if jaia_trinket_harness_info_type.value == 'USB':
     jaiabot_apps_trinket_info_type = [
         {'exe': 'trinket.py',
          'description': 'JaiaBot Trinket Python Driver',
-         'template': }
+         'template': 'py-app.service.in',
+         'user': 'root'
+         'group': 'root',
+         'subdir': 'trinket',
+         'args': '',
+         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TRINKET_DRIVER',
+         'runs_on': Type.BOT,
+         'runs_when': Mode.RUNTIME,
+         'wanted_by': 'jaiabot_health.service',
+         'restart': 'on-failure'}
     ]
+    jaiabot_apps.extend(jaiabot_apps_trinket_info_type)
+    
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
      'description': 'Hub Button LED Poweroff Mode',
