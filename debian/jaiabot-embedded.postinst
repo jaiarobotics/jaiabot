@@ -106,15 +106,15 @@ JAIA_TRINKET_HARNESS_INFO_TYPE=$RET
                                          --hub_index=${BOT_OR_HUB_INDEX} \
                                          --fleet_index=${FLEET_INDEX} \
                                          ${SYSTEMD_SIM_FLAG} \
-					 --led_type=${JAIA_LED_TYPE} \
-					 --electronics_stack=${JAIA_ELECTRONICS_STACK} \
-					 --user_role=${JAIA_USER_ROLE} \
-					 --imu_type=${JAIA_IMU_TYPE} \
-					 --arduino_type=${JAIA_ARDUINO_TYPE} \
-					 --bot_type=${JAIA_BOT_TYPE} \
-					 --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
-					 --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
-                     --trinket_harness_info_type=${JAIA_TRINKET_HARNESS_INFO_TYPE}
+                                         --led_type=${JAIA_LED_TYPE} \
+                                         --electronics_stack=${JAIA_ELECTRONICS_STACK} \
+                                         --user_role=${JAIA_USER_ROLE} \
+                                         --imu_type=${JAIA_IMU_TYPE} \
+                                         --arduino_type=${JAIA_ARDUINO_TYPE} \
+                                         --bot_type=${JAIA_BOT_TYPE} \
+                                         --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
+                                         --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
+                                         --trinket_harness_info_type=${JAIA_TRINKET_HARNESS_INFO_TYPE}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
