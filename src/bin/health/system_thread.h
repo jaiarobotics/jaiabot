@@ -115,6 +115,22 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
     goby::time::SteadyClock::time_point helm_ivp_data_last_updated_{std::chrono::seconds(0)};
 };
 
+class TrinketStatusThread : public HealthMonitorThread<jaiabot::config::TrinketStatusConfig>
+{
+  public:
+    TrinketStatusThread(const jaiabot::config::TrinketStatusConfig& cfg);
+    ~TrinketStatusThread() {}
+
+  private:
+    void issue_status_summary() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void send_temp_query();
+
+  private:
+    jaiabot::protobuf::Trinket status_;
+    goby::time::SteadyClock::time_point last_trinket_report_time_{std::chrono::seconds(0)};
+    char trinket_output{""};
+}
 } // namespace apps
 } // namespace jaiabot
 

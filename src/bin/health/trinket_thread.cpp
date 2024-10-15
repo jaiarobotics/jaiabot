@@ -48,8 +48,7 @@ jaiabot::apps:TrinketStatusThread::TrinketStatusThread(
         }
         glog.is_debug2() && glog << "Publishing Trinket message: " << trinket.ShortDebugString() << std::endl;
 
-        a0_voltage = trinket.a0_voltage();
-        a4_voltage = trinket.a4_voltage();
+        trinket_output = trinket.output();
         last_trinket_report_time = goby::time::SteadyClock::now();
     });
 }

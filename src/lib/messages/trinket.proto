@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+enum TrinketHarnessInfoType
+{
+    NONE = 1;
+    USB = 2;
+}
+
+message TrinketHarnessInfoType
+{
+    message TrinketData {
+        optional float a0_voltage = 1;
+        optional float a4_voltage = 2;
+        
+        optional float a0_resistance = 3;
+        optional float a4_resistance = 4;
+
+        optional float a0_temperature = 5;
+        optional float a4_temperature = 6;
+    }
+
+    optional TrinketData trinket_data = 1;
+    optional TrinketHarnessInfoType trinket_harness_info_type = 2 [default = NONE];
+}

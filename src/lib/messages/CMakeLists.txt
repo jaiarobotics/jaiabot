@@ -27,6 +27,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/echo.proto
   jaiabot/messages/rest_api.proto
   jaiabot/messages/option_extensions.proto
+  jaiabot/messages/trinket.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
