@@ -59,6 +59,7 @@ parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--trinket_harness_info_type', choices=['NONE', 'USB'], help='If set, configure services for trinket harness info type')
 
 args=parser.parse_args()
 
@@ -101,6 +102,10 @@ class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     GOBY = 'GOBY'
     TASKPACKET = 'TASKPACKET'
     NONE = 'NONE'
+
+class TRINKET_HARNESS_INFO_TYPE(Enum):
+    NONE = 'NONE'
+    USB = 'USB'
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
@@ -160,6 +165,11 @@ if args.data_offload_ignore_type == 'goby':
 elif args.data_offload_ignore_type == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
 
+jaia_trinket_harness_info_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
+
+if args.trinket_harness_info_type == 'USB':
+    jaia_trinket_harness_info_type = TRINKET_HARNESS_INFO_TYPE.USB
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -208,6 +218,7 @@ subprocess.run('bash -ic "' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
+               'export jaia_trinket_harness_info_type=' + str(jaia_trinket_harness_info_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -520,6 +531,12 @@ if jaia_bot_type.value == 'echo':
     ] 
     jaiabot_apps.extend(jaiabot_apps_echo)
 
+if jaia_trinket_harness_info_type.value == 'USB':
+    jaiabot_apps_trinket_info_type = [
+        {'exe': 'trinket.py',
+         'description': 'JaiaBot Trinket Python Driver',
+         'template': }
+    ]
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
      'description': 'Hub Button LED Poweroff Mode',
