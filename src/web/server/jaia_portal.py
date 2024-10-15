@@ -108,6 +108,9 @@ class Interface:
     # Dict from bot_id => botStatus
     bots = {}
 
+    # Dict from contact_id => contact
+    contacts = {}
+
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
@@ -252,6 +255,11 @@ class Interface:
             if msg.HasField('device_metadata'):
                 metadata = protobufMessageToDict(msg.device_metadata)
                 self.metadata = metadata
+
+            if msg.HasField('contact_update'):
+                contact_update = protobufMessageToDict(msg.contact_update)
+                contact_id = contact_update['contact']
+                self.contacts[contact_id] = contact_update
                 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -267,8 +275,12 @@ class Interface:
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
-        self.sock.sendto(data, self.goby_host)
-        logging.info(f'Sent {len(data)} bytes')
+        try:
+            self.sock.sendto(data, self.goby_host)
+            logging.info(f'Sent {len(data)} bytes')
+        except Exception as e:
+            logging.error(f'Failed to send data: {e}')
+            return False
 
         return True
 
@@ -450,11 +462,11 @@ class Interface:
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
-
         status = {
             'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
             'bots': self.bots,
+            'contacts': self.contacts,
             'messages': self.messages
         }
 

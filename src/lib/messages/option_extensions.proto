@@ -1,0 +1,51 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+
+package jaia;
+
+message RestAPI
+{
+    enum Presence
+    {
+        NOT_GUARANTEED = 0;
+        GUARANTEED = 1;
+        OMITTED = 2;
+    }
+    optional Presence presence = 1 [default = NOT_GUARANTEED];
+    optional string doc = 2;
+    message Example
+    {
+        required string request = 1;
+        required string response = 2;
+    }
+    optional Example example = 3;
+}
+
+message FieldOptions
+{
+    optional RestAPI rest_api = 1;
+}
+message MessageOptions {}
+message EnumValueOptions
+{
+    optional RestAPI rest_api = 1;
+}
+
+// we can use 1252 for all extensions:
+// https://github.com/protocolbuffers/protobuf/commit/46f7879cae6a986ca0f780811dc8414ae14d18d5
+
+extend .google.protobuf.FieldOptions
+{
+    optional .jaia.FieldOptions field = 1252;
+}
+
+extend .google.protobuf.MessageOptions
+{
+    optional .jaia.MessageOptions msg = 1252;
+}
+
+extend .google.protobuf.EnumValueOptions
+{
+    optional .jaia.EnumValueOptions ev = 1252;
+}
