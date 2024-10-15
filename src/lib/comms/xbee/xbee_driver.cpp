@@ -114,9 +114,8 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
-                    use_encryption, encryption_password, mesh_unicast_retries,
-                    unicast_mac_retries, network_delay_slots,
-                    broadcast_multi_transmits);
+                    use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
+                    network_delay_slots, broadcast_multi_transmits);
 
     for (auto peer : config_extension().peers())
     {
