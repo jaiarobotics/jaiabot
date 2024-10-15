@@ -1,7 +1,7 @@
 // Copyright 2024:
 //   JaiaRobotics LLC
 // File authors:
-//   nIck Marshall <nick.marshall@jaia.tech>
+//   Nick Marshall <nick.marshall@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
