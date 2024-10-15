@@ -272,6 +272,9 @@ class Interface:
             logging.warning('This client is READ-ONLY.  Refusing to send command.')
             return False
 
+        if self.controllingClientId is not None:
+            msg.client_id = self.controllingClientId
+
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()

@@ -24,6 +24,7 @@ message ClientToPortalMessage
     optional Command command = 2;
     optional CommandForHub command_for_hub = 3;
     optional bool ping = 4;
+    optional string client_id = 5;
 }
 
 message PortalToClientMessage
