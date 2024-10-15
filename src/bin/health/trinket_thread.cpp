@@ -1,7 +1,7 @@
 // Copyright 2024:
 //   JaiaRobotics LLC
 // File authors:
-//   Matt Ferro <matt.ferro@jaia.tech>
+//   nIck Marshall <nick.marshall@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -44,7 +44,8 @@ jaiabot::apps::TrinketStatusThread::TrinketStatusThread(
         {
             glog.is_warn() && glog << "Couldn't deserialize Trinknet message from UDP packet" << std::endl;
 
-            return;
+            return;.    
+            
         }
         glog.is_debug2() && glog << "Publishing Trinket message: " << trinket.ShortDebugString() << std::endl;
 
