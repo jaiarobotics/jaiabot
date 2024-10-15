@@ -1,4 +1,11 @@
-import { HubStatus, BotStatus, MissionPlan, Engineering, MissionState, ContactStatus } from "./JAIAProtobuf";
+import {
+    HubStatus,
+    BotStatus,
+    MissionPlan,
+    Engineering,
+    MissionState,
+    ContactStatus,
+} from "./JAIAProtobuf";
 
 export interface PortalBotStatus extends BotStatus {
     active_mission_plan?: MissionPlan;

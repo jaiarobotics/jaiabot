@@ -55,7 +55,6 @@ namespace jaiabot
 {
 namespace apps
 {
-
 constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
 constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 
@@ -126,7 +125,6 @@ class HubManager : public ApplicationBase
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
     std::atomic<uint32_t> data_offload_percentage_{0};
-
 
     // map GPSD device name to contact ID
     struct Contact
@@ -292,8 +290,7 @@ jaiabot::apps::HubManager::HubManager()
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
-        [this](const goby::middleware::protobuf::gpsd::Attitude& att)
-        {
+        [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
             glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
                                      << std::endl;
 

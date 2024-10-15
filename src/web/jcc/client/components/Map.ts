@@ -8,7 +8,7 @@ const equirectangular = "EPSG:4326";
 const mercator = "EPSG:3857";
 
 export function createMap() {
-    return new ol.Map({
+    const map = new ol.Map({
         layers: layers.getAllLayers(),
         controls: [
             new Control.Zoom(),
@@ -31,4 +31,20 @@ export function createMap() {
         maxTilesLoading: 64,
         moveTolerance: 20,
     });
+
+    // Add hovering cursor changes
+    map.on("pointermove", (evt) => {
+        let cursor = "default";
+        map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+            if (feature.get("type") === "annotation") {
+                cursor = "pointer";
+                return true;
+            } else {
+                return false;
+            }
+        });
+        map.getTargetElement().style.cursor = cursor;
+    });
+
+    return map;
 }

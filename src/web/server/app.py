@@ -13,6 +13,8 @@ from http import HTTPStatus
 import jaia_portal
 import missions
 from geotiffs import GeoTiffs
+from annotations import Annotations
+from math import *
 
 def parseDate(date):
     if date is None or date == '':
@@ -296,6 +298,40 @@ def getGeoTiffFile(path):
 def listGeoTiffFiles():
     geoTiffs = GeoTiffs(geoTiff_root)
     return JSONResponse(obj=geoTiffs.list())
+
+
+####### User annotations
+
+# Map annotations
+annotations = Annotations()
+
+@app.route('/jaia/v0/annotations', methods=['GET', 'POST', 'DELETE'])
+def jaia_v0_annotations():
+    global annotations
+
+    if request.method == 'GET':
+        # `version` is the last version of the annotations GeoJSON that the client retrieved.  
+        # If there has been no change since then, we can return a 304 Not Modified response.
+        version = request.args.get('version', None, int)
+
+        if annotations.version == version:
+            return Response(None, 304) # 304 Not Modified
+        else:
+            return JaiaResponse({
+                'version': annotations.version,
+                'annotations': annotations.featureCollection
+            })
+    
+    if request.method == 'POST':
+        newFeature = request.json
+        annotations.appendFeature(newFeature)
+
+        return Response(status=201) # 201 Created
+
+    if request.method == 'DELETE':
+        annotations.clearFeatures()
+
+        return Response(status=410) # 410 Gone
 
 
 if __name__ == '__main__':

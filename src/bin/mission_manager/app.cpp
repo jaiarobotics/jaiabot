@@ -477,12 +477,11 @@ jaiabot::apps::MissionManager::~MissionManager()
     {
         auto on_contact_update_unsubscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack)
-        {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
         goby::middleware::Subscriber<protobuf::ContactUpdate> contact_update_subscriber{
             latest_contact_update_sub_cfg_, on_contact_update_unsubscribed};
 
@@ -518,8 +517,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
 
     auto hub_command_subscriber_group_func =
-        [](const protobuf::Command& command) -> goby::middleware::Group
-    {
+        [](const protobuf::Command& command) -> goby::middleware::Group {
         return goby::middleware::Group(
             jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
     };
@@ -558,12 +556,11 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
         auto on_contact_update_subscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack)
-        {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
 
         latest_contact_update_sub_cfg_ = cfg().contact_update_sub_cfg();
 
@@ -576,8 +573,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             latest_contact_update_sub_cfg_, on_contact_update_subscribed};
 
         intervehicle().subscribe<jaiabot::groups::contact_update, protobuf::ContactUpdate>(
-            [this](const protobuf::ContactUpdate& contact_update)
-            {
+            [this](const protobuf::ContactUpdate& contact_update) {
                 glog.is_debug1() && glog << "Received contact update: "
                                          << contact_update.ShortDebugString() << std::endl;
 

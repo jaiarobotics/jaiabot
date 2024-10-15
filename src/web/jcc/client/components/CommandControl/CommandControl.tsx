@@ -6,7 +6,7 @@ import * as MissionFeatures from "../shared/MissionFeatures";
 import RCControllerPanel from "../RCControllerPanel";
 import DownloadPanel from "../DownloadPanel";
 import RunInfoPanel from "../RunInfoPanel";
-import ContactInfoPanel from '../ContactInfoPanel'
+import ContactInfoPanel from "../ContactInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../Layers";
 import { jaiaAPI, BotPaths } from "../../../common/JaiaAPI";
@@ -16,7 +16,7 @@ import { HubOrBot } from "../HubOrBot";
 import { createMap } from "../Map";
 import { BotLayers } from "../BotLayers";
 import { HubLayers } from "../HubLayers";
-import { ContactLayers } from '../ContactLayers'
+import { ContactLayers } from "../ContactLayers";
 import { HubDetails } from "../../../../containers/HubDetails";
 import { CommandList } from "../Missions";
 import { SurveyLines } from "../SurveyLines";
@@ -123,6 +123,7 @@ import "./CommandControl.less";
 // Utility
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow";
+import { AnnotationPanel } from "../AnnotationPanel";
 
 const rallyIcon = require("../../../../shared/rally.svg") as string;
 
@@ -151,7 +152,8 @@ export enum PanelType {
     RALLY_POINT = "RALLY_POINT",
     TASK_PACKET = "TASK_PACKET",
     SETTINGS = "SETTINGS",
-    CONTACT_INFO = 'CONTACT_INFO'
+    ANNOTATION = "ANNOTATION",
+    CONTACT_INFO = "CONTACT_INFO",
 }
 
 export enum Mode {
@@ -203,7 +205,7 @@ interface State {
         runNum: number;
         botId: number;
     };
-    contactClickedInfo: ContactStatus,
+    contactClickedInfo: ContactStatus;
     goalBeingEdited: {
         goal?: Goal;
         originalGoal?: Goal;
@@ -215,6 +217,7 @@ interface State {
 
     selectedFeatures?: OlCollection<OlFeature>;
     selectedHubOrBot?: HubOrBot;
+    selectedAnnotation?: OlFeature;
     measureFeature?: OlFeature;
     rallyCounter: number;
     reusableRallyNums: number[];
@@ -285,7 +288,7 @@ export default class CommandControl extends React.Component {
     mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
     botLayers: BotLayers;
     hubLayers: HubLayers;
-    contactLayers: ContactLayers
+    contactLayers: ContactLayers;
     oldPodStatus?: PodStatus;
     missionPlans?: CommandList = null;
     taskPackets: TaskPacket[];
@@ -353,11 +356,11 @@ export default class CommandControl extends React.Component {
                 botId: -1,
             },
             contactClickedInfo: {
-				location: {
-					lat: 0,
-					lon: 0
-				}
-			},
+                location: {
+                    lat: 0,
+                    lon: 0,
+                },
+            },
             goalBeingEdited: {},
 
             selectedHubOrBot: null,
@@ -527,7 +530,7 @@ export default class CommandControl extends React.Component {
         // Class that keeps track of the bot layers, and updates them
         this.botLayers = new BotLayers(map);
         this.hubLayers = new HubLayers(map);
-        this.contactLayers = new ContactLayers(map)
+        this.contactLayers = new ContactLayers(map);
 
         const viewport = document.getElementById(this.mapDivId);
         map.setTarget(this.mapDivId);
@@ -629,7 +632,7 @@ export default class CommandControl extends React.Component {
                 this.props.globalContext.selectedPodElement,
             );
             this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot);
-            this.contactLayers.update(this.state.podStatus?.contacts)
+            this.contactLayers.update(this.state.podStatus?.contacts);
             this.updateHubCommsCircles();
             this.updateActiveMissionLayer();
             this.updateBotCourseOverGroundLayer();
@@ -2099,9 +2102,19 @@ export default class CommandControl extends React.Component {
         }
 
         if (feature) {
-            console.log(feature)
+            console.log(feature);
             // Allow an operator to click on certain features while edit mode is off
-            const editModeExemptions = ["dive", "drift", "rallyPoint", "bot", "hub", "wpt", "line", "contact"];
+            const editModeExemptions = [
+                "dive",
+                "drift",
+                "rallyPoint",
+                "bot",
+                "hub",
+                "wpt",
+                "line",
+                "contact",
+                "annotation",
+            ];
             const isCollection = feature.get("features");
 
             if (
@@ -2159,19 +2172,18 @@ export default class CommandControl extends React.Component {
             }
 
             // Clicked on contact
-			const isContact = feature.get('type') === "contact"
-			if (isContact) {
-                
-				const contactFeature = feature.get('contact')
-                console.log(contactFeature)
-				const contactClickedInfo = contactFeature
+            const isContact = feature.get("type") === "contact";
+            if (isContact) {
+                const contactFeature = feature.get("contact");
+                console.log(contactFeature);
+                const contactClickedInfo = contactFeature;
 
-				this.setState({ contactClickedInfo }, () => {
-					this.setVisiblePanel(PanelType.CONTACT_INFO)	
-				})
+                this.setState({ contactClickedInfo }, () => {
+                    this.setVisiblePanel(PanelType.CONTACT_INFO);
+                });
 
-				return false
-			}
+                return false;
+            }
 
             // Clicked on mission planning point
             if (this.state.mode == Mode.MISSION_PLANNING) {
@@ -2272,7 +2284,7 @@ export default class CommandControl extends React.Component {
                     end_time: { value: endTime.toLocaleString(), units: "" },
                 };
 
-                this.setTaskPacketInterval(driftFeature, "drfit");
+                this.setTaskPacketInterval(driftFeature, "drift");
 
                 this.setState(
                     {
@@ -2292,6 +2304,18 @@ export default class CommandControl extends React.Component {
                 if (extent) {
                     map.getView().fit(extent, { duration: 1000, padding: [50, 50, 50, 50] });
                 }
+
+                return;
+            }
+
+            // Clicked on an annotation
+            if (feature.get("type") === "annotation") {
+                this.setState(
+                    {
+                        selectedAnnotation: feature,
+                    },
+                    () => this.setVisiblePanel(PanelType.ANNOTATION),
+                );
 
                 return;
             }
@@ -3134,7 +3158,11 @@ export default class CommandControl extends React.Component {
                 >
                     <Icon path={mdiPlay} title="Run Mission" />
                 </Button>
-                <Button id="downloadAll" className={`button-jcc`} onClick={this.processDownloadAllBots.bind(this)}>
+                <Button
+                    id="downloadAll"
+                    className={`button-jcc`}
+                    onClick={this.processDownloadAllBots.bind(this)}
+                >
                     <Icon path={mdiDownloadMultiple} title="Download All" />
                 </Button>
                 <Button id="undo" className="button-jcc" onClick={() => this.handleUndoClick()}>
@@ -4137,11 +4165,11 @@ export default class CommandControl extends React.Component {
                     <ContactInfoPanel
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
                         contact={this.state.contactClickedInfo}
-                        botIds={this.getBotIdList()} 
+                        botIds={this.getBotIdList()}
                         api={this.api}
                     />
-                )
-                break
+                );
+                break;
             case PanelType.GOAL_SETTINGS:
                 visiblePanelElement = (
                     <GoalSettingsPanel
@@ -4194,6 +4222,14 @@ export default class CommandControl extends React.Component {
                     <TaskPacketPanel
                         type={this.state.taskPacketType}
                         taskPacketData={this.state.taskPacketData}
+                        setVisiblePanel={this.setVisiblePanel.bind(this)}
+                    />
+                );
+                break;
+            case PanelType.ANNOTATION:
+                visiblePanelElement = (
+                    <AnnotationPanel
+                        annotation={this.state.selectedAnnotation}
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
                     />
                 );

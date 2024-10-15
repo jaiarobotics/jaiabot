@@ -7,6 +7,7 @@ import { Command, Engineering, CommandForHub, TaskPacket } from "../../shared/JA
 import { randomBase57, convertHTMLStrDateToISO } from "../client/components/shared/Utilities";
 import { Geometry } from "ol/geom";
 import { FeatureCollection } from "@turf/turf";
+import { Feature } from "ol";
 
 export interface JaiaError {
     code?: number;
@@ -91,8 +92,12 @@ export class JaiaAPI {
         return this.hit("POST", endpoint, body);
     }
 
-    get(endpoint: string) {
-        return this.hit("GET", endpoint);
+    get(endpoint: string, params?: string[]) {
+        if (params && params.length > 0) {
+            return this.hit("GET", `${endpoint}?${params.join("&")}`);
+        } else {
+            return this.hit("GET", endpoint);
+        }
     }
 
     /**
@@ -235,6 +240,21 @@ export class JaiaAPI {
                     logResReqError("getDriftMap", err);
                 });
         }
+    }
+
+    /**
+     * Get a GeoJSON object with the user-added annotation layer.
+     *
+     * @param {?number} [version] The last version retrieved by this client.  If no changes to the layer have occured on the backend, the cached data will be left alone.
+     * @returns {Promise<Response>} The backend response, containing the features in GeoJSON format.
+     */
+    async getAnnotations(version?: number) {
+        var queryParameters = [];
+        if (version != null) {
+            queryParameters.push(`version=${version}`);
+        }
+
+        return fetch(`${this.url}jaia/v0/annotations?${queryParameters.join("&")}`);
     }
 
     allStop() {
