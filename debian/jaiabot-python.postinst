@@ -8,12 +8,8 @@ pushd /usr/share/jaiabot/python
 
     source venv/bin/activate
 
-    # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
-    mkdir -p /var/log/tmp
-    export TMPDIR=/var/log/tmp
     pip3 install wheel
     pip3 install -r requirements.txt
-    rm -rf /var/log/tmp
 
     deactivate
 popd
