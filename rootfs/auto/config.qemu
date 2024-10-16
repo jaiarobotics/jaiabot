@@ -11,8 +11,8 @@ lb config noauto \
  --bootstrap-qemu-arch arm64 \
  --bootstrap-qemu-static /usr/bin/qemu-aarch64-static \
  --chroot-filesystem none \
- --compression gzip \
- --distribution focal \
+ --compression none \
+ --distribution XXX \
  --iso-volume "JaiaBot" \
  --iso-publisher "https://www.jaia.tech/" \
  --linux-flavours none \

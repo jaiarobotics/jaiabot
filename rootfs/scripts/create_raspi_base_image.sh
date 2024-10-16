@@ -279,13 +279,15 @@ if [ -z "$ROOTFS_TARBALL" ]; then
     [ -z "$VIRTUALBOX" ] && rm config/package-lists/cloud.list.chroot
     
     lb build
+    # Need xattrs for ping setcap
+    tar --xattrs --xattrs-include="*" -cfz binary-tar-xattrs.tar.gz binary
     cd ..
-    ROOTFS_TARBALL=rootfs-build/binary-tar.tar.gz
+    ROOTFS_TARBALL=rootfs-build/binary-tar-xattrs.tar.gz
 fi
 
 # Install the rootfs tarball to the partition
 sudo tar -C "$ROOTFS_PARTITION" --strip-components 1 \
-  -xpzf "$ROOTFS_TARBALL"
+   --xattrs --xattrs-include="*" -xpzf "$ROOTFS_TARBALL"
 
 GOBY_VERSION=$(chroot $ROOTFS_PARTITION dpkg-query -W -f='${Version}' libgoby3 | cut -d - -f 1)
 JAIABOT_VERSION=$(chroot $ROOTFS_PARTITION dpkg-query -W -f='${Version}' libjaiabot | cut -d - -f 1)
