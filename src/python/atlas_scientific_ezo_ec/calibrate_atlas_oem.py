@@ -204,6 +204,9 @@ def jaiaCalibration():
     input("When you're ready to begin the calibration procedure, press enter.\n")
     doJaiaCalibration('DUAL POINT HIGH', 4, 80000)
 
+    # Reset temperature calibration to its default
+    probe.setTemperatureCompensation(25)
+
     # Calibration complete
     input("Calibration procedure complete. Press enter to exit.")
 
