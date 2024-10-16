@@ -67,7 +67,14 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
          python3-systemd,
          python3-plotly,
          python3-pandas,
-         python3-rpi.gpio
+         python3-rpi.gpio,
+         python3-matplotlib,
+         python3-geojson,
+         python3-shapely,
+         python3-ftdi,
+         python3-sysv-ipc,
+         python3-typing-extensions,
+         python3-usb
 Section: science
 Architecture: all
 Description: Python applications and virtual environment (venv) of the Python dependencies for the Jaiabot Project
