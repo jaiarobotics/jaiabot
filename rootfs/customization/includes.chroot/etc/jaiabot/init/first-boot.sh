@@ -122,7 +122,7 @@ DNS=1.1.1.1
 EOF
 
 sed -i "s/ssid=\"_JAIA_ESSID_\"/ssid=\"${wlan_ssid}\"/" /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
-sed -i "s/psk=\"_JAIA_WPA_PSK_\"/ssid=\"${wlan_password}\"/" /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+sed -i "s/psk=\"_JAIA_WPA_PSK_\"/psk=\"${wlan_password}\"/" /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
 
 
 # for real ethernet acting as wlan0 (VirtualBox)
