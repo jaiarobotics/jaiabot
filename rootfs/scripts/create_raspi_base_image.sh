@@ -280,7 +280,12 @@ if [ -z "$ROOTFS_TARBALL" ]; then
     
     lb build
     # Need xattrs for ping setcap
-    tar --xattrs --xattrs-include="*" -cfz binary-tar-xattrs.tar.gz binary
+    if command -v pigz >/dev/null 2>&1; then
+        COMPRESSOR="pigz"
+    else
+        COMPRESSOR="gzip"
+    fi
+    tar --xattrs --xattrs-include="*" -cf - binary | $COMPRESSOR > binary-tar-xattrs.tar.gz
     cd ..
     ROOTFS_TARBALL=rootfs-build/binary-tar-xattrs.tar.gz
 fi
