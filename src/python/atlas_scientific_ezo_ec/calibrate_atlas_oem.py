@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
-import atlas_oem
 import datetime
 import time
-
-probe = atlas_oem.AtlasOEM()
-probe.setActiveHibernate(1)
 
 try:
     from smbus import SMBus
@@ -165,6 +161,8 @@ class AtlasOEM:
         print(f'TDS (ppm):                {self.TDS():0.2f}')
         print(f'Salinity (PSU (ppt)):     {self.salinity():0.2f}')
 
+probe = AtlasOEM()
+probe.setActiveHibernate(1)
 
 if __name__ == '__main__':
 
@@ -255,7 +253,7 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
-    if description is not 'DRY':
+    if description != 'DRY':
         value = input(f'{description} calibration value: ')
     else:
         value = 0
