@@ -27,9 +27,19 @@
 
 #include "actions/net.pb.h"
 
+namespace jaiabot
+{
+namespace apps
+{
+namespace tool
+{
+
 inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
-    std::regex host_pattern("([bh])([0-9]+)([svc]?)f([0-9]+)|(ch)f([0-9]+)");
+    if (host_code == "self")
+        return "::1";
+
+    std::regex host_pattern("([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?");
     std::smatch host_matches;
 
     if (std::regex_match(host_code, host_matches, host_pattern))
@@ -37,7 +47,14 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         std::string node_code = host_matches[1];
         std::string node_id = host_matches[2];
         std::string net_code = host_matches[3];
-        std::string fleet_id = host_matches[4];
+        std::string fleet_id;
+
+        const char* env_fleet_id = std::getenv("jaia_fleet_index");
+
+        if (host_matches[5].matched)
+            fleet_id = host_matches[5];
+        else if (env_fleet_id)
+            fleet_id = env_fleet_id;
 
         jaiabot::config::Net net;
         if (net_code == "s")
@@ -58,13 +75,20 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         {
             node_type = "hub";
         }
-        else if (host_matches[5] == "ch")
+        else if (host_matches[6] == "ch")
         {
             node_type = "hub";
             node_id = "30";
-            fleet_id = host_matches[6];
+            if (host_matches[8].matched)
+                fleet_id = host_matches[8];
             net = jaiabot::config::cloudhub_vpn;
         }
+
+        if (fleet_id.empty())
+            goby::glog.is_die() &&
+                goby::glog << "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3) "
+                              "or provide via environmental variable 'jaia_fleet_index'"
+                           << std::endl;
 
         // Constructing the command
         std::string command = "jaia-ip.py";
@@ -118,3 +142,11 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
     }
     return "";
 }
+
+constexpr const char* perm_authorized_keys_file = "/home/jaia/.ssh/authorized_keys";
+constexpr const char* tmp_authorized_keys_file = "/etc/jaiabot/ssh/tmp_authorized_keys";
+constexpr const char* hub_authorized_keys_file = "/etc/jaiabot/ssh/hub_authorized_keys";
+constexpr const char* root_authorized_keys_file = "/etc/jaiabot/ssh/root_authorized_keys";
+} // namespace tool
+} // namespace apps
+} // namespace jaiabot

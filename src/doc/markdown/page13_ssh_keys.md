@@ -59,8 +59,8 @@ jaia admin ssh add <host> <pubkey> <valid_for>
 where the parameters are:
 - host: A short code for the bot/hub ID, network, and fleet used elsewhere in the `jaia` tool (see the [Jaia Tool](page05_jaia_tool.md) page).
 - pubkey: Either the "comment" of the pubkey if compiled into the tool (e.g. "toby@yubikey16719472")
- or the full public key line as entered into `authorized_keys`.
-- valid_for: How long the key is authorized for, given as an integer followed by "d" for days, "w" for weeks, or "m" for months. For example "5d" is 5 days, "2w" is 2 weeks, and "12m" is 12 months (1 year). This duration is added to the current system clock to determine an "expiry-time" option for the authorized_keys line which is appended to any other options given.
+ or the full public key line as entered into `authorized_keys`. To see keys compiled into the tool, use `jaia admin ssh known`.
+- valid_for: How long the key is authorized for, given as an integer followed by "d" for days, "w" for weeks, or "m" for months (or "forever"). For example "5d" is 5 days, "2w" is 2 weeks, and "12m" is 12 months (1 year). This duration is added to the current system clock to determine an "expiry-time" option for the authorized_keys line which is appended to any other options given. The special case "forever" indicates a key that doesn't expire.
 
 This entry is added to `/etc/jaiabot/ssh/tmp_authorized_keys`, replacing the same key if it already exists.
 
@@ -114,6 +114,23 @@ jaia admin ssh clear <host>
 removes all temporary keys from the host.
 
 
+#### List known keys
+
+```
+jaia admin ssh known
+```
+shows the comment for all the known valid keys.
+
+```
+jaia admin ssh known --full
+```
+shows the full authorized keys line for all known valid keys.
+
+```
+jaia admin ssh known --revoked
+```
+shows the comment for all the revoked keys.	
+
 ### Revoked Temporary Yubikeys
 
 Keys can be revoked by adding them to the `revoked_pubkeys` vector in pubkeys.cpp. These keys are no longer allowed to be added (with `jaia admin ssh add`) and can be removed from existing systems using `jaia admin ssh rm <host> --revoked`.
@@ -121,11 +138,11 @@ Keys can be revoked by adding them to the `revoked_pubkeys` vector in pubkeys.cp
 
 ## Customer keys
 
-Customers are free to add SSH keys of any type to `/home/jaia/.ssh/authorized_keys`, which is otherwise empty.
+Customers are free to add SSH keys of any type to `/home/jaia/.ssh/authorized_keys`, which is otherwise empty. When specifying "forever" as the "valid_for" parameter, the keys are defaulted to this file, rather than `/etc/jaiabot/ssh/tmp_authorized_keys`.
 
 The `jaia` tool can add these keys using, for example:
 
 ```
-jaia admin ssh add --authorized_keys_file=/home/jaia/.ssh/authorized_keys chf1 "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE0e+NIeXQvvd39703nWgZpBm4Dsdfxsg//ajiXiT22GAAAABHNzaDo= somebody@somewhere" 12m
+jaia admin ssh add chf1 "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE0e+NIeXQvvd39703nWgZpBm4Dsdfxsg//ajiXiT22GAAAABHNzaDo= somebody@somewhere" forever
 ```
-or by manually editing the file.
+or by manually editing the `/home/jaia/.ssh/authorized_keys` file.

@@ -36,7 +36,7 @@ jaiabot::apps::admin::ssh::PubKeyManager::PubKeyManager()
 
     // list of permanently revoked pubkeys (e.g., lost or stolen Yubikeys)
     std::vector<std::string> revoked_pubkeys = {
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJmloXO9vgefQef+j3xqvPpVhCqHm5uYurkSmD5wIKp toby@aubergine"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJmloXO9vgefQef+j3xqvPpVhCqHm5uYurkSmD5wIKp testkey1"
     };
     // clang-format on
     for (const auto k : revoked_pubkeys)

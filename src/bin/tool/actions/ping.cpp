@@ -9,7 +9,7 @@ jaiabot::apps::PingTool::PingTool()
 {
     std::vector<std::string> args{"ping"};
 
-    std::string host_ip = parse_host_ip_from_code(app_cfg().host());
+    std::string host_ip = tool::parse_host_ip_from_code(app_cfg().host());
     args.push_back(host_ip);
 
     for (const auto& cli_extra : app_cfg().app().tool_cfg().extra_cli_param())

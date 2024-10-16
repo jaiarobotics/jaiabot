@@ -59,7 +59,8 @@ class PubKeyManager
 
     std::pair<bool, PubKey> find(const std::string& pubkey_or_comment);
 
-    const std::map<std::string, PubKey>& revoked_pubkeys() { return revoked_pubkeys_; }
+    const std::map<std::string, PubKey>& revoked_pubkeys() const { return revoked_pubkeys_; }
+    const std::map<std::string, PubKey>& pubkeys() const { return pubkeys_; }
 
     static bool validate_and_parse_pubkey(const std::string& key,
                                           jaiabot::apps::admin::ssh::PubKeyManager::PubKey& pubkey);

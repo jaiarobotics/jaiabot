@@ -38,7 +38,6 @@ message SSHTool
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
-
     enum Action
     {
         help = 0 [(goby.ev).cfg = {
@@ -57,6 +56,9 @@ message SSHTool
         clear = 4 [(goby.ev).cfg = {
             short_help_msg: "Clear authorized SSH keys (by default those in tmp_authorized_keys)",
         }];
+        known = 5 [(goby.ev).cfg = {
+            short_help_msg: "Display information on known SSH keys"
+        }];
     }
     optional Action action = 2 [
         default = help,
@@ -65,5 +67,4 @@ message SSHTool
             cfg { position: { enable: true }, cli_short: "A", action: HIDDEN }
         }
     ];
-    
 }

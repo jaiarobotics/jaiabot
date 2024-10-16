@@ -14,6 +14,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   actions/admin/ssh/rm.proto
   actions/admin/ssh/list.proto
   actions/admin/ssh/clear.proto
+  actions/admin/ssh/known.proto
   )
 
 add_executable(${APP}
@@ -30,6 +31,7 @@ add_executable(${APP}
   actions/admin/ssh/pubkeys.cpp
   actions/admin/ssh/list.cpp
   actions/admin/ssh/clear.cpp
+  actions/admin/ssh/known.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

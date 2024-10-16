@@ -3,6 +3,7 @@
 #include "ssh.h"
 #include "ssh/add.h"
 #include "ssh/clear.h"
+#include "ssh/known.h"
 #include "ssh/list.h"
 #include "ssh/rm.h"
 
@@ -41,9 +42,16 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                                 action_for_help);
                             break;
 
+
                         case jaiabot::config::admin::SSHTool::clear:
                             tool_helper.help<jaiabot::apps::admin::ssh::ClearTool,
                                              jaiabot::apps::admin::ssh::ClearToolConfigurator>(
+                                action_for_help);
+                            break;
+
+                        case jaiabot::config::admin::SSHTool::known:
+                            tool_helper.help<jaiabot::apps::admin::ssh::KnownTool,
+                                             jaiabot::apps::admin::ssh::KnownToolConfigurator>(
                                 action_for_help);
                             break;
 
@@ -73,6 +81,11 @@ jaiabot::apps::admin::SSHTool::SSHTool()
             case jaiabot::config::admin::SSHTool::clear:
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::ClearTool,
                                         jaiabot::apps::admin::ssh::ClearToolConfigurator>();
+                break;
+
+            case jaiabot::config::admin::SSHTool::known:
+                tool_helper.run_subtool<jaiabot::apps::admin::ssh::KnownTool,
+                                        jaiabot::apps::admin::ssh::KnownToolConfigurator>();
                 break;
 
             default:

@@ -39,3 +39,6 @@
     - name: Ensure .ssh/config is configured to use the new SSH key
       shell: |
         {{ RO_CMD }} bash -c "grep -q IdentityFile\\ {{ HUB_DEST_KEYFILE }} /home/jaia/.ssh/config || echo IdentityFile {{ HUB_DEST_KEYFILE }} >> /home/jaia/.ssh/config";
+
+    - name: Allow self logins
+      include_tasks: tasks/append-hub-pubkey-to-bot-authorized_keys.yml

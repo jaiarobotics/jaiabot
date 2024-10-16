@@ -36,9 +36,11 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page56_cl
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Finally, as a special case "CloudHub" can be referred to as `chfM` for fleet M.
+Finally, as a special case "CloudHub" can be referred to as `chfM` for fleet M, or "self" can be used to refer to the machine that `jaia` is being run on (that is, localhost).
 
-The regex for this host shorthand is `[bh][0-9]+[svc]?f[0-9]+|chf[0-9]+`.
+Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_index` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
+
+The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?|self`.
 
 ## ip, ping, ssh
 
@@ -48,11 +50,14 @@ These related commands provide remote functionality using host codes given above
 
 - `jaia ip b1sf2` - Bot 1 Fleet 2 via service VPN
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
+- `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
 
 `jaia ssh ` uses the same codes but runs `ssh` to remotely log into the given system. Any parameters passed **after** the host code is passed unmodified to SSH:
 
 - `jaia ssh b3f5` - SSH into Bot3 on Fleet 5
 - `jaia ssh b3f5 -A` - SSH into Bot3 on Fleet 5 using `ssh -A` (i.e., Forwarding of connections from `ssh-agent`).
+- `jaia ssh b4` - SSH into Bot 4 on this fleet.
+
 
 `jaia ping` is just like `jaia ssh` but runs `ping` to check connectivity to a host. Similarly, all parameters after the host code are appended to the `ping` command line unmodified.
 

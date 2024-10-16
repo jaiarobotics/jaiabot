@@ -39,3 +39,6 @@
     HUB_DEST_KEYFILE: "{{ JAIA_SSH_DIR }}/id_{{ HUB_NAME }}"
   when: jaiabot_embedded_type == "hub"
 
+- name: Ensure .ssh exists
+  shell: |
+    {{ RO_CMD }} mkdir -p {{ JAIA_SSH_DIR }}

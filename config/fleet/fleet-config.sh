@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -u -x
+set -e -u
 # 
 # This script configures an entire fleet from a machine with access
 # to all the machines (i.e. with one of the master security keys installed)
