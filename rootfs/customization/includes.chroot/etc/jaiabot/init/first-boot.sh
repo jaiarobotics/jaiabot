@@ -110,7 +110,7 @@ run_wt_inputbox jaia_wifi_password "SSID Password" \
 wlan_password=${WT_TEXT}
 
 # IP addresses will be overwritten by jaiabot-embedded after choice of hub/bot info
-cat << EOF > /etc/systemd/network/20-wlan0-fleet.network
+cat << EOF > /etc/systemd/network/10-wlan0-fleet.network
 [Match]
 Name=wlan0
 SSID=${wlan_ssid}
@@ -127,7 +127,7 @@ sed -i "s/psk=\"_JAIA_WPA_PSK_\"/ssid=\"${wlan_password}\"/" /etc/wpa_supplicant
 
 # for real ethernet acting as wlan0 (VirtualBox)
 if [[ "${wlan_ssid}" = "" || "${wlan_ssid}" = "dummy" ]]; then
-    sed -i 's/\(.*SSID=.*\)/# \1/' /etc/systemd/network/20-wlan0-fleet.network
+    sed -i 's/\(.*SSID=.*\)/# \1/' /etc/systemd/network/10-wlan0-fleet.network
 else
     systemctl enable wpa_supplicant@wlan0
 fi
