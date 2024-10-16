@@ -17,9 +17,9 @@ def process_request(jaia_request):
     else:
         raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
-def send_client_to_portal_message(msg):
+def send_client_to_portal_message(hub_id, msg):
     # queue.Queue is threadsafe
-    common.shared_data.to_portal_queue.put(msg)
+    common.shared_data.get_queue(hub_id).put(msg)
 
 def status(jaia_request):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
@@ -47,20 +47,31 @@ def status(jaia_request):
                 if hub_id in common.shared_data.data.hubs.keys():
                     jaia_response.status.hubs.extend([common.shared_data.data.hubs[hub_id]])
                     jaia_response.target.hubs.append(hub_id)
-                else: # empty bot status to indicate we haven't heard from this bot
+                else: # empty hub status to indicate we haven't heard from this hub
                     empty = jaia_response.status.hubs.add()
-                    empty.bot_id=bot_id
+                    empty.hub_id=hub_id
                     empty.time=0
     return jaia_response
 
 def metadata(jaia_request):
-    # TODO: ignores targets currently
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
     with common.shared_data.data_lock:
-        if common.shared_data.data.hubs:
-            # we only currently store metadata for a single hub
-            jaia_response.target.hubs.extend([list(common.shared_data.data.hubs)[0]])
-            jaia_response.metadata.CopyFrom(common.shared_data.data.metadata)
+        # We only serve hub metadata as this isn't currently sent over XBee
+        if jaia_request.target.bots:
+            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TARGET, 'Metadata is only available for hubs (not bots) through this API')
+
+        if jaia_request.target.all:
+            for hub_id,hub_metadata in common.shared_data.data.hub_metadata.items():
+                jaia_response.metadata.hubs.extend([common.shared_data.data.hub_metadata[hub_id]])
+                jaia_response.target.hubs.append(hub_id)
+        else:
+            for hub_id in jaia_request.target.hubs:
+                if hub_id in common.shared_data.data.hubs.keys():
+                    jaia_response.metadata.hubs.extend([common.shared_data.data.hub_metadata[hub_id]])
+                    jaia_response.target.hubs.append(hub_id)
+                else: # empty hub metadata to indicate we haven't heard from this hub
+                    empty = jaia_response.metadata.hubs.add()
+                    empty.hub_id=hub_id
 
     return jaia_response
 
@@ -78,7 +89,13 @@ def task_packets(jaia_request):
 
 def command(jaia_request):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+
+    # Bots to send Command to
     bots = list()
+
+    # Hubs to send Command from
+    hubs = list()    
+
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             # all the bots we know about
@@ -87,23 +104,36 @@ def command(jaia_request):
             # don't bother to send commands to bots we haven't heard from
             bots = [value for value in jaia_request.target.bots if value in common.shared_data.data.bots.keys()]            
 
-    for bot_id in bots:
-        command = jaia_request.command
-        command.bot_id = bot_id
-        command.time = utc_now_microseconds()
+        if not jaia_request.target.hubs:
+            # if no hubs specified, send via all hubs
+            hubs = common.shared_data.data.hubs.keys()
+        else:
+            # don't bother to send commands via hubs we haven't heard from
+            hubs = [value for value in jaia_request.target.hubs if value in common.shared_data.data.hubs.keys()] 
 
-        client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
-        client_to_portal_msg.command.CopyFrom(command)
+        for bot_id in bots:
+            jaia_response.target.bots.append(bot_id)
 
-        send_client_to_portal_message(client_to_portal_msg)
-        jaia_response.target.bots.append(bot_id)
+        for hub_id in hubs:
+            jaia_response.target.hubs.append(hub_id)
+            for bot_id in bots:
+                command = jaia_request.command
+                command.bot_id = bot_id
+                command.time = utc_now_microseconds()
+                
+                client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
+                client_to_portal_msg.command.CopyFrom(command)
+                
+                send_client_to_portal_message(hub_id, client_to_portal_msg)
 
-    jaia_response.command_result.command_sent = len(bots) > 0
+    jaia_response.command_result.command_sent = (len(hubs) > 0 and len(bots) > 0)
     
     return jaia_response
 
 def command_for_hub(jaia_request):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+
+    # Hubs to send CommandForHub to
     hubs = list()    
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -121,7 +151,7 @@ def command_for_hub(jaia_request):
         client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
         client_to_portal_msg.command_for_hub.CopyFrom(command)
 
-        send_client_to_portal_message(client_to_portal_msg)
+        send_client_to_portal_message(hub_id, client_to_portal_msg)
         jaia_response.target.hubs.append(hub_id)
 
     jaia_response.command_result.command_sent = len(hubs) > 0

@@ -82,3 +82,7 @@ run_request({"target": {"bots": [1]}, "foo": True},
 # Not initialized: API_ERROR__REQUEST_NOT_INITIALIZED
 run_request({"target": {"all": True}, "command_for_hub": {"type": "SET_HUB_LOCATION", "hub_location": { "lat": 41.7 }},  "api_key": api_key},
             expected_response_subset={"error": {"code": "API_ERROR__REQUEST_NOT_INITIALIZED"}})
+
+
+run_request({"target": {"bots": [1]}, "metadata": True, "api_key": api_key},
+            expected_response_subset={"error": {"code": "API_ERROR__INVALID_TARGET"}})

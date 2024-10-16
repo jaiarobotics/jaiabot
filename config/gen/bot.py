@@ -334,10 +334,13 @@ elif common.app == 'moos_pmv':
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp))
 elif common.app == 'jaiabot_metadata':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_metadata.pb.cfg.in',
+    print(config.template_substitute(templates_dir+'/jaiabot_metadata.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     xbee_info=xbee_info))
+                                     xbee_info=xbee_info,
+                                     is_simulation=str(is_simulation()).lower(),
+                                     node_id=f'bot_id: {bot_index}',
+                                     fleet_id=fleet_index))
 elif common.app == 'frontseat_sim':
     print(common.vehicle.simulator_port(vehicle_id))
 elif common.app == 'log_file':

@@ -55,4 +55,17 @@ message HubStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    message KnownBot
+    {
+        required uint32 id = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+        required uint64 last_status_time = 2 [
+            (dccl.field) = {
+                units { prefix: "micro" derived_dimensions: "time" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+    }
+    repeated KnownBot known_bot = 15
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
