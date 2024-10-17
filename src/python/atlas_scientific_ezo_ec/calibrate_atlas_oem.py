@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import atlas_oem
+import time
 
 probe = atlas_oem.AtlasOEM()
 probe.setActiveHibernate(1)
@@ -48,10 +49,22 @@ def setProbeType():
         input('K value must be a number [press enter to continue]')
 
 
+def setTemperatureCompensation():
+    value = input('Enter temperature (deg C) > ')
+
+    try:
+        probe.setTemperatureCompensation(float(value))
+    except ValueError:
+        input('T value must be a number [press enter to continue]')
+
+
 def printProbeStatus():
-    clearScreen()
-    probe.dump()
-    input('Press enter to continue')
+    try:
+        clearScreen()
+        probe.dump()
+        input('Press enter to continue')
+    except Exception as e:
+        print(f'Error: {e}')
 
 
 def clearCalibration():
@@ -60,10 +73,25 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
-    if description is not 'DRY':
+    if description != 'DRY':
         value = input(f'{description} calibration value: ')
     else:
         value = 0
+
+    while True:
+        print('Getting 10 seconds of data...')
+        ec_old = None
+        for i in range(0, 10):
+            ec = probe.EC()
+            if ec_old:
+                delta_percent = abs(ec - ec_old) / ec_old * 100
+            else:
+                delta_percent = 0.0
+            print(f'EC: {ec: 6.2f}  delta: {delta_percent: 3.1f}%')
+            ec_old = ec
+            time.sleep(1)
+        if input('Calibrate now (Y/n)?').lower() in ['', 'y']:
+            break
 
     try:
         probe.setCalibration(float(value))
@@ -82,11 +110,11 @@ def singlePointCalibration():
 
 
 def highCalibration():
-    doCalibration('DUAL POINT HIGH', 4)
+    doCalibration('DUAL POINT HIGH', 5)
 
 
 def lowCalibration():
-    doCalibration('DUAL POINT LOW', 5)
+    doCalibration('DUAL POINT LOW', 4)
 
 
 def calibrate():
@@ -132,13 +160,18 @@ presentMenu({
     'items': [
         {
             'description': 'Print probe status',
-            'key': 'p',
+            'key': 's',
             'func': printProbeStatus
         },
         {
             'description': 'Set probe type',
-            'key': 't',
+            'key': 'p',
             'func': setProbeType
+        },
+        {
+            'description': 'Set temperature compensation',
+            'key': 't',
+            'func': setTemperatureCompensation
         },
         {
             'description': 'Calibrate',
