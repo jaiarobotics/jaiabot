@@ -78,6 +78,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_ECHO = 36
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_MOTOR_DRIVER = 37
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_DRIVER = 38
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -130,6 +134,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER = 123
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 124
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_MOTOR_DRIVER = 125
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
@@ -276,6 +282,12 @@ enum Warning
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // From Motor Status Thread
+    WARNING__NOT_RESPONDING__JAIABOT_RPM_DRIVER = 600
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_ARDUINO_MOTOR_TEMP = 601
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_mission_manager

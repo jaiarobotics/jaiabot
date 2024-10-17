@@ -1,6 +1,12 @@
 $app_block
 $interprocess_block
 
+udp_config { 
+    bind_port: $bind_port
+    remote_address: "127.0.0.1"
+    remote_port: $remote_port
+}
+
 auto_restart: false
 auto_restart_timeout: 20
 auto_restart_init_grace_period: 60
@@ -22,4 +28,8 @@ linux_hw {
 
     wireless_file: "/proc/net/wireless"
     wlan_interface: "wlan0"
+}
+
+motor {
+    motor_harness_info_type: $motor_harness_info_type
 }

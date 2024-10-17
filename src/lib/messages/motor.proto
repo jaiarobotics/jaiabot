@@ -1,0 +1,24 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+enum MotorHarnessInfoType
+{
+    NONE = 1;
+    RPM_AND_THERMISTOR = 2;
+}
+
+message Motor
+{
+    message Thermistor {
+        optional float temperature = 1; // Celsius
+        optional float resistance = 2;
+        optional float voltage = 3;
+    }
+
+    optional double rpm = 1;
+    optional Thermistor thermistor = 2;
+    optional MotorHarnessInfoType motor_harness_info_type = 3 [default = NONE];
+}

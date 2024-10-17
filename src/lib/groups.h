@@ -69,6 +69,9 @@ constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware
 constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
 constexpr goby::middleware::Group systemd_report{"jaiabot::systemd_report"};
 constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ack"};
+constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
+constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
+constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible
