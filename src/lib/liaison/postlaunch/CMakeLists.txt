@@ -10,3 +10,5 @@ if(export_goby_interfaces)
 endif()
 
 project_install_lib(jaiabot_liaison)
+
+set_property(TARGET jaiabot_liaison PROPERTY CXX_STANDARD 14)

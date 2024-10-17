@@ -1,17 +1,14 @@
 # core
 ubuntu-minimal
-# ubuntu-standard
 initramfs-tools
 btrfs-progs
 overlayroot
-net-tools
-ifupdown
+### net-tools
+### ifupdown
 # for growpart
 cloud-guest-utils
 gpg
 wpasupplicant
-# for gps-i2c-pipe.py
-python3-smbus
 apache2
 # for first boot script
 debconf-utils

@@ -1,4 +1,0 @@
-#auto wlan0
-#iface wlan0 inet dhcp
-#    wpa-essid _JAIA_ESSID_
-#    wpa-psk _JAIA_WPA_PSK_

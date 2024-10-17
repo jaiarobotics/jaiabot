@@ -11,7 +11,7 @@ authors = [
     { name = "Jaia Robotics", email = "edsanville@gmail.com" },
 ]
 dependencies = [
-    "protobuf==3.20.0",
+    "protobuf",
     "wheel",
 ]
 

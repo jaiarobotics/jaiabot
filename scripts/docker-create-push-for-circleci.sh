@@ -2,19 +2,10 @@
 
 set -e -u -x
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 [jammy|focal|noble] [1.y|2.y]"
-    exit 1
-fi
+distro=$(<ubuntu_release)
+release_branch=$(<release_branch)
 
-distro=$1
-release_branch=$2
-
-if [[ "$distro" = "jammy" ]]; then
-    version=22.04.1
-elif [[ "$distro" = "focal" ]]; then
-    version=20.04.1
-elif [[ "$distro" = "noble" ]]; then
+if [[ "$distro" = "noble" ]]; then
     version=24.04.1
 else
     echo "Distro $distro is not supported"

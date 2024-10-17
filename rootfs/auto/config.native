@@ -9,8 +9,8 @@ lb config noauto \
  --binary-filesystem ext4 \
  --binary-images tar \
  --chroot-filesystem none \
- --compression gzip \
- --distribution focal \
+ --compression none \
+ --distribution XXX \
  --iso-volume "JaiaBot" \
  --iso-publisher "https://www.jaia.tech/" \
  --linux-flavours none \

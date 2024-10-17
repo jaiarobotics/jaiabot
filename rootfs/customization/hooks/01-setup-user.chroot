@@ -1,10 +1,13 @@
-#!/bin/sh  
+#!/bin/bash
+
+USERNAME="jaia"
+PASSWORD="jaia"
 
 echo "I: create jaia user"
-adduser --gecos jaia --disabled-login jaia
+useradd -m -s /bin/bash "$USERNAME"
 
 echo "I: set jaia user password"
-echo "jaia:jaia" | chpasswd
+echo "$USERNAME:$PASSWORD" | chpasswd
 
 echo "I: set jaia as the group for /etc/jaiabot"
 chown root:jaia /etc/jaiabot

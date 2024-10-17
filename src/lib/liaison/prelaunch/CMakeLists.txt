@@ -6,3 +6,5 @@ target_link_libraries(jaiabot_liaison_prelaunch goby ${Boost_LIBRARIES} jaiabot_
 configure_file(goby_liaison_prelaunch_jaiabot.in ${project_BIN_DIR}/goby_liaison_prelaunch_jaiabot @ONLY)
 
 project_install_lib(jaiabot_liaison_prelaunch)
+
+set_property(TARGET jaiabot_liaison_prelaunch PROPERTY CXX_STANDARD 14)
