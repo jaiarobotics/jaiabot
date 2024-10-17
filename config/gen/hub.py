@@ -168,8 +168,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      this_hub=this_hub,
                                      user_role=user_role,
                                      inventory=inventory,
-                                     vfleet_playbooks=vfleet_playbooks,
-                                     ansible_playbook_full_path=ansible_playbook_full_path))
+                                     vfleet_playbooks=vfleet_playbooks))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
