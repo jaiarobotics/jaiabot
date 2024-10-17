@@ -2,25 +2,23 @@
 
 set -e -u -x
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 [jammy|focal|noble] [1.y|2.y]"
-    exit 1
-fi
+##  "Usage: $0 [jammy|focal] [1.y]"
 
-distro=$1
-release_branch=$2
+script_dir=$(dirname $0)
+set -a; source ${script_dir}/common-versions.env; set +a 
+(cd ..; cmake -P cmake/ConfigureDockerfiles.cmake)
+
+distro=${1:-${jaia_version_ubuntu_codename}}
+release_branch=${2:-${jaia_version_release_branch}}
 
 if [[ "$distro" = "jammy" ]]; then
     version=22.04.1
 elif [[ "$distro" = "focal" ]]; then
     version=20.04.1
-elif [[ "$distro" = "noble" ]]; then
-    version=24.04.1
 else
     echo "Distro $distro is not supported"
     exit 1
-fi    
-   
+fi   
 
 script_dir=$(dirname $0)
 cd ${script_dir}/..

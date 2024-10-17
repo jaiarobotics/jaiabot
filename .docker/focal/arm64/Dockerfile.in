@@ -1,21 +1,21 @@
-ARG distro=focal
-FROM --platform=linux/amd64 ubuntu:$distro
-ARG distro=focal
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
+FROM --platform=linux/amd64 ubuntu:${distro}
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
 ARG repo=release
-ARG version=1.y
+ARG version=@JAIA_VERSION_RELEASE_BRANCH@
 
 SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV CROSS_COMPILE_ARCHS "arm64 armhf"
+ENV CROSS_COMPILE_ARCHS "arm64"
 
 RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y --no-install-recommends install \
             git build-essential ssh cmake gpg gpg-agent \
             devscripts equivs ca-certificates quilt \
-            clang clang-tools dirmngr \
+            clang clang-tools dirmngr\
             dput cdbs \
             gcc-aarch64-linux-gnu \
             && rm -rf /var/lib/apt/lists/*
@@ -33,7 +33,6 @@ RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
 RUN echo -e "deb http://packages.jaia.tech/ubuntu/${repo}/${version}/ ${distro}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${repo}/${version}/ ${distro}/" >> /etc/apt/sources.list.d/jaiabot_${repo}_${version}.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-
 
 # Install jaiabot dependencies
 RUN apt-get update && \
@@ -64,7 +63,7 @@ RUN apt-get update && \
 RUN git config --global --add safe.directory /home/jaia/jaiabot
 
 # arduino-cli install
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh && \
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh -s @JAIA_VERSION_ARDUINO_CLI@ && \
     arduino-cli config init && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
@@ -72,14 +71,14 @@ RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/inst
 # NVM Pre Install Setup
 RUN mkdir -p /usr/local/nvm
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION v18.12.1
+ENV NODE_VERSION @JAIA_VERSION_NODEJS@
 
 # NVM Download
-RUN curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+RUN curl https://raw.githubusercontent.com/creationix/nvm/@JAIA_VERSION_NVM@/install.sh | bash
 
-# NVM Install    
+# NVM Install
 RUN source $NVM_DIR/nvm.sh \
-    && npm install -g npm@9.6.4 \
+    && npm install -g npm@@JAIA_VERSION_NPM@ \
     && nvm install $NODE_VERSION \
     && nvm use --delete-prefix $NODE_VERSION \
     && npm i -g webpack webpack-cli
