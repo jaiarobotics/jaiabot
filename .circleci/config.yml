@@ -470,12 +470,8 @@ jobs:
       - run:
           name: Set environmental variables for which repo tag to use (analogous to APT repo names)
           command: |
-            # use script from jaiabot that does the same thing
-
-            git clone https://github.com/jaiarobotics/jaiabot.git
-
-            repo=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
-            version=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
             echo "repo:${repo}"
             echo "version:${version}"
             # export these for later use
