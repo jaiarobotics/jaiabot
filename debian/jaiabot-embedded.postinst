@@ -40,9 +40,13 @@ fi
 
 echo ">>>>> Updating wifi configuration ... "
 WIFI_NETWORK_FILE=/etc/systemd/network/10-wlan0-fleet.network
-sed -i "s/SSID=.*/SSID=JAIA-HUB-WIFI-${FLEET_INDEX}/" ${WIFI_NETWORK_FILE}
+FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
+sed -i "s/SSID=.*/SSID=${FLEET_WLAN_SSID}/" ${WIFI_NETWORK_FILE}
 sed -i "s/Address=.*/Address=10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}\/24/" ${WIFI_NETWORK_FILE}
 sed -i "s/Gateway=.*/Gateway=10.23.${FLEET_INDEX}.1/"  ${WIFI_NETWORK_FILE}
+sed -i "s/ssid=\"[^\"]*\"/ssid=\"${FLEET_WLAN_SSID}\"/" /etc/wpa_supplicant/fleet_wifi.conf
+
+
 echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
 
 echo ">>>>> Updating hub0 address ... "
