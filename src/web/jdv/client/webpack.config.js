@@ -35,6 +35,7 @@ module.exports = (env, argv) => {
         output: {
             path: env.TARGET_DIR,
             filename: "bundle.js",
+            clean: true,
         },
     };
 };
