@@ -411,7 +411,7 @@ jobs:
             source ${TMP_IMG_NAME}.metadata.txt
             for filename in ${TMP_IMG_NAME}.*; do
               extension="${filename#*.}"
-              mv "${TMP_IMG_NAME}.${extension}" "/tmp/images/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}__code-v${JAIABOT_VERSION}.${extension}"
+              mv "${TMP_IMG_NAME}.${extension}" "/tmp/images/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}.${extension}"
             done
       - run: &run-compress-image-raspi
           name: Compress image
