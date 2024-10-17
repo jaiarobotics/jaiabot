@@ -41,6 +41,7 @@ fi
 
 # Now we use nvm to install the correct version of node FIRST, so npm is compatible
 nvm install ${NODE_VERSION}
+nvm alias default ${NODE_VERSION}
 nvm use ${NODE_VERSION}
 # Now npm can upgrade itself
 npm install -g npm@${jaia_version_npm}

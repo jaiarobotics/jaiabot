@@ -21,6 +21,7 @@ import CommandControl from "./CommandControl/CommandControl";
 import { deepcopy } from "./shared/Utilities";
 
 import * as turf from "@turf/turf";
+import { Feature as GjFeature, Point as GfPoint } from "geojson";
 
 const missionOrientationIcon = require("../icons/compass.svg");
 
@@ -263,7 +264,7 @@ export class SurveyLines {
 
                         // Metadata setup
                         // TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
-                        let fcInput: turf.helpers.Feature<turf.helpers.Point>[] = [];
+                        let fcInput: GjFeature<GfPoint>[] = [];
                         Object.keys(alongPoints).forEach((key) => {
                             let points = alongPoints[key];
                             points.forEach((point) => {

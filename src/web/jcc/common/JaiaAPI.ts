@@ -5,8 +5,8 @@ require("isomorphic-fetch");
 import { GeoJSON } from "ol/format";
 import { Command, Engineering, CommandForHub, TaskPacket } from "../../shared/JAIAProtobuf";
 import { randomBase57, convertHTMLStrDateToISO } from "../client/components/shared/Utilities";
-import { Geometry } from "ol/geom";
-import { FeatureCollection } from "@turf/turf";
+import { FeatureCollection, Geometry } from "geojson";
+import { Feature } from "ol";
 
 export interface JaiaError {
     code?: number;

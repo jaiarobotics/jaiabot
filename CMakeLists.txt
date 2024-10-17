@@ -310,7 +310,6 @@ install(EXPORT jaiabot-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot)
 # configuration export - local build version
 export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-config.cmake)
 
-
 ## Configure Dockerfiles
 # Read common-version.env into CMake variables
 include(ConfigureDockerfiles)
