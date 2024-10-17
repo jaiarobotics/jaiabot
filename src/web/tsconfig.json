@@ -1,22 +1,19 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "noImplicitAny": true,
-    "removeComments": true,
-    "preserveConstEnums": true,
-    "sourceMap": true,
-    "declaration": true,
-    "moduleResolution": "node",
-    "outDir": "dist",
-    "rootDir": ".",
-    "jsx": "react-jsx",
-    "target": "ES2015",
-    "esModuleInterop": true,
-    "lib": [
-      "ES2021",
-      "dom"
-    ],
-    "types": ["@testing-library/jest-dom", "@types/plotly.js"]
-  },
-  "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "declaration": true,
+        "moduleResolution": "node",
+        "outDir": "dist",
+        "rootDir": ".",
+        "jsx": "react-jsx",
+        "target": "ES2021",
+        "esModuleInterop": true,
+        "lib": ["ES2021", "dom"],
+        "types": ["@testing-library/jest-dom", "@types/plotly.js"]
+    },
+    "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
 }
