@@ -127,7 +127,6 @@ class HubManager : public ApplicationBase
     std::atomic<bool> offload_complete_{false};
     std::atomic<uint32_t> data_offload_percentage_{0};
 
-
     // map GPSD device name to contact ID
     struct Contact
     {

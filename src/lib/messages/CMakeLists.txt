@@ -27,6 +27,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/echo.proto
   jaiabot/messages/rest_api.proto
   jaiabot/messages/option_extensions.proto
+  jaiabot/messages/edna.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
@@ -66,8 +67,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x9422d3567cf98fee")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xd6cdaf32db2fd089")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x0e41dc88405ff2f1")
-  check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xa93a36d1c8f55afd")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x2b80023de485b242")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xe39e23ff72511954")
+  check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6c42c141bd831aec")
 endif()

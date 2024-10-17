@@ -1,0 +1,41 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message eDNACommand
+{
+    enum eDNACommandType
+    {
+        CMD_START = 0;
+        CMD_END = 1;
+        CMD_STATUS = 2;
+    }
+
+    required eDNACommandType type = 1;
+}
+
+enum eDNAState
+{
+    EDNA_START = 0;
+    EDNA_STOP = 1;
+    EDNA_RUNNING = 2;
+}
+
+message eDNAData
+{
+    optional eDNAState edna_state = 1 [default = EDNA_STOP];
+}
+
+message eDNAIssue
+{
+    enum SolutionType
+    {
+        REPORT_EDNA= 0;
+        RESTART_EDNA_PY = 1;
+        REBOOT_EDNA_AND_RESTART_EDNA_PY = 3;
+    }
+
+    required SolutionType solution = 1;
+}

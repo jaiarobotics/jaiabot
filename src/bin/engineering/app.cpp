@@ -30,6 +30,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/edna.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"
@@ -106,6 +107,16 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                 {
                     latest_engineering.mutable_echo()->set_echo_state(
                         echo_data.echo_state());
+                }
+            });
+
+        // Subscribe to the eDNA driver so that its RC control works
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::eDNAData& edna_data)
+            {
+                if (edna_data.has_edna_state())
+                {
+                    latest_engineering.mutable_edna()->set_edna_state(edna_data.edna_state());
                 }
             });
 
@@ -318,7 +329,7 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
     {
         protobuf::EchoCommand echo_command;
         if (command.echo().start_echo())
-        {
+        {  
             echo_command.set_type(protobuf::EchoCommand::CMD_START);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
         }
@@ -326,6 +337,20 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
         {
             echo_command.set_type(protobuf::EchoCommand::CMD_STOP);
             interprocess().publish<jaiabot::groups::echo>(echo_command);
+        }
+    }
+    else if (command.has_edna())
+    {
+        protobuf::eDNACommand edna_command;
+        if (command.edna().start_edna())
+        {
+            edna_command.set_type(protobuf::eDNACommand::CMD_START);
+            interprocess().publish<jaiabot::groups::edna>(edna_command);
+        }
+        else if (command.edna().stop_edna())
+        {
+            edna_command.set_type(protobuf::eDNACommand::CMD_END);
+            interprocess().publish<jaiabot::groups::edna>(edna_command);
         }
     }
 

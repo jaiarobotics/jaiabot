@@ -30,6 +30,7 @@ interface Props {
     weHaveInterval: () => boolean;
     setRCDiveParameters: (diveParams: { [param: string]: string }) => void;
     initRCDivesParams: (botId: number) => void;
+    toggleeDNA: (eDNAState: boolean) => void;
 }
 
 interface State {
@@ -43,6 +44,7 @@ interface State {
     botId: number;
     isMaximized: boolean;
     overdriveEnabled: boolean;
+    eDNATurnedOn: boolean;
 }
 
 enum JoySticks {
@@ -55,6 +57,7 @@ enum ControlTypes {
     MANUAL_DUAL = "MANUAL_DUAL",
     MANUAL_SINGLE = "MANUAL_SINGLE",
     DIVE = "DIVE",
+    EDNA = "EDNA",
 }
 
 type Bin = { binNumber: number; binValue: number };
@@ -97,6 +100,7 @@ export default class RCControllerPanel extends React.Component {
             botId: 0,
             isMaximized: true,
             overdriveEnabled: false,
+            eDNATurnedOn: false,
         };
     }
 
@@ -397,12 +401,17 @@ export default class RCControllerPanel extends React.Component {
     }
 
     controlChange(event: SelectChangeEvent) {
+        // Reset eDNA pump to "off" when RC Control Type changes
+        if (this.state.controlType === ControlTypes.EDNA) {
+            this.handleeDNATurnedOn()
+        }
+
         const controlType = event.target.value.toUpperCase();
         if (controlType === ControlTypes.MANUAL_SINGLE) {
             this.setJoyStickStatus([JoySticks.SOLE]);
         } else if (controlType === ControlTypes.MANUAL_DUAL) {
             this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT]);
-        } else if (controlType === ControlTypes.DIVE) {
+        } else if (controlType === ControlTypes.DIVE || controlType === ControlTypes.EDNA) {
             this.setJoyStickStatus([]);
         }
         this.setState({ controlType });
@@ -432,6 +441,42 @@ export default class RCControllerPanel extends React.Component {
 
         diveParams[paramType] = input;
         this.props.setRCDiveParameters(diveParams);
+    } 
+
+    /**
+     * Calls the toggleeDNA() function from this.props to toggle truth value for the eDNA Pump
+     * 
+     * @returns {void} 
+     */
+    async handleeDNATurnedOn() {
+
+        // delete interval so the bot does not receive engineering commands
+        this.props.deleteInterval();
+
+        this.props.toggleeDNA(this.state.eDNATurnedOn)
+        this.setState({ eDNATurnedOn: !this.props.remoteControlValues.edna.start_edna })
+
+        const rceDNACommand = {
+            bot_id: this.props.bot?.bot_id,
+            type: CommandType.REMOTE_CONTROL_TASK,
+            rc_task: {
+                type: TaskType.EDNA,
+                start_edna: !this.props.remoteControlValues.edna.start_edna,
+            }
+        }
+
+        this.api.postCommand(rceDNACommand).then((response) => {
+            if (response.message) {
+                error("Unable to post RC eDNA Pump command");
+            }
+            else if (rceDNACommand.rc_task.start_edna === true) {
+                success("eDNA Pump Activated")
+            } else {
+                success("eDNA Pump Deactivated")
+            }
+        })
+        
+        return;
     }
 
     /**
@@ -468,7 +513,7 @@ export default class RCControllerPanel extends React.Component {
             if (response.message) {
                 error("Unable to post RC dive command");
             } else {
-                success("Beginning RC dive");
+                success("Beginning RC dive"); 
             }
         });
     }
@@ -555,6 +600,9 @@ export default class RCControllerPanel extends React.Component {
                         <MenuItem key={3} value={ControlTypes.DIVE}>
                             Dive
                         </MenuItem>
+                        <MenuItem key={4} value={ControlTypes.EDNA}>
+                            eDNA Pump
+                        </MenuItem>
                     </Select>
                 </ThemeProvider>
             </div>
@@ -565,6 +613,7 @@ export default class RCControllerPanel extends React.Component {
         let soleController: ReactElement;
         let driveControlPad: ReactElement;
         let diveControlPad: ReactElement;
+        let eDNAControlPad: ReactElement;
 
         leftController = (
             <div
@@ -691,7 +740,7 @@ export default class RCControllerPanel extends React.Component {
                                     this.handleTaskParamInputChange(evt)
                                 }
                                 autoComplete="off"
-                            />
+                         />
                             <div>m</div>
 
                             <div>Hold Time:</div>
@@ -732,6 +781,22 @@ export default class RCControllerPanel extends React.Component {
                     </div>
                 </div>
             );
+
+            eDNAControlPad = (
+                <div className="rc-labels-container">
+                    <div className="rc-labels-left">
+                        {selectControlType}
+                        <div>eDNA Pump</div>
+                        <JaiaToggle
+                            checked={() => this.state.eDNATurnedOn}
+                            onClick={() => this.handleeDNATurnedOn()}
+                            disabled={() => false}
+                            label="Off/On"
+                            title="eDNA Pump"
+                        />
+                    </div>
+                </div>
+            )
         }
 
         if (this.props.bot?.bot_id !== undefined) {
@@ -745,7 +810,11 @@ export default class RCControllerPanel extends React.Component {
                     ? leftController
                     : soleController}
 
-                {this.state.controlType === ControlTypes.DIVE ? diveControlPad : driveControlPad}
+                {this.state.controlType === ControlTypes.DIVE 
+                    ? diveControlPad 
+                    : this.state.controlType === ControlTypes.EDNA
+                    ? eDNAControlPad 
+                    : driveControlPad}
 
                 {rightController}
 
