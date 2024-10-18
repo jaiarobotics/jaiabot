@@ -161,11 +161,15 @@ class AtlasOEM:
         print(f'TDS (ppm):                {self.TDS():0.2f}')
         print(f'Salinity (PSU (ppt)):     {self.salinity():0.2f}')
 
-probe = AtlasOEM()
-probe.setActiveHibernate(1)
+while True:
+    try:
+        probe = AtlasOEM()
+        probe.setActiveHibernate(1)
+        break
+    except Exception as e:
+        print("Atlas Scientific OEM-EC conductivity sensor not found. Trying again.")
 
 if __name__ == '__main__':
-
     with AtlasOEM() as atlas:
         atlas.dump()
 
@@ -181,7 +185,12 @@ def presentMenu(menu):
     while not done:
         clearScreen()
         print(datetime.datetime.now())
-        probe.dump()
+        try:
+            probe.dump()
+        except Exception as e:
+            print(f"{e}")
+            continue
+
         print()
         print()
         print()
@@ -348,7 +357,7 @@ def jaiaCalibration():
     print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged and has no bubbles stuck inside.")
     time.sleep(1)
     input("When you're ready to begin the calibration procedure, press enter.\n")
-    doJaiaCalibration('DUAL POINT HIGH', 4, 80000)
+    doJaiaCalibration('DUAL POINT HIGH', 5, 80000)
 
     
     # Fine calibration 
@@ -364,7 +373,7 @@ def jaiaCalibration():
     print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged and has no bubbles stuck inside.")
     time.sleep(1)
     input("When you're ready to begin the calibration procedure, press enter.\n")
-    doJaiaCalibration('DUAL POINT HIGH', 4, 80000)
+    doJaiaCalibration('DUAL POINT HIGH', 5, 80000)
 
     # Reset temperature calibration to its default
     probe.setTemperatureCompensation(25)
