@@ -23,7 +23,6 @@
 syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
-import "actions/net.proto";
 
 package jaiabot.config;
 

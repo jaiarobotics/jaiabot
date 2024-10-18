@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
+script_dir=$(dirname $BASH_SOURCE)
+set -a; source ${script_dir}/common-versions.env; set +a 
+
 # Install packages to allow apt to use a repository over HTTPS:
 sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
 # Add packages.gobysoft.org mirror to your apt sources
-default_version=$(<release_branch)
+default_version=${jaia_version_release_branch}
 echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
@@ -20,9 +23,9 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
     arduino-cli core install arduino:avr
 
 # Install nvm, npm, and webpack
-curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
-export NODE_VERSION=v20.17.0
+export NODE_VERSION=${jaia_version_nodejs}
 
 if [ -z "${XDG_CONFIG_HOME-}" ]; then
     export NVM_DIR="${HOME}/.nvm"
@@ -41,6 +44,6 @@ nvm install ${NODE_VERSION}
 nvm alias default ${NODE_VERSION}
 nvm use ${NODE_VERSION}
 # Now npm can upgrade itself
-npm install -g npm@10.9.0
+npm install -g npm@${jaia_version_npm}
 # Then, npm can install webpack
-npm install -g --no-audit webpack@5.95.0 webpack-cli@5.1.4
+npm install -g --no-audit webpack@${jaia_version_webpack} webpack-cli@${jaia_version_webpack_cli}

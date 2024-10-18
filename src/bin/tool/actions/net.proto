@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+syntax = "proto2";
+
 package jaiabot.config;
 
 enum Net

@@ -3,10 +3,16 @@
 set -e
 
 script_dir=$(dirname $0)
+set -a; source ${script_dir}/common-versions.env; set +a 
+
 build_dir=${script_dir}/../build
 
-mkdir -p ${script_dir}/../build/amd64-vbox
-cd ${script_dir}/../build/amd64-vbox
+distro=$(grep "VERSION_CODENAME" /etc/os-release | cut -d'=' -f2)
+release_branch=${jaia_version_release_branch}
+
+full_build_dir=${script_dir}/../build/${distro}-${release_branch}-amd64-vbox
+mkdir -p ${full_build_dir}
+cd ${full_build_dir}
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
@@ -21,15 +27,15 @@ fi
 if [ ! -d "/usr/local/nvm" ]
 then
   echo "nvm not installed! Installing...";
-  curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+  curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
   
-  npm install -g npm@9.6.4
-  nvm install v18.12.1
-  nvm use v18.12.1
+  npm install -g npm@${jaia_version_npm}
+  nvm install ${jaia_version_nodejs}
+  nvm use ${jaia_version_nodejs}
   npm install i -g --no-audit webpack webpack-cli
 fi
 
