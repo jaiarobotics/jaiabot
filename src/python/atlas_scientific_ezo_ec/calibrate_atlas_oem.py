@@ -310,7 +310,7 @@ def doJaiaCalibration(description: str, type: int, value: int):
         
         repetitions += 1
 
-        if max(delta_list) < 0.10 or repetitions == 3:
+        if max(delta_list) < 0.10 or (repetitions == 3 and max(delta_list) < 0.5):
             break
     
     input(f"{description} calibration at {value} μS/cm complete. Press enter")
@@ -319,14 +319,9 @@ def doJaiaCalibration(description: str, type: int, value: int):
 
 
 def jaiaCalibration():
-    # Give countdown for user to prepare for calibration to begin
-    countdown = 5
-    while countdown != -1:
-        print(f"Starting calibration procedure... {countdown}")
-        countdown -= 1
-        time.sleep(1)
-        clearScreen()
-
+    print(f"Starting calibration procedure...")
+    time.sleep(1)
+        
     # Start from a fresh calibration state
     clearCalibration()
 
