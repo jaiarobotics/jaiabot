@@ -1,8 +1,0 @@
-[Match]
-Name=wlan0
-# SSID=_JAIA_ESSID_
-
-[Network]
-# Address=10.23.xxx.yyy/24
-# Gateway=10.23.xxx.1
-# DNS=1.1.1.1

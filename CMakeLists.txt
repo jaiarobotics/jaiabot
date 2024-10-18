@@ -280,6 +280,7 @@ set(scripts_to_install
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
+  system/jaia_update_network.sh
 )
 
 # Iterate over each script to install and copy

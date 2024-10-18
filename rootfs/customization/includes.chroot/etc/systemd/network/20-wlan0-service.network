@@ -1,6 +1,0 @@
-[Match]
-Name=wlan0
-SSID=JaiaService
-
-[Network]
-DHCP=yes

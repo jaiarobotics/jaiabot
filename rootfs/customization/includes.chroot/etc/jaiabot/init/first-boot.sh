@@ -92,45 +92,21 @@ echo "###############################################"
 echo "## Setting up wifi                           ##"
 echo "###############################################"
 
+NETENV_FILE=/etc/jaiabot/network.env
+
 run_wt_yesno jaia_disable_ethernet "Wired ethernet (eth0)" \
-             "Do you want to disable the wired Ethernet interface (eth0)?" && cat <<EOF >> /etc/systemd/network/30-eth0.network
-[Link]
-ActivationPolicy=manual
-EOF
+             "Do you want to disable the wired Ethernet interface (eth0)?" && sed -i "s/jaia_network_eth_enabled=.*/jaia_network_eth_enabled=false/" ${NETENV_FILE}
 
 run_wt_yesno jaia_configure_wifi "Wireless ethernet (wlan0)" \
              "Do you want to configure the wireless Ethernet interface (wlan0)?" &&
 (
-run_wt_inputbox jaia_wifi_ssid "wlan0 SSID" \
-            "Enter wlan0 SSID"
-wlan_ssid=${WT_TEXT}
-
 run_wt_inputbox jaia_wifi_password "SSID Password" \
                 "Enter the password for SSID ${wlan_ssid}"
 wlan_password=${WT_TEXT}
 
-# IP addresses will be overwritten by jaiabot-embedded after choice of hub/bot info
-cat << EOF > /etc/systemd/network/10-wlan0-fleet.network
-[Match]
-Name=wlan0
-SSID=${wlan_ssid}
+sed -i "s/jaia_network_fleet_password=.*/jaia_network_fleet_password=\"${wlan_password}\"/" ${NETENV_FILE}
 
-[Network]
-Address=10.23.XXX.YYY/24
-Gateway=10.23.XXX.1
-DNS=1.1.1.1
-EOF
-
-sed -i "s/ssid=\"[^\"]*\"/ssid=\"${wlan_ssid}\"/" /etc/wpa_supplicant/fleet_wifi.conf
-sed -i "s/psk=\"[^\"]*\"/psk=\"${wlan_password}\"/" /etc/wpa_supplicant/fleet_wifi.conf
-
-
-# for real ethernet acting as wlan0 (VirtualBox)
-if [[ "${wlan_ssid}" = "" || "${wlan_ssid}" = "dummy" ]]; then
-    sed -i 's/\(.*SSID=.*\)/# \1/' /etc/systemd/network/10-wlan0-fleet.network
-else
-    systemctl enable wpa_supplicant@wlan0
-fi
+systemctl enable wpa_supplicant@wlan0
 )
 
 echo "###############################################"

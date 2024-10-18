@@ -10,7 +10,6 @@ jaia_stress_tests=true
 ########################################################
 jaia_disable_ethernet=true
 jaia_configure_wifi=true
-jaia_wifi_ssid=dummy
 jaia_wifi_password=dummy
 
 #########################################################
@@ -36,7 +35,6 @@ jaiabot-embedded        jaiabot-embedded/mode   select runtime
 jaiabot-embedded        jaiabot-embedded/debconf_state_hub      select
 jaiabot-embedded        jaiabot-embedded/imu_install_type       select embedded
 jaiabot-embedded        jaiabot-embedded/electronics_stack      select 2
-jaiabot-embedded        jaiabot-embedded/n_bots select
 jaiabot-embedded        jaiabot-embedded/arduino_type   select usb
 jaiabot-embedded        jaiabot-embedded/debconf_state_common   select mode
 EOM
