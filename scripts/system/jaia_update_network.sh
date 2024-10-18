@@ -25,7 +25,7 @@ EOF
 
 FLEET_SSID_LINE=""
 # Omit SSID for VirtualBox fleet (really an eth interface in this case)
-if [[ "${jaia_network_fleet_ssid}" != "" && "${jaia_network_fleet_ssid}" != "dummy" ]]; then
+if [[ "${jaia_network_fleet_password}" != "dummy" ]]; then
     FLEET_SSID_LINE="SSID=${jaia_network_fleet_ssid}"
 fi
     cat <<EOF > /etc/systemd/network/10-${jaia_network_wifi_iface}-fleet.network
