@@ -100,7 +100,7 @@ run_wt_yesno jaia_disable_ethernet "Wired ethernet (eth0)" \
 run_wt_yesno jaia_configure_wifi "Wireless ethernet (wlan0)" \
              "Do you want to configure the wireless Ethernet interface (wlan0)?" &&
 (
-run_wt_inputbox jaia_wifi_password "SSID Password" \
+run_wt_inputbox jaia_wifi_password "Fleet Wifi Password" \
                 "Enter the password for Fleet Wifi"
 wlan_password=${WT_TEXT}
 
