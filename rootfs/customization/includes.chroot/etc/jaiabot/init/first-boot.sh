@@ -101,7 +101,7 @@ run_wt_yesno jaia_configure_wifi "Wireless ethernet (wlan0)" \
              "Do you want to configure the wireless Ethernet interface (wlan0)?" &&
 (
 run_wt_inputbox jaia_wifi_password "SSID Password" \
-                "Enter the password for SSID ${wlan_ssid}"
+                "Enter the password for Fleet Wifi"
 wlan_password=${WT_TEXT}
 
 sed -i "s/jaia_network_fleet_password=.*/jaia_network_fleet_password=\"${wlan_password}\"/" ${NETENV_FILE}
