@@ -72,9 +72,6 @@ cat << EOF >> /home/jaia/.ssh/authorized_keys
 EOF
 chown -R jaia:jaia /home/jaia/.ssh
 
-## Restore network interfaces file for reboot after first-boot config
-mv /etc/network/vmimport.interfaces /etc/network/interfaces
-
 ## Restore default hostname
 hostnamectl set-hostname "jaia-unnamed"
 
@@ -106,18 +103,9 @@ hubs:
       ansible_connection: local
 EOF
 
-## Install latest ansible in venv using pip (required for ansible AWS to work)
-(
-    python3 -m venv /opt/jaia_cloudhub_venv
-    source /opt/jaia_cloudhub_venv/bin/activate
-    pip install ansible botocore boto3
-    deactivate
-)
-
-# also need latest boto3
-pip3 install -U boto3
 cd /tmp
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+AWSCLI_VERSION=2.18.8
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 ./aws/install
 

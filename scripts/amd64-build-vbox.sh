@@ -3,10 +3,10 @@
 set -e
 
 script_dir=$(dirname $0)
-build_dir=${script_dir}/../build
+build_dir=${1}
 
-mkdir -p ${script_dir}/../build/amd64-vbox
-cd ${script_dir}/../build/amd64-vbox
+mkdir -p ${build_dir}
+cd ${build_dir}
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++

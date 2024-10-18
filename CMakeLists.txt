@@ -3,8 +3,8 @@ project(jaiabot CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-# require C++14
-set(CMAKE_CXX_STANDARD 14)
+# require minimum C++ version
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
@@ -265,7 +265,6 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
 set(scripts_to_install
-  jaiabot-checkloadavg.py
   # data offload
   data-offload/jaiahub-dataoffload.sh
   data-offload/jaiabot-predataoffload.sh
@@ -278,6 +277,10 @@ set(scripts_to_install
   # Utilities
   jaia-ip.py
   jaia-doc.py
+  # System scripts
+  system/jaiabot-checkloadavg.py
+  system/jaia_update_ufw_rules.sh
+  system/jaia_update_network.sh
 )
 
 # Iterate over each script to install and copy

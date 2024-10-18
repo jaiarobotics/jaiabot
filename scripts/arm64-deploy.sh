@@ -26,12 +26,8 @@ pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
     /usr/bin/python3 -m venv venv/
     source venv/bin/activate
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
-    sudo mkdir -p /var/log/tmp
-    sudo chmod a+rwx /var/log/tmp
-    export TMPDIR=/var/log/tmp
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
-    sudo rm -rf /var/log/tmp
 popd
 
 sudo apt-get -qq -y remove "*jaiabot*"
