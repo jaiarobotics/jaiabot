@@ -1,8 +1,8 @@
-ARG distro=focal
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
 FROM --platform=linux/amd64 ubuntu:${distro}
-ARG distro=focal
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
 ARG repo=release
-ARG version=1.y
+ARG version=@JAIA_VERSION_RELEASE_BRANCH@
 
 SHELL ["/bin/bash", "-c"]
 
@@ -47,8 +47,12 @@ RUN apt-get update && \
             && \
     rm -rf /var/lib/apt/lists/*
 
+
+# Allow compilation of this directory, even if it's owned by someone else, not root
+RUN git config --global --add safe.directory /home/jaia/jaiabot
+
 # arduino-cli install
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh && \
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh -s @JAIA_VERSION_ARDUINO_CLI@ && \
     arduino-cli config init && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
@@ -56,20 +60,18 @@ RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/inst
 # NVM Pre Install Setup
 RUN mkdir -p /usr/local/nvm
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION v18.12.1
+ENV NODE_VERSION @JAIA_VERSION_NODEJS@
 
 # NVM Download
-RUN curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+RUN curl https://raw.githubusercontent.com/creationix/nvm/@JAIA_VERSION_NVM@/install.sh | bash
 
 # NVM Install
 RUN source $NVM_DIR/nvm.sh \
+    && npm install -g npm@@JAIA_VERSION_NPM@ \
     && nvm install $NODE_VERSION \
     && nvm use --delete-prefix $NODE_VERSION \
-    && npm install -g npm@9.6.4 \
     && npm i -g webpack webpack-cli
 
 # NVM Post Install Setup
 ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
 ENV PATH $NODE_PATH:$PATH
-
-RUN git config --global --add safe.directory /home/jaia/jaiabot
