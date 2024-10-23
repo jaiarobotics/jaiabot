@@ -626,6 +626,7 @@ export enum TaskType {
     STATION_KEEP = "STATION_KEEP",
     SURFACE_DRIFT = "SURFACE_DRIFT",
     CONSTANT_HEADING = "CONSTANT_HEADING",
+    EDNA = "EDNA",
 }
 
 export interface DiveParameters {
@@ -643,6 +644,10 @@ export interface ConstantHeadingParameters {
     constant_heading?: number;
     constant_heading_time?: number;
     constant_heading_speed?: number;
+}
+
+export interface eDNAParameters {
+    start?: boolean;
 }
 
 export interface StationKeepParameters {
@@ -667,6 +672,7 @@ export interface MissionTask {
     constant_heading?: ConstantHeadingParameters;
     station_keep?: StationKeepParameters;
     start_echo?: boolean;
+    start_edna?: boolean;
 }
 
 export enum MissionStart {
@@ -776,6 +782,7 @@ export interface DesiredCourse {
 export enum BotType {
     HYDRO = "HYDRO",
     ECHO = "ECHO",
+    EDNA = "EDNA",
 }
 
 export enum VehicleType {
@@ -1175,6 +1182,18 @@ export interface Echo {
     echo_state?: EchoState;
 }
 
+export enum eDNAState {
+    START = 0,
+    STOP = 1,
+    RUNNING = 2,
+}
+
+export interface eDNA { 
+    start_edna?: boolean;
+    stop_edna?: boolean;
+    edna_state?: eDNAState;
+}
+
 export interface Engineering {
     bot_id?: number;
     time?: number;
@@ -1187,6 +1206,7 @@ export interface Engineering {
     rf_disable_options?: RFDisableOptions;
     bottom_depth_safety_params?: BottomDepthSafetyParams;
     echo?: Echo;
+    edna?: eDNA;
     flag?: number;
     bounds?: Bounds;
 }
@@ -1197,7 +1217,7 @@ export interface HubStatus {
     time?: number;
     health_state?: HealthState;
     error?: Error[];
-    warning?: Warning[];
+    warning?: Warning[]; 
     location?: GeographicCoordinate;
     bot_ids_in_radio_file?: number[];
     linux_hardware_status?: LinuxHardwareStatus;

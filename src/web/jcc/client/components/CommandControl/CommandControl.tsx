@@ -64,6 +64,7 @@ import {
     BottomDepthSafetyParams,
     BotType,
     ContactStatus,
+    eDNAState,
 } from "../shared/JAIAProtobuf";
 import {
     getGeographicCoordinate,
@@ -402,6 +403,9 @@ export default class CommandControl extends React.Component {
                     throttle: 0,
                     rudder: 0,
                     timeout: 1,
+                },
+                edna: {
+                    start_edna: false,
                 },
             },
             rcDives: {},
@@ -2891,6 +2895,23 @@ export default class CommandControl extends React.Component {
         newRCDives[this.selectedBotId()].driftTime = diveParams.driftTime;
         this.setState({ rcDives: newRCDives });
     }
+
+    /**
+     * Used to flip the state of the eDNA pump. Used within the RCControllerPanel
+     * 
+     * @param {boolean} eDNAState New state the eDNA pump should adopt
+     * @returns {void}
+     */
+    toggleeDNA(eDNAState: boolean) {
+        let neweDNA = cloneDeep(this.state.remoteControlValues);
+        neweDNA.bot_id = this.selectedBotId();
+        neweDNA.edna.start_edna = !eDNAState;
+        neweDNA.edna.stop_edna = eDNAState;
+        neweDNA.edna.edna_state = 2;
+        this.setState({ remoteControlValues: neweDNA });
+        this.api.postEngineering(neweDNA)
+        console.log(this.state.remoteControlValues)
+    }
     //
     // RC Mode (End)
     //
@@ -3932,6 +3953,7 @@ export default class CommandControl extends React.Component {
                     weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
                     setRCDiveParameters={this.setRCDiveParams.bind(this)}
                     initRCDivesParams={this.initRCDivesParams.bind(this)}
+                    toggleeDNA={this.toggleeDNA.bind(this)}
                 />
             );
         }

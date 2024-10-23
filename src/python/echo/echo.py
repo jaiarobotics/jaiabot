@@ -41,7 +41,7 @@ class EchoCommands(Enum):
     CMD_STOP = b'$REC,STOP'
     CMD_STORAGE = b'$REC,STORAGE'
     CMD_ACK = b'$REC,ACK'
-    CMD_STATUS = b'$REC,STATUS'
+    CMD_STATUS = b'$REC,STATUS' 
     CMD_CH = b'$REC,CH'
     CMD_FREQ = b'$REC,FREQ'
     CMD_TIME = b'$REC,TIME'
@@ -123,7 +123,7 @@ class Echo:
                         log.warning("No state")
                 if 'ERROR' in cc:
                     self.echo_state = None
-
+ 
         except Exception as error:
             log.warning("Error trying to get status!")
 

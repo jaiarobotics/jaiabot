@@ -653,6 +653,7 @@ export interface MissionTask {
     surface_drift?: DriftParameters;
     constant_heading?: ConstantHeadingParameters;
     start_echo?: boolean;
+    start_pump?: boolean;
 }
 
 export enum MissionStart {
