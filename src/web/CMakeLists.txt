@@ -6,12 +6,14 @@
 # Get the web source tree into the intermediate directory
 set(intermediate_web_dir ${project_INTERMEDIATE_DIR}/web)
 file(MAKE_DIRECTORY ${intermediate_web_dir})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package.json ${intermediate_web_dir}/ COPYONLY)
+
+include(ConfigurePackageJSON)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package.json ${intermediate_web_dir}/package.json COPYONLY)
 
 add_custom_command(OUTPUT ${intermediate_web_dir}/package-lock.json ${intermediate_web_dir}/node_modules
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${intermediate_web_dir}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in
   COMMENT "Installing npm dependencies for web apps"
   )
 
