@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 ##
 ## Usage:
 ## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
@@ -10,8 +11,8 @@
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
-## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the contents of "release_branch" will be used (the default for this current branch).
-## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, "focal" will be used.
+## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the value of "$jaia_version_release_branch" will be used (the default for this current branch).
+## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, the value of "$jaia_version_ubuntu_codename" will be used.
 
 set -e
 
@@ -23,12 +24,14 @@ function dockerPackageVersion() {
 
 script_dir=$(dirname $0)
 
+set -a; source ${script_dir}/common-versions.env; set +a 
+
 repo=${jaiabot_repo:-release}
 
-default_version=$(<release_branch)
+default_version=${jaia_version_release_branch}
 version=${jaiabot_version:-${default_version}}
 version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
-distro=${jaiabot_distro:-focal}
+distro=${jaiabot_distro:-${jaia_version_ubuntu_codename}}
 
 # install clang-format hook if not installed
 [ ! -e ${script_dir}/../.git/hooks/pre-commit ] && ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
@@ -36,7 +39,7 @@ distro=${jaiabot_distro:-focal}
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     cd ${script_dir}/..
 
-    build_dir=build/amd64-vbox   
+    build_dir=build/${distro}-${version_lower}-amd64-vbox   
     mkdir -p ${build_dir}
 
     image_name=jaia_build_vbox_${distro}_${repo}_${version_lower}
@@ -53,7 +56,7 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
 else    
     cd ${script_dir}/..
 
-    build_dir=build/arm64
+    build_dir=build/${distro}-${version_lower}-arm64
     mkdir -p ${build_dir}
     image_name=jaia_build_${distro}_${repo}_${version_lower}
 
@@ -88,7 +91,7 @@ else
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./src/web/jcc.conf ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
-        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c ./jaiabot/scripts/arm64-deploy.sh"
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 
         if [ ! -z $jaiabot_systemd_type ]; then
             echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"

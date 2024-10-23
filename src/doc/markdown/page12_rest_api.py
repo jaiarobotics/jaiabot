@@ -1,5 +1,6 @@
 import jaiabot.messages.rest_api_pb2
 import google.protobuf.json_format
+from google.protobuf.descriptor import *
 import json
 from dataclasses import *
 from typing import *
@@ -53,6 +54,16 @@ class Section:
             content += subsection.table_of_contents(level + 1, subsection_number + 1, generate_heading=False)
 
         return content
+    
+
+    def add_subsections(self, subsections: Union["Section", Iterable["Section"], None]):
+        if subsections is None:
+            return
+        else:
+            try:
+                self.subsections.extend(subsections)
+            except TypeError:
+                self.subsections.append(subsections)
 
 
 def generate():
@@ -125,11 +136,11 @@ See the action documentation below for more details.
 
     request_section = Section(title='Request Actions')
     for field in jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'].fields:
-        request_section.subsections.append(generate_request_section(field.name))
+        request_section.add_subsections(generate_request_section(field.name))
 
     response_section = Section(title='Response Actions')
     for field in jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action'].fields:
-        response_section.subsections.append(generate_response_section(field.name))
+        response_section.add_subsections(generate_response_section(field.name))
 
     document.subsections = [
         simple_section,
@@ -148,8 +159,9 @@ def generate_request_section(action: str):
     content += field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
 
     section = Section(title=f"{action}", content=content)
-    section.subsections.append(generate_simple_variant(action))
-    section.subsections.extend(generate_full_variant(action))
+    section.add_subsections(generate_parameter_section(action))
+    section.add_subsections(generate_simple_variant(action))
+    section.add_subsections(generate_full_variant(action))
 
     return section
 
@@ -192,16 +204,16 @@ def generate_response_section(action: str):
 {json.dumps(response_json, indent=2)}
 ```
 """
-        variant_section.subsections.append(json_section)
+        variant_section.add_subsections(json_section)
 
         enum_section = generate_enum_section(enums)
         if enum_section:
-            variant_section.subsections.append(enum_section)
+            variant_section.add_subsections(enum_section)
 
         return variant_section
 
     oneof_selection=dict()
-    section.subsections.append(add_variant("Response Syntax", jaia_response, action, oneof_selection))
+    section.add_subsections(add_variant("Response Syntax", jaia_response, action, oneof_selection))
     
     for oneof_name, oneof_desc in oneofs.items():
         oneof_selection[oneof_name]=oneof_desc.fields[0].name
@@ -211,7 +223,47 @@ def generate_response_section(action: str):
             presence = oneof_field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
             if presence == jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 oneof_selection[oneof_name]=oneof_field.name
-                section.subsections.append(add_variant(f"Variant: {oneof_name} = {oneof_field.name}", jaia_response, action, oneof_selection))
+                section.add_subsections(add_variant(f"Variant: {oneof_name} = {oneof_field.name}", jaia_response, action, oneof_selection))
+
+    return section
+
+
+def generate_parameter_section(action):
+    action_field_desc = jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.fields_by_name[action]
+    if action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
+        return ""
+
+    action_desc: Descriptor = action_field_desc.message_type
+
+    jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
+    jaia_request_action = getattr(jaia_request, action_field_desc.name)
+
+    parameter_docs = []
+
+    # Function to recursively get the parameter doc strings
+    def get_parameter_docs(desc: Descriptor):
+        parameter_docs = []
+        for field in desc.fields:
+            field: FieldDescriptor
+            
+            if field.type == field.TYPE_MESSAGE:
+                parameter_docs.extend(get_parameter_docs(field.message_type))
+
+            else:
+                doc = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.doc
+                if doc:
+                    parameter_docs.append(f'* `{field.name}`  {doc}')
+        return parameter_docs
+
+    parameter_docs = get_parameter_docs(action_desc)
+
+    if len(parameter_docs) == 0:
+        return ''
+    
+    section = Section(title='Parameters')
+
+    for parameter_doc in parameter_docs:
+        section.content += (parameter_doc + '\n')
 
     return section
 
@@ -271,7 +323,7 @@ https://fleet<N>.jaia.tech/jaia/v1/{action}/<target>{get_str}
     
     enum_section = generate_enum_section(enums)
     if enum_section:
-        section.subsections.append(enum_section)
+        section.add_subsections(enum_section)
 
     return section
     
@@ -315,7 +367,7 @@ def generate_full_variant(action):
             # Replace certain dummy values
             replace_dummy_values(request_json, enum_first_val)    
 
-        variant_section.subsections.append(Section(title="JSON", 
+        variant_section.add_subsections(Section(title="JSON", 
                                content=f"""
 ```
 {json.dumps(request_json, indent=2)}
@@ -324,7 +376,7 @@ def generate_full_variant(action):
 
         enum_section = generate_enum_section(enums)
         if enum_section:
-            variant_section.subsections.append(enum_section)
+            variant_section.add_subsections(enum_section)
 
         return variant_section
 
@@ -354,13 +406,13 @@ def generate_full_variant(action):
 
     if ex_req and ex_resp:
         example_section = Section(title="Example")
-        example_section.subsections.append(Section(title='Request JSON', 
+        example_section.add_subsections(Section(title='Request JSON', 
                                                    content=f"""
 ```
 {json.dumps(json.loads(ex_req), indent=2)}
 ```
 """))
-        example_section.subsections.append(Section(title='Response JSON',
+        example_section.add_subsections(Section(title='Response JSON',
                                                    content=f"""
 ```
 {json.dumps(json.loads(ex_resp), indent=2)}
@@ -400,7 +452,7 @@ def discover_all_oneofs(message, action):
     discover_oneofs(message.DESCRIPTOR, action) 
     return oneofs
 
-            
+
 def introspect_and_populate(message, action, oneof_selection):
 
     enums=dict()
@@ -412,6 +464,8 @@ def introspect_and_populate(message, action, oneof_selection):
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
             if presence != jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 continue
+
+            
 
             if field.containing_oneof is not None:
                 if field.containing_oneof == jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.oneofs_by_name['action'] or field.containing_oneof == jaiabot.messages.rest_api_pb2.APIResponse.DESCRIPTOR.oneofs_by_name['action']:
