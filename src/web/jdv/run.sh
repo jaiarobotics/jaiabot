@@ -24,5 +24,5 @@ popd > /dev/null
 # Build client
 pushd client > /dev/null
     echo "🟢 Building JDV into ${JDV_DIR}"
-    npx webpack --mode development --config ./release.webpack.config.js --env TARGET_DIR=${JDV_DIR} --stats minimal --watch
+    npx webpack --mode development --env TARGET_DIR=${JDV_DIR} --stats minimal --watch
 popd > /dev/null

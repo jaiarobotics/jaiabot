@@ -8,6 +8,8 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 JAIA_DIR="$(pwd)/../../"
 BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 
+# Configure package.json
+(cd ${JAIA_DIR}; cmake -P cmake/ConfigurePackageJSON.cmake)
 
 # Build the venv
 pushd ../python > /dev/null
