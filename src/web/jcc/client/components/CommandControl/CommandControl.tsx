@@ -938,6 +938,13 @@ export default class CommandControl extends React.Component {
     pollMetadata() {
         this.api.getMetadata().then(
             (result) => {
+                // Create hook for first metadata poll
+                if (Object.keys(this.state.metadata).length === 0) {
+                    if (result.is_simulation) {
+                        this.createSimulationBanner();
+                        document.title = "Simulation - Jaia Command & Control";
+                    }
+                }
                 this.setState({ metadata: result });
             },
             (err) => {
@@ -1270,6 +1277,20 @@ export default class CommandControl extends React.Component {
                 },
             );
         }
+    }
+
+    /**
+     * Creates the simulation indicator in the JCC
+     *
+     * @returns {void}
+     */
+    createSimulationBanner() {
+        const jccContainer = document.getElementById("jcc_container");
+        const simulationBanner = document.createElement("div");
+        const textConent = document.createTextNode("Simulation");
+        simulationBanner.setAttribute("id", "simulation-banner");
+        simulationBanner.appendChild(textConent);
+        jccContainer.appendChild(simulationBanner);
     }
 
     /**
