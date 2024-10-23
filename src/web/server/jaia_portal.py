@@ -272,11 +272,18 @@ class Interface:
             logging.warning('This client is READ-ONLY.  Refusing to send command.')
             return False
 
+        if self.controllingClientId is not None:
+            msg.client_id = self.controllingClientId
+
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
-        self.sock.sendto(data, self.goby_host)
-        logging.info(f'Sent {len(data)} bytes')
+        try:
+            self.sock.sendto(data, self.goby_host)
+            logging.info(f'Sent {len(data)} bytes')
+        except Exception as e:
+            logging.error(f'Failed to send data: {e}')
+            return False
 
         return True
 

@@ -28,8 +28,8 @@ export class TaskData {
     taskPackets: TaskPacket[];
     taskPacketsTimeline: { [key: string]: string | boolean };
     styleCache: { [key: number]: Style };
-    diveSource: VectorSource;
-    driftSource: VectorSource;
+    diveSource: VectorSource<Feature<Geometry>>;
+    driftSource: VectorSource<Feature<Geometry>>;
     divePacketLayer: VectorLayer<VectorSource>;
     driftPacketLayer: VectorLayer<VectorSource>;
     driftMapLayer: VectorLayer<VectorSource>;
@@ -38,8 +38,8 @@ export class TaskData {
     constructor() {
         this.taskPackets = [];
         this.taskPacketsTimeline = {};
-        this.diveSource = new VectorSource();
-        this.driftSource = new VectorSource();
+        this.diveSource = new VectorSource<Feature<Geometry>>();
+        this.driftSource = new VectorSource<Feature<Geometry>>();
         this.styleCache = {};
         const clusterDistance = 30;
 
@@ -377,7 +377,7 @@ export class TaskData {
         return this.driftPacketLayer;
     }
 
-    createClusterSource(source: VectorSource<Geometry>, distance: number) {
+    createClusterSource(source: VectorSource<Feature<Geometry>>, distance: number) {
         return new ClusterSource({
             distance: distance,
             minDistance: 15,

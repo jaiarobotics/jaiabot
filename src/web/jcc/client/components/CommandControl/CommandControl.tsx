@@ -81,21 +81,15 @@ import OlCollection from "ol/Collection";
 import LayerGroup from "ol/layer/Group";
 import OlLayerSwitcher from "ol-layerswitcher";
 import OlMultiLineString from "ol/geom/MultiLineString";
-import { Coordinate } from "ol/coordinate";
 import { Interaction } from "ol/interaction";
 import { boundingExtent } from "ol/extent.js";
-import { Feature, MapBrowserEvent } from "ol";
+import { MapBrowserEvent } from "ol";
 import { getLength as OlGetLength } from "ol/sphere";
-import { Geometry, LineString, LineString as OlLineString, Point } from "ol/geom";
-import {
-    Circle as OlCircleStyle,
-    Fill as OlFillStyle,
-    Stroke as OlStrokeStyle,
-    Style as OlStyle,
-} from "ol/style";
+import { Geometry, LineString as OlLineString, Point } from "ol/geom";
+import { Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from "ol/style";
 
 // TurfJS
-import * as turf from "@turf/turf";
+import { Feature as GjFeature, LineString as GjLineString } from "geojson";
 
 // Styling
 import Icon from "@mdi/react";
@@ -235,7 +229,7 @@ interface State {
     saveMissionPanel?: ReactElement;
 
     surveyExclusionCoords?: number[][];
-    centerLineString: turf.helpers.Feature<turf.helpers.LineString>;
+    centerLineString: GjFeature<GjLineString>;
     bottomDepthSafetyParams: BottomDepthSafetyParams;
     isSRPEnabled: boolean;
 
@@ -301,7 +295,7 @@ export default class CommandControl extends React.Component {
     flagNumber: number;
     missionHistory: MissionInterface[];
     lastBotPathPointUtime: number = 0;
-    botPathFeatures: { [key: number]: Feature<LineString> } = {};
+    botPathFeatures: { [key: number]: OlFeature<OlLineString> } = {};
 
     constructor(props: Props) {
         super(props);
@@ -448,7 +442,6 @@ export default class CommandControl extends React.Component {
         this.interactions = new Interactions(this, map);
         map.addInteraction(this.interactions.pointerInteraction);
         map.addInteraction(this.interactions.translateInteraction);
-        map.addInteraction(this.interactions.dragAndDropInteraction);
         // Center persistence
         map.getView().setCenter(mapSettings.center);
         map.getView().on("change:center", function () {
@@ -1011,8 +1004,8 @@ export default class CommandControl extends React.Component {
             if (!(bot_id in this.botPathFeatures)) {
                 const newLayer = layers.createNewBotPathLayer(bot_id);
 
-                const newFeature = new Feature<LineString>({
-                    geometry: new LineString([]),
+                const newFeature = new OlFeature<OlLineString>({
+                    geometry: new OlLineString([]),
                     bot_id: Number(bot_id),
                 });
 
@@ -1826,7 +1819,7 @@ export default class CommandControl extends React.Component {
                 const runNumber = run.id.slice(4);
 
                 const newFeatures = (plan.goal ?? []).map((goal, goalIndex) => {
-                    return new Feature({
+                    return new OlFeature({
                         geometry: new Point(getMapCoordinate(goal.location, map)),
                         goal: goal,
                         isActive: activeGoalIndex == goalIndex + 1,
@@ -1884,7 +1877,7 @@ export default class CommandControl extends React.Component {
 
         for (const hub of hubs) {
             if (hub?.location) {
-                const feature = new Feature(new Point(getMapCoordinate(hub?.location, map)));
+                const feature = new OlFeature(new Point(getMapCoordinate(hub?.location, map)));
                 feature.set("hub", hub);
                 features.push(feature);
             }
@@ -2420,7 +2413,7 @@ export default class CommandControl extends React.Component {
     //
     addRallyPointAt(coordinate: number[]) {
         const point = getMapCoordinate(getGeographicCoordinate(coordinate, map), map);
-        const rallyFeature = new Feature({ geometry: new Point(point) });
+        const rallyFeature = new OlFeature({ geometry: new Point(point) });
         const rallyNum = this.getRallyNumber();
 
         rallyFeature.setProperties({
@@ -2597,7 +2590,7 @@ export default class CommandControl extends React.Component {
         this.unselectTaskPacket("drift");
     }
 
-    setTaskPacketInterval(selectedFeature: Feature, type: string) {
+    setTaskPacketInterval(selectedFeature: OlFeature, type: string) {
         const taskPacketFeatures =
             type === "dive"
                 ? taskData.divePacketLayer.getSource().getFeatures()
