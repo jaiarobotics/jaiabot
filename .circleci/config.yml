@@ -169,7 +169,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "1.y"       
+        - "1.y"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds

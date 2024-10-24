@@ -113,7 +113,7 @@ def interpolate(dive0: BottomDive, dive1: BottomDive, depth: float):
         List[float]: A list of form [lon, lat] indicating the calculated interpolated point location.
     """
     if dive0.depth == dive1.depth:
-        fraction = 0
+        return None
     else:
         fraction = (depth - dive0.depth) / (dive1.depth - dive0.depth)
 
@@ -173,7 +173,12 @@ def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
         logging.warning('No contours to display, because all dives reach the same depth')
         return [] # All dives reach the same depth, so no contours.
 
-    return np.arange(minValue, maxValue + 1e-6, (maxValue - minValue) / contourCount)
+    contourValues = list(np.arange(minValue, maxValue + 1e-6, (maxValue - minValue) / contourCount))
+
+    # Make sure the final contourValue == maxValue
+    contourValues[-1] = maxValue
+
+    return contourValues
 
 
 def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float]):
@@ -210,6 +215,10 @@ def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float
             break
 
     if len(relevantContourValues) < 2:
+        logging.warning('contourValues')
+        logging.warning(contourValues)
+        logging.warning(f'minDive.depth = {minDive.depth}')
+        logging.warning(f'maxDive.depth = {maxDive.depth}')
         raise Exception('No revelant contour values span this triangle simplex.')
 
     polygons: List[Dict] = []
@@ -221,30 +230,36 @@ def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float
 
         pts: List[List[float]] = []
 
-        pts.append(interpolate(minDive, maxDive, depth0))
-        pts.append(interpolate(minDive, maxDive, depth1))
+        # vertices for this contour band alongside the segment joining minDive and maxDive
+        pts.append(interpolate(minDive, maxDive, depth0) or minDive.lonLat())
+        pts.append(interpolate(minDive, maxDive, depth1) or maxDive.lonLat())
 
+        # higher vertex on the opposite side (either min-mid segment, or mid-max segment)
         if depth1 > midDive.depth:
-            pts.append(interpolate(midDive, maxDive, depth1))
+            pts.append(interpolate(midDive, maxDive, depth1) or maxDive.lonLat())
         else:
-            pts.append(interpolate(minDive, midDive, depth1))
+            pts.append(interpolate(minDive, midDive, depth1) or midDive.lonLat())
 
-        if depth0 < midDive.depth and depth1 > midDive.depth:
+        # if midDive is in the middle of this band, then add it as a point
+        if depth0 <= midDive.depth and depth1 >= midDive.depth:
             pts.append(midDive.lonLat())
 
-        if depth0 > midDive.depth:
-            pts.append(interpolate(midDive, maxDive, depth0))
+        # lower vertex on the opposite side (either min-mid segment or mid-max segment)
+        if depth0 >= midDive.depth:
+            pts.append(interpolate(midDive, maxDive, depth0) or midDive.lonLat())
         else:
-            pts.append(interpolate(minDive, midDive, depth0))
+            pts.append(interpolate(minDive, midDive, depth0) or minDive.lonLat())
 
-        pts.append(interpolate(minDive, maxDive, depth0))
+        # back to the lower vertex on the min-max segment
+        pts.append(interpolate(minDive, maxDive, depth0) or minDive.lonLat())
 
         colorParameter = (depth1 - minContourValue) / (maxContourValue - minContourValue)
 
         polygons.append(polygon(pts, {'value': depth1, 'fill': colorCode(deepColorMap, colorParameter), 'stroke-width': 0}))
 
-        if depth0 != minDive.depth:
-            lines.append(linestring([pts[0], pts[-2]], {'value': depth0, 'stroke': 'black'}))
+        # Contour line
+        if depth0 == relevantContourValues[contourIndex - 1]:
+            lines.append(linestring([pts[-2], pts[-1]], {'value': depth0, 'stroke': 'black'}))
 
     return polygons + lines
 
@@ -269,16 +284,4 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         polygons.extend(getColorMapPolygons([bottomDives[i] for i in simplex], contourValues))
 
     return geojson(polygons)
-
-
-if __name__ == '__main__':
-    taskPackets = [
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 1}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 15}, 'depth_achieved': 5}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 15, 'lat': 10}, 'depth_achieved': 4}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 15, 'lat': 15}, 'depth_achieved': 2}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 20, 'lat': 15}, 'depth_achieved': 16}},
-    ]
-
-    json.dump(taskPacketsToColorMap(taskPackets), open(os.path.expanduser('~/test.json'), 'w'))
 
