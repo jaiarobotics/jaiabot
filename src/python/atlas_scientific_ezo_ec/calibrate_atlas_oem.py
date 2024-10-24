@@ -219,16 +219,19 @@ def presentMenu(menu):
 def pollEC():
     print('Polling conductivity probe...')
     ec_old = None
-    while True:
-        ec = probe.EC()
-        if ec_old:
-            delta_percent = abs(ec - ec_old) / ec_old * 100
-        else:
-            delta_percent = 0.0
-        print(f'time: {datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
-        ec_old = ec
-        time.sleep(1)
-
+    timestr = time.strftime("%Y%m%d-T%H%M%S")
+    with open(f"{timestr}.csv", "w") as new_file:
+        for i in range(0,30):
+            ec = probe.EC()
+            if ec_old:
+                delta_percent = abs(ec - ec_old) / ec_old * 100
+            else:
+                delta_percent = 0.0
+            print(f'time: {datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
+            new_file.write(f'time: {datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%\n')
+            ec_old = ec
+            time.sleep(1)
+    
 def setProbeType():
     value = input('Enter probe type value (K value) > ')
 
