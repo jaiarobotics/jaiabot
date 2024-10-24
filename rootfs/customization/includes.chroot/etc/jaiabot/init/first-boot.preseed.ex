@@ -13,6 +13,23 @@ jaia_configure_wifi=true
 jaia_wifi_ssid=dummy
 jaia_wifi_password=dummy
 
+########################################################
+# SSH authorized keys
+########################################################
+jaia_do_add_authorized_keys=true
+
+# temporary keys (/etc/jaiabot/ssh/tmp_authorized_keys) until fleet-config.sh is run
+jaia_tmp_authorized_keys=$(cat << EOM
+ssh-rsa AAAA_B64_KEY username
+EOM
+)
+
+# permanent keys (/home/jaia/.ssh/authorized_keys)
+jaia_perm_authorized_keys=$(cat << EOM
+ssh-rsa AAAA_B64_KEY username
+EOM
+)
+
 #########################################################
 # Preseed jaiabot-embedded package debconf queries
 # See jaiabot-embedded.templates from jaiabot-debian 
