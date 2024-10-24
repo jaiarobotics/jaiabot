@@ -232,6 +232,9 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     glog.is_verbose() && glog << group("main")
                               << "Received message from client: " << msg.ShortDebugString() << endl;
 
+    // Republish the message on interprocess, to get it into the logs
+    interprocess().publish<jaiabot::groups::web_portal>(msg);
+
     if (msg.has_engineering_command())
     {
         auto engineering_command = msg.engineering_command();

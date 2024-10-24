@@ -1,0 +1,6 @@
+# Known manufacturer SSH keys that can only run fleet config - this file is cleared by fleet-config after running
+#
+# SSH keys can also be added to first-boot.preseed (jaia_authorized_keys)
+#
+# Entries should look like:
+# no-touch-required ssh-rsa B64-KEY-HASH-HERE jaia@example_manufacturer

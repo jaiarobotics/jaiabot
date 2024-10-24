@@ -3,7 +3,9 @@
 set -e -u
 
 script_dir=$(dirname $0)
-default_version=$(<${script_dir}/../scripts/release_branch)
+set -a; source ${script_dir}/../scripts/common-versions.env; set +a
+
+default_version=${jaia_version_release_branch}
 
 CIRCLE_BRANCH="$1"
 CIRCLE_TAG="$2"

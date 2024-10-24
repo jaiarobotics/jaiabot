@@ -155,7 +155,6 @@ export class Layers {
         wrapX: false,
     });
 
-    dragAndDropVectorLayer = new VectorLayer();
     baseLayerGroup = createBaseLayerGroup();
     chartLayerGroup = createChartLayerGroup();
     customLayerGroupFactory: CustomLayerGroupFactory;
@@ -178,7 +177,6 @@ export class Layers {
             this.measurementLayerGroup,
             this.graticuleLayer,
             this.missionLayerGroup,
-            this.dragAndDropVectorLayer,
             //this.botPathsGroup
         ];
     }

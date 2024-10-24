@@ -143,6 +143,34 @@ ln -s -f /dev/arduino /etc/jaiabot/dev/arduino
 ln -s -f /dev/xbee /etc/jaiabot/dev/xbee
 
 echo "###############################################"
+echo "## Setting up authorized ssh keys            ##"
+echo "###############################################"
+
+run_wt_yesno jaia_do_add_authorized_keys "SSH authorized keys" \
+             "Do you want to add SSH authorized_keys?" &&
+(
+run_wt_inputbox jaia_tmp_authorized_keys "SSH temporary authorized keys" \
+            "Enter temporary (until fleet-config.sh) authorized public SSH keys as formatted for .ssh/authorized_keys"
+tmp_authorized_keys=${WT_TEXT}
+
+cat << EOF >> /etc/jaiabot/ssh/tmp_authorized_keys
+${tmp_authorized_keys}
+EOF
+
+run_wt_inputbox jaia_perm_authorized_keys "SSH permanent authorized keys" \
+            "Enter permanent authorized public SSH keys as formatted for .ssh/authorized_keys"
+perm_authorized_keys=${WT_TEXT}
+
+mkdir -p /home/jaia/.ssh
+cat << EOF >> /home/jaia/.ssh/authorized_keys
+${perm_authorized_keys}
+EOF
+
+chown -R jaia:jaia /home/jaia/.ssh
+chown -R jaia:jaia /etc/jaiabot/ssh
+)
+
+echo "###############################################"
 echo "## Install jaiabot-embedded package          ##"
 echo "###############################################"
 

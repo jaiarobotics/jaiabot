@@ -32,7 +32,7 @@ const baseConfig = {
                             "@babel/preset-react",
                         ],
                         plugins: [
-                            "@babel/plugin-proposal-class-properties",
+                            "@babel/plugin-transform-class-properties",
                             [
                                 "transform-react-remove-prop-types",
                                 {
@@ -40,8 +40,8 @@ const baseConfig = {
                                     _disabled_ignoreFilenames: ["node_modules"],
                                 },
                             ],
-                            "@babel/plugin-proposal-nullish-coalescing-operator",
-                            "@babel/plugin-proposal-optional-chaining",
+                            "@babel/plugin-transform-nullish-coalescing-operator",
+                            "@babel/plugin-transform-optional-chaining",
                         ],
                     },
                 },
@@ -94,6 +94,7 @@ module.exports = (env, argv) => {
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jed/"),
             filename: "script.js",
+            clean: true,
         },
         plugins: [
             new CopyWebpackPlugin({
@@ -115,6 +116,7 @@ module.exports = (env, argv) => {
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
             filename: "[name].js",
+            clean: true,
         },
         plugins: [
             new HtmlWebpackPlugin({

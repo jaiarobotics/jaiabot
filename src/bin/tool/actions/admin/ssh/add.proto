@@ -23,7 +23,6 @@
 syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
-import "actions/net.proto";
 
 package jaiabot.config.admin.ssh;
 
@@ -49,12 +48,16 @@ message AddTool
     }];
 
     required string valid_for = 4 [(goby.field) = {
-        description: "How long until the key expires, e.g. '1w' for one week, '5d' for 5 days or '2m' for two months",
+        description: "How long until the key expires, e.g. '1w' for one week, '5d' for 5 days or '2m' for two months, or 'forever'",
         cfg { position { enable: true } }
     }];
 
     optional string user = 10 [default = "jaia"];
 
-    optional string authorized_keys_file = 11
-        [default = "/etc/jaiabot/ssh/tmp_authorized_keys"];
+    optional string authorized_keys_file = 11 [
+        (goby.field) = {
+            description: "File to insert new key - defaults to /etc/jaiabot/ssh/tmp_authorized_keys for keys with that expire, or /home/jaia/.ssh/authorized_keys for permanent keys"
+        },
+        default = "/etc/jaiabot/ssh/tmp_authorized_keys"
+    ];
 }

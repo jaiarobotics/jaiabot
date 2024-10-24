@@ -31,4 +31,5 @@
       loop: "{{ active_bots }}"
       loop_control:
         loop_var: bot_inventory_name
-      
+
+    - include_tasks: tasks/clear-tmp-authorized-keys.yml

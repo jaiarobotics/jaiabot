@@ -4,6 +4,7 @@ set -e
 
 script_dir=$(dirname $0)
 jaia_root=${script_dir}/../../
+(cd ${jaia_root}; cmake -P cmake/ConfigureDockerfiles.cmake)
 
 docker build -t test_setup_script .
 

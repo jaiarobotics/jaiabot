@@ -35,17 +35,20 @@ message EnumValueOptions
     optional RestAPI rest_api = 1;
 }
 
+// we can use 1252 for all extensions:
+// https://github.com/protocolbuffers/protobuf/commit/46f7879cae6a986ca0f780811dc8414ae14d18d5
+
 extend .google.protobuf.FieldOptions
 {
-    optional .jaia.FieldOptions field = 1191;
+    optional .jaia.FieldOptions field = 1252;
 }
 
 extend .google.protobuf.MessageOptions
 {
-    optional .jaia.MessageOptions msg = 1191;
+    optional .jaia.MessageOptions msg = 1252;
 }
 
 extend .google.protobuf.EnumValueOptions
 {
-    optional .jaia.EnumValueOptions ev = 1191;
+    optional .jaia.EnumValueOptions ev = 1252;
 }

@@ -73,7 +73,19 @@ std::string calculate_expiry_time(const std::string& duration)
 
 jaiabot::apps::admin::ssh::AddTool::AddTool()
 {
-    std::string expiry_time = calculate_expiry_time(app_cfg().valid_for());
+    std::string authorized_keys_file = app_cfg().authorized_keys_file();
+    std::string expiry_time;
+    if (app_cfg().valid_for() == "forever")
+    {
+        // default permanent keys to /home/jaia/.ssh/authorized_keys
+        if (!app_cfg().has_authorized_keys_file())
+            authorized_keys_file = tool::perm_authorized_keys_file;
+    }
+    else
+    {
+        expiry_time = calculate_expiry_time(app_cfg().valid_for());
+    }
+
     bool pubkey_found;
     PubKeyManager::PubKey pubkey;
 
@@ -86,7 +98,9 @@ jaiabot::apps::admin::ssh::AddTool::AddTool()
     }
     if (!pubkey.options.empty())
         pubkey.options += ",";
-    pubkey.options += expiry_time;
+
+    if (!expiry_time.empty())
+        pubkey.options += expiry_time;
 
     glog.is_verbose() && glog << "Adding authorized_keys entry: \n" << pubkey.to_str() << std::endl;
 
@@ -95,9 +109,8 @@ jaiabot::apps::admin::ssh::AddTool::AddTool()
     subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
     subtool_cfg.add_extra_cli_param("sudo sed -i '\\|" + pubkey.b64_key + "|d' " +
-                                    app_cfg().authorized_keys_file() + "; " + "echo '" +
-                                    pubkey.to_str() + "' | sudo tee -a " +
-                                    app_cfg().authorized_keys_file() + "> /dev/null");
+                                    authorized_keys_file + "; " + "echo '" + pubkey.to_str() +
+                                    "' | sudo tee -a " + authorized_keys_file + "> /dev/null");
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,
                                              jaiabot::config::Tool::Action_descriptor());
 

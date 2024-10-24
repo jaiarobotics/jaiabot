@@ -48,7 +48,6 @@
         - /media/root-rw/overlay/etc/ssh/sshd_config.d/jaia_sshd.conf        
         - /media/root-rw/overlay/etc/jaiabot/ssh/hub_authorized_keys
         - /media/root-rw/overlay/etc/jaiabot/ssh/root_authorized_keys
-        - /media/root-rw/overlay/etc/jaiabot/ssh/tmp_authorized_keys
         
     - name: Gather / copy keys read from Hubs
       when: HUB_IS_PRESENT
@@ -65,3 +64,4 @@
         loop_var: hub_inventory_name
 
     - include_tasks: tasks/set-jaiabot-ssh-perms.yml
+    - include_tasks: tasks/clear-tmp-authorized-keys.yml
