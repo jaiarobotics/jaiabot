@@ -18,6 +18,10 @@ message XbeeInfo
 
 message DeviceMetadata
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     optional string name = 1 [(jaia.field).rest_api.presence = GUARANTEED];
 
     message Version
@@ -63,6 +67,11 @@ message DeviceMetadata
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional bool is_simulation = 13
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional uint32 fleet_id = 14 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional uint32 hub_id = 15 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional uint32 bot_id = 16 [(jaia.field).rest_api.presence = OMITTED];
+
 }
 
 message QueryDeviceMetaData

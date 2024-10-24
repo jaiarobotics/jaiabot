@@ -218,7 +218,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to ContactUpdate
     interprocess().subscribe<jaiabot::groups::contact_update>(
-        [this](const jaiabot::protobuf::ContactUpdate contact_update) {
+        [this](const jaiabot::protobuf::ContactUpdate contact_update)
+        {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
 

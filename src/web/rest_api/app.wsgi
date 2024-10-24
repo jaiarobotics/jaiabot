@@ -8,7 +8,7 @@ print("Path: ", path)
 
 sys.path.append(path)
 
-# If we're a CloudHub, read the remote real hub's IP address
+# If we're a CloudHub, read the remote real hubs' IP address(es) and other data
 cloud_env_file = '/etc/jaiabot/cloud.env'
 if os.path.exists(cloud_env_file):
     with open(cloud_env_file, 'r') as file:
