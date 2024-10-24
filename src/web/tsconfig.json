@@ -10,9 +10,9 @@
         "outDir": "dist",
         "rootDir": ".",
         "jsx": "react-jsx",
-        "target": "ES2021",
+        "target": "ES2018",
         "esModuleInterop": true,
-        "lib": ["ES2021", "dom"],
+        "lib": ["ES2018", "dom"],
         "types": ["@testing-library/jest-dom", "@types/plotly.js"]
     },
     "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
