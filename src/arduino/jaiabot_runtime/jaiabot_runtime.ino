@@ -475,7 +475,7 @@ void handle_timeout() {
 
 void halt_all() {
   motor_target = motor_neutral;
-  target_port_elevator = port_elevator_neutral;
+  port_target = port_elevator_neutral;
 
   target_rudder = rudder_neutral;
   target_stbd_elevator = stbd_elevator_neutral;
