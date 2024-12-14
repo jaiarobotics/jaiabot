@@ -36,6 +36,7 @@ Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
 constexpr int STBD_ELEVATOR_PIN = 6;
 constexpr int RUDDER_PIN = 5;
+
 constexpr int PORT_ELEVATOR_PIN = 9;
 constexpr int MOTOR_PIN = 3;
 
@@ -47,21 +48,27 @@ void halt_all();
 
 // Neutral values for timing out
 constexpr int motor_neutral = 1500;
-constexpr int stbd_elevator_neutral = 1500;
 constexpr int port_elevator_neutral = 1500;
+
+constexpr int stbd_elevator_neutral = 1500;
 constexpr int rudder_neutral = 1500;
 
-// Elevators
-int target_stbd_elevator = 1500;
-int target_port_elevator = 1500;
+// Elevators //////////////////////////////////
 
 // Rudder
 int target_rudder = 1500;
+int target_stbd_elevator = 1500;
+
 
 // Motor
 int motor_tracked = 1500;
 int motor_target = 1500;
 int motor_actual = 1500;
+
+int port_tracked = 1500;
+int port_target = 1500;
+int port_actual = 1500;
+
 
 // Motor Bounds
 int motor_min_forward = 1600;
@@ -70,11 +77,22 @@ int motor_min_reverse = 1400;
 int motor_max_forward = 1900;
 int motor_max_reverse = 1100;
 
+int port_min_forward = 1600;
+int port_min_reverse = 1400;
+
+int port_max_forward = 1900;
+int port_max_reverse = 1100;
+
 // Motor Steps
 constexpr int motor_max_step_forward_faster = 12;
 constexpr int motor_max_step_forward_slower = 12;
 constexpr int motor_max_step_reverse_faster = 12;
 constexpr int motor_max_step_reverse_slower = 12;
+
+constexpr int port_max_step_forward_faster = 12;
+constexpr int port_max_step_forward_slower = 12;
+constexpr int port_max_step_reverse_faster = 12;
+constexpr int port_max_step_reverse_slower = 12;
 
 // The thermocouple
 //constexpr int CLOCK_PIN = 7;
@@ -173,10 +191,10 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   ack.version = arduino_version;
 
   // Current motor value
-  ack.has_motor = true;
-  ack.motor = motor_actual;
+  ack.has_motor = true; /////////////
+  ack.motor = motor_actual; /////////////
 
-  ack.has_thermistor_voltage = true;
+    ack.has_thermistor_voltage = true;
   // Arduino yields resolution of 5V over 1024 units
   ack.thermistor_voltage = analogRead(thermistor_pin) * 5 / 1024.0;
 
@@ -218,6 +236,7 @@ void setup()
   
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
+
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
 
@@ -237,7 +256,7 @@ void setup()
 }
 
 
-int32_t clamp(int32_t v, int32_t min, int32_t max) {
+int32_t clamp(int32_t v, int32_t min, int32_t max) { ////////////////////////////////////////////////
   if (v == motor_neutral) return motor_neutral;
   if (v < min) return min;
   if (v > max) return max;
@@ -284,11 +303,39 @@ void writeToActuators()
       motor_tracked -= min(motor_tracked - motor_target, motor_max_step_reverse_faster);
       motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
+  //--------
+    // If we want to go forward faster
+  if (port_target > port_neutral && port_target > port_tracked)
+  {
+      port_tracked += min(port_target - port_tracked, port_max_step_forward_faster);
+      port_actual = motor_forward_clamp(port_tracked, port_min_forward);
+  }
+  // If we want to go forward slower (including stopping)
+  else if (port_target > port_neutral && port_target < port_tracked ||
+            port_target == port_neutral && port_tracked > port_neutral)
+  {
+      port_tracked -= min(port_tracked - port_target, port_max_step_forward_slower);
+      port_actual = motor_forward_clamp(port_tracked, port_min_forward);
+  }
+  // If we are going reverse and we are trying to go slower
+  else if (port_target < port_neutral && port_target > port_tracked ||
+            port_target == port_neutral && port_tracked < port_neutral)
+  {
+      port_tracked += min(port_target - port_tracked, port_max_step_reverse_slower);
+      port_actual = motor_reverse_clamp(port_tracked, port_min_reverse);
+  }
+  // If we are going reverse and we are trying to go faster
+  else if (port_target < port_neutral && port_target < port_tracked)
+  {
+      port_tracked -= min(port_tracked - port_target, port_max_step_reverse_faster);
+      port_actual = motor_reverse_clamp(port_tracked, port_min_reverse);
+  }
 
   motor_servo.writeMicroseconds(motor_actual);
+  port_elevator_servo.writeMicroseconds(port_actual);
+// ----------------------- //
   rudder_servo.writeMicroseconds(target_rudder);
   stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
-  port_elevator_servo.writeMicroseconds(target_port_elevator);
 
   if (target_led_switch_on == true){
     analogWrite(LED_D1_PIN, 255);
@@ -386,9 +433,12 @@ void loop()
     {
       // The commanded targets
       motor_target = command.actuators.motor;
+      //// target_port_elevator = command.actuators.port_elevator;
+      port_target = command.actuators.port_elevator;
+
       target_rudder = command.actuators.rudder;
       target_stbd_elevator = command.actuators.stbd_elevator;
-      target_port_elevator = command.actuators.port_elevator;
+
       target_led_switch_on = command.actuators.led_switch_on; 
       // Set the timeout vars
       t_last_command = millis();
@@ -400,7 +450,7 @@ void loop()
       //Send Ack that we successfully received command
       send_ack(jaiabot_protobuf_ArduinoStatusCode_ACK);
     } 
-    else if(command.has_settings)
+    else if(command.has_settings)     ////////////////////////////////////////////////////////////
     {
       motor_min_forward = command.settings.forward_start;
       motor_min_reverse = command.settings.reverse_start;
@@ -425,9 +475,11 @@ void handle_timeout() {
 
 void halt_all() {
   motor_target = motor_neutral;
+  target_port_elevator = port_elevator_neutral;
+
   target_rudder = rudder_neutral;
   target_stbd_elevator = stbd_elevator_neutral;
-  target_port_elevator = port_elevator_neutral;
+
   target_led_switch_on = false;
 }
 
