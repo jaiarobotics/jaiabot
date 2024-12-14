@@ -83,12 +83,13 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Motor
     int target_motor_ = 1500;
+    //// int port_elevator_ = 1500;
+    int target_port_ = 1500;
     int max_reverse_ = 1320;
     int motor_off_ = 1500;
 
     // Control surfaces
     int rudder_ = 1500;
-    int port_elevator_ = 1500;
     int stbd_elevator_ = 1500;
 
     // Timeout
@@ -450,6 +451,23 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
         }
     }
 
+    //     if (control_surfaces.has_port_elevator())
+    // {
+    //     port_elevator_ =
+    //         surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds_.port().lower(),
+    //                                    bounds_.port().center(), bounds_.port().upper());
+    // }
+    if (control_surfaces.has_port_elevator())
+    {
+        target_port_ = calculateMotorMicroseconds(control_surfaces.port_elevator());
+
+        // Do not go lower than max_reverse
+        if (target_port_ < max_reverse_)
+        {
+            target_port_ = max_reverse_;
+        }
+    }
+
     if (control_surfaces.has_rudder())
     {
         rudder_ = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds_.rudder().lower(),
@@ -463,19 +481,12 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
                                        bounds_.strb().center(), bounds_.strb().upper());
     }
 
-    if (control_surfaces.has_port_elevator())
-    {
-        port_elevator_ =
-            surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds_.port().lower(),
-                                       bounds_.port().center(), bounds_.port().upper());
-    }
-
     if (control_surfaces.has_timeout())
     {
         arduino_timeout_ = control_surfaces.timeout();
     }
 
-    //pulls the data from on message to another
+    //pulls the data from one message to another
     if (control_surfaces.has_led_switch_on())
     {
         led_switch_on = control_surfaces.led_switch_on();
@@ -515,9 +526,11 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
             arduino_restarting_)
         {
             arduino_actuators.set_motor(motor_off_);
+            arduino_actuators.set_port_elevator(motor_off_);
+
             arduino_actuators.set_rudder(bounds_.rudder().center());
             arduino_actuators.set_stbd_elevator(bounds_.strb().center());
-            arduino_actuators.set_port_elevator(bounds_.port().center());
+
             arduino_actuators.set_led_switch_on(false);
 
             *arduino_cmd.mutable_actuators() = arduino_actuators;
@@ -526,18 +539,27 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
         {
             // Don't use motor values of less power than the start bounds
             int corrected_motor;
-
             if (target_motor_ > motor_off_)
                 corrected_motor = max(target_motor_, bounds_.motor().forwardstart());
             else if (target_motor_ == motor_off_)
                 corrected_motor = target_motor_;
             else if (target_motor_ < motor_off_)
                 corrected_motor = min(target_motor_, bounds_.motor().reversestart());
+            /////
+            int corrected_port;
+            if (target_port_ > motor_off_)
+                corrected_port = max(target_port_, bounds_.motor().forwardstart());
+            else if (target_port_ == motor_off_)
+                corrected_port = target_port_;
+            else if (target_port_ < motor_off_)
+                corrected_port = min(target_port_, bounds_.motor().reversestart());
 
             arduino_actuators.set_motor(corrected_motor);
+            arduino_actuators.set_port_elevator(corrected_port);
+
             arduino_actuators.set_rudder(rudder_);
             arduino_actuators.set_stbd_elevator(stbd_elevator_);
-            arduino_actuators.set_port_elevator(port_elevator_);
+
             arduino_actuators.set_led_switch_on(led_switch_on);
 
             *arduino_cmd.mutable_actuators() = arduino_actuators;
