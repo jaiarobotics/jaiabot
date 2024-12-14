@@ -305,27 +305,27 @@ void writeToActuators()
   }
   //--------
     // If we want to go forward faster
-  if (port_target > port_neutral && port_target > port_tracked)
+  if (port_target > port_elevator_neutral && port_target > port_tracked)
   {
       port_tracked += min(port_target - port_tracked, port_max_step_forward_faster);
       port_actual = motor_forward_clamp(port_tracked, port_min_forward);
   }
   // If we want to go forward slower (including stopping)
-  else if (port_target > port_neutral && port_target < port_tracked ||
-            port_target == port_neutral && port_tracked > port_neutral)
+  else if (port_target > port_elevator_neutral && port_target < port_tracked ||
+            port_target == port_elevator_neutral && port_tracked > port_elevator_neutral)
   {
       port_tracked -= min(port_tracked - port_target, port_max_step_forward_slower);
       port_actual = motor_forward_clamp(port_tracked, port_min_forward);
   }
   // If we are going reverse and we are trying to go slower
-  else if (port_target < port_neutral && port_target > port_tracked ||
-            port_target == port_neutral && port_tracked < port_neutral)
+  else if (port_target < port_elevator_neutral && port_target > port_tracked ||
+            port_target == port_elevator_neutral && port_tracked < port_elevator_neutral)
   {
       port_tracked += min(port_target - port_tracked, port_max_step_reverse_slower);
       port_actual = motor_reverse_clamp(port_tracked, port_min_reverse);
   }
   // If we are going reverse and we are trying to go faster
-  else if (port_target < port_neutral && port_target < port_tracked)
+  else if (port_target < port_elevator_neutral && port_target < port_tracked)
   {
       port_tracked -= min(port_tracked - port_target, port_max_step_reverse_faster);
       port_actual = motor_reverse_clamp(port_tracked, port_min_reverse);
