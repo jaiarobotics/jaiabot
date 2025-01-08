@@ -1,5 +1,5 @@
 import { PortalHubStatus } from "../../shared/PortalStatus";
-import { Hub } from "./hub";
+import Hub from "./hub";
 
 class Hubs {
     private hubs: Map<number, Hub>;
@@ -35,7 +35,7 @@ class Hubs {
             hub.setHubID(hubStatus.hub_id);
         }
 
-        if (hubStatus.fleet_id) {
+        if (hubStatus.fleet_id >= 0) {
             hub.setFleetID(hubStatus.fleet_id);
         }
 
@@ -59,7 +59,7 @@ class Hubs {
             hub.setWarnings([]);
         }
 
-        if (hubStatus.portalStatusAge) {
+        if (hubStatus.portalStatusAge >= 0) {
             hub.setStatusAge(hubStatus.portalStatusAge);
         }
 
@@ -90,5 +90,4 @@ class Hubs {
     }
 }
 
-const hubs = new Hubs();
-module.exports = hubs;
+export const hubs = new Hubs();

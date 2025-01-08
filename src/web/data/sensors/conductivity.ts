@@ -1,4 +1,4 @@
-export default class Conductivity {
+export default class ConductivitySensor {
     private salinity: number;
 
     constructor() {}

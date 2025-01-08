@@ -1,4 +1,4 @@
-export default class Pressure {
+export default class PressureSensor {
     private depth: number;
 
     constructor() {}

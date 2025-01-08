@@ -1,4 +1,4 @@
-export default class Temperature {
+export default class TemperatureSensor {
     private temperature: number;
 
     constructor() {}

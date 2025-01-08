@@ -7,7 +7,7 @@ import {
 } from "../../utils/protobuf-types";
 import HubSensors from "./hub-sensors";
 
-export class Hub {
+export default class Hub {
     private hubID: number;
     private fleetID: number;
     private healthState: HealthState;

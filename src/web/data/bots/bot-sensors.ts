@@ -1,15 +1,15 @@
 import GPS from "../sensors/gps";
 import IMU from "../sensors/imu";
-import Pressure from "../sensors/pressure";
-import Temperature from "../sensors/temperature";
-import Conductivity from "../sensors/conductivity";
+import PressureSensor from "../sensors/pressure";
+import TemperatureSensor from "../sensors/temperature";
+import ConductivitySensor from "../sensors/conductivity";
 
 export default class BotSensors {
     private gps: GPS;
     private imu: IMU;
-    private pressure: Pressure;
-    private temperature: Temperature;
-    private conductivity: Conductivity;
+    private pressureSensor: PressureSensor;
+    private temperatureSensor: TemperatureSensor;
+    private conductivitySensor: ConductivitySensor;
 
     constructor() {
         this.initBaseSensors();
@@ -18,9 +18,9 @@ export default class BotSensors {
     initBaseSensors() {
         this.gps = new GPS();
         this.imu = new IMU();
-        this.pressure = new Pressure();
-        this.temperature = new Temperature();
-        this.conductivity = new Conductivity();
+        this.pressureSensor = new PressureSensor();
+        this.temperatureSensor = new TemperatureSensor();
+        this.conductivitySensor = new ConductivitySensor();
     }
 
     initPAMSensors() {}
@@ -33,15 +33,15 @@ export default class BotSensors {
         return this.imu;
     }
 
-    getPressure() {
-        return this.pressure;
+    getPressureSensor() {
+        return this.pressureSensor;
     }
 
-    getTemperature() {
-        return this.temperature;
+    getTemperatureSensor() {
+        return this.temperatureSensor;
     }
 
-    getCoductivity() {
-        return this.conductivity;
+    getCoductivitySensor() {
+        return this.conductivitySensor;
     }
 }

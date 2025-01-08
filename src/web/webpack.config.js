@@ -90,7 +90,7 @@ module.exports = (env, argv) => {
      */
     const jccConfig = {
         entry: {
-            client: path.resolve(__dirname, "jcc/index.js"),
+            client: path.resolve(__dirname, "jcc/index.tsx"),
             customLayerRasterWorker: [
                 path.resolve(
                     __dirname,

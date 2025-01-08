@@ -2,29 +2,24 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
 // Jaia
-import { PortalHubStatus } from "../../shared/PortalStatus";
 import { HubActions } from "./HubActions";
-import { jaiaAPI } from "../../utils/jaia-api";
-
-// Utilities
-import { isError } from "lodash";
-
-type HubStatuses = { [key: number]: PortalHubStatus };
+import { hubs } from "../../data/hubs/hubs";
+import Hub from "../../data/hubs/hub";
 
 interface HubContextType {
-    hubStatuses: HubStatuses;
+    hubs: Map<number, Hub>;
 }
 
 interface Action {
     type: string;
-    hubStatuses?: HubStatuses;
+    hubs?: Map<number, Hub>;
 }
 
 interface HubContextProviderProps {
     children: ReactNode;
 }
 
-const HUB_POLL_TIME = 1000; // ms
+const HUB_POLL_TIME = 500; // ms
 
 export const HubContext = createContext<HubContextType>(null);
 export const HubDispatchContext = createContext(null);
@@ -34,27 +29,26 @@ export const HubDispatchContext = createContext(null);
  *
  * @param {HubContextType} state Holds the most recent reference to state
  * @param {Action} action Contains data associated with a state update
- * @returns {HubContextType} A copy of the updated state
+ * @returns {HubContextType} The updated state object
  */
 function hubReducer(state: HubContextType, action: Action) {
     let mutableState = { ...state };
     switch (action.type) {
         case HubActions.HUB_STATUS_POLLED:
-            return handleHubStatusPolled(mutableState, action.hubStatuses);
+            return handleHubsPolled(mutableState, action.hubs);
         default:
             return state;
     }
 }
 
 /**
- * Saves the latest hub status to state
+ * Saves the latest data for Hubs to state
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
+ * @param {HubContextType} mutableState State object ref for making modifications
+ * @returns {HubContextType} Updated mutable state object
  */
-function handleHubStatusPolled(mutableState: HubContextType, hubStatuses: HubStatuses) {
-    if (!hubStatuses) throw new Error("Invalid hubStatuses");
-    mutableState.hubStatuses = hubStatuses;
+function handleHubsPolled(mutableState: HubContextType, hubs: Map<number, Hub>) {
+    mutableState.hubs = hubs;
     return mutableState;
 }
 
@@ -62,14 +56,15 @@ export function HubContextProvider({ children }: HubContextProviderProps) {
     const [state, dispatch] = useReducer(hubReducer, null);
 
     /**
-     * Starts polling the hub status when the component mounts
+     * Starts polling data model when component mounts
      *
      * @returns {void}
      */
     useEffect(() => {
-        const intervalId = pollHubStatus(dispatch);
+        const intervalID = pollHubs(dispatch);
 
-        return () => clearInterval(intervalId);
+        // Clean up when component dismounts
+        return () => clearInterval(intervalID);
     }, []);
 
     return (
@@ -80,19 +75,16 @@ export function HubContextProvider({ children }: HubContextProviderProps) {
 }
 
 /**
- * Retrieves the latest hub status from the server
+ * Retrieves latest data posted for Hubs
  *
  * @param {React.Dispatch<Action>} dispatch Connects event trigger to event handler
  * @returns {void}
  */
-function pollHubStatus(dispatch: React.Dispatch<Action>) {
-    return setInterval(async () => {
-        const response = await jaiaAPI.getStatusHubs();
-        if (!isError(response)) {
-            dispatch({
-                type: HubActions.HUB_STATUS_POLLED,
-                hubStatuses: response,
-            });
-        }
+function pollHubs(dispatch: React.Dispatch<Action>) {
+    return setInterval(() => {
+        dispatch({
+            type: HubActions.HUB_STATUS_POLLED,
+            hubs: hubs.getHubs(),
+        });
     }, HUB_POLL_TIME);
 }

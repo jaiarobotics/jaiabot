@@ -134,12 +134,12 @@ class Bots {
 
         // Pressure
         if (botStatus.depth) {
-            bot.getBotSensors().getPressure().setDepth(botStatus.depth);
+            bot.getBotSensors().getPressureSensor().setDepth(botStatus.depth);
         }
 
         // Temperature
         if (botStatus.temperature) {
-            bot.getBotSensors().getTemperature().setTemperature(botStatus.temperature);
+            bot.getBotSensors().getTemperatureSensor().setTemperature(botStatus.temperature);
         }
     }
 
@@ -151,5 +151,4 @@ class Bots {
     }
 }
 
-const bots = new Bots();
-module.exports = bots;
+export const bots = new Bots();
