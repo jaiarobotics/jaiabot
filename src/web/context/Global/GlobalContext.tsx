@@ -26,7 +26,7 @@ export interface HubAccordionStates {
 }
 
 export interface GlobalAction {
-    type: string;
+    type: GlobalActions;
     clientID?: string;
     hubID?: number;
     hubAccordionName?: string;

@@ -11,7 +11,7 @@ interface HubContextType {
 }
 
 interface Action {
-    type: string;
+    type: HubActions;
     hubs?: Map<number, Hub>;
 }
 

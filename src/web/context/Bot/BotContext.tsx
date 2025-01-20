@@ -11,7 +11,7 @@ interface BotContextType {
 }
 
 interface Action {
-    type: string;
+    type: BotActions;
     bots?: Map<number, Bot>;
 }
 
