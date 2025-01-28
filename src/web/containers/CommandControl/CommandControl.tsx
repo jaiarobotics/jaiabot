@@ -2122,6 +2122,7 @@ export default class CommandControl extends React.Component {
                 "wpt",
                 "line",
                 "contact",
+                "depth-contour",
             ];
             const isCollection = feature.get("features");
 
@@ -2323,6 +2324,10 @@ export default class CommandControl extends React.Component {
                 }
 
                 return;
+            }
+
+            if (feature.get("type") === "depth-contour") {
+                info("Clicked on a depth contour!");
             }
         }
 
