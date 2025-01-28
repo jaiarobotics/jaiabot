@@ -86,11 +86,13 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
     const [state, dispatch] = useReducer(jaiaSystemReducer, null);
 
     /**
-     * Starts polling data model when component mounts
+     * Syncs Context with data model and starts polling when component mounts
      *
      * @returns {void}
      */
     useEffect(() => {
+        dispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+
         const intervalID = pollDataModel(dispatch);
 
         // Clean up when component dismounts
