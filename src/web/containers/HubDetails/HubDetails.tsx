@@ -1,10 +1,9 @@
 // React -- Jaia
 import React, { useContext, useEffect, useState } from "react";
 import { GlobalContext, GlobalDispatchContext } from "../../context/Global/GlobalContext";
-import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
 import { GlobalActions } from "../../context/Global/GlobalActions";
-import { HubContext } from "../../context/Hub/HubContext";
-import { hubs } from "../../data/hubs/hubs";
+import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
+import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
 
 // Utilities
 import {
@@ -39,8 +38,7 @@ const DEFAULT_HUB_ID = 1;
 export function HubDetails() {
     const globalContext = useContext(GlobalContext);
     const globalDispatch = useContext(GlobalDispatchContext);
-
-    const hubContext = useContext(HubContext);
+    const jaiaSystemContext = useContext(JaiaSystemContext);
 
     const IPPrefix = getIPPrefix(location.hostname);
 
@@ -56,11 +54,11 @@ export function HubDetails() {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
     }, []);
 
-    if (hubContext === null || !globalContext.showHubDetails) {
+    if (jaiaSystemContext === null || !globalContext.showHubDetails) {
         return <div></div>;
     }
 
-    const hub = hubContext.hubs.get(DEFAULT_HUB_ID);
+    const hub = jaiaSystemContext.hubs.get(DEFAULT_HUB_ID);
 
     if (!hub) {
         return <div></div>;
