@@ -2,7 +2,8 @@ import React, { useContext } from "react";
 import {
     GlobalContext,
     GlobalDispatchContext,
-    PodElement,
+    GlobalAction,
+    NodeType,
 } from "../../context/Global/GlobalContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 
@@ -28,7 +29,7 @@ function faultLevel(health_state: HealthState) {
     );
 }
 
-export function BotListPanel(props: Props) {
+export function NodeListPanel(props: Props) {
     if (props.podStatus == null) return null;
 
     function compareByHubId(hub1: HubStatus, hub2: HubStatus) {
@@ -43,7 +44,7 @@ export function BotListPanel(props: Props) {
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId);
 
     function BotTab(bot: PortalBotStatus) {
-        const globalDispatch = useContext(GlobalDispatchContext);
+        const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
 
         var key = "bot-" + bot.bot_id;
         var botClass = "bot-item";
@@ -62,7 +63,11 @@ export function BotListPanel(props: Props) {
          * This is an instance where we are beginning to migrate from CommandControl state to context
          */
         const handleClick = () => {
-            globalDispatch({ type: GlobalActions.CLICKED_BOT_TAB });
+            globalDispatch({
+                type: GlobalActions.CLICKED_NODE,
+                nodeType: NodeType.BOT,
+                nodeID: bot.bot_id,
+            });
             props.didClickBot(bot.bot_id);
         };
 
@@ -79,7 +84,7 @@ export function BotListPanel(props: Props) {
 
     function HubTab(hub: HubStatus) {
         const globalContext = useContext(GlobalContext);
-        const globalDispatch = useContext(GlobalDispatchContext);
+        const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
 
         var key = "hub-" + hub.hub_id;
         var bothubClass = "hub-item";
@@ -89,8 +94,8 @@ export function BotListPanel(props: Props) {
         let selected = "";
 
         if (
-            globalContext.selectedPodElement !== null &&
-            globalContext.selectedPodElement.type === PodElement.HUB
+            globalContext.selectedNode !== null &&
+            globalContext.selectedNode.type === NodeType.HUB
         ) {
             selected = "selected";
         }
@@ -105,7 +110,11 @@ export function BotListPanel(props: Props) {
          */
         const handleClick = () => {
             props.didClickHub(hub.hub_id);
-            globalDispatch({ type: GlobalActions.CLICKED_HUB_TAB, hubID: hub.hub_id });
+            globalDispatch({
+                type: GlobalActions.CLICKED_NODE,
+                nodeType: NodeType.HUB,
+                nodeID: hub.hub_id,
+            });
         };
 
         //For now we are naming HUB, HUB with no id
@@ -122,7 +131,7 @@ export function BotListPanel(props: Props) {
     }
 
     return (
-        <div id="botsList">
+        <div id="nodesList">
             {hubs.map(HubTab)}
             {bots.map(BotTab)}
         </div>

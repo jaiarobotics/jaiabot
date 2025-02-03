@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 // Styling
 import "./DownloadPanel.less";
-import "../Details/Details.less";
+import "../BotDetails/BotDetails.less";
 import { Button } from "@mui/material";
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
@@ -20,12 +20,9 @@ import { downloadBlobToFile } from "../../shared/Utilities";
 import { downloadToFile } from "../../shared/Utilities";
 import { getCSV, getCSVFilename } from "../../shared/CSVExport";
 
-// Jaia Imports
-import { PortalBotStatus } from "../../shared/PortalStatus";
-
 interface Props {
-    downloadableBots: PortalBotStatus[];
-    removeBotFromQueue: (bot: PortalBotStatus) => void;
+    downloadableBots: number[];
+    removeBotFromQueue: (bot: number) => void;
     getBotDownloadPercent: (botId: number) => number;
 }
 
@@ -148,11 +145,11 @@ export default function DownloadPanel(props: Props) {
                                     return (
                                         <div className="download-queue-card">
                                             <div className="download-queue-bot-number">
-                                                Bot: {bot.bot_id}
+                                                Bot: {bot}
                                             </div>
                                             <CircularProgress
                                                 determinate
-                                                value={props.getBotDownloadPercent(bot.bot_id)}
+                                                value={props.getBotDownloadPercent(bot)}
                                             />
                                             <div
                                                 className="download-queue-clos-btn-container"

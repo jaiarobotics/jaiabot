@@ -3,7 +3,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Collection } from "ol";
 import LayerGroup from "ol/layer/Group";
-import { SelectedPodElement, PodElement } from "../../../context/Global/GlobalContext";
+import { SelectedNode, NodeType } from "../../../context/Global/GlobalContext";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
 import { getMapCoordinate } from "../../../shared/Utilities";
 import { Point } from "ol/geom";
@@ -54,10 +54,10 @@ export class HubLayers {
      * Used to update the hub icons on the OpenLayers map
      *
      * @param {{[key: string]: PortalHubStatus}} hubs - map of hubs to loop through and check for updates
-     * @param {HubOrBot} selectedHubOrBot - an object to determine if a hub id is selected so we can update state accordingly
+     * @param {HubOrBot} selectedNode - an object to determine if a hub id is selected so we can update state accordingly
      * @returns {void}
      */
-    update(hubs: { [key: string]: PortalHubStatus }, selectedHubOrBot: SelectedPodElement) {
+    update(hubs: { [key: string]: PortalHubStatus }, selectedNode: SelectedNode) {
         for (let hubId in hubs) {
             let hub = hubs[hubId];
 
@@ -87,9 +87,9 @@ export class HubLayers {
             });
 
             const selected =
-                selectedHubOrBot !== null &&
-                selectedHubOrBot.type === PodElement.HUB &&
-                selectedHubOrBot.id === hub_id;
+                selectedNode !== null &&
+                selectedNode.type === NodeType.HUB &&
+                selectedNode.id === hub_id;
             hubFeature.set("selected", selected);
 
             hubLayer.changed();

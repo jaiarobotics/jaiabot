@@ -87,6 +87,10 @@ class Bots {
             missionStatus.distanceToActiveGoal = botStatus.distance_to_active_goal;
         }
 
+        if (botStatus.repeat_index) {
+            missionStatus.repeatIndex = botStatus.repeat_index;
+        }
+
         bot.setMissionStatus(missionStatus);
 
         // BotSensors

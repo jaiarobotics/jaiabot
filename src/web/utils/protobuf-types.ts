@@ -649,6 +649,13 @@ export interface SRPParameters {
     safety_depth: number;
 }
 
+export interface TrailParameters {
+    contact?: number;
+    angle?: number;
+    angle_relative?: boolean;
+    range?: number;
+}
+
 export interface MissionTask {
     type?: TaskType;
     dive?: DiveParameters;
@@ -665,6 +672,7 @@ export enum MissionStart {
 export enum MovementType {
     TRANSIT = "TRANSIT",
     REMOTE_CONTROL = "REMOTE_CONTROL",
+    TRAIL = "TRAIL",
 }
 
 export interface Goal {
@@ -689,6 +697,7 @@ export interface MissionPlan {
     fragment_index?: number;
     expected_fragments?: number;
     repeats?: number;
+    trail?: TrailParameters;
 }
 
 export interface TransitUpdate {

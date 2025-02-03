@@ -3,8 +3,8 @@ import {
     GlobalContext,
     GlobalDispatchContext,
     GlobalContextType,
+    GlobalAction,
 } from "../../context/Global/GlobalContext";
-import { GlobalActions } from "../../context/Global/GlobalActions";
 
 import { Map } from "ol";
 
@@ -72,7 +72,7 @@ enum AccordionTabs {
  */
 export function SettingsPanel(props: Props) {
     const globalContext: GlobalContextType = useContext(GlobalContext);
-    const globalDispatch = useContext(GlobalDispatchContext);
+    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
 
     const [openAccordionTabs, setOpenAccordionTabs] = useState([]);
     const [accordionTheme, setAccordionTheme] = useState(

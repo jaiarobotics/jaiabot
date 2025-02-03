@@ -1,45 +1,9 @@
-import {
-    Command,
-    CommandType,
-    HubCommandType,
-    BotStatus,
-    MissionState,
-    HubStatus,
-} from "../shared/JAIAProtobuf";
+import { Command, CommandType, HubCommandType } from "./protobuf-types";
 import { jaiaAPI } from "./jaia-api";
 import { CustomAlert } from "../shared/CustomAlert";
 import { isError } from "lodash";
-
-export interface CommandInfo {
-    commandType: CommandType | HubCommandType;
-    description: string;
-    confirmationButtonText: string;
-    statesAvailable?: RegExp[];
-    statesNotAvailable?: RegExp[];
-    humanReadableAvailable?: string;
-    humanReadableNotAvailable?: string;
-}
-
-export const hubCommands: { [key: string]: CommandInfo } = {
-    shutdown: {
-        commandType: CommandType.SHUTDOWN_COMPUTER,
-        description: "Shutdown Hub",
-        confirmationButtonText: "Shutdown Hub",
-        statesNotAvailable: [],
-    },
-    restartServices: {
-        commandType: CommandType.RESTART_ALL_SERVICES,
-        description: "Restart Services",
-        confirmationButtonText: "Restart Services",
-        statesNotAvailable: [],
-    },
-    reboot: {
-        commandType: CommandType.REBOOT_COMPUTER,
-        description: "Reboot Hub",
-        confirmationButtonText: "Reboot Hub",
-        statesNotAvailable: [],
-    },
-};
+import { CommandInfo } from "../types/commands";
+import { error, info } from "../notifications/notifications";
 
 /**
  * Saves client ID associated with the user session as the controlling client ID
@@ -92,4 +56,33 @@ export async function sendHubCommand(hubID: number, hubCommand: CommandInfo) {
         };
         jaiaAPI.postCommandForHub(command);
     }
+}
+
+export function sendBotCommand(botId: number, command: CommandInfo) {
+    let c = {
+        bot_id: botId,
+        type: command.commandType as CommandType,
+    };
+
+    jaiaAPI.postCommand(c).then((response) => {
+        if (response.message) {
+            error(response.message);
+        }
+    });
+}
+
+export function sendBotRunCommand(botRun: Command) {
+    jaiaAPI.postCommand(botRun).then((response) => {
+        if (response.message) {
+            error(response.message);
+        }
+    });
+}
+
+export function sendBotRCCommand(botMission: Command) {
+    jaiaAPI.postCommand(botMission).then((response) => {
+        if (response.message) {
+            error(response.message);
+        }
+    });
 }
