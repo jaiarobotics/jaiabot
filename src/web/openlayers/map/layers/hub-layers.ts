@@ -3,7 +3,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Collection } from "ol";
 import LayerGroup from "ol/layer/Group";
-import { SelectedNode, NodeType } from "../../../context/Global/GlobalContext";
+import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
 import { getMapCoordinate } from "../../../shared/Utilities";
 import { Point } from "ol/geom";
@@ -88,7 +88,7 @@ export class HubLayers {
 
             const selected =
                 selectedNode !== null &&
-                selectedNode.type === NodeType.HUB &&
+                selectedNode.type === NodeTypes.HUB &&
                 selectedNode.id === hub_id;
             hubFeature.set("selected", selected);
 

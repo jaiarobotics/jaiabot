@@ -3,10 +3,9 @@ import {
     GlobalContext,
     GlobalDispatchContext,
     GlobalAction,
-    NodeType,
 } from "../../context/Global/GlobalContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
-
+import { NodeTypes } from "../../types/jaia-system-types";
 import { HubStatus, BotStatus, HealthState } from "../../shared/JAIAProtobuf";
 import { PodStatus, PortalBotStatus } from "../../shared/PortalStatus";
 
@@ -63,11 +62,7 @@ export function NodeListPanel(props: Props) {
          * This is an instance where we are beginning to migrate from CommandControl state to context
          */
         const handleClick = () => {
-            globalDispatch({
-                type: GlobalActions.CLICKED_NODE,
-                nodeType: NodeType.BOT,
-                nodeID: bot.bot_id,
-            });
+            globalDispatch({ type: GlobalActions.CLICKED_NODE });
             props.didClickBot(bot.bot_id);
         };
 
@@ -95,7 +90,7 @@ export function NodeListPanel(props: Props) {
 
         if (
             globalContext.selectedNode !== null &&
-            globalContext.selectedNode.type === NodeType.HUB
+            globalContext.selectedNode.type === NodeTypes.HUB
         ) {
             selected = "selected";
         }
@@ -110,11 +105,7 @@ export function NodeListPanel(props: Props) {
          */
         const handleClick = () => {
             props.didClickHub(hub.hub_id);
-            globalDispatch({
-                type: GlobalActions.CLICKED_NODE,
-                nodeType: NodeType.HUB,
-                nodeID: hub.hub_id,
-            });
+            globalDispatch({ type: GlobalActions.CLICKED_NODE });
         };
 
         //For now we are naming HUB, HUB with no id

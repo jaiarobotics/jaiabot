@@ -59,6 +59,10 @@ class Hubs {
             hub.setWarnings([]);
         }
 
+        if (hubStatus.location) {
+            hub.setLocation(hubStatus.location);
+        }
+
         if (hubStatus.portalStatusAge >= 0) {
             hub.setStatusAge(hubStatus.portalStatusAge);
         }

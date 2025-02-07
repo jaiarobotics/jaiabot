@@ -3,21 +3,18 @@ import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
 // Jaia
 import { jaiaAPI } from "../../utils/jaia-api";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { GlobalActions } from "./GlobalActions";
+import { SelectedNode, NodeTypes } from "../../types/jaia-system-types";
 
 export interface GlobalContextType {
     clientID: string;
     controllingClientID: string;
     selectedNode: SelectedNode;
-    visibleDetails: NodeType;
+    visibleDetails: NodeTypes;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     isRCMode: boolean;
-}
-
-export interface SelectedNode {
-    type: NodeType;
-    id: number;
 }
 
 export const enum HubAccordionNames {
@@ -56,20 +53,12 @@ export interface BotAccordionStates {
 export interface GlobalAction {
     type: GlobalActions;
     clientID?: string;
-    nodeType?: NodeType;
-    nodeID?: number;
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
 }
 
 interface GlobalContextProviderProps {
     children: ReactNode;
-}
-
-export enum NodeType {
-    "NONE" = 0,
-    "BOT" = 1,
-    "HUB" = 2,
 }
 
 const defaultHubAccordionStates = {
@@ -92,8 +81,8 @@ const defaultBotAccordionStates = {
 export const globalDefaultContext: GlobalContextType = {
     clientID: "",
     controllingClientID: "",
-    selectedNode: { type: NodeType.NONE, id: -1 },
-    visibleDetails: NodeType.NONE,
+    selectedNode: jaiaGlobal.getSelectedNode(),
+    visibleDetails: NodeTypes.NONE,
     hubAccordionStates: defaultHubAccordionStates,
     botAccordionStates: defaultBotAccordionStates,
     isRCMode: false,
@@ -125,7 +114,7 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
             return handleClosedDetails(mutableState);
 
         case GlobalActions.CLICKED_NODE:
-            return handleClickedNode(mutableState, action.nodeType, action.nodeID);
+            return handleClickedNode(mutableState);
 
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
@@ -181,7 +170,7 @@ function handleExitedRCMode(mutableState: GlobalContextType) {
  * @returns {GlobalContextType} Updated mutable state object
  */
 function handleClosedDetails(mutableState: GlobalContextType) {
-    mutableState.visibleDetails = NodeType.NONE;
+    mutableState.visibleDetails = NodeTypes.NONE;
     return mutableState;
 }
 
@@ -189,22 +178,19 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
  * @param {GlobalContextType} mutableState State object ref for making modifications
- * @param {NodeType} type Type of node clicked
- * @param {number} id ID of Bot or Hub clicked
  * @returns {GlobalContextType} Updated mutable state object
  */
-function handleClickedNode(mutableState: GlobalContextType, type: NodeType, id: number) {
-    if (isNaN(id)) throw new Error("Invalid hub or bot id");
-
+function handleClickedNode(mutableState: GlobalContextType) {
+    const selectedNode = jaiaGlobal.getSelectedNode();
     // Clicked currently selected node
-    if (mutableState.selectedNode.type == type && mutableState.selectedNode.id == id) {
-        // Close details and deselect node
-        mutableState.visibleDetails = NodeType.NONE;
-        mutableState.selectedNode.type = NodeType.NONE;
+    if (
+        mutableState.selectedNode.type === selectedNode.type &&
+        mutableState.selectedNode.id === selectedNode.id
+    ) {
+        mutableState.visibleDetails = NodeTypes.NONE;
     } else {
-        // Clicked non-selected node, select and show details
-        mutableState.selectedNode = { type: type, id: id };
-        mutableState.visibleDetails = type;
+        // Clicked non-selected node
+        mutableState.visibleDetails = selectedNode.type;
     }
     return mutableState;
 }

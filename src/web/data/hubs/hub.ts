@@ -1,6 +1,7 @@
 import {
     BotOffloadData,
     Error,
+    GeographicCoordinate,
     HealthState,
     LinuxHardwareStatus,
     Warning,
@@ -14,6 +15,7 @@ export default class Hub {
     private errors: Error[];
     private warnings: Warning[];
     private hubSensors: HubSensors;
+    private location: GeographicCoordinate;
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
@@ -65,6 +67,14 @@ export default class Hub {
 
     getHubSensors() {
         return this.hubSensors;
+    }
+
+    getLocation() {
+        return this.location;
+    }
+
+    setLocation(location: GeographicCoordinate) {
+        this.location = location;
     }
 
     getLinuxHardwareStatus() {

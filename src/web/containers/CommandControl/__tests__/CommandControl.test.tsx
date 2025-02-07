@@ -2,14 +2,13 @@ import { act, render, screen, fireEvent } from "@testing-library/react";
 import CommandControl, { Props } from "../CommandControl";
 import {
     GlobalContextType,
-    SelectedNode,
-    NodeType,
     HubAccordionStates,
     BotAccordionStates,
 } from "../../../context/Global/GlobalContext";
+import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
 
 const mockSelectedNode1: SelectedNode = {
-    type: NodeType.HUB,
+    type: NodeTypes.HUB,
     id: 1,
 };
 
@@ -34,7 +33,7 @@ const mockGlobalContext1: GlobalContextType = {
     clientID: "",
     controllingClientID: "",
     selectedNode: mockSelectedNode1,
-    visibleDetails: NodeType.NONE,
+    visibleDetails: NodeTypes.NONE,
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     isRCMode: false,

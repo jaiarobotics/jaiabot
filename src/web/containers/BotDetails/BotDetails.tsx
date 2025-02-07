@@ -7,12 +7,12 @@ import {
     GlobalDispatchContext,
     GlobalAction,
     BotAccordionNames,
-    NodeType,
     GlobalContextType,
 } from "../../context/Global/GlobalContext";
 import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { CustomAlert } from "../../shared/CustomAlert";
+import { NodeTypes } from "../../types/jaia-system-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import Bot from "../../data/bots/bot";
@@ -123,7 +123,7 @@ export function BotDetails(props: BotDetailsProps) {
     if (
         jaiaSystemContext === null ||
         globalContext === null ||
-        globalContext.visibleDetails != NodeType.BOT
+        globalContext.visibleDetails !== NodeTypes.BOT
     ) {
         return <div></div>;
     }

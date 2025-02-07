@@ -60,6 +60,10 @@ class Bots {
             bot.setWarnings([]);
         }
 
+        if (botStatus.location) {
+            bot.setLocation(botStatus.location);
+        }
+
         if (botStatus.battery_percent) {
             bot.setBatteryPercent(botStatus.battery_percent);
         }

@@ -6,7 +6,6 @@ import {
     GlobalDispatchContext,
     GlobalAction,
     HubAccordionNames,
-    NodeType,
 } from "../../context/Global/GlobalContext";
 import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
 import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
@@ -21,7 +20,7 @@ import {
 import { sendHubCommand, takeControl } from "../../utils/command";
 import { CommandInfo, hubCommands } from "../../types/commands";
 import { getIPPrefix } from "../../shared/IPPrefix";
-
+import { NodeTypes } from "../../types/jaia-system-types";
 // Styles
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
@@ -61,7 +60,7 @@ export function HubDetails() {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
     }, []);
 
-    if (jaiaSystemContext === null || globalContext.visibleDetails != NodeType.HUB) {
+    if (jaiaSystemContext === null || globalContext.visibleDetails !== NodeTypes.HUB) {
         return <div></div>;
     }
 

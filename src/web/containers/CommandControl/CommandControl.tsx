@@ -13,6 +13,7 @@ import { jaiaAPI, BotPaths, TaskPackets } from "../../utils/jaia-api";
 import { Missions } from "../../missions/missions";
 import { taskData } from "../../data/task_packets/task-packets";
 import { HubOrBot } from "../../types/hub-or-bot";
+import { NodeTypes } from "../../types/jaia-system-types";
 import { createMap } from "../../openlayers/map/map";
 import { BotLayers } from "../../openlayers/map/layers/bot-layers";
 import { HubLayers } from "../../openlayers/map/layers/hub-layers";
@@ -50,7 +51,6 @@ import {
     GlobalDispatchContext,
     GlobalContextType,
     GlobalAction,
-    NodeType,
 } from "../../context/Global/GlobalContext";
 import { BotDetails, BotDetailsProps } from "../BotDetails/BotDetails";
 import {
@@ -2158,11 +2158,7 @@ export default class CommandControl extends React.Component {
             // Clicked on bot
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
-                    nodeType: NodeType.BOT,
-                    nodeID: botStatus.bot_id,
-                });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.toggleBot(botStatus.bot_id);
                 return false;
             }
@@ -2172,11 +2168,7 @@ export default class CommandControl extends React.Component {
             if (hubStatus) {
                 const hubKey = Object.keys(this.state.podStatus.hubs)[0];
                 const hubID = this.state.podStatus.hubs[hubKey].hub_id;
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
-                    nodeType: NodeType.HUB,
-                    nodeID: hubID,
-                });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.didClickHub(hubID);
                 return false;
             }
