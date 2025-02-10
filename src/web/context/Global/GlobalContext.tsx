@@ -182,6 +182,7 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  */
 function handleClickedNode(mutableState: GlobalContextType) {
     const selectedNode = jaiaGlobal.getSelectedNode();
+
     // Clicked currently selected node
     if (
         mutableState.selectedNode.type === selectedNode.type &&
@@ -190,6 +191,7 @@ function handleClickedNode(mutableState: GlobalContextType) {
         mutableState.visibleDetails = NodeTypes.NONE;
     } else {
         // Clicked non-selected node
+        mutableState.selectedNode = selectedNode;
         mutableState.visibleDetails = selectedNode.type;
     }
     return mutableState;

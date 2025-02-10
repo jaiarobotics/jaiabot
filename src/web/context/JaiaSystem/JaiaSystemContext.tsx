@@ -10,7 +10,7 @@ import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
 
-interface JaiaSystemContextType {
+export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;

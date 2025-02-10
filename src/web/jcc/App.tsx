@@ -2,7 +2,7 @@
 import React from "react";
 
 // Jaia
-import Map from "../components/Map/Map";
+import { CommandControlWrapper } from "../containers/CommandControl/CommandControl";
 import { GlobalContextProvider } from "../context/Global/GlobalContext";
 import { JaiaSystemContextProvider } from "../context/JaiaSystem/JaiaSystemContext";
 
@@ -14,7 +14,7 @@ export default function App() {
         <div id="jcc">
             <GlobalContextProvider>
                 <JaiaSystemContextProvider>
-                    <Map />
+                    <CommandControlWrapper />
                 </JaiaSystemContextProvider>
             </GlobalContextProvider>
         </div>
