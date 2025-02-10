@@ -6,11 +6,7 @@
   vars_files:
     - vars/disk-space.yml
   vars:
-    - upgrade_dir: '/var/log/jaiabot/major_upgrade/{{ ansible_date_time.iso8601_basic }}'
-    - upgrade_tmp_dir: '{{ upgrade_dir }}/tmp'
-    - upgrade_reuse_dir: '{{ upgrade_dir }}/reuse'
-    - upgrade_backup_dir: '{{ upgrade_dir }}/backup'
-    - upgrade_boot_dir: '{{ upgrade_dir }}/boot'
+    - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
       
     # TODO: Change these to the correct real URL to the hub upgrades ISO
   pre_tasks:
@@ -25,39 +21,59 @@
         
   tasks:
 
-    - name: Create the upgrade working directory
+    - name: Create the upgrade base working directory
       file:
-        path: '{{ upgrade_dir }}'
+        path: '{{ upgrade_dir_base }}'
         state: directory
+
+    - include_tasks: ../tasks/get-version.yml
+    - include_tasks: tasks/get-major-version.yml
+      
+    - name: Set upgrade directory
+      set_fact:
+        upgrade_dir: '{{ upgrade_dir_base }}/{{ major_upgrade_version_shortcode }}'
+
+    - name: Set upgrade directory children
+      set_fact:
+        upgrade_tmp_dir: '{{ upgrade_dir }}/tmp'
+        upgrade_reuse_dir: '{{ upgrade_dir }}/reuse'
+        upgrade_backup_dir: '{{ upgrade_dir }}/backup'
+        upgrade_boot_dir: '{{ upgrade_dir }}/boot'
+
 
     - name: Create the upgrade tmp directory
       file:
         path: '{{ upgrade_tmp_dir }}'
-        state: directory        
-    
-    - include_tasks: ../tasks/get-version.yml
-    - include_tasks: tasks/get-major-version.yml
-
+        state: directory                
+      
+        
+    - name: Check that Ubuntu version is greater than current version
+      shell: |
+        current_ubuntu_version=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)
+        if ! dpkg --compare-versions {{ major_upgrade_ubuntu_version }} gt ${current_ubuntu_version} ; then
+            echo "New Ubuntu version ({{ major_upgrade_version }}) is not greater than current version"
+            return 1
+        fi
+      
     - name: Debug version
       debug:
-        msg: "Found major upgrade version: {{ jaiabot_major_version }}, current version: {{ jaiabot_current_version }}"
-      
-    - name: Check that upgrade version is greater than current version
+        msg: "Found major upgrade version: {{ major_upgrade_version }}, current version: {{ jaiabot_current_version }}"
+        
+    - name: Check that upgrade version is greater than or equal to than current version
       shell: |
-        if ! dpkg --compare-versions {{ jaiabot_major_version }} gt $(echo {{ jaiabot_current_version }} | cut -d '-' -f1) ; then
-            echo "New major version ({{ jaiabot_major_version }}) is not greater than current version ({{ jaiabot_current_version }})"
+        if ! dpkg --compare-versions {{ major_upgrade_version }} ge $(echo {{ jaiabot_current_version }} | cut -d '-' -f1) ; then
+            echo "New major version ({{ major_upgrade_version }}) is not greater than or equal to current version ({{ jaiabot_current_version }})"
             return 1
         fi
       
     - include_tasks: tasks/check-disk-space.yml
-
       
     - include_tasks: tasks/get-new-filesystems.yml
       
-    ## TODO Create a fleet config from the old image - for now download it assuming it exists on the USB flash key / ISO
-    - name: Download the fleet config
-      get_url:
-        url: "http://{{ hub_ip }}/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+    ## TODO Create a fleet config from the old image 
+    - name: Copy the fleet config
+      copy:
+        src: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
         dest: "{{ upgrade_dir }}"
 
     - include_tasks: tasks/fetch-reuse-files.yml
@@ -66,7 +82,7 @@
     - name: Prepare new boot fs
       shell: |
         mkdir -p {{ upgrade_boot_dir }}
-        tar -xz -f {{ upgrade_dir }}/{{ rootfs_major_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
+        tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
         jaia admin fleet generate --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
         rm {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
     

@@ -20,17 +20,19 @@
   get_url:
     force: true
     url: "http://{{ hub_ip }}/updates/major_upgrade/version.txt"
-    dest: "{{ upgrade_dir }}/version.txt"
-  
-- name: Read the version file content into a fact
+    dest: "{{ upgrade_dir_base }}/version.txt"
+
+- name: Read version.txt from remote
   slurp:
-    src: "{{ upgrade_dir }}/version.txt"
+    src: "{{ upgrade_dir_base }}/version.txt"
   register: version_file
 
-- name: Set fact for version content
+- name: Convert and split file contents
   set_fact:
-    rootfs_major_version: "{{ version_file.content | b64decode | trim }}"
+    version_content: "{{ version_file['content'] | b64decode | split('\n') }}"
 
-- name: Extract version string
+- name: Convert lines to variables
   set_fact:
-    jaiabot_major_version: "{{ rootfs_major_version | regex_search('v(\\d+\\.\\d+\\.\\d+.*)$', '\\1') | first }}"
+    "{{ item.split('=')[0] }}": "{{ item.split('=')[1] }}"
+  loop: "{{ version_content }}"
+  when: item | length > 0
