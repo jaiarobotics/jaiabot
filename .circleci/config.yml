@@ -488,7 +488,7 @@ jobs:
             cat \<< EOF  > build/bundle/major_upgrade/version.txt
             major_upgrade_version_shortcode=v$(echo ${JAIABOT_APT_VERSION} | cut -d '.' -f 1)_${DISTRO_RELEASE_CODENAME}
             major_upgrade_rootfs_version=${rootfs_version}
-            major_upgrade_version=${JAIABOT_APT_VERSION}
+            major_upgrade_version=$(echo ${rootfs_version} | sed 's/.*-v\([1-9]\+\.[0-9]\+\.[0-9]\+.*\)/\1/')
             major_upgrade_ubuntu_version=$(echo ${DISTRO_RELEASE_VERSION} | sed 's/ubuntu//')            
             EOF
             
