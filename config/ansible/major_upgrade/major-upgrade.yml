@@ -51,7 +51,7 @@
       shell: |
         current_ubuntu_version=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)
         if ! dpkg --compare-versions {{ major_upgrade_ubuntu_version }} gt ${current_ubuntu_version} ; then
-            echo "New Ubuntu version ({{ major_upgrade_version }}) is not greater than current version"
+            echo "New Ubuntu version ({{ major_upgrade_ubuntu_version }}) is not greater than current version (${current_ubuntu_version})"
             return 1
         fi
       
