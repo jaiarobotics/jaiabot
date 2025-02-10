@@ -485,7 +485,7 @@ jobs:
             mkdir -p build/bundle/major_upgrade
             mv /tmp/images/*.tar.gz build/bundle/major_upgrade
             rootfs_version=$(basename build/bundle/major_upgrade/*.boot.tar.gz .boot.tar.gz)
-            cat << EOF  > build/bundle/major_upgrade/version.txt
+            cat \<< EOF  > build/bundle/major_upgrade/version.txt
             major_upgrade_version_shortcode=v$(echo ${JAIABOT_APT_VERSION} | cut -d '.' -f 1)_${DISTRO_RELEASE_CODENAME}
             major_upgrade_rootfs_version=${rootfs_version}
             major_upgrade_version=${JAIABOT_APT_VERSION}
