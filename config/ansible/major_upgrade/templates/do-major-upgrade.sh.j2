@@ -33,7 +33,7 @@ rm -f /etc/overlayroot.conf
 ###############################
 
 rm -rf ${new_ro_rootfs_mountpoint}/*
-tar -xz -f {{ upgrade_dir }}/{{ rootfs_major_version }}.rootfs.tar.gz -C ${new_ro_rootfs_mountpoint}
+tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz -C ${new_ro_rootfs_mountpoint}
 
 ###############################
 # Restore reuse files
