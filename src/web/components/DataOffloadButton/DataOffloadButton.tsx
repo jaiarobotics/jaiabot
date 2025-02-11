@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import DataOffloadDialog from "../DataOffloadDialog/DataOffloadDialog";
+import DataOffloadDialog from "./DataOffloadDialog";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";

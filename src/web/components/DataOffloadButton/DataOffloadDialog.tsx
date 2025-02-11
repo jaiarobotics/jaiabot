@@ -1,5 +1,5 @@
-import { DialogActions } from "../DataOffloadButton/DataOffloadButton";
-import { DisabledCodes } from "../DataOffloadButton/DataOffloadButton";
+import { DialogActions } from "./DataOffloadButton";
+import { DisabledCodes } from "./DataOffloadButton";
 
 interface DialogProps {
     isVisible: boolean;
