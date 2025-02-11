@@ -1,13 +1,18 @@
 import { useContext, useState } from "react";
 
 import DataOffloadDialog from "../DataOffloadDialog/DataOffloadDialog";
-import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiDownload } from "@mdi/js";
 
+import Bot from "../../data/bots/bot";
+
 import "../../style/stylesheets/util.less";
+
+interface Props {
+    bot: Bot;
+}
 
 export enum DisabledCodes {
     NONE = 0,
@@ -21,14 +26,8 @@ export enum DialogActions {
     CONFIRMED = 1,
 }
 
-export default function DataOffloadButton() {
+export default function DataOffloadButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
-
-    const jaiaSystemContext = useContext(JaiaSystemContext);
-
-    if (jaiaSystemContext === null) {
-        return <div></div>;
-    }
 
     const getClassName = () => {
         let className = "jaia-button";
