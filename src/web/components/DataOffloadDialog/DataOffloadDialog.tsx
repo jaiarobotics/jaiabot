@@ -48,7 +48,7 @@ function Message(props: TitleMessageProps) {
     );
     messages.set(
         DisabledCodes.WIFI_QUALITY,
-        "The Bot does not have a strong enough Wi-Fi connection to start a data offload. Try moving the Bot closer to the Hub.",
+        "The Bot is not connected to the Hub Wi-Fi. Try moving the Bot closer to the Hub.",
     );
     messages.set(DisabledCodes.DOWNLOAD_QUEUE, "The Bot is already in the download queue.");
 

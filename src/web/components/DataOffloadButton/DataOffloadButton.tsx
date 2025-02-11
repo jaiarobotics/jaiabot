@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import DataOffloadDialog from "../DataOffloadDialog/DataOffloadDialog";
 
@@ -7,6 +7,8 @@ import { Button } from "@mui/material";
 import { mdiDownload } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import { CommandType } from "../../utils/protobuf-types";
+import { isCommandAvailable } from "../../utils/command";
 
 import "../../style/stylesheets/util.less";
 
@@ -40,14 +42,16 @@ export default function DataOffloadButton(props: Props) {
     };
 
     const getDisabledCode = () => {
-        // If Bot is not in correct state
-        //     return DisabledCodes.MISSION_STATE
-
-        // If wifi link quality is too weak
-        //    return DisabledCodes.WIFI_QUALITY
-
         // If Bot is already in download queue
         //    return DisabledCodes.DOWNLOAD_QUEUE
+
+        if (!isCommandAvailable(CommandType.RECOVERED, props.bot.getMissionStatus().missionState)) {
+            return DisabledCodes.MISSION_STATE;
+        }
+
+        if (!props.bot.getWifiLinkQuality()) {
+            return DisabledCodes.WIFI_QUALITY;
+        }
 
         return DisabledCodes.NONE;
     };
