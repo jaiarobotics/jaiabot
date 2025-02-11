@@ -61,11 +61,9 @@ export default function DataOffloadButton() {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            handleActionConfirmed();
+            // Send command
         }
     };
-
-    const handleActionConfirmed = () => {};
 
     return (
         <div>

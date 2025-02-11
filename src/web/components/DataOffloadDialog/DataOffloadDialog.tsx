@@ -7,7 +7,7 @@ interface DialogProps {
     onClose: (dialogAction: DialogActions) => void;
 }
 
-interface TitleProps {
+interface TitleMessageProps {
     disabledCode: DisabledCodes;
 }
 
@@ -17,7 +17,30 @@ interface ButtonRowProps {
 }
 
 export default function DataOffloadDialog(props: DialogProps) {
+    if (props.isVisible) {
+        return (
+            <div className="jaia-dialog">
+                <Title disabledCode={props.disabledCode} />
+                <Message disabledCode={props.disabledCode} />
+                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+            </div>
+        );
+    }
+
+    return <div></div>;
+}
+
+function Title(props: TitleMessageProps) {
+    if (props.disabledCode === DisabledCodes.NONE) {
+        return <h1>Confirm</h1>;
+    }
+
+    return <h1>Alert</h1>;
+}
+
+function Message(props: TitleMessageProps) {
     const messages = new Map<DisabledCodes, string>();
+
     messages.set(DisabledCodes.NONE, "");
     messages.set(
         DisabledCodes.MISSION_STATE,
@@ -29,25 +52,7 @@ export default function DataOffloadDialog(props: DialogProps) {
     );
     messages.set(DisabledCodes.DOWNLOAD_QUEUE, "The Bot is already in the download queue.");
 
-    if (props.isVisible) {
-        return (
-            <div className="jaia-dialog">
-                <Title disabledCode={props.disabledCode} />
-                <p>{messages.get(props.disabledCode)}</p>
-                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
-            </div>
-        );
-    }
-
-    return <div></div>;
-}
-
-function Title(props: TitleProps) {
-    if (props.disabledCode === DisabledCodes.NONE) {
-        return <h1>Confirm</h1>;
-    }
-
-    return <h1>Alert</h1>;
+    return <p>{messages.get(props.disabledCode)}</p>;
 }
 
 function ButtonRow(props: ButtonRowProps) {
