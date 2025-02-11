@@ -60,6 +60,10 @@ class Bots {
             bot.setWarnings([]);
         }
 
+        if (botStatus.location) {
+            bot.setLocation(botStatus.location);
+        }
+
         if (botStatus.battery_percent) {
             bot.setBatteryPercent(botStatus.battery_percent);
         }
@@ -85,6 +89,10 @@ class Bots {
 
         if (botStatus.distance_to_active_goal) {
             missionStatus.distanceToActiveGoal = botStatus.distance_to_active_goal;
+        }
+
+        if (botStatus.repeat_index) {
+            missionStatus.repeatIndex = botStatus.repeat_index;
         }
 
         bot.setMissionStatus(missionStatus);

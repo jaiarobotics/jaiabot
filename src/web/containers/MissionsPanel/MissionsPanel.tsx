@@ -1,5 +1,5 @@
 // React
-import React, { useContext } from "react";
+import { useContext } from "react";
 
 // Jaia
 import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
@@ -11,6 +11,7 @@ import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions"
 
 import Mission from "../../data/missions/mission";
 import { missions } from "../../data/missions/missions";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 // MUI | MDI
@@ -31,12 +32,12 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAddMissionClick = () => {
-        globalDispatch({ type: GlobalActions.DESELECT_POD_ELEMENT });
-
         // Update data model
+        jaiaGlobal.deselectNode();
         missions.addMission(new Mission());
 
-        // Update JaiaSystemContext
+        // Update Context
+        globalDispatch({ type: GlobalActions.CLICKED_NODE });
         jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
 
         // Prevents new missions from not being visible in the viewport

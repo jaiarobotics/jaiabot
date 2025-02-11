@@ -171,6 +171,8 @@ const config = {
     // The regexp pattern or array of patterns that Jest uses to detect test files
     // testRegex: [],
 
+    // Only treat files in __tests__ directories with test in the file name as tests
+    testRegex: "__tests__/.*test\\.[jt]sx?$",
     // This option allows the use of a custom results processor
     // testResultsProcessor: undefined,
 

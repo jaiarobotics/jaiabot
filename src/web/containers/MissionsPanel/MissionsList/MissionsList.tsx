@@ -1,5 +1,5 @@
 // React
-import React, { useContext } from "react";
+import { useContext } from "react";
 
 // Jaia
 import { GlobalContext, GlobalDispatchContext } from "../../../context/Global/GlobalContext";
@@ -11,8 +11,9 @@ import { GlobalActions } from "../../../context/Global/GlobalActions";
 import { JaiaSystemActions } from "../../../context/JaiaSystem/jaia-system-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
-import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { missions } from "../../../data/missions/missions";
+import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
+import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -86,7 +87,12 @@ export default function MissionsList() {
      * To be implemented in a separate ticket
      */
     const handleDuplicateMissionClick = (missionID: number) => {
-        globalDispatch({ type: GlobalActions.DESELECT_POD_ELEMENT });
+        // Update data model
+        jaiaGlobal.deselectNode();
+
+        // Update Context
+        globalDispatch({ type: GlobalActions.CLICKED_NODE });
+
         // missions.duplicateMission(missionID);
     };
 
@@ -103,7 +109,7 @@ export default function MissionsList() {
 
         // Update OpenLayers
 
-        // Update JaiaSystemContext
+        // Update Context
         jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
     };
 

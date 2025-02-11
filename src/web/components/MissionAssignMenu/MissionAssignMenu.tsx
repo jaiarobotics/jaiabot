@@ -1,5 +1,5 @@
 // React
-import React, { useContext } from "react";
+import { useContext } from "react";
 
 // MUI
 import FormControl from "@mui/material/FormControl";
@@ -8,7 +8,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 // Jaia
-import Bot from "../../data/bots/bot";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import {

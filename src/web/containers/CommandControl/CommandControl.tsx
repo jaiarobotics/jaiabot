@@ -11,8 +11,9 @@ import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../../openlayers/map/layers/layers";
 import { jaiaAPI, BotPaths } from "../../utils/jaia-api";
 import { Missions } from "../../missions/missions";
-import { TaskData, taskData } from "../../data/task_packets/task-packets";
+import { taskData } from "../../data/task_packets/task-packets";
 import { HubOrBot } from "../../types/hub-or-bot";
+import { NodeTypes } from "../../types/jaia-system-types";
 import { createMap } from "../../openlayers/map/map";
 import { BotLayers } from "../../openlayers/map/layers/bot-layers";
 import { HubLayers } from "../../openlayers/map/layers/hub-layers";
@@ -20,7 +21,7 @@ import { ContactLayers } from "../../openlayers/map/layers/contact-layers";
 import { HubDetails } from "../HubDetails/HubDetails";
 import { CommandList } from "../../missions/missions";
 import { SurveyLines } from "../../missions/survey/survey-lines";
-import { BotListPanel } from "../BotListPanel/BotListPanel";
+import { NodeListPanel } from "../NodeListPanel/NodeListPanel";
 import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
@@ -36,11 +37,7 @@ import { MissionLibraryLocalStorage } from "../../utils/mission-library";
 import { playDisconnectReconnectSounds } from "../../style/audio/disconnect-sounds";
 import { error, success, warning, info } from "../../notifications/notifications";
 import { CustomAlert, CustomAlertProps } from "../../shared/CustomAlert";
-import {
-    MissionSettingsPanel,
-    MissionSettings,
-    MissionParams,
-} from "../MissionSettingsPanel/MissionSettingsPanel";
+import { MissionSettingsPanel, MissionParams } from "../MissionSettingsPanel/MissionSettingsPanel";
 import { PodStatus, PortalBotStatus, PortalHubStatus, Metadata } from "../../shared/PortalStatus";
 import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from "../../shared/Styles";
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from "../../shared/BotFeature";
@@ -55,7 +52,7 @@ import {
     GlobalContextType,
     GlobalAction,
 } from "../../context/Global/GlobalContext";
-import { BotDetailsComponent, DetailsExpandedState, BotDetailsProps } from "../Details/Details";
+import { BotDetails, BotDetailsProps } from "../BotDetails/BotDetails";
 import {
     Goal,
     TaskType,
@@ -72,7 +69,6 @@ import {
 import {
     getGeographicCoordinate,
     deepcopy,
-    equalValues,
     getMapCoordinate,
     getHTMLDateString,
     getHTMLTimeString,
@@ -227,8 +223,7 @@ interface State {
 
     visiblePanel: PanelType;
     detailsBoxItem?: HubOrBot;
-    detailsExpanded: DetailsExpandedState;
-    botDownloadQueue: PortalBotStatus[];
+    botDownloadQueue: number[];
     loadMissionPanel?: ReactElement;
     saveMissionPanel?: ReactElement;
 
@@ -375,18 +370,6 @@ export default class CommandControl extends React.Component {
 
             visiblePanel: PanelType.NONE,
             detailsBoxItem: null,
-            detailsExpanded: {
-                quickLook: true,
-                commands: false,
-                advancedCommands: false,
-                health: false,
-                data: false,
-                gps: false,
-                imu: false,
-                sensor: false,
-                power: false,
-                links: false,
-            },
             botDownloadQueue: [],
 
             surveyExclusionCoords: null,
@@ -623,10 +606,7 @@ export default class CommandControl extends React.Component {
             prevState.podStatusVersion !== this.state.podStatusVersion ||
             prevState.selectedHubOrBot !== this.state.selectedHubOrBot
         ) {
-            this.hubLayers.update(
-                this.state.podStatus.hubs,
-                this.props.globalContext.selectedPodElement,
-            );
+            this.hubLayers.update(this.state.podStatus.hubs, this.props.globalContext.selectedNode);
             this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot);
             this.contactLayers.update(this.state.podStatus?.contacts);
             this.updateHubCommsCircles();
@@ -2111,7 +2091,6 @@ export default class CommandControl extends React.Component {
         }
 
         if (feature) {
-            console.log(feature);
             // Allow an operator to click on certain features while edit mode is off
             const editModeExemptions = [
                 "dive",
@@ -2170,7 +2149,7 @@ export default class CommandControl extends React.Component {
             // Clicked on bot
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
-                this.props.globalDispatch({ type: GlobalActions.CLICKED_BOT_MAP_ICON });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.toggleBot(botStatus.bot_id);
                 return false;
             }
@@ -2180,10 +2159,7 @@ export default class CommandControl extends React.Component {
             if (hubStatus) {
                 const hubKey = Object.keys(this.state.podStatus.hubs)[0];
                 const hubID = this.state.podStatus.hubs[hubKey].hub_id;
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_HUB_MAP_ICON,
-                    hubID: hubID,
-                });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.didClickHub(hubID);
                 return false;
             }
@@ -2934,8 +2910,7 @@ export default class CommandControl extends React.Component {
     async processDownloadAllBots() {
         this.takeControl(() => {
             const commDest = this.determineAllCommandBots(false, false, false, true);
-            const downloadableBots = this.getDownloadableBots();
-            const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id);
+            const downloadableBotIds = this.getDownloadableBots();
 
             if (downloadableBotIds.length === 0) {
                 CustomAlert.alert(
@@ -2953,14 +2928,14 @@ export default class CommandControl extends React.Component {
 
             CustomAlert.confirm(confirmText, "Data Download", () => {
                 const queue = this.state.botDownloadQueue;
-                const updatedQueue = queue.concat(downloadableBots);
+                const updatedQueue = queue.concat(downloadableBotIds);
                 this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder());
                 info("Open the Download Panel to see the bot download queue");
             });
         });
     }
 
-    async processDownloadSingleBot(bot: PortalBotStatus, disableMessage: string) {
+    async processDownloadSingleBot(botID: number, disableMessage: string) {
         this.takeControl(() => {
             // Exit if we have a disableMessage
             if (disableMessage !== "") {
@@ -2969,20 +2944,21 @@ export default class CommandControl extends React.Component {
             }
 
             CustomAlert.confirm(
-                `Would you like to do a data download for Bot ${bot.bot_id}?`,
+                `Would you like to do a data download for Bot ${botID}?`,
                 "Data Download",
                 () => {
                     const queue = this.state.botDownloadQueue;
                     if (queue.length > 0) {
                         for (const queuedBot of queue) {
-                            if (queuedBot.bot_id === bot.bot_id) {
-                                info(`Bot ${bot.bot_id} is already queued`);
+                            if (queuedBot === botID) {
+                                info(`Bot ${botID} is already queued`);
                                 return;
                             }
                         }
                     }
-                    const updatedQueue = queue.concat(bot);
-                    info(`Queued Bot ${bot.bot_id} for data download`);
+
+                    const updatedQueue = queue.concat(botID);
+                    info(`Queued Bot ${botID} for data download`);
                     this.setState({ botDownloadQueue: updatedQueue }, () =>
                         this.downloadBotsInOrder(),
                     );
@@ -3001,15 +2977,16 @@ export default class CommandControl extends React.Component {
         const queue = this.state.botDownloadQueue;
         for (const bot of queue) {
             // Needed to update the queue list when downloads are added after the queue started
-            const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id);
-            if (updatedQueueIds.includes(bot.bot_id)) {
-                await this.downloadBot(bot, bot?.mission_state === "POST_DEPLOYMENT__FAILED");
+            const updatedQueueIds = this.state.botDownloadQueue;
+            const missionState = this.getBotMissionState(bot);
+            if (updatedQueueIds.includes(bot)) {
+                await this.downloadBot(bot, missionState === "POST_DEPLOYMENT__FAILED");
                 this.removeBotFromQueue(bot);
             }
         }
     }
 
-    async downloadBot(bot: PortalBotStatus, retryDownload: boolean) {
+    async downloadBot(bot: number, retryDownload: boolean) {
         try {
             await this.startDownload(bot, retryDownload);
             await this.waitForPostDepoloyment(bot, retryDownload);
@@ -3018,9 +2995,9 @@ export default class CommandControl extends React.Component {
         }
     }
 
-    async startDownload(bot: PortalBotStatus, retryDownload: boolean) {
+    async startDownload(bot: number, retryDownload: boolean) {
         const command = {
-            bot_id: bot.bot_id,
+            bot_id: bot,
             type: retryDownload ? CommandType.RETRY_DATA_OFFLOAD : CommandType.RECOVERED,
         };
 
@@ -3032,14 +3009,14 @@ export default class CommandControl extends React.Component {
         }
     }
 
-    waitForPostDepoloyment(bot: PortalBotStatus, retryDownload?: boolean) {
+    waitForPostDepoloyment(bot: number, retryDownload?: boolean) {
         const timeoutTime = retryDownload ? 4000 : 0; // Accounts for lag in swithcing states
         return new Promise<void>((resolve, reject) => {
             setTimeout(() => {
                 const intervalId = setInterval(() => {
                     if (
-                        this.getBotMissionState(bot.bot_id) === "POST_DEPLOYMENT__IDLE" ||
-                        this.getBotMissionState(bot.bot_id) === "POST_DEPLOYMENT__FAILED"
+                        this.getBotMissionState(bot) === "POST_DEPLOYMENT__IDLE" ||
+                        this.getBotMissionState(bot) === "POST_DEPLOYMENT__FAILED"
                     ) {
                         clearInterval(intervalId);
                         resolve();
@@ -3049,7 +3026,7 @@ export default class CommandControl extends React.Component {
         });
     }
 
-    removeBotFromQueue(bot: PortalBotStatus) {
+    removeBotFromQueue(bot: number) {
         const downloadStates = [
             "POST_DEPLOYMENT__DATA_PROCESSING",
             "POST_DEPLOYMENT__DATA_OFFLOAD",
@@ -3058,7 +3035,7 @@ export default class CommandControl extends React.Component {
         const doRemoveBotFromQueue = () => {
             const queue = this.state.botDownloadQueue;
             const updatedQueue = queue.filter((queuedBot) => {
-                if (!(queuedBot.bot_id === bot.bot_id)) {
+                if (!(queuedBot === bot)) {
                     return queuedBot;
                 }
             });
@@ -3066,7 +3043,7 @@ export default class CommandControl extends React.Component {
             this.setState({ botDownloadQueue: updatedQueue });
         };
 
-        if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
+        if (downloadStates.includes(this.getBotMissionState(bot))) {
             CustomAlert.confirm(
                 "Removing this bot will not cancel the download, but it will allow the other bots to move up in the queue. You may experience slower download speeds. Are you sure?",
                 "Remove Bot From Queue",
@@ -3080,22 +3057,22 @@ export default class CommandControl extends React.Component {
     /**
      * Creates a list of bots that can be added to the download queue
      *
-     * @returns {PortalBotStatus[]} The list of bots that can be added to download queue
+     * @returns {number[]} The list of botIDs that can be added to download queue
      */
     getDownloadableBots() {
         const commDest = this.determineAllCommandBots(false, false, false, true);
 
-        const downloadableBots: PortalBotStatus[] = [];
+        const downloadableBots: number[] = [];
         const bots = this.getPodStatus().bots;
         for (const bot of Object.values(bots)) {
             for (const enabledState of this.enabledDownloadStates) {
                 if (
                     bot?.mission_state?.includes(enabledState) &&
                     bot?.wifi_link_quality_percentage &&
-                    !this.isBotInQueue(bot) &&
+                    !this.isBotInQueue(bot?.bot_id) &&
                     !commDest.botIdsDisconnected.includes(bot?.bot_id)
                 ) {
-                    downloadableBots.push(bot);
+                    downloadableBots.push(bot.bot_id);
                     break;
                 }
             }
@@ -3134,10 +3111,10 @@ export default class CommandControl extends React.Component {
         return 0;
     }
 
-    isBotInQueue(bot: PortalBotStatus) {
+    isBotInQueue(bot: number) {
         const queue = this.state.botDownloadQueue;
         for (const queuedBot of queue) {
-            if (queuedBot.bot_id === bot.bot_id) {
+            if (queuedBot === bot) {
                 return true;
             }
         }
@@ -3249,7 +3226,7 @@ export default class CommandControl extends React.Component {
             botIdsPoorHealth: [],
             botIdsDisconnected: [],
             botIdsDownloadNotAvailable: [],
-            botIdsInDownloadQueue: this.state.botDownloadQueue.map((bot) => bot.bot_id),
+            botIdsInDownloadQueue: this.state.botDownloadQueue,
             botIdsWifiDisconnected: [],
             idleStateMessage: "",
             notIdleStateMessage: "",
@@ -3782,12 +3759,6 @@ export default class CommandControl extends React.Component {
         this.detectTaskChange();
     }
 
-    setDetailsExpanded(accordian: keyof DetailsExpandedState, isExpanded: boolean) {
-        let detailsExpanded = this.state.detailsExpanded;
-        detailsExpanded[accordian] = isExpanded;
-        this.setState({ detailsExpanded });
-    }
-
     disconnectionPanel() {
         let msg = this.state.disconnectionMessage;
         if (!msg) {
@@ -3962,41 +3933,6 @@ export default class CommandControl extends React.Component {
                     initRCDivesParams={this.initRCDivesParams.bind(this)}
                 />
             );
-        }
-
-        // Details box
-        let detailsBoxItem = this.state.detailsBoxItem;
-        let detailsBox;
-
-        function closeDetails() {
-            self.setState({ detailsBoxItem: null });
-        }
-
-        switch (detailsBoxItem?.type) {
-            case "bot":
-                const botDetailsProps: BotDetailsProps = {
-                    bot: bots?.[this.selectedBotId()],
-                    hub: hubs?.[Object.keys(hubs)[0]],
-                    api: this.api,
-                    mission: this.getRunList(),
-                    run: this.getRun(this.selectedBotId()),
-                    isExpanded: this.state.detailsExpanded,
-                    downloadQueue: this.state.botDownloadQueue,
-                    closeWindow: closeDetails.bind(this),
-                    takeControl: this.takeControl.bind(this),
-                    deleteSingleMission: this.deleteSingleRun.bind(this),
-                    setDetailsExpanded: this.setDetailsExpanded.bind(this),
-                    isRCModeActive: this.isRCModeActive.bind(this),
-                    setRcMode: this.setRcMode.bind(this),
-                    toggleEditMode: this.toggleEditMode.bind(this),
-                    downloadIndividualBot: this.processDownloadSingleBot.bind(this),
-                };
-                detailsBox = <BotDetailsComponent {...botDetailsProps} />;
-                break;
-            default:
-                detailsBox = null;
-                this.clearRemoteControlInterval();
-                break;
         }
 
         const surveyMissionSettingsButton =
@@ -4313,8 +4249,8 @@ export default class CommandControl extends React.Component {
                     {settingsPanelButton}
                 </div>
 
-                <div id="botsDrawer">
-                    <BotListPanel
+                <div id="nodesDrawer">
+                    <NodeListPanel
                         podStatus={this.getPodStatus()}
                         selectedBotId={this.selectedBotId()}
                         selectedHubId={this.selectedHubId()}
@@ -4324,7 +4260,16 @@ export default class CommandControl extends React.Component {
                     />
                 </div>
 
-                {detailsBox}
+                <BotDetails
+                    mission={this.getRunList()}
+                    run={this.getRun(this.selectedBotId())}
+                    downloadQueue={this.state.botDownloadQueue}
+                    takeControl={this.takeControl.bind(this)}
+                    deleteSingleMission={this.deleteSingleRun.bind(this)}
+                    isRCModeActive={this.isRCModeActive.bind(this)}
+                    setRcMode={this.setRcMode.bind(this)}
+                    downloadIndividualBot={this.processDownloadSingleBot.bind(this)}
+                />
 
                 <HubDetails />
 
@@ -4362,7 +4307,7 @@ export default class CommandControl extends React.Component {
  */
 export function CommandControlWrapper() {
     const globalContext = useContext(GlobalContext);
-    const globalDispatch = useContext(GlobalDispatchContext);
+    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
     const props = { globalContext, globalDispatch };
     return <CommandControl {...props} />;
 }

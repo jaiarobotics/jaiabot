@@ -2,13 +2,13 @@ import { act, render, screen, fireEvent } from "@testing-library/react";
 import CommandControl, { Props } from "../CommandControl";
 import {
     GlobalContextType,
-    SelectedPodElement,
-    PodElement,
     HubAccordionStates,
+    BotAccordionStates,
 } from "../../../context/Global/GlobalContext";
+import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
 
-const mockSelectedPodElement1: SelectedPodElement = {
-    type: PodElement.HUB,
+const mockSelectedNode1: SelectedNode = {
+    type: NodeTypes.HUB,
     id: 1,
 };
 
@@ -18,12 +18,24 @@ const mockHubAccordionStates1: HubAccordionStates = {
     links: false,
 };
 
+const mockBotAccordionStates: BotAccordionStates = {
+    quickLook: false,
+    commands: false,
+    advancedCommands: false,
+    health: false,
+    data: false,
+    gps: false,
+    imu: false,
+    sensor: false,
+};
+
 const mockGlobalContext1: GlobalContextType = {
     clientID: "",
     controllingClientID: "",
-    selectedPodElement: mockSelectedPodElement1,
-    showHubDetails: false,
+    selectedNode: mockSelectedNode1,
+    visibleDetails: NodeTypes.NONE,
     hubAccordionStates: mockHubAccordionStates1,
+    botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
     isRCMode: false,
 };
