@@ -57,5 +57,7 @@ write_files:
 
 runcmd:
   - if [ ! -e /etc/jaiabot/inventory.yml ]; then /etc/jaiabot/init/jaia-create-ansible-inventory.sh -b "{{ bots | join(",") }}" -h "{{ hubs | join(",") }}" > /etc/jaiabot/inventory.yml; fi
+  # Install fleetN.cfg if provided
+  - if [ -e /boot/firmware/jaiabot/init/fleet{{ fleet }}.cfg ]; then cp /boot/firmware/jaiabot/init/fleet{{ fleet }}.cfg /etc/jaiabot; fi
   # Enable or disable service VPN 
   - sudo systemctl {{ "enable" if serviceVpnEnabled else "disable" }} wg-quick@wg_jaia
