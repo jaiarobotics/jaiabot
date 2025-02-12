@@ -5,7 +5,7 @@
   vars:
     warp: 5
     instance_type: t3a.small
-    volume_size_gb: 16
+    volume_size_gb: 20
     server_ssh_privkey_path: /home/jaia/.ssh/cloudhub_to_vfleet
     server_ssh_pubkey_path: /home/jaia/.ssh/cloudhub_to_vfleet.pub
     virtualhub_ssh_privkey_path: /home/jaia/.ssh/virtualhub
