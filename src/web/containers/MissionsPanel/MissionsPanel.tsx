@@ -77,7 +77,7 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAutoAssignClick = () => {
-        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN });
+        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN_BOTS_TO_MISSIONS });
     };
 
     return (

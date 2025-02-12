@@ -56,8 +56,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleDeleteAllMissions(mutableState);
         case JaiaSystemActions.ASSIGN_BOT_TO_MISSION:
             return handleAssignBotToMission(mutableState, action.botID, action.missionID);
-        case JaiaSystemActions.AUTO_ASSIGN:
-            return handleAutoAssign(mutableState);
+        case JaiaSystemActions.AUTO_ASSIGN_BOTS_TO_MISSIONS:
+            return handleAutoAssignBotsToMissions(mutableState);
         default:
             return state;
     }
@@ -159,7 +159,7 @@ function handleAssignBotToMission(
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
-function handleAutoAssign(mutableState: JaiaSystemContextType) {
+function handleAutoAssignBotsToMissions(mutableState: JaiaSystemContextType) {
     missionsManager.autoAssign();
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
