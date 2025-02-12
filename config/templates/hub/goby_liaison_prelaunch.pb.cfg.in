@@ -48,7 +48,7 @@ add_commander_tab: false
         input_var {
             name: "hub_id"
             display_name: "Hub ID for offline/hub cache updates"
-            value: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",  "22", "23", "24", "25", "26", "27", "28", "29", "30"]
+            static_value: "$this_hub_index"
         }
         
     }
@@ -68,8 +68,8 @@ add_commander_tab: false
         }
         output_var {
             name: "jaiabot_upgrade_available"
-            display_name: "Upgrade available?"
-        }
+            display_name: "Minor Upgrade available?"
+        }        
     }
 
     # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
@@ -86,7 +86,7 @@ add_commander_tab: false
     
     ansible_playbook {
         file: "install.yml" 
-        name: "Install or Upgrade JaiaBot packages only"
+        name: "Install or Minor Upgrade JaiaBot packages only"
         role: ADVANCED
         output_var {
             name: "jaiabot_current_version"
@@ -95,7 +95,7 @@ add_commander_tab: false
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
-        name: "Upgrade Jaiabot and system packages"
+        name: "Minor Upgrade Jaiabot and system packages"
         role: USER
         output_var {
             name: "jaiabot_current_version"
@@ -103,6 +103,27 @@ add_commander_tab: false
         }
     }
 
+    ansible_playbook {
+        file: "major_upgrade/major_upgrade.yml" 
+        name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+        role: USER
+
+        input_var {
+            name: "hub_id"
+            display_name: "Hub ID for offline/hub cache updates"
+            static_value: "$this_hub_index"
+        }
+
+        input_var {
+            name: "do_backup"
+            display_name: "Make a backup of old Ubuntu filesystem to bot and hub data drives"
+            value: "yes"
+            value: "no"
+        }
+        
+    }
+
+    
     ansible_playbook {
         file: "check-vpn-status.yml" 
         name: "Check for VPN Status"
