@@ -31,6 +31,11 @@ export enum DialogActions {
 export default function DataOffloadButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
+    /**
+     * Forms the style of the button (light if enabled, dark if disabled)
+     *
+     * @returns {string} General class name jaia-button plus enable/disable factor
+     */
     const getClassName = () => {
         let className = "jaia-button";
 
@@ -41,10 +46,12 @@ export default function DataOffloadButton(props: Props) {
         return className;
     };
 
+    /**
+     * Looks at the Bot and decides what disabled code (if any) applies based on the button conditions
+     *
+     * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
+     */
     const getDisabledCode = () => {
-        // If Bot is already in download queue
-        //    return DisabledCodes.DOWNLOAD_QUEUE
-
         if (!isCommandAvailable(CommandType.RECOVERED, props.bot.getMissionStatus().missionState)) {
             return DisabledCodes.MISSION_STATE;
         }
@@ -53,13 +60,18 @@ export default function DataOffloadButton(props: Props) {
             return DisabledCodes.WIFI_QUALITY;
         }
 
+        // If Bot is already in download queue
+        //    return DisabledCodes.DOWNLOAD_QUEUE
+
         return DisabledCodes.NONE;
     };
 
-    const handleClick = () => {
-        setIsDialogVisible(true);
-    };
-
+    /**
+     * Closes the dialog box then acts based on the type of button clicked
+     *
+     * @param {DialogActions} dialogAction Indicates which button was clicked
+     * @returns {void}
+     */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
@@ -70,7 +82,7 @@ export default function DataOffloadButton(props: Props) {
 
     return (
         <div>
-            <Button className={getClassName()} onClick={() => handleClick()}>
+            <Button className={getClassName()} onClick={() => setIsDialogVisible(true)}>
                 <Icon path={mdiDownload} title="Data Offload" />
             </Button>
             <DataOffloadDialog

@@ -17,10 +17,20 @@ interface ButtonRowProps {
 }
 
 export default function DataOffloadDialog(props: DialogProps) {
+    /**
+     * Forms the style of the dialog distinguishing between confirmation and alert
+     *
+     * @returns {string} General class name jaia-dialog plus confirm/alert type
+     */
     const getClassName = () => {
         return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
     };
 
+    /**
+     * Performs a none type action to prevent clicks from moving down the tree
+     *
+     * @returns {void}
+     */
     const handleBlockingOverlayClick = () => {
         console.log();
     };
