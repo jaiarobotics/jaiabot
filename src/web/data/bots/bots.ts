@@ -2,6 +2,13 @@ import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
 import Bot from "./bot";
 
+/**
+ * Maintains a sorted map of all Bots in the system
+ *
+ * @notes Users of the class can rely on the Map returned by
+ *        getBots to be ordered by botID
+ *
+ */
 class Bots {
     private bots: Map<number, Bot>;
 
@@ -23,6 +30,11 @@ class Bots {
             this.getBots().set(botStatus.bot_id, newBot);
             this.updateBot(botStatus);
         }
+        // Create a new Map with bots sorted by botID
+        const sortedBots = new Map(
+            [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
+        );
+        this.bots = sortedBots;
     }
 
     updateBot(botStatus: PortalBotStatus) {

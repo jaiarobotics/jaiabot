@@ -1,6 +1,13 @@
 import { PortalHubStatus } from "../../shared/PortalStatus";
 import Hub from "./hub";
 
+/**
+ * Maintains a sorted map of all Hubs in the system
+ *
+ * @notes Users of the class can rely on the Map returned by
+ *            getHubs to be ordered by hubID
+ *
+ */
 class Hubs {
     private hubs: Map<number, Hub>;
 
@@ -22,6 +29,11 @@ class Hubs {
             this.getHubs().set(hubStatus.hub_id, newHub);
             this.updateHub(hubStatus);
         }
+        // Create a new Map with huus sorted by hubID
+        const sortedHubs = new Map(
+            [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
+        );
+        this.hubs = sortedHubs;
     }
 
     updateHub(hubStatus: PortalHubStatus) {
