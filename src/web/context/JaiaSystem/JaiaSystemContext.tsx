@@ -21,6 +21,7 @@ interface Action {
     type: JaiaSystemActions;
     bots?: Map<number, Bot>;
     hubs?: Map<number, Hub>;
+    botID?: number;
     missionID?: number;
 }
 
@@ -53,6 +54,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleDeleteMission(mutableState, action.missionID);
         case JaiaSystemActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
+        case JaiaSystemActions.ASSIGN_BOT_TO_MISSION:
+            return handleAssignBotToMission(mutableState, action.botID, action.missionID);
         case JaiaSystemActions.AUTO_ASSIGN:
             return handleAutoAssign(mutableState);
         default:
@@ -107,6 +110,7 @@ function handleAddMission(mutableState: JaiaSystemContextType) {
  * Makes a call to remove a mission and its assignment
  *
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Which mission to delete
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
 function handleDeleteMission(mutableState: JaiaSystemContextType, missionID: number) {
@@ -126,6 +130,25 @@ function handleDeleteMission(mutableState: JaiaSystemContextType, missionID: num
 function handleDeleteAllMissions(mutableState: JaiaSystemContextType) {
     missions.deleteAllMissions();
     missionsManager.clear();
+    mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Makes a call to assign a Bot to a mission
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {number} botID Which Bot to assign to a mission
+ * @param {number} missionID Which mission to accept assignment
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleAssignBotToMission(
+    mutableState: JaiaSystemContextType,
+    botID: number,
+    missionID: number,
+) {
+    missionsManager.assign(botID, missionID);
+    mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
     return mutableState;
 }

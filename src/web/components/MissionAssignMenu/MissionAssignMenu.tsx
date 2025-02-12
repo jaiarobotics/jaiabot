@@ -36,23 +36,18 @@ export default function MissionAssignMenu(props: Props) {
     };
 
     /**
-     * Updates the data model and JaiaSystemContext with new mission assignment
+     * Makes a call to proceed with assigning the selected Bot to the current mission
      *
      * @param {SelectChangeEvent} evt Contains the ID of the item selected
      * @returns {void}
      */
     const handleMenuSelection = (evt: SelectChangeEvent) => {
         const selectedBotID = Number(evt.target.value);
-
-        if (isNaN(selectedBotID)) {
-            return;
-        }
-
-        // Update data model
-        missionsManager.assign(selectedBotID, props.missionID);
-
-        // Update JaiaSystemContext
-        jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+        jaiaSystemDispatch({
+            type: JaiaSystemActions.ASSIGN_BOT_TO_MISSION,
+            botID: selectedBotID,
+            missionID: props.missionID,
+        });
     };
 
     /**

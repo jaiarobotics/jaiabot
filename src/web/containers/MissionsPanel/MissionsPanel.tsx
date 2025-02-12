@@ -23,7 +23,7 @@ export default function MissionsPanel() {
     const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
 
     /**
-     * Creates a new mission when an operator clicks the add mission button
+     * Dispatches the action to create a new mission when an operator clicks the add mission button
      *
      * @returns {void}
      */
@@ -48,7 +48,7 @@ export default function MissionsPanel() {
     const autoScrollMissions = () => {};
 
     /**
-     * Clears all missions when an operator clicks the delete all missions button
+     * Dispatches the action to clear all missions when an operator clicks the delete all missions button
      *
      * @returns {void}
      */
@@ -72,7 +72,7 @@ export default function MissionsPanel() {
     const handleSaveMissionsClick = () => {};
 
     /**
-     * Assigns available Bots to open missions when an operator selects the magic wand button
+     * Dispatches the action to assign available Bots to open missions when an operator selects the magic wand button
      *
      * @returns {void}
      */
