@@ -135,74 +135,6 @@ td {
         background: @overlay-background;
         display: flex;
         flex-flow: column nowrap;
-
-        #nodesList {
-            color: @cc-text-color;
-            text-align: center;
-            font-size: 12pt;
-
-            flex-shrink: 1;
-
-            overflow-y: auto;
-
-            .bot-item {
-                .unselectable;
-                cursor: pointer;
-                display: inline-block;
-                border: 1px solid white;
-                .bgcolor(@good-color);
-                border-radius: @panel-corner-radius;
-                font-size: 20pt;
-                height: 50px;
-                line-height: 38pt;
-                width: 50px;
-                margin: @layout-margin-px - 3;
-                padding: 0;
-                text-align: center;
-                vertical-align: middle;
-            }
-
-            .hub-item {
-                .unselectable;
-                cursor: pointer;
-                display: inline-block;
-                border: 1px solid white;
-                .bgcolor(@good-color);
-                border-radius: 20pt;
-                font-size: 17pt;
-                height: 50px;
-                line-height: 38pt;
-                width: 50px;
-                margin: @layout-margin-px / 2;
-                padding: 0;
-                text-align: center;
-                vertical-align: middle;
-            }
-
-            // The order of these matters
-            > div.bot-item.tracked {
-                .bgcolor(@tracked-color);
-            }
-            > div.bot-item.faultLevel1 {
-                .bgcolor(@warning-color);
-            }
-            > div.bot-item.faultLevel2 {
-                .bgcolor(@error-color);
-            }
-            > div.bot-item.disconnected {
-                .bgcolor(@disconnected);
-            }
-            > div.bot-item.selected {
-                outline: 5px solid @selected-color;
-            }
-            > div.bot-item.controlled {
-                .bgcolor(@controlled-color);
-            }
-
-            > div.hub-item.selected {
-                outline: 5px solid @selected-color;
-            }
-        }
     }
 
     #botDetailsBox,
@@ -1219,16 +1151,6 @@ div.hoverable:hover {
 .icon {
     width: 60pt;
     height: 60pt;
-}
-
-// For things like the bot icons
-.unselectable {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 
 .jaia-logo {
