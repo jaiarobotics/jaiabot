@@ -56,15 +56,10 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleDeleteAllMissionsClick = () => {
-        // Update data model
-        missions.deleteAllMissions();
-        missionsManager.clear();
-
-        // Update OpenLayers
-
-        // Update Context
+        // Clear accordion states
         globalDispatch({ type: GlobalActions.CLICKED_DELETE_ALL_MISSIONS });
-        jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+
+        jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_ALL_MISSIONS });
     };
 
     /**

@@ -6,6 +6,7 @@ import { JaiaSystemActions } from "./jaia-system-actions";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
 import { missions } from "../../data/missions/missions";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
@@ -48,6 +49,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleSyncRequested(mutableState);
         case JaiaSystemActions.ADD_MISSION:
             return handleAddMission(mutableState);
+        case JaiaSystemActions.DELETE_ALL_MISSIONS:
+            return handleDeleteAllMissions(mutableState);
         default:
             return state;
     }
@@ -92,6 +95,19 @@ function handleSyncRequested(mutableState: JaiaSystemContextType) {
  */
 function handleAddMission(mutableState: JaiaSystemContextType) {
     missions.addMission(new Mission());
+    mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Makes a call to remove all missions and assignments
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleDeleteAllMissions(mutableState: JaiaSystemContextType) {
+    missions.deleteAllMissions();
+    missionsManager.clear();
     mutableState.missions = missions.getMissions();
     return mutableState;
 }
