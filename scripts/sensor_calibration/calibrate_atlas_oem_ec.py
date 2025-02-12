@@ -220,7 +220,7 @@ def pollEC():
     print('Polling conductivity probe...')
     ec_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
-    with open(f"{timestr}.csv", "w") as new_file:
+    with open(f"EC_SENSOR_{timestr}.csv", "w") as new_file:
         while True:
             try:
                 ec = probe.EC()

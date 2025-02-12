@@ -3,179 +3,145 @@
 import datetime
 import time
 
-try:
-    from smbus import SMBus
-except:
-    from smbus2 import SMBus
-class AtlasOEM:
+# Import utility class
+from i2c_utils import I2CUtils  
 
-    def __init__(self, bus=0, address=0x67, devType=0x03) -> None:
-        self._bus = SMBus(bus)
-        self._address = address
-        self._devType = devType
+class AtlasOEMDO:
+    def __init__(self, bus=0, address=0x67, devType=0x03):
+        self.i2c = I2CUtils(bus, address, devType)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self._bus.close()
+        self.i2c.close()
 
-
-    # Unsigned Byte
-    def readUnsignedByte(self, offset):
-        return self._bus.read_byte_data(self._address, offset)
-
-    def writeUnsignedByte(self, offset, value: int):
-        self._bus.write_byte_data(self._address, offset, value)
-
-    # Unsigned Word
-    def readUnsignedWordFloat(self, offset):
-        i = self._bus.read_byte_data(self._address, offset) << 8
-        i |= self._bus.read_byte_data(self._address, offset + 1)
-        return i
-
-    def writeUnsignedWordFloat(self, offset, value: float):
-        i = int(value)
-        msb = (i >> 8) & 0xff
-        lsb = i & 0xff
-        self._bus.write_byte_data(self._address, offset, msb)
-        self._bus.write_byte_data(self._address, offset + 1, lsb)
-
-    # Signed Long Float
-    def readSignedLongFloat(self, offset) -> float:
-        b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
-        i = int.from_bytes(b, 'big', signed=True)
-        return i
-
-    def writeSignedLongFloat(self, offset, value: float):
-        i = int(value)
-        b = i.to_bytes(4, 'big', signed=True)
-        l = [int(c) for c in b]
-        self._bus.write_i2c_block_data(self._address, offset, l)
-
-    # Unsigned Long Float
-    def readUnsignedLongFloat(self, offset) -> float:
-        b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
-        i = int.from_bytes(b, 'big', signed=False)
-        return i
-
-    def writeUnsignedLongFloat(self, offset, value: float):
-        i = int(value)
-        b = i.to_bytes(4, 'big', signed=False)
-        l = [int(c) for c in b]
-        self._bus.write_i2c_block_data(self._address, offset, l)
-
-
+    # High-level device-specific functions
     def deviceType(self) -> int:
-        return self.readUnsignedByte(0)
+        return self.i2c.read_unsigned_byte(0x00)
 
     def firmwareVersion(self) -> int:
-        return self.readUnsignedByte(1)
+        return self.i2c.read_unsigned_byte(0x01)
 
     def interruptControlRegister(self) -> int:
-        return self.readUnsignedByte(0x04)
+        return self.i2c.read_unsigned_byte(0x04)
 
     def ledControl(self) -> int:
-        return self.readUnsignedByte(0x05)
+        return self.i2c.read_unsigned_byte(0x05)
 
     def activeHibernate(self) -> int:
-        return self.readUnsignedByte(0x06)
+        return self.i2c.read_unsigned_byte(0x06)
 
     def setActiveHibernate(self, value: int):
-        self.writeUnsignedByte(0x06, value)
+        self.i2c.write_unsigned_byte(0x06, value)
 
     def newReadingAvailable(self) -> int:
-        return self.readUnsignedByte(0x07)
-
-
-    # Calibration
-    def calibration(self) -> float:
-        return self.readUnsignedByte(0x08)
+        return self.i2c.read_unsigned_byte(0x07)
 
     def setCalibration(self, calibration: float):
-        self.writeUnsignedByte(0x08, calibration)
-
+        self.i2c.write_unsigned_byte(0x08, calibration)
 
     # Calibration confirmation
     def calibrationConfirmation(self):
-        return self.readUnsignedByte(0x09)
-
+        return self.i2c.read_unsigned_byte(0x09)
 
     # Salinity compensation
     def setSalinityCompensation(self, value: float):
-        self.writeUnsignedLongFloat(0x0A, value * 100.0)
+        self.i2c.write_unsigned_long(0x0A, int(value * 100.0))
 
     def salinityCompensation(self):
-        return self.readUnsignedLongFloat(0x0A) / 100.0
-    
-    def salinityConfirmation(self):
-        return self.readUnsignedLongFloat(0x16) / 100.0
+        return self.i2c.read_unsigned_long(0x0A) / 100.0
 
+    def salinityConfirmation(self):
+        return self.i2c.read_unsigned_long(0x16) / 100.0
 
     # Pressure compensation
     def setPressureCompensation(self, value: float):
-        self.writeUnsignedLongFloat(0x0E, value * 100.0)
+        self.i2c.write_unsigned_long(0x0E, int(value * 100.0))
 
     def pressureCompensation(self):
-        return self.readUnsignedLongFloat(0x0E) / 100.0
-    
-    def pressureConfirmation(self):
-        return self.readUnsignedLongFloat(0x1A) / 100.0
+        return self.i2c.read_unsigned_long(0x0E) / 100.0
 
+    def pressureConfirmation(self):
+        return self.i2c.read_unsigned_long(0x1A) / 100.0
 
     # Temperature Compensation
     def setTemperatureCompensation(self, value: float):
-        self.writeUnsignedLongFloat(0x12, value * 100.0)
+        self.i2c.write_unsigned_long(0x12, int(value * 100.0))
 
     def temperatureCompensation(self):
-        return self.readUnsignedLongFloat(0x12) / 100.0
-    
-    def temperatureConfirmation(self):
-        return self.readUnsignedLongFloat(0x1E) / 100.0
+        return self.i2c.read_unsigned_long(0x12) / 100.0
 
+    def temperatureConfirmation(self):
+        return self.i2c.read_unsigned_long(0x1E) / 100.0
 
     # DO Chip
-        # DO in mg/L 
+    # DO in mg/L
     def DO(self):
-        return self.readUnsignedLongFloat(0x22) / 100.0
+        return self.i2c.read_unsigned_long(0x22) / 100.0
 
-        # DO Saturation
+    # DO Saturation
     def DOSat(self):
-        return self.readUnsignedLongFloat(0x26) / 100.0
-
+        return self.i2c.read_unsigned_long(0x26) / 100.0
 
     def dump(self):
+        time.sleep(0.5)
+        """Prints device status."""
         print(f'Device Type:              {self.deviceType():02x}')
         print(f'Firmware Version:         {self.firmwareVersion():02x}')
         print(f'Interrupt Control:        {self.interruptControlRegister():02x}')
         print(f'LED Control:              {self.ledControl():02x}')
         print(f'Active / Hibernate:       {self.activeHibernate():02x}')
         print(f'New reading available:    {self.newReadingAvailable():02x}')
-        print(f'Calibration:              {self.calibration():0.2f}')
         print(f'Calibration Confirmation: {self.calibrationConfirmation():02x}\n')
         print(f'Temperature Compensation: {self.temperatureCompensation():0.2f}')
-        print(f'Temperature Confirmation: {self.temperatureConfirmation():0.2f}\n`')
+        print(f'Temperature Confirmation: {self.temperatureConfirmation():0.2f}\n')
         print(f'Salinity Compensation:    {self.salinityCompensation():0.2f}')
         print(f'Salinity Confirmation:    {self.salinityConfirmation():0.2f}\n')
         print(f'Pressure Compensation:    {self.pressureCompensation():0.2f}')
         print(f'Pressure Confirmation:    {self.pressureConfirmation():0.2f}\n')
-
         print(f'DO                        {self.DO():0.2f}')
-        
 
 while True:
     try:
-        probe = AtlasOEM(address=0x67, devType=0x03)
+        probe = AtlasOEMDO(address=0x67, devType=0x03)
         probe.setActiveHibernate(1)
         break
     except Exception as e:
         print(f"Atlas Scientific OEM-DO sensor not found. Trying again. {e}")
         continue
 
-if __name__ == '__main__':
-    with AtlasOEM() as atlas:
-        atlas.dump()
 
+def checkCalibrationStatus():
+    """Reads and prints the calibration confirmation status."""
+    status = probe.calibrationConfirmation()
+    
+    if status == 1:
+        print("calibrated to atmosphere")
+    elif status == 2:
+        print("calibrated to 0 Dissolved Oxygen")
+    elif status == 3:
+        print("calibrated to both atmospheric and 0 Dissolved Oxygen")
+    else:
+        print(f"no calibration")
+
+def verifyCalibration():
+    """Checks the calibration status from register 0x09"""
+    status = probe.calibrationConfirmation()
+
+    if status == 1:
+        print("✅ Calibrated to atmosphere.")
+    elif status == 2:
+        print("✅ Zero DO calibration successfully completed.")
+    elif status == 3:
+        print("✅ Atmospheric & Zero DO calibration successfully completed.")
+    else:
+        print(f"✅ Calibration has been cleared.")
+
+
+if __name__ == '__main__':
+    with AtlasOEMDO() as atlas:
+        print("Starting Atlas Scientific OEM-DO sensor calibration script.")
 
 def clearScreen():
     print('\033[2J\033[H')
@@ -221,9 +187,10 @@ def presentMenu(menu):
 
 def pollDO():
     print('Polling DO probe...')
+    verifyCalibration()
     DO_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
-    with open(f"{timestr}.csv", "w") as new_file:
+    with open(f"DO_SENSOR_{timestr}.csv", "w") as new_file:
         while True:
             try: 
                 if probe.newReadingAvailable():
@@ -311,7 +278,6 @@ def clearCalibration():
     probe.setCalibration(1)
     input('Calibration data cleared.  Press enter.')
 
-
 def doCalibration(description: str, type: int):
     DO_old = None
     while True:
@@ -335,6 +301,8 @@ def doCalibration(description: str, type: int):
 
     try:
         probe.setCalibration(type)
+        time.sleep(1)
+        verifyCalibration()
         input(f'{description} calibration completed.  Press enter.')
     except ValueError:
         input('Value must be a number.  Press enter.')

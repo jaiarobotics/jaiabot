@@ -225,7 +225,7 @@ def pollEC():
     print('Polling pH probe...')
     ph_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
-    with open(f"{timestr}.csv", "w") as new_file:
+    with open(f"PH_SENSOR_{timestr}.csv", "w") as new_file:
         while True:
             try: 
                 if probe.newReadingAvailable():
