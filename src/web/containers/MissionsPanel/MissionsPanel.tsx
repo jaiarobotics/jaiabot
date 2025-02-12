@@ -8,9 +8,6 @@ import { GlobalDispatchContext } from "../../context/Global/GlobalContext";
 import { JaiaSystemDispatchContext } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
-
-import { missions } from "../../data/missions/missions";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { NodeTypes } from "../../types/jaia-system-types";
 
 // MUI | MDI
@@ -80,11 +77,7 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAutoAssignClick = () => {
-        // Update data model
-        missionsManager.autoAssign();
-
-        // Update JaiaSystemContext
-        jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN });
     };
 
     return (
