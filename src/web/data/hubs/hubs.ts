@@ -29,7 +29,7 @@ class Hubs {
             this.getHubs().set(hubStatus.hub_id, newHub);
             this.updateHub(hubStatus);
         }
-        // Create a new Map with huus sorted by hubID
+        // Create a new Map with hubs sorted by hubID
         const sortedHubs = new Map(
             [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
         );

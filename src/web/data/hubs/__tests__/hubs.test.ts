@@ -17,7 +17,7 @@ const mockHubStatus5: PortalHubStatus = {
 };
 
 test("Verify hubs are sorted, when adding", () => {
-    // Add Bots to data model in non-numerical
+    // Add Hubs to data model in non-numerical order
     hubs.addHub(mockHubStatus5);
     hubs.addHub(mockHubStatus1);
     hubs.addHub(mockHubStatus2);
