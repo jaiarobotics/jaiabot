@@ -1,0 +1,38 @@
+- name: Get IP address for Hub
+  shell: "jaia ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
+  register: hub_ip_result
+  
+- name: Set hub IP
+  set_fact:
+    hub_ip: '{{ hub_ip_result.stdout}}'
+    
+- name: Check if version.txt exists
+  uri:
+    url: "http://{{ hub_ip }}/updates/major_upgrade/version.txt"
+    method: HEAD
+    return_content: no
+    status_code: 200
+  register: url_check
+  failed_when: url_check.status != 200
+  ignore_errors: no
+
+- name: Download version.txt
+  get_url:
+    force: true
+    url: "http://{{ hub_ip }}/updates/major_upgrade/version.txt"
+    dest: "{{ upgrade_dir_base }}/version.txt"
+
+- name: Read version.txt from remote
+  slurp:
+    src: "{{ upgrade_dir_base }}/version.txt"
+  register: version_file
+
+- name: Convert and split file contents
+  set_fact:
+    version_content: "{{ version_file['content'] | b64decode | split('\n') }}"
+
+- name: Convert lines to variables
+  set_fact:
+    "{{ item.split('=')[0] }}": "{{ item.split('=')[1] }}"
+  loop: "{{ version_content }}"
+  when: item | length > 0

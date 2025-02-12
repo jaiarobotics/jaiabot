@@ -1,0 +1,5 @@
+- name: Backup old rootfs and overlay
+  shell: |
+    mkdir -p {{ upgrade_backup_dir }}
+    tar -cvz -C /media/root-ro -f {{ upgrade_backup_dir }}/rootfs.tar.gz .
+    tar -cvz -C /media/root-rw/overlay -f {{ upgrade_backup_dir }}/overlay.tar.gz .

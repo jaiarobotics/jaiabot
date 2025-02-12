@@ -1,0 +1,96 @@
+---
+- name: Jaiabot major upgrade
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/disk-space.yml
+  vars:
+    - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
+      
+  pre_tasks:
+    - name: Check if hub_id is defined
+      assert:
+        that:
+          - hub_id is defined
+          - hub_id | int | string == hub_id
+        fail_msg: "Hub ID must be defined and must be an integer"
+        
+    - include_tasks: ../tasks/read-debconf.yml
+        
+  tasks:
+
+    - name: Create the upgrade base working directory
+      file:
+        path: '{{ upgrade_dir_base }}'
+        state: directory
+
+    - include_tasks: ../tasks/get-version.yml
+    - include_tasks: tasks/get-major-version.yml
+      
+    - name: Set upgrade directory
+      set_fact:
+        upgrade_dir: '{{ upgrade_dir_base }}/{{ major_upgrade_version_shortcode }}'
+
+    - name: Set upgrade directory children
+      set_fact:
+        upgrade_tmp_dir: '{{ upgrade_dir }}/tmp'
+        upgrade_reuse_dir: '{{ upgrade_dir }}/reuse'
+        upgrade_backup_dir: '{{ upgrade_dir }}/backup'
+        upgrade_boot_dir: '{{ upgrade_dir }}/boot'
+
+
+    - name: Create the upgrade tmp directory
+      file:
+        path: '{{ upgrade_tmp_dir }}'
+        state: directory                
+      
+        
+    - name: Check that Ubuntu version is greater than current version
+      shell: |
+        current_ubuntu_version=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)
+        if ! dpkg --compare-versions {{ major_upgrade_ubuntu_version }} gt ${current_ubuntu_version} ; then
+            echo "New Ubuntu version ({{ major_upgrade_ubuntu_version }}) is not greater than current version (${current_ubuntu_version})"
+            return 1
+        fi
+      
+    - name: Debug version
+      debug:
+        msg: "Found major upgrade version: {{ major_upgrade_version }}, current version: {{ jaiabot_current_version }}"
+        
+    - name: Check that upgrade version is greater than or equal to than current version
+      shell: |
+        if ! dpkg --compare-versions {{ major_upgrade_version }} ge $(echo {{ jaiabot_current_version }} | cut -d '-' -f1) ; then
+            echo "New major version ({{ major_upgrade_version }}) is not greater than or equal to current version ({{ jaiabot_current_version }})"
+            return 1
+        fi
+      
+    - include_tasks: tasks/check-disk-space.yml
+      
+    - include_tasks: tasks/get-new-filesystems.yml
+      
+    ## TODO Create a fleet config from the old image 
+    - name: Copy the fleet config
+      copy:
+        src: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+        dest: "{{ upgrade_dir }}"
+
+    - include_tasks: tasks/fetch-reuse-files.yml
+    # - include_tasks: tasks/backup-old-rootfs-overlay.yml
+
+    - name: Prepare new boot fs
+      shell: |
+        mkdir -p {{ upgrade_boot_dir }}
+        tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
+        jaia admin fleet generate --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
+        rm {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
+    
+    - name: Generate upgrade script
+      template:
+        src: templates/do-major-upgrade.sh.j2
+        dest: '{{ upgrade_dir }}/do-major-upgrade.sh'
+        mode: a=rwx
+
+    - name: Run upgrade script
+      shell: |
+        {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1
