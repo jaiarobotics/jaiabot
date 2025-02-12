@@ -5,7 +5,6 @@ import MissionControllerPanel from "../MissionControllerPanel/MissionControllerP
 import * as MissionFeatures from "../../shared/MissionFeatures";
 import RCControllerPanel from "../RCControllerPanel/RCControllerPanel";
 import DownloadPanel from "../DownloadPanel/DownloadPanel";
-import RunInfoPanel from "../RunInfoPanel/RunInfoPanel";
 import ContactInfoPanel from "../ContactInfoPanel/ContactInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../../openlayers/map/layers/layers";
@@ -139,7 +138,6 @@ export enum PanelType {
     MISSION = "MISSION",
     MISSION_SETTINGS = "MISSION_SETTINGS",
     MEASURE_TOOL = "MEASURE_TOOL",
-    RUN_INFO = "RUN_INFO",
     GOAL_SETTINGS = "GOAL_SETTINGS",
     DOWNLOAD_PANEL = "DOWNLOAD_PANEL",
     RALLY_POINT = "RALLY_POINT",
@@ -2184,25 +2182,6 @@ export default class CommandControl extends React.Component {
                 return false;
             }
 
-            // Clicked on flag
-            const isFlag = feature.get("type") === "flag";
-            if (isFlag) {
-                const runNum = feature.get("runNumber");
-                const runId = `run-${runNum}`;
-                const runList = this.getRunList();
-                const run = runList.runs[runId];
-                const flagClickedInfo = {
-                    runNum: runNum,
-                    botId: run.assigned,
-                };
-
-                this.setState({ flagClickedInfo }, () => {
-                    this.setVisiblePanel(PanelType.RUN_INFO);
-                });
-
-                return false;
-            }
-
             // Clicked on line between waypoints
             const isLine = feature.get("type") === "line";
             if (isLine) {
@@ -4112,16 +4091,6 @@ export default class CommandControl extends React.Component {
                 visiblePanelElement = null;
                 break;
 
-            case PanelType.RUN_INFO:
-                visiblePanelElement = (
-                    <RunInfoPanel
-                        setVisiblePanel={this.setVisiblePanel.bind(this)}
-                        runNum={this.state.flagClickedInfo.runNum}
-                        botId={this.state.flagClickedInfo.botId}
-                        deleteRun={this.deleteSingleRun.bind(this)}
-                    />
-                );
-                break;
             case PanelType.CONTACT_INFO:
                 visiblePanelElement = (
                     <ContactInfoPanel
