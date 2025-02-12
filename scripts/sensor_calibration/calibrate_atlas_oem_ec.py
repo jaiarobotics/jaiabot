@@ -222,7 +222,7 @@ def pollEC():
     timestr = time.strftime("%Y%m%d-T%H%M%S")
     with open(f"{timestr}.csv", "w") as new_file:
         while True:
-            try: 
+            try:
                 ec = probe.EC()
                 if ec_old:
                     delta_percent = abs(ec - ec_old) / ec_old * 100
@@ -233,11 +233,9 @@ def pollEC():
                 ec_old = ec
                 time.sleep(1)
             except IOError:
-                print("IO Error: Continuing anyway...")
+                print("IO Error. Continuing anyway...")
+                new_file.write(f'time: {datetime.datetime.now()} IO Error. Continuing anyway...')
                 continue
-            except KeyboardInterrupt:
-                print("User Interrupt")
-                break
     
 def setProbeType():
     value = input('Enter probe type value (K value) > ')
@@ -248,6 +246,14 @@ def setProbeType():
         input('K value must be a number [press enter to continue]')
 
 def setTemperatureCompensation():
+    value = float(input("Enter temperature of solution: "))
+
+    try:
+        probe.setTemperatureCompensation(value)
+    except Exception as e:
+        print(f'Error: {e}')
+
+def setJaiaTemperatureCompensation():
     # Check that input is a number
     while True:
         try:
@@ -387,9 +393,9 @@ def doJaiaCalibration(description: str, type: int, value: int, temperature: floa
             delta_list.append(delta_percent)
             ec_old = ec
             salinity = getTemperatureCalibratedSalinity(ec, value, temperature, 0)
-            print(f"Conductivity: {ec}, Salinity: {salinity}, Percent Change: {delta_percent}")
+            print(f'Electrical Conductivity: {ec}, Salinity: {salinity}, Percent Change: {round(delta_percent, 2)}')
 
-            # Wait 1 second between taking readings
+            #Wait 1 second between taking readings
             time.sleep(1)
         
         repetitions += 1
@@ -402,64 +408,68 @@ def doJaiaCalibration(description: str, type: int, value: int, temperature: floa
     probe.setCalibrationRequest(type)
 
 def jaiaCalibration():
-    print(f"Starting calibration procedure...")
-    time.sleep(1)
+    try:
+        print(f"Starting calibration procedure...")
+        time.sleep(1)
+            
+        # Start from a fresh calibration state
+        clearCalibration()
+
+        # Ensure temperature calibration is set to the default
+        probe.setTemperatureCompensation(25)
         
-    # Start from a fresh calibration state
-    clearCalibration()
+        # Get temperature of solution from user
+        temperature = setJaiaTemperatureCompensation()
 
-    # Ensure temperature calibration is set to the default
-    probe.setTemperatureCompensation(25)
+        # Set the probe type to the Jaia default
+        # This must be changed if the probe ever changes from K 1.0
+        probe.setProbeType(1.0)
+
+        # Dry calibration (0)
+        print("\n==========\nTo begin calibrating, the probe must be completely dry.\n")
+        time.sleep(1)
+        input("Once you've ensured the probe is completely dry, press enter.\n")
+        doJaiaCalibration('DRY', 2, 0, temperature)
+
+        # Rough calibration
+        print("==========\nBeginning the rough calibration portion.\n")
+        time.sleep(1)
+
+        # Dual Point Low calibration (12,880)
+        print("\n==========\nWe will now begin the DUAL POINT LOW calibration. Submerge the probe in the 12,880 μS/cm solution and ensure the sampling window is fully submerged with no bubbles stuck inside. Allow the probe to sit in the solution for 5 minutes.")
+        time.sleep(1)
+        input("Once the probe has been fully submerged for 5 minutes, press enter.\n")
+        doJaiaCalibration('DUAL POINT LOW', 4, getTemperatureCalibratedConductivity(12880, temperature), temperature)
+
+        # Dual Point High calibration (80,000)
+        print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged with no bubbles stuck inside. Allow the probe to sit in the solution for 5 minutes.")
+        time.sleep(1)
+        input("Once the probe has been fully submerged for 5 minutes, press enter.\n")
+        doJaiaCalibration('DUAL POINT HIGH', 5, getTemperatureCalibratedConductivity(80000, temperature), temperature)
+
+        
+        # Fine calibration 
+        print("\n==========\nRough calibration procedure complete. Beginning the fine calibration procedure")
+
+        # Dual Point Low calibration (12,880)
+        print("\n==========\nWe will now begin the DUAL POINT LOW calibration. Submerge the probe in the 12,880 μS/cm solution and ensure the sampling window is fully submerged with no bubbles stuck inside. Allow the probe to sit in the solution for 5 minutes.")
+        time.sleep(1)
+        input("Once the probe has been fully submerged for 5 minutes, press enter.\n")
+        doJaiaCalibration('DUAL POINT LOW', 4, getTemperatureCalibratedConductivity(12880, temperature), temperature)
+
+        # Dual Point High calibration (80,000)
+        print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged with no bubbles stuck inside. Allow the probe to sit in the solution for 5 minutes.")
+        time.sleep(1)
+        input("Once the probe has been fully submerged for 5 minutes, press enter.\n")
+        doJaiaCalibration('DUAL POINT HIGH', 5, getTemperatureCalibratedConductivity(80000, temperature), temperature)
+
+        # Calibration complete
+        input("Calibration procedure complete. Press enter to exit.")
+
+        return 0
     
-    # Get temperature of solution from user
-    temperature = setTemperatureCompensation()
-
-    # Set the probe type to the Jaia default
-    # This must be changed if the probe ever changes from K 1.0
-    probe.setProbeType(1.0)
-
-    # Dry calibration (0)
-    print("\n==========\nTo begin calibrating, the probe must be completely dry.\n")
-    time.sleep(1)
-    input("Once you've ensured the probe is completely dry, press enter.\n")
-    doJaiaCalibration('DRY', 2, 0, temperature)
-
-    # Rough calibration
-    print("==========\nBeginning the rough calibration portion.\n")
-    time.sleep(1)
-
-    # Dual Point Low calibration (12,880)
-    print("\n==========\nWe will now begin the DUAL POINT LOW calibration. Rinse and dry, then submerge the probe in the 12,880 μS/cm solution and ensure the sampling window is fully submerged with no bubbles stuck inside. Let the probe sit for five minutes.")
-    time.sleep(1)
-    input("After the probe has been submerged for five minutes, press enter.\n")
-    doJaiaCalibration('DUAL POINT LOW', 4, getTemperatureCalibratedConductivity(12880, temperature), temperature)
-
-    # Dual Point High calibration (80,000)
-    print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged with no bubbles stuck inside. Let the probe sit for five minutes.")
-    time.sleep(1)
-    input("After the probe has been submerged for five minutes, press enter.\n")
-    doJaiaCalibration('DUAL POINT HIGH', 5, getTemperatureCalibratedConductivity(80000, temperature), temperature)
-
-    
-    # Fine calibration 
-    print("\n==========\nRough calibration procedure complete. Beginning the fine calibration procedure")
-
-    # Dual Point Low calibration (12,880)
-    print("\n==========\nWe will now begin the DUAL POINT LOW calibration. Rinse and dry, then submerge the probe in the 12,880 μS/cm solution and ensure the sampling window is fully submerged with no bubbles stuck inside. Let the probe sit for five minutes.")
-    time.sleep(1)
-    input("After the probe has been submerged for five minutes, press enter.\n")
-    doJaiaCalibration('DUAL POINT LOW', 4, getTemperatureCalibratedConductivity(12880, temperature), temperature)
-
-    # Dual Point High calibration (80,000)
-    print("\n==========\nWe will now begin the DUAL POINT HIGH calibration. Rinse and dry the probe, then put the probe in the 80,000 μS/cm solution. Ensure the sampling window is fully submerged with no bubbles stuck inside. Let the probe sit for five minutes.")
-    time.sleep(1)
-    input("After the probe has been submerged for five minutes, press enter.\n")
-    doJaiaCalibration('DUAL POINT HIGH', 5, getTemperatureCalibratedConductivity(80000, temperature), temperature)
-
-    # Calibration complete
-    input("Calibration procedure complete. Press enter to exit.")
-
-    return 0
+    except KeyboardInterrupt:
+        return
 
 def dryCalibration():
     doCalibration('DRY', 2)
@@ -469,12 +479,12 @@ def singlePointCalibration():
     doCalibration('SINGLE POINT', 3)
 
 
-def highCalibration():
-    doCalibration('DUAL POINT HIGH', 5)
-
-
 def lowCalibration():
     doCalibration('DUAL POINT LOW', 4)
+
+
+def highCalibration():
+    doCalibration('DUAL POINT HIGH', 5)
 
 
 def calibrate():
@@ -529,7 +539,7 @@ presentMenu({
             'func': printProbeStatus
         },
         {
-            'description': 'Poll EC for 10 seconds',
+            'description': 'Continuously poll and log readings from EC',
             'key': 'l',
             'func': pollEC
         },
