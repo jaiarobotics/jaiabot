@@ -129,10 +129,10 @@ export function isBotLogging(missionState: MissionState) {
 }
 
 /**
- * Provides distance to active waypoint string
+ * Constructs a string to display the Bot's distance from a target waypoint
  *
  * @param {MissionStatus} missionStatus Contains the active waypoint and distance to that waypoint
- * @returns {string} waypoint
+ * @returns {string} distance to active waypoint or N/A
  */
 export function getDistToWaypoint(missionStatus: MissionStatus) {
     if (!missionStatus.activeGoal) {
