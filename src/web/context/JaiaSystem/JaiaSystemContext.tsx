@@ -44,10 +44,10 @@ export const JaiaSystemDispatchContext = createContext(null);
 function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
     let mutableState = { ...state };
     switch (action.type) {
+        case JaiaSystemActions.INIT:
+            return handleInit(mutableState);
         case JaiaSystemActions.DATA_MODEL_POLLED:
             return handleDataModelPolled(mutableState, action.bots, action.hubs);
-        case JaiaSystemActions.SYNC_REQUESTED:
-            return handleSyncRequested(mutableState);
         case JaiaSystemActions.ADD_MISSION:
             return handleAddMission(mutableState);
         case JaiaSystemActions.DELETE_MISSION:
@@ -82,12 +82,12 @@ function handleDataModelPolled(
 }
 
 /**
- * Puts React in sync with the data model
+ * Puts Context in sync with the data model
  *
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
-function handleSyncRequested(mutableState: JaiaSystemContextType) {
+function handleInit(mutableState: JaiaSystemContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
@@ -175,7 +175,7 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
      * @returns {void}
      */
     useEffect(() => {
-        dispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+        dispatch({ type: JaiaSystemActions.INIT });
 
         const intervalID = pollDataModel(dispatch);
 
