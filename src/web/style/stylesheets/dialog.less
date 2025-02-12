@@ -1,6 +1,62 @@
 .jaia-dialog {
-    height: 300px;
-    width: 300px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 
-    background-color: red;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    width: 375px;
+    padding: 18px;
+
+    border-radius: 12px;
+
+    background-color: #d3d3d3;
+    font-family: @global-font-family;
+}
+
+.jaia-dialog.alert {
+    gap: 24px;
+}
+
+.jaia-dialog h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: @cc-text-color;
+}
+
+.jaia-dialog p {
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.dialog-button-row {
+    display: flex;
+    gap: 15px;
+}
+
+.dialog-button {
+    all: unset;
+    width: 150px;
+
+    padding: 15px;
+    border-radius: 12px;
+
+    text-align: center;
+
+    background-color: @cc-background-color;
+}
+
+.blocking-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    height: 100%;
+    width: 100%;
+
+    background-color: transparent;
 }

@@ -17,12 +17,26 @@ interface ButtonRowProps {
 }
 
 export default function DataOffloadDialog(props: DialogProps) {
+    const getClassName = () => {
+        return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
+    };
+
+    const handleBlockingOverlayClick = () => {
+        console.log();
+    };
+
     if (props.isVisible) {
         return (
-            <div className="jaia-dialog">
-                <Title disabledCode={props.disabledCode} />
-                <Message disabledCode={props.disabledCode} />
-                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+            <div>
+                <div
+                    className="blocking-overlay"
+                    onClick={() => handleBlockingOverlayClick()}
+                ></div>
+                <div className={getClassName()}>
+                    <Title disabledCode={props.disabledCode} />
+                    <Message disabledCode={props.disabledCode} />
+                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                </div>
             </div>
         );
     }
@@ -59,13 +73,22 @@ function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
         return (
             <div className="dialog-button-row">
-                <button onClick={() => props.onClose(DialogActions.NONE)}>Cancel</button>
-                <button onClick={() => props.onClose(DialogActions.CONFIRMED)}>
+                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+                    Cancel
+                </button>
+                <button
+                    className="dialog-button"
+                    onClick={() => props.onClose(DialogActions.CONFIRMED)}
+                >
                     Start Data Offload
                 </button>
             </div>
         );
     }
 
-    return <button onClick={() => props.onClose(DialogActions.NONE)}>Close</button>;
+    return (
+        <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+            Close
+        </button>
+    );
 }
