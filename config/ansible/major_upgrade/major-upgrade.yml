@@ -8,7 +8,6 @@
   vars:
     - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
       
-    # TODO: Change these to the correct real URL to the hub upgrades ISO
   pre_tasks:
     - name: Check if hub_id is defined
       assert:
