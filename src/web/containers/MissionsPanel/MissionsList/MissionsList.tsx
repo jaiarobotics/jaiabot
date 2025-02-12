@@ -103,14 +103,7 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleDeleteMissionClick = (missionID: number) => {
-        // Update data model
-        missions.deleteMission(missionID);
-        missionsManager.removeAssignment(missionID);
-
-        // Update OpenLayers
-
-        // Update Context
-        jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+        jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_MISSION, missionID: missionID });
     };
 
     return (

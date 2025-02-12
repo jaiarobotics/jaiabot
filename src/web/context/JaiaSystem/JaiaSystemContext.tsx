@@ -21,7 +21,7 @@ interface Action {
     type: JaiaSystemActions;
     bots?: Map<number, Bot>;
     hubs?: Map<number, Hub>;
-    missions?: Map<number, Mission>;
+    missionID?: number;
 }
 
 interface JaiaSystemContextProviderProps {
@@ -49,6 +49,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleSyncRequested(mutableState);
         case JaiaSystemActions.ADD_MISSION:
             return handleAddMission(mutableState);
+        case JaiaSystemActions.DELETE_MISSION:
+            return handleDeleteMission(mutableState, action.missionID);
         case JaiaSystemActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
         case JaiaSystemActions.AUTO_ASSIGN:
@@ -98,6 +100,20 @@ function handleSyncRequested(mutableState: JaiaSystemContextType) {
 function handleAddMission(mutableState: JaiaSystemContextType) {
     missions.addMission(new Mission());
     mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Makes a call to remove a mission and its assignment
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleDeleteMission(mutableState: JaiaSystemContextType, missionID: number) {
+    missions.deleteMission(missionID);
+    missionsManager.removeAssignment(missionID);
+    mutableState.missions = missions.getMissions();
+    mutableState.bots = bots.getBots();
     return mutableState;
 }
 
