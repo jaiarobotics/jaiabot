@@ -169,6 +169,60 @@ while True:
     except Exception as e:
         print("Atlas Scientific OEM-EC conductivity sensor not found. Trying again.")
 
+
+def checkCalibrationStatus():
+    status = bin(probe.calibrationConfirmation())[2:]
+
+    if status == 1:
+        print("calibrated to atmosphere")
+    elif status == 2:
+        print("calibrated to 0 Dissolved Oxygen")
+    elif status == 3:
+        print("calibrated to both atmospheric and 0 Dissolved Oxygen")
+    else:
+        print(f"no calibration")    
+
+
+def verifyCalibration():
+    # Get calibration status in binary string to easier identify bits
+    status = bin(probe.calibrationConfirmation())[2:]
+
+    high_cal = status[0]
+    low_cal = status[1]
+    single_cal = status[2]
+    dry_cal = status[3]
+
+    cal_string = ""
+
+    if high_cal:
+        print("✅ High calibration successfully completed.")
+        cal_string += "✅ High calibration successfully completed.\n"
+    else:
+        print("❌ High calibration not completed.")
+        cal_string += "❌ High calibration not completed.\n"
+    if low_cal:
+        print("✅ Low calibration successfully completed.") 
+        cal_string += "✅ Low calibration successfully completed.\n"
+    else:
+        print("❌ Low calibration not completed.")
+        cal_string += "❌ Low calibration not completed.\n"
+    
+    if dry_cal:
+        print("✅ Dry calibration successfully completed.")
+        cal_string += "✅ Dry calibration successfully completed.\n"
+    else:
+        print("❌ Dry calibration not completed.")
+        cal_string += "❌ Dry calibration not completed.\n"
+        
+    if status == '1101':
+        print("✅ All calibrations successfully completed.")    
+        cal_string += "✅ All calibrations successfully completed.\n"
+    else:
+        print("❌ Calibration status not as expected.")
+        cal_string += "❌ Calibration status not as expected.\n"
+
+    return cal_string
+
 if __name__ == '__main__':
     with AtlasOEM() as atlas:
         atlas.dump()
@@ -220,7 +274,9 @@ def pollEC():
     print('Polling conductivity probe...')
     ec_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
-    with open(f"EC_SENSOR_{timestr}.csv", "w") as new_file:
+    with open(f"EC_SENSOR-{timestr}.csv", "w") as new_file:
+        cal_string = verifyCalibration()
+        new_file.write(cal_string)
         while True:
             try:
                 ec = probe.EC()

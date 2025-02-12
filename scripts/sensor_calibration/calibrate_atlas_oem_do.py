@@ -190,7 +190,7 @@ def pollDO():
     verifyCalibration()
     DO_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
-    with open(f"DO_SENSOR_{timestr}.csv", "w") as new_file:
+    with open(f"DO_SENSOR-{timestr}.csv", "w") as new_file:
         while True:
             try: 
                 if probe.newReadingAvailable():
