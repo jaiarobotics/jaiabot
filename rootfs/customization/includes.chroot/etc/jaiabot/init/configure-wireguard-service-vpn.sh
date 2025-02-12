@@ -41,4 +41,7 @@ $SSH ubuntu@vpn.jaia.tech "PATH=\$PATH:/etc/jaiabot; jaia-vpn-gen.sh fleet_vpn $
 $SSH ubuntu@vpn.jaia.tech "sudo systemctl restart wg-quick@wg_fleet$fleet"
 sudo rsync --rsh="$SSH" ubuntu@vpn.jaia.tech:/tmp/${type}${id}/wg_jaia_sf${fleet}.conf /etc/wireguard/wg_jaia.conf
 
+# Generate /etc/wireguard/privatekey and publickey files
+grep PrivateKey /etc/wireguard/wg_jaia.conf | sed 's/^[^=]*= *\(.*\) *$/\1/' | sudo tee /etc/wireguard/privatekey | wg pubkey | sudo tee /etc/wireguard/publickey
+
 rm -f ${PRIVATE_KEY}
