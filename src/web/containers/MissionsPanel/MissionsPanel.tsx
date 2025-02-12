@@ -9,10 +9,9 @@ import { JaiaSystemDispatchContext } from "../../context/JaiaSystem/JaiaSystemCo
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
 
-import Mission from "../../data/missions/mission";
 import { missions } from "../../data/missions/missions";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { NodeTypes } from "../../types/jaia-system-types";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
@@ -32,13 +31,10 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAddMissionClick = () => {
-        // Update data model
-        jaiaGlobal.deselectNode();
-        missions.addMission(new Mission());
+        // Deselect node
+        globalDispatch({ type: GlobalActions.CLICKED_NODE, nodeType: NodeTypes.NONE, nodeID: -1 });
 
-        // Update Context
-        globalDispatch({ type: GlobalActions.CLICKED_NODE });
-        jaiaSystemDispatch({ type: JaiaSystemActions.SYNC_REQUESTED });
+        jaiaSystemDispatch({ type: JaiaSystemActions.ADD_MISSION });
 
         // Prevents new missions from not being visible in the viewport
         autoScrollMissions();

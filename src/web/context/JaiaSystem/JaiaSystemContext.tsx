@@ -46,6 +46,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleDataModelPolled(mutableState, action.bots, action.hubs);
         case JaiaSystemActions.SYNC_REQUESTED:
             return handleSyncRequested(mutableState);
+        case JaiaSystemActions.ADD_MISSION:
+            return handleAddMission(mutableState);
         default:
             return state;
     }
@@ -78,6 +80,18 @@ function handleDataModelPolled(
 function handleSyncRequested(mutableState: JaiaSystemContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
+    mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Makes a call to add a new, default mission to the data model
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleAddMission(mutableState: JaiaSystemContextType) {
+    missions.addMission(new Mission());
     mutableState.missions = missions.getMissions();
     return mutableState;
 }
