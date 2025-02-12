@@ -9,7 +9,7 @@ except:
     from smbus2 import SMBus
 class AtlasOEM:
 
-    def __init__(self, bus=0, address=0x64, devType=0x04) -> None:
+    def __init__(self, bus=0, address=0x65, devType=0x01) -> None:
         self._bus = SMBus(bus)
         self._address = address
         self._devType = devType
@@ -32,10 +32,10 @@ class AtlasOEM:
     def readUnsignedWordFloat(self, offset):
         i = self._bus.read_byte_data(self._address, offset) << 8
         i |= self._bus.read_byte_data(self._address, offset + 1)
-        return i / 100.0
+        return i
 
     def writeUnsignedWordFloat(self, offset, value: float):
-        i = int(value * 100)
+        i = int(value)
         msb = (i >> 8) & 0xff
         lsb = i & 0xff
         self._bus.write_byte_data(self._address, offset, msb)
@@ -45,10 +45,10 @@ class AtlasOEM:
     def readSignedLongFloat(self, offset) -> float:
         b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
         i = int.from_bytes(b, 'big', signed=True)
-        return i / 100.0
+        return i
 
     def writeSignedLongFloat(self, offset, value: float):
-        i = int(value * 100)
+        i = int(value)
         b = i.to_bytes(4, 'big', signed=True)
         l = [int(c) for c in b]
         self._bus.write_i2c_block_data(self._address, offset, l)
@@ -57,10 +57,10 @@ class AtlasOEM:
     def readUnsignedLongFloat(self, offset) -> float:
         b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
         i = int.from_bytes(b, 'big', signed=False)
-        return i / 100.0
+        return i
 
     def writeUnsignedLongFloat(self, offset, value: float):
-        i = int(value * 100)
+        i = int(value)
         b = i.to_bytes(4, 'big', signed=False)
         l = [int(c) for c in b]
         self._bus.write_i2c_block_data(self._address, offset, l)
@@ -93,7 +93,7 @@ class AtlasOEM:
         return self.readSignedLongFloat(0x08) / 1000.0
 
     def setCalibration(self, calibration: float):
-        self.writeSignedLongFloat(0x08, calibration)
+        self.writeSignedLongFloat(0x08, calibration*1000)
 
 
     # Calibration request
@@ -111,15 +111,15 @@ class AtlasOEM:
 
     # Temperature Compensation
     def setTemperatureCompensation(self, value: float):
-        self.writeUnsignedLongFloat(0xe, value * 100)
+        self.writeUnsignedLongFloat(0xe, value * 100.0)
 
     def temperatureCompensation(self):
-        return self.readUnsignedLongFloat(0x0e)
+        return self.readUnsignedLongFloat(0x0e) / 100.0
 
 
     # Temperature Confirmation
     def temperatureConfirmation(self):
-        return self.readUnsignedLongFloat(0x12)
+        return self.readUnsignedLongFloat(0x12) / 100.0
 
 
     # EC Chip
@@ -142,9 +142,9 @@ class AtlasOEM:
         # pH
     def PH(self):
         try:
-            return self.readSignedLongFloat(0x16) / 10.0
+            return self.readSignedLongFloat(0x16) / 1000.0
         except IOError as e:
-            return 0
+            return 14
 
 
 
@@ -171,7 +171,7 @@ while True:
         probe.setActiveHibernate(1)
         break
     except Exception as e:
-        print("Atlas Scientific OEM-EC conductivity sensor not found. Trying again.")
+        print(f"Atlas Scientific OEM-EC conductivity sensor not found. Trying again. {e}")
         continue
 
 if __name__ == '__main__':
@@ -222,20 +222,24 @@ def presentMenu(menu):
             input()
 
 def pollEC():
-    print('Polling conductivity probe...')
-    ec_old = None
+    print('Polling pH probe...')
+    ph_old = None
     timestr = time.strftime("%Y%m%d-T%H%M%S")
     with open(f"{timestr}.csv", "w") as new_file:
         while True:
             try: 
-                ec = probe.PH()
-                if ec_old:
-                    delta_percent = abs(ec - ec_old) / ec_old * 100
+                if probe.newReadingAvailable():
+                    ph = probe.PH()
+                else:
+                    print("No new reading")
+                    continue
+                if ph_old:
+                    delta_percent = abs(ph - ph_old) / ph_old * 100
                 else:
                     delta_percent = 0.0
-                print(f'time: {datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
-                new_file.write(f'time: {datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%\n')
-                ec_old = ec
+                print(f'time: {datetime.datetime.now()}  pH: {ph}  delta: {delta_percent}%')
+                new_file.write(f'time: {datetime.datetime.now()}  pH: {ph: 6.0f}  delta: {delta_percent: 3.2f}%\n')
+                ph_old = ph
                 time.sleep(1)
             except IOError:
                 print("IO Error: Continuing anyway...")
@@ -243,7 +247,8 @@ def pollEC():
             except KeyboardInterrupt:
                 print("User Interrupt")
                 break
-    
+          
+
 def setProbeType():
     value = input('Enter probe type value (K value) > ')
 
@@ -283,30 +288,32 @@ def clearCalibration():
 
 
 def doCalibration(description: str, type: int):
-    probe.setTemperatureCompensation(25)
-
     if description != 'DRY':
         value = input(f'{description} calibration value: ')
     else:
         value = 0
 
+    ph_old = None
     while True:
-        print('Getting 90 seconds of data...')
-        ph_old = None
-        for i in range(0, 90):
-            ph = probe.PH()
-            if ph_old:
-                delta_percent = abs(ph - ph_old) / ph_old * 100
-            else:
-                delta_percent = 0.0
-            print(f'time:{datetime.datetime.now()}  pH: {ph: 6.0f}  delta: {delta_percent: 3.2f}%')
-            ec_old = ph
-            time.sleep(1)
+        print('Getting 10 seconds of data...')
+        for i in range(0, 10):
+            if probe.newReadingAvailable() == 1:
+                ph = probe.PH()
+                if ph_old:
+                    delta_percent = abs(ph - ph_old) / ph_old * 100
+                else:
+                    delta_percent = 0.0
+                print(f'time:{datetime.datetime.now()}  pH: {ph}  delta: {delta_percent: 3.2f}%')
+                ph_old = ph
+                time.sleep(1)
+            else: 
+                print("No new reading")
+                continue
         if input('Calibrate now (Y/n)?').lower() in ['', 'y']:
             break
 
     try:
-        probe.setCalibration(float(value) * 1000)
+        probe.setCalibration(float(value))
         probe.setCalibrationRequest(type)
         input(f'{description} calibration completed.  Press enter.')
     except ValueError:
