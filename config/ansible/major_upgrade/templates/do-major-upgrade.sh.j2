@@ -71,6 +71,14 @@ esac
 btrfs filesystem label ${new_ro_rootfs_mountpoint} "rootfs"
 
 ###############################
+# Clean up
+###############################
+
+rm -rf {{ upgrade_tmp_dir }}
+rm -rf {{ upgrade_reuse_dir }}
+rm -rf {{ upgrade_boot_dir }}
+
+###############################
 # Reboot    
 ###############################
 
