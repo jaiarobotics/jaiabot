@@ -29,7 +29,7 @@
 
 - name: Convert and split file contents
   set_fact:
-    version_content: "{{ version_file['content'] | b64decode | split('\n') }}"
+    version_content: "{{ version_file['content'] | b64decode | regex_findall('([^\n]+)') }}"
 
 - name: Convert lines to variables
   set_fact:
