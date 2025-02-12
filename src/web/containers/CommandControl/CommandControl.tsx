@@ -12,7 +12,6 @@ import { jaiaAPI, BotPaths } from "../../utils/jaia-api";
 import { Missions } from "../../missions/missions";
 import { taskData } from "../../data/task_packets/task-packets";
 import { HubOrBot } from "../../types/hub-or-bot";
-import { NodeTypes } from "../../types/jaia-system-types";
 import { createMap } from "../../openlayers/map/map";
 import { BotLayers } from "../../openlayers/map/layers/bot-layers";
 import { HubLayers } from "../../openlayers/map/layers/hub-layers";
@@ -51,7 +50,7 @@ import {
     GlobalContextType,
     GlobalAction,
 } from "../../context/Global/GlobalContext";
-import { BotDetails, BotDetailsProps } from "../BotDetails/BotDetails";
+import { BotDetails } from "../BotDetails/BotDetails";
 import {
     Goal,
     TaskType,
@@ -104,7 +103,6 @@ import {
     mdiCog,
     mdiHelp,
     mdiRuler,
-    mdiWrench,
     mdiSquareEditOutline,
     mdiMagnifyPlusOutline,
     mdiMagnifyMinusOutline,

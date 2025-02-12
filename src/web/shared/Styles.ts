@@ -605,7 +605,6 @@ export function getFlagStyle(
 ) {
     let icon = createFlagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit);
     const isTask = goal.task?.type && goal.task.type !== "NONE";
-    //TODO Flag label was changed from "R" to "M"
     return new Style({
         image: icon,
         text: new Text({
