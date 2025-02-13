@@ -14,8 +14,6 @@ import { GlobalActions } from "../../context/Global/GlobalActions";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../shared/JAIAProtobuf";
 
-import sortBy from "lodash/sortBy";
-
 import "./NodeList.less";
 
 export function NodeList() {
@@ -27,8 +25,8 @@ export function NodeList() {
         return <div></div>;
     }
 
-    const hubs = sortBy(Array.from(jaiaSystemContext.hubs.values()), ["hubID"]);
-    const bots = sortBy(Array.from(jaiaSystemContext.bots.values()), ["botID"]);
+    const hubs = Array.from(jaiaSystemContext.hubs.values());
+    const bots = Array.from(jaiaSystemContext.bots.values());
 
     /**
      * Triggered when a node item is clicked. Sets the selected node in the data model,
