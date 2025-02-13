@@ -32,7 +32,7 @@ class Bots {
         if (botStatus.bot_id === undefined) {
             return;
         }
-        // If bot is new add it sort Map
+        // If bot is new add it and sort Map
         if (this.isNewBot(botStatus.bot_id)) {
             const newBot = new Bot();
             newBot.setBotID(botStatus.bot_id);

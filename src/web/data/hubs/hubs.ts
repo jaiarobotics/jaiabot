@@ -31,7 +31,7 @@ class Hubs {
         if (hubStatus.hub_id === undefined) {
             return;
         }
-        // If hub is new add it sort Map
+        // If hub is new add it and sort Map
         if (this.isNewHub(hubStatus.hub_id)) {
             const newBot = new Hub();
             newBot.setHubID(hubStatus.hub_id);
@@ -50,7 +50,7 @@ class Hubs {
     }
 
     private sortHubs(): void {
-        // Create a new Map with bots sorted by botID
+        // Create a new Map with hubs sorted by hubID
         const sortedHubs = new Map(
             [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
         );
