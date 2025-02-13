@@ -5,9 +5,8 @@ import Bot from "./bot";
 /**
  * Maintains a sorted map of all Bots in the system
  *
- * @notes Users of the class can rely on the Map returned by
- *        getBots to be ordered by botID
- *
+ * @notes Users of the class can rely on the map returned by
+ *        getBots to be ordered by Bot ID
  */
 class Bots {
     private bots: Map<number, Bot>;
@@ -20,7 +19,7 @@ class Bots {
         return this.bots;
     }
 
-    setBots(bots: Map<number, Bot>) {
+    private setBots(bots: Map<number, Bot>) {
         this.bots = new Map([...bots]);
     }
 
@@ -32,14 +31,14 @@ class Bots {
         if (botStatus.bot_id === undefined) {
             return;
         }
-        // If bot is new add it and sort Map
+
         if (this.isNewBot(botStatus.bot_id)) {
             const newBot = new Bot();
             newBot.setBotID(botStatus.bot_id);
             this.bots.set(botStatus.bot_id, newBot);
             this.sortBots();
         }
-        // Update bot data
+
         this.updateBot(botStatus);
     }
 
@@ -50,12 +49,11 @@ class Bots {
         return false;
     }
 
-    private sortBots(): void {
-        // Create a new Map with bots sorted by botID
+    private sortBots() {
         const sortedBots = new Map(
             [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
         );
-        this.bots = sortedBots;
+        this.setBots(sortedBots);
     }
 
     private updateBot(botStatus: PortalBotStatus) {

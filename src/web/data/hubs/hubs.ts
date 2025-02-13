@@ -4,9 +4,8 @@ import Hub from "./hub";
 /**
  * Maintains a sorted map of all Hubs in the system
  *
- * @notes Users of the class can rely on the Map returned by
- *            getHubs to be ordered by hubID
- *
+ * @notes Users of the class can rely on the map returned by
+ *        getHubs to be ordered by Hub ID
  */
 class Hubs {
     private hubs: Map<number, Hub>;
@@ -19,7 +18,7 @@ class Hubs {
         return this.hubs;
     }
 
-    setHubs(hubs: Map<number, Hub>) {
+    private setHubs(hubs: Map<number, Hub>) {
         this.hubs = new Map([...hubs]);
     }
 
@@ -31,14 +30,14 @@ class Hubs {
         if (hubStatus.hub_id === undefined) {
             return;
         }
-        // If hub is new add it and sort Map
+
         if (this.isNewHub(hubStatus.hub_id)) {
             const newBot = new Hub();
             newBot.setHubID(hubStatus.hub_id);
             this.hubs.set(hubStatus.hub_id, newBot);
             this.sortHubs();
         }
-        // Update hub data
+
         this.updateHub(hubStatus);
     }
 
@@ -50,11 +49,10 @@ class Hubs {
     }
 
     private sortHubs(): void {
-        // Create a new Map with hubs sorted by hubID
         const sortedHubs = new Map(
             [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
         );
-        this.hubs = sortedHubs;
+        this.setHubs(sortedHubs);
     }
 
     private updateHub(hubStatus: PortalHubStatus) {
