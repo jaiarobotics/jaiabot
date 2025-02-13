@@ -1,6 +1,12 @@
 import { PortalHubStatus } from "../../shared/PortalStatus";
 import Hub from "./hub";
 
+/**
+ * Maintains a sorted map of all Hubs in the system
+ *
+ * @notes Users of the class can rely on the map returned by
+ *        getHubs to be ordered by Hub ID
+ */
 class Hubs {
     private hubs: Map<number, Hub>;
 
@@ -12,19 +18,44 @@ class Hubs {
         return this.hubs;
     }
 
+    private setHubs(hubs: Map<number, Hub>) {
+        this.hubs = new Map([...hubs]);
+    }
+
     getHub(hubID: number) {
         return this.getHubs().get(hubID);
     }
 
-    addHub(hubStatus: PortalHubStatus) {
-        if (hubStatus.hub_id) {
-            const newHub = new Hub();
-            this.getHubs().set(hubStatus.hub_id, newHub);
-            this.updateHub(hubStatus);
+    setHub(hubStatus: PortalHubStatus) {
+        if (hubStatus.hub_id === undefined) {
+            return;
         }
+
+        if (this.isNewHub(hubStatus.hub_id)) {
+            const newBot = new Hub();
+            newBot.setHubID(hubStatus.hub_id);
+            this.hubs.set(hubStatus.hub_id, newBot);
+            this.sortHubs();
+        }
+
+        this.updateHub(hubStatus);
     }
 
-    updateHub(hubStatus: PortalHubStatus) {
+    private isNewHub(hubID: number) {
+        if (this.getHubs().get(hubID) === undefined) {
+            return true;
+        }
+        return false;
+    }
+
+    private sortHubs() {
+        const sortedHubs = new Map(
+            [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
+        );
+        this.setHubs(sortedHubs);
+    }
+
+    private updateHub(hubStatus: PortalHubStatus) {
         let hub = this.getHubs().get(hubStatus.hub_id);
 
         if (hub === undefined) {
@@ -84,13 +115,6 @@ class Hubs {
         if (hubStatus.location?.lon) {
             hub.getHubSensors().getGPS().setLon(hubStatus.location.lon);
         }
-    }
-
-    isNewHub(hubID: number) {
-        if (this.getHubs().get(hubID) === undefined) {
-            return true;
-        }
-        return false;
     }
 }
 

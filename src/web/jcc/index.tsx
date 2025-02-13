@@ -31,22 +31,14 @@ const statusInterval = setInterval(async () => {
 function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
     const botIDs = Object.keys(botStatuses);
     for (let botID of botIDs) {
-        if (bots.isNewBot(Number(botID))) {
-            bots.addBot(botStatuses[botID]);
-        } else {
-            bots.updateBot(botStatuses[botID]);
-        }
+        bots.setBot(botStatuses[botID]);
     }
 }
 
 function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
     const hubIDs = Object.keys(hubStatuses);
     for (let hubID of hubIDs) {
-        if (hubs.isNewHub(Number(hubID))) {
-            hubs.addHub(hubStatuses[hubID]);
-        } else {
-            hubs.updateHub(hubStatuses[hubID]);
-        }
+        hubs.setHub(hubStatuses[hubID]);
     }
 }
 

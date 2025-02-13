@@ -48,7 +48,7 @@ test("Select and deselect Bot and Hub icons on map", () => {
     );
 
     // Bot
-    bots.addBot(botStatusMock1);
+    bots.setBot(botStatusMock1);
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
     });
@@ -63,7 +63,7 @@ test("Select and deselect Bot and Hub icons on map", () => {
 
     // Hub
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(hubFeatureMock);
-    hubs.addHub(hubStatusMock1);
+    hubs.setHub(hubStatusMock1);
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
     });
