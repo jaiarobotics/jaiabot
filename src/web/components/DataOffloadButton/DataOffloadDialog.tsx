@@ -21,6 +21,9 @@ export enum DialogActions {
     CONFIRMED = 1,
 }
 
+/**
+ * Produces the dialog box that appears when clicking on the data offload button. This dialog will be an alert if the command cannot be sent or a confirmation prior to sending the command.
+ */
 export function DataOffloadDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds "alert" when the disabled code does not equal NONE.
@@ -47,6 +50,9 @@ export function DataOffloadDialog(props: DialogProps) {
     );
 }
 
+/**
+ * Produces the title for the dialog box. If there is nothing blocking the command from being sent the title will be Confirm, otherwise it will be Alert.
+ */
 function Title(props: TitleProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
         return <h1>Confirm</h1>;
@@ -55,6 +61,9 @@ function Title(props: TitleProps) {
     return <h1>Alert</h1>;
 }
 
+/**
+ * Produces the buttons for the dialox box. For a confirmation dialog, the buttons will be Cancel and Confirm. For an alert, the button will be Close.
+ */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
         return (

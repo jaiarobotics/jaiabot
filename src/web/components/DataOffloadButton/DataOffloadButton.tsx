@@ -17,6 +17,9 @@ interface Props {
     bot: Bot;
 }
 
+/**
+ * Produces the data offload button for an individual Bot. It manages the alert/confirm dialog that appears when clicking on the button.
+ */
 export default function DataOffloadButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
