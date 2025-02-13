@@ -11,8 +11,6 @@ import {
 } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../shared/JAIAProtobuf";
 
@@ -39,12 +37,10 @@ export function NodeList() {
      * @returns {void}
      */
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
-        // Update data model
-        jaiaGlobal.setSelectedNode({ type: nodeType, id: nodeID });
-
         // Update GlobalContext
         globalDispatch({
             type: GlobalActions.CLICKED_NODE,
+            selectedNode: { type: nodeType, id: nodeID },
         });
     };
 
