@@ -15,9 +15,9 @@ const mockBotStatus5: PortalBotStatus = {
 
 test("Verify bots are sorted when adding", () => {
     // Add Bots to data model in non-numerical order
-    bots.addBot(mockBotStatus5);
-    bots.addBot(mockBotStatus1);
-    bots.addBot(mockBotStatus2);
+    bots.setBot(mockBotStatus5);
+    bots.setBot(mockBotStatus1);
+    bots.setBot(mockBotStatus2);
     // Get resulting bots data
     const addedBots = Array.from(bots.getBots().values());
     expect(addedBots[0].getBotID()).toEqual(1);

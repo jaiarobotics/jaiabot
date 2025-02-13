@@ -18,7 +18,7 @@ describe("Add Hub to hub-layer", () => {
     // Running various additions in single test because jest runs multiple tests in parallel
     test("Add Hub to hub-layer", () => {
         // Add one Hub to hub-layer
-        hubs.addHub(hubStatusMock1);
+        hubs.setHub(hubStatusMock1);
         expect(hubLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
         hubLayer.updateFeatures();
         expect(hubLayer.getVectorLayer().getSource().getFeatures().length).toBe(1);
@@ -29,7 +29,7 @@ describe("Add Hub to hub-layer", () => {
         hubLayer.getVectorLayer().getSource().clear();
 
         // Add Hub to hub-layer without location
-        hubs.addHub(hubStatusMock2);
+        hubs.setHub(hubStatusMock2);
         expect(hubLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
         hubLayer.updateFeatures();
         expect(hubLayer.getVectorLayer().getSource().getFeatures().length).toBe(1);

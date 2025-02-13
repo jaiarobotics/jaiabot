@@ -12,10 +12,6 @@ import Bot from "./bot";
 class Bots {
     private bots: Map<number, Bot>;
 
-    private compareBots(a: [number, Bot], b: [number, Bot]): number {
-        return a[1].getBotID() - b[1].getBotID();
-    }
-
     constructor() {
         this.bots = new Map<number, Bot>();
     }
@@ -24,22 +20,45 @@ class Bots {
         return this.bots;
     }
 
+    setBots(bots: Map<number, Bot>) {
+        this.bots = new Map([...bots]);
+    }
+
     getBot(botID: number) {
         return this.getBots().get(botID);
     }
 
-    addBot(botStatus: PortalBotStatus) {
-        if (botStatus.bot_id) {
-            const newBot = new Bot();
-            this.getBots().set(botStatus.bot_id, newBot);
-            this.updateBot(botStatus);
+    setBot(botStatus: PortalBotStatus) {
+        if (botStatus.bot_id === undefined) {
+            return;
         }
+        // If bot is new add it sort Map
+        if (this.isNewBot(botStatus.bot_id)) {
+            const newBot = new Bot();
+            newBot.setBotID(botStatus.bot_id);
+            this.bots.set(botStatus.bot_id, newBot);
+            this.sortBots();
+        }
+        // Update bot data
+        this.updateBot(botStatus);
+    }
+
+    private isNewBot(botID: number) {
+        if (this.getBots().get(botID) === undefined) {
+            return true;
+        }
+        return false;
+    }
+
+    private sortBots(): void {
         // Create a new Map with bots sorted by botID
-        const sortedBots = new Map([...this.bots.entries()].sort(this.compareBots));
+        const sortedBots = new Map(
+            [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
+        );
         this.bots = sortedBots;
     }
 
-    updateBot(botStatus: PortalBotStatus) {
+    private updateBot(botStatus: PortalBotStatus) {
         let bot = this.getBots().get(botStatus.bot_id);
 
         if (bot === undefined) {
@@ -163,13 +182,6 @@ class Bots {
         if (botStatus.temperature) {
             bot.getBotSensors().getTemperatureSensor().setTemperature(botStatus.temperature);
         }
-    }
-
-    isNewBot(botID: number) {
-        if (this.getBots().get(botID) === undefined) {
-            return true;
-        }
-        return false;
     }
 }
 
