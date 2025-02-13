@@ -7,12 +7,12 @@ import {
     GlobalDispatchContext,
     GlobalAction,
     BotAccordionNames,
-    NodeType,
     GlobalContextType,
 } from "../../context/Global/GlobalContext";
 import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { CustomAlert } from "../../shared/CustomAlert";
+import { NodeTypes } from "../../types/jaia-system-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import Bot from "../../data/bots/bot";
@@ -23,7 +23,7 @@ import {
     getWaypontHelperText,
     getBotOffloadPercent,
     getRepeatProgress,
-    getActiveWptStrings,
+    getDistToWaypoint,
     isBotLogging,
     disableButton,
     disableClearRunButton,
@@ -123,7 +123,7 @@ export function BotDetails(props: BotDetailsProps) {
     if (
         jaiaSystemContext === null ||
         globalContext === null ||
-        globalContext.visibleDetails != NodeType.BOT
+        globalContext.visibleDetails !== NodeTypes.BOT
     ) {
         return <div></div>;
     }
@@ -774,13 +774,13 @@ export function BotDetails(props: BotDetailsProps) {
                                         <tr>
                                             <td>Active Goal</td>
                                             <td style={{ whiteSpace: "pre-line" }}>
-                                                {getActiveWptStrings(missionStatus).activeWptString}
+                                                {missionStatus.activeGoal ?? "N/A"}
                                             </td>
                                         </tr>
                                         <tr>
                                             <td>Distance to Goal</td>
                                             <td style={{ whiteSpace: "pre-line" }}>
-                                                {getActiveWptStrings(missionStatus).distToWpt}
+                                                {getDistToWaypoint(missionStatus)}
                                             </td>
                                         </tr>
                                         <tr>

@@ -1,5 +1,11 @@
 import { MissionStatus } from "../../types/jaia-system-types";
-import { BotType, Error, HealthState, Warning } from "../../utils/protobuf-types";
+import {
+    BotType,
+    Error,
+    GeographicCoordinate,
+    HealthState,
+    Warning,
+} from "../../utils/protobuf-types";
 import Mission from "../missions/mission";
 import TaskPacket from "../task_packets/task-packets-new";
 import BotSensors from "./bot-sensors";
@@ -13,6 +19,7 @@ export default class Bot {
     private missionStatus: MissionStatus;
     private botSensors: BotSensors;
     private taskPackets: TaskPacket[];
+    private location: GeographicCoordinate;
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private statusAge: number;
@@ -76,6 +83,14 @@ export default class Bot {
     }
 
     // setBotSensors does not exists because the sensor init is handled when the Bot type is received
+
+    getLocation() {
+        return this.location;
+    }
+
+    setLocation(location: GeographicCoordinate) {
+        this.location = location;
+    }
 
     getBatteryPercent() {
         return this.batteryPercent;

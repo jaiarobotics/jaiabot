@@ -5,7 +5,6 @@ import MissionControllerPanel from "../MissionControllerPanel/MissionControllerP
 import * as MissionFeatures from "../../shared/MissionFeatures";
 import RCControllerPanel from "../RCControllerPanel/RCControllerPanel";
 import DownloadPanel from "../DownloadPanel/DownloadPanel";
-import RunInfoPanel from "../RunInfoPanel/RunInfoPanel";
 import ContactInfoPanel from "../ContactInfoPanel/ContactInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../../openlayers/map/layers/layers";
@@ -20,7 +19,7 @@ import { ContactLayers } from "../../openlayers/map/layers/contact-layers";
 import { HubDetails } from "../HubDetails/HubDetails";
 import { CommandList } from "../../missions/missions";
 import { SurveyLines } from "../../missions/survey/survey-lines";
-import { NodeListPanel } from "../NodeListPanel/NodeListPanel";
+import { NodeList } from "../NodeList/NodeList";
 import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
@@ -50,9 +49,8 @@ import {
     GlobalDispatchContext,
     GlobalContextType,
     GlobalAction,
-    NodeType,
 } from "../../context/Global/GlobalContext";
-import { BotDetails, BotDetailsProps } from "../BotDetails/BotDetails";
+import { BotDetails } from "../BotDetails/BotDetails";
 import {
     Goal,
     TaskType,
@@ -105,7 +103,6 @@ import {
     mdiCog,
     mdiHelp,
     mdiRuler,
-    mdiWrench,
     mdiSquareEditOutline,
     mdiMagnifyPlusOutline,
     mdiMagnifyMinusOutline,
@@ -139,7 +136,6 @@ export enum PanelType {
     MISSION = "MISSION",
     MISSION_SETTINGS = "MISSION_SETTINGS",
     MEASURE_TOOL = "MEASURE_TOOL",
-    RUN_INFO = "RUN_INFO",
     GOAL_SETTINGS = "GOAL_SETTINGS",
     DOWNLOAD_PANEL = "DOWNLOAD_PANEL",
     RALLY_POINT = "RALLY_POINT",
@@ -2149,11 +2145,7 @@ export default class CommandControl extends React.Component {
             // Clicked on bot
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
-                    nodeType: NodeType.BOT,
-                    nodeID: botStatus.bot_id,
-                });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.toggleBot(botStatus.bot_id);
                 return false;
             }
@@ -2163,11 +2155,7 @@ export default class CommandControl extends React.Component {
             if (hubStatus) {
                 const hubKey = Object.keys(this.state.podStatus.hubs)[0];
                 const hubID = this.state.podStatus.hubs[hubKey].hub_id;
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
-                    nodeType: NodeType.HUB,
-                    nodeID: hubID,
-                });
+                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
                 this.didClickHub(hubID);
                 return false;
             }
@@ -2189,25 +2177,6 @@ export default class CommandControl extends React.Component {
             // Clicked on mission planning point
             if (this.state.mode == Mode.MISSION_PLANNING) {
                 this.state.selectedFeatures = new OlCollection([feature]);
-                return false;
-            }
-
-            // Clicked on flag
-            const isFlag = feature.get("type") === "flag";
-            if (isFlag) {
-                const runNum = feature.get("runNumber");
-                const runId = `run-${runNum}`;
-                const runList = this.getRunList();
-                const run = runList.runs[runId];
-                const flagClickedInfo = {
-                    runNum: runNum,
-                    botId: run.assigned,
-                };
-
-                this.setState({ flagClickedInfo }, () => {
-                    this.setVisiblePanel(PanelType.RUN_INFO);
-                });
-
                 return false;
             }
 
@@ -4120,16 +4089,6 @@ export default class CommandControl extends React.Component {
                 visiblePanelElement = null;
                 break;
 
-            case PanelType.RUN_INFO:
-                visiblePanelElement = (
-                    <RunInfoPanel
-                        setVisiblePanel={this.setVisiblePanel.bind(this)}
-                        runNum={this.state.flagClickedInfo.runNum}
-                        botId={this.state.flagClickedInfo.botId}
-                        deleteRun={this.deleteSingleRun.bind(this)}
-                    />
-                );
-                break;
             case PanelType.CONTACT_INFO:
                 visiblePanelElement = (
                     <ContactInfoPanel
@@ -4258,14 +4217,7 @@ export default class CommandControl extends React.Component {
                 </div>
 
                 <div id="nodesDrawer">
-                    <NodeListPanel
-                        podStatus={this.getPodStatus()}
-                        selectedBotId={this.selectedBotId()}
-                        selectedHubId={this.selectedHubId()}
-                        trackedBotId={this.state.trackingTarget}
-                        didClickBot={this.didClickBot.bind(this)}
-                        didClickHub={this.didClickHub.bind(this)}
-                    />
+                    <NodeList />
                 </div>
 
                 <BotDetails
