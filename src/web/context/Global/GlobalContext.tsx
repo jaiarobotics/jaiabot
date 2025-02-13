@@ -185,11 +185,11 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  *        Global Data used by OpenLayers is in sync with GlobalContext
  */
 function handleClickedNode(mutableState: GlobalContextType, selectedNode: SelectedNode) {
-    // Clicked currently selected node
     if (
         mutableState.selectedNode.type === selectedNode.type &&
         mutableState.selectedNode.id === selectedNode.id
     ) {
+        // Clicked currently selected node
         mutableState.visibleDetails = NodeTypes.NONE;
     } else {
         // Clicked non-selected node

@@ -5,7 +5,6 @@ import { GlobalActions } from "../../context/Global/GlobalActions";
 import { Feature, MapBrowserEvent } from "ol";
 import { Geometry } from "ol/geom";
 
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { map } from "../../openlayers/maps/map";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
