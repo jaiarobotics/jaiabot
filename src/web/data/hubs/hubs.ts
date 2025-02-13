@@ -48,7 +48,7 @@ class Hubs {
         return false;
     }
 
-    private sortHubs(): void {
+    private sortHubs() {
         const sortedHubs = new Map(
             [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
         );
