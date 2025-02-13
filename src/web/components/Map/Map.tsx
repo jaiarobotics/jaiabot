@@ -46,15 +46,15 @@ export default function Map() {
         const nodeID = feature.get("id");
 
         if (nodeType === NodeTypes.BOT || nodeType == NodeTypes.HUB) {
-            // Update data model
-            jaiaGlobal.setSelectedNode({ type: nodeType, id: nodeID });
+            // Update React Context
+            globalDispatch({
+                type: GlobalActions.CLICKED_NODE,
+                selectedNode: { type: nodeType, id: nodeID },
+            });
 
             // Update OpenLayers
             botLayer.updateFeatures();
             hubLayer.updateFeatures();
-
-            // Update React Context
-            globalDispatch({ type: GlobalActions.CLICKED_NODE });
         }
     };
 

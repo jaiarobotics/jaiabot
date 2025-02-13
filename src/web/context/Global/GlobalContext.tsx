@@ -53,6 +53,7 @@ export interface BotAccordionStates {
 export interface GlobalAction {
     type: GlobalActions;
     clientID?: string;
+    selectedNode?: SelectedNode;
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
 }
@@ -114,7 +115,7 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
             return handleClosedDetails(mutableState);
 
         case GlobalActions.CLICKED_NODE:
-            return handleClickedNode(mutableState);
+            return handleClickedNode(mutableState, action.selectedNode);
 
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
@@ -179,10 +180,11 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  *
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
+ *
+ * @notes This function calls jaiaGlobal.setSelectedNode to make sure the
+ *        Global Data used by OpenLayers is in sync with GlobalContext
  */
-function handleClickedNode(mutableState: GlobalContextType) {
-    const selectedNode = jaiaGlobal.getSelectedNode();
-
+function handleClickedNode(mutableState: GlobalContextType, selectedNode: SelectedNode) {
     // Clicked currently selected node
     if (
         mutableState.selectedNode.type === selectedNode.type &&
@@ -194,6 +196,10 @@ function handleClickedNode(mutableState: GlobalContextType) {
         mutableState.selectedNode = selectedNode;
         mutableState.visibleDetails = selectedNode.type;
     }
+
+    // Sync OL Global Data
+    jaiaGlobal.setSelectedNode(mutableState.selectedNode);
+
     return mutableState;
 }
 

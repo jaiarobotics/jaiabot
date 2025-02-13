@@ -114,6 +114,7 @@ import "./CommandControl.less";
 // Utility
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
+import { NodeTypes } from "../../types/jaia-system-types";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -2145,7 +2146,10 @@ export default class CommandControl extends React.Component {
             // Clicked on bot
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
-                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
+                this.props.globalDispatch({
+                    type: GlobalActions.CLICKED_NODE,
+                    selectedNode: { type: NodeTypes.BOT, id: botStatus.bot_id },
+                });
                 this.toggleBot(botStatus.bot_id);
                 return false;
             }
@@ -2155,7 +2159,10 @@ export default class CommandControl extends React.Component {
             if (hubStatus) {
                 const hubKey = Object.keys(this.state.podStatus.hubs)[0];
                 const hubID = this.state.podStatus.hubs[hubKey].hub_id;
-                this.props.globalDispatch({ type: GlobalActions.CLICKED_NODE });
+                this.props.globalDispatch({
+                    type: GlobalActions.CLICKED_NODE,
+                    selectedNode: { type: NodeTypes.HUB, id: hubID },
+                });
                 this.didClickHub(hubID);
                 return false;
             }
