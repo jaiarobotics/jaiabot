@@ -11,12 +11,8 @@ import {
 } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../shared/JAIAProtobuf";
-
-import sortBy from "lodash/sortBy";
 
 import "./NodeList.less";
 
@@ -29,8 +25,8 @@ export function NodeList() {
         return <div></div>;
     }
 
-    const hubs = sortBy(Array.from(jaiaSystemContext.hubs.values()), ["hubID"]);
-    const bots = sortBy(Array.from(jaiaSystemContext.bots.values()), ["botID"]);
+    const hubs = Array.from(jaiaSystemContext.hubs.values());
+    const bots = Array.from(jaiaSystemContext.bots.values());
 
     /**
      * Triggered when a node item is clicked. Sets the selected node in the data model,
@@ -41,12 +37,10 @@ export function NodeList() {
      * @returns {void}
      */
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
-        // Update data model
-        jaiaGlobal.setSelectedNode({ type: nodeType, id: nodeID });
-
         // Update GlobalContext
         globalDispatch({
             type: GlobalActions.CLICKED_NODE,
+            selectedNode: { type: nodeType, id: nodeID },
         });
     };
 

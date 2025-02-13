@@ -2,6 +2,12 @@ import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
 import Bot from "./bot";
 
+/**
+ * Maintains a sorted map of all Bots in the system
+ *
+ * @notes Users of the class can rely on the map returned by
+ *        getBots to be ordered by Bot ID
+ */
 class Bots {
     private bots: Map<number, Bot>;
 
@@ -13,19 +19,44 @@ class Bots {
         return this.bots;
     }
 
+    private setBots(bots: Map<number, Bot>) {
+        this.bots = new Map([...bots]);
+    }
+
     getBot(botID: number) {
         return this.getBots().get(botID);
     }
 
-    addBot(botStatus: PortalBotStatus) {
-        if (botStatus.bot_id) {
-            const newBot = new Bot();
-            this.getBots().set(botStatus.bot_id, newBot);
-            this.updateBot(botStatus);
+    setBot(botStatus: PortalBotStatus) {
+        if (botStatus.bot_id === undefined) {
+            return;
         }
+
+        if (this.isNewBot(botStatus.bot_id)) {
+            const newBot = new Bot();
+            newBot.setBotID(botStatus.bot_id);
+            this.bots.set(botStatus.bot_id, newBot);
+            this.sortBots();
+        }
+
+        this.updateBot(botStatus);
     }
 
-    updateBot(botStatus: PortalBotStatus) {
+    private isNewBot(botID: number) {
+        if (this.getBots().get(botID) === undefined) {
+            return true;
+        }
+        return false;
+    }
+
+    private sortBots() {
+        const sortedBots = new Map(
+            [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
+        );
+        this.setBots(sortedBots);
+    }
+
+    private updateBot(botStatus: PortalBotStatus) {
         let bot = this.getBots().get(botStatus.bot_id);
 
         if (bot === undefined) {
@@ -149,13 +180,6 @@ class Bots {
         if (botStatus.temperature) {
             bot.getBotSensors().getTemperatureSensor().setTemperature(botStatus.temperature);
         }
-    }
-
-    isNewBot(botID: number) {
-        if (this.getBots().get(botID) === undefined) {
-            return true;
-        }
-        return false;
     }
 }
 

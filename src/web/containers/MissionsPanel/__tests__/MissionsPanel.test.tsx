@@ -19,8 +19,8 @@ const botStatusMock2: PortalBotStatus = {
     portalStatusAge: 1,
 };
 
-bots.addBot(botStatusMock1);
-bots.addBot(botStatusMock2);
+bots.setBot(botStatusMock1);
+bots.setBot(botStatusMock2);
 
 beforeEach(() => {
     render(

@@ -6,6 +6,8 @@ import { jaiaAPI } from "../../utils/jaia-api";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { GlobalActions } from "./GlobalActions";
 import { SelectedNode, NodeTypes } from "../../types/jaia-system-types";
+import { botLayer } from "../../openlayers/layers/vector/bot-layer";
+import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 
 export interface GlobalContextType {
     clientID: string;
@@ -54,8 +56,8 @@ export interface BotAccordionStates {
 export interface GlobalAction {
     type: GlobalActions;
     clientID?: string;
-    hubID?: number;
     missionID?: number;
+    selectedNode?: SelectedNode;
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     isMissionAccordionExpanded?: boolean;
@@ -119,7 +121,7 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
             return handleClosedDetails(mutableState);
 
         case GlobalActions.CLICKED_NODE:
-            return handleClickedNode(mutableState);
+            return handleClickedNode(mutableState, action.selectedNode);
 
         case GlobalActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
@@ -193,21 +195,28 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  *
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
+ *
+ * @notes This function calls jaiaGlobal.setSelectedNode to make sure the
+ *        Global Data used by OpenLayers is in sync with GlobalContext
  */
-function handleClickedNode(mutableState: GlobalContextType) {
-    const selectedNode = jaiaGlobal.getSelectedNode();
-
-    // Clicked currently selected node
+function handleClickedNode(mutableState: GlobalContextType, selectedNode: SelectedNode) {
     if (
         mutableState.selectedNode.type === selectedNode.type &&
         mutableState.selectedNode.id === selectedNode.id
     ) {
+        // Clicked currently selected node
         mutableState.visibleDetails = NodeTypes.NONE;
     } else {
         // Clicked non-selected node
         mutableState.selectedNode = selectedNode;
         mutableState.visibleDetails = selectedNode.type;
     }
+
+    // Sync OpenLayers
+    jaiaGlobal.setSelectedNode(mutableState.selectedNode);
+    botLayer.updateFeatures();
+    hubLayer.updateFeatures();
+
     return mutableState;
 }
 

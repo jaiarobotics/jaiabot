@@ -11,8 +11,6 @@ import { GlobalActions } from "../../../context/Global/GlobalActions";
 import { JaiaSystemActions } from "../../../context/JaiaSystem/jaia-system-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
-import { missions } from "../../../data/missions/missions";
-import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 // MUI | MDI

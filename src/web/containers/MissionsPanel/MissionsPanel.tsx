@@ -29,7 +29,10 @@ export default function MissionsPanel() {
      */
     const handleAddMissionClick = () => {
         // Deselect node
-        globalDispatch({ type: GlobalActions.CLICKED_NODE, nodeType: NodeTypes.NONE, nodeID: -1 });
+        globalDispatch({
+            type: GlobalActions.CLICKED_NODE,
+            selectedNode: { type: NodeTypes.NONE, ID: -1 },
+        });
 
         jaiaSystemDispatch({ type: JaiaSystemActions.ADD_MISSION });
 
