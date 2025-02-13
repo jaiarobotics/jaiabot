@@ -74,7 +74,11 @@ export default function DataOffloadButton(props: Props) {
 
     return (
         <div>
-            <Button className={getClassName()} onClick={() => setIsDialogVisible(true)}>
+            <Button
+                className={getClassName()}
+                aria-label={"data-offload-individual"}
+                onClick={() => setIsDialogVisible(true)}
+            >
                 <Icon path={mdiDownload} title="Data Offload" />
             </Button>
             <DataOffloadDialog
