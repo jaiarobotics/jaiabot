@@ -11,6 +11,10 @@ import Hub from "./hub";
 class Hubs {
     private hubs: Map<number, Hub>;
 
+    private compareHubs(a: [number, Hub], b: [number, Hub]): number {
+        return a[1].getHubID() - b[1].getHubID();
+    }
+
     constructor() {
         this.hubs = new Map<number, Hub>();
     }
@@ -30,9 +34,7 @@ class Hubs {
             this.updateHub(hubStatus);
         }
         // Create a new Map with hubs sorted by hubID
-        const sortedHubs = new Map(
-            [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
-        );
+        const sortedHubs = new Map([...this.hubs.entries()].sort(this.compareHubs));
         this.hubs = sortedHubs;
     }
 

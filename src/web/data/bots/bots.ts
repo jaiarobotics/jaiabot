@@ -12,6 +12,10 @@ import Bot from "./bot";
 class Bots {
     private bots: Map<number, Bot>;
 
+    private compareBots(a: [number, Bot], b: [number, Bot]): number {
+        return a[1].getBotID() - b[1].getBotID();
+    }
+
     constructor() {
         this.bots = new Map<number, Bot>();
     }
@@ -31,9 +35,7 @@ class Bots {
             this.updateBot(botStatus);
         }
         // Create a new Map with bots sorted by botID
-        const sortedBots = new Map(
-            [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
-        );
+        const sortedBots = new Map([...this.bots.entries()].sort(this.compareBots));
         this.bots = sortedBots;
     }
 

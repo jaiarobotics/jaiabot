@@ -16,12 +16,12 @@ const mockHubStatus5: PortalHubStatus = {
     portalStatusAge: 55,
 };
 
-test("Verify hubs are sorted, when adding", () => {
+test("Verify hubs are sorted when adding", () => {
     // Add Hubs to data model in non-numerical order
     hubs.addHub(mockHubStatus5);
     hubs.addHub(mockHubStatus1);
     hubs.addHub(mockHubStatus2);
-    // get resulting hubs data
+    // Get resulting hubs data
     const addedHubs = Array.from(hubs.getHubs().values());
     expect(addedHubs[0].getHubID()).toEqual(1);
     expect(addedHubs[1].getHubID()).toEqual(2);
