@@ -6,6 +6,8 @@ import { jaiaAPI } from "../../utils/jaia-api";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { GlobalActions } from "./GlobalActions";
 import { SelectedNode, NodeTypes } from "../../types/jaia-system-types";
+import { botLayer } from "../../openlayers/layers/vector/bot-layer";
+import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 
 export interface GlobalContextType {
     clientID: string;
@@ -197,8 +199,10 @@ function handleClickedNode(mutableState: GlobalContextType, selectedNode: Select
         mutableState.visibleDetails = selectedNode.type;
     }
 
-    // Sync OL Global Data
+    // Sync OpenLayers
     jaiaGlobal.setSelectedNode(mutableState.selectedNode);
+    botLayer.updateFeatures();
+    hubLayer.updateFeatures();
 
     return mutableState;
 }

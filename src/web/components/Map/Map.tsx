@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from "react";
+import { useEffect, useContext } from "react";
 import { GlobalDispatchContext } from "../../context/Global/GlobalContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 
@@ -6,8 +6,6 @@ import { Feature, MapBrowserEvent } from "ol";
 import { Geometry } from "ol/geom";
 
 import { map } from "../../openlayers/maps/map";
-import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
-import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 
@@ -45,15 +43,10 @@ export default function Map() {
         const nodeID = feature.get("id");
 
         if (nodeType === NodeTypes.BOT || nodeType == NodeTypes.HUB) {
-            // Update React Context
             globalDispatch({
                 type: GlobalActions.CLICKED_NODE,
                 selectedNode: { type: nodeType, id: nodeID },
             });
-
-            // Update OpenLayers
-            botLayer.updateFeatures();
-            hubLayer.updateFeatures();
         }
     };
 
