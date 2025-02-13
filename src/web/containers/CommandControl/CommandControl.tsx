@@ -2146,19 +2146,19 @@ export default class CommandControl extends React.Component {
             // Clicked on bot
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
+                const botID = botStatus.bot_id;
                 this.props.globalDispatch({
                     type: GlobalActions.CLICKED_NODE,
-                    selectedNode: { type: NodeTypes.BOT, id: botStatus.bot_id },
+                    selectedNode: { type: NodeTypes.BOT, id: botID },
                 });
-                this.toggleBot(botStatus.bot_id);
+                this.toggleBot(botID);
                 return false;
             }
 
             // Clicked on hub
             const hubStatus = feature.get("hub") as PortalHubStatus;
             if (hubStatus) {
-                const hubKey = Object.keys(this.state.podStatus.hubs)[0];
-                const hubID = this.state.podStatus.hubs[hubKey].hub_id;
+                const hubID = hubStatus.hub_id;
                 this.props.globalDispatch({
                     type: GlobalActions.CLICKED_NODE,
                     selectedNode: { type: NodeTypes.HUB, id: hubID },
