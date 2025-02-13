@@ -5,7 +5,7 @@ from pyjaia.series import Series
 from .processing import *
 from .series_set import *
 from .types import *
-from .window import applyWindow
+from .window import *
 import statistics
 
 def heightFromAcceleration(acceleration: List[float], sampleFrequency: float):
@@ -128,7 +128,12 @@ def powerSpectrumWelch(elevation: List[float], config: DriftAnalysisConfig):
         nperseg=min(config.analysis.segmentLength, N), # Length of each segment
         scaling='density'        # Power spectral density scaling
     )
-    return power_spectrum
+
+    # Re-normalize from the windowing function
+    renormalizationCoefficient = getRenormalizationCoefficient(config.window, len(elevation) / config.sampleFreq, config.sampleFreq)
+    print(renormalizationCoefficient)
+
+    return [ x * renormalizationCoefficient for x in power_spectrum ]
 
 
 def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
