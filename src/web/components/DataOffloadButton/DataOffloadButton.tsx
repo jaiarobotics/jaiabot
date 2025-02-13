@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import DataOffloadDialog from "./DataOffloadDialog";
+import { DataOffloadDialog, DialogActions } from "./DataOffloadDialog";
+import { DisabledCodes } from "./data-offload-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -14,18 +15,6 @@ import "../../style/stylesheets/util.less";
 
 interface Props {
     bot: Bot;
-}
-
-export enum DisabledCodes {
-    NONE = 0,
-    MISSION_STATE = 1,
-    WIFI_QUALITY = 2,
-    DOWNLOAD_QUEUE = 3,
-}
-
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
 }
 
 export default function DataOffloadButton(props: Props) {
@@ -47,9 +36,12 @@ export default function DataOffloadButton(props: Props) {
     };
 
     /**
-     * Looks at the Bot and decides what disabled code (if any) applies based on the button conditions
+     * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
+     *
+     * @notes
+     * After data offload refactor, return DisabledCodes.DOWNLOAD_QUEUE if bot is already in queue
      */
     const getDisabledCode = () => {
         if (!isCommandAvailable(CommandType.RECOVERED, props.bot.getMissionStatus().missionState)) {
@@ -59,9 +51,6 @@ export default function DataOffloadButton(props: Props) {
         if (!props.bot.getWifiLinkQuality()) {
             return DisabledCodes.WIFI_QUALITY;
         }
-
-        // If Bot is already in download queue
-        //    return DisabledCodes.DOWNLOAD_QUEUE
 
         return DisabledCodes.NONE;
     };

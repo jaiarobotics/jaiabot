@@ -5,6 +5,9 @@ import { Command, CommandType, HubCommandType, MissionState } from "./protobuf-t
 import { error } from "../notifications/notifications";
 import { isError } from "lodash";
 
+/**
+ * commandStates is a map of command types to regular expressions that include all of the states of a Bot for which a command can be sent
+ */
 const commandStates: Map<CommandType, RegExp[]> = new Map<CommandType, RegExp[]>();
 commandStates.set(CommandType.ACTIVATE, [/^.+__IDLE$/, /^PRE_DEPLOYMENT__FAILED$/]);
 commandStates.set(CommandType.NEXT_TASK, [/^IN_MISSION__(?!REMOTE_CONTROL).+$/]);

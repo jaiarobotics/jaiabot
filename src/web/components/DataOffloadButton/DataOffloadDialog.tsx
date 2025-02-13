@@ -1,5 +1,5 @@
-import { DialogActions } from "./DataOffloadButton";
-import { DisabledCodes } from "./DataOffloadButton";
+import { DisabledCodes } from "./data-offload-messages";
+import { messages } from "./data-offload-messages";
 
 interface DialogProps {
     isVisible: boolean;
@@ -7,7 +7,7 @@ interface DialogProps {
     onClose: (dialogAction: DialogActions) => void;
 }
 
-interface TitleMessageProps {
+interface TitleProps {
     disabledCode: DisabledCodes;
 }
 
@@ -16,9 +16,14 @@ interface ButtonRowProps {
     onClose: (dialogAction: DialogActions) => void;
 }
 
-export default function DataOffloadDialog(props: DialogProps) {
+export enum DialogActions {
+    NONE = 0,
+    CONFIRMED = 1,
+}
+
+export function DataOffloadDialog(props: DialogProps) {
     /**
-     * Forms the style of the dialog distinguishing between confirmation and alert
+     * Forms the class name with a base of "jaia-dialog" and adds "alert" when the disabled code does not equal NONE.
      *
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
@@ -26,57 +31,28 @@ export default function DataOffloadDialog(props: DialogProps) {
         return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
     };
 
-    /**
-     * Performs a none type action to prevent clicks from moving down the tree
-     *
-     * @returns {void}
-     */
-    const handleBlockingOverlayClick = () => {
-        console.log();
-    };
-
-    if (props.isVisible) {
-        return (
-            <div>
-                <div
-                    className="blocking-overlay"
-                    onClick={() => handleBlockingOverlayClick()}
-                ></div>
-                <div className={getClassName()}>
-                    <Title disabledCode={props.disabledCode} />
-                    <Message disabledCode={props.disabledCode} />
-                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
-                </div>
-            </div>
-        );
+    if (!props.isVisible) {
+        return <div></div>;
     }
 
-    return <div></div>;
+    return (
+        <div>
+            <div className="blocking-overlay" onClick={() => {}}></div>
+            <div className={getClassName()}>
+                <Title disabledCode={props.disabledCode} />
+                <p>{messages.get(props.disabledCode)}</p>
+                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+            </div>
+        </div>
+    );
 }
 
-function Title(props: TitleMessageProps) {
+function Title(props: TitleProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
         return <h1>Confirm</h1>;
     }
 
     return <h1>Alert</h1>;
-}
-
-function Message(props: TitleMessageProps) {
-    const messages = new Map<DisabledCodes, string>();
-
-    messages.set(DisabledCodes.NONE, "");
-    messages.set(
-        DisabledCodes.MISSION_STATE,
-        "Cannot start a data offload because the Bot is not in an idle state. Try sending the stop command first.",
-    );
-    messages.set(
-        DisabledCodes.WIFI_QUALITY,
-        "The Bot is not connected to the Hub Wi-Fi. Try moving the Bot closer to the Hub.",
-    );
-    messages.set(DisabledCodes.DOWNLOAD_QUEUE, "The Bot is already in the download queue.");
-
-    return <p>{messages.get(props.disabledCode)}</p>;
 }
 
 function ButtonRow(props: ButtonRowProps) {
