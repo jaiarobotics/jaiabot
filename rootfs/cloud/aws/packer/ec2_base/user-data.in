@@ -5,7 +5,7 @@ users:
     groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
-    ssh_authorized_keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIgWakhJbHVaaqUlYn3DO4EIu8C0YsTeA0gndF6tvKMz packer"]
+    ssh_authorized_keys: ["FILL IN"]
 
 bootcmd:
   - cp /etc/resolv.conf.ipv4 /etc/resolv.conf

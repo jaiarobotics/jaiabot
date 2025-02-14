@@ -20,7 +20,7 @@ trap finish EXIT
 
 rm -f id_packer*
 ssh-keygen -N "" -t ed25519 -f id_packer -C "packer"
-sed -i "s|\(ssh_authorized_keys: \)\[.*\]|\1[\"$(cat id_packer.pub)\"]|" ec2_base/user-data
+sed "s|\(ssh_authorized_keys: \)\[.*\]|\1[\"$(cat id_packer.pub)\"]|" ec2_base/user-data.in > ec2_base/user-data
 
 LATEST_AMI=$(aws ec2 describe-images \
                  --region $REGION \

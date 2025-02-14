@@ -6,7 +6,7 @@ upgrade_dir=/opt/upgrade
 sudo mkdir -p ${upgrade_dir}
 sudo chown $USER ${upgrade_dir}
 
-url_base=https://jaia-disk-images.s3.${AWS_REGION}.amazonaws.com/${JAIA_UPGRADE_REPO}/${JAIA_UPGRADE_VERSION}/rpi
+url_base=https://jaia-disk-images.s3.${AWS_REGION}.amazonaws.com/${JAIA_UPGRADE_REPO}/${JAIA_UPGRADE_VERSION}/vbox
 wget ${url_base}/version.txt -O ${upgrade_dir}/version.txt
 
 set -a; source ${upgrade_dir}/version.txt; set +a

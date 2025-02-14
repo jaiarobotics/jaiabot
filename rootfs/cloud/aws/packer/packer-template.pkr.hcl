@@ -38,6 +38,7 @@ build {
   
   # Perform the upgrade
   provisioner "ansible-local" {
+    playbook_dir = "ansible"
     playbook_file = "ansible/ami-upgrade.yml"
     
     extra_arguments = [
