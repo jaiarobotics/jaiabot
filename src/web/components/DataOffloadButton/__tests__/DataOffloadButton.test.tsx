@@ -25,9 +25,9 @@ const botStatusMock3: PortalBotStatus = {
     wifi_link_quality_percentage: 100,
 };
 
-bots.addBot(botStatusMock1);
-bots.addBot(botStatusMock2);
-bots.addBot(botStatusMock3);
+bots.setBot(botStatusMock1);
+bots.setBot(botStatusMock2);
+bots.setBot(botStatusMock3);
 
 test("Click data offload button in disabled state due to mission state", async () => {
     render(<DataOffloadButton bot={bots.getBot(1)} />);
