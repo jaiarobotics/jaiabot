@@ -1,0 +1,74 @@
+---
+- name: Jaiabot major upgrade
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Find rootfs file
+      find:
+        paths: "/mnt/major_upgrade/"
+        patterns: "*.rootfs.tar.gz"
+      register: rootfs_files
+
+    - name: Store first rootfs file in a variable
+      set_fact:
+        rootfs_filename: "{{ rootfs_files.files[0].path }}"
+      when: rootfs_files.matched > 0
+
+    - name: Display rootfs filename
+      debug:
+        msg: "rootfs file found: {{ rootfs_filename }}"
+      when: rootfs_files.matched > 0
+
+    - name: Perform the upgrade
+      shell: |
+        old_ro_rootfs_mountpoint="/media/root-ro"
+        old_rw_overlay_mountpoint="/media/root-rw"
+
+        mount $(blkid -L overlay) ${old_rw_overlay_mountpoint}
+        
+        new_ro_rootfs_mountpoint=${old_rw_overlay_mountpoint}
+        new_rw_overlay_mountpoint=${old_ro_rootfs_mountpoint}
+
+
+        ###############################
+        # Extract new rootfs
+        ###############################
+        rm -rf ${new_ro_rootfs_mountpoint}/*
+        tar --xattrs --xattrs-include="*" -xz -f {{ rootfs_filename }} -C ${new_ro_rootfs_mountpoint}
+
+        ###############################
+        # Swap rootfs/overlay labels     
+        ###############################
+        ROOTFS_DEVICE=$(blkid -L rootfs)
+        FS_TYPE=$(blkid -o value -s TYPE "$ROOTFS_DEVICE")
+        echo "Detected filesystem: $FS_TYPE on $ROOTFS_DEVICE"
+        
+        case "$FS_TYPE" in
+            ext4)
+                e2label "$ROOTFS_DEVICE" overlay
+                ;;
+            btrfs)
+                btrfs filesystem label "$ROOTFS_DEVICE" overlay
+                ;;
+            *)
+                echo "Error: Unsupported filesystem type '$FS_TYPE'"
+                exit 1
+                ;;
+        esac
+
+        btrfs filesystem label ${new_ro_rootfs_mountpoint} "rootfs"
+
+        # Pivot to new root
+        mount --make-rprivate /
+        mkdir -p ${new_ro_rootfs_mountpoint}/oldroot
+        pivot_root ${new_ro_rootfs_mountpoint} ${new_ro_rootfs_mountpoint}/oldroot
+        umount -l ${new_ro_rootfs_mountpoint}/oldroot
+        rmdir ${new_ro_rootfs_mountpoint}/oldroot
+
+        # Reformat old root (new overlay)
+        mkfs.btrfs -f $(blkid -L overlay) -L overlay
+
+        update-grub
+        
