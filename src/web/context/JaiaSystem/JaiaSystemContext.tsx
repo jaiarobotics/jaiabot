@@ -44,7 +44,7 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
         case JaiaSystemActions.INIT:
             return handleInit(mutableState);
         case JaiaSystemActions.POLL_DATA_MODEL:
-            return handleDataModelPolled(mutableState);
+            return handlePollDataModel(mutableState);
         case JaiaSystemActions.ADD_MISSION:
             return handleAddMission(mutableState);
         case JaiaSystemActions.DELETE_MISSION:
@@ -80,7 +80,7 @@ function handleInit(mutableState: JaiaSystemContextType) {
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
-function handleDataModelPolled(mutableState: JaiaSystemContextType) {
+function handlePollDataModel(mutableState: JaiaSystemContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     return mutableState;
