@@ -1,0 +1,67 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+import "jaiabot/messages/low_control.proto";
+import "jaiabot/messages/high_control.proto";
+
+package jaiabot.config;
+
+message MissionRepeater
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    required int32 bot_id = 10;
+
+    message Script
+    {
+        message Step
+        {
+            required double duration = 1
+                [(dccl.field) = { units { derived_dimensions: "time" } }];
+
+            // for ease of log parsing
+            required int32 step_marker = 2;
+
+            // repeat publication with this number of seconds between publishes
+            // if omitted, does not repeat
+            optional double repeat_interval = 3
+                [(dccl.field) = { units { derived_dimensions: "time" } }];
+            oneof publication
+            {
+                protobuf.DesiredSetpoints desired_setpoints = 10;
+                protobuf.LowControl low_control = 11;
+            }
+        }
+        repeated Step step = 1;
+    }
+
+    required Script script = 20;
+}

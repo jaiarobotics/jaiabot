@@ -521,7 +521,7 @@ jobs:
       image: ubuntu-2204:current
     resource_class: medium
     environment:
-      CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
+      CREATE_IMAGE_ARGS: "--virtualbox"
       DISTRO_RELEASE_CODENAME: "jammy"
       DEBIAN_FRONTEND: "noninteractive"
     steps:
@@ -563,7 +563,7 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     environment:
-      CREATE_IMAGE_ARGS: "--virtualbox --mindisk"
+      CREATE_IMAGE_ARGS: "--virtualbox"
       DISTRO_RELEASE_CODENAME: "focal"
       DEBIAN_FRONTEND: "noninteractive"
     steps:
