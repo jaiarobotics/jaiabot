@@ -497,7 +497,6 @@ jobs:
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
             sudo mkdir -p /tmp/bundle/result
-            sudo cp ../jaiabot_updates.tar /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.tar
             sudo cp ../jaiabot_updates.iso /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
 
       - store_artifacts: &store-bundle-artifacts
@@ -539,6 +538,10 @@ jobs:
       - aws-s3/sync:
           profile_name: OIDC-User
           from: /tmp/images
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/bundle/result
           to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
       - run:
           name: Import new AMI
