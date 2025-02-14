@@ -70,9 +70,9 @@ td {
         cursor: pointer;
 
         &.inactive {
-            background: @inactive-color;
+            background: @disabled-color;
             // Going for low contrast here
-            color: if(luminance(@inactive-color) < 45, black, white);
+            color: if(luminance(@disabled-color) < 45, black, white);
         }
 
         &.selected,
