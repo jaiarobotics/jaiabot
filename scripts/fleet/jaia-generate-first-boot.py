@@ -149,6 +149,10 @@ def main():
         if not key_found:
             print(f"WARNING: No hub key provided for hub {args.id}")
 
+        # Also put a copy of fleet config on hubs for future upgrades
+        with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
+            dst.write(src.read())
+
     if args.debug:
         print(f"Rendered FleetConfig as JSON: {json.dumps(fleet_cfg_json, indent=2)}")
 

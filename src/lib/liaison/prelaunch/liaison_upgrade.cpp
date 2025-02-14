@@ -91,15 +91,22 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
 
     for (const auto& iv : playbook.input_var())
     {
-        auto* iv_div = new WContainerWidget(iv_group_div);
-        auto* iv_text = new WText(iv.display_name() + ": ", iv_div);
-        auto* iv_selection = new WComboBox(iv_div);
-        for (const std::string& v : iv.value()) iv_selection->addItem(v);
-        iv_selection->activated().connect(boost::bind(&LiaisonUpgrade::set_input_var, parent,
-                                                      boost::placeholders::_1, iv_selection,
-                                                      iv.name(), playbook_index));
-        if (iv.value_size() > 0)
-            input_var[iv.name()] = iv.value(0);
+        if (iv.has_static_value())
+        {
+            input_var[iv.name()] = iv.static_value();
+        }
+        else
+        {
+            auto* iv_div = new WContainerWidget(iv_group_div);
+            auto* iv_text = new WText(iv.display_name() + ": ", iv_div);
+            auto* iv_selection = new WComboBox(iv_div);
+            for (const std::string& v : iv.value()) iv_selection->addItem(v);
+            iv_selection->activated().connect(boost::bind(&LiaisonUpgrade::set_input_var, parent,
+                                                          boost::placeholders::_1, iv_selection,
+                                                          iv.name(), playbook_index));
+            if (iv.value_size() > 0)
+                input_var[iv.name()] = iv.value(0);
+        }
     }
 
     for (const auto& ov : playbook.output_var())
