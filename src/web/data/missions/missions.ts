@@ -39,9 +39,11 @@ class Missions {
     }
 
     addMission(mission: Mission) {
-        this.getMissions().set(this.getNextMissionID(), mission);
-        mission.setMissionID(this.getNextMissionID());
+        const missionID = this.getNextMissionID();
+        this.getMissions().set(missionID, mission);
+        mission.setMissionID(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
+        return missionID;
     }
 
     addMissionSet(missions: Mission[]) {

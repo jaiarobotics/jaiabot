@@ -16,6 +16,7 @@ export interface GlobalContextType {
     visibleDetails: NodeTypes;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
     isRCMode: boolean;
 }
 
@@ -55,9 +56,11 @@ export interface BotAccordionStates {
 export interface GlobalAction {
     type: GlobalActions;
     clientID?: string;
+    missionID?: number;
     selectedNode?: SelectedNode;
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
+    isMissionAccordionExpanded?: boolean;
 }
 
 interface GlobalContextProviderProps {
@@ -88,6 +91,7 @@ export const globalDefaultContext: GlobalContextType = {
     visibleDetails: NodeTypes.NONE,
     hubAccordionStates: defaultHubAccordionStates,
     botAccordionStates: defaultBotAccordionStates,
+    missionAccordionStates: {},
     isRCMode: false,
 };
 
@@ -124,6 +128,15 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
 
         case GlobalActions.CLICKED_BOT_ACCORDION:
             return handleClickedBotAccordion(mutableState, action.botAccordionName);
+
+        case GlobalActions.CLICKED_MISSION_ACCORDION:
+            return handleClickedMissionAccordion(
+                mutableState,
+                action.missionID,
+                action.isMissionAccordionExpanded,
+            );
+        case GlobalActions.RESET_MISSION_ACCORDIONS:
+            return handleResetMissionAccordions(mutableState);
 
         default:
             return state;
@@ -275,6 +288,34 @@ function handleClickedBotAccordion(
             botAccordionStates.sensor = !botAccordionStates.sensor;
             break;
     }
+    return mutableState;
+}
+
+/**
+ * Updates the missionAccordionStates object based on the provided missionID and expand/collapse state
+ *
+ * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Determines which mission accordion state to modify
+ * @param {boolean} isMissionAccordionExpanded New expand/collapse state of the accordion
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleClickedMissionAccordion(
+    mutableState: GlobalContextType,
+    missionID: number,
+    isMissionAccordionExpanded: boolean,
+) {
+    mutableState.missionAccordionStates[missionID] = isMissionAccordionExpanded;
+    return mutableState;
+}
+
+/**
+ * Resets the mission accordion expand/collapse states when operator clicks delete all missions
+ *
+ * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @returns {GlobalContextType} Updated mutable state object
+ */
+function handleResetMissionAccordions(mutableState: GlobalContextType) {
+    mutableState.missionAccordionStates = {};
     return mutableState;
 }
 

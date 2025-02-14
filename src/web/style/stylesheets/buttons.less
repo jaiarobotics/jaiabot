@@ -1,0 +1,34 @@
+@jaia-button-height: 48px;
+@jaia-button-width: 48px;
+@jaia-button-background-color: #fff;
+@jaia-button-border-radius: 12px;
+@jaia-button-padding: 6px;
+@jaia-button-box-shadow: #333 1px 1px 6px;
+
+.jaia-button-row {
+    display: flex;
+    column-gap: 12px;
+}
+
+// !important used to override MUI defaults
+.jaia-button {
+    height: @jaia-button-height;
+    width: @jaia-button-width;
+
+    background-color: @jaia-button-background-color !important;
+    border-radius: @jaia-button-border-radius !important;
+    min-width: 48px !important;
+    padding: @jaia-button-padding !important;
+
+    box-shadow: @jaia-button-box-shadow;
+
+    cursor: pointer;
+
+    svg {
+        color: #000 !important;
+    }
+
+    span {
+        color: #000 !important;
+    }
+}
