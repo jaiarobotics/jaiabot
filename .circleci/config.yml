@@ -288,6 +288,7 @@ workflows:
           requires:
             - raspi-image-create-noble
             - virtualbox-image-create-noble
+            - bundle-noble
           <<: *filter-template-aws-rootfs-builds
 
       # docker creation jobs
