@@ -498,7 +498,12 @@ jobs:
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
             sudo mkdir -p /tmp/bundle/result
-            sudo cp ../jaiabot_updates.iso /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
+            iso_name=jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
+            sudo cp ../jaiabot_updates.iso /tmp/bundle/result/${iso_name}
+            sudo cp major_upgrade/version.txt /tmp/bundle/result/version.txt
+            cat \<< EOF >> /tmp/bundle/result/version.txt
+            iso_name=${iso_name}
+            EOF
 
       - store_artifacts: &store-bundle-artifacts
           path: /tmp/bundle/result
@@ -506,7 +511,8 @@ jobs:
       - persist_to_workspace:
           root: /tmp
           paths:
-            - "bundle/*.iso"
+            - "bundle/result/*.iso"
+            - "bundle/result/version.txt"
           
   aws-sync:
     docker:
