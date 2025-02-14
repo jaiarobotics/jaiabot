@@ -37,9 +37,11 @@ function write_preseed()
     sudo mount "${VBOX_MOUNT_PATH}/vol1" /mnt
     sudo chroot /mnt sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     sudo mount -o bind /dev /mnt/dev
+    sudo mount -o bind /proc /mnt/proc
     sudo chroot /mnt update-grub
     
     sudo umount /mnt/dev
+    sudo umount /mnt/proc
     sudo umount /mnt    
     
     sudo umount -l "${VBOX_MOUNT_PATH}"
