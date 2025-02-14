@@ -48,10 +48,9 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     echo "🟢 Installing and enabling $jaiabot_systemd_type systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
 
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
-
         cd ${HOME}/jaiabot/config/gen
-        (export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} $jaia_simulation --enable)
+        (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,})
 
     else
 

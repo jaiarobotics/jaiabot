@@ -59,6 +59,9 @@ parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
+parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
+parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
 
 args=parser.parse_args()
 
@@ -101,6 +104,21 @@ class DATA_OFFLOAD_IGNORE_TYPE(Enum):
     GOBY = 'GOBY'
     TASKPACKET = 'TASKPACKET'
     NONE = 'NONE'
+
+class MOTOR_HARNESS_TYPE(Enum):
+    RPM_AND_THERMISTOR = 'RPM_AND_THERMISTOR'
+    NONE = 'NONE'
+
+class TEMPERATURE_SENSOR_TYPE(Enum):
+    BAR02 = 'bar02'
+    BAR30 = 'bar30'
+    TSYS01 = 'tsys01'
+    NONE = 'none'
+
+class PRESSURE_SENSOR_TYPE(Enum):
+    BAR02 = 'bar02'
+    BAR30 = 'bar30'
+    NONE = 'none'
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
@@ -160,6 +178,25 @@ if args.data_offload_ignore_type == 'goby':
 elif args.data_offload_ignore_type == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
 
+jaia_motor_harness_type = MOTOR_HARNESS_TYPE.NONE
+
+if args.motor_harness_type == 'rpm_and_thermistor':
+    jaia_motor_harness_type = MOTOR_HARNESS_TYPE.RPM_AND_THERMISTOR
+
+if args.temperature_sensor_type == 'bar02':
+    jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.BAR02
+elif args.temperature_sensor_type == 'bar30':
+    jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.BAR30
+elif args.temperature_sensor_type == 'tsys01':
+    jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.TSYS01
+else:
+    jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.NONE
+
+if args.pressure_sensor_type == 'bar02':
+    jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR02
+else:
+    jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -208,6 +245,9 @@ subprocess.run('bash -ic "' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
+               'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
+               'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
+               'export jaia_pressure_sensor_type=' + str(jaia_pressure_sensor_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -395,7 +435,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'pressure_sensor',
-     'args': '',
+     'args': f'-t {jaia_pressure_sensor_type.value}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
@@ -470,7 +510,7 @@ if jaia_imu_type.value == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000 -d',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -490,7 +530,7 @@ else:
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000 -d',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
@@ -519,6 +559,44 @@ if jaia_bot_type.value == 'echo':
         'restart': 'on-failure'},
     ] 
     jaiabot_apps.extend(jaiabot_apps_echo)
+
+if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
+    jaiabot_apps_motor_harness_type = [
+        {'exe': 'rpm.py',
+        'description': 'JaiaBot Motor Python Driver',
+        'template': 'py-app.service.in',
+        'user': 'root', # must run as root to allow interaction with GPIO pin
+        'group': 'root',
+        'subdir': 'motor',
+        'args': '',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'}
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_motor_harness_type)
+
+if jaia_temperature_sensor_type.value == 'tsys01':
+    jaiabot_apps_tsys01 = [
+        {'exe': 'jaiabot_tsys01_temperature_sensor_driver',
+        'description': 'JaiaBot TSYS01 Temperature Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_tsys01.py',
+        'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'tsys01_temperature_sensor',
+        'args': '-p 20006',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_tsys01)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

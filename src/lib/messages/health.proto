@@ -78,7 +78,13 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_ECHO = 36
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 37
+    ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 37
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 38
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER = 39
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 40
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
@@ -132,6 +138,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER = 123
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 124
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 125
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
@@ -236,6 +244,8 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 105
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 106
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     WARNING__MISSING_DATA__PITCH = 200
@@ -278,6 +288,12 @@ enum Warning
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // from Motor Status Thread
+    WARNING__NOT_RESPONDING__JAIABOT_RPM_LISTENER = 600
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_ARDUINO_MOTOR_TEMP = 601
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_mission_manager

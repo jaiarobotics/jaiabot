@@ -482,6 +482,8 @@ class LogApp extends React.Component {
         for (let [plot_index, series] of this.state.plots.entries()) {
             // Plot the data in series_list
             let dates = series._utime_.map((utime) => new Date(utime / 1e3));
+            // Keep the original utime for internal use
+            let x_utime = series._utime_;
             let hovertext = series.series_y.map((y) => series.hovertext?.[y]);
 
             // Set the y-axis for this plot
@@ -549,6 +551,7 @@ class LogApp extends React.Component {
                 hovertext: hovertext,
                 type: "scatter",
                 mode: "lines+markers",
+                customdata: x_utime,
             };
 
             data.push(trace);
@@ -571,10 +574,10 @@ class LogApp extends React.Component {
             // Setup the triggers
             let self = this;
             this.plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
-                let dateString = String(data.points[0].data.x[data.points[0].pointIndex]);
-                let date_timestamp_micros = ISODateToMicros(dateString);
-                self.map.updateToTimestamp(date_timestamp_micros);
-                self.setState({ t: date_timestamp_micros });
+                let pointIndex = data.points[0].pointIndex;
+                let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
+                self.map.updateToTimestamp(timestamp_utime);
+                self.setState({ t: timestamp_utime });
             });
 
             this.plot_div_element.on("plotly_unhover", function (data: Plotly.PlotHoverEvent) {

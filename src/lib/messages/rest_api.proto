@@ -81,7 +81,7 @@ message APIRequest
             doc: "Query the status of bots/hubs. Expect a response of type 'status'."
             example {
                 request: '{"api_key": "4vS6s2jnulxVjrKSB-__tQ", "status": true, "target": {"all": true}}'
-                response: '{"request":{"status":true,"target":{"all":true}},"status":{"bots":[{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":1,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":0.25,"health_state":"HEALTH__OK","location":{"lat":41.657645,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":2.07,"received_time":"1722893284636801","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.06,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100},{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":2,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":1.03,"health_state":"HEALTH__OK","location":{"lat":41.65765,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":1.47,"received_time":"1722893284635458","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.04,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100}],"hubs":[{"bot_ids_in_radio_file":[1,2],"fleet_id":0,"health_state":"HEALTH__OK","hub_id":1,"linux_hardware_status":{"wifi":{"is_connected":true,"link_quality":70,"link_quality_percentage":100,"noise_level":0,"signal_level":33}},"location":{"lat":41.66268,"lon":-71.273018},"received_time":"1722893284552504","time":"8614394422756020"}]},"target":{"bots":[1,2],"hubs":[1]}}'
+                response: '{"request":{"status":true,"target":{"all":true}},"status":{"bots":[{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":1,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":0.25,"health_state":"HEALTH__OK","location":{"lat":41.657645,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":2.07,"received_time":"1722893284636801","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.06,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100},{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":2,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":1.03,"health_state":"HEALTH__OK","location":{"lat":41.65765,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":1.47,"received_time":"1722893284635458","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.04,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100}],"hubs":[{"bot_ids_in_radio_file":[1,2],"fleet_id":0,"health_state":"HEALTH__OK","hub_id":1,"known_bot": [{"id": 1, "last_status_time": "1722893284000000"}, {"id": 2, "last_status_time": "1722893285000000"}],"linux_hardware_status":{"wifi":{"is_connected":true,"link_quality":70,"link_quality_percentage":100,"noise_level":0,"signal_level":33}},"location":{"lat":41.66268,"lon":-71.273018},"received_time":"1722893284552504","time":"8614394422756020"}]},"target":{"bots":[1,2],"hubs":[1]}}'
             }
         }];
         bool metadata = 12 [(jaia.field).rest_api = {
@@ -89,7 +89,7 @@ message APIRequest
             doc: "Query the metadata of the hub. Expect a response of type 'metadata'."
             example {
                 request: '{ "target": {"all": true },"metadata": true, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"metadata": {"goby_version": "3.1.5a", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu22.04.1", "jaiabot_image_build_date": "Wed 20 Dec 2023 02:28:56 AM UTC", "jaiabot_image_first_boot_date": "Wed Dec 20 15:53:29 UTC 2023", "jaiabot_image_version": "1.0.0~alpha1+130+gea8f449", "jaiabot_version": {"git_branch": "task/update-web-api-doc/jaia-1550", "git_hash": "f8a56c0cf9501b9022cc16d99eb25d81a46c90cf-dirty", "major": "1", "minor": "11", "patch": "0+0+gf8a56c0c-dirty"}, "moos_version": "10.4.0", "name": "aubergine", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "metadata": true, "target": {"all": true}}, "target": {"hubs": [1]}}'
+                response: '{"metadata": {"hubs": [{"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:13 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub2-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, {"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:11 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub1-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}]}, "request": {"api_key": "", "metadata": true, "target": {"all": true}}, "target": {"hubs": [2, 1]}}'
             }
         }];
         TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
@@ -105,7 +105,7 @@ message APIRequest
             doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
             example {
                 request: '{"target": {"all": true}, "command": {"type": "STOP"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command": {"bot_id": 1, "time": "1722895468966813", "type": "STOP"}, "target": {"all": true}}, "target": {"bots": [2, 1]}}'
+                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command": {"bot_id": 1, "time": "1722895468966813", "type": "STOP"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [2, 1]}}'
             }
         }];
         CommandForHub command_for_hub = 15 [(jaia.field).rest_api = {
@@ -134,6 +134,13 @@ message APIResponse
         repeated HubStatus hubs = 2
             [(jaia.field).rest_api.presence = GUARANTEED];
     }
+
+    message Metadatas
+    {
+        repeated DeviceMetadata hubs = 1
+            [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+
     message TaskPackets
     {
         repeated TaskPacket packets = 1
@@ -150,7 +157,7 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Bot/Hub status. This is sent in response to a successful Request 'status' action."
         }];
-        DeviceMetadata metadata = 12 [(jaia.field).rest_api = {
+        Metadatas metadata = 12 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Metadata response. This is sent in response to a successful Request 'metadata' action."
         }];
@@ -167,4 +174,59 @@ message APIResponse
     // copy of original request
     required APIRequest request = 20
         [(jaia.field).rest_api = { presence: GUARANTEED }];
+}
+
+message APIConfig
+{
+    message StreamingEndpoint
+    {
+        required int32 hub_id = 1;
+        required string hostname = 2;
+        required int32 port = 3;
+    }
+
+    repeated StreamingEndpoint streaming_endpoint = 1;
+
+    optional int32 flask_bind_port = 2 [default = 9092];
+
+    // set true if no API key is required
+    optional bool no_key_required = 3 [default = false];
+
+    message APIKey
+    {
+        required string private_key = 1;
+
+        enum Permission
+        {
+            ALL = 0 [(jaia.ev).rest_api = {
+                permitted_action: [
+                    'status',
+                    'metadata',
+                    'task_packets',
+                    'command',
+                    'command_for_hub'
+                ]
+            }];
+            READ = 1 [(jaia.ev).rest_api = {
+                permitted_action: [ 'status', 'metadata', 'task_packets' ]
+            }];
+            WRITE = 2 [(jaia.ev).rest_api = {
+                permitted_action: [ 'command', 'command_for_hub' ]
+            }];
+            STATUS = 3
+                [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
+            METADATA = 4
+                [(jaia.ev).rest_api = { permitted_action: [ 'metadata' ] }];
+            TASK_PACKETS = 5
+                [(jaia.ev).rest_api = { permitted_action: [ 'task_packets' ] }];
+            COMMAND = 6
+                [(jaia.ev).rest_api = { permitted_action: [ 'command' ] }];
+            COMMAND_FOR_HUB = 7 [
+                (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
+            ];
+        }
+
+        repeated Permission permission = 2;
+    }
+    repeated APIKey key = 4;
 }

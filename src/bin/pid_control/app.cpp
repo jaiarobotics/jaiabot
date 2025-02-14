@@ -29,7 +29,7 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
-#include "goby/util/sci.h"                                // for linear_interpolate
+#include "goby/util/sci.h" // for linear_interpolate
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -180,8 +180,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
     // subscribe for commands from engineering
     interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
-        [this](const jaiabot::protobuf::Engineering& command) {
-            if (command.has_pid_control()) {
+        [this](const jaiabot::protobuf::Engineering& command)
+        {
+            if (command.has_pid_control())
+            {
                 handle_engineering_command(command.pid_control());
             }
 
@@ -195,13 +197,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
     // subscribe for commands from mission manager
     interprocess()
         .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
-            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
-                handle_command(command);
-            });
+            [this](const jaiabot::protobuf::DesiredSetpoints& command)
+            { handle_command(command); });
 
     // Subscribe to get vehicle movement and orientation, for PID targeting
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
-        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
+        {
             glog.is_debug2() && glog << "Received node status: " << node_status.ShortDebugString()
                                      << std::endl;
 
@@ -261,7 +263,8 @@ void jaiabot::apps::BotPidControl::loop()
 {
     // Heartbeat publish to arduino to ensure
     // values are up-to-date
-    publish_low_control();
+    if (!suspended_)
+        publish_low_control();
 }
 
 void jaiabot::apps::BotPidControl::publish_low_control()
@@ -279,59 +282,60 @@ void jaiabot::apps::BotPidControl::publish_low_control()
         case MANUAL: break;
         case PID_SPEED:
 
-            {
-                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
-                float speed_multiplier = 1.0;
+        {
+            // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
+            float speed_multiplier = 1.0;
 
-                if (_rudder_is_using_pid_ && actual_heading_ > -1000.0)
+            if (_rudder_is_using_pid_ && actual_heading_ > -1000.0)
+            {
+                // Apply a step function to the speed:
+                //  * 100% of desired speed when we are with n degrees
+                //  * Desired speed times dot product of heading error otherwise
+                float heading_error_deg = actual_heading_ - target_heading_;
+                if (abs(heading_error_deg) < full_speed_window_)
                 {
-                    // Apply a step function to the speed:
-                    //  * 100% of desired speed when we are with n degrees
-                    //  * Desired speed times dot product of heading error otherwise
-                    float heading_error_deg = actual_heading_ - target_heading_;
-                    if (abs(heading_error_deg) < full_speed_window_)
-                    {
-                        speed_multiplier = 1.0;
-                    }
-                    else
-                    {
-                        speed_multiplier = cos(heading_error_deg * M_PI / 180.0);
-                    }
-                }
-                else {
                     speed_multiplier = 1.0;
                 }
-                processed_target_speed_ = target_speed_ * speed_multiplier;
-
-                if (processed_target_speed_ != 0.0)
+                else
                 {
-                    processed_target_speed_ = max(0.5f, processed_target_speed_);
+                    speed_multiplier = cos(heading_error_deg * M_PI / 180.0);
                 }
-
-                if (use_throttle_table_for_speed_)
-                {
-                    throttle_ =
-                        goby::util::linear_interpolate(processed_target_speed_, speed_to_throttle_);
-                    glog.is_debug2() &&
-                        glog << group("main") << "using throttle table, processed_target_speed = "
-                             << processed_target_speed_ << " throttle = " << throttle_ << std::endl;
-                }
-                else {
-                    // Compute new throttle value
-                    if (throttle_speed_pid_->need_compute())
-                    {
-                        throttle_speed_pid_->compute();
-                    }
-
-                    glog.is_debug2() &&
-                        glog << group("main") << "using speed PID, target_speed = " << target_speed_
-                             << " processed_target_speed = " << processed_target_speed_
-                             << " actual_speed = " << actual_speed_ << " throttle = " << throttle_
-                             << std::endl;
-                }
-
             }
-            break;
+            else
+            {
+                speed_multiplier = 1.0;
+            }
+            processed_target_speed_ = target_speed_ * speed_multiplier;
+
+            if (processed_target_speed_ != 0.0)
+            {
+                processed_target_speed_ = max(0.5f, processed_target_speed_);
+            }
+
+            if (use_throttle_table_for_speed_)
+            {
+                throttle_ =
+                    goby::util::linear_interpolate(processed_target_speed_, speed_to_throttle_);
+                glog.is_debug2() &&
+                    glog << group("main") << "using throttle table, processed_target_speed = "
+                         << processed_target_speed_ << " throttle = " << throttle_ << std::endl;
+            }
+            else
+            {
+                // Compute new throttle value
+                if (throttle_speed_pid_->need_compute())
+                {
+                    throttle_speed_pid_->compute();
+                }
+
+                glog.is_debug2() && glog << group("main")
+                                         << "using speed PID, target_speed = " << target_speed_
+                                         << " processed_target_speed = " << processed_target_speed_
+                                         << " actual_speed = " << actual_speed_
+                                         << " throttle = " << throttle_ << std::endl;
+            }
+        }
+        break;
         case PID_DEPTH:
             // Compute new throttle value
             if (throttle_depth_pid_->need_compute())
@@ -455,12 +459,13 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     interprocess().publish<jaiabot::groups::low_control>(cmd_msg_);
 }
 
-void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {
+void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode)
+{
     if (newThrottleMode != _throttleMode_)
     {
-        switch (newThrottleMode) {
-            case MANUAL:
-                break;
+        switch (newThrottleMode)
+        {
+            case MANUAL: break;
             case PID_SPEED: throttle_speed_pid_->reset_iterm(); break;
             case PID_DEPTH:
                 // Set the throttle to what the arduino is reporting
@@ -488,7 +493,8 @@ void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled,
                              << ", is_heading_constant_: " << is_heading_constant_ << std::endl;
 }
 
-void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
+void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled)
+{
     if (enabled != _elevator_is_using_pid_)
     {
         roll_pid_->reset_iterm();
@@ -497,7 +503,8 @@ void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
     _elevator_is_using_pid_ = enabled;
 }
 
-void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::protobuf::PIDControl& command)
+void jaiabot::apps::BotPidControl::handle_engineering_command(
+    const jaiabot::protobuf::PIDControl& command)
 {
     glog.is_verbose() && glog << "Received engineering command: " << command.ShortDebugString()
                               << std::endl;
@@ -535,7 +542,6 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         {
             throttle_speed_pid_->tune(speed.kp(), speed.ki(), speed.kd());
         }
-
     }
     // Depth PID for dive
     if (command.has_depth())
@@ -544,8 +550,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
 
         if (depth.has_target())
         {
-            setThrottleMode(PID_DEPTH);
-            target_depth_ = depth.target();
+            set_target_depth(depth.target());
         }
 
         if (depth.has_kp())
@@ -660,6 +665,8 @@ void jaiabot::apps::BotPidControl::handle_command(
 
     lastCommandReceived_ = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    suspended_ = false;
+
     switch (command.type())
     {
         case jaiabot::protobuf::SETPOINT_STOP:
@@ -674,6 +681,7 @@ void jaiabot::apps::BotPidControl::handle_command(
             break;
         case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command); break;
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(command); break;
+        case jaiabot::protobuf::SETPOINT_SUSPEND_PID: suspended_ = true; break;
     }
 
     // Special case:  don't track the rudder if the target speed is zero, and the throttle is speed-PID
@@ -741,8 +749,7 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(
     // Depth PID for dive
     if (command.has_dive_depth())
     {
-        setThrottleMode(PID_DEPTH);
-        target_depth_ = command.dive_depth();
+        set_target_depth(command.dive_depth());
     }
     else if (bounds_.motor().has_throttle_dive())
     {
@@ -779,7 +786,8 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent(
     }
 }
 
-void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings) {
+void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings)
+{
     pid_settings->set_target(pid->get_setpoint());
     pid_settings->set_kp(std::abs(pid->get_Kp()));
     pid_settings->set_ki(std::abs(pid->get_Ki()));
@@ -787,7 +795,8 @@ void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings)
 }
 
 // Engineering status
-void jaiabot::apps::BotPidControl::publish_engineering_status() {
+void jaiabot::apps::BotPidControl::publish_engineering_status()
+{
     auto pid_control_status = jaiabot::protobuf::PIDControl();
 
     copy_pid(throttle_speed_pid_, pid_control_status.mutable_speed());
@@ -800,7 +809,8 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
     pid_control_status.set_throttle(throttle_);
     pid_control_status.set_rudder(rudder_);
 
-    glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString() << endl;
+    glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString()
+                             << endl;
 
     interprocess().publish<jaiabot::groups::engineering_status>(pid_control_status);
 }

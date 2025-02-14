@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
 
 import secrets
-print('JAIA_REST_API_PRIVATE_KEY=' + secrets.token_urlsafe(16))
+key=secrets.token_urlsafe(16)
+
+print('# Append to /etc/jaiabot/rest_api.pb.cfg')
+print(f'''key {{ 
+    private_key: "{key}"
+    permission: [ALL]
+}}''')

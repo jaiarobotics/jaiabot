@@ -43,7 +43,7 @@ message MissionManager
 
     // safety timeout on powered descent to then transition to unpowered descent
     optional int32 powered_descent_timeout = 28
-        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 100, (dccl.field).units = { base_dimensions: "T" }];
 
     // detect bottom logic initial timeout in seconds. Used to determine
     // when we should start determining we reached bottom in powered descent

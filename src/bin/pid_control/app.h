@@ -9,8 +9,8 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #include "PID/PID.h"
@@ -50,6 +50,19 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     float actual_depth_ = 0.0;
     float target_depth_ = 0.0;
+
+    void set_target_depth(const float new_target_depth)
+    {
+        setThrottleMode(PID_DEPTH);
+
+        // If the depth target has changed, reset the I term, so bot doesn't grind motor against seafloor.
+        if (target_depth_ != new_target_depth)
+        {
+            throttle_depth_pid_->reset_iterm();
+            target_depth_ = new_target_depth;
+        }
+    }
+
     Pid* throttle_depth_pid_;
 
     bool use_throttle_table_for_speed_ = false;
@@ -89,6 +102,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     // Arduino Response for motor in percent
     int arduino_motor_throttle_{0};
+
+    // if true, don't send low control (used by mission_repeater)
+    bool suspended_{false};
 
   private:
     void loop() override;

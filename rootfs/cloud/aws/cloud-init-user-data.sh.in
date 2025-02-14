@@ -123,7 +123,7 @@ unzip awscliv2.zip
 
 ## Add s3 entry for data
 cat <<EOF >> /etc/fstab
-{{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}} 0 0
+{{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}},tmpdir=/var/log/jaiabot 0 0
 EOF
 
 ## Preseed jaiabot

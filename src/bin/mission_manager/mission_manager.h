@@ -53,6 +53,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
 
     void check_forward_progress();
+    void publish_mission_report(protobuf::MissionState state);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

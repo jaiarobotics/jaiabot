@@ -6,7 +6,7 @@ import {
     MissionState,
     HubStatus,
 } from "../shared/JAIAProtobuf";
-import { jaiaAPI } from "../jcc/common/JaiaAPI";
+import { jaiaAPI } from "./jaia-api";
 import { CustomAlert } from "../shared/CustomAlert";
 import { isError } from "lodash";
 
