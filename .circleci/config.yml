@@ -264,12 +264,12 @@ workflows:
             - arm64-noble-deb-build
 
       # rootfs jobs
-      - raspi-image-create-noble:
+      - arm64-raspi-image-create-noble:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
 
-      - virtualbox-image-create-noble:
+      - amd64-virtualbox-image-create-noble:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
@@ -282,7 +282,7 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - raspi-image-create-noble
+            - arm64-raspi-image-create-noble
 
       - amd64-bundle-noble:
           filters:
@@ -291,12 +291,12 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - virtualbox-image-create-noble
+            - amd64-virtualbox-image-create-noble
             
       - aws-sync:
           requires:
-            - raspi-image-create-noble
-            - virtualbox-image-create-noble
+            - arm64-raspi-image-create-noble
+            - amd64-virtualbox-image-create-noble
             - amd64-bundle-noble
             - arm64-bundle-noble
           <<: *filter-template-aws-rootfs-builds
@@ -404,7 +404,7 @@ jobs:
             done
 
   # rootfs jobs
-  raspi-image-create-noble:
+  arm64-raspi-image-create-noble:
     machine:
       image: ubuntu-2404:current
     resource_class: arm.medium
@@ -448,7 +448,7 @@ jobs:
             - "arm64/*.tar.gz"
             - "arm64/*.metadata.txt"
 
-  virtualbox-image-create-noble:
+  amd64-virtualbox-image-create-noble:
     machine:
       image: ubuntu-2404:current
     resource_class: medium
