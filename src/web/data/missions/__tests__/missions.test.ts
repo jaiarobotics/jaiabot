@@ -1,4 +1,4 @@
-import { missions } from "../../missions/missions";
+import { missions } from "../missions";
 import {
     missionA,
     missionB,

@@ -12,7 +12,6 @@ import { ThemeProvider, createTheme } from "@mui/material";
 import Icon from "@mdi/react";
 import { mdiDelete, mdiContentDuplicate } from "@mdi/js";
 
-import RunAssignMenu from "../../../../../components/RunAssignMenu/RunAssignMenu";
 import { RunInterface } from "../../../../CommandControl/CommandControl";
 import { addDropdownListener } from "../../../../../shared/Utilities";
 import "./RunItem.less";
@@ -151,11 +150,6 @@ export default class RunItem extends React.Component<RunItemProps, RunItemState>
                     </AccordionSummary>
                     <AccordionDetails>
                         <span className="runItemInfo">
-                            <RunAssignMenu
-                                handleBotSelectionChange={this.handleBotSelectionChange.bind(this)}
-                                run={this.props.run}
-                                botsNotAssigned={this.props.botsNotAssignedToRuns}
-                            />
                             <Button
                                 className={"button-jcc missionAccordian"}
                                 onClick={() => this.handleDuplicateRunClick()}

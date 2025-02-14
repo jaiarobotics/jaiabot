@@ -2,9 +2,9 @@
 import React from "react";
 
 // Jaia
-import { CommandControlWrapper } from "../containers/CommandControl/CommandControl";
 import { GlobalContextProvider } from "../context/Global/GlobalContext";
 import { JaiaSystemContextProvider } from "../context/JaiaSystem/JaiaSystemContext";
+import { CommandControlWrapper } from "../containers/CommandControl/CommandControl";
 
 // Style
 import "./App.less";

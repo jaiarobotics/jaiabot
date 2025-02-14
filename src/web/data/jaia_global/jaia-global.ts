@@ -23,7 +23,7 @@ class JaiaGlobal {
     }
 
     deselectNode() {
-        this.setSelectedNode({ type: NodeTypes.NONE, id: -1 });
+        this.selectedNode = { type: NodeTypes.NONE, id: -1 };
     }
 }
 

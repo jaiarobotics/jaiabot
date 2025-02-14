@@ -1,8 +1,13 @@
+import { bots } from "../bots/bots";
+import { missions } from "../missions/missions";
+import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+
 class MissionsManager {
     private botsToMissions: Map<number, number>;
     private missionsToBots: Map<number, number>;
 
     readonly UNASSIGNED_ID = -1;
+    readonly STATUS_AGE_MAX_SECONDS = 30;
 
     constructor() {
         this.botsToMissions = new Map<number, number>();
@@ -50,6 +55,52 @@ class MissionsManager {
         }
 
         this.missionsToBots.set(missionID, botID);
+    }
+
+    /**
+     * Assigns available Bots to open missions. The Bot and mission assignments move from low IDs to high IDs
+     *
+     * @returns {void}
+     */
+    autoAssign() {
+        for (let [missionID, mission] of missions.getMissions()) {
+            if (this.getBotID(mission.getMissionID()) === this.UNASSIGNED_ID) {
+                if (this.getNextAvailableBotID() !== this.UNASSIGNED_ID) {
+                    this.assign(this.getNextAvailableBotID(), mission.getMissionID());
+                }
+            }
+        }
+    }
+
+    /**
+     * Finds the lowest Bot ID that is not assigned to a mission
+     *
+     * @returns {number} Bot ID or (-1) if all Bots are already assigned to missions or outside of comms range
+     */
+    getNextAvailableBotID() {
+        for (let [botID, bot] of bots.getBots()) {
+            if (
+                this.getMissionID(bot.getBotID()) === this.UNASSIGNED_ID &&
+                convertMicrosecondsToSeconds(bot.getStatusAge()) < this.STATUS_AGE_MAX_SECONDS
+            ) {
+                return bot.getBotID();
+            }
+        }
+        return this.UNASSIGNED_ID;
+    }
+
+    /**
+     * Removes connection between a Bot and a deleted mission
+     *
+     * @param {number} missionID ID of deleted mission
+     * @returns {void}
+     */
+    removeAssignment(missionID: number) {
+        const botAssignment = this.getBotID(missionID);
+
+        if (botAssignment !== this.UNASSIGNED_ID) {
+            this.botsToMissions.set(botAssignment, this.UNASSIGNED_ID);
+        }
     }
 
     /**

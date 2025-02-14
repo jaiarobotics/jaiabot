@@ -36,6 +36,7 @@ const mockGlobalContext1: GlobalContextType = {
     visibleDetails: NodeTypes.NONE,
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
+    missionAccordionStates: {},
     isRCMode: false,
 };
 
