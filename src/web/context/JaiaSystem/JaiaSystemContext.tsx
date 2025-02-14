@@ -19,8 +19,6 @@ export interface JaiaSystemContextType {
 
 interface Action {
     type: JaiaSystemActions;
-    bots?: Map<number, Bot>;
-    hubs?: Map<number, Hub>;
     botID?: number;
     missionID?: number;
 }
@@ -46,8 +44,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
     switch (action.type) {
         case JaiaSystemActions.INIT:
             return handleInit(mutableState);
-        case JaiaSystemActions.DATA_MODEL_POLLED:
-            return handleDataModelPolled(mutableState, action.bots, action.hubs);
+        case JaiaSystemActions.POLL_DATA_MODEL:
+            return handleDataModelPolled(mutableState);
         case JaiaSystemActions.ADD_MISSION:
             return handleAddMission(mutableState);
         case JaiaSystemActions.DELETE_MISSION:
@@ -64,25 +62,7 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
 }
 
 /**
- * Saves the latest data from incoming Bot and Hub status messages to state
- *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @param {Map<number, Bot>} bots Contains most up to date data on Bots
- * @param {Map<number, Hub>} hubs Contains most up to date data on Hubs
- * @returns {JaiaSystemContextType} Updated mutable state object
- */
-function handleDataModelPolled(
-    mutableState: JaiaSystemContextType,
-    bots: Map<number, Bot>,
-    hubs: Map<number, Hub>,
-) {
-    mutableState.bots = bots;
-    mutableState.hubs = hubs;
-    return mutableState;
-}
-
-/**
- * Puts Context in sync with the data model
+ * Puts Context in sync with the data model from the start. Without this call, the properties would not have the expected getters and setters from the data model.
  *
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
@@ -91,6 +71,18 @@ function handleInit(mutableState: JaiaSystemContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Saves the latest data from incoming Bot and Hub status messages to state
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleDataModelPolled(mutableState: JaiaSystemContextType) {
+    mutableState.bots = bots.getBots();
+    mutableState.hubs = hubs.getHubs();
     return mutableState;
 }
 
@@ -202,11 +194,8 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
  * We do not poll for changes in the Missions singleton since those changes only come from user interactions
  */
 function pollDataModel(dispatch: React.Dispatch<Action>) {
-    return setInterval(() => {
-        dispatch({
-            type: JaiaSystemActions.DATA_MODEL_POLLED,
-            bots: bots.getBots(),
-            hubs: hubs.getHubs(),
-        });
-    }, DATA_MODEL_POLL_TIME);
+    return setInterval(
+        () => dispatch({ type: JaiaSystemActions.POLL_DATA_MODEL }),
+        DATA_MODEL_POLL_TIME,
+    );
 }
