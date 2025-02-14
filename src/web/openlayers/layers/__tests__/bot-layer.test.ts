@@ -21,7 +21,7 @@ const botStatusMock3: PortalBotStatus = {
 describe("Add Bots to bot-layer", () => {
     test("Add Bots to bot-layer", () => {
         // Add one Bot to bot-layer
-        bots.addBot(botStatusMock1);
+        bots.setBot(botStatusMock1);
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
         botLayer.updateFeatures();
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(1);
@@ -32,8 +32,8 @@ describe("Add Bots to bot-layer", () => {
         botLayer.getVectorLayer().getSource().clear();
 
         // Add two Bots to bot-layer
-        bots.addBot(botStatusMock1);
-        bots.addBot(botStatusMock2);
+        bots.setBot(botStatusMock1);
+        bots.setBot(botStatusMock2);
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
         botLayer.updateFeatures();
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(2);
@@ -45,7 +45,7 @@ describe("Add Bots to bot-layer", () => {
         botLayer.getVectorLayer().getSource().clear();
 
         // Add Bot to bot-layer without location
-        bots.addBot(botStatusMock3);
+        bots.setBot(botStatusMock3);
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
         botLayer.updateFeatures();
         expect(botLayer.getVectorLayer().getSource().getFeatures().length).toBe(1);

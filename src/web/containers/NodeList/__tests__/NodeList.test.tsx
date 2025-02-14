@@ -33,10 +33,10 @@ const mockHubStatus1: PortalHubStatus = {
 };
 
 // Add Bots in non-numerical order to verify sorting
-bots.addBot(mockBotStatus5);
-bots.addBot(mockBotStatus1);
-bots.addBot(mockBotStatus2);
-hubs.addHub(mockHubStatus1);
+bots.setBot(mockBotStatus5);
+bots.setBot(mockBotStatus1);
+bots.setBot(mockBotStatus2);
+hubs.setHub(mockHubStatus1);
 
 beforeEach(() => {
     render(
