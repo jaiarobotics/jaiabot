@@ -14,6 +14,7 @@ export default class Mission {
         return this.missionID;
     }
 
+    // Set automatically when a Mission is added to the Missions singleton
     setMissionID(missionID: number) {
         this.missionID = missionID;
     }
