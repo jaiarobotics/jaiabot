@@ -439,7 +439,7 @@ jobs:
 
             # Avoid permission denied on persist_to_workspace
             sudo chmod -R a+r /tmp/${TARGET_ARCH}
-        - run: &run-compress-image-raspi
+      - run: &run-compress-image-raspi
           name: Compress image
           command: pigz /tmp/arm64/*.img
       - store_artifacts: &store-raspi
