@@ -501,7 +501,7 @@ jobs:
             iso_name=jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
             sudo cp ../jaiabot_updates.iso /tmp/bundle/result/${iso_name}
             sudo cp major_upgrade/version.txt /tmp/bundle/result/version.txt
-            cat \<< EOF >> /tmp/bundle/result/version.txt
+            cat \<< EOF | sudo tee -a /tmp/bundle/result/version.txt
             iso_name=${iso_name}
             EOF
 
