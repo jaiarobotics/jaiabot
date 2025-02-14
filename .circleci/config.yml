@@ -531,6 +531,11 @@ jobs:
           name: Delete previous images for this repo/version
           command: |
             aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+      - run:
+          name: Remove unnecessary files before sync to AWS
+          command: |
+            # No need to sync boot.tar.gz and rootfs.tar.gz
+            rm /tmp/images/*.tar.gz
       - aws-s3/sync:
           profile_name: OIDC-User
           from: /tmp/vbox
