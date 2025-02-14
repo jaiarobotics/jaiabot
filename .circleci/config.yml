@@ -503,6 +503,11 @@ jobs:
       - store_artifacts: &store-bundle-artifacts
           path: /tmp/bundle/result
 
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - "bundle/*.iso"
+          
   aws-sync:
     docker:
       - image: cimg/base:current
