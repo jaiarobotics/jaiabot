@@ -51,15 +51,13 @@ export default function MissionsPanel() {
     const autoScrollMissions = () => {};
 
     /**
-     * Dispatches the action to clear all missions when an operator clicks the delete all missions button
+     * Dispatches the actions to clear all missions when an operator clicks the delete all missions button
      *
      * @returns {void}
      */
     const handleDeleteAllMissionsClick = () => {
-        // Clear accordion states
-        globalDispatch({ type: GlobalActions.CLICKED_DELETE_ALL_MISSIONS });
-
         jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_ALL_MISSIONS });
+        globalDispatch({ type: GlobalActions.RESET_MISSION_ACCORDIONS });
     };
 
     /**
@@ -80,7 +78,7 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAutoAssignClick = () => {
-        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN_BOTS_TO_MISSIONS });
+        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN_MISSIONS });
     };
 
     return (

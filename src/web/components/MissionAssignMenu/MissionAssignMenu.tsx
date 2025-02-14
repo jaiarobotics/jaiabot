@@ -44,7 +44,7 @@ export default function MissionAssignMenu(props: Props) {
     const handleMenuSelection = (evt: SelectChangeEvent) => {
         const selectedBotID = Number(evt.target.value);
         jaiaSystemDispatch({
-            type: JaiaSystemActions.ASSIGN_BOT_TO_MISSION,
+            type: JaiaSystemActions.ASSIGN_MISSION,
             botID: selectedBotID,
             missionID: props.missionID,
         });

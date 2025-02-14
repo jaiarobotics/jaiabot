@@ -1,6 +1,5 @@
 // React
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
-
 import { JaiaSystemActions } from "./jaia-system-actions";
 
 import { bots } from "../../data/bots/bots";
@@ -52,17 +51,18 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleDeleteMission(mutableState, action.missionID);
         case JaiaSystemActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
-        case JaiaSystemActions.ASSIGN_BOT_TO_MISSION:
-            return handleAssignBotToMission(mutableState, action.botID, action.missionID);
-        case JaiaSystemActions.AUTO_ASSIGN_BOTS_TO_MISSIONS:
-            return handleAutoAssignBotsToMissions(mutableState);
+        case JaiaSystemActions.ASSIGN_MISSION:
+            return handleAssignMission(mutableState, action.botID, action.missionID);
+        case JaiaSystemActions.AUTO_ASSIGN_MISSIONS:
+            return handleAutoAssignMissions(mutableState);
         default:
             return state;
     }
 }
 
 /**
- * Puts Context in sync with the data model from the start. Without this call, the properties would not have the expected getters and setters from the data model.
+ * Puts Context in sync with the data model from the start.
+ * Without this call, the properties would not have the expected getters and setters from the data model.
  *
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
@@ -134,7 +134,7 @@ function handleDeleteAllMissions(mutableState: JaiaSystemContextType) {
  * @param {number} missionID Which mission to accept assignment
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
-function handleAssignBotToMission(
+function handleAssignMission(
     mutableState: JaiaSystemContextType,
     botID: number,
     missionID: number,
@@ -151,7 +151,7 @@ function handleAssignBotToMission(
  * @param {JaiaSystemContextType} mutableState State object ref for making modifications
  * @returns {JaiaSystemContextType} Updated mutable state object
  */
-function handleAutoAssignBotsToMissions(mutableState: JaiaSystemContextType) {
+function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
     missionsManager.autoAssign();
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();

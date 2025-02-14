@@ -135,8 +135,8 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
-        case GlobalActions.CLICKED_DELETE_ALL_MISSIONS:
-            return handleClickedDeleteAllMissions(mutableState);
+        case GlobalActions.RESET_MISSION_ACCORDIONS:
+            return handleResetMissionAccordions(mutableState);
 
         default:
             return state;
@@ -314,7 +314,7 @@ function handleClickedMissionAccordion(
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
  */
-function handleClickedDeleteAllMissions(mutableState: GlobalContextType) {
+function handleResetMissionAccordions(mutableState: GlobalContextType) {
     mutableState.missionAccordionStates = {};
     return mutableState;
 }
