@@ -436,7 +436,10 @@ jobs:
               extension="${filename#*.}"
               mv "${TMP_IMG_NAME}.${extension}" "/tmp/${TARGET_ARCH}/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}.${extension}"
             done
-      - run: &run-compress-image-raspi
+
+            # Avoid permission denied on persist_to_workspace
+            sudo chmod -R a+r /tmp/${TARGET_ARCH}
+        - run: &run-compress-image-raspi
           name: Compress image
           command: pigz /tmp/arm64/*.img
       - store_artifacts: &store-raspi
