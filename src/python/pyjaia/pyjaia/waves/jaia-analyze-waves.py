@@ -58,10 +58,10 @@ def doPlots(h5FilePath: Path, config: DriftAnalysisConfig, drifts: List[Drift]):
 
         f.write('</html>\n')
 
-    os.system(f'xdg-open {htmlFilename}')
+    return htmlFilename
 
 
-def analyzeFile(h5File: h5py.File, config: DriftAnalysisConfig):
+def getDrifts(h5File: h5py.File, config: DriftAnalysisConfig):
     seriesSet = SeriesSet.loadFromH5File(h5File)
 
     if config.glitchy:
@@ -75,7 +75,34 @@ def analyzeFile(h5File: h5py.File, config: DriftAnalysisConfig):
         drift = doDriftAnalysis(driftSeriesSet.accelerationVertical, config)
         drifts.append(drift)
 
-    doPlots(Path(h5File.filename), config, drifts)
+    return drifts
+
+
+def writeCSVs(h5_filename: str, config: AnalysisConfig, drifts: List[Drift]):
+    import csv
+    print('Writing CSV files')
+
+    for drift_index, drift in enumerate(drifts):
+        assert(len(drift.filteredVerticalAcceleration.utime) == len(drift.elevation.utime))
+
+        csv_filename = f'{h5_filename}-drift-{drift_index + 1}.csv'
+
+        with open(csv_filename, 'w') as fp:
+            column_names = [
+                'timestamp (micros)', 
+                'filtered acceleration (m/s^2)', 
+                'elevation (m)'
+            ]
+
+            writer = csv.DictWriter(fp, column_names)
+            writer.writeheader()
+
+            for time_index in range(len(drift.filteredVerticalAcceleration.utime)):
+                writer.writerow({
+                    'timestamp (micros)': drift.rawVerticalAcceleration.utime[time_index],
+                    'filtered acceleration (m/s^2)': drift.filteredVerticalAcceleration.y_values[time_index],
+                    'elevation (m)': drift.elevation.y_values[time_index]
+                })
 
 
 def main():
@@ -84,14 +111,32 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('config_file')
     parser.add_argument('h5_files', nargs='+')
-    args = parser.parse_args()
+    parser.add_argument('-c', '--csv', action='store_true', help='Write CSV files for data series.')
+    parser.add_argument('-o', '--open', action='store_true', help='Open html files after generating them.')
+
+    @dataclass
+    class Args:
+        config_file: str
+        h5_files: List[str]
+        csv: bool
+        open: bool
+
+    args: Args = parser.parse_args()
 
     config = DriftAnalysisConfig.load(args.config_file)
-    print(config)
 
     for h5Path in args.h5_files:
         h5File = h5py.File(h5Path)
-        analyzeFile(h5File, config)
+        drifts = getDrifts(h5File, config)
+
+        htmlFilename = doPlots(Path(h5File.filename), config, drifts)
+
+        if args.open:
+            os.system(f'xdg-open {htmlFilename}')
+
+        if args.csv:
+            writeCSVs(h5File.filename, config, drifts)
+
 
 
 if __name__ == '__main__':
