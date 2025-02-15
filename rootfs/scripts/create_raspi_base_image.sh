@@ -358,6 +358,22 @@ echo "export JAIABOT_ROOTFS_GEN_TAG='$ROOTFS_BUILD_TAG'" > ${OUTPUT_METADATA}
 echo "export JAIABOT_VERSION='$JAIABOT_VERSION'" >> ${OUTPUT_METADATA}
 echo "export GOBY_VERSION='$GOBY_VERSION'" >> ${OUTPUT_METADATA}
 
+
+function create_tarballs {
+    # Persist the rootfs and boot for release upgrades
+    OUTPUT_ROOTFS_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.rootfs\.tar\.gz/")
+    OUTPUT_BOOT_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.boot\.tar\.gz/")
+
+    # Create tarball variants of image
+    unmount_bind_mounts   
+    cd rootfs
+    # Need xattrs for ping setcap
+    tar --xattrs --xattrs-include="*" -cf - . | $COMPRESSOR > ${OUTPUT_ROOTFS_TARBALL}
+    cd ../boot
+    tar -cf - . | $COMPRESSOR > ${OUTPUT_BOOT_TARBALL}
+    cd ..    
+}
+
 if [ ! -z "$VIRTUALBOX" ]; then
     sudo chroot rootfs apt-get -y install linux-image-virtual grub-efi-amd64
     
@@ -379,6 +395,9 @@ if [ ! -z "$VIRTUALBOX" ]; then
     
     # use ipv6 and ipv4 resolv.conf for VirtualBox and AWS instances
     sudo chroot rootfs /bin/bash -c "cat /etc/resolv.conf.ipv6 /etc/resolv.conf.ipv4 > /etc/resolv.conf"
+
+    create_tarballs
+    
     # unmount all the image partitions first
     finish
     
@@ -406,19 +425,8 @@ else
     # Noble flash-kernel added FK_IGNORE_EFI
     sudo chroot rootfs /bin/bash -c "export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
     
-    # Persist the rootfs and boot for release upgrades
-    OUTPUT_ROOTFS_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.rootfs\.tar\.gz/")
-    OUTPUT_BOOT_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.boot\.tar\.gz/")
-
-
-    # Create tarball variants of image
-    unmount_bind_mounts   
-    cd rootfs
-    # Need xattrs for ping setcap
-    tar --xattrs --xattrs-include="*" -cf - . | $COMPRESSOR > ${OUTPUT_ROOTFS_TARBALL}
-    cd ../boot
-    tar -cf - . | $COMPRESSOR > ${OUTPUT_BOOT_TARBALL}
-    cd ..
+    create_tarballs
     
     echo "Raspberry Pi image created at $OUTPUT_IMAGE_PATH (also a copy of rootfs at $OUTPUT_ROOTFS_TARBALL and boot at $OUTPUT_BOOT_TARBALL)"
 fi
+

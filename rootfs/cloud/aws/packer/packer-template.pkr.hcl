@@ -7,10 +7,11 @@ variable "source_ami" {}
 variable "aws_region" {} 
 variable "jaia_upgrade_repo" {}
 variable "jaia_upgrade_version" {}
+variable "ami_name" {}
 
 # AWS Builder
 source "amazon-ebs" "jaia-v2-test" {
-  ami_name      = "packer-ami-jaia-v2"
+  ami_name      = var.ami_name
   instance_type = var.instance_type
   region        = var.aws_region
   source_ami    = var.source_ami

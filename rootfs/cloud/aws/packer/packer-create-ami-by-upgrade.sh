@@ -10,6 +10,10 @@ BASE_VERSION=1.y
 UPGRADE_REPO=test
 UPGRADE_VERSION=2.y
 
+SCRIPT_PATH=$(dirname "$0")
+
+UPGRADE_AMI_NAME=${1:-"TEST-packer-ami-jaia-${UPGRADE_REPO}-${UPGRADE_VERSION}"}
+
 function finish {
     ( # Run in a subshell to ignore errors
         set +e
@@ -17,6 +21,8 @@ function finish {
     )
 }
 trap finish EXIT
+
+cd ${SCRIPT_PATH}
 
 rm -f id_packer*
 ssh-keygen -N "" -t ed25519 -f id_packer -C "packer"
@@ -30,4 +36,4 @@ LATEST_AMI=$(aws ec2 describe-images \
                  --output text)
 
 
-packer build -on-error=ask -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" packer-template.pkr.hcl
+packer build -on-error=ask -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" packer-template.pkr.hcl

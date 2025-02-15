@@ -467,6 +467,10 @@ jobs:
           command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox
       - run: *run-set-deb-rep-and-version
       - run: *run-create-image
+      - run:
+          name: Remove unneeded artifacts
+          command: |
+            rm -f /tmp/amd64/*.img /tmp/amd64/*.vdi            
       - store_artifacts: &store-vbox
           path: /tmp/amd64/
       - persist_to_workspace: &persist-vbox
@@ -577,9 +581,11 @@ jobs:
             echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
             echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
       - run:
-          name: Delete previous images for this repo/version
+          name: Delete previous images for this repo/version (except release repo)
           command: |
-            aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            if [ ! "${JAIABOT_ROOTFS_GEN_REPO}" = "release" ]; then
+              aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            fi
       - run:
           name: Remove unnecessary files before sync to AWS
           command: |
@@ -606,10 +612,13 @@ jobs:
           name: Import new AMI
           command: |
             OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
-
             IMAGE_NAME=${OVA%.*}
-            # writes result.json for later use
-            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get -y install packer
+            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh ${IMAGE_NAME}
+            
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
@@ -619,8 +628,10 @@ jobs:
           name: Tag new AMI
           command: |
             source /tmp/amd64/*.metadata.txt
-            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
-            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+            
+            image_id=$(aws ec2 describe-images --filters "Name=name,Values=${JAIABOT_IMAGE_NAME}" --query 'Images[*].[ImageId]' --output text)
+            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=${JAIABOT_IMAGE_NAME}" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
+            
             aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
               "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
               "Key=jaia_creator,Value=circleci" \
