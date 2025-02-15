@@ -2,3 +2,6 @@
 	path = src/python/Adafruit_CircuitPython_BNO08x
 	url = https://github.com/jaiarobotics/Adafruit_CircuitPython_BNO08x.git
 	branch = main
+[submodule "python_AtlasOEM_lib"]
+	path = python_AtlasOEM_lib
+	url = https://github.com/Atlas-Scientific/python_AtlasOEM_lib.git
