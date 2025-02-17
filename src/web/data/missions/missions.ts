@@ -52,6 +52,7 @@ class Missions {
         const missionID = this.getNextMissionID();
         this.getMissions().set(missionID, mission);
         mission.setMissionID(missionID);
+        this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
     }
@@ -64,10 +65,15 @@ class Missions {
 
     deleteMission(missionID: number) {
         this.getMissions().delete(missionID);
+
+        if (missionID === this.getMissionIDInEditMode()) {
+            this.setMissionIDInEditMode(-1);
+        }
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
+        this.setMissionIDInEditMode(-1);
         this.setNextMissionID(1);
     }
 }

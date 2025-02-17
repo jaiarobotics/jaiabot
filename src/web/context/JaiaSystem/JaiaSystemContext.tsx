@@ -13,6 +13,7 @@ import Mission from "../../data/missions/mission";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -167,17 +168,12 @@ function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
 
 function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
     const missionIDInEditMode = missions.getMissionIDInEditMode();
-    const isBotSelected = jaiaGlobal.getSelectedNode().type === NodeTypes.BOT;
-    const selectedBotMissionID = missionsManager.getMissionID(jaiaGlobal.getSelectedNode().id);
 
     if (missionIDInEditMode !== -1) {
         // Add waypoint to mission in edit mode
-        missions.getMission(missionIDInEditMode).addWaypoint(location);
-    } else if (isBotSelected && selectedBotMissionID === -1) {
-        // Create mission for the selected Bot since it is not assigned to a mission
-        const mission = new Mission();
+        const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
-        missions.addMission(mission);
+        missionLayer.addWaypointFeature(location, mission.getWaypoints().length - 1);
     }
 
     mutableState.missions = missions.getMissions();
