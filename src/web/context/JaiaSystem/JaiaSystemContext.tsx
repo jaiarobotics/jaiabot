@@ -173,7 +173,6 @@ function handleAddWaypoint(mutableState: JaiaSystemContextType, location: Geogra
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
-        missionLayer.addWaypointFeature(location, mission.getWaypoints().length - 1);
     }
 
     mutableState.missions = missions.getMissions();

@@ -1,5 +1,5 @@
-import { textHeights } from "ol/render/canvas";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {
@@ -56,6 +56,8 @@ export default class Mission {
         const waypoint = new Waypoint();
         waypoint.setLocation(location);
         this.getWaypoints().push(waypoint);
+        // Sync OpenLayers
+        missionLayer.addWaypoint(this.getMissionID());
     }
 
     deleteWaypoint(waypointNum: number) {
