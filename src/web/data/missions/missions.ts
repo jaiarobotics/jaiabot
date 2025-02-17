@@ -4,10 +4,12 @@ class Missions {
     private missions: Map<number, Mission>;
     private missionID: number;
     private nextMissionID: number;
+    private missionIDInEditMode: number;
 
     constructor() {
         this.missions = new Map<number, Mission>();
         this.nextMissionID = 1;
+        this.missionIDInEditMode = -1;
     }
 
     getMissions() {
@@ -36,6 +38,14 @@ class Missions {
 
     getMission(missionNum: number) {
         return this.getMissions().get(missionNum);
+    }
+
+    getMissionIDInEditMode() {
+        return this.missionIDInEditMode;
+    }
+
+    setMissionIDInEditMode(missionIDInEditMode: number) {
+        this.missionIDInEditMode = missionIDInEditMode;
     }
 
     addMission(mission: Mission) {

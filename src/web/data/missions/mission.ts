@@ -1,10 +1,12 @@
+import { textHeights } from "ol/render/canvas";
+import { GeographicCoordinate } from "../../utils/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
     private repeats: number;
-    private canEdit: boolean;
+    private movableWaypoint: Waypoint;
 
     constructor() {
         this.waypoints = [];
@@ -35,12 +37,12 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getCanEdit() {
-        return this.canEdit;
+    getMovableWaypoint() {
+        return this.movableWaypoint;
     }
 
-    setCanEdit(canEdit: boolean) {
-        this.canEdit = canEdit;
+    setMovableWaypoint(waypoint: Waypoint) {
+        this.movableWaypoint = waypoint;
     }
 
     getWaypoint(waypointNum: number) {
@@ -50,7 +52,9 @@ export default class Mission {
         return undefined;
     }
 
-    addWaypoint(waypoint: Waypoint) {
+    addWaypoint(location: GeographicCoordinate) {
+        const waypoint = new Waypoint();
+        waypoint.setLocation(location);
         this.getWaypoints().push(waypoint);
     }
 

@@ -10,6 +10,10 @@ import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
 
+import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { NodeTypes } from "../../types/jaia-system-types";
+
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
@@ -20,6 +24,7 @@ interface Action {
     type: JaiaSystemActions;
     botID?: number;
     missionID?: number;
+    location?: GeographicCoordinate;
 }
 
 interface JaiaSystemContextProviderProps {
@@ -55,6 +60,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleAssignMission(mutableState, action.botID, action.missionID);
         case JaiaSystemActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
+        case JaiaSystemActions.ADD_WAYPOINT:
+            return handleAddWaypoint(mutableState, action.location);
         default:
             return state;
     }
@@ -154,6 +161,25 @@ function handleAssignMission(
 function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
     missionsManager.autoAssign();
     mutableState.bots = bots.getBots();
+    mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
+    const missionIDInEditMode = missions.getMissionIDInEditMode();
+    const isBotSelected = jaiaGlobal.getSelectedNode().type === NodeTypes.BOT;
+    const selectedBotMissionID = missionsManager.getMissionID(jaiaGlobal.getSelectedNode().id);
+
+    if (missionIDInEditMode !== -1) {
+        // Add waypoint to mission in edit mode
+        missions.getMission(missionIDInEditMode).addWaypoint(location);
+    } else if (isBotSelected && selectedBotMissionID === -1) {
+        // Create mission for the selected Bot since it is not assigned to a mission
+        const mission = new Mission();
+        mission.addWaypoint(location);
+        missions.addMission(mission);
+    }
+
     mutableState.missions = missions.getMissions();
     return mutableState;
 }
