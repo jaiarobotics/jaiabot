@@ -6,6 +6,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 // Jaia
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -15,8 +16,6 @@ import {
     JaiaSystemDispatchContext,
 } from "../../context/JaiaSystem/JaiaSystemContext";
 import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
-
-const UNASSIGNED_ID = -1;
 
 interface Props {
     missionID: number;
