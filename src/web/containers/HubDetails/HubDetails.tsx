@@ -18,7 +18,6 @@ import {
     formatLongitude,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
-
 import { sendHubCommand, takeControl } from "../../utils/command";
 import { CommandInfo, hubCommands } from "../../types/commands";
 import { getIPPrefix } from "../../shared/IPPrefix";
