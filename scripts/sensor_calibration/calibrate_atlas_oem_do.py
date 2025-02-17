@@ -2,6 +2,7 @@
 
 import datetime
 import time
+import python_AtlasOEM_lib
 
 # Import utility class
 from i2c_utils import I2CUtils  

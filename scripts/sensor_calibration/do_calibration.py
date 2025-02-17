@@ -116,7 +116,63 @@ def pollDO():
         print(f"DO: {probe.read_DO_reading()}")
         time.sleep(1)
 
-        
+
+""" CALIBRATION """
+
+# Clear all previous calibration data
+def clearCalibration():
+    probe.write_calibration_request(1)
+    time.sleep(0.5)
+
+
+# Atmospheric calibration
+def atmosphericCalibration():
+    while True:
+        try:
+            if get_new_reading_available() == 1:
+                print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
+                time.sleep(1)
+            else:
+                continue
+        except IOError as e:
+            print(f"IO Error, continuing...")
+            continue
+        except KeyboardInterrupt:
+            break
+
+    input = input("Calibrate to atmospheric DO now? (y/n)")
+    if input == 'y':
+        probe.write_calibration_request(2)
+        time.sleep(0.5)
+    else:
+        return
+    
+
+
+
+# Zero calibration
+def zeroCalibration():
+    while True:
+        try:
+            if get_new_reading_available() == 1:
+                print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
+                time.sleep(1)
+            else:
+                continue
+        except IOError as e:
+            print(f"IO Error, continuing...")
+            continue
+        except KeyboardInterrupt:
+            break
+
+    input = input("Calibrate to zero DO now? (y/n)")
+    if input == 'y':
+        probe.write_calibration_request(3)
+        time.sleep(0.5)
+    else:
+        return
+
+
 """ UI MENUS """
 
 # Present a menu to the user and await their input
