@@ -16,6 +16,7 @@ import { NodeTypes } from "../../types/jaia-system-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import Bot from "../../data/bots/bot";
+import { missions } from "../../data/missions/missions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
     getDistanceToHub,
@@ -710,7 +711,9 @@ export function BotDetails(props: BotDetailsProps) {
                         </Button>
 
                         <JaiaToggle
-                            checked={() => mission?.getCanEdit()}
+                            checked={() =>
+                                missions.getMissionIDInEditMode() === mission.getMissionID()
+                            }
                             onClick={() => toggleEditMode(mission)}
                             label="Edit"
                             title="ToggleEditMode"

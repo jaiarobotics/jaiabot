@@ -4,6 +4,7 @@ import { MissionState } from "../../utils/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { MissionInterface } from "../CommandControl/CommandControl";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+import { missions } from "../../data/missions/missions";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 import Mission from "../../data/missions/mission";
@@ -70,7 +71,7 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
  * until mission management refactor is complete
  */
 export function getWaypontHelperText(mission: Mission) {
-    if (!mission || mission.getCanEdit()) {
+    if (!mission || missions.getMissionIDInEditMode() === mission.getMissionID()) {
         return "Click on the map to create waypoints";
     }
     return "Click edit toggle to create waypoint";
@@ -285,13 +286,14 @@ export function disablePlayButton(
 
     return disableInfo;
 }
+
 /**
  * @notes Refactor comming with new mission management implementation
  */
 export function toggleEditMode(mission: Mission) {
     if (!mission) return;
 
-    const canEdit = mission.getCanEdit();
+    const canEdit = missions.getMissionIDInEditMode() === mission.getMissionID();
 
     if (canEdit) {
         // if toggling off reset all waypoint move status
@@ -299,6 +301,8 @@ export function toggleEditMode(mission: Mission) {
         waypoints.forEach((element) => {
             element.setCanMoveOnMap(false);
         });
+        missions.setMissionIDInEditMode(-1);
+    } else {
+        missions.setMissionIDInEditMode(mission.getMissionID());
     }
-    mission.setCanEdit(!canEdit);
 }
