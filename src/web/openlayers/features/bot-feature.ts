@@ -13,14 +13,13 @@ import { view } from "../views/view";
 import { MapIconColors } from "../../utils/style";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Util
 import { angleToXY } from "../../utils/style";
 
 // Style
 const botIcon = require("../../style/icons/bot.svg");
-
-const TEXT_OFFSET_RADIUS = 11;
 
 export function generateBotFeature(botID: number) {
     const bot = bots.getBot(botID);

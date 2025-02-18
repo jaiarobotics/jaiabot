@@ -17,6 +17,7 @@ import {
     formatLatitude,
     formatLongitude,
 } from "../../shared/Utilities";
+import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { sendHubCommand, takeControl } from "../../utils/command";
 import { CommandInfo, hubCommands } from "../../types/commands";
 import { getIPPrefix } from "../../shared/IPPrefix";
@@ -38,8 +39,6 @@ import {
     mdiWifiCog,
     mdiWrenchCog,
 } from "@mdi/js";
-
-const DEFAULT_HUB_ID = 1;
 
 export function HubDetails() {
     const globalContext = useContext(GlobalContext);
