@@ -12,12 +12,11 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { view } from "../views/view";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Style
 import { MapIconColors } from "../../utils/style";
 const hubIcon = require("../../style/icons/hub.svg");
-
-const TEXT_OFFSET_RADIUS = 11;
 
 export function generateHubFeature(hubID: number) {
     const hub = hubs.getHub(hubID);

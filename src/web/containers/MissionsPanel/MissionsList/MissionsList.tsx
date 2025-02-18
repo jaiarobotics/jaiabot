@@ -12,6 +12,7 @@ import { JaiaSystemActions } from "../../../context/JaiaSystem/jaia-system-actio
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -31,8 +32,6 @@ import "./MissionsList.less";
 interface MissionAccordionTitleProps {
     missionID: number;
 }
-
-const UNASSIGNED_ID = -1;
 
 // Disable animations from MUI accordions because of lag experienced by operators
 const accordionTheme = createTheme({ transitions: { create: () => "none" } });

@@ -47,6 +47,7 @@ import {
     addDropdownListener,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
+import { DEFAULT_HUB_ID } from "../../utils/constants";
 
 // MDI and MUI
 import {
@@ -129,7 +130,6 @@ export function BotDetails(props: BotDetailsProps) {
         return <div></div>;
     }
 
-    const DEFAULT_HUB_ID = 1;
     const hub = jaiaSystemContext.hubs.get(DEFAULT_HUB_ID);
 
     const botID = globalContext.selectedNode.id;

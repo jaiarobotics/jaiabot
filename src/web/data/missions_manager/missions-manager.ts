@@ -1,12 +1,13 @@
 import { bots } from "../bots/bots";
 import { missions } from "../missions/missions";
+import { UNASSIGNED_ID } from "../../utils/constants";
+
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
 class MissionsManager {
     private botsToMissions: Map<number, number>;
     private missionsToBots: Map<number, number>;
 
-    readonly UNASSIGNED_ID = -1;
     readonly STATUS_AGE_MAX_SECONDS = 30;
 
     constructor() {
@@ -21,7 +22,7 @@ class MissionsManager {
      * @returns {number} Mission ID associated with a Bot or (-1) if the Bot is not assigned to a mission
      */
     getMissionID(botID: number) {
-        return this.botsToMissions.get(botID) ?? this.UNASSIGNED_ID;
+        return this.botsToMissions.get(botID) ?? UNASSIGNED_ID;
     }
 
     /**
@@ -31,7 +32,7 @@ class MissionsManager {
      * @returns {number} Bot ID associated with a mission or (-1) if the mission is not assigned to a Bot
      */
     getBotID(missionID: number) {
-        return this.missionsToBots.get(missionID) ?? this.UNASSIGNED_ID;
+        return this.missionsToBots.get(missionID) ?? UNASSIGNED_ID;
     }
 
     /**
@@ -45,12 +46,12 @@ class MissionsManager {
         // Reset Bot previously assigned to mission
         const previousBotAssignment = this.getBotID(missionID);
 
-        if (previousBotAssignment !== this.UNASSIGNED_ID) {
-            this.botsToMissions.set(previousBotAssignment, this.UNASSIGNED_ID);
+        if (previousBotAssignment !== UNASSIGNED_ID) {
+            this.botsToMissions.set(previousBotAssignment, UNASSIGNED_ID);
         }
 
         // We do not need a key of (-1) in the botsToMissions map
-        if (botID !== this.UNASSIGNED_ID) {
+        if (botID !== UNASSIGNED_ID) {
             this.botsToMissions.set(botID, missionID);
         }
 
@@ -64,8 +65,8 @@ class MissionsManager {
      */
     autoAssign() {
         for (let [missionID, mission] of missions.getMissions()) {
-            if (this.getBotID(mission.getMissionID()) === this.UNASSIGNED_ID) {
-                if (this.getNextAvailableBotID() !== this.UNASSIGNED_ID) {
+            if (this.getBotID(mission.getMissionID()) === UNASSIGNED_ID) {
+                if (this.getNextAvailableBotID() !== UNASSIGNED_ID) {
                     this.assign(this.getNextAvailableBotID(), mission.getMissionID());
                 }
             }
@@ -80,13 +81,13 @@ class MissionsManager {
     getNextAvailableBotID() {
         for (let [botID, bot] of bots.getBots()) {
             if (
-                this.getMissionID(bot.getBotID()) === this.UNASSIGNED_ID &&
+                this.getMissionID(bot.getBotID()) === UNASSIGNED_ID &&
                 convertMicrosecondsToSeconds(bot.getStatusAge()) < this.STATUS_AGE_MAX_SECONDS
             ) {
                 return bot.getBotID();
             }
         }
-        return this.UNASSIGNED_ID;
+        return UNASSIGNED_ID;
     }
 
     /**
@@ -98,8 +99,8 @@ class MissionsManager {
     removeAssignment(missionID: number) {
         const botAssignment = this.getBotID(missionID);
 
-        if (botAssignment !== this.UNASSIGNED_ID) {
-            this.botsToMissions.set(botAssignment, this.UNASSIGNED_ID);
+        if (botAssignment !== UNASSIGNED_ID) {
+            this.botsToMissions.set(botAssignment, UNASSIGNED_ID);
         }
     }
 
