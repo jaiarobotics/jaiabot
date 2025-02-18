@@ -9,14 +9,13 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 // Jaia
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 import {
     JaiaSystemContext,
     JaiaSystemDispatchContext,
 } from "../../context/JaiaSystem/JaiaSystemContext";
 import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
-
-const UNASSIGNED_ID = -1;
 
 interface Props {
     missionID: number;
