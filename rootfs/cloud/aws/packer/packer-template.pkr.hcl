@@ -8,6 +8,8 @@ variable "aws_region" {}
 variable "jaia_upgrade_repo" {}
 variable "jaia_upgrade_version" {}
 variable "ami_name" {}
+variable "iso_source" {}
+variable "iso_local_dir" {}
 
 # AWS Builder
 source "amazon-ebs" "jaia-v2-test" {
@@ -32,7 +34,9 @@ build {
     environment_vars = [
        "AWS_REGION=${var.aws_region}",
        "JAIA_UPGRADE_REPO=${var.jaia_upgrade_repo}",
-       "JAIA_UPGRADE_VERSION=${var.jaia_upgrade_version}"
+       "JAIA_UPGRADE_VERSION=${var.jaia_upgrade_version}",
+       "JAIA_UPGRADE_ISO_SOURCE=${var.iso_source}",
+       "JAIA_UPGRADE_ISO_LOCAL_DIR=${var.iso_local_dir}"
     ]
     script = "scripts/packer-fetch-upgrade.sh"
   }

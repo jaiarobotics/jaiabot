@@ -13,6 +13,8 @@ UPGRADE_VERSION=2.y
 SCRIPT_PATH=$(dirname "$0")
 
 UPGRADE_AMI_NAME=${1:-"TEST-packer-ami-jaia-${UPGRADE_REPO}-${UPGRADE_VERSION}"}
+JAIA_UPGRADE_ISO_SOURCE=${JAIA_UPGRADE_ISO_SOURCE:-"s3"}
+JAIA_UPGRADE_ISO_LOCAL_DIR=${JAIA_UPGRADE_ISO_LOCAL_DIR:-""}
 
 function finish {
     ( # Run in a subshell to ignore errors
@@ -35,5 +37,4 @@ LATEST_AMI=$(aws ec2 describe-images \
                  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
                  --output text)
 
-
-packer build -on-error=ask -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" packer-template.pkr.hcl
+packer build -on-error=ask -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl

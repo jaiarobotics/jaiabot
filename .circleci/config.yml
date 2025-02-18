@@ -615,8 +615,11 @@ jobs:
             IMAGE_NAME=${OVA%.*}
 
             curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-            sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
             sudo apt-get update && sudo apt-get -y install packer
+
+            export JAIA_UPGRADE_ISO_SOURCE=local
+            export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
             rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh ${IMAGE_NAME}
             
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
