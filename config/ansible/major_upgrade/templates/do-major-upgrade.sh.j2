@@ -109,12 +109,13 @@ else
     pivot_root ${new_ro_rootfs_mountpoint} ${new_ro_rootfs_mountpoint}/oldroot
 
     for i in dev proc sys run boot/firmware var/log; do mount --move /oldroot/$i /$i; done
-    for i in tmp etc/passwd; do mount -o bind /oldroot/$i /$i; done
+
+    # move any mounts under /oldmount as well
+    mount | awk '{print $3}' | grep "^/oldroot/" | sort -r | while read -r mountpoint; do
+        new_mount="${mountpoint//oldroot\//}"
+        mount --move "$mountpoint" "$new_mount"
+    done
     
-    # Reformat old root (new overlay)
-    mkfs.btrfs -f $(blkid -L overlay) -L overlay    
     update-grub
     
-    umount -l /oldroot
-    rmdir /oldroot    
 fi

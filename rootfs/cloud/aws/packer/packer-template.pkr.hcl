@@ -22,7 +22,7 @@ source "amazon-ebs" "jaia-v2-test" {
   user_data_file = "ec2_base/user-data"
 
   # for testing
-  skip_create_ami  = true
+  # skip_create_ami  = true
 }
 
 # Provisioners
@@ -45,10 +45,5 @@ build {
   provisioner "ansible-local" {
     playbook_dir = "ansible"
     playbook_file = "ansible/ami-upgrade.yml"
-    
-    extra_arguments = [
-      "--extra-vars",
-      "hub_id=1"
-    ]
   }
 }
