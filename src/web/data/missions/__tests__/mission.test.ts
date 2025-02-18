@@ -1,10 +1,12 @@
 import Mission from "../mission";
 import { locationA, locationB, locationC, locationD } from "../../tests/__mocks__/waypoint-mock";
+import { missions } from "../missions";
 
 describe("Operator adding and deleting single waypoints", () => {
     // Running various additions and deletions in single test because jest runs multiple tests in parallel
     test("Operator adding and deleting single waypoints", () => {
         let mission = new Mission();
+        missions.addMission(mission);
 
         // Add first waypoint
         mission.addWaypoint(locationA);
@@ -43,5 +45,8 @@ describe("Operator adding and deleting single waypoints", () => {
         mission.deleteWaypoint(2);
         expect(mission.getWaypoints().length).toBe(1);
         expect(mission.getWaypoint(1).getLocation()).toBe(locationB);
+
+        // Reset missions singleton
+        missions.deleteAllMissions();
     });
 });

@@ -106,9 +106,10 @@ test("Click on map twice with mission in edit mode", () => {
     });
 
     missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    expect(missionLayerFeatures.length).toBe(2);
-    expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[1].get("id")).toBe(2);
+    // 2 waypoints and a line segment [waypoint, line, waypoint]
+    expect(missionLayerFeatures.length).toBe(3);
+    expect(missionLayerFeatures[2].get("type")).toBe(MapFeatureTypes.WAYPOINT);
+    expect(missionLayerFeatures[2].get("id")).toBe(2);
 
     // Reset states
     missions.deleteAllMissions();
