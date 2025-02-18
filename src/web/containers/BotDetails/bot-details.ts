@@ -4,11 +4,11 @@ import { MissionState } from "../../utils/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { MissionInterface } from "../CommandControl/CommandControl";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+import { NO_MISSION_ID } from "../../utils/constants";
 import { missions } from "../../data/missions/missions";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 import Mission from "../../data/missions/mission";
-import Waypoint from "../../data/waypoints/waypoint";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
 
@@ -297,11 +297,11 @@ export function toggleEditMode(mission: Mission) {
 
     if (canEdit) {
         // if toggling off reset all waypoint move status
-        const waypoints: Waypoint[] = mission.getWaypoints();
-        waypoints.forEach((element) => {
-            element.setCanMoveOnMap(false);
-        });
-        missions.setMissionIDInEditMode(-1);
+        // const waypoints: Waypoint[] = mission.getWaypoints();
+        // waypoints.forEach((element) => {
+        //     element.setCanMoveOnMap(false);
+        // });
+        missions.setMissionIDInEditMode(NO_MISSION_ID);
     } else {
         missions.setMissionIDInEditMode(mission.getMissionID());
     }
