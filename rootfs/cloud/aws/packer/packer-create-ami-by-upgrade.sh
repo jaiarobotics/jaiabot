@@ -37,4 +37,4 @@ LATEST_AMI=$(aws ec2 describe-images \
                  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
                  --output text)
 
-packer build -on-error=ask -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl
+packer build -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl
