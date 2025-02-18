@@ -27,6 +27,12 @@ export default function Map() {
         });
     });
 
+    /**
+     * Distributes map clicks to appropriate handlers
+     *
+     * @param {MapBrowserEvent<UIEvent>} event Contains data assoicated with map click
+     * @returns {void}
+     */
     const handleMapClick = (event: MapBrowserEvent<UIEvent>) => {
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
 
@@ -46,6 +52,12 @@ export default function Map() {
         handleAddWaypointClick(event.coordinate);
     };
 
+    /**
+     * Dispatches action to handle changes in node selection
+     *
+     * @param {Feature} feature Contains the node type and ID
+     * @returns {void}
+     */
     const handleNodeClick = (feature: Feature<Geometry>) => {
         const nodeType = feature.get("type");
         const nodeID = feature.get("id");
@@ -58,6 +70,16 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to add a waypoint to the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     *
+     * @notes
+     * We convert click coordinate to lat/lon. The click
+     * coordinate is based on the map's projection.
+     */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaSystemDispatch({

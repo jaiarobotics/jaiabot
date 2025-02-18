@@ -18,6 +18,14 @@ import { openLayersZIndexes } from "../../style/openlayers/zindex";
 const waypointIcon = require("../../style/icons/waypoint.svg");
 const waypointArrowIcon = require("../../style/icons/waypoint-arrow.svg");
 
+/**
+ * Creates a waypoint icon to be placed on the map with the correct label and color
+ *
+ * @param {GeographicCoordinate} location Lat/lon of waypoint
+ * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
+ * @param {number} missionID Used to determine color of waypoint
+ * @returns {Feature} Waypoint icon to display on map
+ */
 export function generateWaypointFeature(
     location: GeographicCoordinate,
     waypointNum: number,
@@ -37,6 +45,13 @@ export function generateWaypointFeature(
     return feature;
 }
 
+/**
+ * Creates the style to be applied to a waypoint icon on the map
+ *
+ * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
+ * @param {number} missionID Used to determine color of waypoint
+ * @returns {Style} Style to be applied to a waypoint feature
+ */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
     return new Style({
         image: new Icon({
@@ -60,6 +75,14 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
     });
 }
 
+/**
+ * Creates the line segments that connects two waypoints on the map
+ *
+ * @param {GeographicCoordinate} startLocation Lat/lon of previous waypoint
+ * @param {GeographicCoordinate} endLocation  Lat/lon of next waypoint
+ * @param {number} missionID Used to determine color of the line segment
+ * @returns {Feature} Line segment that connects two waypoints
+ */
 export function generateWaypointLineFeature(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
@@ -81,6 +104,14 @@ export function generateWaypointLineFeature(
     return feature;
 }
 
+/**
+ * Creates style for line connecting waypoints. Includes a directional arrow at the midpoint of the line.
+ *
+ * @param {GeographicCoordinate} startCoordinate Used in midpoint calculation for arrow
+ * @param {GeographicCoordinate} endCoordinate Used in midpoint calculation for arrow
+ * @param {number} missionID Used to determine color of the line segment
+ * @returns {Style[]} Array of styles applied to line segment connecting waypoints
+ */
 function generateWaypointLineStyle(
     startCoordinate: Coordinate,
     endCoordinate: Coordinate,
@@ -120,6 +151,12 @@ function generateWaypointLineStyle(
     return [underlayStyle, overlayStyle, midpointStyle];
 }
 
+/**
+ * Supplies the color for a waypoint based on edit and selection states
+ *
+ * @param {number} missionID Used to determine color of the line segment
+ * @returns {OpenLayersColors} Color to be applied to waypoint
+ */
 function getWaypointColor(missionID: number) {
     if (missionID === missions.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;

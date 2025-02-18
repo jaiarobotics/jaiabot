@@ -166,6 +166,13 @@ function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
     return mutableState;
 }
 
+/**
+ * Makes call to add waypoint if mission is in edit mode
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location Lat/lon of where the click occurred
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
 function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
     const missionIDInEditMode = missions.getMissionIDInEditMode();
 
@@ -173,9 +180,9 @@ function handleAddWaypoint(mutableState: JaiaSystemContextType, location: Geogra
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
+        mutableState.missions = missions.getMissions();
     }
 
-    mutableState.missions = missions.getMissions();
     return mutableState;
 }
 

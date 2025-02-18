@@ -11,6 +11,13 @@ class MissionLayer extends JaiaVectorLayer {
         super(LayerTitles.MISSION_LAYER);
     }
 
+    /**
+     * Adds a waypoint and connecting line (if needed) to the mission layer
+     *
+     * @param {number} missionID Used to access waypoint and determine color of line segment
+     * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
+     * @returns {void}
+     */
     addWaypoint(missionID: number, waypointNum: number) {
         const mission = missions.getMission(missionID);
         const waypoint = mission.getWaypoint(waypointNum);
@@ -31,6 +38,11 @@ class MissionLayer extends JaiaVectorLayer {
         source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, missionID));
     }
 
+    /**
+     * Reconstructs mission layer with waypoints and line segments for all missions
+     *
+     * @returns {void}
+     */
     updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
