@@ -118,4 +118,7 @@ else
     
     update-grub
     
+    root_partition=$(findmnt -n -o SOURCE /)
+    root_device=$(lsblk -no PKNAME "$root_partition")
+    grub-install "/dev/$root_device"
 fi
