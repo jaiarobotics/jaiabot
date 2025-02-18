@@ -9,12 +9,9 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
-import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
 
 import { GeographicCoordinate } from "../../utils/protobuf-types";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { NodeTypes } from "../../types/jaia-system-types";
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { DATA_MODEL_POLL_TIME, NO_MISSION_ID } from "../../utils/constants";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -175,7 +172,7 @@ function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
 function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
     const missionIDInEditMode = missions.getMissionIDInEditMode();
 
-    if (missionIDInEditMode !== -1) {
+    if (missionIDInEditMode !== NO_MISSION_ID) {
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
