@@ -11,23 +11,33 @@ class MissionLayer extends JaiaVectorLayer {
         super(LayerTitles.MISSION_LAYER);
     }
 
-    addWaypoint(missionID: number) {
+    addWaypoint(missionID: number, waypointNum: number) {
         const mission = missions.getMission(missionID);
+        const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
-        const waypointNum = mission.getWaypoints().length;
 
-        if (waypointNum === 1) {
-            // Add first waypoint
-            const waypoint = mission.getWaypoint(waypointNum);
-            source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum));
-        } else {
-            // Add waypoint with connecting line
+        if (waypointNum > 1) {
+            // Add connecting line
             const previousWaypoint = mission.getWaypoint(waypointNum - 1);
-            const waypoint = mission.getWaypoint(waypointNum);
             source.addFeature(
-                generateWaypointLineFeature(previousWaypoint.getLocation(), waypoint.getLocation()),
+                generateWaypointLineFeature(
+                    previousWaypoint.getLocation(),
+                    waypoint.getLocation(),
+                    missionID,
+                ),
             );
-            source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum));
+        }
+        // Add waypoint
+        source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, missionID));
+    }
+
+    updateFeatures() {
+        this.getVectorLayer().getSource().clear();
+
+        for (let [missionID, mission] of missions.getMissions()) {
+            for (let [index, waypoint] of mission.getWaypoints().entries()) {
+                this.addWaypoint(missionID, index + 1);
+            }
         }
     }
 }

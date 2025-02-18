@@ -10,4 +10,5 @@ export enum MapFeatureTypes {
     BOT = "BOT",
     HUB = "HUB",
     WAYPOINT = "WAYPOINT",
+    WAYPOINT_LINE = "WAYPOINT_LINE",
 }

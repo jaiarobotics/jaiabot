@@ -57,7 +57,7 @@ export default class Mission {
         waypoint.setLocation(location);
         this.getWaypoints().push(waypoint);
         // Sync OpenLayers
-        missionLayer.addWaypoint(this.getMissionID());
+        missionLayer.addWaypoint(this.getMissionID(), this.getWaypoints().length);
     }
 
     deleteWaypoint(waypointNum: number) {

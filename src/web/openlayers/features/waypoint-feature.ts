@@ -5,13 +5,24 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import { missions } from "../../data/missions/missions";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+
+import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
 
+import { OpenLayersColors } from "../../style/openlayers/colors";
+import { openLayersZIndexes } from "../../style/openlayers/zindex";
 const waypointIcon = require("../../style/icons/waypoint.svg");
 const waypointArrowIcon = require("../../style/icons/waypoint-arrow.svg");
 
-export function generateWaypointFeature(location: GeographicCoordinate, waypointNum: number) {
+export function generateWaypointFeature(
+    location: GeographicCoordinate,
+    waypointNum: number,
+    missionID: number,
+) {
     if (!location) {
         return new Feature();
     }
@@ -22,39 +33,37 @@ export function generateWaypointFeature(location: GeographicCoordinate, waypoint
     });
     feature.set("type", MapFeatureTypes.WAYPOINT);
     feature.set("id", waypointNum);
-    feature.setStyle(generateWaypointStyle(waypointNum));
+    feature.setStyle(generateWaypointStyle(waypointNum, missionID));
     return feature;
 }
 
-function generateWaypointStyle(waypointNum: number) {
+function generateWaypointStyle(waypointNum: number, missionID: number) {
     return new Style({
         image: new Icon({
             src: waypointIcon,
             anchor: [0.5, 1],
-            color: getWaypointColor(),
+            color: getWaypointColor(missionID),
         }),
         stroke: new Stroke({
-            color: "black",
+            color: OpenLayersColors.OUTLINE,
             width: 50,
         }),
         text: new Text({
             text: String(waypointNum),
             font: "12pt sans-serif",
             fill: new Fill({
-                color: "black",
+                color: OpenLayersColors.TEXT,
             }),
             offsetY: -15,
         }),
+        zIndex: openLayersZIndexes.get(MapFeatureTypes.WAYPOINT),
     });
-}
-
-function getWaypointColor() {
-    return "white";
 }
 
 export function generateWaypointLineFeature(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
+    missionID: number,
 ) {
     if (!startLocation || !endLocation) {
         return new Feature();
@@ -68,22 +77,26 @@ export function generateWaypointLineFeature(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
-    feature.setStyle(generateWaypointLineStyle(startCoordinate, endCoordinate));
+    feature.setStyle(generateWaypointLineStyle(startCoordinate, endCoordinate, missionID));
     return feature;
 }
 
-function generateWaypointLineStyle(startCoordinate: Coordinate, endCoordinate: Coordinate) {
+function generateWaypointLineStyle(
+    startCoordinate: Coordinate,
+    endCoordinate: Coordinate,
+    missionID: number,
+) {
     const underlayStyle = new Style({
         stroke: new Stroke({
             width: 4,
-            color: "black",
+            color: OpenLayersColors.OUTLINE,
         }),
     });
 
     const overlayStyle = new Style({
         stroke: new Stroke({
             width: 2,
-            color: "white",
+            color: getWaypointColor(missionID),
         }),
     });
 
@@ -100,9 +113,25 @@ function generateWaypointLineStyle(startCoordinate: Coordinate, endCoordinate: C
             rotateWithView: true,
             // OpenLayers rotates clockwise, while atan2 calculates a counter-clockwise rotation (as is customary in trig)
             rotation: -rotation,
-            color: "white",
+            color: getWaypointColor(missionID),
         }),
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];
+}
+
+function getWaypointColor(missionID: number) {
+    if (missionID === missions.getMissionIDInEditMode()) {
+        return OpenLayersColors.EDIT;
+    }
+
+    const selectedNode = jaiaGlobal.getSelectedNode();
+    if (
+        selectedNode.type === NodeTypes.BOT &&
+        missionsManager.getMissionID(selectedNode.id) === missionID
+    ) {
+        return OpenLayersColors.SELECT;
+    }
+
+    return OpenLayersColors.DEFAULT;
 }
