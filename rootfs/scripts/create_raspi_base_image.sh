@@ -184,15 +184,12 @@ SD_IMAGE_PATH="$OUTPUT_IMAGE_PATH"
 # 8 GB underlay ro rootfs
 # 200 MB (to resize to fill disk) log partition 
 dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
-sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
-label: dos 
-device: /dev/sdc
-unit: sectors
-
-/dev/sdc1 : start=        8192, size=      524288, type=c, bootable
-/dev/sdc2 : start=      532480, size=    16777216, type=83
-/dev/sdc3 : start=    17309696, size=    16777216, type=83
-/dev/sdc4 : start=    34086912, size=      409600, type=83
+sfdisk "$SD_IMAGE_PATH" <<EOF
+label: gpt
+size=256MiB, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+size=8GiB,   type=linux
+size=8GiB,   type=linux
+size=200MiB, type=linux
 EOF
 
 # Set up loop device for the partitions
@@ -202,7 +199,7 @@ DISK_DEV=$(echo "$BOOT_DEV" | sed 's|mapper/\(loop[0-9]*\).*|\1|')
 
 # Format the partitions
 sudo mkfs.vfat -F 32 -n boot "$BOOT_DEV"
-sudo mkfs.ext4 -L rootfs "$ROOTFS_DEV"
+sudo mkfs.btrfs -L rootfs "$ROOTFS_DEV"
 sudo mkfs.btrfs -L overlay "$OVERLAY_DEV"
 sudo mkfs.btrfs -L data "$DATA_DEV"
 
@@ -304,7 +301,7 @@ dtoverlay=spi1-3cs
 
 EOF
 cat > "$BOOT_PARTITION"/cmdline.txt <<EOF
-console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=ext4 fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
+console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=btrfs fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
 EOF
 
 # Flash the kernel
@@ -330,7 +327,7 @@ echo "export JAIABOT_VERSION='$JAIABOT_VERSION'" >> ${OUTPUT_METADATA}
 echo "export GOBY_VERSION='$GOBY_VERSION'" >> ${OUTPUT_METADATA}
 
 if [ ! -z "$VIRTUALBOX" ]; then
-    sudo chroot rootfs apt-get -y install linux-image-virtual
+    sudo chroot rootfs apt-get -y install linux-image-virtual grub-efi-amd64
     
     # ensure VM uses eth0, etc. naming like Raspi
     sudo chroot rootfs sed -i 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0"|' /etc/default/grub
@@ -339,10 +336,15 @@ if [ ! -z "$VIRTUALBOX" ]; then
     sudo chroot rootfs sed -i 's/GRUB_TIMEOUT_STYLE=\(.*\)/#GRUB_TIMEOUT_STYLE=\1/' /etc/default/grub
     sudo chroot rootfs sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3\nGRUB_RECORDFAIL_TIMEOUT=3/' /etc/default/grub
 
+    sudo mkdir -p "$ROOTFS_PARTITION"/boot/efi
+    sudo mount -o bind "$BOOT_PARTITION" "$ROOTFS_PARTITION"/boot/efi
+    
     # install grub boot loader
     sudo chroot rootfs update-grub
-    sudo chroot rootfs grub-install "$DISK_DEV"
-
+    sudo chroot rootfs grub-install "$DISK_DEV" --no-uefi-secure-boot --removable
+    
+    sudo umount "$ROOTFS_PARTITION"/boot/efi
+    
     # use ipv6 and ipv4 resolv.conf for VirtualBox and AWS instances
     sudo chroot rootfs /bin/bash -c "cat /etc/resolv.conf.ipv6 /etc/resolv.conf.ipv4 > /etc/resolv.conf"
     
@@ -354,11 +356,7 @@ if [ ! -z "$VIRTUALBOX" ]; then
     
     OUTPUT_IMAGE_VDI=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.vdi/")
     VBoxManage convertdd $OUTPUT_IMAGE_IMG $OUTPUT_IMAGE_VDI
-    if [[ "$MINDISK" == "1" ]]; then
-        VBoxManage modifyhd $OUTPUT_IMAGE_VDI --resize 16000
-    else
-        VBoxManage modifyhd $OUTPUT_IMAGE_VDI --resize 32000
-    fi
+    VBoxManage modifyhd $OUTPUT_IMAGE_VDI --resize 32000
     # TODO - remove!!
     sudo chown 1000:1000 $OUTPUT_IMAGE_VDI
 
