@@ -216,13 +216,14 @@ echo "## (may take a bit to prepare)                      ##"
 echo "######################################################"
 
 
-git_branch=$(git branch --show-current 2> /dev/null)
+git_branch=$(git branch --show-current 2> /dev/null || true)
 # if running in git, use the same rev
 if [ ! "${git_branch}" = "" ]; then
     git_branch_cmd="-b ${git_branch}"
 else
     # default to release branch
     git_branch_cmd=
+    git_branch=default
 fi
 
 debconf_image_name=jaia_fleet_debconf_${git_branch}
