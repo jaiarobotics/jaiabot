@@ -9,6 +9,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
+import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -25,8 +26,6 @@ interface Action {
 interface JaiaSystemContextProviderProps {
     children: ReactNode;
 }
-
-const DATA_MODEL_POLL_TIME = 500; // milliseconds
 
 export const JaiaSystemContext = createContext<JaiaSystemContextType>(null);
 export const JaiaSystemDispatchContext = createContext(null);

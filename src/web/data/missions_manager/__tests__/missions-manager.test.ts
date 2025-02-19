@@ -1,4 +1,5 @@
 import { missionsManager } from "../missions-manager";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 test("Exercise Bot and mission assignments", () => {
     const botID1 = 1;
@@ -8,8 +9,6 @@ test("Exercise Bot and mission assignments", () => {
     const missionID2 = 2;
 
     const botID3 = 3;
-
-    const unassignedID = -1;
 
     // Assign Bot 1 to Mission 1
     missionsManager.assign(botID1, missionID1);
@@ -22,9 +21,9 @@ test("Exercise Bot and mission assignments", () => {
     expect(missionsManager.getMissionID(botID2)).toBe(missionID2);
 
     // Unassign Bot 2 from Mission 2
-    missionsManager.assign(unassignedID, missionID2);
-    expect(missionsManager.getBotID(missionID2)).toBe(unassignedID);
-    expect(missionsManager.getMissionID(botID2)).toBe(unassignedID);
+    missionsManager.assign(UNASSIGNED_ID, missionID2);
+    expect(missionsManager.getBotID(missionID2)).toBe(UNASSIGNED_ID);
+    expect(missionsManager.getMissionID(botID2)).toBe(UNASSIGNED_ID);
 
     // Assign Bot 2 to Mission 1
     missionsManager.assign(botID2, missionID1);
@@ -40,5 +39,5 @@ test("Exercise Bot and mission assignments", () => {
     missionsManager.assign(botID3, missionID2);
     expect(missionsManager.getBotID(missionID2)).toBe(botID3);
     expect(missionsManager.getMissionID(botID3)).toBe(missionID2);
-    expect(missionsManager.getMissionID(botID1)).toBe(unassignedID);
+    expect(missionsManager.getMissionID(botID1)).toBe(UNASSIGNED_ID);
 });
