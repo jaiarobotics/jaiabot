@@ -31,7 +31,7 @@ bots.setBot(botStatusMock3);
 
 test("Click data offload button in disabled state due to mission state", async () => {
     render(<DataOffloadButton bot={bots.getBot(1)} />);
-    const button = screen.getByRole("button", { name: "data-offload-individual" });
+    const button = screen.getByRole("button", { name: "data-offload-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(screen.getByText(messages.get(DisabledCodes.MISSION_STATE))).toBeInTheDocument();
@@ -40,7 +40,7 @@ test("Click data offload button in disabled state due to mission state", async (
 
 test("Click data offload button in disabled state due to no Wi-Fi connection", async () => {
     render(<DataOffloadButton bot={bots.getBot(2)} />);
-    const button = screen.getByRole("button", { name: "data-offload-individual" });
+    const button = screen.getByRole("button", { name: "data-offload-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(screen.getByText(messages.get(DisabledCodes.WIFI_QUALITY))).toBeInTheDocument();
@@ -49,7 +49,7 @@ test("Click data offload button in disabled state due to no Wi-Fi connection", a
 
 test("Click data offload button in enabled state", async () => {
     render(<DataOffloadButton bot={bots.getBot(3)} />);
-    const button = screen.getByRole("button", { name: "data-offload-individual" });
+    const button = screen.getByRole("button", { name: "data-offload-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
