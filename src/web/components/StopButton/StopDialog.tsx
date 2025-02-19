@@ -1,8 +1,9 @@
 import { DisabledCodes, messages } from "./stop-messages";
 
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
+interface DialogProps {
+    isVisible: boolean;
+    disabledCode: DisabledCodes;
+    onClose: (dialogAction: DialogActions) => void;
 }
 
 interface TitleProps {
@@ -14,10 +15,9 @@ interface ButtonRowProps {
     onClose: (dialogAction: DialogActions) => void;
 }
 
-interface DialogProps {
-    isVisible: boolean;
-    disabledCode: DisabledCodes;
-    onClose: (dialogAction: DialogActions) => void;
+export enum DialogActions {
+    NONE = 0,
+    CONFIRMED = 1,
 }
 
 /**

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { StopDialog, DialogActions } from "./StopDialog";
 import { DisabledCodes } from "./stop-messages";
-import Bot from "../../data/bots/bot";
-import { CommandType } from "../../utils/protobuf-types";
-import { isCommandAvailable } from "../../utils/command";
-
 // MDI and MUI
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiStop } from "@mdi/js";
+import Bot from "../../data/bots/bot";
+import { CommandType } from "../../utils/protobuf-types";
+import { isCommandAvailable } from "../../utils/command";
+
 import "../../style/stylesheets/util.less";
 
 interface Props {
