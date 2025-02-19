@@ -1,11 +1,11 @@
 import { useState } from "react";
 
-import { DataOffloadDialog, DialogActions } from "./DataOffloadDialog";
-import { DisabledCodes } from "./data-offload-messages";
+import { StopDialog, DialogActions } from "./StopDialog";
+import { DisabledCodes } from "./stop-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiDownload } from "@mdi/js";
+import { mdiStop } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 import { CommandType } from "../../utils/protobuf-types";
@@ -18,10 +18,10 @@ interface Props {
 }
 
 /**
- * Produces the data offload button for an individual Bot.
+ * Produces the stop button for an individual Bot.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function DataOffloadButton(props: Props) {
+export default function StopButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -43,19 +43,11 @@ export default function DataOffloadButton(props: Props) {
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
-     *
-     * @notes
-     * After data offload refactor, return DisabledCodes.DOWNLOAD_QUEUE if bot is already in queue
      */
     const getDisabledCode = () => {
-        if (!isCommandAvailable(CommandType.RECOVERED, props.bot.getMissionStatus().missionState)) {
+        if (!isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)) {
             return DisabledCodes.MISSION_STATE;
         }
-
-        if (!props.bot.getWifiLinkQuality()) {
-            return DisabledCodes.WIFI_QUALITY;
-        }
-
         return DisabledCodes.NONE;
     };
 
@@ -66,13 +58,13 @@ export default function DataOffloadButton(props: Props) {
      * @returns {void}
      *
      * @notes
-     * After refactoring the command structure, issue the data offload command
+     * After refactoring the command structure, issue the stop command
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            // Send data offload command
+            // Send stop command
         }
     };
 
@@ -80,12 +72,12 @@ export default function DataOffloadButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"data-offload-individual-bot"}
+                aria-label={"stop-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiDownload} title="Data Offload" />
+                <Icon path={mdiStop} title="Stop Mission" />
             </Button>
-            <DataOffloadDialog
+            <StopDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
