@@ -18,7 +18,8 @@ interface Props {
 }
 
 /**
- * Produces the data offload button for an individual Bot. It manages the alert/confirm dialog that appears when clicking on the button.
+ * Produces the data offload button for an individual Bot.
+ * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function DataOffloadButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
@@ -63,12 +64,15 @@ export default function DataOffloadButton(props: Props) {
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
+     *
+     * @notes
+     * After refactoring the command structure, issue the data offload command
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            // Send command
+            // Send data offload command
         }
     };
 
@@ -76,7 +80,7 @@ export default function DataOffloadButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"data-offload-individual"}
+                aria-label={"data-offload-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
                 <Icon path={mdiDownload} title="Data Offload" />

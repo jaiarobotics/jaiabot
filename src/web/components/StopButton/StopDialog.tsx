@@ -21,7 +21,7 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the Stop Button
+ * Produces the dialog box that appears when clicking on the stop button.
  * This dialog will be an alert if the command cannot be
  * sent or a confirmation prior to sending the command.
  */

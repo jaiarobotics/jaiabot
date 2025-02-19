@@ -1,5 +1,4 @@
-import { DisabledCodes } from "./data-offload-messages";
-import { messages } from "./data-offload-messages";
+import { DisabledCodes, messages } from "./data-offload-messages";
 
 interface DialogProps {
     isVisible: boolean;
@@ -22,11 +21,14 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the data offload button. This dialog will be an alert if the command cannot be sent or a confirmation prior to sending the command.
+ * Produces the dialog box that appears when clicking on the data offload button.
+ * This dialog will be an alert if the command cannot be
+ * sent or a confirmation prior to sending the command.
  */
 export function DataOffloadDialog(props: DialogProps) {
     /**
-     * Forms the class name with a base of "jaia-dialog" and adds "alert" when the disabled code does not equal NONE.
+     * Forms the class name with a base of "jaia-dialog" and adds
+     * "alert" when the disabled code does not equal NONE.
      *
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
@@ -51,7 +53,8 @@ export function DataOffloadDialog(props: DialogProps) {
 }
 
 /**
- * Produces the title for the dialog box. If there is nothing blocking the command from being sent the title will be Confirm, otherwise it will be Alert.
+ * Produces the title for the dialog box. If there is nothing blocking the command from
+ * being sent the title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
@@ -62,7 +65,9 @@ function Title(props: TitleProps) {
 }
 
 /**
- * Produces the buttons for the dialox box. For a confirmation dialog, the buttons will be Cancel and Confirm. For an alert, the button will be Close.
+ * Produces the buttons for the dialox box.
+ * For a confirmation dialog, the buttons will be Cancel and Confirm.
+ * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {

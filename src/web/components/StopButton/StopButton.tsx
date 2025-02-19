@@ -1,10 +1,12 @@
 import { useState } from "react";
+
 import { StopDialog, DialogActions } from "./StopDialog";
 import { DisabledCodes } from "./stop-messages";
-// MDI and MUI
+
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiStop } from "@mdi/js";
+
 import Bot from "../../data/bots/bot";
 import { CommandType } from "../../utils/protobuf-types";
 import { isCommandAvailable } from "../../utils/command";
@@ -16,7 +18,7 @@ interface Props {
 }
 
 /**
- * Produces the Stop button for an individual Bot.
+ * Produces the stop button for an individual Bot.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StopButton(props: Props) {
@@ -41,7 +43,6 @@ export default function StopButton(props: Props) {
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
-     *
      */
     const getDisabledCode = () => {
         if (!isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)) {
@@ -55,8 +56,9 @@ export default function StopButton(props: Props) {
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
+     *
      * @notes
-     * After refactoring the commands in BotDetails will issue the stop command
+     * After refactoring the command structure, issue the stop command
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
