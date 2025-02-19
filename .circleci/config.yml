@@ -638,8 +638,8 @@ jobs:
           command: |
             source /tmp/amd64/*.metadata.txt
             
-            image_id=$(aws ec2 describe-images --filters "Name=name,Values=${JAIABOT_AMI_NAME}" --query 'Images[*].[ImageId]' --output text)
-            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=${JAIABOT_AMI_NAME}" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
+            image_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[ImageId]' --output text)
+            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
             
             aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
               "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
