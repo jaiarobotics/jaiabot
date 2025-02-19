@@ -21,6 +21,8 @@ from dataclasses_json import dataclass_json
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
+from jdv_types import *
+
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
@@ -263,41 +265,54 @@ class JaialogStore:
         return h5_files.map()
 
 
-    def getTaskPacketDicts(self, log_filenames: List[str], scheme=1):
+    def getTaskPacketsFromLogFile(self, log_filename: str, scheme=1):
+        log_file = self.openLog(log_filename)
+        results: List[Dict] = []
 
-        # Open all our logs
-        log_files = self.openLogs(log_filenames)
+        # Search for Command items
+        for path in log_file.keys():
 
-        results = []
+            m = TASK_PACKET_RE.match(path)
+            if m is not None:
+                task_packet_group_path = path
 
-        for log_file in log_files:
-            
-            # Search for Command items
-            for path in log_file.keys():
+                task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
+                task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
 
-                m = TASK_PACKET_RE.match(path)
-                if m is not None:
-                    task_packet_group_path = path
-
-                    task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
-                    task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
+                for task_packet in task_packets:
+                    # Filter by scheme, if necessary
+                    if scheme is not None and task_packet['_scheme_'] != scheme:
+                        continue
 
                     # Delete any fields that are actually not present
-                    for task_packet in task_packets:
-                        task_packet_type = task_packet.get('type', None)
-                        if task_packet_type != 'DIVE':
-                            del(task_packet['dive'])
-                        
-                        if task_packet_type not in ['DIVE', 'SURFACE_DRIFT']:
-                            del(task_packet['drift'])
+                    task_packet_type = task_packet.get('type', None)
+                    if task_packet_type != 'DIVE':
+                        del(task_packet['dive'])
+                    
+                    if task_packet_type not in ['DIVE', 'SURFACE_DRIFT']:
+                        del(task_packet['drift'])
 
-                    results += task_packets
-
-        if scheme is not None:
-            results = list(filter(lambda object: object['_scheme_']==scheme, results))
+                    results.append(task_packet)
 
         return results
 
+
+    def getJDVTaskPackets(self, log_filenames: List[str], scheme=1):
+        taskPackets: List[JDVTaskPacket] = []
+        for log_filename in log_filenames:
+            for taskPacket in self.getTaskPacketsFromLogFile(log_filename):
+                taskPackets.append(JDVTaskPacket(log_filename, taskPacket))
+        return taskPackets
+
+
+    def getTaskPacketDicts(self, log_filenames: List[str], scheme=1):
+        results: List[Dict] = []
+
+        for log_filename in log_filenames:
+            results.extend(self.getTaskPacketsFromLogFile(log_filename, scheme))
+
+        return results
+    
 
     def getCommands(self, log_filenames: List[str]):
         h5_paths = [f'{self.LOG_DIR}/{fn}.h5' for fn in log_filenames]

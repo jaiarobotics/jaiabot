@@ -1,5 +1,9 @@
 // Jaia Imports
-import { getDivePacketFeature, getDriftPacketFeature } from "../../shared/TaskPacketFeatures";
+import {
+    getDivePacketFeature,
+    getDriftPacketFeature,
+    getWavePacketFeature,
+} from "../../shared/TaskPacketFeatures";
 import { geoJSONToDepthContourFeatures } from "../../shared/Contours";
 import { TaskPacket } from "../../shared/JAIAProtobuf";
 import { jaiaAPI } from "../../utils/jaia-api";
@@ -30,8 +34,10 @@ export class TaskData {
     styleCache: { [key: number]: Style };
     diveSource: VectorSource<Feature<Geometry>>;
     driftSource: VectorSource<Feature<Geometry>>;
+    waveSource: VectorSource<Feature<Geometry>>;
     divePacketLayer: VectorLayer<VectorSource>;
     driftPacketLayer: VectorLayer<VectorSource>;
+    wavePacketLayer: VectorLayer<VectorSource>;
     driftMapLayer: VectorLayer<VectorSource>;
     contourLayer: VectorLayer<VectorSource>;
 
@@ -40,6 +46,7 @@ export class TaskData {
         this.taskPacketsTimeline = {};
         this.diveSource = new VectorSource<Feature<Geometry>>();
         this.driftSource = new VectorSource<Feature<Geometry>>();
+        this.waveSource = new VectorSource<Feature<Geometry>>();
         this.styleCache = {};
         const clusterDistance = 30;
 
@@ -61,6 +68,17 @@ export class TaskData {
             zIndex: 1001,
             opacity: 1,
             source: this.createClusterSource(this.driftSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
+            visible: false,
+        });
+
+        this.wavePacketLayer = new VectorLayer({
+            properties: {
+                title: "Wave Packets",
+            },
+            zIndex: 1001,
+            opacity: 1,
+            source: this.createClusterSource(this.waveSource, clusterDistance),
             style: this.createClusterIconStyle.bind(this),
             visible: false,
         });
@@ -110,7 +128,7 @@ export class TaskData {
     }
 
     getTaskPackets() {
-        this.taskPackets;
+        return this.taskPackets;
     }
 
     setTaskPackets(taskPackets: TaskPacket[]) {
@@ -298,6 +316,9 @@ export class TaskData {
 
         const divePacketFeatures = [];
         const driftPacketFeatures = [];
+        const wavePacketFeatures = [];
+
+        const waveRequiredDriftTime = 180;
 
         for (const taskPacket of taskPackets) {
             if (taskPacket?.dive) {
@@ -312,20 +333,40 @@ export class TaskData {
                 if (driftFeature) {
                     driftPacketFeatures.push(driftFeature);
                 }
-            } else if (taskPacket?.drift) {
-                const feature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer);
 
-                if (feature) {
-                    driftPacketFeatures.push(feature);
+                if (taskPacket?.drift?.drift_duration >= waveRequiredDriftTime) {
+                    const waveFeature = getWavePacketFeature(
+                        this.map,
+                        taskPacket,
+                        driftPacketLayer,
+                    );
+                    wavePacketFeatures.push(waveFeature);
+                }
+            } else if (taskPacket?.drift) {
+                const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer);
+
+                if (driftFeature) {
+                    driftPacketFeatures.push(driftFeature);
+                }
+
+                if (taskPacket?.drift?.drift_duration >= waveRequiredDriftTime) {
+                    const waveFeature = getWavePacketFeature(
+                        this.map,
+                        taskPacket,
+                        driftPacketLayer,
+                    );
+                    wavePacketFeatures.push(waveFeature);
                 }
             }
         }
 
         this.diveSource.clear();
         this.driftSource.clear();
+        this.waveSource.clear();
 
         this.diveSource.addFeatures(divePacketFeatures);
         this.driftSource.addFeatures(driftPacketFeatures);
+        this.waveSource.addFeatures(wavePacketFeatures);
 
         this.setTaskPackets(taskPackets);
     }
@@ -375,6 +416,10 @@ export class TaskData {
 
     getDriftLayer() {
         return this.driftPacketLayer;
+    }
+
+    getWaveLayer() {
+        return this.wavePacketLayer;
     }
 
     createClusterSource(source: VectorSource<Feature<Geometry>>, distance: number) {
@@ -437,6 +482,7 @@ export class TaskData {
     updateClusterDistance(distance: number) {
         this.divePacketLayer.setSource(this.createClusterSource(this.diveSource, distance));
         this.driftPacketLayer.setSource(this.createClusterSource(this.driftSource, distance));
+        this.wavePacketLayer.setSource(this.createClusterSource(this.waveSource, distance));
     }
 
     /**

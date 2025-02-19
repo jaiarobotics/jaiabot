@@ -5,7 +5,7 @@ from pyjaia.series import Series
 from .processing import *
 from .series_set import *
 from .types import *
-from .window import applyWindow
+from .window import *
 import statistics
 
 def heightFromAcceleration(acceleration: List[float], sampleFrequency: float):
@@ -128,7 +128,11 @@ def powerSpectrumWelch(elevation: List[float], config: DriftAnalysisConfig):
         nperseg=min(config.analysis.segmentLength, N), # Length of each segment
         scaling='density'        # Power spectral density scaling
     )
-    return power_spectrum
+
+    # Re-normalize from the windowing function
+    renormalizationCoefficient = getRenormalizationCoefficient(config.window, len(elevation) / config.sampleFreq, config.sampleFreq)
+
+    return [ x * renormalizationCoefficient for x in power_spectrum ]
 
 
 def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
@@ -144,7 +148,6 @@ def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
 def doDriftAnalysis(verticalAcceleration: Series, config: DriftAnalysisConfig):
     drift = Drift()
     drift.rawVerticalAcceleration = verticalAcceleration.makeUniform(config.sampleFreq)
-
     drift.filteredVerticalAcceleration = drift.rawVerticalAcceleration
 
     # Trim the series to avoid motor-induce noise
@@ -171,6 +174,13 @@ def doDriftAnalysis(verticalAcceleration: Series, config: DriftAnalysisConfig):
         exit(1)
 
     return drift
+
+
+def doDriftAnalysisFromFile(h5File: h5py.File, timeRange: List[int], config: DriftAnalysisConfig):
+    seriesSet = SeriesSet.loadFromH5File(h5File)
+    driftSeriesSet = seriesSet.slice(TimeRange(start=timeRange[0], end=timeRange[1]))
+
+    return doDriftAnalysis(driftSeriesSet.accelerationVertical, config)
 
 
 def doWaveCounting(drift: Drift, config: DriftAnalysisConfig):
@@ -219,3 +229,6 @@ def doBurg(drift: Drift, config: DriftAnalysisConfig):
     
     return drift
 
+
+def getPowerDensitySpectrumFrequencies(N: int, sampleFrequency: float):
+    return [i * sampleFrequency / 2 / N for i in range(N)]

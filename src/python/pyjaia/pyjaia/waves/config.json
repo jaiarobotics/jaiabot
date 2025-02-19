@@ -7,10 +7,10 @@
     },
     "bandPassFilter": {
         "type": "cos^2",
-        "minZeroPeriod": 0.25,
-        "minPeriod": 0.5,
-        "maxPeriod": 35.0,
-        "maxZeroPeriod": 40.0
+        "minZeroPeriod": 0.75,
+        "minPeriod": 1.0,
+        "maxPeriod": 15.0,
+        "maxZeroPeriod": 20.0
     },
     "analysis": {
         "type": "welch",

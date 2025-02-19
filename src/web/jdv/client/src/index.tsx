@@ -32,6 +32,11 @@ import "./styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "./shared/CustomAlert";
 
 import "./index.css";
+import { Feature } from "ol";
+import { DriftPacket, TaskPacket } from "./shared/JAIAProtobuf";
+import { FeatureLike } from "ol/Feature";
+import { JDVPowerDensitySpectrumData } from "./JDVTypes";
+import { PowerDensitySpectrumWindow } from "./PowerDensitySpectrumWindow";
 
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
@@ -85,12 +90,16 @@ interface State {
 
     // Custom Alert shown, if any
     customAlert?: React.JSX.Element;
+
+    shouldShowPDSButton: boolean;
+    powerDensitySpectrumData: JDVPowerDensitySpectrumData | null;
 }
 
 class LogApp extends React.Component {
     state: State;
     map: JaiaMap;
     plot_div_element: any;
+    selectedFeature: FeatureLike | null = null;
 
     constructor(props: LogAppProps) {
         super(props);
@@ -115,6 +124,9 @@ class LogApp extends React.Component {
             isOpenPlotSetDisplayed: false,
             isBusy: false,
             customAlert: null,
+
+            shouldShowPDSButton: false,
+            powerDensitySpectrumData: null
         };
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
@@ -140,6 +152,23 @@ class LogApp extends React.Component {
                 <img src={loadingImage} className="busy-icon"></img>
             </div>
         ) : null;
+
+        const pdsButton = this.state.shouldShowPDSButton ? (
+            <button id="pdsButton"
+                className="mapButton"
+                onClick={() => {
+                    this.openPowerDensitySpectrum();
+                }}>
+                Power Density Spectrum
+            </button>
+        ) : null
+
+        var powerDensitySpectrumWindow = null
+        if (this.state.powerDensitySpectrumData != null) {
+            powerDensitySpectrumWindow = <PowerDensitySpectrumWindow powerDensitySpectrumData={this.state.powerDensitySpectrumData} onClose={() => {
+                this.setState({powerDensitySpectrumData: null})
+            }}></PowerDensitySpectrumWindow>
+        }
 
         return (
             <Router>
@@ -215,6 +244,7 @@ class LogApp extends React.Component {
                                 >
                                     <Icon path={mdiTrashCan} size={1}></Icon>
                                 </button>
+                                { pdsButton }
                             </div>
 
                             <div
@@ -248,6 +278,7 @@ class LogApp extends React.Component {
 
                     {log_selector}
                     {busyOverlay}
+                    {powerDensitySpectrumWindow}
 
                     {this.state.customAlert}
                 </div>
@@ -343,8 +374,8 @@ class LogApp extends React.Component {
 
                 // Get the task packets
                 const getTaskPacketsJob = LogApi.getTaskPackets(this.state.chosenLogs).then(
-                    (task_packets) => {
-                        this.map.updateWithTaskPackets(task_packets);
+                    (response) => {
+                        this.map.updateWithTaskPackets(response.taskPackets);
                     },
                 );
 
@@ -388,9 +419,16 @@ class LogApp extends React.Component {
         }
     }
 
+    didSelectFeature(feature: FeatureLike | null) {
+        console.log(feature?.get('type') == 'drift')
+        this.setState({shouldShowPDSButton: feature?.get('type') == 'drift'})
+    }
+
     componentDidMount() {
         this.getElements();
-        this.map = new JaiaMap("openlayers-map");
+        this.map = new JaiaMap("openlayers-map", (feature: FeatureLike | null) => {
+            this.didSelectFeature(feature)
+        });
     }
 
     getElements() {
@@ -483,7 +521,7 @@ class LogApp extends React.Component {
             // Plot the data in series_list
             let dates = series._utime_.map((utime) => new Date(utime / 1e3));
             // Keep the original utime for internal use
-            let x_utime = series._utime_; 
+            let x_utime = series._utime_;
             let hovertext = series.series_y.map((y) => series.hovertext?.[y]);
 
             // Set the y-axis for this plot
@@ -821,6 +859,30 @@ class LogApp extends React.Component {
 
         let pathNames = this.state.plots.map((series) => series.path);
         PlotProfiles.save_profile(plotSetName, pathNames);
+    }
+
+    openPowerDensitySpectrum() {
+        const selectedFeature = this.map.selectedFeature
+        const taskPacket: TaskPacket | null = selectedFeature?.get('taskPacket')
+        const drift = taskPacket?.drift
+
+        if (drift == null) {
+            return
+        }
+
+        const logFilename = selectedFeature.get('logFilename')
+        if (logFilename == null) {
+            console.warn(`Task Packet has no "logFilename" property.`)
+            return
+        }
+
+        this.startBusyIndicator()
+
+        LogApi.getPowerDensitySpectrum(logFilename, [taskPacket.start_time, taskPacket.end_time]).then((powerDensitySpectrumData) => {
+            this.setState({powerDensitySpectrumData})
+        }).finally(() => {
+            this.stopBusyIndicator()
+        })
     }
 }
 

@@ -51,9 +51,6 @@
 #
 #     --distribution
 #         Desired Ubuntu distribution codename (e.g., "focal" or "jammy")
-# 
-#     --mindisk
-#         Create an image with a smaller disk image size than the default (useful for Cloud machines)
 #
 # This script is invoked by the raspi-image-master job in the cgsn_mooring
 # project's CircleCI but can also be invoked directly.
@@ -150,9 +147,6 @@ while [[ $# -gt 0 ]]; do
   --virtualbox)
     VIRTUALBOX=1
     ;;
-  --mindisk)
-    MINDISK=1
-    ;;
   --distribution)
     DISTRIBUTION="$1"
     shift
@@ -188,23 +182,9 @@ SD_IMAGE_PATH="$OUTPUT_IMAGE_PATH"
 # Apply the partition map
 # 256 MB boot
 # 8 GB underlay ro rootfs
-# 8 GB (4GB for --mindisk) overlay upper rw
 # 200 MB (to resize to fill disk) log partition 
-if [[ "$MINDISK" == "1" ]]; then
-    dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=13000 conv=sparse status=none
-    sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
-label: dos 
-device: /dev/sdc
-unit: sectors
-
-/dev/sdc1 : start=        8192, size=      524288, type=c, bootable
-/dev/sdc2 : start=      532480, size=    16777216, type=83
-/dev/sdc3 : start=    17309696, size=     8388608, type=83
-/dev/sdc4 : start=    25698304, size=      409600, type=83
-EOF
-else
-    dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
-    sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
+dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
+sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
 label: dos 
 device: /dev/sdc
 unit: sectors
@@ -214,7 +194,6 @@ unit: sectors
 /dev/sdc3 : start=    17309696, size=    16777216, type=83
 /dev/sdc4 : start=    34086912, size=      409600, type=83
 EOF
-fi
 
 # Set up loop device for the partitions
 attach_image "$SD_IMAGE_PATH" BOOT_DEV ROOTFS_DEV OVERLAY_DEV DATA_DEV

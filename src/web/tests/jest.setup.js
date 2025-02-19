@@ -1,3 +1,6 @@
+// Provide the Web API IndexedDB interface to Jest
+import "fake-indexeddb/auto";
+
 // Provide the Web API ResizeObserver interface to Jest
 global.ResizeObserver = class ResizeObserver {
     constructor(callback) {

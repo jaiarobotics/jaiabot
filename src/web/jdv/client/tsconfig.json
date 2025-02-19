@@ -12,7 +12,7 @@
         "jsx": "react",
         "target": "ES2021",
         "lib": ["ES2021", "dom"],
-        "esModuleInterop": true
+        "esModuleInterop": true,
     },
     "include": ["."]
 }

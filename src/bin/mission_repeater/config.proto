@@ -1,4 +1,4 @@
-// Copyright 2021:
+// Copyright 2024:
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
@@ -22,31 +22,46 @@
 
 syntax = "proto2";
 
+import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "jaiabot/messages/metadata.proto";
+import "jaiabot/messages/low_control.proto";
+import "jaiabot/messages/high_control.proto";
 
 package jaiabot.config;
 
-message Metadata
+message MissionRepeater
 {
-    // required parameters for ApplicationBase3 class
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
     optional goby.middleware.protobuf.AppConfig app = 1;
-    // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    // any specific configuration parameters for your application
+    required int32 bot_id = 10;
 
-    // Xbee configuration
-    optional jaiabot.protobuf.XbeeInfo xbee = 10;
-
-    // Is this a real bot, or just a fantasy?
-    optional bool is_simulation = 11;
-
-    optional uint32 fleet_id = 20;
-    oneof node_type
+    message Script
     {
-        uint32 hub_id = 21;
-        uint32 bot_id = 22;
+        message Step
+        {
+            required double duration = 1
+                [(dccl.field) = { units { derived_dimensions: "time" } }];
+
+            // for ease of log parsing
+            required int32 step_marker = 2;
+
+            // repeat publication with this number of seconds between publishes
+            // if omitted, does not repeat
+            optional double repeat_interval = 3
+                [(dccl.field) = { units { derived_dimensions: "time" } }];
+            oneof publication
+            {
+                protobuf.DesiredSetpoints desired_setpoints = 10;
+                protobuf.LowControl low_control = 11;
+            }
+        }
+        repeated Step step = 1;
     }
+
+    required Script script = 20;
 }

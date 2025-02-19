@@ -1,9 +1,9 @@
-import { LogCommand, LogTaskPacket } from "./shared/LogMessages";
+import { LogCommand } from "./shared/LogMessages";
 import { Log } from "./Log";
 import download from "downloadjs";
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
-import { CustomAlert } from "./shared/CustomAlert";
+import { JDVPowerDensitySpectrumData, JDVTaskPacket } from "./JDVTypes";
 
 export type ActiveGoals = {
     [key: string]: {
@@ -45,6 +45,13 @@ interface GetLogsResponse {
     logs: Log[];
 }
 
+
+interface JDVTaskPacketResponse {
+    taskPackets: JDVTaskPacket[]
+}
+
+
+
 export class LogApi {
     /**
      * Perform GET request
@@ -52,11 +59,13 @@ export class LogApi {
      * @param {string} url URL of the endpoint
      * @returns {Promise<any>} A Promise of the JSON-decoded object
      */
-    static async getJSON(url: string) {
+    static async getJSON<T>(url: string) {
         var request = new Request(url, {
             method: "GET",
             headers: new Headers({ "Content-Type": "application/json" }),
         });
+
+        console.debug(`Request: ${request}`)
 
         return fetch(request)
             .then((resp) => resp.json())
@@ -65,7 +74,7 @@ export class LogApi {
                 if (response_object.error != null) {
                     throw new Error(response_object.error);
                 } else {
-                    return response_object;
+                    return response_object as T;
                 }
             });
     }
@@ -211,11 +220,10 @@ export class LogApi {
      * @param {string[]} logs Array of log names
      * @returns {Promise<LogTaskPacket[]>} An array of task packets
      */
-    static async getTaskPackets(logs: string[]) {
+    static async getTaskPackets(logs: string[]): Promise<JDVTaskPacketResponse> {
         var url = new URL("task-packet", window.location.origin);
         url.searchParams.append("log", logs.join(","));
-
-        return (await this.getJSON(url.toString())) as LogTaskPacket[];
+        return this.getJSON<JDVTaskPacketResponse>(url.toString());
     }
 
     /**
@@ -271,6 +279,15 @@ export class LogApi {
         return downloadURL(url.toString(), "moos.csv", "text/csv");
     }
 
+    static async getPowerDensitySpectrum(log: string, time_range: number[]): Promise<JDVPowerDensitySpectrumData> {
+        var url = new URL("power-density-spectrum", window.location.origin);
+        url.searchParams.append("log", log);
+        url.searchParams.append("t_start", String(time_range[0]));
+        url.searchParams.append("t_end", String(time_range[1]));
+
+        return this.getJSON<JDVPowerDensitySpectrumData>(url.toString())
+    }
+ 
     /**
      * Initiates a conversion from .goby to .h5 on the backend, if necessary, and responds with the conversion status
      *

@@ -2,12 +2,12 @@ import Stroke from "ol/style/Stroke";
 import { Feature } from "ol";
 import { Goal, HubStatus, TaskType, ContactStatus } from "./JAIAProtobuf";
 import { LineString, Point, Circle } from "ol/geom";
-import { fromLonLat } from 'ol/proj';
-import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";
+import { fromLonLat } from "ol/proj";
+import { Circle as CircleStyle, RegularShape, Fill, Icon, Style, Text } from "ol/style";
 import { Coordinate } from "ol/coordinate";
 import { PortalBotStatus } from "./PortalStatus";
 import { colorNameToHex } from "./Color";
-import * as turf from '@turf/turf';
+import * as turf from "@turf/turf";
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require("./driftMapIcon.svg") as string;
@@ -16,7 +16,7 @@ const start = require("./start.svg") as string;
 const end = require("./end.svg") as string;
 const botIcon = require("./bot.svg") as string;
 const hubIcon = require("./hub.svg") as string;
-const contactIcon = require('./pacman-contact.svg') as string
+const contactIcon = require("./pacman-contact.svg") as string;
 const rallyPoint = require("./rally.svg") as string;
 const runFlag = require("./run-flag.svg") as string;
 const botCourseOverGround = require("./botCourseOverGround.svg") as string;
@@ -44,6 +44,8 @@ const driftArrow5 = require(`./drift-arrows/drift-arrow-5.svg`) as string;
 const driftArrowAnimated5 = require(`./drift-arrows/drift-arrow-animated-5.svg`) as string;
 const driftArrow6 = require(`./drift-arrows/drift-arrow-6.svg`) as string;
 const driftArrowAnimated6 = require(`./drift-arrows/drift-arrow-animated-6.svg`) as string;
+// Wave Icon
+const wave = require("./noun-wave.svg") as string;
 
 // Format: [default-color-icon, animated-color-icon]
 const driftIcons: { [iconKey: string]: string[] } = {
@@ -208,22 +210,22 @@ export function hubMarker(feature: Feature<Point>): Style[] {
  */
 export function contactMarker(feature: Feature): Style[] {
     function angleToXY(angle: number): XYCoordinate {
-        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
+        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) };
     }
 
-    const contactStatus = feature.get('contact') as ContactStatus
+    const contactStatus = feature.get("contact") as ContactStatus;
 
-    const heading = (contactStatus?.heading_or_cog ?? 0.0) * DEG
+    const heading = (contactStatus?.heading_or_cog ?? 0.0) * DEG;
 
-    const headingDelta = angleToXY(heading)
+    const headingDelta = angleToXY(heading);
 
-    const textOffsetRadius = 11
+    const textOffsetRadius = 11;
 
-    let color = defaultColor as string
+    let color = defaultColor as string;
 
-    const text = String(contactStatus?.contact ?? "")
+    const text = String(contactStatus?.contact ?? "");
 
-    var style = [ 
+    var style = [
         // Contact body marker
         new Style({
             image: new Icon({
@@ -232,24 +234,22 @@ export function contactMarker(feature: Feature): Style[] {
                 anchor: [0.5, 0.5],
                 rotation: heading,
                 rotateWithView: true,
-                scale: 0.8
+                scale: 0.8,
             }),
             text: new Text({
                 text: text,
-                font: 'bold 11pt sans-serif',
+                font: "bold 11pt sans-serif",
                 fill: new Fill({
-                    color: 'black'
+                    color: "black",
                 }),
                 offsetX: -textOffsetRadius * headingDelta.x,
                 offsetY: -textOffsetRadius * headingDelta.y,
-                rotateWithView: true
-            })
-        })
-    ]
-    return style
+                rotateWithView: true,
+            }),
+        }),
+    ];
+    return style;
 }
-
-
 
 /**
  * The style for the circles showing the comms limit radii for hubs
@@ -679,24 +679,45 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     // Icon color
     const color = animatedColor ? animatedColor : "white";
 
-    return new Style({
-        image: new Icon({
-            src: bottomStrike,
-            color: color,
-        }),
-        text: new Text({
-            text: text,
-            font: "14pt sans-serif",
-            fill: new Fill({
-                color: "white",
+    return [
+        // Circle style for easier clicking
+        new Style({
+            image: new CircleStyle({
+                // Adjust the radius to control the size
+                radius: 13,
+                fill: new Fill({
+                    // Transparent fill inside the circle
+                    color: "rgba(255, 255, 255, 0)",
+                }),
+                stroke: new Stroke({
+                    // Outline color (Set the last argument to 0.5 to show)
+                    color: "rgba(0, 0, 0, 0.0)",
+                    // Outline thickness
+                    width: 2,
+                }),
             }),
-            stroke: new Stroke({
-                color: "black",
-                width: 3,
-            }),
-            offsetY: 20,
         }),
-    });
+        // Icon style for the SVG
+        new Style({
+            image: new Icon({
+                // Use the icon source
+                src: bottomStrike,
+                color: color,
+            }),
+            text: new Text({
+                text: text,
+                font: "14pt sans-serif",
+                fill: new Fill({
+                    color: "white",
+                }),
+                stroke: new Stroke({
+                    color: "black",
+                    width: 3,
+                }),
+                offsetY: 20,
+            }),
+        }),
+    ];
 }
 
 /**
@@ -736,7 +757,29 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     const animatedSrc = driftIcons[`driftIcon${binNumber}`][1];
     let src = animatedColor === "black" ? animatedSrc : defaultSrc;
 
-    return new Style({
+    const rectangleStyle = new Style({
+        image: new RegularShape({
+            radius: 10 / Math.SQRT2,
+            radius2: 10,
+            points: 4,
+            angle: 0,
+            scale: [1, 4],
+            fill: new Fill({
+                // Transparent fill
+                color: "rgba(255, 255, 255, 0)",
+            }),
+            stroke: new Stroke({
+                // Outline color (Set the last argument to 0.5 to show)
+                color: "rgba(0, 0, 0, 0.0)",
+                // Outline thickness
+                width: 2,
+            }),
+            rotation: feature.get("driftDirection") * DEG,
+            rotateWithView: true,
+        }),
+    });
+
+    const iconStyle = new Style({
         image: new Icon({
             src: src,
             rotation: feature.get("driftDirection") * DEG,
@@ -744,6 +787,62 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
             scale: 0.7,
         }),
     });
+
+    return [iconStyle, rectangleStyle];
+}
+
+/**
+ * Returns an OpenLayers Style for the given Feature
+ *
+ * @param {Feature} feature Input drift packet feature
+ * @param {?string} [animatedColor] String indicating what kind of animated image to use.  Set to `black` if you want the animated version of the wave icon.
+ * @returns {Style} OpenLayers Style for this wave icon
+ */
+export function wavePacketIconStyle(feature: Feature, animatedColor?: string) {
+    let text = `${feature.get("sigWaveHeight").toFixed(1)}m SWH`;
+
+    // Icon color
+    const color = animatedColor ? animatedColor : "white";
+
+    return [
+        // Circle style for easier clicking
+        new Style({
+            image: new CircleStyle({
+                // Adjust the radius to control the size
+                radius: 20,
+                fill: new Fill({
+                    // Transparent fill inside the circle
+                    color: "rgba(255, 255, 255, 0)",
+                }),
+                stroke: new Stroke({
+                    // Outline color (Set the last argument to 0.5 to show)
+                    color: "rgba(0, 0, 0, 0.0)",
+                    // Outline thickness
+                    width: 2,
+                }),
+            }),
+        }),
+        // Icon style for the SVG
+        new Style({
+            image: new Icon({
+                // Use the icon source
+                src: wave,
+                color: color,
+            }),
+            text: new Text({
+                text: text,
+                font: "13pt sans-serif",
+                fill: new Fill({
+                    color: "white",
+                }),
+                stroke: new Stroke({
+                    color: "black",
+                    width: 2.5,
+                }),
+                offsetY: 20,
+            }),
+        }),
+    ];
 }
 
 /**
@@ -799,7 +898,7 @@ export function missionPath(feature: Feature) {
         pathColor = isSelected ? selectedColor : defaultPathColor;
     }
 
-    const lineDash = feature.get("isConstantHeading") ?? false ? [6, 12] : undefined;
+    const lineDash = (feature.get("isConstantHeading") ?? false) ? [6, 12] : undefined;
 
     const geometry = feature.getGeometry() as LineString;
 

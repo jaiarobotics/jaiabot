@@ -1,0 +1,10 @@
+.JDVTitleBar {
+    width: 100%;
+    height: 40pt;
+    background-color: whitesmoke;
+}
+
+.JDVTitleBar > button {
+    width: 40pt;
+    height: 40pt;
+}

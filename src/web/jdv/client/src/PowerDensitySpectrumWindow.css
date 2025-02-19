@@ -1,0 +1,10 @@
+.PowerDensitySpectrumWindow {
+    bottom: 10%;
+    display: flex;
+    flex-direction: column;
+}
+
+.powerDensitySpectrumDiv {
+    width: 100%;
+    flex-grow: 1;
+}

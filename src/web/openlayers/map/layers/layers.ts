@@ -135,6 +135,7 @@ export class Layers {
             taskData.getDiveLayer(),
             taskData.getContourLayer(),
             taskData.getDriftLayer(),
+            taskData.getWaveLayer(),
             taskData.getDriftMapLayer(),
         ],
     });

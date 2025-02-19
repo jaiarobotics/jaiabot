@@ -57,3 +57,43 @@ def applyTukeyWindow(series: Series, duration: float = 2):
 
     return newSeries
 
+
+def tukeyRenormalization(total_duration: float, sample_freq: float, duration: float = 2):
+    """Returns a value to re-normalize after using a Tukey window.
+
+    Args:
+        series (Series): Input series.
+        duration (float, optional): Time period (in microseconds), for the Hann window to move from 0 to 1. Defaults to 2e6.
+
+    Returns:
+        float: The re-normalization value to multiply spectra by.
+    """
+
+    tukeyValues = []
+
+    t = 0.0
+    while t < total_duration:
+        if t < duration:
+            s = 0.5 - 0.5 * cos(t * pi / duration)
+            k = s * s
+            tukeyValues.append(k)
+
+        elif t > total_duration - duration:
+            s = 0.5 - 0.5 * cos((total_duration - t) * pi / duration)
+            k = s * s
+            tukeyValues.append(k)
+
+        else:
+            tukeyValues.append(1.0)
+
+        t += 1.0 / sample_freq
+
+    return len(tukeyValues) / sum(tukeyValues)
+
+
+def getRenormalizationCoefficient(config: WindowConfig, total_duration: float, sample_freq: float):
+    if config.type == 'tukey':
+        return tukeyRenormalization(total_duration, sample_freq, config.duration)
+    else:
+        return 1.0
+

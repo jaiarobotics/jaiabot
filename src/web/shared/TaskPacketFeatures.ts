@@ -39,6 +39,39 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     return feature;
 }
 
+export function createWavePacketFeature(map: Map, taskPacket: TaskPacket) {
+    const drift = taskPacket.drift;
+
+    const startLon = drift?.start_location?.lon;
+    const startLat = drift?.start_location?.lat;
+    const endLon = drift?.end_location?.lon;
+    const endLat = drift?.end_location?.lat;
+
+    const projection = map.getView().getProjection();
+    const start = turf.point([startLon, startLat]);
+    const end = turf.point([endLon, endLat]);
+    const midpoint = turf.midpoint(start, end).geometry.coordinates;
+
+    const feature = new Feature({ geometry: new Point(fromLonLat(midpoint, projection)) });
+    feature.setProperties({
+        drift: drift,
+        type: "wave",
+        id: Math.random(),
+        duration: Number(drift?.drift_duration?.toFixed(2)), // (s)
+        sigWaveHeight: Number(drift?.significant_wave_height?.toFixed(2)),
+        botId: taskPacket.bot_id,
+        startTime: taskPacket.start_time,
+        endTime: taskPacket.end_time,
+        startLocation: drift?.start_location,
+        selected: false,
+        animated: false,
+    });
+    const style = Styles.wavePacketIconStyle(feature);
+    feature.setStyle(style);
+
+    return feature;
+}
+
 export function createDriftPacketFeature(map: Map, taskPacket: TaskPacket) {
     const drift = taskPacket.drift;
 
@@ -55,12 +88,12 @@ export function createDriftPacketFeature(map: Map, taskPacket: TaskPacket) {
     const feature = new Feature({ geometry: new Point(fromLonLat(midpoint, projection)) });
     feature.setProperties({
         drift: drift,
+        taskPacket: taskPacket,
         type: "drift",
         id: Math.random(),
         duration: Number(drift?.drift_duration?.toFixed(2)), // (s)
         speed: Number(drift?.estimated_drift?.speed?.toFixed(2)), // (m/s)
         driftDirection: Number(drift?.estimated_drift?.heading?.toFixed(2)),
-        sigWaveHeight: Number(drift?.significant_wave_height?.toFixed(2)),
         botId: taskPacket.bot_id,
         startTime: taskPacket.start_time,
         endTime: taskPacket.end_time,
@@ -100,22 +133,22 @@ export function getDriftPacketFeature(
     taskPacket: TaskPacket,
     driftPacketLayer: VectorLayer<VectorSource<Feature<Geometry>>>,
 ) {
-    if (taskPacket?.drift != undefined) {
-        const drift = taskPacket.drift;
-        if (
-            drift?.drift_duration != undefined &&
-            drift?.drift_duration != 0 &&
-            drift?.start_location != undefined &&
-            drift?.start_location?.lat != undefined &&
-            drift?.start_location?.lon != undefined &&
-            drift?.end_location != undefined &&
-            drift?.end_location?.lat != undefined &&
-            drift?.end_location?.lon != undefined
-        ) {
-            const selectedFeature = getSelectedFeature(driftPacketLayer);
-            const newFeature = createDriftPacketFeature(map, taskPacket);
-            return compareFeatures(selectedFeature, newFeature);
-        }
+    if (driftVerified(taskPacket)) {
+        const selectedFeature = getSelectedFeature(driftPacketLayer);
+        const newFeature = createDriftPacketFeature(map, taskPacket);
+        return compareFeatures(selectedFeature, newFeature);
+    }
+}
+
+export function getWavePacketFeature(
+    map: Map,
+    taskPacket: TaskPacket,
+    wavePacketLayer: VectorLayer<VectorSource<Feature<Geometry>>>,
+) {
+    if (driftVerified(taskPacket)) {
+        const selectedFeature = getSelectedFeature(wavePacketLayer);
+        const newFeature = createWavePacketFeature(map, taskPacket);
+        return compareFeatures(selectedFeature, newFeature);
     }
 }
 
@@ -141,4 +174,24 @@ function compareFeatures(
         return selectedFeature;
     }
     return newFeature;
+}
+
+function driftVerified(taskPacket: TaskPacket) {
+    if (taskPacket?.drift != undefined) {
+        const drift = taskPacket.drift;
+        if (
+            drift?.drift_duration != undefined &&
+            drift?.drift_duration != 0 &&
+            drift?.start_location != undefined &&
+            drift?.start_location?.lat != undefined &&
+            drift?.start_location?.lon != undefined &&
+            drift?.end_location != undefined &&
+            drift?.end_location?.lat != undefined &&
+            drift?.end_location?.lon != undefined
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }

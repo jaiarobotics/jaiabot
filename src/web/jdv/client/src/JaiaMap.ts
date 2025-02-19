@@ -7,7 +7,7 @@ import LayerGroup from "ol/layer/Group";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { fromLonLat, Projection } from "ol/proj";
-import Feature from "ol/Feature";
+import Feature, { FeatureLike } from "ol/Feature";
 import { Geometry, LineString, Point } from "ol/geom";
 import { createEmpty, extend, isEmpty } from "ol/extent";
 import Stroke from "ol/style/Stroke";
@@ -48,6 +48,8 @@ import "./styles/JaiaMap.css";
 import { CustomAlert } from "./shared/CustomAlert";
 
 import { getBotPathColor } from "./shared/BotPathColors";
+
+import { JDVTaskPacket } from './JDVTypes';
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -125,9 +127,11 @@ export default class JaiaMap {
     tMin?: number = null;
     tMax?: number = null;
     timestamp?: number = null;
-    task_packets: LogTaskPacket[] = [];
+    jdv_task_packets: JDVTaskPacket[] = [];
     map: Map;
     projection: Projection;
+    didSelectFeature: (feature: FeatureLike | null) => void;
+    selectedFeature?: FeatureLike | null = null
 
     divePacketLayer: VectorLayer<VectorSource<Feature<Geometry>>> = new VectorLayer({
         properties: {
@@ -155,8 +159,9 @@ export default class JaiaMap {
     command_dict: { [key: number]: LogCommand[] };
     depthContourFeatures: Feature[];
 
-    constructor(openlayersMapDivId: string) {
+    constructor(openlayersMapDivId: string, didSelectFeature?: (feature: FeatureLike | null) => void) {
         this.setupOpenlayersMap(openlayersMapDivId);
+        this.didSelectFeature = didSelectFeature
 
         OlLayerSwitcher.renderPanel(this.map, document.getElementById("layerSwitcher"), {});
     }
@@ -194,15 +199,25 @@ export default class JaiaMap {
 
         // Dispatch click events to the feature, if it has an "onclick" property set
         this.map.on("click", (e) => {
-            this.map.forEachFeatureAtPixel(
+            const feature = this.map.forEachFeatureAtPixel(
                 e.pixel,
                 function (feature, layer) {
-                    feature.get("onclick")?.(e);
+                    return feature
                 },
                 {
                     hitTolerance: 20,
                 },
             );
+
+            feature.get("onclick")?.(e);
+            if (this.selectedFeature == feature) {
+                this.selectedFeature = null
+                this.didSelectFeature?.(null)
+            }
+            else {
+                this.selectedFeature = feature
+                this.didSelectFeature?.(feature)
+            }
         });
 
         // Change cursor to hand pointer, when hovering over a feature with an onclick property
@@ -475,8 +490,8 @@ export default class JaiaMap {
         this.command_dict = command_dict;
     }
 
-    updateWithTaskPackets(task_packets: LogTaskPacket[]) {
-        this.task_packets = task_packets;
+    updateWithTaskPackets(task_packets: JDVTaskPacket[]) {
+        this.jdv_task_packets = task_packets;
         this.updateTaskAnnotations();
     }
 
@@ -515,7 +530,7 @@ export default class JaiaMap {
     clear() {
         this.botIdToMapSeries = {};
         this.command_dict = {};
-        this.task_packets = [];
+        this.jdv_task_packets = [];
         this.active_goal_dict = {};
 
         this.updateAll();
@@ -651,14 +666,19 @@ export default class JaiaMap {
         this.divePacketLayer.getSource().clear();
         this.driftPacketLayer.getSource().clear();
 
-        for (const task_packet of this.task_packets ?? []) {
+        for (const jdv_task_packet of this.jdv_task_packets ?? []) {
+            const task_packet = jdv_task_packet.taskPacket
+
             // Discard the lower-precision DCCL task packets
             if (task_packet._scheme_ == 2) {
                 continue;
             }
 
+            const actual_duration = ((task_packet.end_time ?? 0.0) - (task_packet.start_time ?? 0.0)) / 1e6
+
             const diveFeature = createDivePacketFeature(this.map, task_packet);
             if (diveFeature) {
+                diveFeature.set('logFilename', jdv_task_packet.logFilename)
                 const dive = task_packet.dive;
                 // Add popup
                 const html = `
@@ -666,6 +686,7 @@ export default class JaiaMap {
                 <table>
                     <tbody>
                         <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                        <tr><th>Duration</th><td>${actual_duration.toFixed(2)} seconds</td></tr>
                         <tr><th>Depth</th><td>${dive.depth_achieved?.toFixed(2) ?? "?"} m</td></tr>
                         <tr><th>Bottom Dive</th><td>${(dive.bottom_dive ?? false) ? "Yes" : "No"}</td></tr>
                         <tr><th>Dive Rate</th><td>${dive.dive_rate?.toFixed(2) ?? "?"} m/s</td></tr>
@@ -681,12 +702,15 @@ export default class JaiaMap {
 
             const driftFeature = createDriftPacketFeature(this.map, task_packet);
             if (driftFeature) {
+                driftFeature.set('logFilename', jdv_task_packet.logFilename)
                 const drift = task_packet.drift;
+
                 // Add popup
                 const html = `
                 <h3>Drift</h3>
                 <table>
                     <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                    <tr><th>Duration</th><td>${actual_duration.toFixed(2)} seconds</td></tr>
                     <tr><th>Speed</th><td>${drift.estimated_drift.speed.toFixed(2)} m/s</td></tr>
                     <tr><th>Direction</th><td>${drift.estimated_drift.heading?.toFixed(1) ?? "?"} deg</td></tr>
                     <tr><th>Significant Wave Height (Beta)</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
@@ -708,7 +732,7 @@ export default class JaiaMap {
 
     exportKml() {
         const kmz = new KMLDocument();
-        kmz.setTaskPackets(this.task_packets);
+        kmz.setTaskPackets(this.jdv_task_packets.map(jdv_task_packet => jdv_task_packet.taskPacket ));
 
         kmz.getKMZ()
             .then((kml) => {

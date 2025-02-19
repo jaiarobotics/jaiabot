@@ -4,3 +4,6 @@ $interprocess_block
 $xbee_info
 
 is_simulation: $is_simulation
+
+$node_id
+fleet_id: $fleet_id

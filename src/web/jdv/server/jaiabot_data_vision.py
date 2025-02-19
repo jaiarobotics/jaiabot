@@ -2,6 +2,8 @@
 
 import argparse
 from flask import *
+import pyjaia.waves
+from pyjaia.waves.analysis import *
 import simplejson as json
 import logging
 import os
@@ -12,7 +14,10 @@ import moos_messages
 import pyjaia.contours
 import pyjaia.drift_interpolation
 
+
 from pathlib import *
+from jdv_types import *
+import dataclasses
 
 
 # Parsing the arguments
@@ -113,7 +118,10 @@ def getTaskPackets():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return JSONResponse(jaialogStore.getTaskPacketDicts(log_names))
+    jdvTaskPackets = jaialogStore.getJDVTaskPackets(log_names)
+    response = JSONResponse(dataclasses.asdict(JDVTaskPacketResponse(jdvTaskPackets)))
+
+    return response
 
 
 @app.route('/moos', methods=['GET'])
@@ -155,6 +163,29 @@ def getInterpolatedDrifts():
 
     taskPackets = jaialogStore.getTaskPacketDicts(log_names)
     return Response(pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(taskPackets))
+
+
+@app.route('/power-density-spectrum', methods=['GET'])
+def getPowerDensitySpectrum():
+    '''Get the power density spectrum of a drift'''
+    log_name = request.args.get('log')
+    if log_name is None:
+        return JSONErrorResponse("Missing log filename")
+    
+    start_time = int(request.args.get('t_start'))
+    end_time = int(request.args.get('t_end'))
+
+    log = jaialogStore.openLog(log_name)
+
+    driftAnalysisConfig = DriftAnalysisConfig.default()
+
+    driftAnalysis = doDriftAnalysisFromFile(log, [start_time, end_time], driftAnalysisConfig)
+    response = {
+        'frequency': getPowerDensitySpectrumFrequencies(len(driftAnalysis.powerDensitySpectrum), driftAnalysisConfig.sampleFreq),
+        'powerDensity': list(driftAnalysis.powerDensitySpectrum)
+    }
+
+    return JSONResponse(response)
 
 
 @app.route('/h5', methods=['GET'])

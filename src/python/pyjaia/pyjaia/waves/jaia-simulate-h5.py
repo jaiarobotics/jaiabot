@@ -2,7 +2,7 @@
 
 import h5py
 import argparse
-from series_set import SeriesSet
+from pyjaia.waves.series_set import SeriesSet
 from jaiabot.messages.mission_pb2 import MissionState
 import datetime
 import numpy

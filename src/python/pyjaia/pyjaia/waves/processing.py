@@ -15,8 +15,8 @@ def trimSeries(series: Series, startGap: float, endGap: float=None):
 
     Args:
         series (Series): Input series.
-        startGap (float): Time interval to trim from start.
-        endGap (float, optional): Time interval to trim from end. Defaults to None, which means same as startGap.
+        startGap (float): Time interval (in microseconds) to trim from start.
+        endGap (float, optional): Time interval (in microseconds) to trim from end. Defaults to None, which means same as startGap.
 
     Returns:
         Series: The trimmed series.
@@ -190,8 +190,7 @@ def filterAcceleration(accelerationSeries: Series, sampleFreq: float, bandPassFi
         Series: The processed and filtered acceleration series.
     """
 
-    series = accelerationSeries
-    series = filterFrequencies(series, sampleFreq, bandPassFilterConfig)
+    series = filterFrequencies(accelerationSeries, sampleFreq, bandPassFilterConfig)
     series.name = 'Filtered acceleration (m/s^2)'
 
     return series

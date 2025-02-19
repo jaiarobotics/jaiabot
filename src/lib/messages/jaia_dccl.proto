@@ -547,12 +547,12 @@ message DivePacket
 message TaskPacket
 {
     /*
-     Actual maximum size of message: 218 bytes / 1744 bits
+    Actual maximum size of message: 222 bytes / 1776 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1728
-        padding to full byte...................0
-     Allowed maximum size of message: 250 bytes / 2000 bits
+        body................................1759
+        padding to full byte...................1
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 0x5001
