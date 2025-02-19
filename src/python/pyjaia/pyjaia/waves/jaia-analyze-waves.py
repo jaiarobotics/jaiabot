@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from datetime import datetime
+import pytz
 from typing import *
 from math import *
 from pyjaia.waves.processing import *
@@ -88,21 +89,18 @@ def writeCSVs(h5_filename: str, config: AnalysisConfig, drifts: List[Drift]):
         csv_filename = f'{h5_filename}-drift-{drift_index + 1}.csv'
 
         with open(csv_filename, 'w') as fp:
-            column_names = [
-                'timestamp (micros)', 
-                'filtered acceleration (m/s^2)', 
-                'elevation (m)'
-            ]
+            columns = {
+                'timestamp (micros)': drift.rawVerticalAcceleration.utime,
+                'time (UTC)': [datetime.fromtimestamp(timestamp / 1e6, tz=pytz.utc) for timestamp in drift.rawVerticalAcceleration.utime],
+                'filtered acceleration (m/s^2)': drift.filteredVerticalAcceleration.y_values,
+                'elevation (m)': drift.elevation.y_values
+            }
 
-            writer = csv.DictWriter(fp, column_names)
+            writer = csv.DictWriter(fp, columns.keys())
             writer.writeheader()
 
             for time_index in range(len(drift.filteredVerticalAcceleration.utime)):
-                writer.writerow({
-                    'timestamp (micros)': drift.rawVerticalAcceleration.utime[time_index],
-                    'filtered acceleration (m/s^2)': drift.filteredVerticalAcceleration.y_values[time_index],
-                    'elevation (m)': drift.elevation.y_values[time_index]
-                })
+                writer.writerow({ column_name: column_list[time_index] for column_name, column_list in columns.items()})
 
 
 def main():
