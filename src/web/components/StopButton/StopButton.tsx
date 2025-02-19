@@ -73,7 +73,7 @@ export default function StopButton(props: Props) {
                 aria-label={"stop-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiStop} title="Stop Bot" />
+                <Icon path={mdiStop} title="Stop Mission" />
             </Button>
             <StopDialog
                 isVisible={isDialogVisible}
