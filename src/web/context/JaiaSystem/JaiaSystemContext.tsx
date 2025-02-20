@@ -11,7 +11,7 @@ import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
 
 import { GeographicCoordinate } from "../../utils/protobuf-types";
-import { DATA_MODEL_POLL_TIME, NO_MISSION_ID, UNASSIGNED_ID } from "../../utils/constants";
+import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 export interface JaiaSystemContextType {

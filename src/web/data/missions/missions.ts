@@ -1,5 +1,6 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { jaiaGlobal } from "../jaia_global/jaia-global";
 
 class Missions {
     private missions: Map<number, Mission>;
@@ -46,16 +47,14 @@ class Missions {
 
     deleteMission(missionID: number) {
         this.getMissions().delete(missionID);
-        // TODO Make sure missionIDInEditMode is update in GlobalContext
-        /*if (missionID === this.getMissionIDInEditMode()) {
-            this.setMissionIDInEditMode(UNASSIGNED_ID);
-        } */
+        if (missionID === jaiaGlobal.getMissionIDInEditMode()) {
+            jaiaGlobal.setMissionIDInEditMode(UNASSIGNED_ID);
+        }
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
-        // TODO Make sure missionIDInEditMode is update in GlobalContext
-        //this.setMissionIDInEditMode(UNASSIGNED_ID);
+        jaiaGlobal.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
     }
 }
