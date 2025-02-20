@@ -45,4 +45,4 @@ runcmd:
   # Set up wlan
   - sed -i "s/jaia_network_fleet_password=.*/jaia_network_fleet_password=\"{{ wlanPassword }}\"/" /etc/jaiabot/network.env
   - /usr/bin/jaia_update_network.sh
-  - systemctl enable wpa_supplicant@wlan0
+  - if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then systemctl enable wpa_supplicant@wlan0; fi
