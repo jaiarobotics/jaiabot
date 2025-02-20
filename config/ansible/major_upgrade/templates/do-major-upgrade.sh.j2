@@ -73,7 +73,8 @@ case "$FS_TYPE" in
         e2label "$ROOTFS_DEVICE" overlay
         ;;
     btrfs)
-        btrfs filesystem label "$ROOTFS_DEVICE" overlay
+        ROOTFS_MOUNTPOINT=$(findmnt -n -o TARGET $ROOTFS_DEVICE)
+        btrfs filesystem label "$ROOTFS_MOUNTPOINT" overlay
         ;;
     *)
         echo "Error: Unsupported filesystem type '$FS_TYPE'"
