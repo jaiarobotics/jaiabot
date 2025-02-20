@@ -6,7 +6,7 @@ export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
     private repeats: number;
-    private movableWaypoint: Waypoint;
+    private movableWaypointNum: number;
 
     constructor() {
         this.waypoints = [];
@@ -37,12 +37,12 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getMovableWaypoint() {
-        return this.movableWaypoint;
+    getMovableWaypointNum() {
+        return this.movableWaypointNum;
     }
 
-    setMovableWaypoint(waypoint: Waypoint) {
-        this.movableWaypoint = waypoint;
+    setMovableWaypointNum(waypointNum: number) {
+        this.movableWaypointNum = waypointNum;
     }
 
     getWaypoint(waypointNum: number) {
