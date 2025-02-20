@@ -5,13 +5,15 @@ import { JaiaSystemActions } from "./jaia-system-actions";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
 import { missions } from "../../data/missions/missions";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
 
+import { NodeTypes } from "../../types/jaia-system-types";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
-import { DATA_MODEL_POLL_TIME, NO_MISSION_ID } from "../../utils/constants";
+import { DATA_MODEL_POLL_TIME, NO_MISSION_ID, UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -171,14 +173,23 @@ function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
  */
 function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
     const missionIDInEditMode = missions.getMissionIDInEditMode();
+    const selectedNode = jaiaGlobal.getSelectedNode();
 
     if (missionIDInEditMode !== NO_MISSION_ID) {
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
-        mutableState.missions = missions.getMissions();
+    } else if (
+        selectedNode.type === NodeTypes.BOT &&
+        missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
+    ) {
+        // Create new mission and add first waypoint for selected Bot without mission
+        const mission = new Mission();
+        missions.addMission(mission);
+        mission.addWaypoint(location);
     }
 
+    mutableState.missions = missions.getMissions();
     return mutableState;
 }
 

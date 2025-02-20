@@ -18,8 +18,9 @@ import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { map } from "../../../openlayers/maps/map";
 import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
 
-import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { NodeTypes } from "../../../types/jaia-system-types";
+import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
 import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
@@ -116,12 +117,33 @@ test("Click on map twice with mission in edit mode", () => {
     missionLayer.getVectorLayer().getSource().clear();
 });
 
-test("Click on map with no mission in edit mode", () => {
-    expect(missions.getMissionIDInEditMode()).toBe(-1);
+test("Click on map with no mission in edit mode and no Bot selected", () => {
+    expect(missions.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
     });
 
     expect(missionLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
+});
+
+test("Click on map with Bot selected and not assigned to a mission", () => {
+    expect(missions.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
+
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.BOT, id: 1 });
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
+    expect(missionLayerFeatures.length).toBe(1);
+    expect(missionLayerFeatures[0].get("type")).toBe(MapFeatureTypes.WAYPOINT);
+    expect(missionLayerFeatures[0].get("id")).toBe(1);
+
+    expect(missions.getMissionIDInEditMode()).toBe(1);
+
+    // Reset states
+    missions.deleteAllMissions();
+    missionLayer.getVectorLayer().getSource().clear();
 });
