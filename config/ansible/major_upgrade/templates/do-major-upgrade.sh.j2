@@ -121,5 +121,9 @@ else
     
     root_partition=$(findmnt -n -o SOURCE /)
     root_device=$(lsblk -no PKNAME "$root_partition")
-    grub-install "/dev/$root_device"
+
+    mount -o remount,rw $boot_mountpoint
+    mount -o bind $boot_mountpoint /boot/efi
+
+    grub-install "/dev/$root_device" --no-uefi-secure-boot --removable
 fi
