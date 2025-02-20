@@ -184,12 +184,15 @@ SD_IMAGE_PATH="$OUTPUT_IMAGE_PATH"
 # 8 GB underlay ro rootfs
 # 200 MB (to resize to fill disk) log partition 
 dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
-sfdisk "$SD_IMAGE_PATH" <<EOF
-label: gpt
-size=256MiB, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
-size=8GiB,   type=linux
-size=8GiB,   type=linux
-size=200MiB, type=linux
+sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
+label: dos 
+device: /dev/sdc
+unit: sectors
+
+/dev/sdc1 : start=        8192, size=      524288, type=c, bootable
+/dev/sdc2 : start=      532480, size=    16777216, type=83
+/dev/sdc3 : start=    17309696, size=    16777216, type=83
+/dev/sdc4 : start=    34086912, size=      409600, type=83
 EOF
 
 # Set up loop device for the partitions
@@ -199,7 +202,7 @@ DISK_DEV=$(echo "$BOOT_DEV" | sed 's|mapper/\(loop[0-9]*\).*|\1|')
 
 # Format the partitions
 sudo mkfs.vfat -F 32 -n boot "$BOOT_DEV"
-sudo mkfs.btrfs -L rootfs "$ROOTFS_DEV"
+sudo mkfs.ext4 -L rootfs "$ROOTFS_DEV"
 sudo mkfs.btrfs -L overlay "$OVERLAY_DEV"
 sudo mkfs.btrfs -L data "$DATA_DEV"
 
@@ -301,7 +304,7 @@ dtoverlay=spi1-3cs
 
 EOF
 cat > "$BOOT_PARTITION"/cmdline.txt <<EOF
-console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=btrfs fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
+console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=ext4 fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
 EOF
 
 # Flash the kernel
