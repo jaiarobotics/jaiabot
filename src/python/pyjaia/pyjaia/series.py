@@ -9,6 +9,7 @@ import re
 
 from .time_range import *
 from .h5_tools import *
+from copy import deepcopy
 
 
 def floatRange(start: float, end: float, delta: float):
@@ -177,7 +178,8 @@ class Series:
     def count(self):
         return len(self.utime)
 
-    def getValueAtTime(self, utime: float, interpolate: bool=False):
+    def getValueAtTime(self, utime: float, interpolate: bool=True):
+        # Linear interpolation
         index = bisect.bisect_left(self.utime, utime)
         if index == 0:
             return None
@@ -187,7 +189,7 @@ class Series:
                 return self.y_values[index - 1] + (utime - self.utime[index - 1]) * (self.y_values[index] - self.y_values[index - 1]) / (self.utime[index] - self.utime[index - 1])
 
             return self.y_values[index - 1]
-        
+
         
     def getLastUtimeBefore(self, utime: float):
         index = bisect.bisect_left(self.utime, utime)
@@ -203,6 +205,18 @@ class Series:
         import plotly.express as px
         fig = px.line(x=self.datetimes(), y=self.y_values, markers=True)
         fig.show()
+
+
+    def duration_seconds(self) -> float:
+        """Returns the duration of this time series.
+
+        Returns:
+            float: Total duration of the time series, in seconds.
+        """
+        if len(self.utime) < 1:
+            return 0.0
+        return (self.utime[-1] - self.utime[0]) * 1e-6
+
 
     def duration(self) -> timedelta:
         """Returns the duration of this time series.
@@ -240,9 +254,7 @@ class Series:
 
     def makeUniform(self, freq: float):
         '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
-        newSeries = Series()
-        newSeries.name = self.name
-        newSeries.hovertext = self.hovertext
+        newSeries = deepcopy(self)
 
         if len(self.utime) == 0:
             return newSeries

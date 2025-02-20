@@ -13,87 +13,85 @@ def applyWindow(series: Series, config: WindowConfig):
     Returns:
         Series: The windowed time series.
     """
+    window = getWindow(config, series.duration().total_seconds(), series.averageSampleFrequency())
+
+    new_series = deepcopy(series)
+    new_series.y_values = [window[index] * value for index, value in enumerate(series.y_values)]
+    return new_series
+
+
+def getWindow(config: WindowConfig, duration: float, sampleFreq: float):
     if config.type == 'none':
-        return deepcopy(series)
+        return getNoneWindow(duration, sampleFreq)
     elif config.type == 'tukey':
-        return applyTukeyWindow(series, config.duration)
+        return getTukeyWindow(config, duration, sampleFreq)
+    elif config.type == 'hann':
+        return getHannWindow(config, duration, sampleFreq)
     else:
         print(f'Unknown window type: {config.type}')
         exit(1)
 
 
-def applyTukeyWindow(series: Series, duration: float = 2):
-    """Apply a Tukey window to the start and end of the series.
+def getNoneWindow(duration: float, sampleFreq: float):
+    return [1.0] * int(duration / sampleFreq)
+
+
+def getTukeyWindow(config: WindowConfig, duration: float, sampleFreq: float):
+    """Get a Tukey window for a series.
 
     Args:
         series (Series): Input series.
-        duration (float, optional): Time period (in microseconds), for the Hann window to move from 0 to 1. Defaults to 2e6.
+        config (WindowConfig): Configuration object, (with duration).
 
     Returns:
-        Series: The resulting windowed series.
+        Collection[float]: The resulting window.
     """
 
-    duration *= 1e6
-    newSeries = deepcopy(series)
+    t = 0
+    window: List[float] = []
 
-    if len(series.utime) == 0:
-        return newSeries
-
-    t0 = series.utime[0]
-    tf = series.utime[-1]
-
-    for index in range(len(series.utime)):
-        utime = series.utime[index]
-
-        if utime < t0 + duration:
-            s = 0.5 - 0.5 * cos((utime - t0) * pi / duration)
+    while t < duration:
+        if t < config.duration:
+            s = 0.5 - 0.5 * cos((t) * pi / config.duration)
             k = s * s
-            newSeries.y_values[index] *= k
+            window.append(k)
 
-        if utime > tf - duration:
-            s = 0.5 - 0.5 * cos((tf - utime) * pi / duration)
+        elif t > duration - config.duration:
+            s = 0.5 - 0.5 * cos((duration - t) * pi / config.duration)
             k = s * s
-            newSeries.y_values[index] *= k
-
-    return newSeries
-
-
-def tukeyRenormalization(total_duration: float, sample_freq: float, duration: float = 2):
-    """Returns a value to re-normalize after using a Tukey window.
-
-    Args:
-        series (Series): Input series.
-        duration (float, optional): Time period (in microseconds), for the Hann window to move from 0 to 1. Defaults to 2e6.
-
-    Returns:
-        float: The re-normalization value to multiply spectra by.
-    """
-
-    tukeyValues = []
-
-    t = 0.0
-    while t < total_duration:
-        if t < duration:
-            s = 0.5 - 0.5 * cos(t * pi / duration)
-            k = s * s
-            tukeyValues.append(k)
-
-        elif t > total_duration - duration:
-            s = 0.5 - 0.5 * cos((total_duration - t) * pi / duration)
-            k = s * s
-            tukeyValues.append(k)
+            window.append(k)
 
         else:
-            tukeyValues.append(1.0)
+            window.append(1.0)
 
-        t += 1.0 / sample_freq
+        t += 1.0 / sampleFreq
 
-    return len(tukeyValues) / sum(tukeyValues)
+    return window
 
 
-def getRenormalizationCoefficient(config: WindowConfig, total_duration: float, sample_freq: float):
-    if config.type == 'tukey':
-        return tukeyRenormalization(total_duration, sample_freq, config.duration)
-    else:
-        return 1.0
+def getHannWindow(config: WindowConfig, duration: float, sampleFreq: float):
+    """Gets a Hann window, which is a special case of the Tukey window.
+
+    Args:
+        series (Series): Input series.
+        config (WindowConfig): Configuration object.
+
+    Returns:
+        Collection[float]: The resulting window.
+    """
+    return getTukeyWindow(WindowConfig('tukey', duration / 2.0), duration, sampleFreq)
+
+
+def getMeanSquareOfWindow(config: WindowConfig, duration: float, sampleFreq: float):
+    """Return mean square of the windowing function, to renormalize the power density spectrum, etc.
+
+    Args:
+        series (Series): Time series of data that is windowed.
+        config (WindowConfig): Configuration specifying window type and parameters.
+
+    Returns:
+        float: The mean square value of the window's coefficients, to use for re-normalizing quantities like the PDS.
+    """
+    window = getWindow(config, duration, sampleFreq)
+    return sum([x*x for x in window]) / len(window)
 

@@ -7,7 +7,6 @@ from math import *
 from .filters import cos2Filter
 from .types import *
 import pyjaia.waves.filters as filters
-from .window import applyTukeyWindow
 
 
 def trimSeries(series: Series, startGap: float, endGap: float=None):

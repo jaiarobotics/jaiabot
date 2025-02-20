@@ -130,9 +130,10 @@ def powerSpectrumWelch(elevation: List[float], config: DriftAnalysisConfig):
     )
 
     # Re-normalize from the windowing function
-    renormalizationCoefficient = getRenormalizationCoefficient(config.window, len(elevation) / config.sampleFreq, config.sampleFreq)
+    ms = getMeanSquareOfWindow(config.window, len(elevation) / config.sampleFreq, config.sampleFreq)
+    print(ms)
 
-    return [ x * renormalizationCoefficient for x in power_spectrum ]
+    return [ x / ms for x in power_spectrum ]
 
 
 def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
