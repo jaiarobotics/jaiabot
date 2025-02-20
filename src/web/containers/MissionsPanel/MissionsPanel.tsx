@@ -24,9 +24,10 @@ export default function MissionsPanel() {
     const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
 
     /**
-     * Dispatches the action to create a new mission when an operator clicks
-     * the add mission button and then dispatches the action to set the
-     * new mission in edit mode
+     * Adds a mission to the system when an operator clicks the add mission button
+     *  - Dispatches the action to create the new mission
+     *  - Dispatches the action to set the new mission in edit mode
+     *  - Dispatchces the action to open it's accordion
      *
      * @returns {void}
      */
@@ -45,6 +46,13 @@ export default function MissionsPanel() {
         globalDispatch({
             type: GlobalActions.CLICKED_EDIT_MISSION,
             missionID: newMissionID,
+        });
+
+        // Opens the mission accordion
+        globalDispatch({
+            type: GlobalActions.CLICKED_MISSION_ACCORDION,
+            missionID: newMissionID,
+            isMissionAccordionExpanded: true,
         });
 
         // Prevents new missions from not being visible in the viewport

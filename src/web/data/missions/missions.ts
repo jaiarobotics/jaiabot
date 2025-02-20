@@ -1,5 +1,5 @@
 import Mission from "./mission";
-import { NO_MISSION_ID, UNASSIGNED_ID } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 class Missions {
     private missions: Map<number, Mission>;
@@ -48,14 +48,14 @@ class Missions {
         this.getMissions().delete(missionID);
         // TODO Make sure missionIDInEditMode is update in GlobalContext
         /*if (missionID === this.getMissionIDInEditMode()) {
-            this.setMissionIDInEditMode(NO_MISSION_ID);
+            this.setMissionIDInEditMode(UNASSIGNED_ID);
         } */
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
         // TODO Make sure missionIDInEditMode is update in GlobalContext
-        //this.setMissionIDInEditMode(NO_MISSION_ID);
+        //this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
     }
 }
