@@ -4,6 +4,7 @@ import { useContext } from "react";
 // Jaia
 import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
 import MissionsList from "./MissionsList/MissionsList";
+import { missions } from "../../data/missions/missions";
 import { GlobalDispatchContext } from "../../context/Global/GlobalContext";
 import { JaiaSystemDispatchContext } from "../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
@@ -23,18 +24,28 @@ export default function MissionsPanel() {
     const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
 
     /**
-     * Dispatches the action to create a new mission when an operator clicks the add mission button
+     * Dispatches the action to create a new mission when an operator clicks
+     * the add mission button and then dispatches the action to set the
+     * new mission in edit mode
      *
      * @returns {void}
      */
     const handleAddMissionClick = () => {
+        const newMissionID = missions.getNextMissionID();
         // Deselect node
         globalDispatch({
             type: GlobalActions.CLICKED_NODE,
             selectedNode: { type: NodeTypes.NONE, ID: -1 },
         });
 
+        // Add the mission
         jaiaSystemDispatch({ type: JaiaSystemActions.ADD_MISSION });
+
+        // Put mission in edit mode
+        globalDispatch({
+            type: GlobalActions.CLICKED_EDIT_MISSION,
+            missionID: newMissionID,
+        });
 
         // Prevents new missions from not being visible in the viewport
         autoScrollMissions();

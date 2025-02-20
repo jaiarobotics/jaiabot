@@ -6,6 +6,7 @@ import {
     BotAccordionStates,
 } from "../../../context/Global/GlobalContext";
 import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 const mockSelectedNode1: SelectedNode = {
     type: NodeTypes.HUB,
@@ -37,6 +38,7 @@ const mockGlobalContext1: GlobalContextType = {
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
+    missionIDInEditMode: UNASSIGNED_ID,
     isRCMode: false,
 };
 

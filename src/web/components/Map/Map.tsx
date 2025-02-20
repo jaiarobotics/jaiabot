@@ -15,6 +15,8 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 
 import "./Map.less";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 export default function Map() {
     const globalDispatch = useContext(GlobalDispatchContext);
@@ -71,7 +73,8 @@ export default function Map() {
     };
 
     /**
-     * Dispatches action to add a waypoint to the map
+     *  Checks to make sure a mission is in edit mode and then
+     *  dispatches action to add a waypoint to the map
      *
      * @param {Coordinate} coordinate Location of click on map
      * @returns {void}
@@ -81,11 +84,15 @@ export default function Map() {
      * coordinate is based on the map's projection.
      */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
-        const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaSystemDispatch({
-            type: JaiaSystemActions.ADD_WAYPOINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
+        const missionIDInEditMode = jaiaGlobal.getMissionIDInEditMode();
+        if (missionIDInEditMode !== UNASSIGNED_ID) {
+            const lonLat = toLonLat(coordinate, view.getProjection());
+            jaiaSystemDispatch({
+                type: JaiaSystemActions.ADD_WAYPOINT,
+                missionID: missionIDInEditMode,
+                location: { lon: lonLat[0], lat: lonLat[1] },
+            });
+        }
     };
 
     return <div id="map" data-testid="map"></div>;

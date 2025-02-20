@@ -9,7 +9,6 @@ import {
 } from "../../../context/JaiaSystem/JaiaSystemContext";
 import { GlobalActions } from "../../../context/Global/GlobalActions";
 import { JaiaSystemActions } from "../../../context/JaiaSystem/jaia-system-actions";
-import { missions } from "../../../data/missions/missions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -30,6 +29,7 @@ import {
 } from "@mui/material";
 
 import "./MissionsList.less";
+import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 
 interface MissionAccordionTitleProps {
     missionID: number;
@@ -97,7 +97,12 @@ export default function MissionsList() {
         jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_MISSION, missionID: missionID });
     };
 
-    const handleToggleEditClick = (missionID: number) => {};
+    const handleToggleEditClick = (missionID: number) => {
+        globalDispatch({
+            type: GlobalActions.CLICKED_EDIT_MISSION,
+            missionID: missionID,
+        });
+    };
 
     return (
         <div className="missions-list" data-testid="missions-list">
@@ -137,7 +142,7 @@ export default function MissionsList() {
                                 </Button>
                                 <JaiaToggle
                                     checked={() =>
-                                        missions.getMissionIDInEditMode() === mission.getMissionID()
+                                        globalContext.missionIDInEditMode === mission.getMissionID()
                                     }
                                     onClick={() => handleToggleEditClick(mission.getMissionID())}
                                     label="Edit"

@@ -158,7 +158,7 @@ function generateWaypointLineStyle(
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
 function getWaypointColor(missionID: number) {
-    if (missionID === missions.getMissionIDInEditMode()) {
+    if (missionID === jaiaGlobal.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;
     }
 

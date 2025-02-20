@@ -11,6 +11,7 @@ import GPS from "../../data/sensors/gps";
 import Mission from "../../data/missions/mission";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 interface DisableInfo {
     isDisabled: boolean;
@@ -71,7 +72,7 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
  * until mission management refactor is complete
  */
 export function getWaypontHelperText(mission: Mission) {
-    if (!mission || missions.getMissionIDInEditMode() === mission.getMissionID()) {
+    if (!mission || jaiaGlobal.getMissionIDInEditMode() === mission.getMissionID()) {
         return "Click on the map to create waypoints";
     }
     return "Click edit toggle to create waypoint";
@@ -289,11 +290,13 @@ export function disablePlayButton(
 
 /**
  * @notes Refactor comming with new mission management implementation
+ *        Need to replace direct changes to data model with calls to dispatch
+ *        Global Action CLICKED_EDIT_MISSION
  */
 export function toggleEditMode(mission: Mission) {
     if (!mission) return;
-
-    const canEdit = missions.getMissionIDInEditMode() === mission.getMissionID();
+    // TODO Change to dispatch!
+    const canEdit = jaiaGlobal.getMissionIDInEditMode() === mission.getMissionID();
 
     if (canEdit) {
         // if toggling off reset all waypoint move status
@@ -301,8 +304,8 @@ export function toggleEditMode(mission: Mission) {
         // waypoints.forEach((element) => {
         //     element.setCanMoveOnMap(false);
         // });
-        missions.setMissionIDInEditMode(NO_MISSION_ID);
+        jaiaGlobal.setMissionIDInEditMode(NO_MISSION_ID);
     } else {
-        missions.setMissionIDInEditMode(mission.getMissionID());
+        jaiaGlobal.setMissionIDInEditMode(mission.getMissionID());
     }
 }

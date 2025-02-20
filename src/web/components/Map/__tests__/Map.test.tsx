@@ -117,7 +117,7 @@ test("Click on map twice with mission in edit mode", () => {
 });
 
 test("Click on map with no mission in edit mode", () => {
-    expect(missions.getMissionIDInEditMode()).toBe(-1);
+    expect(jaiaGlobal.getMissionIDInEditMode()).toBe(-1);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);

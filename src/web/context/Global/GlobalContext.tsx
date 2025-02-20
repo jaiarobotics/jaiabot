@@ -9,6 +9,7 @@ import { SelectedNode, NodeTypes } from "../../types/jaia-system-types";
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface GlobalContextType {
     clientID: string;
@@ -18,6 +19,7 @@ export interface GlobalContextType {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
     isRCMode: boolean;
 }
 
@@ -93,6 +95,7 @@ export const globalDefaultContext: GlobalContextType = {
     hubAccordionStates: defaultHubAccordionStates,
     botAccordionStates: defaultBotAccordionStates,
     missionAccordionStates: {},
+    missionIDInEditMode: UNASSIGNED_ID,
     isRCMode: false,
 };
 
@@ -138,6 +141,8 @@ function globalReducer(state: GlobalContextType, action: GlobalAction) {
             );
         case GlobalActions.RESET_MISSION_ACCORDIONS:
             return handleResetMissionAccordions(mutableState);
+        case GlobalActions.CLICKED_EDIT_MISSION:
+            return handleClickedEditMission(mutableState, action.missionID);
 
         default:
             return state;
@@ -195,30 +200,18 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
  * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {SelectedNode} clickedNode Bot or Hub that was clicked
  * @returns {GlobalContextType} Updated mutable state object
  *
  * @notes This function calls jaiaGlobal.setSelectedNode to make sure the
  *        Global Data used by OpenLayers is in sync with GlobalContext
  */
-function handleClickedNode(mutableState: GlobalContextType, selectedNode: SelectedNode) {
-    if (
-        mutableState.selectedNode.type === selectedNode.type &&
-        mutableState.selectedNode.id === selectedNode.id
-    ) {
-        // Clicked currently selected node
-        mutableState.visibleDetails = NodeTypes.NONE;
-    } else {
-        // Clicked non-selected node
-        mutableState.selectedNode = selectedNode;
-        mutableState.visibleDetails = selectedNode.type;
-    }
-
-    // Sync OpenLayers
-    jaiaGlobal.setSelectedNode(mutableState.selectedNode);
-    botLayer.updateFeatures();
-    hubLayer.updateFeatures();
-    missionLayer.updateFeatures();
-
+function handleClickedNode(mutableState: GlobalContextType, clickedNode: SelectedNode) {
+    jaiaGlobal.setSelectedNode(clickedNode);
+    const selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.selectedNode = selectedNode;
+    mutableState.visibleDetails = selectedNode.type;
+    syncOpenLayers();
     return mutableState;
 }
 
@@ -321,6 +314,29 @@ function handleResetMissionAccordions(mutableState: GlobalContextType) {
     return mutableState;
 }
 
+/**
+ * Handles a click on a mission edit mode toggle 
+ *
+ * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {number} missionID ID of the mission associated with the toggle
+ * @returns {GlobalContextType} Updated mutable state object
+ * 
+ * @notes This function calls jaiaGlobal.setMissionIDInEditMode to make sure the
+ *        Global Data used by OpenLayers is in sync with GlobalContext
+
+ */
+function handleClickedEditMission(mutableState: GlobalContextType, missionID: number) {
+    jaiaGlobal.setMissionIDInEditMode(missionID);
+    mutableState.missionIDInEditMode = jaiaGlobal.getMissionIDInEditMode();
+    syncOpenLayers();
+    return mutableState;
+}
+
+function syncOpenLayers() {
+    botLayer.updateFeatures();
+    hubLayer.updateFeatures();
+    missionLayer.updateFeatures();
+}
 export function GlobalContextProvider({ children }: GlobalContextProviderProps) {
     const [state, dispatch] = useReducer(globalReducer, globalDefaultContext);
 

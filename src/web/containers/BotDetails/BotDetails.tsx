@@ -71,6 +71,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 
 import "./BotDetails.less";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 const rcMode = require("../../style/icons/controller.svg");
 
 export interface BotDetailsProps {
@@ -712,7 +713,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                         <JaiaToggle
                             checked={() =>
-                                missions.getMissionIDInEditMode() === mission.getMissionID()
+                                globalContext.missionIDInEditMode === mission.getMissionID()
                             }
                             onClick={() => toggleEditMode(mission)}
                             label="Edit"
