@@ -11,16 +11,25 @@ new_rw_overlay_mountpoint=${old_ro_rootfs_mountpoint}
 
 boot_mountpoint="/boot/firmware"
 
-###############################
-# Live pivot onto underlay FS #
-###############################
+rootfstype=$(findmnt -n -o fstype /)
 
-mount -o remount,rw ${old_ro_rootfs_mountpoint}
-mkdir -p ${old_ro_rootfs_mountpoint}/oldroot
-mount --make-rprivate /
-pivot_root ${old_ro_rootfs_mountpoint} ${old_ro_rootfs_mountpoint}/oldroot
-for i in dev proc sys run boot/firmware var/log media/root-rw; do mount --move /oldroot/$i /$i; done
-systemctl daemon-reload
+if [ "${rootfstype}" = "overlay" ]; then
+    ## in place major upgrade
+    
+    ###############################
+    # Live pivot onto underlay FS #
+    ###############################
+
+    mount -o remount,rw ${old_ro_rootfs_mountpoint}
+    mkdir -p ${old_ro_rootfs_mountpoint}/oldroot
+    mount --make-rprivate /
+    pivot_root ${old_ro_rootfs_mountpoint} ${old_ro_rootfs_mountpoint}/oldroot
+    for i in dev proc sys run boot/firmware var/log media/root-rw; do mount --move /oldroot/$i /$i; done
+    systemctl daemon-reload
+else
+    ## AWS AMI
+    mount $(blkid -L overlay) ${old_rw_overlay_mountpoint}
+fi
 
 ###############################
 # Remove rootfs overlayconf file (so if extraction step fails or is interrupted, will still boot into old underlay).
@@ -33,21 +42,25 @@ rm -f /etc/overlayroot.conf
 ###############################
 
 rm -rf ${new_ro_rootfs_mountpoint}/*
-tar --xattrs --xattrs-include="*" -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz -C ${new_ro_rootfs_mountpoint}
+tar --xattrs --xattrs-include="*" -xz -f {{ rootfs_filename }} -C ${new_ro_rootfs_mountpoint}
 
-###############################
-# Restore reuse files
-###############################
+if [ "{{ upgrade_type }}" = "embedded" ]; then
+    ## in place major upgrade
+    
+    ###############################
+    # Restore reuse files
+    ###############################
 
-rsync -aP {{ upgrade_reuse_dir }}/ ${new_ro_rootfs_mountpoint}/
+    rsync -aP {{ upgrade_reuse_dir }}/ ${new_ro_rootfs_mountpoint}/
 
-###############################
-# Write new boot dir
-###############################
+    ###############################
+    # Write new boot dir
+    ###############################
 
-mount -o remount,rw ${boot_mountpoint}
-rsync -aP --delete {{ upgrade_boot_dir }}/ ${boot_mountpoint}/ 
-
+    mount -o remount,rw ${boot_mountpoint}
+    rsync -aP --delete {{ upgrade_boot_dir }}/ ${boot_mountpoint}/ 
+fi
+    
 ###############################
 # Swap rootfs/overlay labels     
 ###############################
@@ -60,7 +73,8 @@ case "$FS_TYPE" in
         e2label "$ROOTFS_DEVICE" overlay
         ;;
     btrfs)
-        btrfs filesystem label "$ROOTFS_DEVICE" overlay
+        ROOTFS_MOUNTPOINT=$(findmnt -n -o TARGET $ROOTFS_DEVICE)
+        btrfs filesystem label "$ROOTFS_MOUNTPOINT" overlay
         ;;
     *)
         echo "Error: Unsupported filesystem type '$FS_TYPE'"
@@ -74,12 +88,45 @@ btrfs filesystem label ${new_ro_rootfs_mountpoint} "rootfs"
 # Clean up
 ###############################
 
-rm -rf {{ upgrade_tmp_dir }}
-rm -rf {{ upgrade_reuse_dir }}
-rm -rf {{ upgrade_boot_dir }}
+if [ "{{ upgrade_type }}" = "embedded" ]; then
+    rm -rf {{ upgrade_tmp_dir }}
+    rm -rf {{ upgrade_reuse_dir }}
+    rm -rf {{ upgrade_boot_dir }}
+fi
 
 ###############################
 # Reboot    
 ###############################
 
-systemctl reboot --force
+if [ "{{ upgrade_type }}" = "embedded" ]; then
+    ## in place major upgrade
+    systemctl reboot --force
+else
+    ## AWS AMI
+    
+    # Pivot to new root
+    mount --make-rprivate /
+    mkdir -p ${new_ro_rootfs_mountpoint}/oldroot    
+    pivot_root ${new_ro_rootfs_mountpoint} ${new_ro_rootfs_mountpoint}/oldroot
+
+    for i in dev proc sys run boot/firmware var/log; do mount --move /oldroot/$i /$i; done
+
+    # move any mounts under /oldmount as well
+    mount | awk '{print $3}' | grep "^/oldroot/" | sort -r | while read -r mountpoint; do
+        new_mount="${mountpoint//oldroot\//}"
+        mount --move "$mountpoint" "$new_mount"
+    done
+
+    # Enable serial console for AWS debugging
+    sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
+    
+    update-grub
+    
+    root_partition=$(findmnt -n -o SOURCE /)
+    root_device=$(lsblk -no PKNAME "$root_partition")
+
+    mount -o remount,rw $boot_mountpoint
+    mount -o bind $boot_mountpoint /boot/efi
+
+    grub-install "/dev/$root_device" --no-uefi-secure-boot --removable
+fi

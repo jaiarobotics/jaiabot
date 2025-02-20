@@ -85,7 +85,12 @@
         tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
         jaia admin fleet generate --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
         rm {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
-    
+
+    - name: Set facts for upgrade script
+      set_fact:
+        rootfs_filename: '{{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz'
+        upgrade_type: embedded
+        
     - name: Generate upgrade script
       template:
         src: templates/do-major-upgrade.sh.j2
