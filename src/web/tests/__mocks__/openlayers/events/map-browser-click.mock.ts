@@ -65,3 +65,4 @@ export const mapBrowserEventMock = new MapBrowserEvent<UIEvent>(
     undefined,
 );
 mapBrowserEventMock.pixel = [602, 147];
+mapBrowserEventMock.coordinate = [-5752956.496855505, 1956787.9241005126];
