@@ -42,6 +42,8 @@ message UpgradeConfig
     required string this_hub = 5;
 
     optional string ansible_playbook_full_path = 6; // if set, this is the full path to the ansible-playbook binary to use, rather than search the $PATH
+
+    optional string ansible_log_dir = 7 [default = "/tmp/jaiabot-ansible"];
     
     optional double check_freq = 10 [default = 10];
 }

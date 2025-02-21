@@ -34,13 +34,33 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 
         void handleRequest(const Wt::Http::Request& request, Wt::Http::Response& response) override
         {
-            suggestFileName("jaiabot_upgrade_ansible_log_ " + goby::time::file_str() + ".json");
-            response.addHeader("Content-Type", "text/plain");
+            suggestFileName("jaiabot_upgrade_ansible_log_" + goby::time::file_str() + ".json");
+            response.addHeader("Content-Type", "application/json");
             response.out() << last_log_;
         }
 
       private:
         std::string last_log_;
+    };
+
+    class AutoScrollWidget : public Wt::WContainerWidget
+    {
+      public:
+        AutoScrollWidget(Wt::WContainerWidget* parent = nullptr) : Wt::WContainerWidget(parent)
+        {
+            this->setOverflow(Wt::WContainerWidget::OverflowAuto, Wt::Horizontal | Wt::Vertical);
+            this->setHeight(300);
+        }
+
+        void addText(Wt::WString line)
+        {
+            new Wt::WText(line + "<br/>", this);
+
+            // JavaScript to scroll to the bottom
+            std::string jsCode = "var obj = document.getElementById('" + this->id() +
+                                 "'); obj.scrollTop = obj.scrollHeight;";
+            Wt::WApplication::instance()->doJavaScript(jsCode);
+        }
     };
 
     struct AnsiblePlaybookConfig
@@ -59,9 +79,15 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         Wt::WPushButton* run_button;
         Wt::WContainerWidget* log_button_div;
         Wt::WPushButton* log_button;
+        Wt::WContainerWidget* stdout_button_div;
+        Wt::WPushButton* stdout_button;
         Wt::WContainerWidget* result_div;
         Wt::WText* result_text;
         Wt::WTable* result_table;
+
+        Wt::WGroupBox* stdout_group;
+        AutoScrollWidget* stdout_div;
+
         std::vector<std::string>::const_iterator run_text_it;
         // name -> value
         std::map<std::string, std::string> input_var;
@@ -77,10 +103,10 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
             ~ProcessData();
 
             boost::asio::io_service io;
-            std::future<std::string> stdout;
             std::future<std::string> stderr;
             boost::process::child process;
             std::thread io_thread;
+            std::ifstream stdout;
         };
         std::unique_ptr<ProcessData> pdata;
         std::string last_log;
@@ -106,6 +132,7 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
                        std::size_t playbook_index);
 
     void process_ansible_json_result(nlohmann::json j, AnsiblePlaybookConfig& playbook);
+    void toggle_stdout(std::size_t playbook_index);
 
     void loop();
     void focus() override { timer_.start(); }
