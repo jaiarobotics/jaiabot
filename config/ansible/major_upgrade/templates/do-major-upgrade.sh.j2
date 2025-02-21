@@ -58,7 +58,7 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     ###############################
 
     mount -o remount,rw ${boot_mountpoint}
-    rsync -aP --delete {{ upgrade_boot_dir }}/ ${boot_mountpoint}/ 
+    rsync -a --delete {{ upgrade_boot_dir }}/ ${boot_mountpoint}/ 
 fi
     
 ###############################
@@ -92,6 +92,11 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     rm -rf {{ upgrade_tmp_dir }}
     rm -rf {{ upgrade_reuse_dir }}
     rm -rf {{ upgrade_boot_dir }}
+    rm {{ upgrade_dir }}/*.boot.tar.gz
+    rm {{ upgrade_dir }}/*.rootfs.tar.gz
+    rm {{ upgrade_dir }}/do-major-upgrade.sh
+    rm {{ upgrade_dir }}/fleet*.cfg
+    mv {{ upgrade_dir_base }}/version.txt {{ upgrade_dir }}
 fi
 
 ###############################

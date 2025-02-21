@@ -208,6 +208,7 @@ set(scripts_to_install
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
+  fleet/jaia-fleet-config-update-iso.sh
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )

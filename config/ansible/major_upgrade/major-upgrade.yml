@@ -67,15 +67,8 @@
         fi
       
     - include_tasks: tasks/check-disk-space.yml
-      
     - include_tasks: tasks/get-new-filesystems.yml
-      
-    ## TODO Create a fleet config from the old image 
-    - name: Copy the fleet config
-      copy:
-        src: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
-        dest: "{{ upgrade_dir }}"
-
+    - include_tasks: tasks/copy-fleet-config.yml
     - include_tasks: tasks/fetch-reuse-files.yml
     - include_tasks: tasks/backup-old-rootfs-overlay.yml
 

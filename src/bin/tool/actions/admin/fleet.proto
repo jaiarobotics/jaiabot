@@ -61,6 +61,12 @@ message FleetTool
         vpn_authorize = 4 [(goby.ev).cfg = {
             short_help_msg: "Push temporary key to vpn.jaia.tech to allow a fleet to configure itself"
         }];
+        update_iso = 5 [(goby.ev).cfg = {
+            short_help_msg: "Update existing jaiabot_updates ISO with fleet config"
+            external_command: "jaia-fleet-config-update-iso.sh",
+            full_help_msg: "Update existing jaiabot_updates ISO (USB/CD image) with fleet config.\n"
+                           "Usage: \"jaia admin fleet update_iso [fleet.cfg] [updates.iso] [output_updates.iso (optional)]\""
+            }];        
     }
 
     optional Action action = 2 [

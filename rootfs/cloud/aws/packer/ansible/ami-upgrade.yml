@@ -34,6 +34,7 @@
         upgrade_tmp_dir: '/tmp/dummy'
         upgrade_reuse_dir: '/tmp/dummy'
         upgrade_boot_dir: '/tmp/dummy'
+        upgrade_dir: '{{ upgrade_dir_base }}'
         
     - name: Generate upgrade script
       template:
