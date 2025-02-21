@@ -4,22 +4,40 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ## Preparing for major upgrade
 
+### Ensure the Hub has a valid Fleet Configuration
+
+If this fleet was generated prior to fleet configuration files (this includes most 1.y fleets), one will need to be created for the current fleet. This can be done using `jaia admin fleet create` as described in the [Embedded Board Deployment](page25_embedded_setup.md) document.
+
+This fleet configuration must then be embedded in the upgrade image (see the next step).
+
+If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
+
+
 ### Download and flash the upgrade image
 
-Download the desired release CD image (e.g. jaiabot_updates_noble_2.0.0_arm64.iso) and write it a USB flash drive (or burn it to a CD-R disc):
+Download the desired release CD image (e.g. jaiabot_updates_noble_2.0.0_arm64.iso).
+
+If you need to embed the fleet configuration (see previous section), do so now with:
+
+```
+jaia admin fleet update_iso /path/to/fleetN.cfg /path/to/jaiabot_updates_noble_2.0.0_arm64.iso
+```
+
+This will embed the fleet config (at `major_upgrades/fleetN.cfg` within the ISO). and write a new ISO called `/path/to/jaiabot_updates_noble_2.0.0_arm64_fleetN.iso`.
+
+Now, write the ISO to a  USB flash drive (or burn it to a CD-R disc):
 
 Assuming the USB flash drive is /dev/sdb:
 ```
-sudo dd if=jaiabot_updates_noble_2.0.0_arm64.iso of=/dev/sdb bs=1M status=progress
+# for fleets WITHOUT previous fleet config (most 1.y fleets)
+ISO=jaiabot_updates_noble_2.0.0_arm64_fleetN.iso
+# OR for fleets WITH previous fleet config
+ISO=jaiabot_updates_noble_2.0.0_arm64.iso
+
+sudo dd if=$ISO of=/dev/sdb bs=1M status=progress
 ```
 
-Insert the flash drive into the fleet Hub or attach a USB CD drive with the CD inserted, then boot or reboot the Hub.
-
-### Ensure the Hub has a valid Fleet Configuration
-
-If this fleet was generated prior to fleet configuration files, one will need to be created for the current fleet. This can be done using `jaia admin fleet create` as described in the [Embedded Board Deployment](page25_embedded_setup.md) document.
-
-This fleet configuration must be named `fleetN.cfg` where N is the fleet number, and copied to the machine running Ansible (typically the Hub) at `/etc/jaiabot/fleetN.cfg`.
+Insert the flash drive into the fleet Hub or attach a USB CD drive with the CD inserted, then boot or reboot the Hub to mount it.
 
 ## Running the major upgrade
 
@@ -28,10 +46,10 @@ Use Ansible to run the major upgrade, either on the command line or via the JCU 
 ```
 # in /usr/share or local git clone
 cd jaiabot/config/ansible/major_upgrade
-ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes
 ```
 
-where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected).
+where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
 
 To upgrade multiple Hubs, you will need to re-run this command (with the update hub_id) after moving the USB flash key to the new hub. Any number of bots will be updated from a single Hub as part of this command.
 
