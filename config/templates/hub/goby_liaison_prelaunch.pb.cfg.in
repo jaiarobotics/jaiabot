@@ -104,7 +104,7 @@ add_commander_tab: false
     }
 
     ansible_playbook {
-        file: "major_upgrade/major_upgrade.yml" 
+        file: "major_upgrade/major-upgrade.yml" 
         name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
         role: USER
 
