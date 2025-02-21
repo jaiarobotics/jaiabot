@@ -72,6 +72,9 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         AnsiblePlaybookConfig(AnsiblePlaybookConfig&&) = default;
 
         std::string file;
+        std::string stdout_file;
+        std::string json_file;
+
         Wt::WGroupBox* group_box;
         Wt::WContainerWidget* group_div;
         Wt::WContainerWidget* iv_group_div;
@@ -99,7 +102,8 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         {
             ProcessData(const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
                         const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
-                        const std::string& input_vars);
+                        const std::string& input_vars, const std::string& ansible_stdout_file,
+                        const std::string& ansible_json_file);
             ~ProcessData();
 
             boost::asio::io_service io;
@@ -112,6 +116,9 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         std::string last_log;
         std::shared_ptr<LogFileResource> log_resource;
         const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook;
+
+        void show_stdout();
+        void hide_stdout();
     };
     friend struct AnsiblePlaybookConfig;
 

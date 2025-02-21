@@ -35,9 +35,6 @@ const std::vector<std::string> jaiabot::LiaisonUpgrade::running_({
     "Running ...........",
 });
 
-const std::string ansible_stdout_file{"/tmp/jaia-ansible-stdout.txt"};
-const std::string ansible_json_file{"/tmp/jaia-ansible.json"};
-
 const WColor jaiabot::LiaisonUpgrade::color_success_{"green"};
 const WColor jaiabot::LiaisonUpgrade::color_failure_{"red"};
 
@@ -48,6 +45,8 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
                                         Wt::WContainerWidget* parent)
     : cfg_(cfg.GetExtension(protobuf::jaiabot_upgrade_config))
 {
+    boost::filesystem::create_directories(cfg_.ansible_log_dir());
+
     set_name("Fleet Upgrade");
     const auto update_freq = cfg_.check_freq();
     timer_.setInterval(1.0 / update_freq * 1.0e3);
@@ -147,17 +146,30 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     }
 
     glog.is_debug1() && glog << "Running playbook: " << playbook.file << std::endl;
-    for (auto& playbook : playbooks_) playbook.result_table->clear();
+    for (auto& playbook : playbooks_)
+    {
+        playbook.result_table->clear();
+        playbook.hide_stdout();
+    }
 
     try
     {
         playbook.stdout_div->clear();
-        boost::filesystem::remove(ansible_stdout_file);
+
+        boost::filesystem::path playbook_path(playbook.file);
+        playbook.stdout_file =
+            cfg_.ansible_log_dir() + "/" + playbook_path.stem().native() + "_stdout.txt";
+        playbook.json_file =
+            cfg_.ansible_log_dir() + "/" + playbook_path.stem().native() + "_result.json";
+
+        // for some reason boost process won't overwrite this file unless it's removed first
+        boost::filesystem::remove(playbook.stdout_file);
 
         std::string input_vars;
         for (const auto& p : playbook.input_var) input_vars += p.first + "=" + p.second + " ";
         playbook.pdata.reset(new AnsiblePlaybookConfig::ProcessData(
-            cfg_, playbook.file, playbook.pb_playbook, input_vars));
+            cfg_, playbook.file, playbook.pb_playbook, input_vars, playbook.stdout_file,
+            playbook.json_file));
     }
     catch (const std::exception& e)
     {
@@ -172,15 +184,9 @@ void jaiabot::LiaisonUpgrade::toggle_stdout(std::size_t playbook_index)
 {
     AnsiblePlaybookConfig& playbook = playbooks_[playbook_index];
     if (playbook.stdout_group->isHidden())
-    {
-        playbook.stdout_group->show();
-        playbook.stdout_button->setText(stdout_button_hide_text);
-    }
+        playbook.show_stdout();
     else
-    {
-        playbook.stdout_group->hide();
-        playbook.stdout_button->setText(stdout_button_show_text);
-    }
+        playbook.hide_stdout();
 }
 
 void jaiabot::LiaisonUpgrade::set_input_var(int selection_index, Wt::WComboBox* selection,
@@ -216,7 +222,7 @@ void jaiabot::LiaisonUpgrade::loop()
             }
             else
             {
-                std::ifstream json_log(ansible_json_file, std::ios::in);
+                std::ifstream json_log(playbook.json_file, std::ios::in);
                 playbook.last_log.clear();
                 {
                     std::string line;
@@ -379,7 +385,8 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
     const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
     const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
-    const std::string& input_vars)
+    const std::string& input_vars, const std::string& ansible_stdout_file,
+    const std::string& ansible_json_file)
 
     : process(cfg.has_ansible_playbook_full_path()
                   ? boost::filesystem::path(cfg.ansible_playbook_full_path())
@@ -396,3 +403,14 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
 }
 
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::~ProcessData() { io_thread.join(); }
+
+void jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::show_stdout()
+{
+    stdout_group->show();
+    stdout_button->setText(stdout_button_hide_text);
+}
+void jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::hide_stdout()
+{
+    stdout_group->hide();
+    stdout_button->setText(stdout_button_show_text);
+}
