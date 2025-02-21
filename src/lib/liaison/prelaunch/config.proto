@@ -20,7 +20,7 @@ message UpgradeConfig
         required string file = 1;
         required string name = 2;
         required Role role = 3;
-
+        
         message Variable
         {
             required string name = 1;
@@ -32,6 +32,7 @@ message UpgradeConfig
         optional bool confirmation_required = 6 [default = false];
         optional string limit = 7;
         optional string inventory = 8; // overrides ansible_inventory at parent scope
+        optional string section = 9 [default = "General"];
     }
     repeated AnsiblePlaybook ansible_playbook = 2;
     required string ansible_inventory = 3;

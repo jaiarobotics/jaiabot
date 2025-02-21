@@ -2,6 +2,7 @@
 #include <Wt/WContainerWidget>
 #include <Wt/WDialog>
 #include <Wt/WGroupBox>
+#include <Wt/WPanel>
 #include <Wt/WPushButton>
 #include <Wt/WTable>
 #include <Wt/WText>
@@ -57,14 +58,25 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
         if (cfg_.role() < playbook.role())
             continue;
 
+        if (!sections.count(playbook.section()))
+        {
+            SectionWidgets section;
+            section.panel = new Wt::WPanel(this);
+            section.div = new Wt::WContainerWidget(this);
+            section.panel->setCentralWidget(section.div);
+            section.panel->setTitle(playbook.section());
+            section.panel->setCollapsible(true);
+            sections[playbook.section()] = section;
+        }
+
         std::size_t playbook_index = playbooks_.size();
-        playbooks_.emplace_back(playbook, this, playbook_index);
+        playbooks_.emplace_back(playbook, sections[playbook.section()].div, this, playbook_index);
     }
 }
 
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
-    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook, LiaisonUpgrade* parent,
-    std::size_t playbook_index)
+    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook, Wt::WContainerWidget* parent,
+    LiaisonUpgrade* upgrade, std::size_t playbook_index)
     : file(playbook.file()),
       group_box(new WGroupBox(playbook.name(), parent)),
       group_div(new WContainerWidget(group_box)),
@@ -97,13 +109,13 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
     result_div->setPadding(default_padding);
 
     run_button->clicked().connect(
-        boost::bind(&LiaisonUpgrade::run_ansible_playbook, parent, playbook_index));
+        boost::bind(&LiaisonUpgrade::run_ansible_playbook, upgrade, playbook_index));
     log_button->disable();
     log_resource = std::make_shared<LogFileResource>();
     log_button->setLink(Wt::WLink(log_resource.get()));
 
     stdout_button->clicked().connect(
-        boost::bind(&LiaisonUpgrade::toggle_stdout, parent, playbook_index));
+        boost::bind(&LiaisonUpgrade::toggle_stdout, upgrade, playbook_index));
 
     result_table->decorationStyle().setBorder(Wt::WBorder(Wt::WBorder::Solid, 1));
 
@@ -113,7 +125,7 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
         auto* iv_text = new WText(iv.display_name() + ": ", iv_div);
         auto* iv_selection = new WComboBox(iv_div);
         for (const std::string& v : iv.value()) iv_selection->addItem(v);
-        iv_selection->activated().connect(boost::bind(&LiaisonUpgrade::set_input_var, parent,
+        iv_selection->activated().connect(boost::bind(&LiaisonUpgrade::set_input_var, upgrade,
                                                       boost::placeholders::_1, iv_selection,
                                                       iv.name(), playbook_index));
         if (iv.value_size() > 0)

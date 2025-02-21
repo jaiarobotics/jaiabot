@@ -66,7 +66,8 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     struct AnsiblePlaybookConfig
     {
         AnsiblePlaybookConfig(const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook,
-                              LiaisonUpgrade* parent, std::size_t playbook_index);
+                              Wt::WContainerWidget* parent, LiaisonUpgrade* upgrade,
+                              std::size_t playbook_index);
         AnsiblePlaybookConfig() = delete;
         AnsiblePlaybookConfig(const AnsiblePlaybookConfig&) = delete;
         AnsiblePlaybookConfig(AnsiblePlaybookConfig&&) = default;
@@ -146,6 +147,14 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     void unfocus() override { timer_.stop(); }
 
   private:
+    struct SectionWidgets
+    {
+        Wt::WPanel* panel;
+        Wt::WContainerWidget* div;
+    };
+
+    std::map<std::string, SectionWidgets> sections;
+
     const protobuf::UpgradeConfig& cfg_;
     std::vector<AnsiblePlaybookConfig> playbooks_;
     Wt::WTimer timer_;
