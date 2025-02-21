@@ -2,6 +2,7 @@
 
 import datetime
 import time
+import sys
 
 try:
     from smbus import SMBus
@@ -169,7 +170,6 @@ while True:
     except Exception as e:
         print("Atlas Scientific OEM-EC conductivity sensor not found. Trying again.")
 
-
 def checkCalibrationStatus():
     status = bin(probe.calibrationConfirmation())[2:]
 
@@ -222,11 +222,6 @@ def verifyCalibration():
         cal_string += "❌ Calibration status not as expected.\n"
 
     return cal_string
-
-if __name__ == '__main__':
-    with AtlasOEM() as atlas:
-        atlas.dump()
-
 
 def clearScreen():
     print('\033[2J\033[H')
@@ -367,11 +362,21 @@ def doCalibration(description: str, type: int):
     except ValueError:
         input('Value must be a number.  Press enter.')
 
-def getTemperatureCalibratedSalinity(measured_conductivity, expected_conductivity, temperature, pressure):
-    
+def getTemperatureCalibratedSalinity(measured_conductivity, temperature, pressure):
+    """
+    Calculate salinity given measured conductivity, temperature, and pressure.
+
+    Params:
+        measured_conductivity: {float} measured conductivity in μS/cm
+        temperature: {float} temperature in deg C
+        pressure: {float} pressure in bar
+
+    Returns:
+        {float} salinity in PSU (ppt)
+    """
     try:
         # Salinity constants
-        a0 = 0.008
+        a0 = 0.0080
         a1 = -0.1692
         a2 = 25.3851
         a3 = 14.0941
@@ -385,25 +390,27 @@ def getTemperatureCalibratedSalinity(measured_conductivity, expected_conductivit
         b4 = 0.0636
         b5 = -0.0144
 
-        c0 = 0.67661
-        c1 = 0.020056
-        c2 = 0.00011
-        c3 = -7 * 10**-7
-        c4 = 1 * 10**-9
+        c0 = 0.6766097
+        c1 = 2.00564e-2
+        c2 = 1.104259e-4
+        c3 = -6.9698e-7
+        c4 = 1.0031e-9
 
-        d0 = 0.03426
-        d1 = 0.000446
-        d2 = 0.4215
-        d3 = -0.00311
+        d0 = 3.426e-2
+        d1 = 4.464e-4
+        d2 = 4.215e-1
+        d3 = -3.107e-3
 
-        e0 = 2.07 * 10**-5
-        e1 = -6.4 * 10**-10
-        e2 = 3.99 * 10**-15
+        e0 = 2.070e-5
+        e1 = -6.370e-10
+        e2 = 3.989e-15
 
         k = 0.0162
 
+        standard_conductivity = 42914
+        
         # Salinity calculations
-        R = measured_conductivity / expected_conductivity
+        R = round(measured_conductivity / standard_conductivity, 2)
         t = temperature
         p = pressure
 
@@ -412,8 +419,9 @@ def getTemperatureCalibratedSalinity(measured_conductivity, expected_conductivit
         Rt = R / (Rp * rt)
         dS = (t - 15) * (b0 + (b1 * Rt**0.5) + (b2 * Rt) + (b3 * Rt**1.5) + (b4 * Rt**2) + (b5 * Rt**2.5)) / (1 + k * (t - 15))
 
-        S = round(a0 + (a1 * Rt**0.5) + (a2 * Rt) + (a3 * Rt**1.5) + (a4 * Rt**2) + (a5 * Rt**2.5) + dS, 2)
-
+        S = a0 + (a1 * Rt**0.5) + (a2 * Rt) + (a3 * Rt**1.5) + (a4 * Rt**2) + (a5 * Rt**2.5) + dS
+        
+        print(f"S: {S}")
         return S
     
     except ZeroDivisionError:
@@ -585,7 +593,6 @@ def calibrate():
         ]
     })
 
-
 presentMenu({
     'title': 'Main Menu',
     'items': [
@@ -621,3 +628,8 @@ presentMenu({
         }
     ]
 })
+
+if __name__ == "__main__":
+    with AtlasOEM() as atlas:
+        atlas.dump()
+    

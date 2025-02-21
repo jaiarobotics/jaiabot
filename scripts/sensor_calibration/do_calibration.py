@@ -122,18 +122,17 @@ def pollDO():
 # Clear all previous calibration data
 def clearCalibration():
     probe.write_calibration_request(1)
+    print("Calibration data cleared.")
     time.sleep(0.5)
+    dump()
 
 
 # Atmospheric calibration
 def atmosphericCalibration():
     while True:
         try:
-            if get_new_reading_available() == 1:
-                print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
-                time.sleep(1)
-            else:
-                continue
+            print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
+            time.sleep(1)
         except IOError as e:
             print(f"IO Error, continuing...")
             continue
@@ -143,22 +142,19 @@ def atmosphericCalibration():
     input = input("Calibrate to atmospheric DO now? (y/n)")
     if input == 'y':
         probe.write_calibration_request(2)
+        print("Atmospheric calibration completed.")
         time.sleep(0.5)
+        dump()
     else:
         return
     
-
-
 
 # Zero calibration
 def zeroCalibration():
     while True:
         try:
-            if get_new_reading_available() == 1:
-                print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
-                time.sleep(1)
-            else:
-                continue
+            print(f"DO: {get_DO_reading()}, % Saturation: {get_percent_saturation_reading()}")
+            time.sleep(1)
         except IOError as e:
             print(f"IO Error, continuing...")
             continue
@@ -168,7 +164,9 @@ def zeroCalibration():
     input = input("Calibrate to zero DO now? (y/n)")
     if input == 'y':
         probe.write_calibration_request(3)
+        print("Zero calibration completed.")
         time.sleep(0.5)
+        dump()
     else:
         return
 
@@ -233,7 +231,7 @@ def calibrate():
             {
                 'description': 'Atmostpheric Calibration',
                 'key': 'h',
-                'func': atmosphereCalibration
+                'func': atmosphericCalibration
             },
             {
                 'description': 'Exit Menu',
@@ -261,17 +259,17 @@ presentMenu({
         {
             'description': 'Set temperature compensation',
             'key': 't',
-            'func': setTemperatureCompensation
+            'func': set_temperature_compensation
         },
         {
             'description': 'Set salinity compensation',
             'key': 'k',
-            'func': setSalinityCompensation
+            'func': set_salinity_compensation
         },
         {
             'description': 'Set pressure compensation',
             'key': 'p',
-            'func': setPressureCompensation
+            'func': set_pressure_compensation
         },
         {
             'description': 'Calibrate',
