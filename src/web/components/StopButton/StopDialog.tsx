@@ -1,4 +1,4 @@
-import { DisabledCodes, messages } from "./data-offload-messages";
+import { DisabledCodes, messages } from "./stop-messages";
 
 interface DialogProps {
     isVisible: boolean;
@@ -21,11 +21,11 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the data offload button.
+ * Produces the dialog box that appears when clicking on the stop button.
  * This dialog will be an alert if the command cannot be
  * sent or a confirmation prior to sending the command.
  */
-export function DataOffloadDialog(props: DialogProps) {
+export function StopDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -67,7 +67,7 @@ function Title(props: TitleProps) {
 /**
  * Produces the buttons for the dialox box.
  * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Close.
+ * For an alert, the button will be Stop.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
@@ -80,7 +80,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Start Data Offload
+                    Stop
                 </button>
             </div>
         );
