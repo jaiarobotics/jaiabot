@@ -516,7 +516,7 @@ jobs:
 
             outdir=/tmp/bundle/result/${TARGET_ARCH}
             sudo mkdir -p ${outdir}
-            iso_name=jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
+            iso_name=jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}_${TARGET_ARCH}.iso
             sudo cp ../jaiabot_updates.iso ${outdir}/${iso_name}
             sudo cp major_upgrade/version.txt ${outdir}/version.txt
             cat \<< EOF | sudo tee -a ${outdir}/version.txt

@@ -6,11 +6,11 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ### Download and flash the upgrade image
 
-Download the desired release CD image (e.g. jaiabot_updates_noble_2.0.0.iso) and write it a USB flash drive (or burn it to a CD-R disc):
+Download the desired release CD image (e.g. jaiabot_updates_noble_2.0.0_arm64.iso) and write it a USB flash drive (or burn it to a CD-R disc):
 
 Assuming the USB flash drive is /dev/sdb:
 ```
-sudo dd if=jaiabot_updates_noble_2.0.0.iso of=/dev/sdb bs=1M status=progress
+sudo dd if=jaiabot_updates_noble_2.0.0_arm64.iso of=/dev/sdb bs=1M status=progress
 ```
 
 Insert the flash drive into the fleet Hub or attach a USB CD drive with the CD inserted, then boot or reboot the Hub.
