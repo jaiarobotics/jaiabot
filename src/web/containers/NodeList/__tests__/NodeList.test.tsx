@@ -1,12 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
+import NodeList from "../NodeList";
+
 import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
 import { JaiaSystemContextProvider } from "../../../context/JaiaSystem/JaiaSystemContext";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
 
-import { NodeList } from "../NodeList";
 import { bots } from "../../../data/bots/bots";
 import { HealthState } from "../../../shared/JAIAProtobuf";
 import { hubs } from "../../../data/hubs/hubs";

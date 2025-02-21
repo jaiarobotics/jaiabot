@@ -5,7 +5,9 @@ import { JaiaSystemContextProvider } from "../context/JaiaSystem/JaiaSystemConte
 // Style
 import "./App.less";
 import Map from "../components/Map/Map";
-import { NodeList } from "../containers/NodeList/NodeList";
+import NodeList from "../containers/NodeList/NodeList";
+import TopButtonList from "../components/TopButtonList/TopButtonList";
+import SideButtonList from "../components/SideButtonList/SideButtonList";
 
 export default function App() {
     return (
@@ -14,6 +16,8 @@ export default function App() {
                 <JaiaSystemContextProvider>
                     <Map />
                     <NodeList />
+                    <TopButtonList />
+                    <SideButtonList />
                 </JaiaSystemContextProvider>
             </GlobalContextProvider>
         </div>

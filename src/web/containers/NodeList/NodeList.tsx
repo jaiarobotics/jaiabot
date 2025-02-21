@@ -16,7 +16,7 @@ import { HealthState } from "../../shared/JAIAProtobuf";
 
 import "./NodeList.less";
 
-export function NodeList() {
+export default function NodeList() {
     const jaiaSystemContext: JaiaSystemContextType = useContext(JaiaSystemContext);
     const globalContext: GlobalContextType = useContext(GlobalContext);
     const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
