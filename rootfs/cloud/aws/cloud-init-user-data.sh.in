@@ -108,7 +108,7 @@ EOF
 cd /tmp
 AWSCLI_VERSION=2.18.8
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
+unzip -q awscliv2.zip
 ./aws/install
 
 ## Add s3 entry for data
