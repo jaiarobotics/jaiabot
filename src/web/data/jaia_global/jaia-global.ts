@@ -1,10 +1,11 @@
 import { NodeTypes, SelectedNode } from "../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 class JaiaGlobal {
     private selectedNode: SelectedNode;
 
     constructor() {
-        this.selectedNode = { type: NodeTypes.NONE, id: -1 };
+        this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
     }
 
     getSelectedNode() {
@@ -16,14 +17,10 @@ class JaiaGlobal {
             selectedNode.type === this.getSelectedNode().type &&
             selectedNode.id === this.getSelectedNode().id
         ) {
-            this.deselectNode();
+            this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         } else {
             this.selectedNode = selectedNode;
         }
-    }
-
-    deselectNode() {
-        this.selectedNode = { type: NodeTypes.NONE, id: -1 };
     }
 }
 

@@ -3,7 +3,6 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 
 class Missions {
     private missions: Map<number, Mission>;
-    private missionID: number;
     private nextMissionID: number;
     private missionIDInEditMode: number;
 
@@ -19,14 +18,6 @@ class Missions {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
-    }
-
-    getMissionID() {
-        return this.missionID;
-    }
-
-    setMissionID(missionID: number) {
-        this.missionID = missionID;
     }
 
     getNextMissionID() {

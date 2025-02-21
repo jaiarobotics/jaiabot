@@ -197,28 +197,16 @@ function handleClosedDetails(mutableState: GlobalContextType) {
  * @param {GlobalContextType} mutableState State object ref for making modifications
  * @returns {GlobalContextType} Updated mutable state object
  *
- * @notes This function calls jaiaGlobal.setSelectedNode to make sure the
- *        Global Data used by OpenLayers is in sync with GlobalContext
+ * @notes
+ * This function calls jaiaGlobal.setSelectedNode to make sure the
+ * data used by OpenLayers is in sync with GlobalContext
  */
-function handleClickedNode(mutableState: GlobalContextType, selectedNode: SelectedNode) {
-    if (
-        mutableState.selectedNode.type === selectedNode.type &&
-        mutableState.selectedNode.id === selectedNode.id
-    ) {
-        // Clicked currently selected node
-        mutableState.visibleDetails = NodeTypes.NONE;
-    } else {
-        // Clicked non-selected node
-        mutableState.selectedNode = selectedNode;
-        mutableState.visibleDetails = selectedNode.type;
-    }
-
-    // Sync OpenLayers
-    jaiaGlobal.setSelectedNode(mutableState.selectedNode);
-    botLayer.updateFeatures();
-    hubLayer.updateFeatures();
-    missionLayer.updateFeatures();
-
+function handleClickedNode(mutableState: GlobalContextType, clickedNode: SelectedNode) {
+    jaiaGlobal.setSelectedNode(clickedNode);
+    const selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.selectedNode = selectedNode;
+    mutableState.visibleDetails = selectedNode.type;
+    syncOpenLayers();
     return mutableState;
 }
 
@@ -319,6 +307,17 @@ function handleClickedMissionAccordion(
 function handleResetMissionAccordions(mutableState: GlobalContextType) {
     mutableState.missionAccordionStates = {};
     return mutableState;
+}
+
+/**
+ * Repaints the map layers using the latest data
+ *
+ * @returns {void}
+ */
+function syncOpenLayers() {
+    botLayer.updateFeatures();
+    hubLayer.updateFeatures();
+    missionLayer.updateFeatures();
 }
 
 export function GlobalContextProvider({ children }: GlobalContextProviderProps) {
