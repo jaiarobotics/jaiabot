@@ -2,12 +2,14 @@
 import { CommandInfo } from "../../types/commands";
 import { MissionState } from "../../utils/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import { MissionInterface } from "../CommandControl/CommandControl";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+
+import { missions } from "../../data/missions/missions";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 import Mission from "../../data/missions/mission";
-import Waypoint from "../../data/waypoints/waypoint";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
 
@@ -70,7 +72,7 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
  * until mission management refactor is complete
  */
 export function getWaypontHelperText(mission: Mission) {
-    if (!mission || mission.getCanEdit()) {
+    if (!mission || missions.getMissionIDInEditMode() === mission.getMissionID()) {
         return "Click on the map to create waypoints";
     }
     return "Click edit toggle to create waypoint";
@@ -285,20 +287,23 @@ export function disablePlayButton(
 
     return disableInfo;
 }
+
 /**
  * @notes Refactor comming with new mission management implementation
  */
 export function toggleEditMode(mission: Mission) {
     if (!mission) return;
 
-    const canEdit = mission.getCanEdit();
+    const canEdit = missions.getMissionIDInEditMode() === mission.getMissionID();
 
     if (canEdit) {
         // if toggling off reset all waypoint move status
-        const waypoints: Waypoint[] = mission.getWaypoints();
-        waypoints.forEach((element) => {
-            element.setCanMoveOnMap(false);
-        });
+        // const waypoints: Waypoint[] = mission.getWaypoints();
+        // waypoints.forEach((element) => {
+        //     element.setCanMoveOnMap(false);
+        // });
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+    } else {
+        missions.setMissionIDInEditMode(mission.getMissionID());
     }
-    mission.setCanEdit(!canEdit);
 }

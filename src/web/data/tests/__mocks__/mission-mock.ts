@@ -1,5 +1,10 @@
 import Mission from "../../missions/mission";
-import { waypointA, waypointB, waypointC, waypointD } from "./waypoint-mock";
+import Waypoint from "../../waypoints/waypoint";
+
+const waypointA = new Waypoint();
+const waypointB = new Waypoint();
+const waypointC = new Waypoint();
+const waypointD = new Waypoint();
 
 const waypoints1 = [waypointA, waypointB, waypointC, waypointD];
 const waypoints2 = [waypointD, waypointA, waypointB, waypointC];

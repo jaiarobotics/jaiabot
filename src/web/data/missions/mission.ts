@@ -1,10 +1,12 @@
+import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
     private repeats: number;
-    private canEdit: boolean;
+    private movableWaypointNum: number;
 
     constructor() {
         this.waypoints = [];
@@ -35,12 +37,12 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getCanEdit() {
-        return this.canEdit;
+    getMovableWaypointNum() {
+        return this.movableWaypointNum;
     }
 
-    setCanEdit(canEdit: boolean) {
-        this.canEdit = canEdit;
+    setMovableWaypointNum(waypointNum: number) {
+        this.movableWaypointNum = waypointNum;
     }
 
     getWaypoint(waypointNum: number) {
@@ -50,8 +52,12 @@ export default class Mission {
         return undefined;
     }
 
-    addWaypoint(waypoint: Waypoint) {
+    addWaypoint(location: GeographicCoordinate) {
+        const waypoint = new Waypoint();
+        waypoint.setLocation(location);
         this.getWaypoints().push(waypoint);
+        // Sync OpenLayers
+        missionLayer.addWaypoint(this.getMissionID(), this.getWaypoints().length);
     }
 
     deleteWaypoint(waypointNum: number) {

@@ -8,6 +8,7 @@ import { GlobalActions } from "./GlobalActions";
 import { SelectedNode, NodeTypes } from "../../types/jaia-system-types";
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 export interface GlobalContextType {
     clientID: string;
@@ -216,6 +217,7 @@ function handleClickedNode(mutableState: GlobalContextType, selectedNode: Select
     jaiaGlobal.setSelectedNode(mutableState.selectedNode);
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
+    missionLayer.updateFeatures();
 
     return mutableState;
 }

@@ -5,11 +5,15 @@ import { JaiaSystemActions } from "./jaia-system-actions";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
 import { missions } from "../../data/missions/missions";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
 import Mission from "../../data/missions/mission";
-import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
+
+import { NodeTypes } from "../../types/jaia-system-types";
+import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -21,6 +25,7 @@ interface Action {
     type: JaiaSystemActions;
     botID?: number;
     missionID?: number;
+    location?: GeographicCoordinate;
 }
 
 interface JaiaSystemContextProviderProps {
@@ -54,6 +59,8 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
             return handleAssignMission(mutableState, action.botID, action.missionID);
         case JaiaSystemActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
+        case JaiaSystemActions.ADD_WAYPOINT:
+            return handleAddWaypoint(mutableState, action.location);
         default:
             return state;
     }
@@ -153,6 +160,35 @@ function handleAssignMission(
 function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
     missionsManager.autoAssign();
     mutableState.bots = bots.getBots();
+    mutableState.missions = missions.getMissions();
+    return mutableState;
+}
+
+/**
+ * Makes call to add waypoint if mission is in edit mode
+ *
+ * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location Lat/lon of where the click occurred
+ * @returns {JaiaSystemContextType} Updated mutable state object
+ */
+function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
+    const missionIDInEditMode = missions.getMissionIDInEditMode();
+    const selectedNode = jaiaGlobal.getSelectedNode();
+
+    if (missionIDInEditMode !== UNASSIGNED_ID) {
+        // Add waypoint to mission in edit mode
+        const mission = missions.getMission(missionIDInEditMode);
+        mission.addWaypoint(location);
+    } else if (
+        selectedNode.type === NodeTypes.BOT &&
+        missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
+    ) {
+        // Create new mission and add first waypoint for selected Bot without mission
+        const mission = new Mission();
+        missions.addMission(mission);
+        mission.addWaypoint(location);
+    }
+
     mutableState.missions = missions.getMissions();
     return mutableState;
 }

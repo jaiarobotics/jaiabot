@@ -1,13 +1,16 @@
 import Mission from "./mission";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 class Missions {
     private missions: Map<number, Mission>;
     private missionID: number;
     private nextMissionID: number;
+    private missionIDInEditMode: number;
 
     constructor() {
         this.missions = new Map<number, Mission>();
         this.nextMissionID = 1;
+        this.missionIDInEditMode = UNASSIGNED_ID;
     }
 
     getMissions() {
@@ -38,10 +41,19 @@ class Missions {
         return this.getMissions().get(missionNum);
     }
 
+    getMissionIDInEditMode() {
+        return this.missionIDInEditMode;
+    }
+
+    setMissionIDInEditMode(missionIDInEditMode: number) {
+        this.missionIDInEditMode = missionIDInEditMode;
+    }
+
     addMission(mission: Mission) {
         const missionID = this.getNextMissionID();
         this.getMissions().set(missionID, mission);
         mission.setMissionID(missionID);
+        this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
     }
@@ -54,10 +66,15 @@ class Missions {
 
     deleteMission(missionID: number) {
         this.getMissions().delete(missionID);
+
+        if (missionID === this.getMissionIDInEditMode()) {
+            this.setMissionIDInEditMode(UNASSIGNED_ID);
+        }
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
+        this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
     }
 }
