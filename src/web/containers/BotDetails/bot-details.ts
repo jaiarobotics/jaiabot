@@ -2,9 +2,10 @@
 import { CommandInfo } from "../../types/commands";
 import { MissionState } from "../../utils/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import { MissionInterface } from "../CommandControl/CommandControl";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
-import { NO_MISSION_ID } from "../../utils/constants";
+
 import { missions } from "../../data/missions/missions";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
@@ -301,7 +302,7 @@ export function toggleEditMode(mission: Mission) {
         // waypoints.forEach((element) => {
         //     element.setCanMoveOnMap(false);
         // });
-        missions.setMissionIDInEditMode(NO_MISSION_ID);
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
     } else {
         missions.setMissionIDInEditMode(mission.getMissionID());
     }

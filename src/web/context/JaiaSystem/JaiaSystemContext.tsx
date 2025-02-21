@@ -13,7 +13,7 @@ import Mission from "../../data/missions/mission";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
-import { DATA_MODEL_POLL_TIME, NO_MISSION_ID, UNASSIGNED_ID } from "../../utils/constants";
+import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaSystemContextType {
     bots: Map<number, Bot>;
@@ -175,7 +175,7 @@ function handleAddWaypoint(mutableState: JaiaSystemContextType, location: Geogra
     const missionIDInEditMode = missions.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
-    if (missionIDInEditMode !== NO_MISSION_ID) {
+    if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);

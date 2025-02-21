@@ -1,5 +1,5 @@
 import Mission from "./mission";
-import { NO_MISSION_ID } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 class Missions {
     private missions: Map<number, Mission>;
@@ -10,7 +10,7 @@ class Missions {
     constructor() {
         this.missions = new Map<number, Mission>();
         this.nextMissionID = 1;
-        this.missionIDInEditMode = NO_MISSION_ID;
+        this.missionIDInEditMode = UNASSIGNED_ID;
     }
 
     getMissions() {
@@ -68,13 +68,13 @@ class Missions {
         this.getMissions().delete(missionID);
 
         if (missionID === this.getMissionIDInEditMode()) {
-            this.setMissionIDInEditMode(NO_MISSION_ID);
+            this.setMissionIDInEditMode(UNASSIGNED_ID);
         }
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
-        this.setMissionIDInEditMode(NO_MISSION_ID);
+        this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
     }
 }
