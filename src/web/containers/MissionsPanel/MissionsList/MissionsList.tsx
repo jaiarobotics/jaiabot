@@ -3,12 +3,9 @@ import { useContext } from "react";
 
 // Jaia
 import { GlobalContext, GlobalDispatchContext } from "../../../context/Global/GlobalContext";
-import {
-    JaiaSystemContext,
-    JaiaSystemDispatchContext,
-} from "../../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaSystemContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
 import { GlobalActions } from "../../../context/Global/GlobalActions";
-import { JaiaSystemActions } from "../../../context/JaiaSystem/jaia-system-actions";
+import { JaiaActions } from "../../../context/Jaia/jaia-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -40,7 +37,7 @@ export default function MissionsList() {
     const globalContext = useContext(GlobalContext);
     const globalDispatch = useContext(GlobalDispatchContext);
     const jaiaSystemContext = useContext(JaiaSystemContext);
-    const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
+    const jaiaSystemDispatch = useContext(JaiaDispatchContext);
 
     if (!globalContext || !jaiaSystemContext) {
         return <div></div>;
@@ -92,7 +89,7 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleDeleteMissionClick = (missionID: number) => {
-        jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_MISSION, missionID: missionID });
+        jaiaSystemDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
     };
 
     return (

@@ -5,9 +5,9 @@ import { useContext } from "react";
 import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
 import MissionsList from "./MissionsList/MissionsList";
 import { GlobalDispatchContext } from "../../context/Global/GlobalContext";
-import { JaiaSystemDispatchContext } from "../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
-import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { NodeTypes } from "../../types/jaia-system-types";
 
 // MUI | MDI
@@ -20,7 +20,7 @@ import "../../style/stylesheets/util.less";
 
 export default function MissionsPanel() {
     const globalDispatch = useContext(GlobalDispatchContext);
-    const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
+    const jaiaSystemDispatch = useContext(JaiaDispatchContext);
 
     /**
      * Dispatches the action to create a new mission when an operator clicks the add mission button
@@ -34,7 +34,7 @@ export default function MissionsPanel() {
             selectedNode: { type: NodeTypes.NONE, ID: -1 },
         });
 
-        jaiaSystemDispatch({ type: JaiaSystemActions.ADD_MISSION });
+        jaiaSystemDispatch({ type: JaiaActions.ADD_MISSION });
 
         // Prevents new missions from not being visible in the viewport
         autoScrollMissions();
@@ -56,7 +56,7 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleDeleteAllMissionsClick = () => {
-        jaiaSystemDispatch({ type: JaiaSystemActions.DELETE_ALL_MISSIONS });
+        jaiaSystemDispatch({ type: JaiaActions.DELETE_ALL_MISSIONS });
         globalDispatch({ type: GlobalActions.RESET_MISSION_ACCORDIONS });
     };
 
@@ -78,7 +78,7 @@ export default function MissionsPanel() {
      * @returns {void}
      */
     const handleAutoAssignClick = () => {
-        jaiaSystemDispatch({ type: JaiaSystemActions.AUTO_ASSIGN_MISSIONS });
+        jaiaSystemDispatch({ type: JaiaActions.AUTO_ASSIGN_MISSIONS });
     };
 
     return (

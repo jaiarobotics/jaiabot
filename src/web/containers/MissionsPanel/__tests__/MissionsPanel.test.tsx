@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
 import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
-import { JaiaSystemContextProvider } from "../../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
 import { bots } from "../../../data/bots/bots";
@@ -25,9 +25,9 @@ bots.setBot(botStatusMock2);
 beforeEach(() => {
     render(
         <GlobalContextProvider>
-            <JaiaSystemContextProvider>
+            <JaiaContextProvider>
                 <MissionsPanel />
-            </JaiaSystemContextProvider>
+            </JaiaContextProvider>
         </GlobalContextProvider>,
     );
 

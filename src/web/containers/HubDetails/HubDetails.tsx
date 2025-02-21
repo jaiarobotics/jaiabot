@@ -7,7 +7,7 @@ import {
     GlobalAction,
     HubAccordionNames,
 } from "../../context/Global/GlobalContext";
-import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaSystemContext } from "../../context/Jaia/JaiaContext";
 import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
 
 // Utilities

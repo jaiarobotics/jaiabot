@@ -7,7 +7,7 @@ import { Geometry } from "ol/geom";
 
 import Map from "../Map";
 import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
-import { JaiaSystemContextProvider } from "../../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";
@@ -47,9 +47,9 @@ const hubStatusMock1: PortalHubStatus = {
 beforeEach(() => {
     render(
         <GlobalContextProvider>
-            <JaiaSystemContextProvider>
+            <JaiaContextProvider>
                 <Map />
-            </JaiaSystemContextProvider>
+            </JaiaContextProvider>
         </GlobalContextProvider>,
     );
 });

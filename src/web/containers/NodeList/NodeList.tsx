@@ -5,10 +5,7 @@ import {
     GlobalAction,
     GlobalContextType,
 } from "../../context/Global/GlobalContext";
-import {
-    JaiaSystemContext,
-    JaiaSystemContextType,
-} from "../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaSystemContext, JaiaContextType } from "../../context/Jaia/JaiaContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 
 import { NodeTypes } from "../../types/jaia-system-types";
@@ -17,7 +14,7 @@ import { HealthState } from "../../shared/JAIAProtobuf";
 import "./NodeList.less";
 
 export function NodeList() {
-    const jaiaSystemContext: JaiaSystemContextType = useContext(JaiaSystemContext);
+    const jaiaSystemContext: JaiaContextType = useContext(JaiaSystemContext);
     const globalContext: GlobalContextType = useContext(GlobalContext);
     const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
 

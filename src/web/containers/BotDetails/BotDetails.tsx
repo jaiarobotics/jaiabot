@@ -9,7 +9,7 @@ import {
     BotAccordionNames,
     GlobalContextType,
 } from "../../context/Global/GlobalContext";
-import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaSystemContext } from "../../context/Jaia/JaiaContext";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { CustomAlert } from "../../shared/CustomAlert";
 import { NodeTypes } from "../../types/jaia-system-types";

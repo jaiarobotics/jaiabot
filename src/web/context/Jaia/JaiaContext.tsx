@@ -1,6 +1,6 @@
 // React
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
-import { JaiaSystemActions } from "./jaia-system-actions";
+import { JaiaActions } from "./jaia-actions";
 
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
@@ -15,51 +15,51 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { GeographicCoordinate } from "../../utils/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 
-export interface JaiaSystemContextType {
+export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
 }
 
 interface Action {
-    type: JaiaSystemActions;
+    type: JaiaActions;
     botID?: number;
     missionID?: number;
     location?: GeographicCoordinate;
 }
 
-interface JaiaSystemContextProviderProps {
+interface JaiaContextProviderProps {
     children: ReactNode;
 }
 
-export const JaiaSystemContext = createContext<JaiaSystemContextType>(null);
-export const JaiaSystemDispatchContext = createContext(null);
+export const JaiaContext = createContext<JaiaContextType>(null);
+export const JaiaDispatchContext = createContext(null);
 
 /**
- * Updates JaiaSystemContext
+ * Updates JaiaContext
  *
- * @param {JaiaSystemContextType} state Holds the most recent reference to state
+ * @param {JaiaContextType} state Holds the most recent reference to state
  * @param {Action} action Contains data associated with a state update
- * @returns {JaiaSystemContextType} The updated state object
+ * @returns {JaiaContextType} The updated state object
  */
-function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
+function jaiaReducer(state: JaiaContextType, action: Action) {
     let mutableState = { ...state };
     switch (action.type) {
-        case JaiaSystemActions.INIT:
+        case JaiaActions.INIT:
             return handleInit(mutableState);
-        case JaiaSystemActions.POLL_DATA_MODEL:
+        case JaiaActions.POLL_DATA_MODEL:
             return handlePollDataModel(mutableState);
-        case JaiaSystemActions.ADD_MISSION:
+        case JaiaActions.ADD_MISSION:
             return handleAddMission(mutableState);
-        case JaiaSystemActions.DELETE_MISSION:
+        case JaiaActions.DELETE_MISSION:
             return handleDeleteMission(mutableState, action.missionID);
-        case JaiaSystemActions.DELETE_ALL_MISSIONS:
+        case JaiaActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
-        case JaiaSystemActions.ASSIGN_MISSION:
+        case JaiaActions.ASSIGN_MISSION:
             return handleAssignMission(mutableState, action.botID, action.missionID);
-        case JaiaSystemActions.AUTO_ASSIGN_MISSIONS:
+        case JaiaActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
-        case JaiaSystemActions.ADD_WAYPOINT:
+        case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
         default:
             return state;
@@ -70,10 +70,10 @@ function jaiaSystemReducer(state: JaiaSystemContextType, action: Action) {
  * Puts Context in sync with the data model from the start.
  * Without this call, the properties would not have the expected getters and setters from the data model.
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleInit(mutableState: JaiaSystemContextType) {
+function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
@@ -83,10 +83,10 @@ function handleInit(mutableState: JaiaSystemContextType) {
 /**
  * Saves the latest data from incoming Bot and Hub status messages to state
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handlePollDataModel(mutableState: JaiaSystemContextType) {
+function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     return mutableState;
@@ -95,10 +95,10 @@ function handlePollDataModel(mutableState: JaiaSystemContextType) {
 /**
  * Makes a call to add a new, default mission to the data model
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleAddMission(mutableState: JaiaSystemContextType) {
+function handleAddMission(mutableState: JaiaContextType) {
     missions.addMission(new Mission());
     mutableState.missions = missions.getMissions();
     return mutableState;
@@ -107,11 +107,11 @@ function handleAddMission(mutableState: JaiaSystemContextType) {
 /**
  * Makes a call to remove a mission and its assignment
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {number} missionID Which mission to delete
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleDeleteMission(mutableState: JaiaSystemContextType, missionID: number) {
+function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
     missions.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
     mutableState.missions = missions.getMissions();
@@ -122,10 +122,10 @@ function handleDeleteMission(mutableState: JaiaSystemContextType, missionID: num
 /**
  * Makes a call to remove all missions and assignments
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleDeleteAllMissions(mutableState: JaiaSystemContextType) {
+function handleDeleteAllMissions(mutableState: JaiaContextType) {
     missions.deleteAllMissions();
     missionsManager.clear();
     mutableState.missions = missions.getMissions();
@@ -135,16 +135,12 @@ function handleDeleteAllMissions(mutableState: JaiaSystemContextType) {
 /**
  * Makes a call to assign a Bot to a mission
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {number} botID Which Bot to assign to a mission
  * @param {number} missionID Which mission to accept assignment
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleAssignMission(
-    mutableState: JaiaSystemContextType,
-    botID: number,
-    missionID: number,
-) {
+function handleAssignMission(mutableState: JaiaContextType, botID: number, missionID: number) {
     missionsManager.assign(botID, missionID);
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
@@ -154,10 +150,10 @@ function handleAssignMission(
 /**
  * Makes a call to auto assign Bots to missions
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
+function handleAutoAssignMissions(mutableState: JaiaContextType) {
     missionsManager.autoAssign();
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
@@ -167,11 +163,11 @@ function handleAutoAssignMissions(mutableState: JaiaSystemContextType) {
 /**
  * Makes call to add waypoint if mission is in edit mode
  *
- * @param {JaiaSystemContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {GeographicCoordinate} location Lat/lon of where the click occurred
- * @returns {JaiaSystemContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
-function handleAddWaypoint(mutableState: JaiaSystemContextType, location: GeographicCoordinate) {
+function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     const missionIDInEditMode = missions.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
@@ -193,8 +189,8 @@ function handleAddWaypoint(mutableState: JaiaSystemContextType, location: Geogra
     return mutableState;
 }
 
-export function JaiaSystemContextProvider({ children }: JaiaSystemContextProviderProps) {
-    const [state, dispatch] = useReducer(jaiaSystemReducer, null);
+export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
+    const [state, dispatch] = useReducer(jaiaReducer, null);
 
     /**
      * Syncs Context with data model and starts polling when component mounts
@@ -202,7 +198,7 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
      * @returns {void}
      */
     useEffect(() => {
-        dispatch({ type: JaiaSystemActions.INIT });
+        dispatch({ type: JaiaActions.INIT });
 
         const intervalID = pollDataModel(dispatch);
 
@@ -211,11 +207,9 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
     }, []);
 
     return (
-        <JaiaSystemContext.Provider value={state}>
-            <JaiaSystemDispatchContext.Provider value={dispatch}>
-                {children}
-            </JaiaSystemDispatchContext.Provider>
-        </JaiaSystemContext.Provider>
+        <JaiaContext.Provider value={state}>
+            <JaiaDispatchContext.Provider value={dispatch}>{children}</JaiaDispatchContext.Provider>
+        </JaiaContext.Provider>
     );
 }
 
@@ -229,8 +223,5 @@ export function JaiaSystemContextProvider({ children }: JaiaSystemContextProvide
  * We do not poll for changes in the Missions singleton since those changes only come from user interactions
  */
 function pollDataModel(dispatch: React.Dispatch<Action>) {
-    return setInterval(
-        () => dispatch({ type: JaiaSystemActions.POLL_DATA_MODEL }),
-        DATA_MODEL_POLL_TIME,
-    );
+    return setInterval(() => dispatch({ type: JaiaActions.POLL_DATA_MODEL }), DATA_MODEL_POLL_TIME);
 }

@@ -3,7 +3,7 @@ import React from "react";
 
 // Jaia
 import { GlobalContextProvider } from "../context/Global/GlobalContext";
-import { JaiaSystemContextProvider } from "../context/JaiaSystem/JaiaSystemContext";
+import { JaiaContextProvider } from "../context/Jaia/JaiaContext";
 import { CommandControlWrapper } from "../containers/CommandControl/CommandControl";
 
 // Style
@@ -13,9 +13,9 @@ export default function App() {
     return (
         <div id="jcc">
             <GlobalContextProvider>
-                <JaiaSystemContextProvider>
+                <JaiaContextProvider>
                     <CommandControlWrapper />
-                </JaiaSystemContextProvider>
+                </JaiaContextProvider>
             </GlobalContextProvider>
         </div>
     );

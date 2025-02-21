@@ -1,4 +1,4 @@
-export enum JaiaSystemActions {
+export enum JaiaActions {
     INIT = "INIT",
     POLL_DATA_MODEL = "POLL_DATA_MODEL",
     ADD_MISSION = "ADD_MISSION",
