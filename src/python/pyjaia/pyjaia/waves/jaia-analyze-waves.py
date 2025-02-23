@@ -85,23 +85,31 @@ def writeCSVs(h5_filename: str, config: AnalysisConfig, drifts: List[Drift]):
     print('Writing CSV files')
 
     for drift_index, drift in enumerate(drifts):
-        assert(len(drift.filteredVerticalAcceleration.utime) == len(drift.elevation.utime))
+        series_map = {
+            'raw-gps-altitude': drift.gpsAltitude,
+            'raw-acceleration': drift.rawVerticalAcceleration,
+            'acceleration': drift.verticalAcceleration,
+            'elevation': drift.elevation
+        }        
 
-        csv_filename = f'{h5_filename}-drift-{drift_index + 1}.csv'
+        for series_name, series in series_map.items():
+            if series is None:
+                continue
 
-        with open(csv_filename, 'w') as fp:
-            columns = {
-                'timestamp (micros)': drift.rawVerticalAcceleration.utime,
-                'time (UTC)': [datetime.fromtimestamp(timestamp / 1e6, tz=pytz.utc) for timestamp in drift.rawVerticalAcceleration.utime],
-                'filtered acceleration (m/s^2)': drift.filteredVerticalAcceleration.y_values,
-                'elevation (m)': drift.elevation.y_values
-            }
+            csv_filename = f'{h5_filename}-drift-{drift_index + 1}-{series_name}.csv'
 
-            writer = csv.DictWriter(fp, columns.keys())
-            writer.writeheader()
+            with open(csv_filename, 'w') as fp:
+                columns = {
+                    'timestamp (micros)': series.utime,
+                    'time (UTC)': [datetime.fromtimestamp(timestamp / 1e6, tz=pytz.utc) for timestamp in series.utime],
+                    series.name: series.y_values
+                }
 
-            for time_index in range(len(drift.filteredVerticalAcceleration.utime)):
-                writer.writerow({ column_name: column_list[time_index] for column_name, column_list in columns.items()})
+                writer = csv.DictWriter(fp, columns.keys())
+                writer.writeheader()
+
+                for time_index in range(len(series.utime)):
+                    writer.writerow({ column_name: column_list[time_index] for column_name, column_list in columns.items()})
 
 
 def main():

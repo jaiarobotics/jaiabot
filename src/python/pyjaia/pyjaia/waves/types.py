@@ -12,11 +12,10 @@ class Wave:
 @dataclass
 class Drift:
     rawVerticalAcceleration: Series
-    filteredVerticalAcceleration: Series
+    verticalAcceleration: Series
     powerDensitySpectrum: List[float]
     elevation: Series
     gpsAltitude: Series
-    gpsFilteredAltitude: Series
 
     waves: List[Wave]
     significantWaveHeight: float
@@ -24,8 +23,8 @@ class Drift:
     peakWavePeriod: float
 
     def __init__(self):
-        self.rawVerticalAcceleration = Series('Raw Vertical Acceleration')
-        self.filteredVerticalAcceleration = Series('Filtered Vertical Acceleration')
+        self.rawVerticalAcceleration = None
+        self.verticalAcceleration = None
 
         self.gpsAltitude = None
         self.gpsFilteredAltitude = None

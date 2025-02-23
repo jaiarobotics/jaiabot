@@ -255,6 +255,29 @@ class Series:
         return seriesSlice
 
 
+    def deduplicate(self, threshold_micros: int = 200_000):
+        """Removes successive values with a delta t of under a threshold.
+
+        Args:
+            threshold_micros (int, optional): Threshold for removing a successive value that comes too soon after the previous one. Defaults to 200_000.
+
+        Returns:
+            Series: The resulting series.
+        """
+        new_series = deepcopy(self)
+        new_series.clear()
+
+        last_utime = None
+        for i, utime in enumerate(self.utime):
+            if last_utime is None or utime - last_utime > threshold_micros:
+                new_series.utime.append(utime)
+                new_series.y_values.append(self.y_values[i])
+
+            last_utime = utime
+
+        return new_series
+
+
     def resample(self, output_sampling_freq: float):
         """Use cubic interpolation to resample the Series
 

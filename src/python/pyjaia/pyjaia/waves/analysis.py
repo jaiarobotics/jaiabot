@@ -155,12 +155,12 @@ def doDriftAnalysis(seriesSet: SeriesSet, config: DriftAnalysisConfig):
     if config.source == 'gps':
         drift.gpsAltitude = seriesSet.altitude
 
-        drift.elevation = trimSeries(drift.gpsAltitude, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
+        drift.elevation = trimSeries(drift.gpsAltitude, trimStartMicros, trimEndMicros).deduplicate().resample(config.sampleFreq)
     elif config.source == 'imu':
         drift.rawVerticalAcceleration = deepcopy(seriesSet.accelerationVertical)
 
-        drift.filteredVerticalAcceleration = trimSeries(drift.rawVerticalAcceleration, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
-        drift.elevation = accelerationToElevation(drift.filteredVerticalAcceleration, config.sampleFreq)
+        drift.verticalAcceleration = trimSeries(drift.rawVerticalAcceleration, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
+        drift.elevation = accelerationToElevation(drift.verticalAcceleration, config.sampleFreq)
     else:
         print(f'Unknown source type: {config.source=}')
         exit(1)
@@ -206,7 +206,7 @@ def doWaveCounting(drift: Drift, config: DriftAnalysisConfig):
 
 
 def doFFT(drift: Drift, config: DriftAnalysisConfig):
-    drift.powerDensitySpectrum = powerSpectrumFFT(drift.filteredVerticalAcceleration.y_values, config.sampleFreq)
+    drift.powerDensitySpectrum = powerSpectrumFFT(drift.verticalAcceleration.y_values, config.sampleFreq)
     drift.significantWaveHeight = significantWaveHeight(drift.powerDensitySpectrum, config.sampleFreq)
     drift.peakWavePeriod = peakWavePeriod(drift.powerDensitySpectrum, config.sampleFreq)
     

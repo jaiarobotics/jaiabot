@@ -141,7 +141,7 @@ def htmlForDriftObject(drift: Drift, driftIndex: int=None) -> str:
     else:
         htmlString += f'<h1>Drift</h1>'
 
-    durationString = formatTimeDelta(drift.rawVerticalAcceleration.duration())
+    durationString = formatTimeDelta(drift.elevation.duration())
     htmlString += f'<h3>Drift duration: {durationString}<h3>'
 
     if drift.waves is not None and len(drift.waves) > 0:
@@ -152,7 +152,7 @@ def htmlForDriftObject(drift: Drift, driftIndex: int=None) -> str:
         # The wave heights
         htmlString += htmlForWaves(drift.waves)
 
-    chartSeries = filter(lambda x: x is not None, [drift.gpsAltitude, drift.gpsFilteredAltitude, drift.rawVerticalAcceleration, drift.filteredVerticalAcceleration, drift.elevation])
+    chartSeries = filter(lambda x: x is not None, [drift.gpsAltitude, drift.gpsFilteredAltitude, drift.rawVerticalAcceleration, drift.verticalAcceleration, drift.elevation])
 
     htmlString += htmlForChart(chartSeries)
     htmlString += htmlForPowerDensitySpectrum(drift.powerDensitySpectrum, drift.elevation.averageSampleFrequency())
