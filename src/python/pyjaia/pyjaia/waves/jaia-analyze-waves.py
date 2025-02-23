@@ -18,6 +18,7 @@ from pyjaia.waves.types import *
 from pyjaia.waves.analysis_html import *
 from pyjaia.waves.analysis import *
 from dataclasses import *
+from pyjaia.json_serialize import *
 
 
 cssTag = '''<style>
@@ -73,7 +74,7 @@ def getDrifts(h5File: h5py.File, config: DriftAnalysisConfig):
     drifts: List[Drift] = []
 
     for driftSeriesSet in driftSeriesSets:
-        drift = doDriftAnalysis(driftSeriesSet.accelerationVertical, config)
+        drift = doDriftAnalysis(driftSeriesSet, config)
         drifts.append(drift)
 
     return drifts
@@ -108,9 +109,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('config_file')
-    parser.add_argument('h5_files', nargs='+')
+    parser.add_argument('h5_files', nargs='*')
     parser.add_argument('-c', '--csv', action='store_true', help='Write CSV files for data series.')
     parser.add_argument('-o', '--open', action='store_true', help='Open html files after generating them.')
+    parser.add_argument('-i', '--init', action='store_true', help='Write a sample config file')
 
     @dataclass
     class Args:
@@ -118,10 +120,15 @@ def main():
         h5_files: List[str]
         csv: bool
         open: bool
+        init: bool
 
     args: Args = parser.parse_args()
 
-    config = DriftAnalysisConfig.load(args.config_file)
+    if args.init:
+        dump(DriftAnalysisConfig.default(), open(args.config_file, 'w'))
+        exit()
+
+    config = load(open(args.config_file), DriftAnalysisConfig)
 
     for h5Path in args.h5_files:
         h5File = h5py.File(h5Path)
@@ -134,7 +141,6 @@ def main():
 
         if args.csv:
             writeCSVs(h5File.filename, config, drifts)
-
 
 
 if __name__ == '__main__':

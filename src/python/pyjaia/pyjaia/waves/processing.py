@@ -79,13 +79,15 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, bandPassFilterConf
     A = numpy.fft.fft(inputSeries.y_values)
     N = len(inputSeries.y_values)
 
+    A[0] *= bandPassFilterFunc(0.0)
+
     for i in range(1, N // 2 + 1):
         f = i * sampleFreq / N
         A[i] *= bandPassFilterFunc(f)
         A[N - i] *= bandPassFilterFunc(f)
 
     a = numpy.real(numpy.fft.ifft(A))
-    series = Series()
+    series = Series(inputSeries.name)
     series.utime = inputSeries.utime[:len(a)]
     series.y_values = list(a)
 

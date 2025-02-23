@@ -33,7 +33,7 @@ def getWindow(config: WindowConfig, duration: float, sampleFreq: float):
 
 
 def getNoneWindow(duration: float, sampleFreq: float):
-    return [1.0] * int(duration / sampleFreq)
+    return [1.0] * int(duration * sampleFreq)
 
 
 def getTukeyWindow(config: WindowConfig, duration: float, sampleFreq: float):

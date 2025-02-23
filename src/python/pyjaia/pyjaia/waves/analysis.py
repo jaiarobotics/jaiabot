@@ -131,7 +131,6 @@ def powerSpectrumWelch(elevation: List[float], config: DriftAnalysisConfig):
 
     # Re-normalize from the windowing function
     ms = getMeanSquareOfWindow(config.window, len(elevation) / config.sampleFreq, config.sampleFreq)
-    print(ms)
 
     return [ x / ms for x in power_spectrum ]
 
@@ -146,20 +145,33 @@ def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
     return ar_psd().psd
 
 
-def doDriftAnalysis(verticalAcceleration: Series, config: DriftAnalysisConfig):
+def doDriftAnalysis(seriesSet: SeriesSet, config: DriftAnalysisConfig):
     drift = Drift()
-    drift.rawVerticalAcceleration = verticalAcceleration.makeUniform(config.sampleFreq)
-    drift.filteredVerticalAcceleration = drift.rawVerticalAcceleration
 
-    # Trim the series to avoid motor-induce noise
-    drift.filteredVerticalAcceleration = trimSeries(drift.filteredVerticalAcceleration, 10e6, 5e6)
-    # # Apply time-domain windowing
-    drift.filteredVerticalAcceleration = applyWindow(drift.filteredVerticalAcceleration, config.window)
-    # Apply band-pass filter
-    drift.filteredVerticalAcceleration = filterAcceleration(drift.filteredVerticalAcceleration, config.sampleFreq, config.bandPassFilter)
-    # Integrate to elevation
-    drift.elevation = accelerationToElevation(drift.filteredVerticalAcceleration, config.sampleFreq)
+    trimStartMicros = 10e6
+    trimEndMicros = 5e6
 
+    # Get the elevation series using the source specified
+    if config.source == 'gps':
+        drift.gpsAltitude = seriesSet.altitude
+
+        drift.elevation = trimSeries(drift.gpsAltitude, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
+    elif config.source == 'imu':
+        drift.rawVerticalAcceleration = deepcopy(seriesSet.accelerationVertical)
+
+        drift.filteredVerticalAcceleration = trimSeries(drift.rawVerticalAcceleration, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
+        drift.elevation = accelerationToElevation(drift.filteredVerticalAcceleration, config.sampleFreq)
+    else:
+        print(f'Unknown source type: {config.source=}')
+        exit(1)
+
+    # Apply window and band pass filter
+    drift.elevation.name = 'Elevation (m)'
+    drift.elevation = filterFrequencies(drift.elevation, config.sampleFreq, config.bandPassFilter)
+    drift.elevation = applyWindow(drift.elevation, config.window)
+    drift.maxWaveHeight = maximumWaveHeightFromElevation(drift.elevation.y_values)
+
+    # Do analysis using the elevation series
     if config.analysis.type == 'counting':
         drift = doWaveCounting(drift, config)
     elif config.analysis.type == 'fft':
@@ -168,8 +180,6 @@ def doDriftAnalysis(verticalAcceleration: Series, config: DriftAnalysisConfig):
         drift = doWelch(drift, config)
     elif config.analysis.type == 'periodogram':
         drift = doPeriodogram(drift, config)
-    elif config.analysis.type == 'burg':
-        drift = doBurg(drift, config)
     else:
         print(f'Unknown analysis type: {config.analysis.type}')
         exit(1)
@@ -199,7 +209,6 @@ def doFFT(drift: Drift, config: DriftAnalysisConfig):
     drift.powerDensitySpectrum = powerSpectrumFFT(drift.filteredVerticalAcceleration.y_values, config.sampleFreq)
     drift.significantWaveHeight = significantWaveHeight(drift.powerDensitySpectrum, config.sampleFreq)
     drift.peakWavePeriod = peakWavePeriod(drift.powerDensitySpectrum, config.sampleFreq)
-    drift.maxWaveHeight = maximumWaveHeightFromElevation(drift.elevation.y_values)
     
     return drift
 
@@ -208,7 +217,6 @@ def doWelch(drift: Drift, config: DriftAnalysisConfig):
     drift.powerDensitySpectrum = powerSpectrumWelch(drift.elevation.y_values, config)
     drift.significantWaveHeight = significantWaveHeight(drift.powerDensitySpectrum, config.sampleFreq)
     drift.peakWavePeriod = peakWavePeriod(drift.powerDensitySpectrum, config.sampleFreq)
-    drift.maxWaveHeight = maximumWaveHeightFromElevation(drift.elevation.y_values)
     
     return drift
 
@@ -217,16 +225,6 @@ def doPeriodogram(drift: Drift, config: DriftAnalysisConfig):
     drift.powerDensitySpectrum = powerSpectrumPeriodogram(drift.elevation.y_values, config)
     drift.significantWaveHeight = significantWaveHeight(drift.powerDensitySpectrum, config.sampleFreq)
     drift.peakWavePeriod = peakWavePeriod(drift.powerDensitySpectrum, config.sampleFreq)
-    drift.maxWaveHeight = maximumWaveHeightFromElevation(drift.elevation.y_values)
-    
-    return drift
-
-
-def doBurg(drift: Drift, config: DriftAnalysisConfig):
-    drift.powerDensitySpectrum = powerSpectrumBurg(drift.elevation.y_values, config)
-    drift.significantWaveHeight = significantWaveHeight(drift.powerDensitySpectrum, config.sampleFreq)
-    drift.peakWavePeriod = peakWavePeriod(drift.powerDensitySpectrum, config.sampleFreq)
-    drift.maxWaveHeight = maximumWaveHeightFromElevation(drift.elevation.y_values)
     
     return drift
 

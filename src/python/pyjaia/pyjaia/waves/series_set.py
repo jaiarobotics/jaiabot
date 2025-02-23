@@ -20,6 +20,7 @@ class SeriesSet:
         self.grav_z = Series()
 
         self.accelerationVertical = Series()
+        self.altitude = Series()
 
 
     @staticmethod
@@ -45,6 +46,8 @@ class SeriesSet:
         seriesSet.grav_y = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y', invalid_values=[None], name='grav.y')
         seriesSet.grav_z = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z', invalid_values=[None], name='grav.z')
 
+        seriesSet.altitude = Series.loadFromH5File(h5File, '/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/altitude', invalid_values=[None], name='gps.altitude')
+
         seriesSet.calculateVerticalAccelerations()
         
         return seriesSet
@@ -60,6 +63,8 @@ class SeriesSet:
         self.grav_x.writeToH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/x')
         self.grav_y.writeToH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y')
         self.grav_z.writeToH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z')
+
+        self.altitude.writeToH5File(h5File, '/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/altitude')
 
 
     def calculateVerticalAccelerations(self):
@@ -85,6 +90,7 @@ class SeriesSet:
         subSeriesSet.grav_z = self.grav_z.slice(timeRange)
 
         subSeriesSet.accelerationVertical = self.accelerationVertical.slice(timeRange)
+        subSeriesSet.altitude = self.altitude.slice(timeRange)
 
         return subSeriesSet
 

@@ -90,7 +90,7 @@ def htmlForSummaryTable(drifts: List[Drift], config: DriftAnalysisConfig):
     durationSum = 0.0
 
     for index, drift in enumerate(drifts):
-        duration = drift.rawVerticalAcceleration.duration()
+        duration = drift.elevation.duration()
         durationString = formatTimeDelta(duration)
 
         if drift.waves is not None and len(drift.waves) == 0:
@@ -152,8 +152,10 @@ def htmlForDriftObject(drift: Drift, driftIndex: int=None) -> str:
         # The wave heights
         htmlString += htmlForWaves(drift.waves)
 
-    htmlString += htmlForChart([drift.rawVerticalAcceleration, drift.filteredVerticalAcceleration, drift.elevation])
-    htmlString += htmlForPowerDensitySpectrum(drift.powerDensitySpectrum, drift.filteredVerticalAcceleration.averageSampleFrequency())
+    chartSeries = filter(lambda x: x is not None, [drift.gpsAltitude, drift.gpsFilteredAltitude, drift.rawVerticalAcceleration, drift.filteredVerticalAcceleration, drift.elevation])
+
+    htmlString += htmlForChart(chartSeries)
+    htmlString += htmlForPowerDensitySpectrum(drift.powerDensitySpectrum, drift.elevation.averageSampleFrequency())
 
     return htmlString
     
@@ -174,8 +176,8 @@ def htmlForPowerDensitySpectrum(spectrum: List[float], sampleFrequency: float) -
     fig.add_trace(go.Scatter(x=x, y=spectrum, name="Power Density Spectrum"))
 
     # Show Moskowitz model power density spectrum
-    moskowitzModelY = [0.0] + [moscowitzS(x[i], 6.0) for i in range(1, len(x))]
-    fig.add_trace(go.Scatter(x=x, y=moskowitzModelY, name="Moskowitz Model"))
+    # moskowitzModelY = [0.0] + [moscowitzS(x[i], 6.0) for i in range(1, len(x))]
+    # fig.add_trace(go.Scatter(x=x, y=moskowitzModelY, name="Moskowitz Model"))
 
     fig.update_layout(
         xaxis_title="Frequency (Hz)",

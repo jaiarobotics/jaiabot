@@ -18,6 +18,7 @@ import pyjaia.drift_interpolation
 from pathlib import *
 from jdv_types import *
 import dataclasses
+import traceback
 
 
 # Parsing the arguments
@@ -35,6 +36,10 @@ def JSONResponse(obj):
 
 def JSONErrorResponse(msg):
     obj = {"error": msg}
+    return JSONResponse(obj)
+
+def JSONExceptionResponse(exception: Exception):
+    obj = {"error": str(exception), "traceback": traceback.format_exception(exception)}
     return JSONResponse(obj)
 
 # The flask app
@@ -80,7 +85,7 @@ def getSeries():
         series = jaialogStore.getSeries(log_names, series_names)
         return JSONResponse(series)
     except Exception as e:
-        return JSONErrorResponse(str(e))
+        return JSONExceptionResponse(e)
 
 @app.route('/map', methods=['GET'])
 def getMap():
@@ -88,7 +93,7 @@ def getMap():
     try:
         return JSONResponse(jaialogStore.getMap(log_names))
     except Exception as e:
-        return JSONErrorResponse(str(e))
+        return JSONExceptionResponse(e)
 
 
 @app.route('/commands', methods=['GET'])

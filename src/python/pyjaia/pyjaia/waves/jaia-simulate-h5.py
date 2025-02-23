@@ -37,6 +37,7 @@ def generateSeriesSet(config: Config):
         seriesSet.acc_z.utime.append(utime)
 
     seriesSet.acc_z.y_values = generateMoscowitz(config.N, config.sampleFrequency)
+    seriesSet.altitude = seriesSet.acc_z.integrate(config.sampleFrequency).detrended().integrate(config.sampleFrequency)
 
     return seriesSet
 

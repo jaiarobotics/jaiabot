@@ -10,6 +10,9 @@ import re
 from .time_range import *
 from .h5_tools import *
 from copy import deepcopy
+import numpy as np
+from pyjaia.cubic import cubic_fit
+from scipy.signal import detrend
 
 
 def floatRange(start: float, end: float, delta: float):
@@ -252,16 +255,129 @@ class Series:
         return seriesSlice
 
 
-    def makeUniform(self, freq: float):
-        '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
-        newSeries = deepcopy(self)
+    def resample(self, output_sampling_freq: float):
+        """Use cubic interpolation to resample the Series
 
-        if len(self.utime) == 0:
-            return newSeries
-        
-        for utime in floatRange(self.utime[0] + 1, self.utime[-1], 1e6 / freq):
-            newSeries.utime.append(utime)
-            newSeries.y_values.append(self.getValueAtTime(utime, interpolate=True))
+        Args:
+            output_sampling_freq (float): The desired output sampling frequency.
 
-        return newSeries
+        Returns:
+            Series: The resulting resampled series.
+        """
+        assert(len(self.utime) >= 4) # need at least 4 points for cubic interpolation
 
+        N = len(self.utime)
+        t = self.utime[0] / 1e6
+        delta_t = 1.0 / output_sampling_freq
+
+        new_series = Series(self.name)
+
+        c = np.array([0.0, 0.0, 0.0, 0.0])
+
+        for index in range(0, N - 1):
+            index0 = min(N - 4, max(0, index - 1))
+            t0 = self.utime[index0] / 1e6
+            t_next_index = self.utime[index + 1] / 1e6
+
+            # Get cubic interpolation polynomial coefficients
+            points = np.array([[(self.utime[i] - self.utime[index0]) / 1e6, self.y_values[i]] for i in range(index0, index0 + 4)])
+            c = cubic_fit(points)
+
+            def f(x: float, coeffs: np.ndarray):
+                return sum([coeffs[p] * pow(x, p) for p in range(len(coeffs))])
+
+            while t <= t_next_index:
+                # Go through uniformly-spaced points, and calculate the cubic interpolation values, until we move to the next segment
+                new_series.utime.append(t * 1e6)
+                x = t - t0
+                y = f(x, c)
+                new_series.y_values.append(y)
+                t += delta_t
+
+            x = t_next_index - t0
+
+        return new_series
+
+
+    def integrate(self, output_sampling_freq: float=None):
+        """Integrate the Series object, using cubic interpolation.
+
+        Args:
+            output_sampling_freq (float): The desired output sampling frequency.
+
+        Returns:
+            Series: The resulting integrated Series.
+        """
+        assert(len(self.utime) >= 4) # need at least 4 points for cubic interpolation
+
+        if output_sampling_freq is None:
+            output_sampling_freq = self.averageSampleFrequency()
+
+        N = len(self.utime)
+        t = self.utime[0] / 1e6
+        delta_t = 1.0 / output_sampling_freq
+        y_at_index = 0.0
+
+        new_series = Series(self.name + ' (integrated)')
+
+        c = np.array([0.0, 0.0, 0.0, 0.0])
+
+        for index in range(0, N - 1):
+            index0 = min(N - 4, max(0, index - 1))
+            t0 = self.utime[index0] / 1e6
+            t_index = self.utime[index] / 1e6
+            t_next_index = self.utime[index + 1] / 1e6
+
+            # Get cubic interpolation polynomial coefficients
+            points = np.array([[(self.utime[i] - self.utime[index0]) / 1e6, self.y_values[i]] for i in range(index0, index0 + 4)])
+            c = cubic_fit(points)
+
+            # Integrated coefficients
+            c_integrated = np.array([0.0, c[0], c[1] / 2.0, c[2] / 3.0, c[3] / 4.0])
+
+            def f(x: float, coeffs: np.ndarray):
+                return sum([coeffs[p] * pow(x, p) for p in range(len(coeffs))])
+
+            # Calculate constant term
+            c_integrated[0] = y_at_index - f(t_index - t0, c_integrated)
+
+            while t <= t_next_index:
+                # Go through uniformly-spaced points, and calculate the cubic interpolation values, until we move to the next segment
+                new_series.utime.append(t * 1e6)
+                x = t - t0
+                y = f(x, c_integrated)
+                new_series.y_values.append(y)
+                t += delta_t
+
+            x = t_next_index - t0
+            y_at_index = f(x, c_integrated)
+
+        return new_series
+
+
+    def demeaned(self):
+        """De-mean the series.
+
+        Returns:
+            Series: The resulting de-meaned series.
+        """
+        y_mean = sum(self.y_values) / len(self.y_values)
+        new_series = Series(self.name + ' (de-meaned)')
+        new_series.utime = deepcopy(self.utime)
+        new_series.y_values = [y - y_mean for y in self.y_values]
+
+        return new_series
+    
+
+    def detrended(self):
+        """De-trend the data by removing the best-fit line.
+
+        Returns:
+            Series: The resulting de-trended series.
+        """
+        new_series = Series(self.name + ' (detrended)')
+        new_series.utime = self.utime
+        new_series.y_values = list(detrend(self.y_values))
+
+        return new_series
+    

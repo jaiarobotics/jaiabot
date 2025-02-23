@@ -15,6 +15,8 @@ class Drift:
     filteredVerticalAcceleration: Series
     powerDensitySpectrum: List[float]
     elevation: Series
+    gpsAltitude: Series
+    gpsFilteredAltitude: Series
 
     waves: List[Wave]
     significantWaveHeight: float
@@ -24,6 +26,10 @@ class Drift:
     def __init__(self):
         self.rawVerticalAcceleration = Series('Raw Vertical Acceleration')
         self.filteredVerticalAcceleration = Series('Filtered Vertical Acceleration')
+
+        self.gpsAltitude = None
+        self.gpsFilteredAltitude = None
+
         self.powerDensitySpectrum = None
         self.elevation = Series('Elevation')
         self.waves = None
@@ -71,6 +77,8 @@ class DriftAnalysisConfig:
     glitchy: bool = False
     sampleFreq: float = 4.0
 
+    source: str = None
+    """Data source: "gps" or "imu" """
     window: WindowConfig = None
     bandPassFilter: BandPassFilterConfig = None
     analysis: AnalysisConfig = None
@@ -100,6 +108,7 @@ class DriftAnalysisConfig:
         return DriftAnalysisConfig.fromDict({
             "glitchy": False,
             "sampleFreq": 4,
+            "source": "gps",
             "window": {
                 "type": "tukey",
                 "duration": 10
