@@ -25,7 +25,9 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
 
     # Create the venv
     pushd ${TARGET_DIR} > /dev/null
-        python3 -m venv venv --system-site-packages
-        ./venv/bin/pip install -q wheel
-        ./venv/bin/pip install -q -r requirements.txt
+        python3 -m venv venv
+        ./venv/bin/pip install -qU pip
+        ./venv/bin/pip install -qU wheel
+        ./venv/bin/pip install -qU setuptools
+	./venv/bin/pip install -qr requirements.txt
     popd > /dev/null
