@@ -188,7 +188,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "bug/python-packages-version-mismatch-debain"
+        - "bug/python-packages-version-mismatch-debian"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
