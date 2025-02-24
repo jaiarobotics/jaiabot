@@ -42,6 +42,9 @@ dpkg-scanpackages . > Packages
 ## in previous steps)
 apt-get -y install python3-pip libgdal-dev
 ### Match the requirements in jaiabot-python.postinst
+pip3 install -U pip wheel setuptools
+pip3 wheel pip -w .
+pip3 wheel setuptools -w .
 pip3 wheel wheel -w .
 # remove local (./pyjaia, etc.) requirements - these are already in jaiabot-python
 pip3 wheel -r <(sed '/^\.\//d' /jaiabot/src/python/requirements.txt) -w .
