@@ -56,7 +56,7 @@ rpi-ws281x==4.3.4
 RPi.GPIO==0.7.1
 scipy==1.9.1
 scour==0.37
-setuptools==44.0.0
+setuptools==75.3.0
 Shapely==1.8.5.post1
 simplejson==3.16.0
 six==1.16.0
