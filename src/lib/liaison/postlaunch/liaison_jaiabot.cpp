@@ -86,7 +86,10 @@ void jaiabot::LiaisonJaiabot::check_add_vehicle(int node_id)
     auto it = vehicle_data_.find(node_id);
     if (it == vehicle_data_.end())
     {
-        it = vehicle_data_.insert(std::make_pair(node_id, VehicleData(vehicle_stack_, cfg_))).first;
+        it = vehicle_data_
+                 .emplace(
+                     std::make_pair(node_id, std::make_unique<VehicleData>(vehicle_stack_, cfg_)))
+                 .first;
 
         vehicle_combo_->addItem(std::to_string(node_id));
         vehicle_combo_->model()->sort(0);
@@ -103,7 +106,7 @@ void jaiabot::LiaisonJaiabot::vehicle_select(WString msg)
     if (vehicle_data_.count(vehicle))
     {
         vehicle_stack_->show();
-        vehicle_stack_->setCurrentIndex(vehicle_data_.at(vehicle).index_in_stack);
+        vehicle_stack_->setCurrentIndex(vehicle_data_.at(vehicle)->index_in_stack);
         current_vehicle_ = vehicle;
     }
     else
@@ -126,25 +129,25 @@ void jaiabot::LiaisonJaiabot::loop()
 
         if (dive_start_)
         {
-            dive_expire_ =
-                system_clock::now() + seconds(it->second.low_level_control.timeout_slider->value());
+            dive_expire_ = system_clock::now() +
+                           seconds(it->second->low_level_control.timeout_slider->value());
             dive_start_ = false;
         }
 
         cmd_msg.set_id(id++);
         cmd_msg.set_vehicle(current_vehicle_);
         cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-        cmd.set_timeout(it->second.low_level_control.timeout_slider->value());
-        cmd.set_port_elevator(it->second.low_level_control.port_elevator_slider->value());
-        cmd.set_stbd_elevator(it->second.low_level_control.stbd_elevator_slider->value());
-        cmd.set_rudder(it->second.low_level_control.rudder_slider->value());
+        cmd.set_timeout(it->second->low_level_control.timeout_slider->value());
+        cmd.set_port_elevator(it->second->low_level_control.port_elevator_slider->value());
+        cmd.set_stbd_elevator(it->second->low_level_control.stbd_elevator_slider->value());
+        cmd.set_rudder(it->second->low_level_control.rudder_slider->value());
         if (system_clock::now() < dive_expire_)
         {
-            cmd.set_motor(it->second.low_level_control.dive_slider->value());
+            cmd.set_motor(it->second->low_level_control.dive_slider->value());
         }
         else if (motor_go_)
         {
-            cmd.set_motor(it->second.low_level_control.motor_slider->value());
+            cmd.set_motor(it->second->low_level_control.motor_slider->value());
         }
         else
         {
@@ -158,13 +161,13 @@ void jaiabot::LiaisonJaiabot::loop()
         this->post_to_comms(
             [=]() { goby_thread()->interprocess().publish<groups::low_control>(cmd_msg); });
 
-        auto& ack = it->second.low_level_control.latest_ack;
+        auto& ack = it->second->low_level_control.latest_ack;
         if (ack.IsInitialized())
         {
             auto time_since_ack =
                 goby::time::SystemClock::now<goby::time::MicroTime>() - ack.time_with_units();
 
-            it->second.low_level_control.ack_text->setText(
+            it->second->low_level_control.ack_text->setText(
                 std::string("Time since ack: ") +
                 std::to_string(goby::time::SITime(time_since_ack).value()) +
                 std::string("s<br/><pre>") + ack.DebugString() + "</pre>");
@@ -178,7 +181,7 @@ void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::LowControlAck& ac
     auto it = vehicle_data_.find(ack.vehicle());
     if (it != vehicle_data_.end())
     {
-        it->second.low_level_control.latest_ack = ack;
+        it->second->low_level_control.latest_ack = ack;
     }
 }
 
@@ -240,6 +243,8 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
     auto timeout_text_box = timeout_box->addNew<WContainerWidget>();
     timeout_text =
         timeout_text_box->addNew<WText>(timeout_text_from_value(timeout_slider->value()));
+    std::cout << "after creation: " << timeout_text << std::endl;
+
     auto dive_box = controls_box->addNew<WGroupBox>("Dive");
     auto dive_button_box = dive_box->addNew<WContainerWidget>();
     auto dive_button = dive_button_box->addNew<WPushButton>("Dive");
@@ -271,7 +276,7 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
                                     cfg.timeout_bounds().n_ticks());
     timeout_slider->setTickPosition(Wt::WSlider::TickPosition::TicksBelow);
     timeout_slider->sliderMoved().connect([this](int value)
-                                          { timeout_slider_moved(value, timeout_text); });
+                                          { timeout_slider_moved(value, this->timeout_text); });
 
     timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
 
@@ -329,7 +334,7 @@ void jaiabot::LiaisonJaiabot::key_press(WKeyEvent key)
     auto it = vehicle_data_.find(current_vehicle_);
     if (it != vehicle_data_.end())
     {
-        auto& control = it->second.low_level_control;
+        auto& control = it->second->low_level_control;
         switch (key.key())
         {
             default: break;
@@ -426,7 +431,7 @@ void jaiabot::LiaisonJaiabot::key_release(WKeyEvent key)
     auto it = vehicle_data_.find(current_vehicle_);
     if (it != vehicle_data_.end())
     {
-        auto& control = it->second.low_level_control;
+        auto& control = it->second->low_level_control;
         switch (key.key())
         {
             default: break;

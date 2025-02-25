@@ -59,31 +59,40 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     struct VehicleData
     {
         VehicleData(Wt::WStackedWidget*, const protobuf::JaiabotConfig&);
+        VehicleData(const VehicleData&) = delete;
+        VehicleData& operator=(const VehicleData&) = delete;
+
+        VehicleData(VehicleData&& mE) = default;
+        VehicleData& operator=(VehicleData&& mE) = default;
 
         std::unique_ptr<Wt::WContainerWidget> vehicle_div;
 
         struct Controls
         {
             Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
+            Controls(const Controls&) = delete;
+            Controls& operator=(const Controls&) = delete;
 
-            Wt::WSlider* timeout_slider;
-            Wt::WText* timeout_text;
-            Wt::WSlider* dive_slider;
-            Wt::WText* dive_text;
-            Wt::WSlider* motor_slider;
-            Wt::WText* motor_text;
-            Wt::WSlider* port_elevator_slider;
-            Wt::WSlider* rudder_slider;
+            Wt::WSlider* timeout_slider{0};
+            Wt::WText* timeout_text{0};
+            Wt::WSlider* dive_slider{0};
+            Wt::WText* dive_text{0};
+            Wt::WSlider* motor_slider{0};
+            Wt::WText* motor_text{0};
+            Wt::WSlider* port_elevator_slider{0};
+            Wt::WSlider* rudder_slider{0};
 
-            Wt::WSlider* stbd_elevator_slider;
-            Wt::WText* fins_text;
-            Wt::WText* ack_text;
+            Wt::WSlider* stbd_elevator_slider{0};
+            Wt::WText* fins_text{0};
+            Wt::WText* ack_text{0};
 
             protobuf::LowControlAck latest_ack;
 
             // must be static, not sure why (segfault in JSignal otherwise)
             static void timeout_slider_moved(int value, Wt::WText* text)
             {
+                std::cout << "slider moved: " << text << std::endl;
+
                 text->setText(timeout_text_from_value(value));
             }
 
@@ -190,7 +199,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     };
 
     // vehicle id to Data
-    std::map<int, VehicleData> vehicle_data_;
+    std::map<int, std::unique_ptr<VehicleData>> vehicle_data_;
 
     // convenient info shown on vehicle's liaison
     Wt::WText* bot_node_status_text_;
