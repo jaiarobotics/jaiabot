@@ -15,7 +15,6 @@ add_commander_tab: false
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
     role: $user_role
 
-    $ansible_playbook_full_path
     ansible_log_dir: "$ansible_log_dir"
     
     ansible_inventory: "$inventory"
