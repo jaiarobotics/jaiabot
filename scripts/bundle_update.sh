@@ -40,8 +40,10 @@ dpkg-scanpackages . > Packages
 
 ## Don't install python3-pip until after the apt-get install download (to ensure all python .deb dependencies are included
 ## in previous steps)
-apt-get -y install python3-pip libgdal-dev
+apt-get -y install python3-pip libgdal-dev python3-venv
 ### Match the requirements in jaiabot-python.postinst
+/usr/bin/python3 -m venv venv
+source venv/bin/activate
 pip3 install -U pip wheel setuptools
 pip3 wheel pip -w .
 pip3 wheel setuptools -w .
