@@ -2,88 +2,139 @@
 
 import datetime
 import time
-import python_AtlasOEM_lib
+#import python_AtlasOEM_lib
 
 # Import utility class
-from i2c_utils import I2CUtils  
+#from i2c_utils import I2CUtils  
+
+try:
+    from smbus import SMBus
+except:
+    from smbus2 import SMBus
 
 class AtlasOEMDO:
     def __init__(self, bus=0, address=0x67, devType=0x03):
-        self.i2c = I2CUtils(bus, address, devType)
-
+            self._bus = SMBus(bus)
+            self._address = address
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.i2c.close()
+        self._bus.close()
+
+
+    # Unsigned Byte
+    def readUnsignedByte(self, offset):
+        return self._bus.read_byte_data(self._address, offset)
+
+    def writeUnsignedByte(self, offset, value: int):
+        self._bus.write_byte_data(self._address, offset, value)
+
+    # Unsigned Word
+    def readUnsignedWordFloat(self, offset):
+        i = self._bus.read_byte_data(self._address, offset) << 8
+        i |= self._bus.read_byte_data(self._address, offset + 1)
+        return i / 100.0
+
+    def writeUnsignedWordFloat(self, offset, value: float):
+        i = int(value * 100)
+        msb = (i >> 8) & 0xff
+        lsb = i & 0xff
+        self._bus.write_byte_data(self._address, offset, msb)
+        self._bus.write_byte_data(self._address, offset + 1, lsb)
+
+    # Signed Long Float
+    def readSignedLongFloat(self, offset) -> float:
+        b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
+        i = int.from_bytes(b, 'big', signed=True)
+        return i / 100.0
+
+    def writeSignedLongFloat(self, offset, value: float):
+        i = int(value * 100)
+        b = i.to_bytes(4, 'big', signed=True)
+        l = [int(c) for c in b]
+        self._bus.write_i2c_block_data(self._address, offset, l)
+
+    # Unsigned Long Float
+    def readUnsignedLongFloat(self, offset) -> float:
+        b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
+        i = int.from_bytes(b, 'big', signed=False)
+        return i / 100.0
+
+    def writeUnsignedLongFloat(self, offset, value: float):
+        i = int(value * 100)
+        b = i.to_bytes(4, 'big', signed=False)
+        l = [int(c) for c in b]
+        self._bus.write_i2c_block_data(self._address, offset, l)
+
 
     # High-level device-specific functions
     def deviceType(self) -> int:
-        return self.i2c.read_unsigned_byte(0x00)
+        return self.readUnsignedByte(0x00)        
 
     def firmwareVersion(self) -> int:
-        return self.i2c.read_unsigned_byte(0x01)
+        return self.readUnsignedByte(0x01)
 
     def interruptControlRegister(self) -> int:
-        return self.i2c.read_unsigned_byte(0x04)
+        return self.readUnsignedByte(0x04)
 
     def ledControl(self) -> int:
-        return self.i2c.read_unsigned_byte(0x05)
+        return self.readUnsignedByte(0x05)
 
     def activeHibernate(self) -> int:
-        return self.i2c.read_unsigned_byte(0x06)
+        return self.readUnsignedByte(0x06)
 
     def setActiveHibernate(self, value: int):
-        self.i2c.write_unsigned_byte(0x06, value)
+        self.writeUnsignedByte(0x06, value)
 
     def newReadingAvailable(self) -> int:
-        return self.i2c.read_unsigned_byte(0x07)
+        return self.readUnsignedByte(0x07)
 
-    def setCalibration(self, calibration: float):
-        self.i2c.write_unsigned_byte(0x08, calibration)
+    def setCalibration(self, calibration: int):
+        self.writeUnsignedByte(0x08, calibration)
 
     # Calibration confirmation
     def calibrationConfirmation(self):
-        return self.i2c.read_unsigned_byte(0x09)
+        return self.readUnsignedByte(0x09)
 
     # Salinity compensation
     def setSalinityCompensation(self, value: float):
-        self.i2c.write_unsigned_long(0x0A, int(value * 100.0))
+        self.writeUnsignedLongFloat(0x0A, value)
 
     def salinityCompensation(self):
-        return self.i2c.read_unsigned_long(0x0A) / 100.0
+        return self.readUnsignedLongFloat(0x0A)
 
     def salinityConfirmation(self):
-        return self.i2c.read_unsigned_long(0x16) / 100.0
+        return self.readUnsignedLongFloat(0x16)
 
     # Pressure compensation
     def setPressureCompensation(self, value: float):
-        self.i2c.write_unsigned_long(0x0E, int(value * 100.0))
+        self.writeUnsignedLongFloat(0x0E, value)
 
     def pressureCompensation(self):
-        return self.i2c.read_unsigned_long(0x0E) / 100.0
+        return self.readUnsignedLongFloat(0x0E)
 
     def pressureConfirmation(self):
-        return self.i2c.read_unsigned_long(0x1A) / 100.0
+        return self.readUnsignedLongFloat(0x1A)
 
     # Temperature Compensation
     def setTemperatureCompensation(self, value: float):
-        self.i2c.write_unsigned_long(0x12, int(value * 100.0))
+        self.writeUnsignedLongFloat(0x12, value)
 
     def temperatureCompensation(self):
-        return self.i2c.read_unsigned_long(0x12) / 100.0
+        return self.readUnsignedLongFloat(0x12)
 
     def temperatureConfirmation(self):
-        return self.i2c.read_unsigned_long(0x1E) / 100.0
+        return self.readUnsignedLongFloat(0x1E)
 
     # DO Chip
     # DO in mg/L
     def DO(self):
-        return self.i2c.read_unsigned_long(0x22) / 100.0
+        return self.readUnsignedLongFloat(0x22)
 
     # DO Saturation
     def DOSat(self):
-        return self.i2c.read_unsigned_long(0x26) / 100.0
+        return self.readUnsignedLongFloat(0x26)
 
     def dump(self):
         time.sleep(0.5)
@@ -279,6 +330,7 @@ def clearCalibration():
     probe.setCalibration(1)
     input('Calibration data cleared.  Press enter.')
 
+
 def doCalibration(description: str, type: int):
     DO_old = None
     while True:
@@ -307,6 +359,10 @@ def doCalibration(description: str, type: int):
         input(f'{description} calibration completed.  Press enter.')
     except ValueError:
         input('Value must be a number.  Press enter.')
+
+
+def deactivate():
+    probe.setActiveHibernate(0)
 
 
 def atmosphereCalibration():
@@ -377,6 +433,11 @@ presentMenu({
             'description': 'Calibrate',
             'key': 'c',
             'func': calibrate
+        },
+        {
+            'description': 'Deactivate',
+            'key': 'd',
+            'func': deactivate
         },
         {
             'description': 'Exit Program',

@@ -93,11 +93,11 @@ class AtlasOEM:
         return self.readSignedLongFloat(0x08) / 1000.0
 
     def setCalibration(self, calibration: float):
-        self.writeSignedLongFloat(0x08, calibration*1000)
+        self.writeUnsignedLongFloat(0x08, calibration*1000)
 
 
     # Calibration request
-    def setCalibrationRequest(self, value: int):
+    def setCalibrationRequest(self, value: float):
         self.writeUnsignedByte(0x0c, value)
 
     def calibrationRequest(self):
@@ -313,8 +313,12 @@ def doCalibration(description: str, type: int):
             break
 
     try:
+        print(f"Setting {description} calibration to {float(value)}")
         probe.setCalibration(float(value))
+        print(f"Calibration set to {float(value)}")
+        print(f"Setting {description} calibration request to {type}")
         probe.setCalibrationRequest(type)
+        print(f"Calibration request set to {type}")
         input(f'{description} calibration completed.  Press enter.')
     except ValueError:
         input('Value must be a number.  Press enter.')
@@ -476,6 +480,9 @@ def jaiaCalibration():
     return 0
 
 
+def deactivate():
+    probe.setActiveHibernate(0)
+
 def midCalibration():
     doCalibration('MID', 3)
 
@@ -553,6 +560,11 @@ presentMenu({
             'description': 'Calibrate',
             'key': 'c',
             'func': calibrate
+        },
+        {
+            'description': 'Deactivate',
+            'key': 'd',
+            'func': deactivate
         },
         {
             'description': 'Exit Program',

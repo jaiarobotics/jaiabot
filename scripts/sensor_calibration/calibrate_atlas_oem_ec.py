@@ -10,7 +10,7 @@ except:
     from smbus2 import SMBus
 class AtlasOEM:
 
-    def __init__(self, bus=1, address=0x64) -> None:
+    def __init__(self, bus=0, address=0x64) -> None:
         self._bus = SMBus(bus)
         self._address = address
 
@@ -185,8 +185,10 @@ def checkCalibrationStatus():
 
 def verifyCalibration():
     # Get calibration status in binary string to easier identify bits
-    status = bin(probe.calibrationConfirmation())[2:]
+    status = format(probe.calibrationConfirmation(), '04b')
 
+    print(f"Calibration status: {status}")
+    
     high_cal = status[0]
     low_cal = status[1]
     single_cal = status[2]
@@ -194,20 +196,20 @@ def verifyCalibration():
 
     cal_string = ""
 
-    if high_cal:
+    if high_cal == "1":
         print("✅ High calibration successfully completed.")
         cal_string += "✅ High calibration successfully completed.\n"
     else:
         print("❌ High calibration not completed.")
         cal_string += "❌ High calibration not completed.\n"
-    if low_cal:
+    if low_cal == "1":
         print("✅ Low calibration successfully completed.") 
         cal_string += "✅ Low calibration successfully completed.\n"
     else:
         print("❌ Low calibration not completed.")
         cal_string += "❌ Low calibration not completed.\n"
     
-    if dry_cal:
+    if dry_cal == "1":
         print("✅ Dry calibration successfully completed.")
         cal_string += "✅ Dry calibration successfully completed.\n"
     else:
