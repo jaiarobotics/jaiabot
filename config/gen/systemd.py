@@ -309,7 +309,7 @@ jaiabot_apps = [
      'description': 'Goby Intervehicle Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL',
-     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1',
+     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1',
      'runs_on': Type.BOTH,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison',
