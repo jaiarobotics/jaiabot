@@ -98,6 +98,12 @@ inline jaiabot::protobuf::Link link_from_modem_id(int modem_id, unsigned subnet_
     return link;
 }
 
+template <typename DCCLMessageWithLinkField>
+void set_link_type(DCCLMessageWithLinkField& msg, int src_modem_id, unsigned subnet_mask)
+{
+    msg.set_link(link_from_modem_id(src_modem_id, subnet_mask));
+}
+
 } // namespace comms
 } // namespace jaiabot
 

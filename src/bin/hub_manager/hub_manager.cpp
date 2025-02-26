@@ -389,11 +389,17 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         }
 
         {
+            auto set_link_data =
+                [this](jaiabot::protobuf::BotStatus& msg,
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+
             goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
-                intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>);
+                intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>,
+                {/*ack func*/}, {/*expire func*/}, set_link_data);
 
             glog.is_debug1() && glog << "Subscribing to bot_status" << std::endl;
 
@@ -402,13 +408,19 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                 subscriber);
         }
         {
+            auto set_link_data =
+                [this](jaiabot::protobuf::TaskPacket& msg,
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
                 cfg().task_packet_sub_cfg();
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
             goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(
                 subscriber_cfg,
-                intervehicle::default_subscriber_group_func<jaiabot::protobuf::TaskPacket>);
+                intervehicle::default_subscriber_group_func<jaiabot::protobuf::TaskPacket>,
+                {/*ack func*/}, {/*expire func*/}, set_link_data);
 
             glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
@@ -419,6 +431,11 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         }
 
         {
+            auto set_link_data =
+                [this](jaiabot::protobuf::Engineering& msg,
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
                 cfg().engineering_status_sub_cfg();
 
@@ -426,7 +443,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
             goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(
                 subscriber_cfg,
-                intervehicle::default_subscriber_group_func<jaiabot::protobuf::Engineering>);
+                intervehicle::default_subscriber_group_func<jaiabot::protobuf::Engineering>,
+                {/*ack func*/}, {/*expire func*/}, set_link_data);
 
             glog.is_debug1() && glog << "Subscribing to engineering_status" << std::endl;
 
