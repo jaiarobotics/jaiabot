@@ -6,8 +6,7 @@ import math
 
 subnet_mask=0xFF00
 
-# currently we do not run the wifi and xbee in parallel so they can have the same subnet
-subnet_index={'wifi': 0, 'xbee': 0}
+subnet_index={'xbee': 0, 'wifi': 1}
 num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 
 # first id is hub id
@@ -17,7 +16,6 @@ hub_node_id=0
 number_of_bots_max=151
 
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
-
 
 # Broadcast is modem id = 0 in Goby, so increment vehicle id by 1 to get base modem id
 def base_modem_id(node_id):

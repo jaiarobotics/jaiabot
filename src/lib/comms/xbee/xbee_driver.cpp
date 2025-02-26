@@ -60,6 +60,7 @@
 #include "goby/util/protobuf/io.h" // for operator<<
 
 #include "jaiabot/comms/comms.h"
+#include "jaiabot/messages/link.pb.h"
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -112,6 +113,10 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     std::string network_delay_slots = config_extension().xbee_network_delay_slots();
     std::string broadcast_multi_transmits = config_extension().xbee_broadcast_multi_transmits();
 
+    hub_xbee_base_modem_id_ = jaiabot::comms::hub_base_modem_id;
+    hub_xbee_modem_id_ = jaiabot::comms::hub_modem_id(config_extension().subnet_mask(),
+                                                      jaiabot::protobuf::LINK_XBEE);
+
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
@@ -130,8 +135,10 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
         }
         else if (peer.has_bot_id())
         {
-            device_.add_peer(std::to_string(jaiabot::comms::modem_id_from_bot_id(peer.bot_id())),
-                             peer.serial_number());
+            device_.add_peer(
+                std::to_string(jaiabot::comms::modem_id_from_bot_id(
+                    peer.bot_id(), config_extension().subnet_mask(), jaiabot::protobuf::LINK_XBEE)),
+                peer.serial_number());
         }
         else if (peer.has_hub_id())
         {
@@ -141,8 +148,7 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
                 peer.hub_id() ==
                     config_extension().hub_id()) // if this is a hub, add itself as the active hub
             {
-                device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
-                                 peer.serial_number());
+                device_.add_peer(std::to_string(hub_xbee_base_modem_id_), peer.serial_number());
             }
         }
     }
@@ -202,7 +208,7 @@ void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
                                              ->options()
                                              .GetExtension(dccl::field)
                                              .max();
-    if (msg.dest() == jaiabot::comms::hub_modem_id && !have_active_hub_)
+    if (msg.dest() == hub_xbee_base_modem_id_ && !have_active_hub_)
     {
         glog.is_warn() && glog << group(glog_out_group())
                                << "Cannot send message to hub since we do not yet know which hub "
@@ -420,7 +426,7 @@ void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
 {
     auto& hub_info = *out->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
     hub_info.set_hub_id(hub_id);
-    hub_info.set_modem_id(jaiabot::comms::hub_modem_id);
+    hub_info.set_modem_id(hub_xbee_modem_id_);
 
     if (!have_active_hub_ || active_hub_id_ != hub_id)
     {
@@ -471,7 +477,7 @@ void jaiabot::comms::XBeeDriver::set_active_hub_peer(int hub_id)
         auto hub_peer_it = hub_peers_.find(hub_id);
         if (hub_peer_it != hub_peers_.end())
         {
-            device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
+            device_.add_peer(std::to_string(hub_xbee_base_modem_id_),
                              hub_peer_it->second.serial_number());
         }
         else

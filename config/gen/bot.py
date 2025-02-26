@@ -136,14 +136,15 @@ except FileNotFoundError:
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
-if common.jaia_comms_mode == common.CommsMode.XBEE:
+link_block=''
+if common.CommsMode.XBEE in common.jaia_comms_modes:
     subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
     else:
         xbee_serial_port='/dev/xbee'
 
-    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+    link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.xbee_modem_id(node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
@@ -153,9 +154,9 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
-elif common.jaia_comms_mode == common.CommsMode.WIFI:
+if common.CommsMode.WIFI in common.jaia_comms_modes:
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
-    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),

@@ -792,7 +792,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
     // Make sure the command is not a repeat
     // If it is, then we should not handle the command and exit
-    if (prev_command_time_ == command.time())
+    if (prev_command_time_ >= command.time())
     {
         glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;

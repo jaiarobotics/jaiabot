@@ -8,6 +8,7 @@ import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 

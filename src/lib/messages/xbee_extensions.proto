@@ -96,6 +96,8 @@ message Config
         (goby.field).description =
             "Set or read the number of additional MAC-level broadcast transmissions."
     ];
+
+    required uint32 subnet_mask = 14;
 }
 
 extend goby.acomms.protobuf.DriverConfig

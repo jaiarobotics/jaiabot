@@ -75,14 +75,15 @@ except FileNotFoundError:
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
-if common.jaia_comms_mode == common.CommsMode.XBEE:
+link_block=''
+if common.CommsMode.XBEE in common.jaia_comms_modes:
     if is_simulation():
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
     else:
         xbee_serial_port='/dev/xbee'
     
     
-    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+    link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.xbee_modem_id(node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
@@ -92,8 +93,8 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
-elif common.jaia_comms_mode == common.CommsMode.WIFI:
-    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+if common.CommsMode.WIFI in common.jaia_comms_modes:
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
@@ -206,7 +207,9 @@ elif common.app == 'jaiabot_hub_manager':
                                      # if we're using localhost for wifi comms, use it for data offload as well
                                      use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times,
-                                     hub_gpsd_device=common.hub.gpsd_device(node_id)))
+                                     hub_gpsd_device=common.hub.gpsd_device(node_id),
+                                     subnet_mask=common.comms.subnet_mask,
+                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes) + "]"))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
