@@ -1,6 +1,6 @@
 Template: jaiabot-embedded/debconf_state_common
 Type: select
-Choices: type, fleet_id, led_type, electronics_stack, mode, warp, NEXT
+Choices: type, fleet_id, led_type, electronics_stack, comms_links, mode, warp, NEXT
 Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
@@ -127,3 +127,10 @@ Type: select
 Choices: bar02, bar30, none
 Default: bar30
 Description: What pressure sensor do you have?
+
+Template: jaiabot-embedded/comms_links
+Type: multiselect
+Choices: xbee, wifi
+Default: xbee
+Description: Which comms links to activate?
+

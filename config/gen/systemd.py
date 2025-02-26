@@ -62,6 +62,7 @@ parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket',
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
 parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
+parser.add_argument('--comms_links', choices=['xbee', 'wifi'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 
 args=parser.parse_args()
 
@@ -248,6 +249,7 @@ subprocess.run('bash -ic "' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
                'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
                'export jaia_pressure_sensor_type=' + str(jaia_pressure_sensor_type.value) + '; ' +
+               'export jaia_comms_mode=' + ','.join(link for link in args.comms_links) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
