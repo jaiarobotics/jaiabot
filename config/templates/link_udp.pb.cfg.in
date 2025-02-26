@@ -8,8 +8,9 @@ link {
                 port: $local_port
             }
             $remotes
+            $hub_endpoints
             max_frame_size: 1400
-            $wifi_hub_id            
+            $wifi_hub_id
             subnet_mask: $subnet_mask
         }
     }

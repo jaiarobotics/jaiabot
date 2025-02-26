@@ -88,22 +88,11 @@ void jaiabot::comms::UDPDriver::startup(const goby::acomms::protobuf::DriverConf
     socket_->bind(boost::asio::ip::udp::endpoint(protocol, local.port()));
 
     receivers_.clear();
-    for (const auto& remote : config_extension().remote())
+    for (const auto& remote : config_extension().remote()) { update_remote(remote); }
+
+    for (const auto& hub_ep : config_extension().hub_endpoint())
     {
-        glog.is(DEBUG1) && glog << group(glog_out_group())
-                                << "Resolving receiver: " << remote.ShortDebugString() << std::endl;
-
-        boost::asio::ip::udp::resolver resolver(io_context_);
-        boost::asio::ip::udp::resolver::query query(
-            protocol, remote.ip(), goby::util::as<std::string>(remote.port()),
-            boost::asio::ip::resolver_query_base::numeric_service);
-        boost::asio::ip::udp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-        const boost::asio::ip::udp::endpoint& receiver = *endpoint_iterator;
-        receivers_.insert(std::make_pair(remote.modem_id(), receiver));
-
-        glog.is(DEBUG1) && glog << group(glog_out_group())
-                                << "Receiver endpoint is: " << receiver.address().to_string() << ":"
-                                << receiver.port() << std::endl;
+        hub_endpoints_.insert(std::make_pair(hub_ep.hub_id(), hub_ep.remote()));
     }
 
     application_ack_ids_.clear();
@@ -114,6 +103,32 @@ void jaiabot::comms::UDPDriver::startup(const goby::acomms::protobuf::DriverConf
 
     start_receive();
     io_context_.reset();
+}
+
+void jaiabot::comms::UDPDriver::update_remote(
+    const jaiabot::udp::protobuf::Config::EndPoint& remote, bool clear_existing /*= false*/)
+{
+    auto protocol =
+        config_extension().ipv6() ? boost::asio::ip::udp::v6() : boost::asio::ip::udp::v4();
+
+    glog.is(DEBUG1) && glog << group(glog_out_group())
+                            << "Resolving receiver: " << remote.ShortDebugString() << std::endl;
+
+    boost::asio::ip::udp::resolver resolver(io_context_);
+    boost::asio::ip::udp::resolver::query query(
+        protocol, remote.ip(), goby::util::as<std::string>(remote.port()),
+        boost::asio::ip::resolver_query_base::numeric_service);
+    boost::asio::ip::udp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+    const boost::asio::ip::udp::endpoint& receiver = *endpoint_iterator;
+
+    if (clear_existing)
+        receivers_.erase(remote.modem_id());
+
+    receivers_.insert(std::make_pair(remote.modem_id(), receiver));
+
+    glog.is(DEBUG1) && glog << group(glog_out_group())
+                            << "Receiver endpoint is: " << receiver.address().to_string() << ":"
+                            << receiver.port() << std::endl;
 }
 
 void jaiabot::comms::UDPDriver::shutdown()
@@ -297,5 +312,16 @@ void jaiabot::comms::UDPDriver::set_active_hub_peer(int hub_id)
     bool is_bot = !config_extension().has_hub_id();
     if (is_bot) // for bots, swap the IP address corresponding to the new active hub
     {
+        if (hub_endpoints_.count(hub_id))
+        {
+            update_remote(hub_endpoints_.at(hub_id));
+            glog.is_verbose() && glog << group(glog_in_group()) << "Set hub endpoint to: "
+                                      << hub_endpoints_.at(hub_id).ShortDebugString() << std::endl;
+        }
+        else
+        {
+            glog.is_warn() && glog << group(glog_in_group())
+                                   << "No hub_endpoint configured for hub: " << hub_id << std::endl;
+        }
     }
 }

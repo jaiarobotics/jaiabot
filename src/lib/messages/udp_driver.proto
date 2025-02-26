@@ -28,6 +28,13 @@ message Config
         [(goby.field).description =
              "If this node is a hub, set its hub_id here."];
     required uint32 subnet_mask = 31;
+
+    message HubEndPoints
+    {
+        required int32 hub_id = 1;
+        required EndPoint remote = 2;
+    }
+    repeated HubEndPoints hub_endpoint = 32;
 }
 
 extend goby.acomms.protobuf.DriverConfig

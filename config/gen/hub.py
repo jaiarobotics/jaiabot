@@ -29,7 +29,7 @@ except:
     
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
-debug_log_file_dir=log_file_dir 
+debug_log_file_dir=log_file_dir
 
 node_id = 0 
 wifi_modem_id = common.comms.wifi_modem_id(node_id)
@@ -43,7 +43,6 @@ liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_loa
 vfleet_shutdown_times=''
 if common.is_vfleet:
     vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 300 }'
-    
     
 verbosities = \
 { 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
@@ -97,8 +96,9 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
-                                            local_port=common.udp.wifi_udp_port(node_id),
-                                            remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
+                                            local_port=common.udp.wifi_udp_port(node_id, hub_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index),
+                                            hub_endpoints='',
                                             wifi_hub_id='hub_id: ' + str(hub_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
@@ -108,7 +108,6 @@ liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jai
 liaison_bind_addr='0.0.0.0'
 if common.is_vfleet or hub_index == cloudhub_index:
     liaison_bind_addr='0::0'
-
 
 if common.app == 'gobyd':
     if hub_index == cloudhub_index:
@@ -146,7 +145,7 @@ elif common.app == 'jaiabot_health':
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
-        liaison_port=30000+node_id
+        liaison_port=30010+hub_index
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,

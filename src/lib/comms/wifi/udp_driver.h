@@ -86,6 +86,9 @@ class UDPDriver : public goby::acomms::ModemDriverBase
     void report(goby::acomms::protobuf::ModemReport* report) override;
 
   private:
+    void update_remote(const jaiabot::udp::protobuf::Config::EndPoint& remote,
+                       bool clear_existing = false);
+
     void start_send(const goby::acomms::protobuf::ModemTransmission& msg);
     void send_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void start_receive();
@@ -123,6 +126,8 @@ class UDPDriver : public goby::acomms::ModemDriverBase
     int active_hub_id_{-1};
     int hub_wifi_base_modem_id_{-1};
     int hub_wifi_modem_id_{-1};
+    // maps hub ID to endpoint
+    std::map<int, jaiabot::udp::protobuf::Config::EndPoint> hub_endpoints_;
 };
 } // namespace comms
 } // namespace jaiabot

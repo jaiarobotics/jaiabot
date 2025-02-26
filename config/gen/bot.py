@@ -161,7 +161,8 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
                                             wifi_hub_id='',
-                                            remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index),
+                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
@@ -224,7 +225,7 @@ elif common.app == 'goby_logger':
 elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
     liaison_port=30000
     if is_simulation():
-        liaison_port=30000+node_id
+        liaison_port=30100+bot_index
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
