@@ -23,7 +23,7 @@ import {
     BotAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
-} from "../../types/context";
+} from "../../types/context-types";
 
 export interface JaiaContextType {
     bots: Map<number, Bot>;
