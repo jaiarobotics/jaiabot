@@ -2,9 +2,7 @@
 import { useContext } from "react";
 
 // Jaia
-import { GlobalContext, GlobalDispatchContext } from "../../../context/Global/GlobalContext";
-import { JaiaSystemContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
-import { GlobalActions } from "../../../context/Global/GlobalActions";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../../context/Jaia/jaia-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
@@ -34,12 +32,10 @@ interface MissionAccordionTitleProps {
 const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
 export default function MissionsList() {
-    const globalContext = useContext(GlobalContext);
-    const globalDispatch = useContext(GlobalDispatchContext);
-    const jaiaSystemContext = useContext(JaiaSystemContext);
-    const jaiaSystemDispatch = useContext(JaiaDispatchContext);
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    if (!globalContext || !jaiaSystemContext) {
+    if (!jaiaContext) {
         return <div></div>;
     }
 
@@ -51,8 +47,8 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleAccordionChange = (missionID: number, isExpanded: boolean) => {
-        globalDispatch({
-            type: GlobalActions.CLICKED_MISSION_ACCORDION,
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_MISSION_ACCORDION,
             missionID: missionID,
             isMissionAccordionExpanded: isExpanded,
         });
@@ -65,8 +61,8 @@ export default function MissionsList() {
      * @returns {void}
      */
     const isMissionAccordionExpanded = (missionID: number) => {
-        if (missionID in globalContext.missionAccordionStates) {
-            return globalContext.missionAccordionStates[missionID];
+        if (missionID in jaiaContext.missionAccordionStates) {
+            return jaiaContext.missionAccordionStates[missionID];
         }
         return false;
     };
@@ -89,12 +85,12 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleDeleteMissionClick = (missionID: number) => {
-        jaiaSystemDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
+        jaiaDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
     };
 
     return (
         <div className="missions-list" data-testid="missions-list">
-            {Array.from(jaiaSystemContext.missions.values()).map((mission) => {
+            {Array.from(jaiaContext.missions.values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
                         <Accordion

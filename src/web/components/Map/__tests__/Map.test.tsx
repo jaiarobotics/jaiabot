@@ -6,7 +6,6 @@ import { Feature } from "ol";
 import { Geometry } from "ol/geom";
 
 import Map from "../Map";
-import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
 import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import Mission from "../../../data/missions/mission";
@@ -46,11 +45,9 @@ const hubStatusMock1: PortalHubStatus = {
 
 beforeEach(() => {
     render(
-        <GlobalContextProvider>
-            <JaiaContextProvider>
-                <Map />
-            </JaiaContextProvider>
-        </GlobalContextProvider>,
+        <JaiaContextProvider>
+            <Map />
+        </JaiaContextProvider>,
     );
 });
 

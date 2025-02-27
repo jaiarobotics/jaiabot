@@ -1,12 +1,11 @@
 import React, { useContext } from "react";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import {
-    GlobalContext,
-    GlobalDispatchContext,
-    GlobalAction,
-    GlobalContextType,
-} from "../../context/Global/GlobalContext";
-import { JaiaSystemContext, JaiaContextType } from "../../context/Jaia/JaiaContext";
-import { GlobalActions } from "../../context/Global/GlobalActions";
+    JaiaContext,
+    JaiaContextType,
+    JaiaDispatchContext,
+    JaiaAction,
+} from "../../context/Jaia/JaiaContext";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../shared/JAIAProtobuf";
@@ -14,29 +13,26 @@ import { HealthState } from "../../shared/JAIAProtobuf";
 import "./NodeList.less";
 
 export function NodeList() {
-    const jaiaSystemContext: JaiaContextType = useContext(JaiaSystemContext);
-    const globalContext: GlobalContextType = useContext(GlobalContext);
-    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
+    const jaiaContext: JaiaContextType = useContext(JaiaContext);
+    const JaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
-    if (jaiaSystemContext === null || globalContext === null) {
+    if (jaiaContext === null) {
         return <div></div>;
     }
 
-    const hubs = Array.from(jaiaSystemContext.hubs.values());
-    const bots = Array.from(jaiaSystemContext.bots.values());
+    const hubs = Array.from(jaiaContext.hubs.values());
+    const bots = Array.from(jaiaContext.bots.values());
 
     /**
-     * Triggered when a node item is clicked. Sets the selected node in the data model,
-     * then dispatches an action to GlobalContext to handle the node click
+     * Dispatches the CLICKED_NODE action to JaiaContext for further handling
      *
      * @param {NodeTypes} nodeType Indicates Bot or Hub
      * @param {number} nodeID Provides Bot or Hub ID
      * @returns {void}
      */
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
-        // Update GlobalContext
-        globalDispatch({
-            type: GlobalActions.CLICKED_NODE,
+        JaiaDispatch({
+            type: JaiaActions.CLICKED_NODE,
             selectedNode: { type: nodeType, id: nodeID },
         });
     };
@@ -59,12 +55,14 @@ export function NodeList() {
 
         const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
         const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
-        const selectedNode = globalContext.selectedNode;
+        const selectedNode = jaiaContext.selectedNode;
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass}`;
     }
+
+    console.log(bots);
 
     return (
         <div id="nodeList" data-testid="nodeList">

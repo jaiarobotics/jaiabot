@@ -37,10 +37,9 @@ export interface JaiaContextType {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
-    isRCMode: boolean;
 }
 
-interface Action {
+export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
@@ -57,6 +56,23 @@ interface JaiaContextProviderProps {
     children: ReactNode;
 }
 
+const defaultHubAccordionStates = {
+    quickLook: false,
+    commands: false,
+    links: false,
+};
+
+const defaultBotAccordionStates = {
+    quickLook: false,
+    commands: false,
+    advancedCommands: false,
+    health: false,
+    data: false,
+    gps: false,
+    imu: false,
+    sensor: false,
+};
+
 export const JaiaContext = createContext<JaiaContextType>(null);
 export const JaiaDispatchContext = createContext(null);
 
@@ -64,26 +80,33 @@ export const JaiaDispatchContext = createContext(null);
  * Updates JaiaContext
  *
  * @param {JaiaContextType} state Holds the most recent reference to state
- * @param {Action} action Contains data associated with a state update
+ * @param {JaiaAction} action Contains data associated with a state update
  * @returns {JaiaContextType} The updated state object
  */
-function jaiaReducer(state: JaiaContextType, action: Action) {
+function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     let mutableState = { ...state };
     switch (action.type) {
         case JaiaActions.INIT:
             return handleInit(mutableState);
+
         case JaiaActions.POLL_DATA_MODEL:
             return handlePollDataModel(mutableState);
+
         case JaiaActions.ADD_MISSION:
             return handleAddMission(mutableState);
+
         case JaiaActions.DELETE_MISSION:
             return handleDeleteMission(mutableState, action.missionID);
+
         case JaiaActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
+
         case JaiaActions.ASSIGN_MISSION:
             return handleAssignMission(mutableState, action.botID, action.missionID);
+
         case JaiaActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
+
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -92,9 +115,6 @@ function jaiaReducer(state: JaiaContextType, action: Action) {
 
         case JaiaActions.TAKE_CONTROL_SUCCESS:
             return handleTakeControlSuccess(mutableState);
-
-        case JaiaActions.EXITED_RC_MODE:
-            return handleExitedRCMode(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -114,8 +134,6 @@ function jaiaReducer(state: JaiaContextType, action: Action) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
-        case JaiaActions.RESET_MISSION_ACCORDIONS:
-            return handleResetMissionAccordions(mutableState);
 
         default:
             return state;
@@ -123,8 +141,9 @@ function jaiaReducer(state: JaiaContextType, action: Action) {
 }
 
 /**
- * Puts Context in sync with the data model from the start.
- * Without this call, the properties would not have the expected getters and setters from the data model.
+ * Puts Context in sync with the data model from the start and initializes UI properties.
+ * Without this call, the data model properties would not have the expected
+ * getters and setters all of the time.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -133,6 +152,15 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
+
+    mutableState.clientID = "";
+    mutableState.controllingClientID = "";
+    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.visibleDetails = NodeTypes.NONE;
+    mutableState.hubAccordionStates = defaultHubAccordionStates;
+    mutableState.botAccordionStates = defaultBotAccordionStates;
+    mutableState.missionAccordionStates = {};
+
     return mutableState;
 }
 
@@ -153,10 +181,17 @@ function handlePollDataModel(mutableState: JaiaContextType) {
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
+ *
+ * @notes
+ * Implement auto scroll to bottom of missions panel
  */
 function handleAddMission(mutableState: JaiaContextType) {
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     missions.addMission(new Mission());
+
     mutableState.missions = missions.getMissions();
+    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+
     return mutableState;
 }
 
@@ -184,7 +219,9 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
 function handleDeleteAllMissions(mutableState: JaiaContextType) {
     missions.deleteAllMissions();
     missionsManager.clear();
+
     mutableState.missions = missions.getMissions();
+    mutableState.missionAccordionStates = {};
     return mutableState;
 }
 
@@ -248,9 +285,9 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
 /**
  * Adds the client ID to state
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {string} clientID ID associated with the client session
- * @returns {GlobalContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleSavedClientID(mutableState: JaiaContextType, clientID: string) {
     if (!clientID) throw new Error("Invalid clientID");
@@ -262,8 +299,8 @@ function handleSavedClientID(mutableState: JaiaContextType, clientID: string) {
 /**
  * Sets the client ID saved in state to be the controlling client ID
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleTakeControlSuccess(mutableState: JaiaContextType) {
     mutableState.controllingClientID = mutableState.clientID;
@@ -271,21 +308,10 @@ function handleTakeControlSuccess(mutableState: JaiaContextType) {
 }
 
 /**
- * Turns off RC Mode on the client-side
- *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
- */
-function handleExitedRCMode(mutableState: JaiaContextType) {
-    mutableState.isRCMode = false;
-    return mutableState;
-}
-
-/**
  * Closes the Bot or Hub details panel
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClosedDetails(mutableState: JaiaContextType) {
     mutableState.visibleDetails = NodeTypes.NONE;
@@ -295,12 +321,12 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 /**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  *
  * @notes
  * This function calls jaiaGlobal.setSelectedNode to make sure the
- * data used by OpenLayers is in sync with GlobalContext
+ * data used by OpenLayers is in sync with JaiaContext
  */
 function handleClickedNode(mutableState: JaiaContextType, clickedNode: SelectedNode) {
     jaiaGlobal.setSelectedNode(clickedNode);
@@ -314,9 +340,9 @@ function handleClickedNode(mutableState: JaiaContextType, clickedNode: SelectedN
 /**
  * Opens and closes the Hub details accordions
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {string} accordionName Accordion to open or close
- * @returns {GlobalContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedHubAccordion(
     mutableState: JaiaContextType,
@@ -342,9 +368,9 @@ function handleClickedHubAccordion(
 /**
  * Opens and closes the Bot details accordions
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {string} accordionName Which accordion to open or close
- * @returns {GlobalContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedBotAccordion(
     mutableState: JaiaContextType,
@@ -385,10 +411,10 @@ function handleClickedBotAccordion(
 /**
  * Updates the missionAccordionStates object based on the provided missionID and expand/collapse state
  *
- * @param {GlobalContextType} mutableState State object ref for making modifications
+ * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {number} missionID Determines which mission accordion state to modify
  * @param {boolean} isMissionAccordionExpanded New expand/collapse state of the accordion
- * @returns {GlobalContextType} Updated mutable state object
+ * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedMissionAccordion(
     mutableState: JaiaContextType,
@@ -397,28 +423,6 @@ function handleClickedMissionAccordion(
 ) {
     mutableState.missionAccordionStates[missionID] = isMissionAccordionExpanded;
     return mutableState;
-}
-
-/**
- * Resets the mission accordion expand/collapse states when operator clicks delete all missions
- *
- * @param {GlobalContextType} mutableState State object ref for making modifications
- * @returns {GlobalContextType} Updated mutable state object
- */
-function handleResetMissionAccordions(mutableState: JaiaContextType) {
-    mutableState.missionAccordionStates = {};
-    return mutableState;
-}
-
-/**
- * Repaints the map layers using the latest data
- *
- * @returns {void}
- */
-function syncOpenLayers() {
-    botLayer.updateFeatures();
-    hubLayer.updateFeatures();
-    missionLayer.updateFeatures();
 }
 
 export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
@@ -448,12 +452,23 @@ export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
 /**
  * Retrieves latest data posted for Bots and Hubs from incoming status messages
  *
- * @param {React.Dispatch<Action>} dispatch Connects event trigger to event handler
+ * @param {React.Dispatch<JaiaAction>} dispatch Connects event trigger to event handler
  * @returns {void}
  *
  * @notes
  * We do not poll for changes in the Missions singleton since those changes only come from user interactions
  */
-function pollDataModel(dispatch: React.Dispatch<Action>) {
+function pollDataModel(dispatch: React.Dispatch<JaiaAction>) {
     return setInterval(() => dispatch({ type: JaiaActions.POLL_DATA_MODEL }), DATA_MODEL_POLL_TIME);
+}
+
+/**
+ * Repaints the map layers using the latest data
+ *
+ * @returns {void}
+ */
+function syncOpenLayers() {
+    botLayer.updateFeatures();
+    hubLayer.updateFeatures();
+    missionLayer.updateFeatures();
 }

@@ -3,16 +3,15 @@ import React, { useContext, useState, useEffect } from "react";
 // Jaia Imports
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import {
-    GlobalContext,
-    GlobalDispatchContext,
-    GlobalAction,
-    BotAccordionNames,
-    GlobalContextType,
-} from "../../context/Global/GlobalContext";
-import { JaiaSystemContext } from "../../context/Jaia/JaiaContext";
-import { GlobalActions } from "../../context/Global/GlobalActions";
+    JaiaContext,
+    JaiaContextType,
+    JaiaDispatchContext,
+    JaiaAction,
+} from "../../context/Jaia/JaiaContext";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { CustomAlert } from "../../shared/CustomAlert";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { BotAccordionNames } from "../../types/context-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import Bot from "../../data/bots/bot";
@@ -105,10 +104,8 @@ export function BotDetails(props: BotDetailsProps) {
     takeControlFunction = props.takeControl;
     // End Old code
 
-    const globalContext: GlobalContextType = useContext(GlobalContext);
-    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
-
-    const jaiaSystemContext = useContext(JaiaSystemContext);
+    const jaiaContext: JaiaContextType = useContext(JaiaContext);
+    const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
@@ -122,21 +119,17 @@ export function BotDetails(props: BotDetailsProps) {
         addDropdownListener("accordionContainer", "botDetailsAccordionContainer", 30);
     }, []);
 
-    if (
-        jaiaSystemContext === null ||
-        globalContext === null ||
-        globalContext.visibleDetails !== NodeTypes.BOT
-    ) {
+    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
         return <div></div>;
     }
 
-    const hub = jaiaSystemContext.hubs.get(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
-    const botID = globalContext.selectedNode.id;
-    const bot = jaiaSystemContext.bots.get(botID);
+    const botID = jaiaContext.selectedNode.id;
+    const bot = jaiaContext.bots.get(botID);
 
     const missionID = missionsManager.getMissionID(botID);
-    const mission = jaiaSystemContext.missions.get(missionID);
+    const mission = jaiaContext.missions.get(missionID);
 
     if (!bot) {
         return <div></div>;
@@ -280,7 +273,7 @@ export function BotDetails(props: BotDetailsProps) {
      * @returns {void}
      */
     function handleCloseDetailsPanel() {
-        globalDispatch({ type: GlobalActions.CLOSED_DETAILS });
+        jaiaDispatch({ type: JaiaActions.CLOSED_DETAILS });
     }
 
     /**
@@ -289,8 +282,8 @@ export function BotDetails(props: BotDetailsProps) {
      * @returns {void}
      */
     function handleAccordionClick(accordionName: BotAccordionNames) {
-        globalDispatch({
-            type: GlobalActions.CLICKED_BOT_ACCORDION,
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_BOT_ACCORDION,
             botAccordionName: accordionName,
         });
     }
@@ -724,7 +717,7 @@ export function BotDetails(props: BotDetailsProps) {
                 <div id="botDetailsAccordionContainer">
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
-                            expanded={globalContext.botAccordionStates.quickLook}
+                            expanded={jaiaContext.botAccordionStates.quickLook}
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.QUICKLOOK);
                             }}
@@ -816,7 +809,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
-                            expanded={globalContext.botAccordionStates.commands}
+                            expanded={jaiaContext.botAccordionStates.commands}
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.COMMANDS);
                             }}
@@ -889,7 +882,7 @@ export function BotDetails(props: BotDetailsProps) {
                                 {dataOffloadButton()}
 
                                 <Accordion
-                                    expanded={globalContext.botAccordionStates.advancedCommands}
+                                    expanded={jaiaContext.botAccordionStates.advancedCommands}
                                     onChange={() => {
                                         handleAccordionClick(BotAccordionNames.ADVANCEDCOMMANDS);
                                     }}
@@ -963,7 +956,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
-                            expanded={globalContext.botAccordionStates.health}
+                            expanded={jaiaContext.botAccordionStates.health}
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.HEALTH);
                             }}
@@ -986,7 +979,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
-                            expanded={globalContext.botAccordionStates.data}
+                            expanded={jaiaContext.botAccordionStates.data}
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.DATA);
                             }}
@@ -1003,7 +996,7 @@ export function BotDetails(props: BotDetailsProps) {
                             <AccordionDetails>
                                 <ThemeProvider theme={accordionTheme}>
                                     <Accordion
-                                        expanded={globalContext.botAccordionStates.gps}
+                                        expanded={jaiaContext.botAccordionStates.gps}
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.GPS);
                                         }}
@@ -1080,7 +1073,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                                 <ThemeProvider theme={accordionTheme}>
                                     <Accordion
-                                        expanded={globalContext.botAccordionStates.imu}
+                                        expanded={jaiaContext.botAccordionStates.imu}
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.IMU);
                                         }}
@@ -1128,7 +1121,7 @@ export function BotDetails(props: BotDetailsProps) {
 
                                 <ThemeProvider theme={accordionTheme}>
                                     <Accordion
-                                        expanded={globalContext.botAccordionStates.sensor}
+                                        expanded={jaiaContext.botAccordionStates.sensor}
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.SENSOR);
                                         }}

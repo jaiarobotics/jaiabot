@@ -11,7 +11,7 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
-import { JaiaSystemContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
 
 interface Props {
@@ -19,8 +19,8 @@ interface Props {
 }
 
 export default function MissionAssignMenu(props: Props) {
-    const jaiaSystemContext = useContext(JaiaSystemContext);
-    const jaiaSystemDispatch = useContext(JaiaDispatchContext);
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
      * Provides MenuItem value needed to display text in the Select element
@@ -39,7 +39,7 @@ export default function MissionAssignMenu(props: Props) {
      */
     const handleMenuSelection = (evt: SelectChangeEvent) => {
         const selectedBotID = Number(evt.target.value);
-        jaiaSystemDispatch({
+        jaiaDispatch({
             type: JaiaActions.ASSIGN_MISSION,
             botID: selectedBotID,
             missionID: props.missionID,
@@ -75,7 +75,7 @@ export default function MissionAssignMenu(props: Props) {
                 value={getMenuValue().toString()}
             >
                 <MenuItem value={UNASSIGNED_ID}>Unassigned</MenuItem>
-                {Array.from(jaiaSystemContext.bots.values()).map((bot) =>
+                {Array.from(jaiaContext.bots.values()).map((bot) =>
                     generateMenuItems(bot.getBotID()),
                 )}
             </Select>

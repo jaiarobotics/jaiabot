@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
-import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
 import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
@@ -24,11 +23,9 @@ bots.setBot(botStatusMock2);
 
 beforeEach(() => {
     render(
-        <GlobalContextProvider>
-            <JaiaContextProvider>
-                <MissionsPanel />
-            </JaiaContextProvider>
-        </GlobalContextProvider>,
+        <JaiaContextProvider>
+            <MissionsPanel />
+        </JaiaContextProvider>,
     );
 
     // Reset Missions panel
