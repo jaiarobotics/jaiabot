@@ -182,13 +182,13 @@ elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.hub.gpsd_port(node_id),
-                                     gpsd_device=common.hub.gpsd_device(node_id)))
+                                     gpsd_port=common.hub.gpsd_port(hub_index),
+                                     gpsd_device=common.hub.gpsd_device()))
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     hub_gpsd_device=common.hub.gpsd_device(node_id))) 
+                                     hub_gpsd_device=common.hub.gpsd_device())) 
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
@@ -207,7 +207,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      # if we're using localhost for wifi comms, use it for data offload as well
                                      use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times,
-                                     hub_gpsd_device=common.hub.gpsd_device(node_id),
+                                     hub_gpsd_device=common.hub.gpsd_device(),
                                      subnet_mask=common.comms.subnet_mask,
                                      links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes) + "]"))
 elif common.app == 'jaiabot_failure_reporter':
@@ -230,7 +230,7 @@ elif common.app == 'jaiabot_metadata':
 elif common.app == 'gpsd':
     # Run for forwarding contacts
     devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])
-    print('-S {} {}'.format(common.hub.gpsd_port(node_id), devices_str))
+    print('-S {} {}'.format(common.hub.gpsd_port(hub_index), devices_str))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:

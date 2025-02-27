@@ -314,7 +314,7 @@ void jaiabot::comms::UDPDriver::set_active_hub_peer(int hub_id)
     {
         if (hub_endpoints_.count(hub_id))
         {
-            update_remote(hub_endpoints_.at(hub_id));
+            update_remote(hub_endpoints_.at(hub_id), true /* clear existing */);
             glog.is_verbose() && glog << group(glog_in_group()) << "Set hub endpoint to: "
                                       << hub_endpoints_.at(hub_id).ShortDebugString() << std::endl;
         }
