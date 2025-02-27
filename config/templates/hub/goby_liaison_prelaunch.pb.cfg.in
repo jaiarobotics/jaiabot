@@ -154,7 +154,21 @@ add_commander_tab: false
         name: "Upgrade all packages on Factory image [ERASES ALL MODIFICATIONS] (Reboot Required)"
         role: DEVELOPER
         confirmation_required: true
-    }    
+    }
+
+    ansible_playbook {
+        file: "change-comms-links.yml" 
+        name: "Change Communications Links in use"
+        role: USER
+        input_var {
+            name: "comms_link"
+            display_name: "Comms Links"
+            value: "xbee"
+            value: "wifi"
+            value: "xbee,wifi"
+        }
+    }
+    
 
     $vfleet_playbooks
 }
