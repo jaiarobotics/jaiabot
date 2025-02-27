@@ -43,10 +43,11 @@ export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
+    clientID?: string;
+
+    selectedNode?: SelectedNode;
     location?: GeographicCoordinate;
 
-    clientID?: string;
-    selectedNode?: SelectedNode;
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     isMissionAccordionExpanded?: boolean;
@@ -409,7 +410,8 @@ function handleClickedBotAccordion(
 }
 
 /**
- * Updates the missionAccordionStates object based on the provided missionID and expand/collapse state
+ * Updates the missionAccordionStates object based on the provided missionID and
+ * expand/collapse state
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {number} missionID Determines which mission accordion state to modify
@@ -456,7 +458,8 @@ export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
  * @returns {void}
  *
  * @notes
- * We do not poll for changes in the Missions singleton since those changes only come from user interactions
+ * We do not poll for changes in the Missions singleton since those changes
+ * only come from user interactions
  */
 function pollDataModel(dispatch: React.Dispatch<JaiaAction>) {
     return setInterval(() => dispatch({ type: JaiaActions.POLL_DATA_MODEL }), DATA_MODEL_POLL_TIME);
