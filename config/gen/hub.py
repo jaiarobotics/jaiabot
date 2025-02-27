@@ -97,7 +97,7 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id, hub_index),
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
                                             hub_endpoints='',
                                             wifi_hub_id='hub_id: ' + str(hub_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),

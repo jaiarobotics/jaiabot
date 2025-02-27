@@ -48,16 +48,13 @@ def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
     else:
         return wifi_ip
     
-def wifi_remotes(this_node_id, fleet_index):
+def wifi_remotes(this_node_id, fleet_index, hub_id):
     remotes=''
     first_node_id=0
-
-    # used for virtualfleet as until we have an inventory file we don't send any hub subscriptions out without an Xbee config.
-    default_hub_id=1
     
     for node_id in range(first_node_id, number_of_bots_max+first_node_id+1):
         if this_node_id != node_id:
-            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, default_hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, default_hub_id)) + ' } \n'
+            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
     return remotes
 
 def wifi_hub_remotes(this_node_id, fleet_index):

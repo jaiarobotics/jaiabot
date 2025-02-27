@@ -155,14 +155,16 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             ack_timeout=ack_timeout)
 
 if common.CommsMode.WIFI in common.jaia_comms_modes:
+    # used for virtualfleet as until we have an inventory file we don't send any hub subscriptions out without an Xbee config.
+    default_hub_id=1
+
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
                                             wifi_hub_id='',
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index),
-                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
