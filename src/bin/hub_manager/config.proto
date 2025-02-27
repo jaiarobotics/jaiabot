@@ -41,7 +41,11 @@ message HubManager
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     // use to pre-seed expected bots
-    optional xbee.protobuf.Config xbee = 10;
+    message ExpectedBots
+    {
+        repeated int32 id = 1;
+    }
+    optional ExpectedBots expected_bots = 17;
 
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
     required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
@@ -55,15 +59,16 @@ message HubManager
 
     message VirtualFleetData
     {
-        // used by VirtualHub to shut down system after idle (no commands received)
-        // to avoid running up EC2 costs unexpectedly
+        // used by VirtualHub to shut down system after idle (no commands
+        // received) to avoid running up EC2 costs unexpectedly
         required int32 shutdown_after_last_command_seconds = 1 [default = 3600];
-        // delay shutting down hub after this time since last BotStatus message
+        // delay shutting down hub after this time since last BotStatus
+        // message
         required int32 hub_shutdown_delay_seconds = 2 [default = 300];
     }
     optional VirtualFleetData vfleet = 20;
-    
-  // data offload
+
+    // data offload
     required string data_offload_script = 30;
     optional string log_staging_dir = 31 [default = "/var/log/jaiabot/staging"];
     optional string log_offload_dir = 32
@@ -71,7 +76,6 @@ message HubManager
     optional int32 bot_start_ip = 33 [default = 100];
     optional string class_b_network = 34 [default = "10.23"];
     optional bool use_localhost_for_data_offload = 35 [default = false];
-
 
     required string hub_gpsd_device = 40;  // gpsd device for hub itself
 
@@ -102,5 +106,4 @@ message HubManager
 
     optional int32 contact_blackout_seconds = 43
         [default = 2];  // don't send a contact update more often than this
-
 }

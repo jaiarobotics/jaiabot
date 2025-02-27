@@ -1,5 +1,6 @@
 #include "xbee.h"
 #include "goby/util/debug_logger.h"
+#include "jaiabot/comms/comms.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
@@ -80,7 +81,7 @@ void jaiabot::comms::XBeeDevice::startup(
     const uint16_t network_id, const std::string& xbee_info_location, const bool& use_encryption,
     const std::string& encryption_password, const std::string& mesh_unicast_retries,
     const std::string& unicast_mac_retries, const std::string& network_delay_slots,
-    const std::string& broadcast_multi_transmits)
+    const std::string& broadcast_multi_transmits, int fleet)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -92,6 +93,8 @@ void jaiabot::comms::XBeeDevice::startup(
     my_xbee_info_location_ = xbee_info_location;
     glog_group = "xbee id" + my_node_id;
     glog.add_group(glog_group, goby::util::Colors::yellow);
+
+    fleet_id_ = fleet;
 
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
@@ -141,6 +144,33 @@ void jaiabot::comms::XBeeDevice::startup(
         glog.is_verbose() && glog << group(glog_group) << "Network ID: " << setw(4) << network_id
                                   << endl;
         cmd << "ATID=" << setw(4) << network_id << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    SerialNumber user_serial = get_serial_number(my_node_id);
+    {
+        /*
+          Set User serial number high word (not documented - provided by XBee engineer Brenton Mock on Jan 23, 2025
+        */
+        stringstream cmd;
+        std::uint32_t serial_high = (user_serial >> 32) & 0xFFFFFFFF;
+        glog.is_verbose() && glog << group(glog_group) << "SerialNumber (High word): " << std::hex
+                                  << serial_high << endl;
+        cmd << "ATUH=" << std::hex << serial_high << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+          Set User serial number low word (not documented - provided by XBee engineer Brenton Mock on Jan 23, 2025
+        */
+        stringstream cmd;
+        std::uint32_t serial_low = user_serial & 0xFFFFFFFF;
+        glog.is_verbose() && glog << group(glog_group) << "SerialNumber (Low word): " << std::hex
+                                  << serial_low << endl;
+        cmd << "ATUL=" << std::hex << serial_low << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -505,11 +535,11 @@ void jaiabot::comms::XBeeDevice::write(const string& raw)
 string jaiabot::comms::XBeeDevice::read_until(const string& delimiter)
 {
     string data;
-    glog.is_debug2() && glog << group(glog_group) << "read_until: " << delimiter
-                             << " (hex: " << hexadecimal(delimiter) << ")" << endl;
-    boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
-    glog.is_debug2() && glog << group(glog_group) << "read_until completed with: " << delimiter
+    glog.is_debug2() && glog << group(glog_group) << "read_until: " << hexadecimal(delimiter)
                              << endl;
+    boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
+    glog.is_debug2() && glog << group(glog_group)
+                             << "read_until completed with: " << hexadecimal(delimiter) << endl;
     return data;
 }
 
@@ -551,30 +581,26 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
     write("+++");
 
     this->async_read_with_timeout(
-            buffer, delimiter, timeout_seconds, [this](const std::string& result) {
-                      
-                glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
-                                       << "\nResult is empty: " << result.empty()
+        buffer, delimiter, timeout_seconds,
+        [this](const std::string& result)
+        {
+            glog.is_debug1() && glog << group(glog_group) << "Result: " << result
+                                     << "\nResult is empty: " << result.empty() << std::endl;
+
+            if (result.find("OK") != std::string::npos)
+            {
+                return;
+            }
+            else
+            {
+                // Log an error and retry
+                glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result
+                                       << "| ERROR Result Hex: " << convertToHex(result)
                                        << std::endl;
 
-                if (result.find("OK") != std::string::npos)
-                {
-                    // Stop io context to exit and continue
-                    io->stop();
-                    
-                    return;
-                }
-                else
-                {
-                    // Log an error and retry
-                    glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result 
-                                    << "| ERROR Result Hex: " << convertToHex(result)
-                                    << std::endl;
-                    
-                    enter_command_mode();
-                } 
-                
-            });
+                enter_command_mode();
+            }
+        });
 }
 
 /**
@@ -596,6 +622,8 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     std::string& buffer, const std::string& delimiter, int timeout_seconds,
     std::function<void(const std::string&)> handler)
 {
+    io->reset();
+
     // Clear the buffer before starting the read operation
     buffer.clear();
 
@@ -606,18 +634,21 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     timer->expires_from_now(boost::posix_time::seconds(timeout_seconds));
 
     // Set up the timer's asynchronous wait operation
-    timer->async_wait([&](const boost::system::error_code& ec) {
-        if (!ec)
+    timer->async_wait(
+        [&](const boost::system::error_code& ec)
         {
-            // Timer expired, handle timeout
-            handler("timeout");
-        }
-    });
+            if (!ec)
+            {
+                // Timer expired, handle timeout
+                handler("timeout");
+            }
+        });
 
     // Initiate an asynchronous read operation on the serial port
     boost::asio::async_read_until(
         *port, boost::asio::dynamic_buffer(buffer), delimiter,
-        [&](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+        [&](const boost::system::error_code& ec, std::size_t bytes_transferred)
+        {
             if (!ec)
             {
                 // Cancel the timer if read is successful
@@ -631,7 +662,7 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
                 handler("read_error");
             }
         });
-    
+
     // Wait for either the read operation to complete or the timeout to occur
     io->run();
 }
@@ -642,10 +673,11 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
  * @param std::string String to convert into hex
  * @return std::string Hex string
  */
-std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str) 
+std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str)
 {
     std::ostringstream hexStream;
-    for (unsigned char c : str) {
+    for (unsigned char c : str)
+    {
         hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " ";
     }
     return hexStream.str();
@@ -669,15 +701,6 @@ void jaiabot::comms::XBeeDevice::exit_command_mode()
     sleep(1);
     // Read until we get the OK, in case some binary data comes through and interferes
     read_until("OK\r");
-}
-
-vector<NodeId> jaiabot::comms::XBeeDevice::get_peers()
-{
-    vector<NodeId> peers;
-
-    for (auto peer : node_id_to_serial_number_map) { peers.push_back(peer.first); }
-
-    return peers;
 }
 
 string jaiabot::comms::XBeeDevice::read_frame()
@@ -1086,15 +1109,29 @@ string jaiabot::comms::XBeeDevice::api_explicit_transmit_request(const SerialNum
 
 SerialNumber jaiabot::comms::XBeeDevice::get_serial_number(const NodeId& node_id)
 {
-    try
+    auto it = node_id_to_serial_number_map.find(node_id);
+    if (it != node_id_to_serial_number_map.end())
     {
-        auto serial_number = node_id_to_serial_number_map.at(node_id);
-        return serial_number;
+        return it->second;
     }
-    catch (exception& error)
+    else
     {
-        // Unknown serial_number at this time
-        return 0;
+        int node_id_int = std::atoi(node_id.c_str());
+        if (node_id_int != jaiabot::comms::hub_modem_id)
+        {
+            // add bot
+            add_peer(node_id, jaiabot::comms::NodeType::BOT,
+                     jaiabot::comms::bot_id_from_modem_id(node_id_int));
+            return get_serial_number(node_id);
+        }
+        else
+        {
+            // no hub ID?
+            glog.is_warn() && glog << group(glog_group)
+                                   << "No active hub configured; hub SerialNumber unavailable."
+                                   << std::endl;
+            return 0;
+        }
     }
 }
 
@@ -1146,11 +1183,13 @@ void jaiabot::comms::XBeeDevice::send_packet(const NodeId& dest, const string& d
     send_packet(dest_ser, data);
 }
 
-void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number)
+void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id,
+                                          int fleet_id /*= fleet_id_*/)
 {
+    const SerialNumber serial_number = serial_from_node_data(type, fleet_id, bot_or_hub_id);
+
     glog.is_verbose() && glog << group(glog_group) << "serial_number= " << std::hex << serial_number
                               << std::dec << " node_id= " << node_id << endl;
 
     node_id_to_serial_number_map[node_id] = serial_number;
-    serial_number_to_node_id_map[serial_number] = node_id;
 }

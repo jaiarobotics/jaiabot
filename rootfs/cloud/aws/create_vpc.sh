@@ -61,7 +61,6 @@ CLOUDHUB_CIDR_BLOCK=$($IP_PY net --net cloudhub_eth --fleet_id ${FLEET_ID} --ipv
 CLOUDHUB_ID=30
 CLOUDHUB_ETH_IP_ADDRESS=$($IP_PY addr --net cloudhub_eth --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID}  --ipv4)
 
-
 # IPv6 address to use for VirtualFleet VPN (fd6e:cf0d:aefa:FLEET_ID_HEX::/64)
 VIRTUALFLEET_VPN_NETWORK_IPV6=$($IP_PY net --net vfleet_vpn --fleet_id ${FLEET_ID} --ipv6)
 VIRTUALFLEET_VPN_CLIENT_IPV6=$($IP_PY addr --net vfleet_vpn --fleet_id ${FLEET_ID} --node desktop --node_id 1 --ipv6)
@@ -175,11 +174,11 @@ echo ">>>>>> Allocated Elastic IP Address with Allocation ID: $EIP_ALLOCATION_ID
 PUBLIC_IPV4_ADDRESS=$(run ".Addresses[0].PublicIp" aws ec2 describe-addresses --allocation-ids $EIP_ALLOCATION_ID)
 
 ## Launch the actual VM (CloudHub)
-USER_DATA_FILE_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
-USER_DATA_FILE="/tmp/cloud-init-user-data.sh"
+USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
+USER_DATA_SCRIPT="/tmp/cloud-init-user-data.sh"
 
 # replace some {{MACROS}} in the user data
-cp ${USER_DATA_FILE_IN} ${USER_DATA_FILE}
+cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
 
 declare -A replacements=(
     ["{{ACCOUNT_ID}}"]="$ACCOUNT_ID"
@@ -205,14 +204,32 @@ declare -A replacements=(
 
 for placeholder in "${!replacements[@]}"; do
     value=${replacements[$placeholder]}
-    sed -i "s|$placeholder|$value|g" "${USER_DATA_FILE}"
+    sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
 
-# Multiline replacement
-FORMATTED_SSH_KEYS=$(echo "$SSH_PUBKEYS" | sed ':a;N;$!ba;s/\n/|||/g')
-sed -i "s\\{{SSH_PUBKEYS}}\\$FORMATTED_SSH_KEYS\\" ${USER_DATA_FILE}
-sed -i 's/|||/\n/g' ${USER_DATA_FILE}
+USER_DATA_FIRST_BOOT_DIR=/tmp/cloudhub-bootdir
+mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 
+USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
+USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
+
+FLEET_CONFIG=${USER_DATA_FIRST_BOOT_DIR}/fleet${FLEET_ID}.cfg
+perm_ssh_keys=$(echo "${SSH_PUBKEYS}" | sed 's/^/permanent_authorized_keys: "/' | sed 's/$/"/')
+cat <<EOF > ${FLEET_CONFIG}
+fleet: ${FLEET_ID}
+hubs: [ ${CLOUDHUB_ID} ]
+ssh {
+${perm_ssh_keys}
+}
+wlan_password: "dummy"
+service_vpn_enabled: false
+EOF
+cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
+USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
+USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
+cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
 
 # Find the newest AMI matching the tags
 AMI_ID=$(run " " aws ec2 describe-images --filters "Name=tag:jaiabot-rootfs-gen_repository,Values=${REPO}" "Name=tag:jaiabot-rootfs-gen_repository_version,Values=${REPO_VERSION}" --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId')
@@ -323,6 +340,11 @@ done
 
 echo ">>>>>> Server Wireguard Pubkey: ${SERVER_WIREGUARD_PUBKEY}"
 
+while ! ssh -o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overlayroot"; do
+    echo ">>>>>> Nearly there... please keep waiting (Connection refused and Permission denied are *expected* for a while...";
+    sleep 5
+done
+
 ssh -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
@@ -402,7 +424,7 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
         sleep 1
     done
     echo ">>>>>> Ping successful!"   
-    echo -e ">>>>>> Now you can log in with\n\tssh jaia@${CLOUDHUB_VPN_SERVER_IPV6}"
+    echo -e ">>>>>> Now you can log in with\n\tjaia ssh chf${FLEET_ID} (ssh jaia@${CLOUDHUB_VPN_SERVER_IPV6})"
 else
     echo ">>>>>> Prototype config for VPNs in /tmp/${VFLEET_VPN}.conf and /tmp/${CLOUD_VPN}.conf. You will need to enable one or both VPNs to access the Cloudhub VM."
 fi

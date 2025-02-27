@@ -36,6 +36,7 @@ protobuf_include_dirs("${GOBY_INCLUDE_DIR}")
 
 # create variables for various directories
 get_filename_component(project_SRC_DIR src ABSOLUTE)
+get_filename_component(project_ROOTFS_DIR rootfs ABSOLUTE)
 get_filename_component(project_BUILD_DIR ${CMAKE_BINARY_DIR} ABSOLUTE)
 get_filename_component(project_SCRIPTS_DIR scripts ABSOLUTE)
 
@@ -154,6 +155,11 @@ macro(project_install_lib target_lib)
   set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
 endmacro()
 
+
+# Install these init files so that they are accessible to CloudHub for VirtualFleet generation
+file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
+file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2 DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
+
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
   )
@@ -195,7 +201,14 @@ set(scripts_to_install
   # Utilities
   jaia-ip.py
   jaia-doc.py
-)
+  jaia-vpn-gen.sh
+  # Fleet config
+  fleet/jaia-create-fleet-config.sh
+  fleet/jaia-generate-first-boot.py
+  fleet/jaia-fleet-config-update-iso.sh
+  # First boot (also used by VirtualFleet creation)
+  init/jaia-create-ansible-inventory.sh
+  )
 
 # Iterate over each script to install and copy
 foreach(script ${scripts_to_install})

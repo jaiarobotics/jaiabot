@@ -47,10 +47,28 @@ typedef unsigned char byte;
 
 // SerialNumber is an immutable value that uniquely identifies an XBee modem
 //   The XBee can only address packets to serial numbers, not to the user-configurable NodeId
+// However, the SerialNumber can be modified using ATUL (low 32-bit word) and ATUH (high 32-bit word)
 typedef uint64_t SerialNumber;
 
 // NodeId is a user-configurable id for an XBee modem, which corresponds to the modem_id from Goby
 typedef std::string NodeId;
+
+enum class NodeType
+{
+    HUB,
+    BOT
+};
+
+inline SerialNumber serial_from_node_data(NodeType type, int fleet_id, int bot_or_hub_id)
+{
+    // TES: testing with XBee on 1/27/25 seems to show that ATUH can't be any arbitrary value but 13A200 (the ATSH value for the modem I was testing on) seems to work fine
+    SerialNumber high_word = 0x13A200;
+    SerialNumber fleet64 = fleet_id & 0xFFFF, type64 = (type == NodeType::HUB) ? 0x0 : 0x1,
+                 id64 = bot_or_hub_id & 0x7FFF;
+    SerialNumber low_word = ((fleet64 << 16) + (type64 << 15) + id64) & 0xFFFFFFFF;
+
+    return (high_word << 32) + low_word;
+}
 
 // Packet structure for queuing up packets for transmit
 struct Packet
@@ -71,10 +89,8 @@ class XBeeDevice
                  const bool& use_encryption, const std::string& encryption_password,
                  const std::string& mesh_unicast_retries, const std::string& unicast_mac_retries,
                  const std::string& network_delay_slots,
-                 const std::string& broadcast_multi_transmits);
+                 const std::string& broadcast_multi_transmits, int fleet);
     void shutdown();
-
-    std::vector<NodeId> get_peers();
 
     void send_packet(const NodeId& dest, const std::string& s);
     void send_test_links(const NodeId& dest, const NodeId& com_dest);
@@ -88,7 +104,11 @@ class XBeeDevice
     uint16_t max_payload_size;
 
     // Adding a peer to the lookup table
-    void add_peer(const NodeId node_id, const SerialNumber serial_number);
+    void add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id, int fleet_id);
+    void add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id)
+    {
+        add_peer(node_id, type, bot_or_hub_id, fleet_id_);
+    }
 
     // Get Diagnostics
     void send_diagnostic_commands();
@@ -102,10 +122,10 @@ class XBeeDevice
     SerialNumber my_serial_number;
     byte frame_id;
     std::string glog_group;
+    int fleet_id_{-1};
 
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
-    std::map<SerialNumber, NodeId> serial_number_to_node_id_map;
 
     std::vector<std::string> received_packets;
 
@@ -125,7 +145,7 @@ class XBeeDevice
     void async_read_with_timeout(std::string& buffer, const std::string& delimiter,
                                  int timeout_seconds,
                                  std::function<void(const std::string&)> handler);
-    
+
     // Convert string to hex
     std::string convertToHex(const std::string& str);
 

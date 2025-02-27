@@ -291,14 +291,6 @@ workflows:
             - upload
 
       # rootfs jobs - require upload first so we install the same release (not previous release) onto the rootfs
-      - raspi-image-create-focal:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-      - virtualbox-image-create-focal:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
       - raspi-image-create-jammy:
           <<: *filter-template-rootfs-builds
           requires:
@@ -542,36 +534,6 @@ jobs:
           root: /tmp
           paths:
             - "vbox/*.ova"
-
-  raspi-image-create-focal:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: arm.medium
-    environment:
-      CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "focal"
-      DEBIAN_FRONTEND: "noninteractive"
-    steps:
-      - checkout
-      - run: *run-install-apt-raspi
-      - run: *run-create-image
-      - run: *run-compress-image-raspi
-      - store_artifacts: *store-raspi
-
-  virtualbox-image-create-focal:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    environment:
-      CREATE_IMAGE_ARGS: "--virtualbox"
-      DISTRO_RELEASE_CODENAME: "focal"
-      DEBIAN_FRONTEND: "noninteractive"
-    steps:
-      - checkout
-      - run: *run-install-apt-vbox
-      - run: *run-create-image
-      - run: *run-move-vbox
-      - store_artifacts: *store-vbox
 
   aws-sync:
     docker:
