@@ -2,9 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import NodeList from "../NodeList";
+import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
-import { GlobalContextProvider } from "../../../context/Global/GlobalContext";
-import { JaiaSystemContextProvider } from "../../../context/JaiaSystem/JaiaSystemContext";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
 
@@ -41,11 +40,9 @@ hubs.setHub(mockHubStatus1);
 
 beforeEach(() => {
     render(
-        <GlobalContextProvider>
-            <JaiaSystemContextProvider>
-                <NodeList />
-            </JaiaSystemContextProvider>
-        </GlobalContextProvider>,
+        <JaiaContextProvider>
+            <NodeList />
+        </JaiaContextProvider>,
     );
 });
 

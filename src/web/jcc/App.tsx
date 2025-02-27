@@ -1,6 +1,5 @@
 // Jaia
-import { GlobalContextProvider } from "../context/Global/GlobalContext";
-import { JaiaSystemContextProvider } from "../context/JaiaSystem/JaiaSystemContext";
+import { JaiaContextProvider } from "../context/Jaia/JaiaContext";
 
 // Style
 import "./App.less";
@@ -12,14 +11,12 @@ import SideButtonList from "../components/SideButtonList/SideButtonList";
 export default function App() {
     return (
         <div id="jcc">
-            <GlobalContextProvider>
-                <JaiaSystemContextProvider>
-                    <Map />
-                    <NodeList />
-                    <TopButtonList />
-                    <SideButtonList />
-                </JaiaSystemContextProvider>
-            </GlobalContextProvider>
+            <JaiaContextProvider>
+                <Map />
+                <NodeList />
+                <TopButtonList />
+                <SideButtonList />
+            </JaiaContextProvider>
         </div>
     );
 }

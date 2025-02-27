@@ -21,7 +21,6 @@ import { HubDetails } from "../HubDetails/HubDetails";
 import { CommandList } from "../../missions/missions";
 import { SurveyLines } from "../../missions/survey/survey-lines";
 import { Interactions } from "../../openlayers/map/interactions";
-import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
@@ -45,11 +44,12 @@ import {
     surveyStyle,
 } from "../../missions/survey/survey-mission";
 import {
-    GlobalContext,
-    GlobalDispatchContext,
-    GlobalContextType,
-    GlobalAction,
-} from "../../context/Global/GlobalContext";
+    JaiaContext,
+    JaiaContextType,
+    JaiaDispatchContext,
+    JaiaAction,
+} from "../../context/Jaia/JaiaContext";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { BotDetails } from "../BotDetails/BotDetails";
 import {
     Goal,
@@ -169,8 +169,8 @@ export interface MissionInterface {
 }
 
 export interface Props {
-    globalContext: GlobalContextType;
-    globalDispatch: React.Dispatch<GlobalAction>;
+    jaiaContext: JaiaContextType;
+    jaiaDispatch: React.Dispatch<JaiaAction>;
 }
 
 interface State {
@@ -603,7 +603,7 @@ export default class CommandControl extends React.Component {
             prevState.podStatusVersion !== this.state.podStatusVersion ||
             prevState.selectedHubOrBot !== this.state.selectedHubOrBot
         ) {
-            this.hubLayers.update(this.state.podStatus.hubs, this.props.globalContext.selectedNode);
+            this.hubLayers.update(this.state.podStatus.hubs, this.props.jaiaContext.selectedNode);
             this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot);
             this.contactLayers.update(this.state.podStatus?.contacts);
             this.updateHubCommsCircles();
@@ -2147,8 +2147,8 @@ export default class CommandControl extends React.Component {
             const botStatus = feature.get("bot") as PortalBotStatus;
             if (botStatus) {
                 const botID = botStatus.bot_id;
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
+                this.props.jaiaDispatch({
+                    type: JaiaActions.CLICKED_NODE,
                     selectedNode: { type: NodeTypes.BOT, id: botID },
                 });
                 this.toggleBot(botID);
@@ -2159,8 +2159,8 @@ export default class CommandControl extends React.Component {
             const hubStatus = feature.get("hub") as PortalHubStatus;
             if (hubStatus) {
                 const hubID = hubStatus.hub_id;
-                this.props.globalDispatch({
-                    type: GlobalActions.CLICKED_NODE,
+                this.props.jaiaDispatch({
+                    type: JaiaActions.CLICKED_NODE,
                     selectedNode: { type: NodeTypes.HUB, id: hubID },
                 });
                 this.didClickHub(hubID);
@@ -4273,8 +4273,8 @@ export default class CommandControl extends React.Component {
  * @returns {ReactElement} CommandControl component with contexts passed as props
  */
 export function CommandControlWrapper() {
-    const globalContext = useContext(GlobalContext);
-    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
-    const props = { globalContext, globalDispatch };
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
+    const props = { jaiaContext, jaiaDispatch };
     return <CommandControl {...props} />;
 }
