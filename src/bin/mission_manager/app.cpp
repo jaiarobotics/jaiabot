@@ -801,14 +801,18 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
     // Make sure the command is not a repeat
     // If it is, then we should not handle the command and exit
-    if (prev_command_time_ >= command.time())
+    if (prev_command_times_.count(command.time()))
     {
         glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;
     }
 
-    // Keep track of the previous command time
-    prev_command_time_ = command.time();
+    // Keep track of the previous command times to avoid duplicates
+    // (typically from multiple links)
+    // if our buffer overflows, remove the smallest (oldest) timestamp
+    while (prev_command_times_.size() >= command_history_max_count_)
+        prev_command_times_.erase(prev_command_times_.begin());
+    prev_command_times_.insert(command.time());
 
     switch (command.type())
     {
