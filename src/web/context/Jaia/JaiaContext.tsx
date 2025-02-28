@@ -190,10 +190,11 @@ function handlePollDataModel(mutableState: JaiaContextType) {
  */
 function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-    missions.addMission(new Mission());
+    const newMissionID = missions.addMission(new Mission());
 
     mutableState.missions = missions.getMissions();
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.missionAccordionStates[newMissionID] = true;
 
     return mutableState;
 }
