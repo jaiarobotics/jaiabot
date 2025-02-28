@@ -212,6 +212,7 @@ function handleAddMission(mutableState: JaiaContextType) {
 function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
     missions.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
+
     mutableState.missions = missions.getMissions();
     mutableState.bots = bots.getBots();
     return mutableState;
@@ -271,17 +272,18 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     const missionIDInEditMode = missions.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
-    if (missionIDInEditMode !== UNASSIGNED_ID) {
-        // Add waypoint to mission in edit mode
-        const mission = missions.getMission(missionIDInEditMode);
-        mission.addWaypoint(location);
-    } else if (
+    if (
         selectedNode.type === NodeTypes.BOT &&
         missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
     ) {
         // Create new mission and add first waypoint for selected Bot without mission
         const mission = new Mission();
         missions.addMission(mission);
+        mission.addWaypoint(location);
+        missionsManager.assign(selectedNode.id, mission.getMissionID());
+    } else if (missionIDInEditMode !== UNASSIGNED_ID) {
+        // Add waypoint to mission in edit mode
+        const mission = missions.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
     }
 

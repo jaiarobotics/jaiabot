@@ -1,4 +1,5 @@
 import Mission from "./mission";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 class Missions {
@@ -46,7 +47,8 @@ class Missions {
         mission.setMissionID(missionID);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
-        return missionID;
+        // Sync OpenLayers
+        missionLayer.updateFeatures();
     }
 
     addMissionSet(missions: Mission[]) {
@@ -61,12 +63,16 @@ class Missions {
         if (missionID === this.getMissionIDInEditMode()) {
             this.setMissionIDInEditMode(UNASSIGNED_ID);
         }
+        // Sync OpenLayers
+        missionLayer.updateFeatures();
     }
 
     deleteAllMissions() {
         this.getMissions().clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
+        // Sync OpenLayers
+        missionLayer.updateFeatures();
     }
 }
 
