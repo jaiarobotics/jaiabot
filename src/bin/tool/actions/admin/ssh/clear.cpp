@@ -15,7 +15,8 @@ using goby::glog;
 jaiabot::apps::admin::ssh::ClearTool::ClearTool()
 {
     goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
-    subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
+    if (app_cfg().has_user())
+        subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
     subtool_cfg.add_extra_cli_param("sudo truncate -s 0 " + app_cfg().authorized_keys_file());
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,

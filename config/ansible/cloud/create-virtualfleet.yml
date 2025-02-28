@@ -6,9 +6,14 @@
     warp: 5
     instance_type: t3a.small
     volume_size_gb: 32
-    server_ssh_privkey_path: /home/jaia/.ssh/id_ed25519
-    server_ssh_pubkey_path: /home/jaia/.ssh/id_ed25519.pub
-
+    server_ssh_privkey_path: /home/jaia/.ssh/cloudhub_to_vfleet
+    server_ssh_pubkey_path: /home/jaia/.ssh/cloudhub_to_vfleet.pub
+    virtualhub_ssh_privkey_path: /home/jaia/.ssh/virtualhub
+    virtualhub_ssh_pubkey_path: /home/jaia/.ssh/virtualhub.pub
+    fleet_cfg_path: /etc/jaiabot/virtualfleet.cfg
+    user_data_path: /etc/jaiabot/virtualfleet-user-data
+    bootdir_base: /tmp/virtualfleet-boot
+    
   tasks:
     - include_tasks: tasks/gen-node-map.yml
 
@@ -29,17 +34,61 @@
         user_ssh_pubkeys: "{{ lookup('file', '/home/jaia/.ssh/authorized_keys') }}"
       tags: read
 
-    - name: Generate OpenSSH keypair
+    - name: Generate OpenSSH keypair for Cloudhub
       community.crypto.openssh_keypair:
         path: "{{ server_ssh_privkey_path }}"
         type: ed25519
       tags: read
 
-    - name: Read server publickey
-      set_fact:
-        server_ssh_pubkey: "{{ lookup('file', server_ssh_pubkey_path) }}"
-        tags: read
+    - name: Generate OpenSSH keypair for VirtualHub
+      community.crypto.openssh_keypair:
+        path: "{{ virtualhub_ssh_privkey_path }}"
+        type: ed25519
       tags: read
+
+    - name: Ensure the SSH config block is present for VirtualFleet login
+      blockinfile:
+        path: /home/jaia/.ssh/config
+        marker: "# {mark} ANSIBLE MANAGED BLOCK: SSH Config for IPv6"
+        block: |
+          Host {{ vfleet_ipv6_network.split('/')[0].rstrip(':') + ':*' }} 
+              StrictHostKeyChecking accept-new
+              IdentityFile {{ server_ssh_privkey_path }}
+        create: yes
+        mode: '0600'
+        owner: jaia
+        group: jaia
+
+    - name: Generate fleet config file
+      template:
+        src: templates/fleet.cfg.j2
+        dest: "{{ fleet_cfg_path }}"
+
+    - name: Create VirtualFleet inventory 
+      shell: |
+        /usr/bin/jaia-create-ansible-inventory.sh -b "{{ range(1, n_bots|int + 1) | join(',') }}" -h "1" -f {{ cloud_env_vars.jaia_fleet_index }} -n vfleet_vpn  > /etc/jaiabot/vfleet-inventory.yml
+      become: yes
+        
+    - name: Create the user data directories
+      file:
+        path: "{{ bootdir_base }}/{{ item.node_type }}{{ item.node_id }}"
+        state: directory
+      loop: "{{ node_map }}"
+
+    - name: Generate VirtualFleet user data
+      template:
+        src: templates/cloud-vfleet-user-data.yml.j2
+        dest: "{{ bootdir_base }}/{{ item.node_type }}{{ item.node_id }}/cloud-vfleet-user-data.yml"
+      loop: "{{ node_map }}"
+        
+    - name: Create user data
+      shell: |
+        bootdir={{ bootdir_base }}/{{ item.node_type }}{{ item.node_id }}
+        mkdir -p ${bootdir}/jaiabot/init
+        cp /usr/share/jaiabot/init/first-boot.preseed.yml.j2 ${bootdir}/jaiabot/init/
+        jaia admin fleet generate {{ fleet_cfg_path }} --mode simulation {{ item.node_type }} {{ item.node_id }} --bootdir ${bootdir}
+        cloud-init devel make-mime -a ${bootdir}/cloud-vfleet-user-data.yml:cloud-config -a /usr/share/jaiabot/init/common-first-boot.yml:cloud-config -a ${bootdir}/jaiabot/init/first-boot.preseed.yml:cloud-config > ${bootdir}/user-data
+      loop: "{{ node_map }}"
         
     - name: Find latest AMI
       amazon.aws.ec2_ami_info:
@@ -93,11 +142,11 @@
           jaia_customer: "{{ jaia_customer_no_quotes }}"
           jaiabot-rootfs-gen_repository: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository }}"
           jaiabot-rootfs-gen_repository_version: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository_version }}"          
-        user_data: "{{ lookup('template', 'templates/cloud_vfleet_user_data.sh.j2') }}"
+        user_data: "{{ lookup('file', '{{ bootdir_base }}/{{ item.node_type }}{{ item.node_id }}/user-data') }}"
         wait: false
         state: present
       loop: "{{ node_map }}"
-      # Avoid writing private Wireguard keys into the log
+      # Avoid writing private Wireguard/SSH keys into the log
       no_log: true
       register: ec2_instances
         
@@ -110,6 +159,7 @@
         create: no
       loop: "{{ ec2_instances.results }}"
       become: yes
+      no_log: true
 
     - name: Restart WireGuard
       become: yes
@@ -117,29 +167,9 @@
 
     - name: Write /etc/hosts
       include_tasks: tasks/write-etc-hosts.yml
-
+      
     - name: Wait for hosts
       include_tasks: tasks/wait-hosts.yml
 
-    - name: Run fleet-config.sh
-      include_tasks: tasks/run-fleet-config.yml
-
-    - name: Copy VirtualFleet inventory (created by fleet-config.sh)
-      shell: |
-        cp /tmp/jaiabot-ansible-vfleet-inventory.yml /etc/jaiabot/vfleet-inventory.yml
-      become: yes
-
-    - name: Stop instances state
-      include_tasks: tasks/instance-state.yml
-      vars: 
-        - do_wait: true
-        - desired_state: stopped
-
-    - name: Start instances state
-      include_tasks: tasks/instance-state.yml
-      vars: 
-        - do_wait: true
-        - desired_state: running
-
-    - name: Wait for hosts
-      include_tasks: tasks/wait-hosts.yml
+# TODO
+# SPEED up first boot

@@ -1,0 +1,22 @@
+fleet: {{ cloud_env_vars.jaia_fleet_index }}
+hubs: [ 1 ]
+bots: [{{ range(1, n_bots|int + 1) | join(',') }}]
+
+ssh {
+  permanent_authorized_keys: "{{ lookup('file', server_ssh_pubkey_path) }}"
+  {{ user_ssh_pubkeys.split('\n') | map('regex_replace', '^(.*)$', 'permanent_authorized_keys: "\\1"') | join('\n') }}
+  hub {
+      id: 1
+      private_key: "{{ lookup('file', virtualhub_ssh_privkey_path) | replace("\n", "\\n") }}"
+      public_key: "{{ lookup('file', virtualhub_ssh_pubkey_path) }}"
+  }
+}
+
+wlan_password: "dummy"
+service_vpn_enabled: false
+
+debconf {
+  key: "jaiabot-embedded/warp"
+  type: SELECT
+  value: "{{ warp }}"
+}

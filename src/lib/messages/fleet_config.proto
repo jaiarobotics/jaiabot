@@ -1,0 +1,88 @@
+// Copyright 2025:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Libraries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
+
+
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+
+message FleetConfig
+{
+    required int32 fleet = 1;
+    repeated int32 hubs = 2;
+    repeated int32 bots = 3;
+
+    message SSHKeys
+    {
+        repeated string permanent_authorized_keys = 1;
+        message HubKey
+        {
+            required int32 id = 1;
+            required string private_key = 2;
+            required string public_key = 3;
+        }
+        repeated HubKey hub = 2;
+        message VPNTempKey
+        {
+            required string private_key = 2;
+            required string public_key = 3;
+        }
+        optional VPNTempKey vpn_tmp = 3;
+    }
+    required SSHKeys ssh = 4;
+
+    message Debconf
+    {
+        enum DebconfType
+        {
+            SELECT = 0;
+            MULTISELECT = 1;
+            STRING = 2;
+            BOOLEAN = 3;
+            NOTE = 4;
+            TEXT = 5;
+            PASSWORD = 6;
+        }
+
+        required string key = 1;
+        optional DebconfType type = 2 [default = SELECT];
+        required string value = 3;
+    }
+    repeated Debconf debconf = 5;
+    required string wlan_password = 6;
+    required bool service_vpn_enabled = 7;
+
+    message DebconfOverride
+    {
+        enum NodeType
+        {
+            HUB = 0;
+            BOT = 1;
+        }
+
+        required NodeType type = 1;
+        required int32 id = 2;
+        repeated Debconf debconf = 3;
+    }
+    repeated DebconfOverride debconf_override = 8;
+}

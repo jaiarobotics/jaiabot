@@ -162,14 +162,13 @@ jaiabot::apps::HubManager::HubManager()
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
 
-    for (auto peer : cfg().xbee().peers())
+    auto add_expected_bot_id = [this](int id)
     {
-        if (peer.has_bot_id())
-        {
-            managed_bot_ids_.insert(peer.bot_id());
-            latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(peer.bot_id());
-        }
-    }
+        managed_bot_ids_.insert(id);
+        latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(id);
+    };
+
+    for (auto id : cfg().expected_bots().id()) add_expected_bot_id(id);
 
     for (auto contact_gps : cfg().contact_gps())
     {
