@@ -199,6 +199,8 @@ function handleAddMission(mutableState: JaiaContextType) {
     mutableState.missions = missions.getMissions();
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
 
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -215,6 +217,9 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
 
     mutableState.missions = missions.getMissions();
     mutableState.bots = bots.getBots();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -230,6 +235,9 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
 
     mutableState.missions = missions.getMissions();
     mutableState.missionAccordionStates = {};
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -243,8 +251,12 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
  */
 function handleAssignMission(mutableState: JaiaContextType, botID: number, missionID: number) {
     missionsManager.assign(botID, missionID);
+
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -256,8 +268,12 @@ function handleAssignMission(mutableState: JaiaContextType, botID: number, missi
  */
 function handleAutoAssignMissions(mutableState: JaiaContextType) {
     missionsManager.autoAssign();
+
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -288,6 +304,9 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     }
 
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -340,9 +359,12 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 function handleClickedNode(mutableState: JaiaContextType, clickedNode: SelectedNode) {
     jaiaGlobal.setSelectedNode(clickedNode);
     const selectedNode = jaiaGlobal.getSelectedNode();
+
     mutableState.selectedNode = selectedNode;
     mutableState.visibleDetails = selectedNode.type;
+
     syncOpenLayers();
+
     return mutableState;
 }
 
