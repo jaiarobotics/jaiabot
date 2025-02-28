@@ -1,0 +1,13 @@
+- name: Check required partition available space / sizes
+  shell: "df {{ item.path }} --output={{ item.output }} | tail -1"
+  register: partition_info
+  loop:
+    - { name: "/var/log", path: "/var/log", min_space: "{{ var_log_min_space_KiB }}", output: "avail" }
+    - { name: "rootfs", path: "/media/root-ro", min_space: "{{ rootfs_min_space_KiB }}", output: "size" }
+    - { name: "overlay", path: "/media/root-rw", min_space: "{{ overlay_min_space_KiB }}", output: "size" }
+    
+- name: Fail if any partition does not meet minimum size
+  fail:
+    msg: "{{ item.item.name }} does not meet the requirement minimum ({{ item.item.min_space | float / 1000000 }}GB required / {{ item.stdout | float / 1000000 }}GB {{ item.item.output }})."
+  when: item.stdout | float < item.item.min_space | float
+  loop: "{{ partition_info.results }}"

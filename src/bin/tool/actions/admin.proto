@@ -46,6 +46,9 @@ message AdminTool
         ssh = 1 [(goby.ev).cfg = {
             short_help_msg: "SSH key administration",
         }];
+        fleet = 2 [(goby.ev).cfg = {
+            short_help_msg: "Fleet administration",
+        }];
     }
     optional Action action = 2 [
         default = help,

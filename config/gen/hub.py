@@ -80,15 +80,21 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
     else:
         xbee_serial_port='/dev/xbee'
-    
+
+    try:
+        xbee_encryption_password=os.environ['jaia_rf_encryption_password']
+    except:    
+        xbee_encryption_password=""
     
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.xbee_modem_id(node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
-                                            xbee_config=common.comms.xbee_config(),
                                             xbee_hub_id='hub_id: ' + str(hub_index),
+                                            use_encryption='true' if xbee_encryption_password else 'false',
+                                            encryption_password=xbee_encryption_password,
+                                            fleet_id=fleet_index,
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
@@ -176,6 +182,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      user_role=user_role,
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
+                                     this_hub_index=hub_index,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible',
                                      ansible_playbook_full_path=ansible_playbook_full_path))
 elif common.app == 'goby_gps':
@@ -200,7 +207,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      hub_id=hub_index,
-                                     xbee_config=common.comms.xbee_config(),
+                                     expected_bots=common.hub.expected_bots_from_inventory(),
                                      fleet_id=fleet_index,
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      hub_log_offload_dir=common.hub_log_offload_dir,

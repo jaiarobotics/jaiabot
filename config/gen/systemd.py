@@ -62,6 +62,7 @@ parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket',
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
 parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
+parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 
 args=parser.parse_args()
 
@@ -248,6 +249,7 @@ subprocess.run('bash -ic "' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
                'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
                'export jaia_pressure_sensor_type=' + str(jaia_pressure_sensor_type.value) + '; ' +
+               f'export jaia_rf_encryption_password={args.rf_encryption_password}; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 

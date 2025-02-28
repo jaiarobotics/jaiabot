@@ -9,7 +9,7 @@ parser.add_argument('type', choices=['addr', 'net'], help='Return type (addr is 
 parser.add_argument('--node', choices=['bot', 'hub', 'desktop'], help='Type of system')
 parser.add_argument('--net',  required=True, choices=['wlan', 'fleet_vpn', 'vfleet_vpn', 'cloudhub_vpn', 'cloudhub_eth', 'vfleet_eth', 'vfleet_wlan', 'vpc'], help='Type of network')
 parser.add_argument('--fleet_id', required=True, type=int, help='Fleet id')
-parser.add_argument('--node_id',  default=0, type=int, help='Bot, hub, or desktop index')
+parser.add_argument('--node_id',  default=None, type=int, help='Bot, hub, or desktop index')
 ipv_group = parser.add_mutually_exclusive_group(required=True)
 ipv_group.add_argument('--ipv4', action='store_true', help='IPv4')
 ipv_group.add_argument('--ipv6', action='store_true', help='IPv6')
@@ -64,7 +64,7 @@ if args.node_id and not args.node_id in range(id['min'][args.node], id['max'][ar
     print(f"node_id for {args.node_id} is not in range: {id['min'][args.node]} to {id['max'][args.node]}", file=sys.stderr)
     exit(1)
 
-if args.type =='addr' and (not args.node or not args.node_id):
+if args.type =='addr' and (args.node is None or args.node_id is None):
     print(f'Must define --node and --node_id for "addr"',file=sys.stderr)
     exit(1)
 

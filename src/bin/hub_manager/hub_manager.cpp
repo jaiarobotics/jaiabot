@@ -160,14 +160,13 @@ jaiabot::apps::HubManager::HubManager()
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
 
-    for (auto peer : cfg().xbee().peers())
+    auto add_expected_bot_id = [this](int id)
     {
-        if (peer.has_bot_id())
-        {
-            managed_bot_modem_ids_.insert(jaiabot::comms::modem_id_from_bot_id(peer.bot_id()));
-            latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(peer.bot_id());
-        }
-    }
+        managed_bot_modem_ids_.insert(jaiabot::comms::modem_id_from_bot_id(id));
+        latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(id);
+    };
+
+    for (auto id : cfg().expected_bots().id()) add_expected_bot_id(id);
 
     for (auto contact_gps : cfg().contact_gps())
     {
@@ -927,7 +926,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]() {
+    auto offload_func = [this, offload_command]()
+    {
         // reset data offload global variables
         offload_complete_ = false;
         offload_success_ = false;
