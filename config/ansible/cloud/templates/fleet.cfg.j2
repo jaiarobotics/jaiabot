@@ -20,3 +20,9 @@ debconf {
   type: SELECT
   value: "{{ warp }}"
 }
+
+debconf {
+  key: "jaiabot-embedded/comms_links"
+  type: MULTISELECT
+  value: "wifi"
+}
