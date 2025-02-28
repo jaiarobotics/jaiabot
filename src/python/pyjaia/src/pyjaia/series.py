@@ -24,20 +24,28 @@ def floatRange(start: float, end: float, delta: float):
 
 
 @dataclass
+class Point:
+    utime: int
+    y_value: Union[int, float]
+
+
+@dataclass
 class Series:
     name: str
+    path: str
     utime: List[float]
     y_values: List[float]
     hovertext: dict
 
     def __init__(self, name: str = None) -> None:
         self.name = name or ''
+        self.path = None
         self.utime = []
         self.y_values = []
         self.hovertext = {}
 
     @staticmethod
-    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=set(), name="Untitled") -> "Series":
+    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=set(), name=None) -> "Series":
         """Load a Series object from a Jaia HDF5 log and a path.
 
         Args:
@@ -59,8 +67,8 @@ class Series:
                     `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state` will match the path
                     `jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state`
         """
-        series = Series(name)
-
+        series = Series(name or h5_simplified_data_path(path))
+        series.path = path
         series.utime = []
         series.y_values = []
         series.hovertext = {}
@@ -87,25 +95,14 @@ class Series:
 
 
         if log:
-            try:
-                _utime__array = log[get_root_item_path(path, '_utime_')]
-                _scheme__array = log[get_root_item_path(path, '_scheme_')]
-                path_array = log[path]
+            _utime__array = log[get_root_item_path(path, '_utime_')]
+            _scheme__array = log[get_root_item_path(path, '_scheme_')]
+            path_array = log[path]
 
-                s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-                s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
+            s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+            s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
-                series.utime, schemes, series.y_values = zip(*s)
-            except (ValueError, KeyError) as e:
-                logging.warning(f'Exception: {e} {__file__} {e.__traceback__.tb_lineno}')
-                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
-                series.utime = []
-                series.schemes = []
-                series.y_values = []
-                series.hovertext = {}
-
-                return
-
+            series.utime, schemes, series.y_values = zip(*s)
             series.hovertext = h5_get_enum_map(log[path]) or {}
 
         return series
@@ -404,3 +401,41 @@ class Series:
 
         return new_series
     
+
+    def getTimeRanges(self, where: Callable[[Point], bool]):
+        """Get time ranges where a condition is satisfied.
+
+        Args:
+            where (Callable[[Point], bool]): Filter function that returns whether the condition is satisfied for inclusion into a TimeRange.
+
+        Returns:
+            List[TimeRange]: A list of TimeRanges where the condition is satisfied.
+        """
+        result: List[TimeRange] = []
+
+        time_range = None
+        for index, utime in enumerate(self.utime):
+
+            include = where(Point(self.utime[index], self.y_values[index]))
+
+            if include:
+                if time_range is None:
+                    time_range = TimeRange(utime, None)
+                    continue
+            else:
+                if time_range is not None:
+                    time_range.end = utime
+                    result.append(time_range)
+                    time_range = None
+
+        if time_range is not None:
+            time_range.end = self.utime[-1]
+            result.append(time_range)
+
+        return result
+
+
+    @property
+    def object_path(self):
+        return get_root_item_path(self.path)
+

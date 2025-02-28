@@ -7,6 +7,27 @@ import numpy
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
 
+# `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state`
+
+def h5_simplified_data_path(data_path: str):
+    """Return the simplified path, including just the Class and instance variable paths.
+
+    Args:
+        data_path (str): Full data path.
+
+    Returns:
+        str: Just the path to the instance variable.
+
+    Example:
+    ```
+    data_path = "jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state"
+    h5_simplified_data_path(data_path) == "BotStatus/mission_state"
+    ```
+    """
+    components = data_path.strip('/').split('/')[1:]
+    components[0] = components[0].split('.')[-1]
+    return '/'.join(components)
+
 
 def get_root_item_path(path, root_item=''):
     '''Get the path to a root_item associated with that path'''
@@ -73,7 +94,7 @@ def h5_get_series(dataset: h5py.Dataset):
         list[int | float | None]: The h5 dataset filtering out the "invalid" values as a list of numbers.
     """
     if len(dataset.shape) > 1: # Multi-dimensional arrays (usually strings) not supported yet
-        raise Exception('This field is multi-dimensional.  It may be a string field.')
+        raise ValueError(f'The field {dataset.name} is multi-dimensional.  It may be a string field.')
 
     dtype: numpy.dtype = dataset.dtype
 
