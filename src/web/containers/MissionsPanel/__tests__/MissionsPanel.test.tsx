@@ -92,18 +92,19 @@ test("Opening and closing a mission accordion", async () => {
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
-    await userEvent.click(mission1Accordion);
-    const duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
+    let duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
     expect(duplicateButton).toBeVisible();
     await userEvent.click(mission1Accordion);
     expect(duplicateButton).not.toBeVisible();
+    await userEvent.click(mission1Accordion);
+    duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
+    expect(duplicateButton).toBeVisible();
 });
 
 test("Clicking delete mission button inside mission accordion", async () => {
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
-    await userEvent.click(mission1Accordion);
     const deleteButton = screen.getByRole("button", { name: "delete-mission" });
     await userEvent.click(deleteButton);
     expect(mission1Accordion).not.toBeVisible();
@@ -120,9 +121,6 @@ test("Assigning and unassigning a Bot to a mission", async () => {
     const mission1AccordionChildren = Array.from(mission1Accordion.children);
     expect(mission1AccordionChildren[0].textContent).toBe("Mission-1");
     expect(mission1AccordionChildren[1].textContent).toBe("Unassigned");
-
-    // Click accordion
-    await userEvent.click(mission1Accordion);
 
     // Select Bot 1 from MissionAssignMenu
     const missionAssignMenu = screen.getByRole("combobox");
@@ -154,7 +152,6 @@ test("Auto-assigning, deleting, auto-assigning", async () => {
     expect(mission1AccordionChildren[1].textContent).toBe("Bot-1");
 
     // Delete mission
-    await userEvent.click(mission1Accordion);
     const deleteButton = screen.getByRole("button", { name: "delete-mission" });
     await userEvent.click(deleteButton);
 
