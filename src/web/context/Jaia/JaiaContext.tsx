@@ -441,7 +441,11 @@ function handleClickedMissionAccordion(
  *        Global Data used by OpenLayers is in sync with GlobalContext
  */
 function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
-    missions.setMissionIDInEditMode(missionID);
+    if (missionID != missions.getMissionIDInEditMode()) {
+        missions.setMissionIDInEditMode(missionID);
+    } else {
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+    }
     mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     syncOpenLayers();
     return mutableState;
