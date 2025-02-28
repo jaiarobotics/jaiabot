@@ -13,7 +13,7 @@
     align-items: center;
     gap: 12px;
 
-    max-height: 80vh;
+    max-height: @panel-max-height;
     overflow-y: auto;
 
     background-color: @overlay-background;
@@ -31,6 +31,7 @@
         .node-bgcolor(@good-color);
 
         cursor: pointer;
+        user-select: none;
     }
 
     .bot-item {

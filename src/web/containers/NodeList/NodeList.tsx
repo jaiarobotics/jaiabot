@@ -62,8 +62,6 @@ export default function NodeList() {
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass}`;
     }
 
-    console.log(bots);
-
     return (
         <div id="nodeList" data-testid="nodeList">
             {hubs.map((hub) => (

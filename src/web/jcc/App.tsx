@@ -7,6 +7,7 @@ import Map from "../components/Map/Map";
 import NodeList from "../containers/NodeList/NodeList";
 import TopButtonList from "../components/TopButtonList/TopButtonList";
 import SideButtonList from "../components/SideButtonList/SideButtonList";
+import HubDetails from "../containers/HubDetails/HubDetails";
 
 export default function App() {
     return (
@@ -16,6 +17,7 @@ export default function App() {
                 <NodeList />
                 <TopButtonList />
                 <SideButtonList />
+                <HubDetails />
             </JaiaContextProvider>
         </div>
     );
