@@ -83,7 +83,7 @@ def dump(obj: any, fp):
     json.dump(normalize(obj), fp, indent=4, sort_keys=True)
 
 
-def loads(s: str | bytes | bytearray, Class):
+def loads(s: Union[str, bytes, bytearray], Class):
     return denormalize(json.loads(s), Class)
 
 
