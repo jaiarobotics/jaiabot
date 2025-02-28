@@ -20,7 +20,7 @@ import { angleToXY } from "../../utils/style";
 
 // Style
 import { openLayersZIndexes } from "../../style/openlayers/zindex";
-const botIcon = require("../../style/icons/bot.svg");
+import botIcon from "../../style/icons/bot.svg";
 
 export function generateBotFeature(botID: number) {
     const bot = bots.getBot(botID);
