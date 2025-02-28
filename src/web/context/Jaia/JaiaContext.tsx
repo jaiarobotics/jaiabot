@@ -23,6 +23,7 @@ import {
     BotAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
+    PanelNames,
 } from "../../types/context-types";
 
 export interface JaiaContextType {
@@ -34,6 +35,7 @@ export interface JaiaContextType {
     controllingClientID: string;
     selectedNode: SelectedNode;
     visibleDetails: NodeTypes;
+    visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
@@ -50,6 +52,7 @@ export interface JaiaAction {
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
+    panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
 }
 
@@ -135,6 +138,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
+        case JaiaActions.CLICKED_PANEL_BUTTON:
+            return handleClickedPanelButton(mutableState, action.panelName);
 
         default:
             return state;
@@ -158,6 +163,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.controllingClientID = "";
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.visibleDetails = NodeTypes.NONE;
+    mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.missionAccordionStates = {};
@@ -424,6 +430,15 @@ function handleClickedMissionAccordion(
     isMissionAccordionExpanded: boolean,
 ) {
     mutableState.missionAccordionStates[missionID] = isMissionAccordionExpanded;
+    return mutableState;
+}
+
+function handleClickedPanelButton(mutableState: JaiaContextType, panelName: PanelNames) {
+    if (mutableState.visiblePanel === panelName) {
+        mutableState.visiblePanel = PanelNames.NONE;
+    } else {
+        mutableState.visiblePanel = panelName;
+    }
     return mutableState;
 }
 
