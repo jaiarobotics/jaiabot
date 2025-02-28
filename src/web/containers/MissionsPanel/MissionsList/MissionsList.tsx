@@ -4,10 +4,12 @@ import { useContext } from "react";
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../../context/Jaia/jaia-actions";
+import { missions } from "../../../data/missions/missions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
+import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -88,6 +90,8 @@ export default function MissionsList() {
         jaiaDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
     };
 
+    const handleToggleEditClick = (missionID: number) => {};
+
     return (
         <div className="missions-list" data-testid="missions-list">
             {Array.from(jaiaContext.missions.values()).map((mission) => {
@@ -124,6 +128,14 @@ export default function MissionsList() {
                                 >
                                     <Icon path={mdiDelete} />
                                 </Button>
+                                <JaiaToggle
+                                    checked={() =>
+                                        missions.getMissionIDInEditMode() === mission.getMissionID()
+                                    }
+                                    onClick={() => handleToggleEditClick(mission.getMissionID())}
+                                    label="Edit"
+                                    title="ToggleEditMode"
+                                />
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
