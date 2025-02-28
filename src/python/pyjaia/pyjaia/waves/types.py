@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import *
 from pyjaia.series import Series
+from pyjaia.waves.series_set import SeriesSet
 
 
 @dataclass
@@ -11,7 +12,7 @@ class Wave:
 
 @dataclass
 class Drift:
-    rawVerticalAcceleration: Series
+    rawSeriesSet: SeriesSet
     verticalAcceleration: Series
     powerDensitySpectrum: List[float]
     elevation: Series
@@ -23,7 +24,6 @@ class Drift:
     peakWavePeriod: float
 
     def __init__(self):
-        self.rawVerticalAcceleration = None
         self.verticalAcceleration = None
 
         self.gpsAltitude = None

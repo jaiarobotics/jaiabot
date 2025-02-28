@@ -147,6 +147,7 @@ def powerSpectrumBurg(elevation: List[float], config: DriftAnalysisConfig):
 
 def doDriftAnalysis(seriesSet: SeriesSet, config: DriftAnalysisConfig):
     drift = Drift()
+    drift.rawSeriesSet = deepcopy(seriesSet)
 
     trimStartMicros = 10e6
     trimEndMicros = 5e6
@@ -157,9 +158,7 @@ def doDriftAnalysis(seriesSet: SeriesSet, config: DriftAnalysisConfig):
 
         drift.elevation = trimSeries(drift.gpsAltitude, trimStartMicros, trimEndMicros).deduplicate().resample(config.sampleFreq)
     elif config.source == 'imu':
-        drift.rawVerticalAcceleration = deepcopy(seriesSet.accelerationVertical)
-
-        drift.verticalAcceleration = trimSeries(drift.rawVerticalAcceleration, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
+        drift.verticalAcceleration = trimSeries(drift.rawSeriesSet.accelerationVertical, trimStartMicros, trimEndMicros).resample(config.sampleFreq)
         drift.elevation = accelerationToElevation(drift.verticalAcceleration, config.sampleFreq)
     else:
         print(f'Unknown source type: {config.source=}')

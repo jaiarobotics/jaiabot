@@ -152,7 +152,15 @@ def htmlForDriftObject(drift: Drift, driftIndex: int=None) -> str:
         # The wave heights
         htmlString += htmlForWaves(drift.waves)
 
-    chartSeries = filter(lambda x: x is not None, [drift.gpsAltitude, drift.gpsFilteredAltitude, drift.rawVerticalAcceleration, drift.verticalAcceleration, drift.elevation])
+    chartSeries = [
+        drift.gpsAltitude,
+        drift.gpsFilteredAltitude,
+        drift.rawSeriesSet.accelerationVertical,
+        drift.verticalAcceleration,
+        drift.elevation
+    ]
+
+    chartSeries = filter(lambda x: x is not None, chartSeries)
 
     htmlString += htmlForChart(chartSeries)
     htmlString += htmlForPowerDensitySpectrum(drift.powerDensitySpectrum, drift.elevation.averageSampleFrequency())

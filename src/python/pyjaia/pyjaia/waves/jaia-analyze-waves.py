@@ -87,7 +87,7 @@ def writeCSVs(h5_filename: str, config: AnalysisConfig, drifts: List[Drift]):
     for drift_index, drift in enumerate(drifts):
         series_map = {
             'raw-gps-altitude': drift.gpsAltitude,
-            'raw-acceleration': drift.rawVerticalAcceleration,
+            'raw-acceleration': drift.rawSeriesSet.accelerationVertical,
             'acceleration': drift.verticalAcceleration,
             'elevation': drift.elevation
         }        
