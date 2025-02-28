@@ -21,3 +21,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.jaia.tech"
+
+[project.scripts]
+jaia-analyze-waves = "pyjaia.waves.analyze_waves:main"
+jaia-simulate-waves = "pyjaia.waves.simulate_waves:main"
