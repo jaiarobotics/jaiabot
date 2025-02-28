@@ -1,11 +1,14 @@
 import { act, render, screen, fireEvent } from "@testing-library/react";
+
 import CommandControl, { Props } from "../CommandControl";
-import {
-    GlobalContextType,
-    HubAccordionStates,
-    BotAccordionStates,
-} from "../../../context/Global/GlobalContext";
+import { JaiaContextType } from "../../../context/Jaia/JaiaContext";
+
+import { HubAccordionStates, BotAccordionStates } from "../../../types/context-types";
 import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
+
+import { bots } from "../../../data/bots/bots";
+import { hubs } from "../../../data/hubs/hubs";
+import { missions } from "../../../data/missions/missions";
 
 const mockSelectedNode1: SelectedNode = {
     type: NodeTypes.HUB,
@@ -29,7 +32,11 @@ const mockBotAccordionStates: BotAccordionStates = {
     sensor: false,
 };
 
-const mockGlobalContext1: GlobalContextType = {
+const mockJaiaContext1: JaiaContextType = {
+    bots: bots.getBots(),
+    hubs: hubs.getHubs(),
+    missions: missions.getMissions(),
+
     clientID: "",
     controllingClientID: "",
     selectedNode: mockSelectedNode1,
@@ -37,14 +44,13 @@ const mockGlobalContext1: GlobalContextType = {
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
-    isRCMode: false,
 };
 
-const mockGlobalDispatch = () => {};
+const mockJaiaDispatch = () => {};
 
 const mockProps1: Props = {
-    globalContext: mockGlobalContext1,
-    globalDispatch: mockGlobalDispatch,
+    jaiaContext: mockJaiaContext1,
+    jaiaDispatch: mockJaiaDispatch,
 };
 
 // Mock JaiaAPI, replace the hit method on the jaiaAPI instance

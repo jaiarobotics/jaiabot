@@ -1,13 +1,7 @@
 // React -- Jaia
 import { useContext, useEffect, useState } from "react";
-import { GlobalActions } from "../../context/Global/GlobalActions";
-import {
-    GlobalContext,
-    GlobalDispatchContext,
-    GlobalAction,
-    HubAccordionNames,
-} from "../../context/Global/GlobalContext";
-import { JaiaSystemContext } from "../../context/JaiaSystem/JaiaSystemContext";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/Jaia/JaiaContext";
 import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
 
 // Utilities
@@ -22,6 +16,8 @@ import { sendHubCommand, takeControl } from "../../utils/command";
 import { CommandInfo, hubCommands } from "../../types/commands";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { HubAccordionNames } from "../../types/context-types";
+
 // Styles
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
@@ -41,9 +37,8 @@ import {
 } from "@mdi/js";
 
 export function HubDetails() {
-    const globalContext = useContext(GlobalContext);
-    const globalDispatch: React.Dispatch<GlobalAction> = useContext(GlobalDispatchContext);
-    const jaiaSystemContext = useContext(JaiaSystemContext);
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
     const IPPrefix = getIPPrefix(location.hostname);
 
@@ -59,11 +54,11 @@ export function HubDetails() {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
     }, []);
 
-    if (jaiaSystemContext === null || globalContext.visibleDetails !== NodeTypes.HUB) {
+    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.HUB) {
         return <div></div>;
     }
 
-    const hub = jaiaSystemContext.hubs.get(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
     if (!hub) {
         return <div></div>;
@@ -75,7 +70,7 @@ export function HubDetails() {
      * @returns {void}
      */
     function handleClosePanel() {
-        globalDispatch({ type: GlobalActions.CLOSED_DETAILS });
+        jaiaDispatch({ type: JaiaActions.CLOSED_DETAILS });
     }
 
     /**
@@ -84,8 +79,8 @@ export function HubDetails() {
      * @returns {void}
      */
     function handleAccordionClick(accordionName: HubAccordionNames) {
-        globalDispatch({
-            type: GlobalActions.CLICKED_HUB_ACCORDION,
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_HUB_ACCORDION,
             hubAccordionName: accordionName,
         });
     }
@@ -144,9 +139,9 @@ export function HubDetails() {
      * @returns {void}
      */
     async function issueHubCommand(command: CommandInfo) {
-        const isControlTaken = await takeControl(globalContext.clientID);
+        const isControlTaken = await takeControl(jaiaContext.clientID);
         if (isControlTaken) {
-            globalDispatch({ type: GlobalActions.TAKE_CONTROL_SUCCESS });
+            jaiaDispatch({ type: JaiaActions.TAKE_CONTROL_SUCCESS });
             sendHubCommand(hub.getHubID(), command);
         }
     }
@@ -198,7 +193,7 @@ export function HubDetails() {
             <div id="hubDetailsAccordionContainer" className="accordionParentContainer">
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
-                        expanded={globalContext.hubAccordionStates.quickLook}
+                        expanded={jaiaContext.hubAccordionStates.quickLook}
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.QUICKLOOK);
                         }}
@@ -265,7 +260,7 @@ export function HubDetails() {
 
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
-                        expanded={globalContext.hubAccordionStates.commands}
+                        expanded={jaiaContext.hubAccordionStates.commands}
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.COMMANDS);
                         }}
@@ -309,7 +304,7 @@ export function HubDetails() {
 
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
-                        expanded={globalContext.hubAccordionStates.links}
+                        expanded={jaiaContext.hubAccordionStates.links}
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.LINKS);
                         }}

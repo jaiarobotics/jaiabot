@@ -1,8 +1,6 @@
 import { useEffect, useContext } from "react";
-import { GlobalDispatchContext } from "../../context/Global/GlobalContext";
-import { GlobalActions } from "../../context/Global/GlobalActions";
-import { JaiaSystemDispatchContext } from "../../context/JaiaSystem/JaiaSystemContext";
-import { JaiaSystemActions } from "../../context/JaiaSystem/jaia-system-actions";
+import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
@@ -17,8 +15,7 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import "./Map.less";
 
 export default function Map() {
-    const globalDispatch = useContext(GlobalDispatchContext);
-    const jaiaSystemDispatch = useContext(JaiaSystemDispatchContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
 
     useEffect(() => {
         map.setTarget("map");
@@ -63,8 +60,8 @@ export default function Map() {
         const nodeID = feature.get("id");
 
         if (nodeType === NodeTypes.BOT || nodeType == NodeTypes.HUB) {
-            globalDispatch({
-                type: GlobalActions.CLICKED_NODE,
+            jaiaDispatch({
+                type: JaiaActions.CLICKED_NODE,
                 selectedNode: { type: nodeType, id: nodeID },
             });
         }
@@ -82,8 +79,8 @@ export default function Map() {
      */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaSystemDispatch({
-            type: JaiaSystemActions.ADD_WAYPOINT,
+        jaiaDispatch({
+            type: JaiaActions.ADD_WAYPOINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
     };
