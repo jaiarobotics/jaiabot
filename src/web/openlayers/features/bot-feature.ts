@@ -19,6 +19,7 @@ import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 import { angleToXY } from "../../utils/style";
 
 // Style
+import { openLayersZIndexes } from "../../style/openlayers/zindex";
 const botIcon = require("../../style/icons/bot.svg");
 
 export function generateBotFeature(botID: number) {
@@ -63,6 +64,7 @@ function generateBotStyle(bot: Bot) {
             offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
             offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
         }),
+        zIndex: getBotIconZIndex(bot),
     });
 }
 
@@ -73,4 +75,14 @@ function getBotIconColor(bot: Bot) {
     } else {
         return MapIconColors.DEFAULT;
     }
+}
+
+function getBotIconZIndex(bot: Bot) {
+    const selectedNode = jaiaGlobal.getSelectedNode();
+
+    if (selectedNode.type === NodeTypes.BOT && selectedNode.id === bot.getBotID()) {
+        return openLayersZIndexes.get(MapFeatureTypes.BOT) + bots.getBots().size + 1;
+    }
+
+    return openLayersZIndexes.get(MapFeatureTypes.BOT) + bot.getBotID();
 }
