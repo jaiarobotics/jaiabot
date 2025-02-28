@@ -9,6 +9,7 @@ import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
 import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
 import { missions } from "../../../data/missions/missions";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 const mockSelectedNode1: SelectedNode = {
     type: NodeTypes.HUB,
@@ -44,6 +45,7 @@ const mockJaiaContext1: JaiaContextType = {
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
+    missionIDInEditMode: UNASSIGNED_ID,
 };
 
 const mockJaiaDispatch = () => {};

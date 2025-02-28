@@ -90,8 +90,12 @@ export default function MissionsList() {
         jaiaDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
     };
 
-    const handleToggleEditClick = (missionID: number) => {};
-
+    const handleToggleEditClick = (missionID: number) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_EDIT_MISSION,
+            missionID: missionID,
+        });
+    };
     return (
         <div className="missions-list" data-testid="missions-list">
             {Array.from(jaiaContext.missions.values()).map((mission) => {

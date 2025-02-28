@@ -37,6 +37,7 @@ export interface JaiaContextType {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
 }
 
 export interface JaiaAction {
@@ -135,7 +136,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
-
+        case JaiaActions.CLICKED_EDIT_MISSION:
+            return handleClickedEditMission(mutableState, action.missionID);
         default:
             return state;
     }
@@ -424,6 +426,23 @@ function handleClickedMissionAccordion(
     isMissionAccordionExpanded: boolean,
 ) {
     mutableState.missionAccordionStates[missionID] = isMissionAccordionExpanded;
+    return mutableState;
+}
+
+/**
+ * Handles a click on a mission edit mode toggle
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID ID of the mission associated with the toggle
+ * @returns {JaiaContextType} Updated mutable state object
+ *
+ * @notes This function calls jaiaGlobal.setMissionIDInEditMode to make sure the
+ *        Global Data used by OpenLayers is in sync with GlobalContext
+ */
+function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
+    missions.setMissionIDInEditMode(missionID);
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    syncOpenLayers();
     return mutableState;
 }
 
