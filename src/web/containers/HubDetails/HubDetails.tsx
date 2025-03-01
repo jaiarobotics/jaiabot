@@ -168,15 +168,17 @@ export default function HubDetails() {
     }
 
     return (
-        <div id="hub-details">
-            <div className="title-bar">
-                <h2>{`Hub ${hub.getHubID()}`}</h2>
-                <div className="close-button" onClick={handleClosePanel}>
-                    ⨯
+        <div className="node-details">
+            <div className="details-heading">
+                <div className="title-bar">
+                    <h2>{`Hub ${hub.getHubID()}`}</h2>
+                    <div className="close-button" onClick={handleClosePanel}>
+                        ⨯
+                    </div>
                 </div>
             </div>
 
-            <div id="hub-details-accordions-container">
+            <div className="accordions-container">
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
                         expanded={jaiaContext.hubAccordionStates.quickLook}

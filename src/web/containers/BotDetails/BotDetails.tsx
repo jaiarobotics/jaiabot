@@ -10,7 +10,7 @@ import {
 } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { DETAILS_DECIMALS } from "../../utils/constants";
+import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
@@ -58,7 +58,7 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
 
-export function BotDetails() {
+export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
@@ -69,10 +69,6 @@ export function BotDetails() {
             },
         }),
     );
-
-    useEffect(() => {
-        addDropdownListener("accordionContainer", "botDetailsAccordionContainer", 30);
-    }, []);
 
     if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
         return <div></div>;
@@ -116,13 +112,15 @@ export function BotDetails() {
 
     return (
         <React.Fragment>
-            <div id="botDetailsBox">
-                <div className="botDetailsHeading">
-                    <div className="titleBar">
-                        <h2 className="botName">{`Bot ${botID}`}</h2>
-                        <h4 className="runName">{mission?.getMissionID() ?? "No Run"}</h4>
+            <div className="node-details">
+                <div className="details-heading">
+                    <div className="title-bar">
+                        <h2>{`Bot ${botID}`}</h2>
+                        <h4>
+                            {missionID === UNASSIGNED_ID ? "No Mission" : `Mission ${missionID}`}
+                        </h4>
                         <div
-                            className="closeButton"
+                            className="close-button"
                             onClick={() => {
                                 handleCloseDetailsPanel();
                             }}
@@ -130,8 +128,8 @@ export function BotDetails() {
                             ⨯
                         </div>
                     </div>
-                    <h3 className="name">{getWaypontHelperText(mission)}</h3>
-                    <div className="botDetailsToolbar">
+                    <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
+                    <div className="details-toolbar">
                         <Button className="jaia-button">
                             <Icon path={mdiStop} title="Stop Mission" />
                         </Button>
@@ -141,30 +139,20 @@ export function BotDetails() {
                         <Button className="jaia-button">
                             <Icon path={mdiDelete} title="Clear Mission" />
                         </Button>
-                        <JaiaToggle
-                            checked={() =>
-                                missions.getMissionIDInEditMode() === mission.getMissionID()
-                            }
-                            onClick={() => {}}
-                            label="Edit"
-                            title="Toggle Edit Mode"
-                            disabled={() => (!mission ? true : false)}
-                        />
                     </div>
                 </div>
-                <div id="botDetailsAccordionContainer">
+                <div className="accordions-container">
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.botAccordionStates.quickLook}
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.QUICKLOOK);
                             }}
-                            className="accordionContainer"
+                            className="accordion-container"
                         >
                             <AccordionSummary
                                 expandIcon={<ExpandMoreIcon />}
-                                aria-controls="panel1a-content"
-                                id="panel1a-header"
+                                className="accordion-summary"
                             >
                                 <Typography>Quick Look</Typography>
                             </AccordionSummary>
@@ -251,51 +239,48 @@ export function BotDetails() {
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.COMMANDS);
                             }}
-                            className="accordionContainer"
+                            className="accordion-container"
                         >
                             <AccordionSummary
                                 expandIcon={<ExpandMoreIcon />}
-                                aria-controls="panel1a-content"
-                                id="panel1a-header"
+                                className="accordion-summary"
                             >
                                 <Typography>Commands</Typography>
                             </AccordionSummary>
-                            <AccordionDetails className="botDetailsCommands">
-                                <Button className="jaia-button">
-                                    <Icon
-                                        path={mdiCheckboxMarkedCirclePlusOutline}
-                                        title="System Check"
-                                    />
-                                </Button>
-
-                                <Button className="jaia-button">
-                                    <img
-                                        src={rcModeIcon}
-                                        alt="Activate RC Mode"
-                                        title="RC Mode"
-                                    ></img>
-                                </Button>
-
-                                <Button className="jaia-button">
-                                    <Icon path={mdiSkipNext} title="Next Task" />
-                                </Button>
-
+                            <AccordionDetails>
+                                <div className="accordion-details-buttons bot-commands">
+                                    <Button className="jaia-button">
+                                        <Icon
+                                            path={mdiCheckboxMarkedCirclePlusOutline}
+                                            title="System Check"
+                                        />
+                                    </Button>
+                                    <Button className="jaia-button">
+                                        <img
+                                            src={rcModeIcon}
+                                            alt="Activate RC Mode"
+                                            title="RC Mode"
+                                        ></img>
+                                    </Button>
+                                    <Button className="jaia-button">
+                                        <Icon path={mdiSkipNext} title="Next Task" />
+                                    </Button>
+                                </div>
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
                                     onChange={() => {
                                         handleAccordionClick(BotAccordionNames.ADVANCEDCOMMANDS);
                                     }}
-                                    className="accordionContainer"
+                                    className="accordion-container"
                                 >
                                     <AccordionSummary
                                         expandIcon={<ExpandMoreIcon />}
-                                        aria-controls="panel1a-content"
-                                        id="panel1a-header"
+                                        className="accordion-summary"
                                     >
                                         <Typography>Advanced Commands</Typography>
                                     </AccordionSummary>
 
-                                    <AccordionDetails>
+                                    <AccordionDetails className="accordion-details-buttons advanced-commands">
                                         <Button className="jaia-button">
                                             <Icon path={mdiPower} title="Shutdown" />
                                         </Button>
@@ -317,12 +302,11 @@ export function BotDetails() {
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.HEALTH);
                             }}
-                            className="accordionContainer"
+                            className="accordion-container"
                         >
                             <AccordionSummary
                                 expandIcon={<ExpandMoreIcon />}
-                                aria-controls="panel1a-content"
-                                id="panel1a-header"
+                                className="accordion-summary"
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
@@ -336,12 +320,11 @@ export function BotDetails() {
                             onChange={() => {
                                 handleAccordionClick(BotAccordionNames.DATA);
                             }}
-                            className="accordionContainer"
+                            className="accordion-container"
                         >
                             <AccordionSummary
                                 expandIcon={<ExpandMoreIcon />}
-                                aria-controls="panel1a-content"
-                                id="panel1a-header"
+                                className="accordion-summary"
                             >
                                 <Typography>Data</Typography>
                             </AccordionSummary>
@@ -353,12 +336,11 @@ export function BotDetails() {
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.GPS);
                                         }}
-                                        className="nestedAccordionContainer"
+                                        className="accordion-container"
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
-                                            aria-controls="panel1a-content"
-                                            id="panel1a-header"
+                                            className="accordion-summary"
                                         >
                                             <Typography>GPS</Typography>
                                         </AccordionSummary>
@@ -430,12 +412,11 @@ export function BotDetails() {
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.IMU);
                                         }}
-                                        className="nestedAccordionContainer"
+                                        className="accordion-container"
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
-                                            aria-controls="panel1a-content"
-                                            id="panel1a-header"
+                                            className="accordion-summary"
                                         >
                                             <Typography>IMU</Typography>
                                         </AccordionSummary>
@@ -478,12 +459,11 @@ export function BotDetails() {
                                         onChange={() => {
                                             handleAccordionClick(BotAccordionNames.SENSOR);
                                         }}
-                                        className="nestedAccordionContainer"
+                                        className="accordion-container"
                                     >
                                         <AccordionSummary
                                             expandIcon={<ExpandMoreIcon />}
-                                            aria-controls="panel1a-content"
-                                            id="panel1a-header"
+                                            className="accordion-summary"
                                         >
                                             <Typography>Sensors</Typography>
                                         </AccordionSummary>

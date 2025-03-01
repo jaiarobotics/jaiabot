@@ -8,6 +8,7 @@ import NodeList from "../containers/NodeList/NodeList";
 import TopButtonList from "../components/TopButtonList/TopButtonList";
 import SideButtonList from "../components/SideButtonList/SideButtonList";
 import HubDetails from "../containers/HubDetails/HubDetails";
+import BotDetails from "../containers/BotDetails/BotDetails";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
                 <TopButtonList />
                 <SideButtonList />
                 <HubDetails />
+                <BotDetails />
                 <MissionsPanel />
             </JaiaContextProvider>
         </div>
