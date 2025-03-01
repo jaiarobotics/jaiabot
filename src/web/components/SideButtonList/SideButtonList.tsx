@@ -30,6 +30,7 @@ export default function SideButtonList() {
         <div className="button-list side">
             <Button
                 className={`jaia-button ${getSelectedClassName(PanelNames.MISSIONS)}`}
+                aria-label="missions-panel"
                 onClick={() => handlePanelButtonClick(PanelNames.MISSIONS)}
             >
                 <Icon path={mdiViewList} title="Missions Panel" />
