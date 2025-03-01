@@ -16,7 +16,7 @@ import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 import { GeographicCoordinate } from "../../utils/protobuf-types";
-import { NodeTypes, SelectedNode } from "../../types/jaia-system-types";
+import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 import {
     HubAccordionStates,
@@ -32,6 +32,7 @@ export interface JaiaContextType {
     missions: Map<number, Mission>;
 
     selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
     visibleDetails: NodeTypes;
     visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
@@ -44,7 +45,8 @@ export interface JaiaAction {
     botID?: number;
     missionID?: number;
 
-    selectedNode?: SelectedNode;
+    clickedNode?: SelectedNode;
+    clickedWaypoint?: SelectedWaypoint;
     location?: GeographicCoordinate;
 
     hubAccordionName?: HubAccordionNames;
@@ -114,8 +116,11 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
+        case JaiaActions.CLOSED_WAYPOINT_PANEL:
+            return handleClosedWaypointPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
-            return handleClickedNode(mutableState, action.selectedNode);
+            return handleClickedNode(mutableState, action.clickedNode);
 
         case JaiaActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
@@ -131,6 +136,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             );
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
+
+        case JaiaActions.CLICKED_WAYPOINT:
+            return handleClickedWaypoint(mutableState, action.clickedWaypoint);
 
         default:
             return state;
@@ -310,6 +318,14 @@ function handleClosedDetails(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+function handleClosedWaypointPanel(mutableState: JaiaContextType) {
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+
+    return mutableState;
+}
+
 /**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
@@ -427,6 +443,15 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
     } else {
         mutableState.visiblePanel = panelName;
     }
+    return mutableState;
+}
+
+function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
+    jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
+
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.visiblePanel = PanelNames.WAYPOINT;
+
     return mutableState;
 }
 

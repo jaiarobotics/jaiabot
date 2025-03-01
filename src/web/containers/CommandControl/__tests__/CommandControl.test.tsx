@@ -4,15 +4,21 @@ import CommandControl, { Props } from "../CommandControl";
 import { JaiaContextType } from "../../../context/Jaia/JaiaContext";
 
 import { HubAccordionStates, BotAccordionStates, PanelNames } from "../../../types/context-types";
-import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
+import { SelectedNode, NodeTypes, SelectedWaypoint } from "../../../types/jaia-system-types";
 
 import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
 import { missions } from "../../../data/missions/missions";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 const mockSelectedNode1: SelectedNode = {
     type: NodeTypes.HUB,
     id: 1,
+};
+
+const mockSelectedWaypoint: SelectedWaypoint = {
+    waypointNum: UNASSIGNED_ID,
+    missionID: UNASSIGNED_ID,
 };
 
 const mockHubAccordionStates1: HubAccordionStates = {
@@ -38,6 +44,7 @@ const mockJaiaContext1: JaiaContextType = {
     missions: missions.getMissions(),
 
     selectedNode: mockSelectedNode1,
+    selectedWaypoint: mockSelectedWaypoint,
     visibleDetails: NodeTypes.NONE,
     visiblePanel: PanelNames.NONE,
     hubAccordionStates: mockHubAccordionStates1,

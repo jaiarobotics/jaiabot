@@ -1,15 +1,18 @@
-import { useContext } from "react";
-import { JaiaContext } from "../../context/Jaia/JaiaContext";
-import { PanelNames } from "../../types/context-types";
+import { useContext, useEffect } from "react";
+
+import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 
 import "./WaypointPanel.less";
 
 export default function WaypointPanel() {
-    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatchContext = useContext(JaiaDispatchContext);
 
-    if (jaiaContext === null) {
-        return <div></div>;
-    }
+    useEffect(() => {
+        return () => {
+            jaiaDispatchContext({ type: JaiaActions.CLOSED_WAYPOINT_PANEL });
+        };
+    }, []);
 
     return <div className="waypoint-panel"></div>;
 }

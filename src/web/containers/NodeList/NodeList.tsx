@@ -33,7 +33,7 @@ export default function NodeList() {
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
         JaiaDispatch({
             type: JaiaActions.CLICKED_NODE,
-            selectedNode: { type: nodeType, id: nodeID },
+            clickedNode: { type: nodeType, id: nodeID },
         });
     };
 

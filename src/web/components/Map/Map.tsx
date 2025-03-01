@@ -41,6 +41,8 @@ export default function Map() {
                 case MapFeatureTypes.HUB:
                     handleNodeClick(feature);
                     return;
+                case MapFeatureTypes.WAYPOINT:
+                    handleWaypointClick(feature);
                 default:
                     return;
             }
@@ -62,9 +64,19 @@ export default function Map() {
         if (nodeType === NodeTypes.BOT || nodeType == NodeTypes.HUB) {
             jaiaDispatch({
                 type: JaiaActions.CLICKED_NODE,
-                selectedNode: { type: nodeType, id: nodeID },
+                clickedNode: { type: nodeType, id: nodeID },
             });
         }
+    };
+
+    const handleWaypointClick = (feature: Feature<Geometry>) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_WAYPOINT,
+            clickedWaypoint: {
+                waypointNum: feature.get("waypointNum"),
+                missionID: feature.get("missionID"),
+            },
+        });
     };
 
     /**

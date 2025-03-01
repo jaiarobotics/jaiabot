@@ -11,6 +11,11 @@ export interface SelectedNode {
     id: number;
 }
 
+export interface SelectedWaypoint {
+    waypointNum: number;
+    missionID: number;
+}
+
 export interface MissionStatus {
     missionState?: MissionState;
     activeGoal?: number;

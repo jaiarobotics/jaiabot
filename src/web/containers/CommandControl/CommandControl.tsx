@@ -2148,7 +2148,7 @@ export default class CommandControl extends React.Component {
                 const botID = botStatus.bot_id;
                 this.props.jaiaDispatch({
                     type: JaiaActions.CLICKED_NODE,
-                    selectedNode: { type: NodeTypes.BOT, id: botID },
+                    clickedNode: { type: NodeTypes.BOT, id: botID },
                 });
                 this.toggleBot(botID);
                 return false;
@@ -2160,7 +2160,7 @@ export default class CommandControl extends React.Component {
                 const hubID = hubStatus.hub_id;
                 this.props.jaiaDispatch({
                     type: JaiaActions.CLICKED_NODE,
-                    selectedNode: { type: NodeTypes.HUB, id: hubID },
+                    clickedNode: { type: NodeTypes.HUB, id: hubID },
                 });
                 this.didClickHub(hubID);
                 return false;

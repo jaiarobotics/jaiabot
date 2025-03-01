@@ -1,26 +1,36 @@
-import { NodeTypes, SelectedNode } from "../../types/jaia-system-types";
+import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 class JaiaGlobal {
     private selectedNode: SelectedNode;
+    private selectedWaypoint: SelectedWaypoint;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
+        this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
     }
 
     getSelectedNode() {
         return this.selectedNode;
     }
 
-    setSelectedNode(selectedNode: SelectedNode) {
+    setSelectedNode(clickedNode: SelectedNode) {
         if (
-            selectedNode.type === this.getSelectedNode().type &&
-            selectedNode.id === this.getSelectedNode().id
+            clickedNode.type === this.getSelectedNode().type &&
+            clickedNode.id === this.getSelectedNode().id
         ) {
             this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         } else {
-            this.selectedNode = selectedNode;
+            this.selectedNode = clickedNode;
         }
+    }
+
+    getSelectedWaypoint() {
+        return this.selectedWaypoint;
+    }
+
+    setSelectedWaypoint(clickedWaypoint: SelectedWaypoint) {
+        this.selectedWaypoint = clickedWaypoint;
     }
 }
 
