@@ -1,7 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 
 // Jaia Imports
-import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import {
     JaiaContext,
     JaiaContextType,
@@ -14,7 +13,6 @@ import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
-import { missions } from "../../data/missions/missions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
     getDistanceToHub,
@@ -30,7 +28,6 @@ import {
     formatLatitude,
     formatLongitude,
     formatAttitudeAngle,
-    addDropdownListener,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
@@ -69,10 +66,6 @@ export default function BotDetails() {
             },
         }),
     );
-
-    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
-        return <div></div>;
-    }
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 

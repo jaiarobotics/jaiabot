@@ -54,10 +54,6 @@ export default function HubDetails() {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
     }, []);
 
-    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.HUB) {
-        return <div></div>;
-    }
-
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
     if (!hub) {

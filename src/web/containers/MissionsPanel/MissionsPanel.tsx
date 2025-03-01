@@ -20,10 +20,6 @@ export default function MissionsPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    if (jaiaContext === null || jaiaContext.visiblePanel !== PanelNames.MISSIONS) {
-        return <div></div>;
-    }
-
     /**
      * Dispatches the action to create a new mission when an operator clicks the add mission button
      *
