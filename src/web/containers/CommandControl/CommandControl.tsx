@@ -4227,17 +4227,6 @@ export default class CommandControl extends React.Component {
                     <NodeList />
                 </div>
 
-                <BotDetails
-                    mission={this.getRunList()}
-                    run={this.getRun(this.selectedBotId())}
-                    downloadQueue={this.state.botDownloadQueue}
-                    takeControl={this.takeControl.bind(this)}
-                    deleteSingleMission={this.deleteSingleRun.bind(this)}
-                    isRCModeActive={this.isRCModeActive.bind(this)}
-                    setRcMode={this.setRcMode.bind(this)}
-                    downloadIndividualBot={this.processDownloadSingleBot.bind(this)}
-                />
-
                 <HubDetails />
 
                 {rcControllerPanel}

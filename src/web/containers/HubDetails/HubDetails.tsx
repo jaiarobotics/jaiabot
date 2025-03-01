@@ -12,8 +12,6 @@ import {
     formatLongitude,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
-import { sendHubCommand, takeControl } from "../../utils/command";
-import { CommandInfo, hubCommands } from "../../types/commands";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HubAccordionNames } from "../../types/context-types";
@@ -131,20 +129,6 @@ export default function HubDetails() {
                 return loads.fifteen_min.toFixed(2);
             default:
                 return "N/A";
-        }
-    }
-
-    /**
-     * Makes sure control is taken, then calls the function to send a command
-     *
-     * @param {CommandInfo} command Contains command instructions
-     * @returns {void}
-     */
-    async function issueHubCommand(command: CommandInfo) {
-        const isControlTaken = await takeControl(jaiaContext.clientID);
-        if (isControlTaken) {
-            jaiaDispatch({ type: JaiaActions.TAKE_CONTROL_SUCCESS });
-            sendHubCommand(hub.getHubID(), command);
         }
     }
 
@@ -274,28 +258,13 @@ export default function HubDetails() {
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails className="accordion-details-buttons">
-                            <Button
-                                className="jaia-button"
-                                onClick={() => {
-                                    issueHubCommand(hubCommands.shutdown);
-                                }}
-                            >
+                            <Button className="jaia-button">
                                 <Icon path={mdiPower} title="Shutdown" />
                             </Button>
-                            <Button
-                                className="jaia-button"
-                                onClick={() => {
-                                    issueHubCommand(hubCommands.reboot);
-                                }}
-                            >
+                            <Button className="jaia-button">
                                 <Icon path={mdiRestartAlert} title="Reboot" />
                             </Button>
-                            <Button
-                                className="jaia-button"
-                                onClick={() => {
-                                    issueHubCommand(hubCommands.restartServices);
-                                }}
-                            >
+                            <Button className="jaia-button">
                                 <Icon path={mdiRestart} title="Restart Services" />
                             </Button>
                         </AccordionDetails>
