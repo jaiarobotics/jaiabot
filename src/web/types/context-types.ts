@@ -35,4 +35,5 @@ export interface BotAccordionStates {
 export const enum PanelNames {
     NONE = "none",
     MISSIONS = "missions",
+    WAYPOINT = "waypoint",
 }

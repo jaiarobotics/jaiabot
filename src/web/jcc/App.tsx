@@ -10,6 +10,7 @@ import SideButtonList from "../components/SideButtonList/SideButtonList";
 import HubDetails from "../containers/HubDetails/HubDetails";
 import BotDetails from "../containers/BotDetails/BotDetails";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
+import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 
 export default function App() {
     return (
@@ -22,6 +23,7 @@ export default function App() {
                 <HubDetails />
                 <BotDetails />
                 <MissionsPanel />
+                <WaypointPanel />
             </JaiaContextProvider>
         </div>
     );
