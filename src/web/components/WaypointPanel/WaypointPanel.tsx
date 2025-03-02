@@ -7,6 +7,10 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import "./WaypointPanel.less";
 import { UNASSIGNED_ID, LAT_LON_DECIMALS } from "../../utils/constants";
 
+import Icon from "@mdi/react";
+import { mdiDelete } from "@mdi/js";
+import { Button } from "@mui/material";
+
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatchContext = useContext(JaiaDispatchContext);
@@ -32,11 +36,23 @@ export default function WaypointPanel() {
         return botID;
     };
 
+    const handleDeleteWaypointClick = () => {
+        jaiaDispatchContext({ type: JaiaActions.DELETE_WAYPOINT });
+    };
+
     return (
         <div className="waypoint-panel-container">
             <div className="waypoint-panel">
                 <div className="label">Wpt:</div>
-                <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
+                <div className="waypoint-input-container">
+                    <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
+                    <Button
+                        className="jaia-button delete-waypoint"
+                        onClick={() => handleDeleteWaypointClick()}
+                    >
+                        <Icon path={mdiDelete} title="Delete Waypoint" />
+                    </Button>
+                </div>
 
                 <div className="line-break"></div>
 

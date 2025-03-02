@@ -113,6 +113,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
+        case JaiaActions.DELETE_WAYPOINT:
+            return handleDeleteWaypoint(mutableState);
+
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
@@ -301,6 +304,20 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     }
 
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+function handleDeleteWaypoint(mutableState: JaiaContextType) {
+    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+
+    mutableState.missions = missions.getMissions();
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.visiblePanel = PanelNames.NONE;
 
     missionLayer.updateFeatures();
 
