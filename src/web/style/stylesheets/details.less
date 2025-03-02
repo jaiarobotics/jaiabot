@@ -6,7 +6,9 @@
 
     padding: 6px 12px 12px 12px;
 
-    width: 315px;
+    width: 25vw;
+    min-width: 300px;
+    max-width: 315px;
     max-height: @panel-max-height;
 
     display: flex;
@@ -66,11 +68,15 @@
 
     table {
         margin: 8px 0;
+        font-size: 1rem;
     }
 
     td {
-        padding: 6px 12px;
-        font-size: 1rem;
+        padding: 6px 0;
+    }
+
+    td:first-child {
+        padding-right: 6px;
     }
 }
 

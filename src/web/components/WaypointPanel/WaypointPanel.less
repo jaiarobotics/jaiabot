@@ -1,12 +1,35 @@
 @import "../../style//stylesheets/util.less";
 
-.waypoint-panel {
+.waypoint-panel-container {
     position: absolute;
     top: @panel-top;
     right: @panel-right;
 
-    height: 100px;
-    width: 100px;
+    padding: 6px;
 
-    background-color: @cc-background-color;
+    max-height: @panel-max-height;
+
+    background-color: @overlay-background;
+}
+
+.waypoint-panel {
+    display: grid;
+    grid-template-columns: min-content min-content;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px;
+
+    color: @cc-text-color-light;
+    font-size: 1.1rem;
+}
+
+.waypoint-panel .label {
+    font-weight: 600;
+}
+
+.waypoint-panel .line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
 }
