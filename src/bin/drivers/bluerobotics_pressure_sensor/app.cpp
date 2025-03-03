@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
-    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(100 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);

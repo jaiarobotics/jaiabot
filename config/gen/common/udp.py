@@ -10,7 +10,7 @@ def bar30_cpp_udp_port(node_id):
     if is_simulation():
         return 20100 + node_id
     else:
-        return 0
+        return 20100
     
 def bar30_py_udp_port(node_id):
     if is_simulation():

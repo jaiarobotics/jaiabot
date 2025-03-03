@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(description='Read temperature and pressure from
 parser.add_argument('-p', '--port', metavar='port', default=20001, type=int, help='port to publish T & P')
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('-t', dest='sensor_type', default='bar30', help='Type of Blue Robotics pressure-temperature sensor')
+parser.add_argument('-r', '--data_rate', default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
@@ -72,7 +73,7 @@ class Sensor:
             self.setup()
 
         try:
-            if self.sensor.read():
+            if self.sensor.read(oversampling=2):
                 if self.pressure_0 is None:
                     self.pressure_0 = self.sensor.pressure()
 
@@ -110,9 +111,12 @@ port = args.port
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', port))
+# Send data to localhost on port 20100
+addr = ("127.0.0.1", 20100)  
 
 while True:
-    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+    #sleep(0.1)
+    #data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
     # Respond to anyone who sends us a packet
     try:
