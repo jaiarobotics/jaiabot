@@ -21,7 +21,7 @@ const botStatusMock2: PortalBotStatus = {
 bots.setBot(botStatusMock1);
 bots.setBot(botStatusMock2);
 
-beforeEach(() => {
+beforeEach(async () => {
     render(
         <JaiaContextProvider>
             <MissionsPanel />
@@ -30,7 +30,7 @@ beforeEach(() => {
 
     // Reset Missions panel
     const deleteAllMissionsButton = screen.getByRole("button", { name: "delete-all-missions" });
-    userEvent.click(deleteAllMissionsButton);
+    await userEvent.click(deleteAllMissionsButton);
 });
 
 test("Adding two missions to Missions panel", async () => {
