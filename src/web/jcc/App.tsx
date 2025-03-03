@@ -10,6 +10,9 @@ import SideButtonList from "../components/SideButtonList/SideButtonList";
 import HubDetails from "../containers/HubDetails/HubDetails";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 
+/**
+ * The root of the JCC interface
+ */
 export default function App() {
     return (
         <div id="jcc">

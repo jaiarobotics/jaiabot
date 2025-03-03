@@ -12,6 +12,9 @@ import { HealthState } from "../../shared/JAIAProtobuf";
 
 import "./NodeList.less";
 
+/**
+ * Displays the Hub and Bot tabs on the left side of the JCC
+ */
 export default function NodeList() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const JaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
