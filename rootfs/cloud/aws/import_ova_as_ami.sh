@@ -17,7 +17,8 @@ set -u -e
 result_json=$(aws ec2 import-image \
     --description "JaiaBot" \
     --disk-containers "Format=ova,UserBucket={S3Bucket=jaia-disk-images,S3Key=${REPO}/${REPO_VERSION}/vbox/${OVA}}" \
-    --role-name 'JaiaAWSImportImage'
+    --role-name 'JaiaAWSImportImage' \
+    --boot-mode 'uefi' \
     ${EXTRA_AWS_CLI_ARGS} \
 )
 

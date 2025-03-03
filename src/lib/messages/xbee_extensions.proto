@@ -5,26 +5,6 @@ import "dccl/option_extensions.proto";
 
 package xbee.protobuf;
 
-message Peer
-{
-    oneof id
-    {
-        string node_id = 1 [
-            (goby.field).description =
-                "DEPRECATED (use hub_id or bot_id): set peer modem id as string"
-        ];
-        int32 hub_id = 3 [(goby.field).description =
-                              "Hub ID number for this peer (if peer is hub)"];
-        int32 bot_id = 4 [(goby.field).description =
-                              "Bot ID number for this peer (if peer is bot)"];
-    }
-
-    required uint64 serial_number = 2 [
-        (goby.field).description =
-            "XBee serial number for this peer (determined by querying ATSH and ATSL)"
-    ];
-}
-
 message Config
 {
     option (dccl.msg) = {
@@ -36,10 +16,7 @@ message Config
         (goby.field).description =
             "Network ID for this fleet (must match other peers in fleet): sets Xbee ATID=network_id"
     ];
-    repeated Peer peers = 2 [
-        (goby.field).description =
-            "Mapping of Xbee serial_number to hub/bot id for all peers in the fleet"
-    ];
+
     optional bool test_comms = 4 [
         default = false,
         (goby.field).description =
@@ -96,6 +73,8 @@ message Config
         (goby.field).description =
             "Set or read the number of additional MAC-level broadcast transmissions."
     ];
+
+    required int32 fleet_id = 14 [(goby.field).description = "Fleet ID"];
 }
 
 extend goby.acomms.protobuf.DriverConfig

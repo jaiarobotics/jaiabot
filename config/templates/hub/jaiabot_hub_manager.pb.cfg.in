@@ -49,10 +49,9 @@ task_packet_sub_cfg {
     }
 }
 
-xbee {
-    $xbee_config
+expected_bots {
+    $expected_bots
 }
-
 data_offload_script: "jaiahub-dataoffload.sh"
 log_staging_dir: "$bot_log_staging_dir"
 log_offload_dir: "$hub_log_offload_dir"

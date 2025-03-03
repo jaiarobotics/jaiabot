@@ -1,0 +1,70 @@
+#cloud-config
+
+# Allows this config to merge correctly with first-boot.preseed.yml
+# See https://cloudinit.readthedocs.io/en/latest/reference/merging.html
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+
+# jaia user
+users:
+  - name: jaia
+    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+
+# Resize data partition to fill disk
+growpart:
+  mode: auto
+  devices: [/var/log]
+
+bootcmd:
+  # Disable networkd wait as we're using /etc/network/interfaces on Rasp Pi
+  # REMOVE IN V2
+  - if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then systemctl mask systemd-networkd-wait-online.service; fi
+  
+runcmd:
+  # Set up log disk
+  - btrfs filesystem resize max /var/log
+  - mkdir -p /var/log/jaiabot
+  # allow jaia user to write logs
+  - chown -R jaia:jaia /var/log/jaiabot
+  - mkdir -p /var/log/apache2
+  # Set up I2C
+  - /etc/jaiabot/init/setup-i2c.sh
+  # For backwards compatibility
+  # REMOVE IN V2
+  - mkdir -p /etc/jaiabot/dev
+  - ln -s -f /dev/gps0 /etc/jaiabot/dev/gps
+  - ln -s -f /dev/arduino /etc/jaiabot/dev/arduino
+  - ln -s -f /dev/xbee /etc/jaiabot/dev/xbee
+  # Install jaiabot embedded for unprivileged jaia user
+  - env USER=jaia DEBIAN_FRONTEND=noninteractive dpkg -i --force-confdef /opt/jaiabot-embedded*.deb
+  # Append first boot date to version file
+  - echo "JAIABOT_FIRST_BOOT_DATE=\"`date -u`\"" >> /etc/jaiabot/version
+  # Set overlay to take effect on next boot
+  - echo "overlayroot=device:dev=/dev/disk/by-label/overlay,timeout=60,recurse=0" >> /etc/overlayroot.conf
+  # Move /etc/jaiabot/ssh/jaia_authorized_keys to /home/jaia/.ssh/authorized_keys now that jaia user exists
+  - mkdir -p /home/jaia/.ssh
+  - chmod 700 /home/jaia/.ssh
+  - mv /etc/jaiabot/ssh/jaia_authorized_keys /home/jaia/.ssh/authorized_keys
+  - chown -R jaia:jaia /home/jaia/.ssh
+  # Permissions for /etc/jaiabot to work
+  - chown root:jaia /etc/jaiabot
+  - chown -R jaia:jaia /etc/jaiabot/ssh
+  - chmod 700 /etc/jaiabot/ssh
+  - chmod 600 /etc/jaiabot/ssh/*authorized_keys
+  # Check and install any hub keys
+  - /etc/jaiabot/init/install-hub-ssh-keys.sh
+  # Setup wireguard VPN (if temporary key is provided)
+  - ifdown wlan0 && ifup wlan0
+  - /etc/jaiabot/init/configure-wireguard-service-vpn.sh
+  
+# Reboot for overlay to take effect
+power_state:
+  mode: reboot
+  timeout: 30
+  condition: true

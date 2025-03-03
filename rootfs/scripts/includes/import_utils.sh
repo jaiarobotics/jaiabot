@@ -23,59 +23,34 @@ function write_preseed()
     mkdir -p "${VBOX_MOUNT_PATH}"
     vboximg-mount -i "${DISKUUID}" --rw --root "${VBOX_MOUNT_PATH}"
     sudo mount "${VBOX_MOUNT_PATH}/vol0" /mnt
-
-    ssh_keys=$(cat $HOME/.ssh/*.pub)
+ 
+    tmp_boot="/tmp/import_vms"
+    mkdir -p ${tmp_boot}/jaiabot/init
+    cp /mnt/jaiabot/init/* ${tmp_boot}/jaiabot/init
+    jaia admin fleet generate /tmp/fleet.cfg --mode simulation ${BOT_OR_HUB} ${N} --bootdir ${tmp_boot}
+    sudo cp ${tmp_boot}/jaiabot/init/* /mnt/jaiabot/init/
     
-    cat <<EOF | sudo tee /mnt/jaiabot/init/first-boot.preseed
-# Preseed configuration. Booleans can be "true" or "yes"
-# This is a bash script so any bash command is allowed
-# Edit and rename to "/boot/firmware/jaiabot/init/first-boot.preseed" to take effect
-
-jaia_run_first_boot=true
-jaia_stress_tests=false
-
-########################################################
-# Network
-########################################################
-jaia_disable_ethernet=true
-jaia_configure_wifi=true
-jaia_wifi_ssid=dummy
-jaia_wifi_password=dummy
-
-########################################################
-# SSH authorized keys
-########################################################
-jaia_do_add_authorized_keys=true
-jaia_perm_authorized_keys=\$(cat << EOM
-${ssh_keys}
-EOM
-)
-jaia_tmp_authorized_keys=
-
-#########################################################
-# Preseed jaiabot-embedded package debconf queries
-# See jaiabot-embedded.templates from jaiabot-debian 
-# https://github.com/jaiarobotics/jaiabot-debian/blob/1.y/jaiabot-embedded.templates
-# To dump config in the correct format on a bot that is configured use: "debconf-get-selections  | grep jaia"
-#########################################################
-jaia_install_jaiabot_embedded=true
-jaia_embedded_debconf=\$(cat << EOM
-jaiabot-embedded	jaiabot-embedded/fleet_id	select	${FLEET}
-jaiabot-embedded	jaiabot-embedded/type	select	${BOT_OR_HUB}
-jaiabot-embedded	jaiabot-embedded/mode	select	simulation
-jaiabot-embedded	jaiabot-embedded/warp	select	10
-jaiabot-embedded	jaiabot-embedded/bot_id	select	${N}
-jaiabot-embedded	jaiabot-embedded/hub_id	select	${N}
-jaiabot-embedded	jaiabot-embedded/arduino_type	select	none
-jaiabot-embedded	jaiabot-embedded/electronics_stack	select	2
-jaiabot-embedded	jaiabot-embedded/led_type	select	none
-EOM
-)
-
-jaia_reboot=true
-EOF
-
     sudo umount /mnt
+
+    ## ROOTFS
+    # set up grub to use nocloud and preseed
+    sudo mount "${VBOX_MOUNT_PATH}/vol1" /mnt
+    sudo chroot /mnt sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
+    sudo mount -o bind /dev /mnt/dev
+    sudo mount -o bind /proc /mnt/proc
+    sudo chroot /mnt update-grub
+    
+    sudo umount /mnt/dev
+    sudo umount /mnt/proc
+    sudo umount /mnt    
     
     sudo umount -l "${VBOX_MOUNT_PATH}"
+}
+
+
+function create_hub_ssh_key()
+{
+    local N="$1"
+    rm -f ${HUB_KEY_DIR}/hub${N}_fleet${FLEET}*
+    ssh-keygen -t ed25519 -f ${HUB_KEY_DIR}/hub${N}_fleet${FLEET} -N "" -C "hub${N}_fleet${FLEET}"
 }
