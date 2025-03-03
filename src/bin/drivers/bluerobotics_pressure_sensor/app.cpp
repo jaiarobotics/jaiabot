@@ -84,7 +84,8 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
-    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(100 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(1.0 / 600.0 *
+                                                                               si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
@@ -141,10 +142,6 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
 
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
 {
-    // Just send an empty packet
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    io_data->set_data("hello\n");
-    interthread().publish<bar30_udp_out>(io_data);
 }
 
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(
