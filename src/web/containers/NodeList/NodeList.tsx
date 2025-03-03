@@ -12,7 +12,10 @@ import { HealthState } from "../../shared/JAIAProtobuf";
 
 import "./NodeList.less";
 
-export function NodeList() {
+/**
+ * Displays the Hub and Bot tabs on the left side of the JCC
+ */
+export default function NodeList() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const JaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
@@ -61,8 +64,6 @@ export function NodeList() {
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass}`;
     }
-
-    console.log(bots);
 
     return (
         <div id="nodeList" data-testid="nodeList">

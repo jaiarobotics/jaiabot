@@ -31,3 +31,8 @@ export interface BotAccordionStates {
     imu: boolean;
     sensor: boolean;
 }
+
+export const enum PanelNames {
+    NONE = "none",
+    MISSIONS = "missions",
+}

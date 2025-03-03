@@ -7,9 +7,10 @@ import { hubs } from "../data/hubs/hubs";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
+import { DATA_MODEL_POLL_TIME } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
-const statusIntervalTimeout = 500; // ms
+const statusIntervalTimeout = DATA_MODEL_POLL_TIME; // ms
 const statusURL = "http://localhost:40001/jaia/v0/status";
 
 const statusInterval = setInterval(async () => {
