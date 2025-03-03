@@ -1,21 +1,21 @@
-import { Goal } from "../../types/protobuf-types";
+import {
+    Goal,
+    GeographicCoordinate,
+    MissionTask,
+    MissionStart,
+    TaskType,
+    Command,
+    CommandType,
+    MovementType,
+} from "../../types/protobuf-types";
 import { Feature as OlFeature } from "ol";
 import { Geometry } from "ol/geom";
 import { MultiPoint as OlMultiPoint } from "ol/geom";
 import { Style as OlStyle } from "ol/style";
 import * as Styles from "../../shared/Styles";
-import { GeographicCoordinate } from "../../types/protobuf-types";
-import { MissionParams } from "../../containers/MissionSettingsPanel/MissionSettingsPanel";
-import { MissionTask } from "../../types/protobuf-types";
 import { CommandList } from "../missions";
-import { deepcopy } from "../../shared/Utilities";
 import * as turf from "@turf/turf";
 import { Position } from "geojson";
-import { TaskType } from "../../types/protobuf-types";
-import { Command } from "../../types/protobuf-types";
-import { MovementType } from "../../types/protobuf-types";
-import { CommandType } from "../../types/protobuf-types";
-import { MissionStart } from "../../types/protobuf-types";
 import { Fill as OlFillStyle } from "ol/style";
 import { Stroke as OlStrokeStyle } from "ol/style";
 import { Icon as OlIcon } from "ol/style";
