@@ -4,8 +4,9 @@ import { useContext } from "react";
 // Jaia
 import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
 import MissionsList from "./MissionsList/MissionsList";
-import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { PanelNames } from "../../types/context-types";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
@@ -15,8 +16,16 @@ import { mdiAutoFix, mdiContentSave, mdiDelete, mdiFolderOpen, mdiPlus } from "@
 import "./MissionsPanel.less";
 import "../../style/stylesheets/util.less";
 
+/**
+ * Renders a panel for operators to manage missions
+ */
 export default function MissionsPanel() {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    if (jaiaContext === null || jaiaContext.visiblePanel !== PanelNames.MISSIONS) {
+        return <div></div>;
+    }
 
     /**
      * Dispatches the action to create a new mission when an operator clicks the add mission button

@@ -3,7 +3,7 @@ import { act, render, screen, fireEvent } from "@testing-library/react";
 import CommandControl, { Props } from "../CommandControl";
 import { JaiaContextType } from "../../../context/Jaia/JaiaContext";
 
-import { HubAccordionStates, BotAccordionStates } from "../../../types/context-types";
+import { HubAccordionStates, BotAccordionStates, PanelNames } from "../../../types/context-types";
 import { SelectedNode, NodeTypes } from "../../../types/jaia-system-types";
 
 import { bots } from "../../../data/bots/bots";
@@ -41,6 +41,7 @@ const mockJaiaContext1: JaiaContextType = {
     controllingClientID: "",
     selectedNode: mockSelectedNode1,
     visibleDetails: NodeTypes.NONE,
+    visiblePanel: PanelNames.NONE,
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
