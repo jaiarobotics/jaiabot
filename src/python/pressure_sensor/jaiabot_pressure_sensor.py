@@ -44,7 +44,6 @@ class SensorError(Exception):
 class Sensor:
     def __init__(self):
         self.is_setup = False
-        self.pressure_0 = None
         self.sensor_type = None
 
     def setup(self):
@@ -73,10 +72,7 @@ class Sensor:
 
         try:
             if self.sensor.read():
-                if self.pressure_0 is None:
-                    self.pressure_0 = self.sensor.pressure()
-
-                return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
+                return (self.sensor.pressure(), self.sensor.temperature())
                 
             else:
                 log.warning('Sensor read fail')
