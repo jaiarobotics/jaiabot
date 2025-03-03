@@ -163,3 +163,42 @@ test("Auto-assigning, deleting, auto-assigning", async () => {
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
     expect(mission2AccordionChildren[1].textContent).toBe("Bot-1");
 });
+
+test("Exercise Mission Edit Toggles", async () => {
+    const addMissionButton = screen.getByRole("button", { name: "add-mission" });
+
+    // Add a mission and verfiy it is in edit mode
+    await userEvent.click(addMissionButton);
+    const mission1EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 1" });
+    expect(mission1EditToggle).toBeChecked();
+    // Click it and verify it changes state
+    await userEvent.click(mission1EditToggle);
+    expect(mission1EditToggle).not.toBeChecked();
+
+    // Add a second mission and verify only the new mission is in edit mode
+    await userEvent.click(addMissionButton);
+    const mission2EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 2" });
+    expect(mission1EditToggle).not.toBeChecked();
+    expect(mission2EditToggle).toBeChecked();
+    // Click mission 1 and verify both change state
+    await userEvent.click(mission1EditToggle);
+    expect(mission1EditToggle).toBeChecked();
+    expect(mission2EditToggle).not.toBeChecked();
+
+    // Add a third mission and test them all together
+    await userEvent.click(addMissionButton);
+    const mission3EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 3" });
+    expect(mission1EditToggle).not.toBeChecked();
+    expect(mission2EditToggle).not.toBeChecked();
+    expect(mission3EditToggle).toBeChecked();
+    // Click mission 2 and verify all change state
+    await userEvent.click(mission2EditToggle);
+    expect(mission1EditToggle).not.toBeChecked();
+    expect(mission2EditToggle).toBeChecked();
+    expect(mission3EditToggle).not.toBeChecked();
+    // Click mission 2 again and verify all states
+    await userEvent.click(mission2EditToggle);
+    expect(mission1EditToggle).not.toBeChecked();
+    expect(mission2EditToggle).not.toBeChecked();
+    expect(mission3EditToggle).not.toBeChecked();
+});

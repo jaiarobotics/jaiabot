@@ -147,7 +147,7 @@ export default function MissionsList() {
                                         missions.getMissionIDInEditMode() === mission.getMissionID()
                                     }
                                     onClick={() => handleToggleEditClick(mission.getMissionID())}
-                                    label="Edit"
+                                    label={`Edit Mission ${mission.getMissionID()}`}
                                     title="ToggleEditMode"
                                 />
                             </AccordionDetails>
