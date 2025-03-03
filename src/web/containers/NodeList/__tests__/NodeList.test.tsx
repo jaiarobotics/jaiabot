@@ -7,7 +7,7 @@ import { PortalHubStatus } from "../../../shared/PortalStatus";
 
 import { NodeList } from "../NodeList";
 import { bots } from "../../../data/bots/bots";
-import { HealthState } from "../../../shared/JAIAProtobuf";
+import { HealthState } from "../../../types/protobuf-types";
 import { hubs } from "../../../data/hubs/hubs";
 
 const mockBotStatus1: PortalBotStatus = {

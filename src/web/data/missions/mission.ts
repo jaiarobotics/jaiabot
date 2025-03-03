@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import Waypoint from "../waypoints/waypoint";
 

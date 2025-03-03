@@ -13,7 +13,7 @@ import {
     PIDControl,
     RFDisableOptions,
     PIDSettings,
-} from "../../../shared/JAIAProtobuf";
+} from "../../../types/protobuf-types";
 import { JaiaAPI } from "../../../utils/jaia-api";
 import { getElementById } from "../../../shared/Utilities";
 import { PortalBotStatus } from "../../../shared/PortalStatus";

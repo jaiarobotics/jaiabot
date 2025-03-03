@@ -1,4 +1,4 @@
-import { TaskType } from "../../utils/protobuf-types";
+import { TaskType } from "../../types/protobuf-types";
 import ConstantHeadingParameters from "./parameters/constant-heading-parameters";
 import DiveParameters from "./parameters/dive-parameters";
 import DriftParameters from "./parameters/drift-parameters";
