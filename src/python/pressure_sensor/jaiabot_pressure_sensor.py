@@ -1,19 +1,19 @@
 #!/usr/bin/python3
-from time import sleep
 from enum import Enum
-from datetime import datetime
 import random
 import argparse
 import socket
 import logging
+import time
 
 from jaiabot.messages.pressure_temperature_pb2 import PressureTemperatureData
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
-parser.add_argument('-p', '--port', metavar='port', default=20001, type=int, help='port to publish T & P')
+parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=20001, type=int, help='port to receive data')
+parser.add_argument('-sp', '--send_port', metavar='send_port', default=20100, type=int, help='port to send data')
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('-t', dest='sensor_type', default='bar30', help='Type of Blue Robotics pressure-temperature sensor')
-parser.add_argument('-r', '--data_rate', default=10, type=int, help='Data Rate, default is 10 Hz')
+parser.add_argument('-r', '--data_rate', metavar="data_rate" default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
@@ -47,6 +47,7 @@ class Sensor:
         self.is_setup = False
         self.pressure_0 = None
         self.sensor_type = None
+        self.osr_value = self.sensor.get_optimal_osr(args.data_rate)
 
     def setup(self):
         if not self.is_setup:
@@ -73,7 +74,7 @@ class Sensor:
             self.setup()
 
         try:
-            if self.sensor.read(oversampling=2):
+            if self.sensor.read(oversampling=self.osr_value):
                 if self.pressure_0 is None:
                     self.pressure_0 = self.sensor.pressure()
 
@@ -85,7 +86,24 @@ class Sensor:
         except OSError as e:
             self.is_setup = False
             raise e
-
+        
+    def get_optimal_osr(target_rate_hz):
+        osr_mapping = {
+            0: {'max_rate_hz': 400},
+            1: {'max_rate_hz': 200},
+            2: {'max_rate_hz': 100},
+            3: {'max_rate_hz': 50},
+            4: {'max_rate_hz': 20},
+            5: {'max_rate_hz': 10}
+        }
+        
+        for osr_value, osr_data in osr_mapping.items():
+            if target_rate_hz <= osr_data['max_rate_hz']:
+                # Return only the OSR integer value (0-5)
+                return osr_value 
+            
+        # Return the max
+        return 0
 
 class SensorSimulator:
 
@@ -107,16 +125,17 @@ else:
 
 
 # Create socket
-port = args.port
-
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', port))
+sock.bind(('', args.receive_port))
 # Send data to localhost on port 20100
-addr = ("127.0.0.1", 20100)  
+addr = ("localhost", args.send_port)  
+
+# Desired send rate
+target_interval = 1.0 / args.data_rate  
 
 while True:
-    #sleep(0.1)
-    #data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+    # Start time of the loop
+    loop_start = time.time()
 
     # Respond to anyone who sends us a packet
     try:
@@ -142,4 +161,13 @@ while True:
     pressure_temperature_data.temperature = t_celsius
     pressure_temperature_data.sensor_type = sensor.sensor_type
 
-    sock.sendto(pressure_temperature_data.SerializeToString(), addr)
+    try:
+        sock.sendto(pressure_temperature_data.SerializeToString(), addr)
+        log.debug(f"Sent data to {addr}: Pressure={p_mbar}, Temperature={t_celsius}")
+    except Exception as e:
+        log.error(f"Failed to send data: {e}")
+
+    # Calculate how long to sleep to maintain target data rate
+    loop_duration = time.time() - loop_start
+    sleep_duration = max(0, target_interval - loop_duration)
+    time.sleep(sleep_duration)
