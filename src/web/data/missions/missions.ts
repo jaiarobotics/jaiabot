@@ -46,6 +46,7 @@ class Missions {
         mission.setMissionID(missionID);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
+        return missionID;
     }
 
     addMissionSet(missions: Mission[]) {
