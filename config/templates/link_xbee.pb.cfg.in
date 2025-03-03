@@ -8,7 +8,10 @@ link {
         serial_baud: 9600
         modem_id: $modem_id
         [xbee.protobuf.config] {
-            $xbee_config
+            network_id: $fleet_id
+            fleet_id: $fleet_id
+            use_xbee_encryption: $use_encryption
+            xbee_encryption_password: "$encryption_password"
             $xbee_hub_id
         }
     }

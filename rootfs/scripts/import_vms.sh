@@ -12,6 +12,9 @@ if [ ! $# -eq 4 ]; then
    exit 1;
 fi
 
+# prompt for sudo up front
+sudo bash -c "exit"
+
 OVA="$1"
 N_BOTS="$2"
 N_HUBS="$3"
@@ -66,6 +69,45 @@ function import_bot_or_hub()
     HOST_SSH_PORT=$((HOST_SSH_PORT + 1))    
 }
 
+
+HUB_KEY_DIR=/tmp/jaia_vm_hub_keys
+mkdir -p ${HUB_KEY_DIR}
+
+perm_ssh_keys=$(cat $HOME/.ssh/*.pub | sed 's/^/permanent_authorized_keys: "/' | sed 's/$/"/')
+
+cat <<EOF > /tmp/fleet.cfg
+fleet: ${FLEET}
+hubs: [$(seq -s "," 1 ${N_HUBS})]
+bots: [$(seq -s "," 1 ${N_BOTS})]
+ssh {
+${perm_ssh_keys}
+$(for HUB in `seq 1 $((N_HUBS))`; do
+    KEYNAME="hub${HUB}_fleet${FLEET}"
+    PRIVKEY="${HUB_KEY_DIR}/${KEYNAME}"
+    PUBKEY="${PRIVKEY}.pub"
+    rm -f $PRIVKEY $PUBKEY
+    ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME" >& /dev/null
+    PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})    
+    PUBKEY_CONTENTS="\"$(cat ${PUBKEY})\""
+    echo "  hub { id: ${HUB} private_key: ${PRIVKEY_CONTENTS} public_key: ${PUBKEY_CONTENTS} }"
+done)
+}
+wlan_password: "dummy"
+service_vpn_enabled: false
+
+debconf {
+  key: "jaiabot-embedded/warp"
+  type: SELECT
+  value: "10"
+}
+debconf {
+  key: "jaiabot-embedded/user_role"
+  type: SELECT
+  value: "developer"
+}
+EOF
+
+
 for n in `seq 1 $((N_BOTS))`; do
     import_bot_or_hub bot $n
 done
@@ -73,5 +115,7 @@ done
 for n in `seq 1 $((N_HUBS))`; do
     import_bot_or_hub hub $n
 done
+
+rm -rf ${HUB_KEY_DIR}
 
 echo -e "Add to .ssh/config if desired:\n${SSH_CONFIG}"

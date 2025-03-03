@@ -1,11 +1,11 @@
 Template: jaiabot-embedded/debconf_state_common
 Type: select
-Choices: type, fleet_id, led_type, electronics_stack, mode, warp, NEXT
+Choices: type, fleet_id, led_type, electronics_stack, mode, warp, rf_encryption_password, NEXT
 Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
 Type: select
-Choices: BACK, bot_id, arduino_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, EXIT
+Choices: BACK, bot_id, arduino_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, EXIT
 Description: Choose a bot option to edit
 
 Template: jaiabot-embedded/debconf_state_hub
@@ -45,14 +45,6 @@ Type: select
 Choices: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
 Description: Hub identification number
   This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.
-  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
-
-
-Template: jaiabot-embedded/n_bots
-Type: select
-Choices: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-Description: Number of bots
-  This is the number of bots in the fleet, used by the intervehicle comms.
   To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
 
 Template: jaiabot-embedded/fleet_id
@@ -127,3 +119,8 @@ Type: select
 Choices: bar02, bar30, none
 Default: bar30
 Description: What pressure sensor do you have?
+
+Template: jaiabot-embedded/rf_encryption_password
+Type: string
+Default:
+Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex
