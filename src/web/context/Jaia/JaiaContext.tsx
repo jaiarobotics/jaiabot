@@ -199,6 +199,7 @@ function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const newMission = new Mission();
     const newMissionID = missions.addMission(newMission);
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     mutableState.missions = missions.getMissions();
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.missionAccordionStates[newMissionID] = true;

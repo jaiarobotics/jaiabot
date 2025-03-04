@@ -144,11 +144,12 @@ export default function MissionsList() {
                                 </Button>
                                 <JaiaToggle
                                     checked={() =>
-                                        missions.getMissionIDInEditMode() === mission.getMissionID()
+                                        jaiaContext.missionIDInEditMode === mission.getMissionID()
                                     }
                                     onClick={() => handleToggleEditClick(mission.getMissionID())}
-                                    label={`Edit Mission ${mission.getMissionID()}`}
+                                    label="Edit"
                                     title="ToggleEditMode"
+                                    testLabel={`Edit Mission ${mission.getMissionID()}`}
                                 />
                             </AccordionDetails>
                         </Accordion>
