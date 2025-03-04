@@ -256,7 +256,7 @@ test("Exercise Mission Edit Toggles", async () => {
 
     // Add a mission and verfiy it is in edit mode
     await userEvent.click(addMissionButton);
-    const mission1EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 1 Edit" });
+    const mission1EditToggle = screen.getByRole("checkbox", { name: /mission 1/i });
     await waitFor(() => {
         expect(mission1EditToggle).toBeChecked();
     });
@@ -268,7 +268,7 @@ test("Exercise Mission Edit Toggles", async () => {
 
     // Add a second mission and verify only the new mission is in edit mode
     await userEvent.click(addMissionButton);
-    const mission2EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 2 Edit" });
+    const mission2EditToggle = screen.getByRole("checkbox", { name: /mission 2/i });
     await waitFor(() => {
         expect(mission2EditToggle).toBeChecked();
     });
@@ -282,7 +282,7 @@ test("Exercise Mission Edit Toggles", async () => {
 
     // Add a third mission and test them all together
     await userEvent.click(addMissionButton);
-    const mission3EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 3 Edit" });
+    const mission3EditToggle = screen.getByRole("checkbox", { name: /mission 3/i });
     await waitFor(() => {
         expect(mission1EditToggle).not.toBeChecked();
     });

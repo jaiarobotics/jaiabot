@@ -4,7 +4,6 @@ import { useContext } from "react";
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../../context/Jaia/jaia-actions";
-import { missions } from "../../../data/missions/missions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
