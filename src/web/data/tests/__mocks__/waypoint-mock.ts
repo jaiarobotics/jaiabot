@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../../utils/protobuf-types";
+import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 export const locationA: GeographicCoordinate = { lat: 41.66196, lon: -71.27445 };
 export const locationB: GeographicCoordinate = { lat: 41.66168, lon: -71.27472 };

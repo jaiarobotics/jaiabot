@@ -645,6 +645,10 @@ export interface ConstantHeadingParameters {
     constant_heading_speed?: number;
 }
 
+export interface StationKeepParameters {
+    station_keep_time?: number;
+}
+
 export interface SRPParameters {
     safety_depth: number;
 }
@@ -661,6 +665,7 @@ export interface MissionTask {
     dive?: DiveParameters;
     surface_drift?: DriftParameters;
     constant_heading?: ConstantHeadingParameters;
+    station_keep?: StationKeepParameters;
     start_echo?: boolean;
 }
 
@@ -766,6 +771,11 @@ export interface DesiredCourse {
     roll?: number;
     z_rate?: number;
     altitude?: number;
+}
+
+export enum BotType {
+    HYDRO = "HYDRO",
+    ECHO = "ECHO",
 }
 
 export enum VehicleType {
@@ -967,6 +977,7 @@ export enum HubCommandType {
     RESTART_ALL_SERVICES = "RESTART_ALL_SERVICES",
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
+    SET_HUB_LOCATION = "SET_HUB_LOCATION",
 }
 
 export interface CommandForHub {
@@ -974,6 +985,7 @@ export interface CommandForHub {
     time?: number;
     type?: HubCommandType;
     scan_for_bot_id?: number;
+    hub_location?: GeographicCoordinate;
 }
 
 export interface Attitude {
@@ -995,6 +1007,7 @@ export interface BotStatus {
     health_state?: HealthState;
     error?: Error[];
     warning?: Warning[];
+    bot_type?: BotType;
     location?: GeographicCoordinate;
     depth?: number;
     attitude?: Attitude;
@@ -1184,6 +1197,7 @@ export interface HubStatus {
     location?: GeographicCoordinate;
     bot_ids_in_radio_file?: number[];
     linux_hardware_status?: LinuxHardwareStatus;
+    bot_offload?: BotOffloadData;
 }
 
 export interface BotOffloadData {
@@ -1192,7 +1206,9 @@ export interface BotOffloadData {
     offload_succeeded?: boolean;
 }
 
-export enum BotType {
-    HYDRO = "HYDRO",
-    ECHO = "ECHO",
+export interface ContactStatus {
+    contact?: number;
+    location: GeographicCoordinate;
+    speed_over_ground?: number;
+    heading_or_cog?: number;
 }

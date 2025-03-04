@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {

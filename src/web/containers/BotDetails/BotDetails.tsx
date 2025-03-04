@@ -34,7 +34,7 @@ import {
 import { CommandInfo, botCommands } from "../../types/commands";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { sendBotCommand, sendBotRunCommand, sendBotRCCommand } from "../../utils/command";
-import { Command, MissionState, GeographicCoordinate } from "../../utils/protobuf-types";
+import { Command, MissionState, GeographicCoordinate } from "../../types/protobuf-types";
 import { Missions } from "../../missions/missions";
 import { GlobalSettings } from "../../missions/settings";
 import { warning, info } from "../../notifications/notifications";

@@ -1,5 +1,5 @@
 import { validateTask } from "./validate-task";
-import { MissionTask, TaskType } from "../../../../shared/JAIAProtobuf";
+import { MissionTask, TaskType } from "../../../../types/protobuf-types";
 import testCases from "../cases/missionTaskTestCases.json";
 
 type TaskParams = {

@@ -5,7 +5,7 @@ import {
     HealthState,
     LinuxHardwareStatus,
     Warning,
-} from "../../utils/protobuf-types";
+} from "../../types/protobuf-types";
 import HubSensors from "./hub-sensors";
 
 export default class Hub {

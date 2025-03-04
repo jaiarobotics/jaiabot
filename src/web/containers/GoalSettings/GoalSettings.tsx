@@ -3,7 +3,7 @@ import React, { ChangeEvent } from "react";
 import { Map } from "ol";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
-import { Goal } from "../../shared/JAIAProtobuf";
+import { Goal } from "../../types/protobuf-types";
 import { CustomAlert } from "../../shared/CustomAlert";
 import { TaskSettingsPanel } from "../TaskSettingsPanel/TaskSettingsPanel";
 import { MissionInterface, PanelType } from "../CommandControl/CommandControl";

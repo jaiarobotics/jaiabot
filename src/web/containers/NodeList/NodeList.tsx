@@ -8,7 +8,7 @@ import {
 } from "../../context/Jaia/JaiaContext";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { HealthState } from "../../shared/JAIAProtobuf";
+import { HealthState } from "../../types/protobuf-types";
 
 import "./NodeList.less";
 

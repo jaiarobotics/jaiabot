@@ -6,7 +6,7 @@ import {
     DriftParameters,
     Speeds,
     StationKeepParameters,
-} from "../shared/JAIAProtobuf";
+} from "../types/protobuf-types";
 import { Coordinate } from "ol/coordinate";
 
 /**

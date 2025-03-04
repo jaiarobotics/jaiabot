@@ -3,7 +3,7 @@ require("es6-promise").polyfill();
 require("isomorphic-fetch");
 
 import { GeoJSON } from "ol/format";
-import { Command, Engineering, CommandForHub, TaskPacket } from "../shared/JAIAProtobuf";
+import { Command, Engineering, CommandForHub, TaskPacket } from "../types/protobuf-types";
 import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { FeatureCollection, Geometry } from "geojson";
 import { Feature } from "ol";

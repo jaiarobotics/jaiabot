@@ -1,7 +1,7 @@
 import { jaiaAPI } from "./jaia-api";
 import { CustomAlert } from "../shared/CustomAlert";
 import { CommandInfo } from "../types/commands";
-import { Command, CommandType, HubCommandType, MissionState } from "./protobuf-types";
+import { Command, CommandType, HubCommandType, MissionState } from "../types/protobuf-types";
 import { error } from "../notifications/notifications";
 import { isError } from "lodash";
 

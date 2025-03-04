@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { TaskSettingsPanel, Props } from "../TaskSettingsPanel";
-import { MissionTask, TaskType } from "../../../shared/JAIAProtobuf";
+import { MissionTask, TaskType } from "../../../types/protobuf-types";
 import { validateTask } from "./utils/validate-task";
 import testCases from "./cases/missionTaskTestCases.json";
 

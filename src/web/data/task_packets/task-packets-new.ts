@@ -1,4 +1,4 @@
-import { DivePacket, DriftPacket, TaskType } from "../../utils/protobuf-types";
+import { DivePacket, DriftPacket, TaskType } from "../../types/protobuf-types";
 
 export default class TaskPacket {
     private startTime: number;

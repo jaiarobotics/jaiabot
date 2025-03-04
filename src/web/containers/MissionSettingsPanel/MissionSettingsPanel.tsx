@@ -9,7 +9,7 @@ import {
     GeographicCoordinate,
     Goal,
     MissionTask,
-} from "../../shared/JAIAProtobuf";
+} from "../../types/protobuf-types";
 import { getGeographicCoordinate } from "../../shared/Utilities";
 import { FormControl, MenuItem } from "@mui/material";
 import { TaskSettingsPanel } from "../TaskSettingsPanel/TaskSettingsPanel";

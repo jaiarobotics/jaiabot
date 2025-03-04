@@ -1,4 +1,4 @@
-import { CommandType, HubCommandType } from "../utils/protobuf-types";
+import { CommandType, HubCommandType } from "./protobuf-types";
 
 export interface CommandInfo {
     commandType: CommandType | HubCommandType;

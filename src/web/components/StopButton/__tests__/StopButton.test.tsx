@@ -6,7 +6,7 @@ import { DisabledCodes, messages } from "../stop-messages";
 
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
-import { MissionState } from "../../../utils/protobuf-types";
+import { MissionState } from "../../../types/protobuf-types";
 
 type testParams = {
     missionState: MissionState;

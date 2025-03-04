@@ -1,21 +1,21 @@
-import { Goal } from "../../shared/JAIAProtobuf";
+import {
+    Goal,
+    GeographicCoordinate,
+    MissionTask,
+    MissionStart,
+    TaskType,
+    Command,
+    CommandType,
+    MovementType,
+} from "../../types/protobuf-types";
 import { Feature as OlFeature } from "ol";
 import { Geometry } from "ol/geom";
 import { MultiPoint as OlMultiPoint } from "ol/geom";
 import { Style as OlStyle } from "ol/style";
 import * as Styles from "../../shared/Styles";
-import { GeographicCoordinate } from "../../shared/JAIAProtobuf";
-import { MissionParams } from "../../containers/MissionSettingsPanel/MissionSettingsPanel";
-import { MissionTask } from "../../shared/JAIAProtobuf";
 import { CommandList } from "../missions";
-import { deepcopy } from "../../shared/Utilities";
 import * as turf from "@turf/turf";
 import { Position } from "geojson";
-import { TaskType } from "../../shared/JAIAProtobuf";
-import { Command } from "../../shared/JAIAProtobuf";
-import { MovementType } from "../../shared/JAIAProtobuf";
-import { CommandType } from "../../shared/JAIAProtobuf";
-import { MissionStart } from "../../shared/JAIAProtobuf";
 import { Fill as OlFillStyle } from "ol/style";
 import { Stroke as OlStrokeStyle } from "ol/style";
 import { Icon as OlIcon } from "ol/style";

@@ -1,7 +1,7 @@
 // Jaia Imports
 import { getDivePacketFeature, getDriftPacketFeature } from "../../shared/TaskPacketFeatures";
 import { geoJSONToDepthContourFeatures } from "../../shared/Contours";
-import { TaskPacket } from "../../shared/JAIAProtobuf";
+import { TaskPacket } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import * as Styles from "../../shared/Styles";
 

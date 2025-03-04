@@ -5,7 +5,7 @@ import {
     GeographicCoordinate,
     HealthState,
     Warning,
-} from "../../utils/protobuf-types";
+} from "../../types/protobuf-types";
 import Mission from "../missions/mission";
 import TaskPacket from "../task_packets/task-packets-new";
 import BotSensors from "./bot-sensors";

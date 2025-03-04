@@ -2,7 +2,7 @@ import React from "react";
 import RunItem from "./RunItem/RunItem";
 import { adjustAccordionScrollPosition } from "../../../../shared/Utilities";
 import { RunInterface } from "../../../../containers/CommandControl/CommandControl";
-import { Goal } from "../../../../shared/JAIAProtobuf";
+import { Goal } from "../../../../types/protobuf-types";
 
 type RunListProps = {
     botIds: number[];
