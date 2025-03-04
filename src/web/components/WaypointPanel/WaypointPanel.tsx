@@ -3,13 +3,15 @@ import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { TaskType } from "../../types/protobuf-types";
 
-import "./WaypointPanel.less";
 import { UNASSIGNED_ID, LAT_LON_DECIMALS } from "../../utils/constants";
 
 import Icon from "@mdi/react";
 import { mdiDelete } from "@mdi/js";
-import { Button } from "@mui/material";
+import { Button, FormControl, Select, MenuItem } from "@mui/material";
+
+import "./WaypointPanel.less";
 
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
@@ -34,6 +36,23 @@ export default function WaypointPanel() {
         }
 
         return botID;
+    };
+
+    const formatMenuItemText = (taskType: TaskType) => {
+        switch (taskType) {
+            case TaskType.NONE:
+                return "None";
+            case TaskType.DIVE:
+                return "Dive";
+            case TaskType.SURFACE_DRIFT:
+                return "Surface Drift";
+            case TaskType.STATION_KEEP:
+                return "Station Keep";
+            case TaskType.CONSTANT_HEADING:
+                return "Constant Heading";
+            default:
+                return "";
+        }
     };
 
     const handleDeleteWaypointClick = () => {
@@ -66,6 +85,20 @@ export default function WaypointPanel() {
 
                 <div className="label">Lon:</div>
                 <div>{getWaypoint().getLocation().lon.toFixed(LAT_LON_DECIMALS)}</div>
+
+                <div className="line-break"></div>
+
+                <div className="label">Task:</div>
+                <FormControl sx={{ minWidth: 120 }} size="small">
+                    <Select value={TaskType.NONE}>
+                        <MenuItem value={TaskType.NONE}>
+                            {formatMenuItemText(TaskType.NONE)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.DIVE}>
+                            {formatMenuItemText(TaskType.DIVE)}
+                        </MenuItem>
+                    </Select>
+                </FormControl>
             </div>
         </div>
     );

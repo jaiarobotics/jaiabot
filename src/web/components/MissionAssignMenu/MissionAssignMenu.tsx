@@ -67,7 +67,7 @@ export default function MissionAssignMenu(props: Props) {
     };
 
     return (
-        <FormControl sx={{ minWidth: 120 }}>
+        <FormControl sx={{ minWidth: 120 }} size="small">
             <InputLabel>Bot</InputLabel>
             <Select
                 label="Assign"
