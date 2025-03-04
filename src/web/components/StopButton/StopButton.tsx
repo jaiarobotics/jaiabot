@@ -8,7 +8,7 @@ import { Button } from "@mui/material";
 import { mdiStop } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { CommandType } from "../../utils/protobuf-types";
+import { CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable } from "../../utils/command";
 
 import "../../style/stylesheets/util.less";

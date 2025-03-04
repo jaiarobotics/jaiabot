@@ -12,7 +12,7 @@ import {
     BotStatusRate,
     PIDControl,
     RFDisableOptions,
-} from "../../../shared/JAIAProtobuf";
+} from "../../../types/protobuf-types";
 import { JaiaAPI } from "../../../utils/jaia-api";
 import { getElementById } from "../../../shared/Utilities";
 

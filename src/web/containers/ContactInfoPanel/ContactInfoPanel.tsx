@@ -4,7 +4,7 @@ import { mdiClose } from "@mdi/js";
 
 import { PanelType } from "../CommandControl/CommandControl";
 import "./ContactInfoPanel.less";
-import { ContactStatus } from "../../shared/JAIAProtobuf";
+import { ContactStatus } from "../../types/protobuf-types";
 import { Missions } from "../../missions/missions";
 import { JaiaAPI } from "../../utils/jaia-api";
 import { GlobalSettings } from "../../missions/settings";
