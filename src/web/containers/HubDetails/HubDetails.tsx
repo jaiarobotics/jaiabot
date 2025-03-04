@@ -36,7 +36,9 @@ import {
     mdiWrenchCog,
 } from "@mdi/js";
 
-export function HubDetails() {
+import "./HubDetails.less";
+
+export default function HubDetails() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
@@ -182,27 +184,26 @@ export function HubDetails() {
     }
 
     return (
-        <div id="hubDetailsBox">
-            <div className="titleBar">
-                <h2 className="name">{`Hub ${hub.getHubID()}`}</h2>
-                <div className="closeButton" onClick={handleClosePanel}>
+        <div id="hub-details">
+            <div className="title-bar">
+                <h2>{`Hub ${hub.getHubID()}`}</h2>
+                <div className="close-button" onClick={handleClosePanel}>
                     ⨯
                 </div>
             </div>
 
-            <div id="hubDetailsAccordionContainer" className="accordionParentContainer">
+            <div id="hub-details-accordions-container">
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
                         expanded={jaiaContext.hubAccordionStates.quickLook}
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.QUICKLOOK);
                         }}
-                        className="accordionContainer"
+                        className="accordion-container"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
+                            className="accordion-summary"
                         >
                             <Typography>Quick Look</Typography>
                         </AccordionSummary>
@@ -264,18 +265,17 @@ export function HubDetails() {
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.COMMANDS);
                         }}
-                        className="accordionContainer"
+                        className="accordion-container"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
+                            className="accordion-summary"
                         >
                             <Typography>Commands</Typography>
                         </AccordionSummary>
-                        <AccordionDetails>
+                        <AccordionDetails className="accordion-details-buttons">
                             <Button
-                                className={" button-jcc"}
+                                className="jaia-button"
                                 onClick={() => {
                                     issueHubCommand(hubCommands.shutdown);
                                 }}
@@ -283,7 +283,7 @@ export function HubDetails() {
                                 <Icon path={mdiPower} title="Shutdown" />
                             </Button>
                             <Button
-                                className={" button-jcc"}
+                                className="jaia-button"
                                 onClick={() => {
                                     issueHubCommand(hubCommands.reboot);
                                 }}
@@ -291,7 +291,7 @@ export function HubDetails() {
                                 <Icon path={mdiRestartAlert} title="Reboot" />
                             </Button>
                             <Button
-                                className={" button-jcc"}
+                                className="jaia-button"
                                 onClick={() => {
                                     issueHubCommand(hubCommands.restartServices);
                                 }}
@@ -308,25 +308,24 @@ export function HubDetails() {
                         onChange={() => {
                             handleAccordionClick(HubAccordionNames.LINKS);
                         }}
-                        className="accordionContainer"
+                        className="accordion-container"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
+                            className="accordion-summary"
                         >
                             <Typography>Links</Typography>
                         </AccordionSummary>
-                        <AccordionDetails>
-                            <Button className={"button-jcc"} onClick={() => openJDV()}>
+                        <AccordionDetails className="accordion-details-buttons">
+                            <Button className="jaia-button" onClick={() => openJDV()}>
                                 <Icon path={mdiChartLine} title="JDV" />
                             </Button>
 
-                            <Button className="button-jcc" onClick={() => openRouterPage()}>
+                            <Button className="jaia-button" onClick={() => openRouterPage()}>
                                 <Icon path={mdiWifiCog} title="Router"></Icon>
                             </Button>
 
-                            <Button className="button-jcc" onClick={() => openUpgradePage()}>
+                            <Button className="jaia-button" onClick={() => openUpgradePage()}>
                                 <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
                             </Button>
                         </AccordionDetails>

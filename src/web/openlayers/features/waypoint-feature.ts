@@ -15,8 +15,9 @@ import { GeographicCoordinate } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 import { openLayersZIndexes } from "../../style/openlayers/zindex";
-const waypointIcon = require("../../style/icons/waypoint.svg");
-const waypointArrowIcon = require("../../style/icons/waypoint-arrow.svg");
+
+import waypointIcon from "../../style/icons/waypoint.svg";
+import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -39,6 +40,7 @@ export function generateWaypointFeature(
     const feature = new Feature({
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
+
     feature.set("type", MapFeatureTypes.WAYPOINT);
     feature.set("id", waypointNum);
     feature.setStyle(generateWaypointStyle(waypointNum, missionID));

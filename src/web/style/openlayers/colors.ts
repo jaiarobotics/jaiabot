@@ -1,5 +1,5 @@
 export enum OpenLayersColors {
-    DEFAULT = "whtie",
+    DEFAULT = "white",
     EDIT = "gold",
     OUTLINE = "black",
     SELECT = "turquoise",
