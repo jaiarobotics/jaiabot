@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
@@ -6,6 +6,7 @@ import SideButtonList from "../../../components/SideButtonList/SideButtonList";
 import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
+import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 
@@ -23,6 +24,11 @@ bots.setBot(botStatusMock1);
 bots.setBot(botStatusMock2);
 
 beforeEach(async () => {
+    missions.deleteAllMissions();
+    missionsManager.clear();
+});
+
+test("Adding two missions to Missions panel", async () => {
     render(
         <JaiaContextProvider>
             <SideButtonList />
@@ -34,12 +40,6 @@ beforeEach(async () => {
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
     await userEvent.click(missionsPanelButton);
 
-    // Reset Missions panel
-    const deleteAllMissionsButton = screen.getByRole("button", { name: "delete-all-missions" });
-    await userEvent.click(deleteAllMissionsButton);
-});
-
-test("Adding two missions to Missions panel", async () => {
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     const missionsList = screen.getByTestId("missions-list");
 
@@ -63,6 +63,17 @@ test("Adding two missions to Missions panel", async () => {
 });
 
 test("Delete all missions", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     const deleteAllMissionsButton = screen.getByRole("button", { name: "delete-all-missions" });
     const missionsList = screen.getByTestId("missions-list");
@@ -76,6 +87,17 @@ test("Delete all missions", async () => {
 });
 
 test("Auto assign two Bots to two missions", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
 
     await userEvent.click(addMissionButton);
@@ -95,6 +117,17 @@ test("Auto assign two Bots to two missions", async () => {
 });
 
 test("Opening and closing a mission accordion", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
@@ -107,6 +140,17 @@ test("Opening and closing a mission accordion", async () => {
 });
 
 test("Clicking delete mission button inside mission accordion", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
@@ -117,6 +161,17 @@ test("Clicking delete mission button inside mission accordion", async () => {
 });
 
 test("Assigning and unassigning a Bot to a mission", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     // Add mission
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
@@ -144,6 +199,17 @@ test("Assigning and unassigning a Bot to a mission", async () => {
 });
 
 test("Auto-assigning, deleting, auto-assigning", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     // Add mission
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
@@ -168,42 +234,72 @@ test("Auto-assigning, deleting, auto-assigning", async () => {
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
     expect(mission2AccordionChildren[1].textContent).toBe("Bot-1");
 });
-
+/*
+ /    Exercises Edit Mission Toggles
+ /   @Notes When using both label and testLable of the JaiaToggle they need to be combined 
+ /    when trying to access them by "
+ /    We are using await waitFor(() to give the context time to update and re-render
+ */
 test("Exercise Mission Edit Toggles", async () => {
+    render(
+        <JaiaContextProvider>
+            <SideButtonList />
+            <MissionsPanel />
+        </JaiaContextProvider>,
+    );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
+
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
 
     // Add a mission and verfiy it is in edit mode
     await userEvent.click(addMissionButton);
-    const mission1EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 1" });
-    expect(mission1EditToggle).toBeChecked();
+    const mission1EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 1 Edit" });
+    await waitFor(() => {
+        expect(mission1EditToggle).toBeChecked();
+    });
     // Click it and verify it changes state
     await userEvent.click(mission1EditToggle);
-    expect(mission1EditToggle).not.toBeChecked();
+    await waitFor(() => {
+        expect(mission1EditToggle).not.toBeChecked();
+    });
 
     // Add a second mission and verify only the new mission is in edit mode
     await userEvent.click(addMissionButton);
-    const mission2EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 2" });
+    const mission2EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 2 Edit" });
+    await waitFor(() => {
+        expect(mission2EditToggle).toBeChecked();
+    });
     expect(mission1EditToggle).not.toBeChecked();
-    expect(mission2EditToggle).toBeChecked();
     // Click mission 1 and verify both change state
     await userEvent.click(mission1EditToggle);
-    expect(mission1EditToggle).toBeChecked();
+    await waitFor(() => {
+        expect(mission1EditToggle).toBeChecked();
+    });
     expect(mission2EditToggle).not.toBeChecked();
 
     // Add a third mission and test them all together
     await userEvent.click(addMissionButton);
-    const mission3EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 3" });
-    expect(mission1EditToggle).not.toBeChecked();
+    const mission3EditToggle = screen.getByRole("checkbox", { name: "Edit Mission 3 Edit" });
+    await waitFor(() => {
+        expect(mission1EditToggle).not.toBeChecked();
+    });
     expect(mission2EditToggle).not.toBeChecked();
     expect(mission3EditToggle).toBeChecked();
     // Click mission 2 and verify all change state
     await userEvent.click(mission2EditToggle);
+    await waitFor(() => {
+        expect(mission2EditToggle).toBeChecked();
+    });
     expect(mission1EditToggle).not.toBeChecked();
-    expect(mission2EditToggle).toBeChecked();
     expect(mission3EditToggle).not.toBeChecked();
     // Click mission 2 again and verify all states
     await userEvent.click(mission2EditToggle);
+    await waitFor(() => {
+        expect(mission2EditToggle).not.toBeChecked();
+    });
     expect(mission1EditToggle).not.toBeChecked();
-    expect(mission2EditToggle).not.toBeChecked();
     expect(mission3EditToggle).not.toBeChecked();
 });
