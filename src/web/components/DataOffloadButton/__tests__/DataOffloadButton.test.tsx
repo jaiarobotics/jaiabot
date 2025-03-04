@@ -6,7 +6,7 @@ import { DisabledCodes, messages } from "../data-offload-messages";
 
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
-import { MissionState } from "../../../shared/JAIAProtobuf";
+import { MissionState } from "../../../types/protobuf-types";
 
 const botStatusMock1: PortalBotStatus = {
     bot_id: 1,

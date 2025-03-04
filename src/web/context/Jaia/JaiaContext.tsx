@@ -15,7 +15,7 @@ import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
-import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 import {

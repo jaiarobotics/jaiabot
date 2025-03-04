@@ -11,7 +11,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../utils/protobuf-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 import { openLayersZIndexes } from "../../style/openlayers/zindex";

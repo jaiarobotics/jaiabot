@@ -1,4 +1,4 @@
-import { MissionState } from "../utils/protobuf-types";
+import { MissionState } from "./protobuf-types";
 
 export enum NodeTypes {
     NONE = "NONE",
