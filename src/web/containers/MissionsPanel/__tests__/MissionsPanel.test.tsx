@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
@@ -29,12 +29,14 @@ beforeEach(async () => {
 });
 
 test("Adding two missions to Missions panel", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -63,12 +65,14 @@ test("Adding two missions to Missions panel", async () => {
 });
 
 test("Delete all missions", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -87,12 +91,14 @@ test("Delete all missions", async () => {
 });
 
 test("Auto assign two Bots to two missions", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -117,12 +123,14 @@ test("Auto assign two Bots to two missions", async () => {
 });
 
 test("Opening and closing a mission accordion", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -140,12 +148,14 @@ test("Opening and closing a mission accordion", async () => {
 });
 
 test("Clicking delete mission button inside mission accordion", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -161,12 +171,14 @@ test("Clicking delete mission button inside mission accordion", async () => {
 });
 
 test("Assigning and unassigning a Bot to a mission", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -199,12 +211,14 @@ test("Assigning and unassigning a Bot to a mission", async () => {
 });
 
 test("Auto-assigning, deleting, auto-assigning", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
@@ -241,12 +255,14 @@ test("Auto-assigning, deleting, auto-assigning", async () => {
  /    We are using await waitFor(() to give the context time to update and re-render
  */
 test("Exercise Mission Edit Toggles", async () => {
-    render(
-        <JaiaContextProvider>
-            <SideButtonList />
-            <MissionsPanel />
-        </JaiaContextProvider>,
-    );
+    await act(async () => {
+        render(
+            <JaiaContextProvider>
+                <SideButtonList />
+                <MissionsPanel />
+            </JaiaContextProvider>,
+        );
+    });
 
     // Open Missions panel
     const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
