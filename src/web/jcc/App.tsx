@@ -17,6 +17,9 @@ import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 // Style
 import "./App.less";
 
+/**
+ * The root of the JCC interface
+ */
 export default function App() {
     return (
         <div id="jcc">

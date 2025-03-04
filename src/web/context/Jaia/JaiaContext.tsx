@@ -454,6 +454,14 @@ function handleClickedMissionAccordion(
     return mutableState;
 }
 
+/**
+ * Updates visiblePanel property to display the panel associated with a button click
+ * or closes the panel if it is already opened
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {PanelNames} panelName Name of panel associated with button
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleClickedPanelButton(mutableState: JaiaContextType, panelName: PanelNames) {
     if (mutableState.visiblePanel === panelName) {
         mutableState.visiblePanel = PanelNames.NONE;
