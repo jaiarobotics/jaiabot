@@ -60,7 +60,6 @@ class BlueRoboticsPressureSensorDriver : public zeromq::MultiThreadApplication<c
     BlueRoboticsPressureSensorDriver();
 
   private:
-    void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
@@ -84,8 +83,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
-    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(1.0 / 600.0 *
-                                                                               si::hertz)
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>()
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
@@ -138,10 +136,6 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
             }
         }
     });
-}
-
-void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
-{
 }
 
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(

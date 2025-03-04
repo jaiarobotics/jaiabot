@@ -13,7 +13,7 @@ parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=200
 parser.add_argument('-sp', '--send_port', metavar='send_port', default=20100, type=int, help='port to send data')
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('-t', dest='sensor_type', default='bar30', help='Type of Blue Robotics pressure-temperature sensor')
-parser.add_argument('-r', '--data_rate', metavar="data_rate" default=10, type=int, help='Data Rate, default is 10 Hz')
+parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 50, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
@@ -43,11 +43,19 @@ class SensorError(Exception):
     pass
 
 class Sensor:
+    # Data rate to Oversampling options
+    osr_mapping = {
+        100: 2,
+        50: 3,
+        20: 4,
+        10: 5
+    }
+
     def __init__(self):
         self.is_setup = False
         self.pressure_0 = None
         self.sensor_type = None
-        self.osr_value = self.sensor.get_optimal_osr(args.data_rate)
+        self.osr_value = self.osr_mapping.get(args.data_rate, 2)
 
     def setup(self):
         if not self.is_setup:
@@ -86,24 +94,6 @@ class Sensor:
         except OSError as e:
             self.is_setup = False
             raise e
-        
-    def get_optimal_osr(target_rate_hz):
-        osr_mapping = {
-            0: {'max_rate_hz': 400},
-            1: {'max_rate_hz': 200},
-            2: {'max_rate_hz': 100},
-            3: {'max_rate_hz': 50},
-            4: {'max_rate_hz': 20},
-            5: {'max_rate_hz': 10}
-        }
-        
-        for osr_value, osr_data in osr_mapping.items():
-            if target_rate_hz <= osr_data['max_rate_hz']:
-                # Return only the OSR integer value (0-5)
-                return osr_value 
-            
-        # Return the max
-        return 0
 
 class SensorSimulator:
 
