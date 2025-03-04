@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
+import SideButtonList from "../../../components/SideButtonList/SideButtonList";
 import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
@@ -24,9 +25,14 @@ bots.setBot(botStatusMock2);
 beforeEach(async () => {
     render(
         <JaiaContextProvider>
+            <SideButtonList />
             <MissionsPanel />
         </JaiaContextProvider>,
     );
+
+    // Open Missions panel
+    const missionsPanelButton = screen.getByRole("button", { name: "missions-panel" });
+    await userEvent.click(missionsPanelButton);
 
     // Reset Missions panel
     const deleteAllMissionsButton = screen.getByRole("button", { name: "delete-all-missions" });

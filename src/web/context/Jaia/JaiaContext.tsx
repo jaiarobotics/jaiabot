@@ -23,6 +23,7 @@ import {
     BotAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
+    PanelNames,
 } from "../../types/context-types";
 
 export interface JaiaContextType {
@@ -34,6 +35,7 @@ export interface JaiaContextType {
     controllingClientID: string;
     selectedNode: SelectedNode;
     visibleDetails: NodeTypes;
+    visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
@@ -51,6 +53,7 @@ export interface JaiaAction {
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
+    panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
 }
 
@@ -138,6 +141,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             );
         case JaiaActions.CLICKED_EDIT_MISSION:
             return handleClickedEditMission(mutableState, action.missionID);
+        case JaiaActions.CLICKED_PANEL_BUTTON:
+            return handleClickedPanelButton(mutableState, action.panelName);
+
         default:
             return state;
     }
@@ -160,6 +166,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.controllingClientID = "";
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.visibleDetails = NodeTypes.NONE;
+    mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.missionAccordionStates = {};
@@ -196,6 +203,8 @@ function handleAddMission(mutableState: JaiaContextType) {
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -209,8 +218,12 @@ function handleAddMission(mutableState: JaiaContextType) {
 function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
     missions.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
+
     mutableState.missions = missions.getMissions();
     mutableState.bots = bots.getBots();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -226,6 +239,9 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
 
     mutableState.missions = missions.getMissions();
     mutableState.missionAccordionStates = {};
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -239,8 +255,12 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
  */
 function handleAssignMission(mutableState: JaiaContextType, botID: number, missionID: number) {
     missionsManager.assign(botID, missionID);
+
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -252,8 +272,12 @@ function handleAssignMission(mutableState: JaiaContextType, botID: number, missi
  */
 function handleAutoAssignMissions(mutableState: JaiaContextType) {
     missionsManager.autoAssign();
+
     mutableState.bots = bots.getBots();
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -268,11 +292,7 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     const missionIDInEditMode = missions.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
-    if (missionIDInEditMode !== UNASSIGNED_ID) {
-        // Add waypoint to mission in edit mode
-        const mission = missions.getMission(missionIDInEditMode);
-        mission.addWaypoint(location);
-    } else if (
+    if (
         selectedNode.type === NodeTypes.BOT &&
         missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
     ) {
@@ -280,9 +300,17 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
         const mission = new Mission();
         missions.addMission(mission);
         mission.addWaypoint(location);
+        missionsManager.assign(selectedNode.id, mission.getMissionID());
+    } else if (missionIDInEditMode !== UNASSIGNED_ID) {
+        // Add waypoint to mission in edit mode
+        const mission = missions.getMission(missionIDInEditMode);
+        mission.addWaypoint(location);
     }
 
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
@@ -335,9 +363,12 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 function handleClickedNode(mutableState: JaiaContextType, clickedNode: SelectedNode) {
     jaiaGlobal.setSelectedNode(clickedNode);
     const selectedNode = jaiaGlobal.getSelectedNode();
+
     mutableState.selectedNode = selectedNode;
     mutableState.visibleDetails = selectedNode.type;
+
     syncOpenLayers();
+
     return mutableState;
 }
 
@@ -448,6 +479,23 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
     }
     mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     syncOpenLayers();
+    return mutableState;
+}
+
+/**
+ * Updates visiblePanel property to display the panel associated with a button click
+ * or closes the panel if it is already opened
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {PanelNames} panelName Name of panel associated with button
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedPanelButton(mutableState: JaiaContextType, panelName: PanelNames) {
+    if (mutableState.visiblePanel === panelName) {
+        mutableState.visiblePanel = PanelNames.NONE;
+    } else {
+        mutableState.visiblePanel = panelName;
+    }
     return mutableState;
 }
 

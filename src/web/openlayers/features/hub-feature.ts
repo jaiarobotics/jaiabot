@@ -16,7 +16,7 @@ import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Style
 import { MapIconColors } from "../../utils/style";
-const hubIcon = require("../../style/icons/hub.svg");
+import hubIcon from "../../style/icons/hub.svg";
 
 export function generateHubFeature(hubID: number) {
     const hub = hubs.getHub(hubID);
