@@ -98,12 +98,11 @@ test("Opening and closing a mission accordion", async () => {
     const addMissionButton = screen.getByRole("button", { name: "add-mission" });
     await userEvent.click(addMissionButton);
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
-    let duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
+    const duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
     expect(duplicateButton).toBeVisible();
     await userEvent.click(mission1Accordion);
     expect(duplicateButton).not.toBeVisible();
     await userEvent.click(mission1Accordion);
-    duplicateButton = screen.getByRole("button", { name: "duplicate-mission" });
     expect(duplicateButton).toBeVisible();
 });
 

@@ -197,8 +197,8 @@ function handlePollDataModel(mutableState: JaiaContextType) {
  */
 function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-    const newMissionID = missions.addMission(new Mission());
-
+    const newMission = new Mission();
+    const newMissionID = missions.addMission(newMission);
     mutableState.missions = missions.getMissions();
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.missionAccordionStates[newMissionID] = true;
@@ -468,11 +468,9 @@ function handleClickedMissionAccordion(
  * @param {number} missionID ID of the mission associated with the toggle
  * @returns {JaiaContextType} Updated mutable state object
  *
- * @notes This function calls jaiaGlobal.setMissionIDInEditMode to make sure the
- *        Global Data used by OpenLayers is in sync with GlobalContext
  */
 function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
-    if (missionID != missions.getMissionIDInEditMode()) {
+    if (missionID !== missions.getMissionIDInEditMode()) {
         missions.setMissionIDInEditMode(missionID);
     } else {
         missions.setMissionIDInEditMode(UNASSIGNED_ID);
