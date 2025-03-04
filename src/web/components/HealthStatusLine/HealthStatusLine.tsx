@@ -1,6 +1,6 @@
 import React from "react";
 
-import { HealthState } from "../../shared/JAIAProtobuf";
+import { HealthState } from "../../types/protobuf-types";
 
 interface HealthStatusLineProps {
     healthState: HealthState;

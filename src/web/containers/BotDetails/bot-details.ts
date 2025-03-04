@@ -1,5 +1,5 @@
 // Jaia Imports
-import { MissionState } from "../../utils/protobuf-types";
+import { MissionState } from "../../types/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
