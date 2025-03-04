@@ -8,7 +8,7 @@ import PointerInteraction from "ol/interaction/Pointer";
 // Jaia
 import { JaiaAPI } from "../../../utils/jaia-api";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
-import { CommandForHub, GeographicCoordinate, HubCommandType } from "../../../shared/JAIAProtobuf";
+import { CommandForHub, GeographicCoordinate, HubCommandType } from "../../../types/protobuf-types";
 import { getGeographicCoordinate } from "../../../shared/Utilities";
 
 // Style

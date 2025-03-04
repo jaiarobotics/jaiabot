@@ -7,7 +7,7 @@ import {
     ConstantHeadingParameters,
     GeographicCoordinate,
     StationKeepParameters,
-} from "../../shared/JAIAProtobuf";
+} from "../../types/protobuf-types";
 import { GlobalSettings, Save } from "../../missions/settings";
 import { deepcopy, getGeographicCoordinate } from "../../shared/Utilities";
 import { InputLabel, FormControl, MenuItem } from "@mui/material";
