@@ -52,8 +52,9 @@ class Sensor:
 
     def __init__(self):
         self.is_setup = False
+        self.pressure_0 = None
         self.sensor_type = None
-        self.osr_value = self.osr_mapping.get(args.data_rate, 2)
+        self.osr_value = self.osr_mapping.get(args.data_rate, 5)
 
     def setup(self):
         if not self.is_setup:
@@ -79,7 +80,10 @@ class Sensor:
 
         try:
             if self.sensor.read(oversampling=self.osr_value):
-                return (self.sensor.pressure(), self.sensor.temperature())
+                if self.pressure_0 is None:
+                    self.pressure_0 = self.sensor.pressure()
+
+                return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
             else:
                 log.warning('Sensor read fail')
                 self.is_setup = False
