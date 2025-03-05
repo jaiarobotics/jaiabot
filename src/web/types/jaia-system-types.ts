@@ -1,4 +1,10 @@
 import { MissionState } from "./protobuf-types";
+import {
+    DiveParameters,
+    DriftParameters,
+    ConstantHeadingParameters,
+    StationKeepParameters,
+} from "./protobuf-types";
 
 export enum NodeTypes {
     NONE = "NONE",
@@ -21,4 +27,11 @@ export interface MissionStatus {
     activeGoal?: number;
     distanceToActiveGoal?: number;
     repeatIndex?: number;
+}
+
+export interface TaskParameters {
+    dive: DiveParameters;
+    drift: DriftParameters;
+    stationKeep: StationKeepParameters;
+    constantHeading: ConstantHeadingParameters;
 }

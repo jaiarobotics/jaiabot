@@ -9,7 +9,7 @@ import { UNASSIGNED_ID, LAT_LON_DECIMALS } from "../../utils/constants";
 
 import Icon from "@mdi/react";
 import { mdiDelete } from "@mdi/js";
-import { Button, FormControl, Select, MenuItem } from "@mui/material";
+import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
 
@@ -26,6 +26,16 @@ export default function WaypointPanel() {
     const getWaypoint = () => {
         const mission = jaiaContext.missions.get(jaiaContext.selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
+    };
+
+    const getTaskSelectValue = () => {
+        const taskType = getWaypoint().getTask()?.getType();
+
+        if (!taskType) {
+            return TaskType.NONE;
+        }
+
+        return taskType;
     };
 
     const formatBotID = () => {
@@ -59,6 +69,11 @@ export default function WaypointPanel() {
         jaiaDispatchContext({ type: JaiaActions.DELETE_WAYPOINT });
     };
 
+    const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
+        const selectedTaskType = evt.target.value;
+        jaiaDispatchContext({ type: JaiaActions.SELECT_TASK, taskType: selectedTaskType });
+    };
+
     return (
         <div className="waypoint-panel-container">
             <div className="waypoint-panel">
@@ -90,7 +105,10 @@ export default function WaypointPanel() {
 
                 <div className="label">Task:</div>
                 <FormControl sx={{ minWidth: 120 }} size="small">
-                    <Select value={TaskType.NONE}>
+                    <Select
+                        value={getTaskSelectValue()}
+                        onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
+                    >
                         <MenuItem value={TaskType.NONE}>
                             {formatMenuItemText(TaskType.NONE)}
                         </MenuItem>

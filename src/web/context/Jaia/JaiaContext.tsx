@@ -9,13 +9,14 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
+import Task from "../../data/tasks/task";
 import Mission from "../../data/missions/mission";
 
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 import {
@@ -47,7 +48,9 @@ export interface JaiaAction {
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
+
     location?: GeographicCoordinate;
+    taskType?: TaskType;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -115,6 +118,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.DELETE_WAYPOINT:
             return handleDeleteWaypoint(mutableState);
+
+        case JaiaActions.SELECT_TASK:
+            return handleSelectTask(mutableState, action.taskType);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -320,6 +326,24 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
     mutableState.visiblePanel = PanelNames.NONE;
 
     missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
+    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    const mission = missions.getMission(selectedWaypoint.missionID);
+    const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+    const task = waypoint.getTask();
+
+    if (task) {
+        task.setType(taskType);
+    } else {
+        const newTask = new Task();
+        waypoint.setTask(newTask);
+    }
+
+    mutableState.missions = missions.getMissions();
 
     return mutableState;
 }

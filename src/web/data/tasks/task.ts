@@ -1,8 +1,11 @@
 import { TaskType } from "../../types/protobuf-types";
-import ConstantHeadingParameters from "./parameters/constant-heading-parameters";
-import DiveParameters from "./parameters/dive-parameters";
-import DriftParameters from "./parameters/drift-parameters";
-import StationKeepParameters from "./parameters/station-keep-parameters";
+import { jaiaGlobal } from "../jaia_global/jaia-global";
+import {
+    DiveParameters,
+    DriftParameters,
+    ConstantHeadingParameters,
+    StationKeepParameters,
+} from "../../types/protobuf-types";
 
 export default class Task {
     private type: TaskType;
@@ -19,6 +22,23 @@ export default class Task {
     }
 
     setType(type: TaskType) {
+        const defaultParams = jaiaGlobal.getDefaultTaskParameters();
+
+        switch (type) {
+            case TaskType.DIVE:
+                this.setDiveParameters(defaultParams.dive);
+                this.setDriftParameters(defaultParams.drift);
+                break;
+            case TaskType.SURFACE_DRIFT:
+                this.setDriftParameters(defaultParams.drift);
+                break;
+            case TaskType.CONSTANT_HEADING:
+                this.setConstantHeadingParameters(defaultParams.constantHeading);
+                break;
+            case TaskType.STATION_KEEP:
+                this.setStationKeepParameters(defaultParams.stationKeep);
+                break;
+        }
         this.type = type;
     }
 
