@@ -298,6 +298,7 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     }
 
     mutableState.missions = missions.getMissions();
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
 
     missionLayer.updateFeatures();
 
