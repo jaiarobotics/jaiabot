@@ -8,6 +8,7 @@ import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssi
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
+import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -85,7 +86,23 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleDeleteMissionClick = (missionID: number) => {
-        jaiaDispatch({ type: JaiaActions.DELETE_MISSION, missionID: missionID });
+        jaiaDispatch({
+            type: JaiaActions.DELETE_MISSION,
+            missionID: missionID,
+        });
+    };
+
+    /**
+     * Triggered when the operator clicks the edit mission toggle
+     *
+     * @param {number} missionID ID of the mission toggled
+     * @returns {void}
+     */
+    const handleToggleEditClick = (missionID: number) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_EDIT_MISSION,
+            missionID: missionID,
+        });
     };
 
     return (
@@ -124,6 +141,15 @@ export default function MissionsList() {
                                 >
                                     <Icon path={mdiDelete} />
                                 </Button>
+                                <JaiaToggle
+                                    checked={() =>
+                                        jaiaContext.missionIDInEditMode === mission.getMissionID()
+                                    }
+                                    onClick={() => handleToggleEditClick(mission.getMissionID())}
+                                    label="Edit"
+                                    title="ToggleEditMode"
+                                    testLabel={`Edit Mission ${mission.getMissionID()}`}
+                                />
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
