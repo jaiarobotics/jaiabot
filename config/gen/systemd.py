@@ -541,7 +541,7 @@ else:
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
-if jaia_bot_type.value == 'echo':
+if jaia_bot_type.value == 'ECHO':
     jaiabot_apps_echo = [
         {'exe': 'jaiabot_echo_driver',
         'description': 'JaiaBot Echo Driver',
