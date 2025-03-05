@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Speeds } from "../../../shared/JAIAProtobuf";
+import { Speeds } from "../../../types/protobuf-types";
 import { GlobalSettings, Save } from "../../../missions/settings";
 
 import Slider from "@mui/material/Slider";

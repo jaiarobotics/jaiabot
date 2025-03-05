@@ -1,7 +1,7 @@
 import React from "react";
 
 import RunList from "./RunList/RunList";
-import { Goal } from "../../../shared/JAIAProtobuf";
+import { Goal } from "../../../types/protobuf-types";
 import { Missions } from "../../../missions/missions";
 import { MissionInterface, RunInterface } from "../../CommandControl/CommandControl";
 

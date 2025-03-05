@@ -10,7 +10,7 @@ import { PortalBotStatus } from "../../../shared//PortalStatus";
 import { createGPSMarker } from "../../../shared/Marker";
 import { getMapCoordinate } from "../../../shared/Utilities";
 import * as Styles from "../../../shared/Styles";
-import { ContactStatus } from "../../../shared//JAIAProtobuf";
+import { ContactStatus } from "../../../types/protobuf-types";
 import { layers } from "./layers";
 import LayerGroup from "ol/layer/Group";
 import { layer } from "@fortawesome/fontawesome-svg-core";

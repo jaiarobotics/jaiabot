@@ -11,6 +11,9 @@ import HubDetails from "../containers/HubDetails/HubDetails";
 import BotDetails from "../containers/BotDetails/BotDetails";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 
+/**
+ * The root of the JCC interface
+ */
 export default function App() {
     return (
         <div id="jcc">

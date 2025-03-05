@@ -30,7 +30,6 @@ import {
     formatLatitude,
     formatLongitude,
     formatAttitudeAngle,
-    addDropdownListener,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";

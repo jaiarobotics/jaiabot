@@ -62,7 +62,7 @@ import {
     BottomDepthSafetyParams,
     BotType,
     ContactStatus,
-} from "../../shared/JAIAProtobuf";
+} from "../../types/protobuf-types";
 import {
     getGeographicCoordinate,
     deepcopy,

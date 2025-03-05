@@ -5,7 +5,7 @@
 import React from "react";
 import { error, success, warning, info, debug } from "../../../notifications/notifications";
 import Button from "@mui/material/Button";
-import { CommandForHub, HubCommandType } from "../../../shared/JAIAProtobuf";
+import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
 import { JaiaAPI } from "../../../utils/jaia-api";
 import { PortalHubStatus } from "../../../shared/PortalStatus";
 import { getElementById } from "../../../shared/Utilities";
