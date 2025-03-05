@@ -38,8 +38,6 @@ const mockJaiaContext1: JaiaContextType = {
     hubs: hubs.getHubs(),
     missions: missions.getMissions(),
 
-    clientID: "",
-    controllingClientID: "",
     selectedNode: mockSelectedNode1,
     visibleDetails: NodeTypes.NONE,
     visiblePanel: PanelNames.NONE,

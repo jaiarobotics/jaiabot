@@ -31,8 +31,6 @@ export interface JaiaContextType {
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
 
-    clientID: string;
-    controllingClientID: string;
     selectedNode: SelectedNode;
     visibleDetails: NodeTypes;
     visiblePanel: PanelNames;
@@ -46,7 +44,6 @@ export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
-    clientID?: string;
 
     selectedNode?: SelectedNode;
     location?: GeographicCoordinate;
@@ -115,12 +112,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
-        case JaiaActions.SAVED_CLIENT_ID:
-            return handleSavedClientID(mutableState, action.clientID);
-
-        case JaiaActions.TAKE_CONTROL_SUCCESS:
-            return handleTakeControlSuccess(mutableState);
-
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
@@ -162,8 +153,6 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
 
-    mutableState.clientID = "";
-    mutableState.controllingClientID = "";
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
@@ -312,31 +301,6 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
 
     missionLayer.updateFeatures();
 
-    return mutableState;
-}
-
-/**
- * Adds the client ID to state
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {string} clientID ID associated with the client session
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleSavedClientID(mutableState: JaiaContextType, clientID: string) {
-    if (!clientID) throw new Error("Invalid clientID");
-
-    mutableState.clientID = clientID;
-    return mutableState;
-}
-
-/**
- * Sets the client ID saved in state to be the controlling client ID
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleTakeControlSuccess(mutableState: JaiaContextType) {
-    mutableState.controllingClientID = mutableState.clientID;
     return mutableState;
 }
 
