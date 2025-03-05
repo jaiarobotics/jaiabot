@@ -67,7 +67,7 @@ function Title(props: TitleProps) {
 /**
  * Produces the buttons for the dialox box.
  * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Stop.
+ * For an alert, the button will be Activate Bot.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
@@ -80,7 +80,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Stop
+                    Activate Bot
                 </button>
             </div>
         );
