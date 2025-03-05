@@ -9,12 +9,11 @@ import {
     JaiaAction,
 } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { CustomAlert } from "../../shared/CustomAlert";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { DETAILS_DECIMALS } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
-import Bot from "../../data/bots/bot";
 import { missions } from "../../data/missions/missions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
@@ -25,20 +24,8 @@ import {
     getRepeatProgress,
     getDistToWaypoint,
     isBotLogging,
-    disableButton,
-    disableClearRunButton,
-    disablePlayButton,
-    runMission,
-    toggleEditMode,
 } from "./bot-details";
-import { CommandInfo, botCommands } from "../../types/commands";
 import { MissionStatus } from "../../types/jaia-system-types";
-import { sendBotCommand, sendBotRunCommand, sendBotRCCommand } from "../../utils/command";
-import { Command, MissionState, GeographicCoordinate } from "../../types/protobuf-types";
-import { Missions } from "../../missions/missions";
-import { GlobalSettings } from "../../missions/settings";
-import { warning, info } from "../../notifications/notifications";
-import { MissionInterface, RunInterface } from "../CommandControl/CommandControl";
 import {
     formatLatitude,
     formatLongitude,
@@ -56,7 +43,6 @@ import {
     mdiDelete,
     mdiRestart,
     mdiSkipNext,
-    mdiDownload,
     mdiRestartAlert,
     mdiCheckboxMarkedCirclePlusOutline,
 } from "@mdi/js";
@@ -69,41 +55,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 
+import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
-const rcMode = require("../../style/icons/controller.svg");
 
-export interface BotDetailsProps {
-    // TODO once all uses of missionFromProps below has been replaced this prop can be deleted
-    mission: MissionInterface;
-    // TODO this should not be needed, most uses refactored but not all
-    // Need to incorporate some of the data in RunInterface into the data model
-    // before refactoring this out
-    run: RunInterface;
-    // TODO download queue may be refactored, leave for now
-    downloadQueue: number[];
-    // TODO Think the takeControl functionality needs rework, leave for now
-    takeControl: (onSuccess: () => void) => void;
-    // TODO Should be able to change the data model locally, look to eliminated this prop
-    // Currently using runList in CommandControl to manage, need to refactor mission or
-    // other to elminate need for data in runList
-    deleteSingleMission: (runId: string, disableMessage?: string) => void;
-    // TODO RC Mode state is managed in CommandControl, not sure if used in any other panels.
-    // CommandControl uses rcModeStatus state but also adds rcMode to the botFeature
-    isRCModeActive: (botId: number) => boolean;
-    setRcMode: (botId: number, rcMode: boolean) => void;
-    // TODO download queue may be refactored, leave for now
-    downloadIndividualBot: (botID: Number, disableMessage: string) => void;
-}
-
-export function BotDetails(props: BotDetailsProps) {
-    // TODO We will replace these old objects from Props with ones from context
-    const missionFromProps = props.mission;
-
-    const takeControl = props.takeControl;
-    const deleteSingleMission = props.deleteSingleMission;
-    takeControlFunction = props.takeControl;
-    // End Old code
-
+export function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
@@ -135,137 +90,8 @@ export function BotDetails(props: BotDetailsProps) {
         return <div></div>;
     }
 
-    // TODO some mission related code was changed to use the mission
-    // from globalContext but the management of missions in globablContext
-    // is not complete.  getMissionID will return -1 untill it is done
-    // known bugs affected by this include
-    // Edit Mode Toggle, Play Button etc
     const missionStatus: MissionStatus = bot.getMissionStatus();
     const botSensors: BotSensors = bot.getBotSensors();
-
-    let displayPrecision = 2;
-
-    /**
-     * @notes Needs refactor
-     */
-    function dataOffloadButton() {
-        // TODO This logic should be cleaned up and simplified
-        let linkQualityPercentage = 0;
-
-        if (bot.getWifiLinkQuality() != undefined) {
-            linkQualityPercentage = bot.getWifiLinkQuality();
-        }
-
-        let dataOffloadButton = (
-            <Button
-                className={
-                    disableButton(botCommands.recover, missionStatus?.missionState).isDisabled ||
-                    !linkQualityPercentage
-                        ? "inactive button-jcc"
-                        : "button-jcc"
-                }
-                onClick={() => {
-                    let disableMessage = disableButton(
-                        botCommands.recover,
-                        missionStatus?.missionState,
-                    ).disableMessage;
-
-                    if (!linkQualityPercentage) {
-                        disableMessage +=
-                            "The command: " +
-                            botCommands.recover.commandType +
-                            " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)";
-                    }
-
-                    props.downloadIndividualBot(botID, disableMessage);
-                }}
-            >
-                <Icon path={mdiDownload} title="Data Offload" />
-            </Button>
-        );
-
-        if (disableButton(botCommands.recover, missionStatus?.missionState).isDisabled) {
-            dataOffloadButton = (
-                <Button
-                    className={
-                        disableButton(botCommands.retryDataOffload, missionStatus?.missionState)
-                            .isDisabled || !linkQualityPercentage
-                            ? "inactive button-jcc"
-                            : "button-jcc"
-                    }
-                    onClick={() => {
-                        let disableMessage = disableButton(
-                            botCommands.retryDataOffload,
-                            missionStatus?.missionState,
-                        ).disableMessage;
-
-                        if (!linkQualityPercentage) {
-                            disableMessage +=
-                                "The command: " +
-                                botCommands.retryDataOffload.commandType +
-                                " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)";
-                        }
-                        props.downloadIndividualBot(botID, disableMessage);
-                    }}
-                >
-                    <Icon path={mdiDownload} title="Retry Data Offload" />
-                </Button>
-            );
-        }
-        return dataOffloadButton;
-    }
-
-    /**
-     * @notes Needs refactor / to be combined with HealthStatusLine
-     */
-    function healthRow(bot: Bot, allInfo: boolean) {
-        let healthClassName =
-            {
-                HEALTH__OK: "healthOK",
-                HEALTH__DEGRADED: "healthDegraded",
-                HEALTH__FAILED: "healthFailed",
-            }[bot.getHealthState()] ?? "healthOK";
-
-        let healthStateElement = <div className={healthClassName}>{bot.getHealthState()}</div>;
-
-        let errors = bot.getErrors() ?? [];
-        let errorElements = errors.map((error) => {
-            return (
-                <div key={error} className="healthFailed">
-                    {error}
-                </div>
-            );
-        });
-
-        let warnings = bot.getWarnings() ?? [];
-        let warningElements = warnings.map((warning) => {
-            return (
-                <div key={warning} className="healthDegraded">
-                    {warning}
-                </div>
-            );
-        });
-
-        if (allInfo) {
-            return (
-                <tr>
-                    <td>Health</td>
-                    <td>
-                        {healthStateElement}
-                        {errorElements}
-                        {warningElements}
-                    </td>
-                </tr>
-            );
-        } else {
-            return (
-                <tr>
-                    <td>Health</td>
-                    <td>{healthStateElement}</td>
-                </tr>
-            );
-        }
-    }
 
     /**
      * Dispatches an action to close the Bot details panel
@@ -288,356 +114,6 @@ export function BotDetails(props: BotDetailsProps) {
         });
     }
 
-    /**
-     * Makes a call to send the system check command
-     *
-     * @returns {void}
-     */
-    function handleSystemCheckClick() {
-        issueCommand(
-            botID,
-            botCommands.active,
-            disableButton(botCommands.active, missionStatus?.missionState).disableMessage,
-        );
-    }
-
-    /**
-     * Makes a call to send the stop command
-     *
-     * @returns {void}
-     */
-    function handleStopMissionClick() {
-        issueCommand(
-            botID,
-            botCommands.stop,
-            disableButton(botCommands.stop, missionStatus?.missionState).disableMessage,
-            props.setRcMode,
-        );
-    }
-
-    /**
-     * Makes a call to send the command to enter RC mode
-     *
-     * @returns {void}
-     */
-    async function handleActivateRCClick() {
-        issueRCCommand(
-            bot,
-            await runRCMode(bot),
-            props.isRCModeActive,
-            props.setRcMode,
-            disableButton(
-                botCommands.rcMode,
-                missionStatus?.missionState,
-                botID,
-                props.downloadQueue,
-            ).disableMessage,
-        );
-    }
-
-    /**
-     * Makes a call to send the next task command
-     *
-     * @returns {void}
-     */
-    function handleNextTaskClick() {
-        issueCommand(
-            botID,
-            botCommands.nextTask,
-            disableButton(botCommands.nextTask, missionStatus?.missionState).disableMessage,
-        );
-    }
-
-    /**
-     * Makes a call to send the play mission command
-     *
-     * @returns {void}
-     */
-    async function handlePlayButtonClick() {
-        if (
-            bot.getHealthState() === "HEALTH__FAILED" &&
-            missionStatus?.missionState !== MissionState.PRE_DEPLOYMENT__IDLE &&
-            missionStatus?.missionState !== MissionState.PRE_DEPLOYMENT__FAILED
-        ) {
-            (await CustomAlert.confirmAsync(
-                "Running the command may have severe consequences because the bot is in a failed health state.\n",
-                "Confirm",
-                "Warning",
-            ))
-                ? issueRunCommand(
-                      botID,
-                      runMission(botID, missionFromProps),
-                      props.setRcMode,
-                      disablePlayButton(
-                          botID,
-                          mission,
-                          botCommands.play,
-                          missionStatus?.missionState,
-                          props.downloadQueue,
-                      ).disableMessage,
-                  )
-                : false;
-        } else {
-            issueRunCommand(
-                botID,
-                runMission(botID, missionFromProps),
-                props.setRcMode,
-                disablePlayButton(
-                    botID,
-                    mission,
-                    botCommands.play,
-                    missionStatus?.missionState,
-                    props.downloadQueue,
-                ).disableMessage,
-            );
-        }
-    }
-
-    /**
-     * Makes a call to send the shutdown command
-     *
-     * @returns {void}
-     */
-    async function handleBotShutDownClick() {
-        if (missionStatus?.missionState == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
-            (await CustomAlert.confirmAsync(
-                `Are you sure you'd like to shutdown bot: ${botID} without doing a data offload?`,
-                "Shutdown Bot",
-            ))
-                ? issueCommand(
-                      botID,
-                      botCommands.shutdown,
-                      disableButton(
-                          botCommands.shutdown,
-                          missionStatus?.missionState,
-                          botID,
-                          props.downloadQueue,
-                      ).disableMessage,
-                  )
-                : false;
-        } else {
-            issueCommand(
-                botID,
-                botCommands.shutdown,
-                disableButton(
-                    botCommands.shutdown,
-                    missionStatus?.missionState,
-                    botID,
-                    props.downloadQueue,
-                ).disableMessage,
-            );
-        }
-    }
-
-    /**
-     * Makes a call to send the reboot command
-     *
-     * @returns {void}
-     */
-    async function handleRebootBotClick() {
-        if (missionStatus?.missionState == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
-            (await CustomAlert.confirmAsync(
-                `Are you sure you'd like to reboot bot: ${botID} without doing a data offload?`,
-                "Reboot Bot",
-            ))
-                ? issueCommand(
-                      botID,
-                      botCommands.reboot,
-                      disableButton(
-                          botCommands.reboot,
-                          missionStatus?.missionState,
-                          botID,
-                          props.downloadQueue,
-                      ).disableMessage,
-                  )
-                : false;
-        } else {
-            issueCommand(
-                botID,
-                botCommands.reboot,
-                disableButton(
-                    botCommands.reboot,
-                    missionStatus?.missionState,
-                    botID,
-                    props.downloadQueue,
-                ).disableMessage,
-            );
-        }
-    }
-
-    /**
-     * Makes a call to send the restart command
-     *
-     * @returns {void}
-     */
-    async function handleRestartBotClick() {
-        if (missionStatus?.missionState == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
-            (await CustomAlert.confirmAsync(
-                `Are you sure you'd like to restart bot: ${botID} without doing a data offload?`,
-                "Restart Bot",
-            ))
-                ? issueCommand(
-                      botID,
-                      botCommands.restartServices,
-                      disableButton(
-                          botCommands.restartServices,
-                          missionStatus?.missionState,
-                          botID,
-                          props.downloadQueue,
-                      ).disableMessage,
-                  )
-                : false;
-        } else {
-            issueCommand(
-                botID,
-                botCommands.restartServices,
-                disableButton(
-                    botCommands.restartServices,
-                    missionStatus?.missionState,
-                    botID,
-                    props.downloadQueue,
-                ).disableMessage,
-            );
-        }
-    }
-    // TODO The Take Control needs a complete refactor
-    // This will probably go away and all of the uses of takeControlFunction
-    // will need rework
-    // Once those are reworked we can probably move more of the non-React logic
-    // into other files
-    var takeControlFunction: (onSuccess: () => void) => void;
-
-    function issueCommand(
-        botId: number,
-        command: CommandInfo,
-        disableMessage: string,
-        setRcMode?: (botId: number, rcMode: boolean) => void,
-    ) {
-        takeControlFunction(() => {
-            // Exit if we have a disableMessage
-            if (disableMessage !== "") {
-                CustomAlert.presentAlert({ text: disableMessage });
-                return;
-            }
-
-            CustomAlert.confirm(
-                `Are you sure you'd like to ${command.description} bot: ${botId}?`,
-                command.confirmationButtonText,
-                () => {
-                    sendBotCommand(botId, command);
-                    if (setRcMode) {
-                        setRcMode(botId, false);
-                    }
-                },
-            );
-        });
-    }
-
-    // TODO look into simplifying the parameter of this
-    // Need to wait until we can eliminate need for the
-    // mission and run props
-    function issueRunCommand(
-        botID: number,
-        botRun: Command,
-        setRcMode: (botId: number, rcMode: boolean) => void,
-        disableMessage: string,
-    ) {
-        takeControlFunction(() => {
-            // Exit if we have a disableMessage
-            if (disableMessage !== "") {
-                CustomAlert.alert(disableMessage);
-                return;
-            }
-
-            CustomAlert.confirmAsync(
-                "Are you sure you'd like to play this run for Bot: " + botID + "?",
-                "Play Run",
-            ).then((confirmed) => {
-                if (confirmed) {
-                    // Set the speed values
-                    botRun.plan.speeds = GlobalSettings.missionPlanSpeeds;
-
-                    info("Submitted for Bot: " + botID);
-                    sendBotRunCommand(botRun);
-                    setRcMode(botID, false);
-                }
-            });
-        });
-    }
-
-    function issueRCCommand(
-        bot: Bot,
-        botMission: Command,
-        isRCModeActive: (botId: number) => boolean,
-        setRcMode: (botId: number, rcMode: boolean) => void,
-        disableMessage: string,
-    ) {
-        takeControlFunction(() => {
-            // Exit if we have a disableMessage
-            if (disableMessage !== "") {
-                CustomAlert.alert(disableMessage);
-                return;
-            }
-            const botID = bot.getBotID();
-            const isRCActive = isRCModeActive(botID);
-
-            if (!isRCActive) {
-                let isCriticallyLowBattery = "";
-                const botErrors = bot.getErrors();
-                if (Array.isArray(botErrors)) {
-                    for (let e of botErrors) {
-                        if (e === "ERROR__VEHICLE__CRITICALLY_LOW_BATTERY") {
-                            isCriticallyLowBattery =
-                                "***Critically Low Battery in RC Mode could jeopardize your recovery!***\n";
-                        }
-                    }
-                }
-
-                CustomAlert.confirm(
-                    isCriticallyLowBattery +
-                        "Are you sure you'd like to use remote control mode for Bot: " +
-                        bot +
-                        "?",
-                    "Use Remote Control Mode",
-                    () => {
-                        console.debug("Running Remote Control:");
-                        console.debug(botMission);
-                        sendBotRCCommand(botMission);
-                        setRcMode(botID, true);
-                    },
-                );
-            } else {
-                issueCommand(botID, botCommands.stop, disableMessage);
-                setRcMode(botID, false);
-            }
-        });
-    }
-
-    async function runRCMode(bot: Bot) {
-        if (!bot) {
-            warning("No bots selected");
-            return null;
-        }
-
-        const botLat = botSensors.getGPS().getLat();
-        const botLon = botSensors.getGPS().getLon();
-
-        let datumLocation: GeographicCoordinate = { lat: botLat, lon: botLon };
-
-        if (!datumLocation) {
-            const warningString =
-                "RC mode issued, but bot has no location. Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?";
-
-            if (!(await CustomAlert.confirmAsync(warningString, "Use (0, 0) Datum"))) {
-                return null;
-            }
-
-            datumLocation = { lat: 0, lon: 0 };
-        }
-
-        return Missions.RCMode(bot.getBotID(), datumLocation);
-    }
-
     return (
         <React.Fragment>
             <div id="botDetailsBox">
@@ -656,60 +132,22 @@ export function BotDetails(props: BotDetailsProps) {
                     </div>
                     <h3 className="name">{getWaypontHelperText(mission)}</h3>
                     <div className="botDetailsToolbar">
-                        <Button
-                            className={
-                                disableButton(botCommands.stop, missionStatus?.missionState)
-                                    .isDisabled
-                                    ? "inactive button-jcc"
-                                    : " button-jcc stopMission"
-                            }
-                            onClick={() => {
-                                handleStopMissionClick();
-                            }}
-                        >
+                        <Button className="jaia-button">
                             <Icon path={mdiStop} title="Stop Mission" />
                         </Button>
-                        <Button
-                            className={
-                                disablePlayButton(
-                                    botID,
-                                    mission,
-                                    botCommands.play,
-                                    missionStatus?.missionState,
-                                    props.downloadQueue,
-                                ).isDisabled
-                                    ? "inactive button-jcc"
-                                    : "button-jcc"
-                            }
-                            onClick={() => {
-                                handlePlayButtonClick();
-                            }}
-                        >
+                        <Button className="jaia-button">
                             <Icon path={mdiPlay} title="Run Mission" />
                         </Button>
-                        <Button
-                            className={
-                                disableClearRunButton(mission).isDisabled
-                                    ? "inactive button-jcc"
-                                    : "button-jcc"
-                            }
-                            onClick={() => {
-                                deleteSingleMission(
-                                    props.run?.id,
-                                    disableClearRunButton(mission).disableMessage,
-                                );
-                            }}
-                        >
+                        <Button className="jaia-button">
                             <Icon path={mdiDelete} title="Clear Mission" />
                         </Button>
-
                         <JaiaToggle
                             checked={() =>
                                 missions.getMissionIDInEditMode() === mission.getMissionID()
                             }
-                            onClick={() => toggleEditMode(mission)}
+                            onClick={() => {}}
                             label="Edit"
-                            title="ToggleEditMode"
+                            title="Toggle Edit Mode"
                             disabled={() => (!mission ? true : false)}
                         />
                     </div>
@@ -754,7 +192,7 @@ export function BotDetails(props: BotDetailsProps) {
                                         <tr>
                                             <td>Battery Percentage</td>
                                             <td>
-                                                {bot.getBatteryPercent()?.toFixed(displayPrecision)}{" "}
+                                                {bot.getBatteryPercent()?.toFixed(DETAILS_DECIMALS)}{" "}
                                                 %
                                             </td>
                                         </tr>
@@ -823,63 +261,24 @@ export function BotDetails(props: BotDetailsProps) {
                                 <Typography>Commands</Typography>
                             </AccordionSummary>
                             <AccordionDetails className="botDetailsCommands">
-                                <Button
-                                    className={
-                                        disableButton(
-                                            botCommands.active,
-                                            missionStatus?.missionState,
-                                        ).isDisabled
-                                            ? "inactive button-jcc"
-                                            : "button-jcc"
-                                    }
-                                    onClick={() => {
-                                        handleSystemCheckClick();
-                                    }}
-                                >
+                                <Button className="jaia-button">
                                     <Icon
                                         path={mdiCheckboxMarkedCirclePlusOutline}
                                         title="System Check"
                                     />
                                 </Button>
 
-                                <Button
-                                    className={`
-                                        ${
-                                            disableButton(
-                                                botCommands.rcMode,
-                                                missionStatus?.missionState,
-                                                botID,
-                                                props.downloadQueue,
-                                            ).isDisabled
-                                                ? "inactive button-jcc"
-                                                : "button-jcc"
-                                        } 
-                                        ${props.isRCModeActive(botID) ? "rc-active" : "rc-inactive"}
-                                        `}
-                                    onClick={async () => {
-                                        handleActivateRCClick();
-                                    }}
-                                >
-                                    <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
+                                <Button className="jaia-button">
+                                    <img
+                                        src={rcModeIcon}
+                                        alt="Activate RC Mode"
+                                        title="RC Mode"
+                                    ></img>
                                 </Button>
 
-                                <Button
-                                    className={
-                                        disableButton(
-                                            botCommands.nextTask,
-                                            missionStatus?.missionState,
-                                        ).isDisabled
-                                            ? "inactive button-jcc"
-                                            : "button-jcc"
-                                    }
-                                    onClick={() => {
-                                        handleNextTaskClick();
-                                    }}
-                                >
+                                <Button className="jaia-button">
                                     <Icon path={mdiSkipNext} title="Next Task" />
                                 </Button>
-
-                                {dataOffloadButton()}
 
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
@@ -897,55 +296,13 @@ export function BotDetails(props: BotDetailsProps) {
                                     </AccordionSummary>
 
                                     <AccordionDetails>
-                                        <Button
-                                            className={
-                                                disableButton(
-                                                    botCommands.shutdown,
-                                                    missionStatus?.missionState,
-                                                    botID,
-                                                    props.downloadQueue,
-                                                ).isDisabled
-                                                    ? "inactive button-jcc"
-                                                    : "button-jcc"
-                                            }
-                                            onClick={async () => {
-                                                handleBotShutDownClick();
-                                            }}
-                                        >
+                                        <Button className="jaia-button">
                                             <Icon path={mdiPower} title="Shutdown" />
                                         </Button>
-                                        <Button
-                                            className={
-                                                disableButton(
-                                                    botCommands.reboot,
-                                                    missionStatus?.missionState,
-                                                    botID,
-                                                    props.downloadQueue,
-                                                ).isDisabled
-                                                    ? "inactive button-jcc"
-                                                    : "button-jcc"
-                                            }
-                                            onClick={async () => {
-                                                handleRebootBotClick();
-                                            }}
-                                        >
+                                        <Button className="jaia-button">
                                             <Icon path={mdiRestartAlert} title="Reboot" />
                                         </Button>
-                                        <Button
-                                            className={
-                                                disableButton(
-                                                    botCommands.restartServices,
-                                                    missionStatus?.missionState,
-                                                    botID,
-                                                    props.downloadQueue,
-                                                ).isDisabled
-                                                    ? "inactive button-jcc"
-                                                    : "button-jcc"
-                                            }
-                                            onClick={async () => {
-                                                handleRestartBotClick();
-                                            }}
-                                        >
+                                        <Button className="jaia-button">
                                             <Icon path={mdiRestart} title="Restart Services" />
                                         </Button>
                                     </AccordionDetails>
@@ -969,11 +326,7 @@ export function BotDetails(props: BotDetailsProps) {
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
-                            <AccordionDetails>
-                                <table>
-                                    <tbody>{healthRow(bot, true)}</tbody>
-                                </table>
-                            </AccordionDetails>
+                            <AccordionDetails></AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
 
@@ -1034,7 +387,7 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getGPS()
                                                                 .getHDOP()
-                                                                ?.toFixed(displayPrecision)}
+                                                                ?.toFixed(DETAILS_DECIMALS)}
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -1043,7 +396,7 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getGPS()
                                                                 .getPDOP()
-                                                                ?.toFixed(displayPrecision)}
+                                                                ?.toFixed(DETAILS_DECIMALS)}
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -1052,7 +405,7 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getGPS()
                                                                 .getSpeedOverGround()
-                                                                ?.toFixed(displayPrecision)}{" "}
+                                                                ?.toFixed(DETAILS_DECIMALS)}{" "}
                                                             m/s
                                                         </td>
                                                     </tr>
@@ -1062,7 +415,7 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getGPS()
                                                                 .getCourseOverGround()
-                                                                ?.toFixed(displayPrecision)}
+                                                                ?.toFixed(DETAILS_DECIMALS)}
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -1143,7 +496,7 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getTemperatureSensor()
                                                                 .getTemperature()
-                                                                ?.toFixed(displayPrecision)}{" "}
+                                                                ?.toFixed(DETAILS_DECIMALS)}{" "}
                                                             °C
                                                         </td>
                                                     </tr>
@@ -1153,16 +506,10 @@ export function BotDetails(props: BotDetailsProps) {
                                                             {botSensors
                                                                 .getPressureSensor()
                                                                 .getDepth()
-                                                                ?.toFixed(displayPrecision)}{" "}
+                                                                ?.toFixed(DETAILS_DECIMALS)}{" "}
                                                             m
                                                         </td>
                                                     </tr>
-                                                    {/* <tr>
-                                                        <td>Salinity</td>
-                                                        <td>
-                                                            {bot.salinity?.toFixed(prec)} PSU(ppt)
-                                                        </td>
-                                                    </tr> */}
                                                 </tbody>
                                             </table>
                                         </AccordionDetails>
