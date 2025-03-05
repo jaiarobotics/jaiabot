@@ -194,7 +194,7 @@ function handleAddMission(mutableState: JaiaContextType) {
     mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
-    missionLayer.updateFeatures();
+    syncOpenLayers();
 
     return mutableState;
 }
