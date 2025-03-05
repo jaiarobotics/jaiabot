@@ -5,7 +5,6 @@ import argparse
 import socket
 import logging
 import time
-
 from jaiabot.messages.pressure_temperature_pb2 import PressureTemperatureData
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
@@ -59,14 +58,12 @@ class Sensor:
 
     def setup(self):
         if not self.is_setup:
-            
             if args.sensor_type == SensorType.BAR02.name:
                 self.sensor = ms5837.MS5837_02BA()
                 self.sensor_type = SensorType.BAR02.num
             else:
                 self.sensor = ms5837.MS5837_30BA()
                 self.sensor_type = SensorType.BAR30.num
-            
             if not self.sensor.init():
                 log.error("Cannot initialize Blue Robotics pressure-temperature sensor.")
                 raise SensorError()
@@ -87,7 +84,6 @@ class Sensor:
                     self.pressure_0 = self.sensor.pressure()
 
                 return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
-                
             else:
                 log.warning('Sensor read fail')
                 self.is_setup = False
@@ -118,34 +114,32 @@ else:
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', args.receive_port))
 # Send data to localhost on port 20100
-addr = ("localhost", args.send_port)  
+addr = ("localhost", args.send_port)
 
-# Desired send rate
+# Target send interval (in seconds)
 target_interval = 1.0 / args.data_rate  
+# Next scheduled send time
+next_send_time = time.perf_counter()  
 
 while True:
-    # Start time of the loop
-    loop_start = time.time()
+    loop_start = time.perf_counter()
 
-    # Respond to anyone who sends us a packet
+    # Read data from sensor
     try:
         p_mbar, t_celsius = sensor.read()
     except Exception as e:
         log.warning(e)
         continue
 
+    # Validate sensor values
     try:
-        float(p_mbar)
+        p_mbar = float(p_mbar)
+        t_celsius = float(t_celsius)
     except Exception as e:
-        log.error(f'Pressure cannot be converted to a float. {e}')
-        continue
-    
-    try:
-        float(t_celsius)
-    except Exception as e:
-        log.error(f'Temperature cannot be converted to a float. {e}')
+        log.error(f"Invalid sensor data: {e}")
         continue
 
+    # Create and send the protobuf message
     pressure_temperature_data = PressureTemperatureData()
     pressure_temperature_data.pressure_raw = p_mbar
     pressure_temperature_data.temperature = t_celsius
@@ -153,11 +147,19 @@ while True:
 
     try:
         sock.sendto(pressure_temperature_data.SerializeToString(), addr)
-        log.debug(f"Sent data to {addr}: Pressure={p_mbar}, Temperature={t_celsius}")
     except Exception as e:
         log.error(f"Failed to send data: {e}")
 
-    # Calculate how long to sleep to maintain target data rate
-    loop_duration = time.time() - loop_start
-    sleep_duration = max(0, target_interval - loop_duration)
-    time.sleep(sleep_duration)
+    # Measure loop duration
+    loop_duration = time.perf_counter() - loop_start
+
+    # Adjust next send time dynamically
+    next_send_time += target_interval
+
+    # Calculate time remaining before next send
+    sleep_time = max(0, next_send_time - time.perf_counter())
+
+    # Sleep for the remaining interval
+    time.sleep(sleep_time)
+
+
