@@ -188,9 +188,10 @@ function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const newMission = new Mission();
     const newMissionID = missions.addMission(newMission);
-    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
-    mutableState.missions = missions.getMissions();
+
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.missions = missions.getMissions();
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     missionLayer.updateFeatures();
@@ -442,8 +443,11 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
     } else {
         missions.setMissionIDInEditMode(UNASSIGNED_ID);
     }
+
     mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
-    syncOpenLayers();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 

@@ -251,7 +251,6 @@ test.skip("Auto-assigning, deleting, auto-assigning", async () => {
 
 /**
  * Exercises Edit Mission Toggles
- *
  */
 test.skip("Exercise Mission Edit Toggles", async () => {
     await act(async () => {
