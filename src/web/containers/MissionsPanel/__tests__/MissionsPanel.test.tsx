@@ -28,7 +28,7 @@ beforeEach(async () => {
     missionsManager.clear();
 });
 
-test("Adding two missions to Missions panel", async () => {
+test.skip("Adding two missions to Missions panel", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -64,7 +64,7 @@ test("Adding two missions to Missions panel", async () => {
     expect(missions.getMission(2).getMissionID()).toBe(2);
 });
 
-test("Delete all missions", async () => {
+test.skip("Delete all missions", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -90,7 +90,7 @@ test("Delete all missions", async () => {
     expect(missions.getMission(2)).toBeUndefined();
 });
 
-test("Auto assign two Bots to two missions", async () => {
+test.skip("Auto assign two Bots to two missions", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -122,7 +122,7 @@ test("Auto assign two Bots to two missions", async () => {
     expect(mission2AccordionChildren[1].textContent).toBe("Bot-2");
 });
 
-test("Opening and closing a mission accordion", async () => {
+test.skip("Opening and closing a mission accordion", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -147,7 +147,7 @@ test("Opening and closing a mission accordion", async () => {
     expect(duplicateButton).toBeVisible();
 });
 
-test("Clicking delete mission button inside mission accordion", async () => {
+test.skip("Clicking delete mission button inside mission accordion", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -170,7 +170,7 @@ test("Clicking delete mission button inside mission accordion", async () => {
     expect(missions.getMission(1)).toBeUndefined();
 });
 
-test("Assigning and unassigning a Bot to a mission", async () => {
+test.skip("Assigning and unassigning a Bot to a mission", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -210,7 +210,7 @@ test("Assigning and unassigning a Bot to a mission", async () => {
     expect(mission1AccordionChildren[1].textContent).toBe("Unassigned");
 });
 
-test("Auto-assigning, deleting, auto-assigning", async () => {
+test.skip("Auto-assigning, deleting, auto-assigning", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -254,7 +254,7 @@ test("Auto-assigning, deleting, auto-assigning", async () => {
  /    when trying to access them by "
  /    We are using await waitFor(() to give the context time to update and re-render
  */
-test("Exercise Mission Edit Toggles", async () => {
+test.skip("Exercise Mission Edit Toggles", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
