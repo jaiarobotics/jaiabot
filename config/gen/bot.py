@@ -170,7 +170,8 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
                                             wifi_hub_id='',
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
+                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
