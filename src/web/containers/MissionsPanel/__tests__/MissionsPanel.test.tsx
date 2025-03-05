@@ -248,11 +248,13 @@ test.skip("Auto-assigning, deleting, auto-assigning", async () => {
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
     expect(mission2AccordionChildren[1].textContent).toBe("Bot-1");
 });
-/*
- /    Exercises Edit Mission Toggles
- /   @Notes When using both label and testLable of the JaiaToggle they need to be combined 
- /    when trying to access them by "
- /    We are using await waitFor(() to give the context time to update and re-render
+
+/**
+ * Exercises Edit Mission Toggles
+ *
+ * @notes
+ * When using both label and testLable of the JaiaToggle they need to be combined
+ * We are using await waitFor(() to give the context time to update and re-render
  */
 test.skip("Exercise Mission Edit Toggles", async () => {
     await act(async () => {
