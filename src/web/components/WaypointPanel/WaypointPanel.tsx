@@ -115,6 +115,15 @@ export default function WaypointPanel() {
                         <MenuItem value={TaskType.DIVE}>
                             {formatMenuItemText(TaskType.DIVE)}
                         </MenuItem>
+                        <MenuItem value={TaskType.SURFACE_DRIFT}>
+                            {formatMenuItemText(TaskType.SURFACE_DRIFT)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.CONSTANT_HEADING}>
+                            {formatMenuItemText(TaskType.CONSTANT_HEADING)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.STATION_KEEP}>
+                            {formatMenuItemText(TaskType.STATION_KEEP)}
+                        </MenuItem>
                     </Select>
                 </FormControl>
             </div>

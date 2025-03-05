@@ -350,10 +350,13 @@ function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
         task.setType(taskType);
     } else {
         const newTask = new Task();
+        newTask.setType(taskType);
         waypoint.setTask(newTask);
     }
 
     mutableState.missions = missions.getMissions();
+
+    missionLayer.updateFeatures();
 
     return mutableState;
 }
