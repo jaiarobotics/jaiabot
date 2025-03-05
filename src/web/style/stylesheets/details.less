@@ -1,0 +1,79 @@
+.node-details {
+    position: absolute;
+    background-color: @overlay-background;
+    top: 0;
+    left: 60px;
+
+    padding: 6px 12px 12px 12px;
+
+    width: 315px;
+    max-height: @panel-max-height;
+
+    display: flex;
+    flex-direction: column;
+
+    .details-heading {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        // 16px aligns the title and X button with the accordion text and ^ icons
+        padding: 12px 16px 16px 16px;
+    }
+
+    .title-bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .title-bar h2,
+    .title-bar .close-button {
+        font-size: 1.7rem;
+        font-weight: 600;
+        color: @cc-text-color-light;
+    }
+
+    .title-bar h2 {
+        flex-grow: 2;
+    }
+
+    .title-bar h4 {
+        color: @cc-text-color-light;
+        font-size: 1.1rem;
+        font-style: italic;
+    }
+
+    .title-bar .close-button {
+        cursor: pointer;
+    }
+
+    .details-help-text {
+        color: @cc-text-color-light;
+        font-size: 1.1rem;
+    }
+
+    .details-toolbar {
+        display: flex;
+        gap: 16px;
+    }
+
+    .accordions-container {
+        overflow-y: auto;
+        // Prevents scrollbar from shifting panel
+        scrollbar-width: none;
+    }
+
+    table {
+        margin: 8px 0;
+    }
+
+    td {
+        padding: 6px 12px;
+        font-size: 1rem;
+    }
+}
+
+.accordion-container .accordion-details-buttons.bot-commands {
+    padding: 8px 16px 16px 0;
+}

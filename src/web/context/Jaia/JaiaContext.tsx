@@ -130,8 +130,10 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
+
         case JaiaActions.CLICKED_EDIT_MISSION:
             return handleClickedEditMission(mutableState, action.missionID);
+
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
 
@@ -435,7 +437,6 @@ function handleClickedMissionAccordion(
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {number} missionID ID of the mission associated with the toggle
  * @returns {JaiaContextType} Updated mutable state object
- *
  */
 function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
     if (missionID !== missions.getMissionIDInEditMode()) {

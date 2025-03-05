@@ -50,7 +50,6 @@ import {
     JaiaAction,
 } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { BotDetails } from "../BotDetails/BotDetails";
 import {
     Goal,
     TaskType,
