@@ -1,7 +1,6 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState } from "react";
 
 // Jaia Imports
-import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import {
     JaiaContext,
     JaiaContextType,
@@ -14,7 +13,6 @@ import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 
 import BotSensors from "../../data/bots/bot-sensors";
-import { missions } from "../../data/missions/missions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
     getDistanceToHub,
