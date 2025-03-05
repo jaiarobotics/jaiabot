@@ -126,6 +126,24 @@ export default function WaypointPanel() {
                         </MenuItem>
                     </Select>
                 </FormControl>
+
+                <div className="task-parameters">
+                    <div>Max Depth</div>
+                    <input />
+                    <div className="units">m</div>
+
+                    <div>Depth Interval</div>
+                    <input />
+                    <div className="units">m</div>
+
+                    <div>Hold Time</div>
+                    <input />
+                    <div className="units">s</div>
+
+                    <div>Drift Time</div>
+                    <input />
+                    <div className="units">s</div>
+                </div>
             </div>
         </div>
     );
