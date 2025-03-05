@@ -50,6 +50,7 @@ const mockJaiaContext1: JaiaContextType = {
     hubAccordionStates: mockHubAccordionStates1,
     botAccordionStates: mockBotAccordionStates,
     missionAccordionStates: {},
+    missionIDInEditMode: UNASSIGNED_ID,
 };
 
 const mockJaiaDispatch = () => {};

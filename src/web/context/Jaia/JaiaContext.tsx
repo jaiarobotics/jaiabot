@@ -39,6 +39,7 @@ export interface JaiaContextType {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
 }
 
 export interface JaiaAction {
@@ -143,6 +144,10 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
                 action.missionID,
                 action.isMissionAccordionExpanded,
             );
+
+        case JaiaActions.CLICKED_EDIT_MISSION:
+            return handleClickedEditMission(mutableState, action.missionID);
+
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
 
@@ -200,12 +205,15 @@ function handlePollDataModel(mutableState: JaiaContextType) {
  */
 function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-    missions.addMission(new Mission());
+    const newMission = new Mission();
+    const newMissionID = missions.addMission(newMission);
 
-    mutableState.missions = missions.getMissions();
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.missions = missions.getMissions();
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionAccordionStates[newMissionID] = true;
 
-    missionLayer.updateFeatures();
+    syncOpenLayers();
 
     return mutableState;
 }
@@ -299,10 +307,12 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
         missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
     ) {
         // Create new mission and add first waypoint for selected Bot without mission
-        const mission = new Mission();
-        missions.addMission(mission);
-        mission.addWaypoint(location);
-        missionsManager.assign(selectedNode.id, mission.getMissionID());
+        const newMission = new Mission();
+        const newMissionID = missions.addMission(newMission);
+        newMission.addWaypoint(location);
+        missionsManager.assign(selectedNode.id, newMissionID);
+        mutableState.missionIDInEditMode = newMissionID;
+        mutableState.missionAccordionStates[newMissionID] = true;
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
         const mission = missions.getMission(missionIDInEditMode);
@@ -475,6 +485,27 @@ function handleClickedMissionAccordion(
     isMissionAccordionExpanded: boolean,
 ) {
     mutableState.missionAccordionStates[missionID] = isMissionAccordionExpanded;
+    return mutableState;
+}
+
+/**
+ * Handles a click on a mission edit mode toggle
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID ID of the mission associated with the toggle
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
+    if (missionID !== missions.getMissionIDInEditMode()) {
+        missions.setMissionIDInEditMode(missionID);
+    } else {
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+    }
+
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 
