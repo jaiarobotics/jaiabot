@@ -54,7 +54,7 @@ class Sensor:
         self.is_setup = False
         self.pressure_0 = None
         self.sensor_type = None
-        self.osr_value = self.osr_mapping.get(args.data_rate, 2)
+        self.osr_value = self.osr_mapping.get(args.data_rate, 5)
 
     def setup(self):
         if not self.is_setup:
