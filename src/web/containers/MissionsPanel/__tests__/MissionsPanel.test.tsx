@@ -252,9 +252,6 @@ test.skip("Auto-assigning, deleting, auto-assigning", async () => {
 /**
  * Exercises Edit Mission Toggles
  *
- * @notes
- * When using both label and testLable of the JaiaToggle they need to be combined
- * We are using await waitFor(() to give the context time to update and re-render
  */
 test.skip("Exercise Mission Edit Toggles", async () => {
     await act(async () => {
