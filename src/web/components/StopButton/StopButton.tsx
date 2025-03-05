@@ -9,7 +9,7 @@ import { mdiStop } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 import { CommandType } from "../../types/protobuf-types";
-import { isCommandAvailable } from "../../utils/command";
+import { isCommandAvailable } from "../../utils/commands";
 
 import "../../style/stylesheets/util.less";
 
