@@ -1,5 +1,5 @@
 import { jaiaAPI } from "./jaia-api";
-import { Command, CommandForHub, CommandType, MissionState } from "./protobuf-types";
+import { Command, CommandForHub, CommandType, MissionState } from "../types/protobuf-types";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -54,10 +54,22 @@ export function isCommandAvailable(commandType: CommandType, missionState: Missi
     return false;
 }
 
+/**
+ * Passes a command message for a Bot to the jaiaAPI so it can reach the Hub for distribution
+ *
+ * @param {Command} command Command message to be sent to Bot
+ * @returns {void}
+ */
 export function sendBotCommand(command: Command) {
     jaiaAPI.postCommand(command);
 }
 
+/**
+ * Passes a command message for a Hub to the jaiaAPI so it can reach the Hub
+ *
+ * @param {Command} command Command message to be sent to Hub
+ * @returns {void}
+ */
 export function sendHubCommand(command: CommandForHub) {
     jaiaAPI.postCommandForHub(command);
 }
