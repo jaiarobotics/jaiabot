@@ -12,6 +12,7 @@ import { mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
+import TaskParameters from "../TaskParameters/TaskParameters";
 
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
@@ -28,7 +29,7 @@ export default function WaypointPanel() {
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
     };
 
-    const getTaskSelectValue = () => {
+    const getTaskType = () => {
         const taskType = getWaypoint().getTask()?.getType();
 
         if (!taskType) {
@@ -106,7 +107,7 @@ export default function WaypointPanel() {
                 <div className="label">Task:</div>
                 <FormControl sx={{ minWidth: 120 }} size="small">
                     <Select
-                        value={getTaskSelectValue()}
+                        value={getTaskType()}
                         onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
                     >
                         <MenuItem value={TaskType.NONE}>
@@ -127,22 +128,8 @@ export default function WaypointPanel() {
                     </Select>
                 </FormControl>
 
-                <div className="task-parameters">
-                    <div>Max Depth</div>
-                    <input />
-                    <div className="units">m</div>
-
-                    <div>Depth Interval</div>
-                    <input />
-                    <div className="units">m</div>
-
-                    <div>Hold Time</div>
-                    <input />
-                    <div className="units">s</div>
-
-                    <div>Drift Time</div>
-                    <input />
-                    <div className="units">s</div>
+                <div className="task-parameters-container">
+                    <TaskParameters taskType={getTaskType()} />
                 </div>
             </div>
         </div>
