@@ -326,7 +326,8 @@ elif common.app == 'jaiabot_engineering':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start))
+                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
