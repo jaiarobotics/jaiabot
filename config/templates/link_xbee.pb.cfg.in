@@ -13,6 +13,7 @@ link {
             use_xbee_encryption: $use_encryption
             xbee_encryption_password: "$encryption_password"
             $xbee_hub_id
+            subnet_mask: $subnet_mask
         }
     }
     mac { 

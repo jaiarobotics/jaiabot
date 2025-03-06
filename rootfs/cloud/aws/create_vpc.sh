@@ -223,6 +223,11 @@ ${perm_ssh_keys}
 }
 wlan_password: "dummy"
 service_vpn_enabled: false
+debconf {
+  key: "jaiabot-embedded/comms_links"
+  type: MULTISELECT
+  value: "wifi"
+}
 EOF
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}

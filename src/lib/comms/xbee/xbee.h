@@ -89,7 +89,7 @@ class XBeeDevice
                  const bool& use_encryption, const std::string& encryption_password,
                  const std::string& mesh_unicast_retries, const std::string& unicast_mac_retries,
                  const std::string& network_delay_slots,
-                 const std::string& broadcast_multi_transmits, int fleet);
+                 const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask);
     void shutdown();
 
     void send_packet(const NodeId& dest, const std::string& s);
@@ -123,6 +123,7 @@ class XBeeDevice
     byte frame_id;
     std::string glog_group;
     int fleet_id_{-1};
+    unsigned subnet_mask_{0xFFFF};
 
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
