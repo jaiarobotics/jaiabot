@@ -103,6 +103,9 @@ JAIA_PRESSURE_SENSOR_TYPE=$RET
 db_get jaiabot-embedded/rf_encryption_password
 JAIA_RF_ENCRYPTION_PASSWORD=$RET
 
+db_get jaiabot-embedded/comms_links
+JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
+
 
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
@@ -127,7 +130,8 @@ JAIA_RF_ENCRYPTION_PASSWORD=$RET
                                          --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
                                          --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
                                          --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
-                                         --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD}
+                                         --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
+                                         --comms_links ${JAIA_COMMS_LINKS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 

@@ -6,18 +6,17 @@ import math
 
 subnet_mask=0xFF00
 
-# currently we do not run the wifi and xbee in parallel so they can have the same subnet
-subnet_index={'wifi': 0, 'xbee': 0}
+subnet_index={'xbee': 0, 'wifi': 1}
 num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 
 # first id is hub id
 hub_node_id=0
 
 # same as jaiabot/src/lib/comms/comms.h
+number_of_hubs_max=31
 number_of_bots_max=151
 
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
-
 
 # Broadcast is modem id = 0 in Goby, so increment vehicle id by 1 to get base modem id
 def base_modem_id(node_id):
@@ -29,21 +28,19 @@ def wifi_modem_id(node_id):
 def xbee_modem_id(node_id):
     return base_modem_id(node_id) + subnet_index['xbee']*num_modems_in_subnet
 
-def runtime_wifi_ip_addr(node_id, fleet_index):
+def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     if node_id == hub_node_id:
-        # TODO - support multiple hubs. For now, can only use VirtualFleet with hub1
-        hub_index = 1
-        return '10.23.' + str(fleet_index) + '.' + str(hub_index + 10)
+        return '10.23.' + str(fleet_index) + '.' + str(hub_id + 10)
     else:
-        bot_index = node_id - 1
-        return '10.23.' + str(fleet_index) + '.' + str(bot_index + 100)
+        bot_id = node_id - 1
+        return '10.23.' + str(fleet_index) + '.' + str(bot_id + 100)
 
-def wifi_ip_addr(this_node_id, node_id, fleet_index):
-    wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index)
+def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
+    wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index, hub_id)
     if is_simulation():
         # if this computer has an assigned IP address matching the expected runtime IP address, use the standard wifi IP addresses (VirtualBox fleet)
         
-        if runtime_wifi_ip_addr(this_node_id, fleet_index) in all_local_ip_addresses:
+        if runtime_wifi_ip_addr(this_node_id, fleet_index, hub_id) in all_local_ip_addresses:
             return wifi_ip
         # otherwise use localhost (for standard single machine sim)
         else:
@@ -51,13 +48,20 @@ def wifi_ip_addr(this_node_id, node_id, fleet_index):
     else:
         return wifi_ip
     
-def wifi_remotes(this_node_id, number_vehicles, fleet_index):
+def wifi_remotes(this_node_id, fleet_index, hub_id):
     remotes=''
     first_node_id=0
-    for node_id in list(range(first_node_id, number_vehicles+first_node_id+1)):
+    
+    for node_id in range(first_node_id, number_of_bots_max+first_node_id+1):
         if this_node_id != node_id:
-            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index)  + '" port: ' + str(udp.wifi_udp_port(node_id)) + ' } \n'
+            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
     return remotes
+
+def wifi_hub_remotes(this_node_id, fleet_index):
+    hub_eps=''
+    for hub_id in range(0, number_of_hubs_max):
+        hub_eps+='hub_endpoint: { hub_id: ' + str(hub_id) + ' remote { modem_id: ' + str(base_modem_id(hub_node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' } }\n'
+    return hub_eps
 
 def wifi_mac_slots(node_id):
     slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'

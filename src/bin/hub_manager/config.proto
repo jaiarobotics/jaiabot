@@ -30,6 +30,7 @@ import "goby/middleware/protobuf/udp_config.proto";
 import "goby/middleware/protobuf/pty_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/tcp_config.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.config;
 
@@ -106,4 +107,8 @@ message HubManager
 
     optional int32 contact_blackout_seconds = 43
         [default = 2];  // don't send a contact update more often than this
+
+    
+    required uint32 subnet_mask = 50;
+    repeated protobuf.Link link_to_subscribe_on = 51; // when subscribing to managed bots, use these links, otherwise wait for bots to subscribe first
 }
