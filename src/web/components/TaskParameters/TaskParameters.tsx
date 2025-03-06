@@ -1,15 +1,38 @@
+import React, { useContext } from "react";
+import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+
+import Task from "../../data/tasks/task";
+import { TaskParameterKeys } from "../../types/jaia-system-types";
 import { TaskType } from "../../types/protobuf-types";
 
 import "./TaskParameters.less";
+import { JaiaActions } from "../../context/Jaia/jaia-actions";
 
 interface Props {
-    taskType: TaskType;
+    task: Task;
+}
+
+interface SubProps {
+    task: Task;
+    onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function TaskParameters(props: Props) {
-    switch (props.taskType) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    const onParameterChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+        const key = evt.target.name;
+        const value = evt.target.value;
+
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PARAMETER,
+            taskParameterPair: { key, value },
+        });
+    };
+
+    switch (props.task?.getType()) {
         case TaskType.DIVE:
-            return <DiveParameters />;
+            return <DiveParameters task={props.task} onChange={onParameterChange} />;
         case TaskType.SURFACE_DRIFT:
             return <DriftParameters />;
         case TaskType.CONSTANT_HEADING:
@@ -19,11 +42,15 @@ export default function TaskParameters(props: Props) {
     }
 }
 
-function DiveParameters() {
+function DiveParameters(props: SubProps) {
     return (
         <div className="task-parameters">
             <div>Max Depth</div>
-            <input />
+            <input
+                name={TaskParameterKeys.MAX_DEPTH}
+                onChange={(evt) => props.onChange(evt)}
+                value={props.task.getMaxDepth()}
+            />
             <div className="units">m</div>
 
             <div>Depth Interval</div>

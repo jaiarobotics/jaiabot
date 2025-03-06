@@ -17,7 +17,12 @@ import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
-import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
+import {
+    NodeTypes,
+    TaskParameterPair,
+    SelectedNode,
+    SelectedWaypoint,
+} from "../../types/jaia-system-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
 import {
     HubAccordionStates,
@@ -52,6 +57,7 @@ export interface JaiaAction {
 
     location?: GeographicCoordinate;
     taskType?: TaskType;
+    taskParameterPair?: TaskParameterPair;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -122,6 +128,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.SELECT_TASK:
             return handleSelectTask(mutableState, action.taskType);
+
+        case JaiaActions.CHANGE_TASK_PARAMETER:
+            return handleChangeTaskParameter(mutableState, action.taskParameterPair);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -341,9 +350,7 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
 }
 
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
-    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    const mission = missions.getMission(selectedWaypoint.missionID);
-    const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+    const waypoint = getWaypoint();
     const task = waypoint.getTask();
 
     if (task) {
@@ -357,6 +364,19 @@ function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
     mutableState.missions = missions.getMissions();
 
     missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+function handleChangeTaskParameter(
+    mutableState: JaiaContextType,
+    taskParameterPair: TaskParameterPair,
+) {
+    const waypoint = getWaypoint();
+    const task = waypoint.getTask();
+    task.setParameter(taskParameterPair);
+
+    mutableState.missions = missions.getMissions();
 
     return mutableState;
 }
@@ -585,4 +605,10 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+}
+
+function getWaypoint() {
+    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    const mission = missions.getMission(selectedWaypoint.missionID);
+    return mission.getWaypoint(selectedWaypoint.waypointNum);
 }

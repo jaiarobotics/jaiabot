@@ -1,26 +1,15 @@
-import { NodeTypes, SelectedNode, SelectedWaypoint } from "../../types/jaia-system-types";
-import { TaskParameters } from "../../types/jaia-system-types";
+import {
+    NodeTypes,
+    SelectedNode,
+    SelectedWaypoint,
+    TaskParameters,
+} from "../../types/jaia-system-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
-const defaultDiveParams = {
-    max_depth: 10,
-    depth_interval: 10,
-    hold_time: 0,
-    bottom_dive: false,
-};
-
-const defaultDriftParams = {
-    drift_time: 60,
-};
-
-const defaultConstantHeadingParams = {
-    constant_heading: 180,
-    constant_heading_time: 60,
-    constant_heading_speed: 3,
-};
-
-const defaultStationKeepParams = {
-    station_keep_time: 60,
+const defaultTaskParameters: TaskParameters = {
+    maxDepth: 10,
+    depthInterval: 10,
+    holdTime: 0,
 };
 
 class JaiaGlobal {
@@ -31,12 +20,7 @@ class JaiaGlobal {
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
-        this.defaultTaskParameters = {
-            dive: defaultDiveParams,
-            drift: defaultDriftParams,
-            constantHeading: defaultConstantHeadingParams,
-            stationKeep: defaultStationKeepParams,
-        };
+        this.defaultTaskParameters = defaultTaskParameters;
     }
 
     getSelectedNode() {
@@ -54,16 +38,16 @@ class JaiaGlobal {
         }
     }
 
-    getDefaultTaskParameters() {
-        return this.defaultTaskParameters;
-    }
-
     getSelectedWaypoint() {
         return this.selectedWaypoint;
     }
 
     setSelectedWaypoint(clickedWaypoint: SelectedWaypoint) {
         this.selectedWaypoint = clickedWaypoint;
+    }
+
+    getDefaultTaskParameters() {
+        return this.defaultTaskParameters;
     }
 
     setDefaultTaskParameters(defaultTaskParameters: TaskParameters) {

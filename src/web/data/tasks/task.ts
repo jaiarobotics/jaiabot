@@ -1,18 +1,15 @@
 import { TaskType } from "../../types/protobuf-types";
+import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import { jaiaGlobal } from "../jaia_global/jaia-global";
-import {
-    DiveParameters,
-    DriftParameters,
-    ConstantHeadingParameters,
-    StationKeepParameters,
-} from "../../types/protobuf-types";
 
 export default class Task {
     private type: TaskType;
-    private diveParameters: DiveParameters;
-    private driftParameters: DriftParameters;
-    private constantHeadingParameters: ConstantHeadingParameters;
-    private stationKeepParameters: StationKeepParameters;
+
+    // Dive Parameters
+    private maxDepth: number;
+    private depthInterval: number;
+    private holdTime: number;
+
     private isEnablePAM: boolean;
 
     constructor() {}
@@ -26,52 +23,54 @@ export default class Task {
 
         switch (type) {
             case TaskType.DIVE:
-                this.setDiveParameters(defaultParams.dive);
-                this.setDriftParameters(defaultParams.drift);
-                break;
-            case TaskType.SURFACE_DRIFT:
-                this.setDriftParameters(defaultParams.drift);
-                break;
-            case TaskType.CONSTANT_HEADING:
-                this.setConstantHeadingParameters(defaultParams.constantHeading);
-                break;
-            case TaskType.STATION_KEEP:
-                this.setStationKeepParameters(defaultParams.stationKeep);
-                break;
+                this.setMaxDepth(defaultParams.maxDepth);
+                this.setDepthInterval(defaultParams.depthInterval);
+                this.setHoldTime(defaultParams.holdTime);
         }
+
         this.type = type;
     }
 
-    getDiveParameters() {
-        return this.diveParameters;
+    setParameter(taskParameterPair: TaskParameterPair) {
+        const key = taskParameterPair.key;
+        const value = taskParameterPair.value;
+        const mutableDefaults = { ...jaiaGlobal.getDefaultTaskParameters() };
+
+        switch (key) {
+            case TaskParameterKeys.MAX_DEPTH:
+                this.setMaxDepth(value);
+                mutableDefaults.maxDepth = value;
+            case TaskParameterKeys.DEPTH_INTERVAL:
+                this.setDepthInterval(value);
+            case TaskParameterKeys.HOLD_TIME:
+                this.setHoldTime(value);
+        }
+
+        jaiaGlobal.setDefaultTaskParameters(mutableDefaults);
     }
 
-    setDiveParameters(diveParameters: DiveParameters) {
-        this.diveParameters = diveParameters;
+    getMaxDepth() {
+        return this.maxDepth;
     }
 
-    getDriftParameters() {
-        return this.driftParameters;
+    private setMaxDepth(maxDepth: number) {
+        this.maxDepth = maxDepth;
     }
 
-    setDriftParameters(driftParameters: DriftParameters) {
-        this.driftParameters = driftParameters;
+    getDepthInterval() {
+        return this.depthInterval;
     }
 
-    getConstantHeadingParameters() {
-        return this.constantHeadingParameters;
+    private setDepthInterval(depthInterval: number) {
+        this.depthInterval = depthInterval;
     }
 
-    setConstantHeadingParameters(constantHeadingParameters: ConstantHeadingParameters) {
-        this.constantHeadingParameters = constantHeadingParameters;
+    getHoldTime() {
+        return this.holdTime;
     }
 
-    getStationKeepParameters() {
-        return this.stationKeepParameters;
-    }
-
-    setStationKeepParameters(stationKeepParameters: StationKeepParameters) {
-        this.stationKeepParameters = stationKeepParameters;
+    private setHoldTime(holdTime: number) {
+        this.holdTime = holdTime;
     }
 
     getIsEnablePAM() {

@@ -129,7 +129,7 @@ export default function WaypointPanel() {
                 </FormControl>
 
                 <div className="task-parameters-container">
-                    <TaskParameters taskType={getTaskType()} />
+                    <TaskParameters task={getWaypoint().getTask()} />
                 </div>
             </div>
         </div>
