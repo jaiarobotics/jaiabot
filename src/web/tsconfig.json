@@ -13,7 +13,8 @@
         "target": "ES2021",
         "esModuleInterop": true,
         "lib": ["ES2021", "dom"],
-        "types": ["@testing-library/jest-dom", "@types/plotly.js"]
+        "types": ["@testing-library/jest-dom", "@types/plotly.js"],
+        "resolveJsonModule": true
     },
     "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
 }

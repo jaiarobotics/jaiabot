@@ -2,10 +2,17 @@
 
 This folder contains [live-build](https://live-team.pages.debian.net/live-manual/html/live-manual/index.en.html) scripts for generating an Ubuntu root filesystem for booting on the embedded Linux computer (currently Raspberry Pi) or on a VirtualBox virtual machine.
 
+Directory structure:
+- rootfs/
+  - auto: Live build scripts
+  - customization: Live build configuration overrides
+  - scripts: Scripts for creating/managing filesystem images
+  - cloud: Scripts for configuration on various cloud providers (currently AWS)
+  - virtualbox: Live build configuration overrides for VirtualBox VMs.
+
 ## CI Built images
 
 As an alternative to cloning this repository and building images yourself, you can download them pre-built on [CircleCI](https://app.circleci.com/pipelines/github/jaiarobotics/jaiabot?branch=1.y). Browse to the latest build (raspi-image-create for the Raspberry Pi image, or virtualbox-image-create for the VirtualBox image), click "Artifacts", and download the appropriate file (.img.gz or .ova, respectively).
-
 
 ## Quick usage (build your own)
 

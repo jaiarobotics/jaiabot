@@ -42,7 +42,6 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                                 action_for_help);
                             break;
 
-
                         case jaiabot::config::admin::SSHTool::clear:
                             tool_helper.help<jaiabot::apps::admin::ssh::ClearTool,
                                              jaiabot::apps::admin::ssh::ClearToolConfigurator>(

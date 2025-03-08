@@ -146,3 +146,11 @@ The `jaia` tool can add these keys using, for example:
 jaia admin ssh add chf1 "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE0e+NIeXQvvd39703nWgZpBm4Dsdfxsg//ajiXiT22GAAAABHNzaDo= somebody@somewhere" forever
 ```
 or by manually editing the `/home/jaia/.ssh/authorized_keys` file.
+
+## Jaia servers
+
+`vpn.jaia.tech` and `packages.jaia.tech` can be managed in the same way, e.g.:
+
+```
+jaia admin ssh <action> --user=ubuntu packages.jaia.tech
+```

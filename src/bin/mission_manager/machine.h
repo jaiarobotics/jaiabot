@@ -1559,7 +1559,10 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
     {
         // remove any more depth goals, and set the current goal to the measured depth
         dive_depths_.clear();
-        dive_depths_.push_back(seafloor_depth);
+        // adjusting based on noise floor of the pressure sensor
+        auto seafloor_adjustment =
+            (seafloor_depth.value() - cfg().dive_depth_eps()) * boost::units::si::meters;
+        dive_depths_.push_back(seafloor_adjustment);
         dive_packet().set_bottom_dive(true);
 
         goby::glog.is_debug2() &&

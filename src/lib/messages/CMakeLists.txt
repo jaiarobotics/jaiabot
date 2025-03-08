@@ -15,8 +15,7 @@ set(SENSOR_MESSAGES
   sensor/atlas_scientific__ezo_do.proto
   sensor/atlas_scientific__ezo_ph.proto
   sensor/turner__c_fluor.proto
-  )
-
+)
 
 protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_INC_DIR}
   example.proto
@@ -46,8 +45,12 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   tsys01.proto
   rest_api.proto
   option_extensions.proto
+  motor.proto
+  fleet_config.proto
+  link.proto
+  udp_driver.proto
   ${SENSOR_MESSAGES}
- )
+)
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS} ${NANOPB_PROTO_SRCS} ${NANOPB_PROTO_HDRS})
 target_link_libraries(jaiabot_messages ${PROTOBUF_LIBRARIES} goby)
@@ -107,12 +110,12 @@ if(NOT CMAKE_CROSSCOMPILING)
   # This list of all DCCL messages used on intervehicle comms with the latest hash ("dccl -a -H") is simply
   # to ensure that CMake checks that we don't accidentally change the DCCL message without updating PROJECT_INTERVEHICLE_API_VERSION if necessary.
 
-  # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/CMakeLists.txt
+  # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/cmake/JaiaVersions.cmake
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x64bc70695479cffc")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x29333753394905f0")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xd6cdaf32db2fd089")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x0e41dc88405ff2f1")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xf4bad9b633f50b7f")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
 endif()

@@ -82,6 +82,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 38
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER = 39
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -284,6 +286,12 @@ enum Warning
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // from Motor Status Thread
+    WARNING__NOT_RESPONDING__JAIABOT_RPM_LISTENER = 600
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_ARDUINO_MOTOR_TEMP = 601
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_mission_manager

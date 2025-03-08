@@ -31,6 +31,7 @@
 using namespace jaiabot::protobuf;
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/metadata.h"
 
 using goby::glog;
@@ -49,9 +50,8 @@ class Metadata : public ApplicationBase
     {
         // Subscribe to MetaData
         interprocess().subscribe<jaiabot::groups::metadata>(
-            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata) {
-                publish_metadata();
-            });
+            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata)
+            { publish_metadata(); });
     }
 
   private:
@@ -80,6 +80,14 @@ void jaiabot::apps::Metadata::publish_metadata()
         metadata.set_xbee_serial_number(cfg().xbee().serial_number());
     }
     metadata.set_intervehicle_api_version(jaiabot::INTERVEHICLE_API_VERSION);
+
+    if (cfg().has_fleet_id())
+        metadata.set_fleet_id(cfg().fleet_id());
+
+    if (cfg().has_hub_id())
+        metadata.set_hub_id(cfg().hub_id());
+    else if (cfg().has_bot_id())
+        metadata.set_bot_id(cfg().bot_id());
 
     glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
 

@@ -36,11 +36,16 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page56_cl
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Finally, as a special case "CloudHub" can be referred to as `chfM` for fleet M, or "self" can be used to refer to the machine that `jaia` is being run on (that is, localhost).
-
 Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_index` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
 
-The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?|self`.
+The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
+
+### Special cases
+
+Several special cases exist for the host string:
+- "CloudHub" can be referred to as `chfM` for fleet M
+- "self" can be used to refer to the machine that `jaia` is being run on (that is, localhost).
+- "xxx.jaia.tech" is passed through unmodified (vpn.jaia.tech, packages.jaia.tech).
 
 ## ip, ping, ssh
 

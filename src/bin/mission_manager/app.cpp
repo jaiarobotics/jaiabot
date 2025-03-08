@@ -136,6 +136,9 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
+
+                // publish the mission report on each state change
+                publish_mission_report(state_pair.second);
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
@@ -524,31 +527,44 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
     };
 
+    auto hub_command_set_link_data =
+        [this](protobuf::Command& msg,
+               const goby::middleware::intervehicle::protobuf::Header& header)
+    { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-        latest_command_sub_cfg_, hub_command_subscriber_group_func, on_command_subscribed};
+        latest_command_sub_cfg_,
+        hub_command_subscriber_group_func,
+        on_command_subscribed,
+        {/*expire func*/},
+        hub_command_set_link_data};
+
+    auto command_callback = [this](const protobuf::Command& input_command)
+    {
+        if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+        {
+            protobuf::Command out_command;
+            bool command_valid = handle_command_fragment(input_command, out_command);
+            if (command_valid)
+            {
+                handle_command(out_command);
+                // republish for logging purposes
+                interprocess().publish<jaiabot::groups::hub_command>(out_command);
+            }
+        }
+        else
+        {
+            handle_command(input_command);
+            // republish for logging purposes
+            interprocess().publish<jaiabot::groups::hub_command>(input_command);
+        }
+    };
 
     intervehicle().subscribe_dynamic<protobuf::Command>(
-        [this](const protobuf::Command& input_command)
-        {
-            if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
-            {
-                protobuf::Command out_command;
-                bool command_valid = handle_command_fragment(input_command, out_command);
-                if (command_valid)
-                {
-                    handle_command(out_command);
-                    // republish for logging purposes
-                    interprocess().publish<jaiabot::groups::hub_command>(out_command);
-                }
-            }
-            else
-            {
-                handle_command(input_command);
-                // republish for logging purposes
-                interprocess().publish<jaiabot::groups::hub_command>(input_command);
-            }
-        },
-        *groups::hub_command_this_bot, command_subscriber);
+        command_callback, *groups::hub_command_this_bot, command_subscriber);
+
+    // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater
+    interprocess().subscribe<jaiabot::groups::self_command, protobuf::Command>(command_callback);
 
     if (cfg().has_contact_update_sub_cfg())
     {
@@ -615,10 +631,27 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
 void jaiabot::apps::MissionManager::loop()
 {
+    publish_mission_report(machine_->state());
+
+    // Check if we have a new hub
+    if (hub_id_ != machine_->hub_id())
+    {
+        glog.is_debug1() && glog << "hub_id_: " << hub_id_
+                                 << ", machine_->hub_id(): " << machine_->hub_id() << std::endl;
+        machine_->set_hub_id(hub_id_);
+    }
+
+    check_forward_progress();
+
+    machine_->process_event(statechart::EvLoop());
+}
+
+void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionState state)
+{
     double goal_speed = 0;
     auto current_time = goby::time::SteadyClock::now();
     protobuf::MissionReport report;
-    report.set_state(machine_->state());
+    report.set_state(state);
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
@@ -751,18 +784,6 @@ void jaiabot::apps::MissionManager::loop()
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
-
-    // Check if we have a new hub
-    if (hub_id_ != machine_->hub_id())
-    {
-        glog.is_debug1() && glog << "hub_id_: " << hub_id_
-                                 << ", machine_->hub_id(): " << machine_->hub_id() << std::endl;
-        machine_->set_hub_id(hub_id_);
-    }
-
-    check_forward_progress();
-
-    machine_->process_event(statechart::EvLoop());
 }
 
 void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -780,14 +801,18 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
     // Make sure the command is not a repeat
     // If it is, then we should not handle the command and exit
-    if (prev_command_time_ == command.time())
+    if (prev_command_times_.count(command.time()))
     {
         glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;
     }
 
-    // Keep track of the previous command time
-    prev_command_time_ = command.time();
+    // Keep track of the previous command times to avoid duplicates
+    // (typically from multiple links)
+    // if our buffer overflows, remove the smallest (oldest) timestamp
+    while (prev_command_times_.size() >= command_history_max_count_)
+        prev_command_times_.erase(prev_command_times_.begin());
+    prev_command_times_.insert(command.time());
 
     switch (command.type())
     {

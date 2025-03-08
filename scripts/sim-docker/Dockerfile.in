@@ -7,9 +7,8 @@ RUN apt-get update
 RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
 #items below must be installed here because ENV is not passed through sudo in the scripts below
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata keyboard-configuration
-RUN git clone https://github.com/jaiarobotics/jaiabot.git
+RUN git clone https://github.com/jaiarobotics/jaiabot.git -b @JAIABOT_BRANCH_FOR_DOCKER@
 WORKDIR /jaiabot/scripts
-RUN git checkout @JAIABOT_BRANCH_FOR_DOCKER@
 RUN /jaiabot/scripts/setup-tools-build-nodocker.sh
 RUN /jaiabot/scripts/setup-tools-runtime.sh
 WORKDIR /jaiabot

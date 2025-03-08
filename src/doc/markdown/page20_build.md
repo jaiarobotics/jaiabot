@@ -50,7 +50,14 @@ cmake ../..
 cmake --build .
 ```
 
-This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively.
+This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively. 
+
+Running the build script will start a parallel build using a number of processors that is equal to the lesser of:
+
+* The total number of available processors
+* The total physical memory divided by 2 GB, (the typical maximum RAM consumption per process)
+
+You can manually define the number of CPUs to use by setting the `JAIA_BUILD_NPROC` environment variable.
 
 Some examples:
 

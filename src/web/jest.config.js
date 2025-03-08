@@ -137,10 +137,10 @@ const config = {
     // runner: "jest-runner",
 
     // The paths to modules that run some code to configure or set up the testing environment before each test
-    setupFiles: ["fake-indexeddb/auto", "<rootDir>/tests/jest.setup.js"],
+    setupFiles: ["<rootDir>/tests/jest.setup.js"],
 
     // A list of paths to modules that run some code to configure or set up the testing framework before each test
-    setupFilesAfterEnv: ["<rootDir>/tests/setupTests.ts"],
+    setupFilesAfterEnv: ["<rootDir>/tests/setup-tests.ts"],
 
     // The number of seconds after which a test is considered as slow and reported as such in the results.
     // slowTestThreshold: 5,
@@ -197,6 +197,8 @@ const config = {
 
     // Whether to use watchman for file crawling
     // watchman: true,
+    testTimeout: 20000,
+    maxWorkers: 2,
 };
 
 module.exports = config;

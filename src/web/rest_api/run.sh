@@ -13,4 +13,4 @@ popd > /dev/null
 
 # Start server
 echo 🟢 Starting rest api
-./app.py
+./app.py -e 1:localhost:40000

@@ -1,14 +1,24 @@
 from common import is_simulation, is_runtime
 from common import comms
 
-def wifi_udp_port(node_id):
-    return 31000 + comms.wifi_modem_id(node_id)
+# Binding a UDP socket to port 0 allows the operating system to automatically assign an available port
+
+def wifi_udp_port(node_id, hub_id = -1):
+    if is_simulation():
+        if node_id == comms.hub_node_id:
+            if hub_id == -1:
+                raise RuntimeError('Must define hub_id when node_id is hub_node_id')
+            return 31000 + hub_id
+        else:
+            return 31000 + comms.number_of_hubs_max + node_id
+    else:
+        return 31000
 
 def bar30_cpp_udp_port(node_id):
     if is_simulation():
         return 20100 + node_id
     else:
-        return 0
+        return 20100
     
 def bar30_py_udp_port(node_id):
     if is_simulation():
@@ -42,3 +52,9 @@ def imu_port(node_id):
 
 def contact_gpsd_port(contact_id):
     return 33000 + contact_id
+
+def motor_cpp_udp_port():
+    return 0
+
+def motor_py_udp_port():
+    return 20005 

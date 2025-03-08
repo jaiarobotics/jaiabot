@@ -65,6 +65,7 @@ constexpr goby::middleware::Group mission_ivp_behavior_report{
     "jaiabot::mission_ivp_behavior_report"};
 constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
+constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
@@ -74,6 +75,9 @@ constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware
 constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
 constexpr goby::middleware::Group systemd_report{"jaiabot::systemd_report"};
 constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ack"};
+constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
+constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
+constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible
@@ -115,6 +119,10 @@ constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"
 
 // web_portal
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
+
+// mission repeater
+constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
+constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 
 } // namespace groups
 } // namespace jaiabot

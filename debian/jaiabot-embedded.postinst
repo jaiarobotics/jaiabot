@@ -91,8 +91,21 @@ JAIA_ARDUINO_TYPE=$RET
 db_get jaiabot-embedded/data_offload_ignore_type
 JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
 
+db_get jaiabot-embedded/motor_harness_type
+JAIA_MOTOR_HARNESS_TYPE=$RET
+
 db_get jaiabot-embedded/temperature_sensor_type
 JAIA_TEMPERATURE_SENSOR_TYPE=$RET
+
+db_get jaiabot-embedded/pressure_sensor_type
+JAIA_PRESSURE_SENSOR_TYPE=$RET
+
+db_get jaiabot-embedded/rf_encryption_password
+JAIA_RF_ENCRYPTION_PASSWORD=$RET
+
+db_get jaiabot-embedded/comms_links
+JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
+
 
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
@@ -106,15 +119,19 @@ JAIA_TEMPERATURE_SENSOR_TYPE=$RET
                                          --hub_index=${BOT_OR_HUB_INDEX} \
                                          --fleet_index=${FLEET_INDEX} \
                                          ${SYSTEMD_SIM_FLAG} \
-					 --led_type=${JAIA_LED_TYPE} \
-					 --electronics_stack=${JAIA_ELECTRONICS_STACK} \
-					 --user_role=${JAIA_USER_ROLE} \
-					 --imu_type=${JAIA_IMU_TYPE} \
-					 --arduino_type=${JAIA_ARDUINO_TYPE} \
-					 --bot_type=${JAIA_BOT_TYPE} \
-					 --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
-					 --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
-                                         --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE}
+                                         --led_type=${JAIA_LED_TYPE} \
+                                         --electronics_stack=${JAIA_ELECTRONICS_STACK} \
+                                         --user_role=${JAIA_USER_ROLE} \
+                                         --imu_type=${JAIA_IMU_TYPE} \
+                                         --arduino_type=${JAIA_ARDUINO_TYPE} \
+                                         --bot_type=${JAIA_BOT_TYPE} \
+                                         --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
+                                         --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
+                                         --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
+                                         --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
+                                         --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
+                                         --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
+                                         --comms_links ${JAIA_COMMS_LINKS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
