@@ -124,7 +124,6 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
         device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
                          config_extension().hub_id(), config_extension().fleet_id());
     }
-==== BASE ====
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
