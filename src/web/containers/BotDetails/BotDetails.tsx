@@ -42,7 +42,6 @@ import {
     mdiRestart,
     mdiSkipNext,
     mdiRestartAlert,
-    mdiCheckboxMarkedCirclePlusOutline,
 } from "@mdi/js";
 import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
