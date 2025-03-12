@@ -527,8 +527,17 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             jaiabot::intervehicle::hub_command_group(command.bot_id()).numeric());
     };
 
+    auto hub_command_set_link_data =
+        [this](protobuf::Command& msg,
+               const goby::middleware::intervehicle::protobuf::Header& header)
+    { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-        latest_command_sub_cfg_, hub_command_subscriber_group_func, on_command_subscribed};
+        latest_command_sub_cfg_,
+        hub_command_subscriber_group_func,
+        on_command_subscribed,
+        {/*expire func*/},
+        hub_command_set_link_data};
 
     auto command_callback = [this](const protobuf::Command& input_command)
     {
@@ -792,14 +801,18 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
     // Make sure the command is not a repeat
     // If it is, then we should not handle the command and exit
-    if (prev_command_time_ == command.time())
+    if (prev_command_times_.count(command.time()))
     {
         glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
         return;
     }
 
-    // Keep track of the previous command time
-    prev_command_time_ = command.time();
+    // Keep track of the previous command times to avoid duplicates
+    // (typically from multiple links)
+    // if our buffer overflows, remove the smallest (oldest) timestamp
+    while (prev_command_times_.size() >= command_history_max_count_)
+        prev_command_times_.erase(prev_command_times_.begin());
+    prev_command_times_.insert(command.time());
 
     switch (command.type())
     {

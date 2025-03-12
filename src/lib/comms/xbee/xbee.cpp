@@ -80,7 +80,7 @@ void jaiabot::comms::XBeeDevice::startup(
     const uint16_t network_id, const std::string& xbee_info_location, const bool& use_encryption,
     const std::string& encryption_password, const std::string& mesh_unicast_retries,
     const std::string& unicast_mac_retries, const std::string& network_delay_slots,
-    const std::string& broadcast_multi_transmits, int fleet)
+    const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -94,6 +94,7 @@ void jaiabot::comms::XBeeDevice::startup(
     glog.add_group(glog_group, goby::util::Colors::yellow);
 
     fleet_id_ = fleet;
+    subnet_mask_ = subnet_mask;
 
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
@@ -1114,11 +1115,11 @@ SerialNumber jaiabot::comms::XBeeDevice::get_serial_number(const NodeId& node_id
     else
     {
         int node_id_int = std::atoi(node_id.c_str());
-        if (node_id_int != jaiabot::comms::hub_modem_id)
+        if (node_id_int != jaiabot::comms::hub_base_modem_id)
         {
             // add bot
             add_peer(node_id, jaiabot::comms::NodeType::BOT,
-                     jaiabot::comms::bot_id_from_modem_id(node_id_int));
+                     jaiabot::comms::bot_id_from_modem_id(node_id_int, subnet_mask_));
             return get_serial_number(node_id);
         }
         else

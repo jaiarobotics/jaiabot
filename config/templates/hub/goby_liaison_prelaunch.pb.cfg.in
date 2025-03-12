@@ -90,6 +90,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "install.yml" 
         name: "Install or Minor Upgrade JaiaBot packages only"
+        section: "Upgrade"
         role: ADVANCED
         output_var {
             name: "jaiabot_current_version"
@@ -99,6 +100,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "upgrade-all.yml" 
         name: "Minor Upgrade Jaiabot and system packages"
+        section: "Upgrade"
         role: USER
         output_var {
             name: "jaiabot_current_version"
@@ -109,6 +111,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "major_upgrade/major-upgrade.yml" 
         name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+        section: "Upgrade"
         role: USER
 
         input_var {
@@ -184,7 +187,21 @@ add_commander_tab: false
         section: "Factory"
         role: DEVELOPER
         confirmation_required: true
-    }    
+    }
+
+    ansible_playbook {
+        file: "change-comms-links.yml" 
+        name: "Change Communications Links in use"
+        role: USER
+        input_var {
+            name: "comms_link"
+            display_name: "Comms Links"
+            value: "xbee"
+            value: "wifi"
+            value: "xbee,wifi"
+        }
+    }
+    
 
     $vfleet_playbooks
 }

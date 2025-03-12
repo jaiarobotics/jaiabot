@@ -226,7 +226,8 @@ else
     git_branch=default
 fi
 
-debconf_image_name=jaia_fleet_debconf_${git_branch}
+# docker requires lowercase tag names, hence the sed filter
+debconf_image_name=jaia_fleet_debconf_$(echo ${git_branch} | sed 's|\(.*\)|\L\1|')
 if [ "$(docker image ls ${debconf_image_name} --format='true')" != "true" ];
 then
     echo "Building the docker ${debconf_image_name} image"
@@ -272,7 +273,7 @@ debconf-get-selections | grep jaiabot-embedded | sed 's/^unknown/jaiabot-embedde
 function parse_debconf() {
     local input=$1
     local spaces=$2
-    awk '
+    awk -v FS='\t' -v OFS='\t' '
 BEGIN {
     # Print opening of the debconf entries
     printf ""

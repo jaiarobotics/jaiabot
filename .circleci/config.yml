@@ -483,7 +483,7 @@ jobs:
   arm64-bundle-noble:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
       <<: *environment-template-noble
@@ -536,7 +536,7 @@ jobs:
   amd64-bundle-noble:
     working_directory: /tmp/bundle/jaiabot
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     environment:
       <<: *environment-template-noble

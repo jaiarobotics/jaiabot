@@ -24,16 +24,18 @@
 #define JAIABOT_SRC_LIB_COMMS_COMMS_H
 
 #include <goby/acomms/acomms_constants.h>
+#include <goby/util/sci.h>
 
 #include "jaiabot/exception.h"
+#include "jaiabot/messages/link.pb.h"
 
 namespace jaiabot
 {
 namespace comms
 {
 constexpr int broadcast_modem_id{goby::acomms::BROADCAST_ID};
-constexpr int hub_modem_id{1};
-constexpr int bot0_modem_id{2};
+constexpr int hub_base_modem_id{1};
+constexpr int bot0_base_modem_id{2};
 
 constexpr int bot_id_min{0};
 constexpr int bot_id_max{150};
@@ -65,21 +67,41 @@ inline void check_hub_id_bounds(int hub_id)
                                  " is greater than Hub ID maximum"));
 }
 
-inline int modem_id_from_bot_id(int bot_id)
+inline int hub_modem_id(unsigned subnet_mask, jaiabot::protobuf::Link link)
 {
-    check_bot_id_bounds(bot_id);
-    return bot_id + bot0_modem_id;
+    unsigned num_modems_in_subnet = (0xFFFF ^ subnet_mask) + 1;
+    return static_cast<int>(link) * num_modems_in_subnet + hub_base_modem_id;
 }
 
-inline int bot_id_from_modem_id(int modem_id)
+inline int modem_id_from_bot_id(int bot_id, unsigned subnet_mask, jaiabot::protobuf::Link link)
 {
-    int bot_id = modem_id - bot0_modem_id;
+    check_bot_id_bounds(bot_id);
+    unsigned num_modems_in_subnet = (0xFFFF ^ subnet_mask) + 1;
+    return static_cast<int>(link) * num_modems_in_subnet + bot_id + bot0_base_modem_id;
+}
 
-    if (bot_id > bot_id_max)
-        throw(jaiabot::Exception("Modem ID " + std::to_string(modem_id) +
-                                 " must be greater than bot0_modem_id"));
+inline int bot_id_from_modem_id(int modem_id, unsigned subnet_mask)
+{
+    int base_modem_id = modem_id & (~subnet_mask & 0xFFFF);
+    int bot_id = base_modem_id - bot0_base_modem_id;
     check_bot_id_bounds(bot_id);
     return bot_id;
+}
+
+inline jaiabot::protobuf::Link link_from_modem_id(int modem_id, unsigned subnet_mask)
+{
+    jaiabot::protobuf::Link link = jaiabot::protobuf::LINK_UNKNOWN;
+    unsigned num_modems_in_subnet = (0xFFFF ^ subnet_mask) + 1;
+    int link_id = (subnet_mask & modem_id) >> goby::util::ceil_log2(num_modems_in_subnet);
+    if (jaiabot::protobuf::Link_IsValid(link_id))
+        link = static_cast<jaiabot::protobuf::Link>(link_id);
+    return link;
+}
+
+template <typename DCCLMessageWithLinkField>
+void set_link_type(DCCLMessageWithLinkField& msg, int src_modem_id, unsigned subnet_mask)
+{
+    msg.set_link(link_from_modem_id(src_modem_id, subnet_mask));
 }
 
 } // namespace comms

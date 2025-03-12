@@ -122,3 +122,5 @@ resolve_no_forward_progress {
     desired_speed_threshold: 0 # m/s - desired speed above which the vehicle is expected to be making forward progress
     trigger_timeout: 15 # seconds - time after desired speed > speed_threshold but pitch > pitch_threshold that triggers EvNoForwardProgress 
 }
+
+subnet_mask: $subnet_mask
