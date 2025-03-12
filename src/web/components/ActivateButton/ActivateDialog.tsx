@@ -42,11 +42,12 @@ export function ActivateDialog(props: DialogProps) {
 
     return (
         <div>
-            <div className="blocking-overlay" onClick={() => {}}></div>
-            <div className={getClassName()}>
-                <Title disabledCode={props.disabledCode} />
-                <p>{messages.get(props.disabledCode)}</p>
-                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+            <div className="blocking-overlay" onClick={() => {}}>
+                <div className={getClassName()}>
+                    <Title disabledCode={props.disabledCode} />
+                    <p>{messages.get(props.disabledCode)}</p>
+                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                </div>
             </div>
         </div>
     );
