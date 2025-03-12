@@ -60,6 +60,7 @@
 #include "goby/util/protobuf/io.h" // for operator<<
 
 #include "jaiabot/comms/comms.h"
+#include "jaiabot/messages/link.pb.h"
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -112,49 +113,24 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     std::string network_delay_slots = config_extension().xbee_network_delay_slots();
     std::string broadcast_multi_transmits = config_extension().xbee_broadcast_multi_transmits();
 
+    hub_xbee_base_modem_id_ = jaiabot::comms::hub_base_modem_id;
+    hub_xbee_modem_id_ = jaiabot::comms::hub_modem_id(config_extension().subnet_mask(),
+                                                      jaiabot::protobuf::LINK_XBEE);
+
     // if this is a hub, add itself as the active hub
     // must happen before startup so the user serial number (ATUH/ATUL) is set correctly
     if (config_extension().has_hub_id())
     {
-        device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
-                         jaiabot::comms::NodeType::HUB, config_extension().hub_id(),
-                         config_extension().fleet_id());
+        device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
+                         config_extension().hub_id(), config_extension().fleet_id());
     }
+==== BASE ====
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
-                    network_delay_slots, broadcast_multi_transmits, config_extension().fleet_id());
-
-    //    for (auto peer : config_extension().peers())
-    //    {
-    // For backwards compatibility with previously deployed fleets
-    //  if (peer.has_node_id())
-    //       {
-    //            glog.is_warn() && glog << group(glog_out_group())
-    //                                << "Deprecated 'node_id' field in peers {} table: Use 'bot_id' "
-    //                                   "or 'hub_id' instead"
-    //                                << std::endl;
-    //         device_.add_peer(peer.node_id(), peer.serial_number());
-    //     }
-    //     else if (peer.has_bot_id())
-    //     {
-    //         device_.add_peer(std::to_string(jaiabot::comms::modem_id_from_bot_id(peer.bot_id())),
-    //                          peer.serial_number());
-    //     }
-    //     else if (peer.has_hub_id())
-    //     {
-    //         hub_peers_[peer.hub_id()] = peer;
-
-    //         if (config_extension().has_hub_id() &&
-    //             peer.hub_id() ==
-    //                 config_extension().hub_id()) // if this is a hub, add itself as the active hub
-    //         {
-    //             device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
-    //                              peer.serial_number());
-    //         }
-    //     }
-    // }
+                    network_delay_slots, broadcast_multi_transmits, config_extension().fleet_id(),
+                    config_extension().subnet_mask());
 
     goby::acomms::protobuf::ModemTransmission init_hub_info;
     auto& hub_info =
@@ -211,7 +187,7 @@ void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
                                              ->options()
                                              .GetExtension(dccl::field)
                                              .max();
-    if (msg.dest() == jaiabot::comms::hub_modem_id && !have_active_hub_)
+    if (msg.dest() == hub_xbee_base_modem_id_ && !have_active_hub_)
     {
         glog.is_warn() && glog << group(glog_out_group())
                                << "Cannot send message to hub since we do not yet know which hub "
@@ -429,7 +405,7 @@ void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
 {
     auto& hub_info = *out->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
     hub_info.set_hub_id(hub_id);
-    hub_info.set_modem_id(jaiabot::comms::hub_modem_id);
+    hub_info.set_modem_id(hub_xbee_modem_id_);
 
     if (!have_active_hub_ || active_hub_id_ != hub_id)
     {
@@ -477,7 +453,7 @@ void jaiabot::comms::XBeeDriver::set_active_hub_peer(int hub_id)
     bool is_bot = !config_extension().has_hub_id();
     if (is_bot) // for bots, swap the serial number corresponding to the new active hub
     {
-        device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
-                         jaiabot::comms::NodeType::HUB, hub_id);
+        device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
+                         hub_id);
     }
 }

@@ -1,6 +1,6 @@
 Template: jaiabot-embedded/debconf_state_common
 Type: select
-Choices: type, fleet_id, led_type, electronics_stack, mode, warp, rf_encryption_password, NEXT
+Choices: type, fleet_id, led_type, electronics_stack, comms_links, mode, warp, rf_encryption_password, NEXT
 Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
@@ -124,3 +124,10 @@ Template: jaiabot-embedded/rf_encryption_password
 Type: string
 Default:
 Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex
+
+Template: jaiabot-embedded/comms_links
+Type: multiselect
+Choices: xbee, wifi
+Default: xbee
+Description: Which comms links to activate?
+

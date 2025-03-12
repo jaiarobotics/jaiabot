@@ -207,8 +207,12 @@ for placeholder in "${!replacements[@]}"; do
     sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
 
-USER_DATA_FIRST_BOOT_DIR=/tmp/cloudhub-bootdir
-mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+==== BASE ====
+# Multiline replacement
+FORMATTED_SSH_KEYS=$(echo "$SSH_PUBKEYS" | sed ':a;N;$!ba;s/\n/|||/g')
+sed -i "s\\{{SSH_PUBKEYS}}\\$FORMATTED_SSH_KEYS\\" ${USER_DATA_FILE}
+sed -i 's/|||/\n/g' ${USER_DATA_FILE}
+==== BASE ====
 
 USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
@@ -223,6 +227,11 @@ ${perm_ssh_keys}
 }
 wlan_password: "dummy"
 service_vpn_enabled: false
+debconf {
+  key: "jaiabot-embedded/comms_links"
+  type: MULTISELECT
+  value: "wifi"
+}
 EOF
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}

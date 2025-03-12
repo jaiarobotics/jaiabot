@@ -75,6 +75,8 @@ message Config
     ];
 
     required int32 fleet_id = 14 [(goby.field).description = "Fleet ID"];
+
+    required uint32 subnet_mask = 15;
 }
 
 extend goby.acomms.protobuf.DriverConfig
