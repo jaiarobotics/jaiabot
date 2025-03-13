@@ -14,8 +14,8 @@ class JaiaGlobal {
 
     setSelectedNode(selectedNode: SelectedNode) {
         if (
-            selectedNode.type === this.getSelectedNode().type &&
-            selectedNode.id === this.getSelectedNode().id
+            selectedNode.type === this.selectedNode.type &&
+            selectedNode.id === this.selectedNode.id
         ) {
             this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         } else {

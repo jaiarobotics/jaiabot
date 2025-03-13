@@ -23,7 +23,7 @@ class Hubs {
     }
 
     getHub(hubID: number) {
-        return this.getHubs().get(hubID);
+        return this.hubs.get(hubID);
     }
 
     setHub(hubStatus: PortalHubStatus) {
@@ -42,7 +42,7 @@ class Hubs {
     }
 
     private isNewHub(hubID: number) {
-        if (this.getHubs().get(hubID) === undefined) {
+        if (this.hubs.get(hubID) === undefined) {
             return true;
         }
         return false;
@@ -56,7 +56,7 @@ class Hubs {
     }
 
     private updateHub(hubStatus: PortalHubStatus) {
-        let hub = this.getHubs().get(hubStatus.hub_id);
+        let hub = this.hubs.get(hubStatus.hub_id);
 
         if (hub === undefined) {
             return;

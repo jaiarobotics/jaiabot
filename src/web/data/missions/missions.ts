@@ -29,7 +29,7 @@ class Missions {
     }
 
     getMission(missionNum: number) {
-        return this.getMissions().get(missionNum);
+        return this.missions.get(missionNum);
     }
 
     getMissionIDInEditMode() {
@@ -42,7 +42,7 @@ class Missions {
 
     addMission(mission: Mission) {
         const missionID = this.getNextMissionID();
-        this.getMissions().set(missionID, mission);
+        this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
@@ -56,7 +56,7 @@ class Missions {
     }
 
     deleteMission(missionID: number) {
-        this.getMissions().delete(missionID);
+        this.missions.delete(missionID);
 
         if (missionID === this.getMissionIDInEditMode()) {
             this.setMissionIDInEditMode(UNASSIGNED_ID);
@@ -64,7 +64,7 @@ class Missions {
     }
 
     deleteAllMissions() {
-        this.getMissions().clear();
+        this.missions.clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
     }
