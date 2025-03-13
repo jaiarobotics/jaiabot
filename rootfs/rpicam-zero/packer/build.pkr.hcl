@@ -1,0 +1,19 @@
+
+build {
+  sources = [
+    "source.arm-image.raspios_bullseye_arm64"
+  ]
+
+  provisioner "shell" {
+    scripts = [
+      "scripts/install-jaia-rpicam.sh"
+    ]
+  }
+  
+  provisioner "shell" {
+    scripts = [
+      "scripts/install-cloud-init.sh"
+    ]
+  }
+
+}
