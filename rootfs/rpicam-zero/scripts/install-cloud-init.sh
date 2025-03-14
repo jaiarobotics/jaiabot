@@ -1,10 +1,15 @@
 #!/bin/bash
 set -e
 
-apt-get install cloud-init -y
+apt-get -y update && apt-get install cloud-init -y
 
-touch /boot/meta-data
-touch /boot/user-data
+mkdir -p /boot/jaiabot/init/
+touch /boot/jaiabot/init/meta-data
+
+cat - > /boot/jaiabot/init/user-data <<EOF
+#include
+file:///boot/firmware/jaiabot/init/first-boot.preseed.yml
+EOF
 
 cat - > /etc/cloud/templates/sources.list.debian.tmpl <<'EOF'
 ## template:jinja
@@ -21,23 +26,16 @@ deb {{mirror}} {{codename}} main contrib non-free rpi
 deb-src {{mirror}} {{codename}} main contrib non-free rpi
 EOF
 
-cat -> /etc/cloud/cloud.cfg.d/99_fake_cloud.cfg <<'EOF'
+cat - > /etc/cloud/cloud.cfg.d/99_fake_cloud.cfg <<'EOF'
 # configure cloud-init for NoCloud
 datasource_list: [ NoCloud, None ]
 datasource:
   NoCloud:
-    fs_label: bootfs
+    seedfrom: file:///boot/firmware/jaiabot/init/
 EOF
 
 cat - > /etc/cloud/cloud.cfg.d/99_raspbian.cfg <<'EOF'
 system_info:
-  default_user:
-    name: pi
-    lock_passwd: false
-    gecos: Raspbian
-    groups: [pi adm dialout cdrom sudo audio video plugdev games users input netdev spi i2c gpio]
-    sudo: ["ALL=(ALL) NOPASSWD: ALL"]
-    shell: /bin/bash
   package_mirrors:
     - arches: [default]
       failsafe:
