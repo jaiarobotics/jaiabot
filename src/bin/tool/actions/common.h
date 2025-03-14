@@ -33,11 +33,16 @@ namespace apps
 {
 namespace tool
 {
-
 inline std::string parse_host_ip_from_code(const std::string& host_code)
 {
     if (host_code == "self")
         return "::1";
+
+    // pass through anything ending in .jaia.tech
+    std::string jaia_tech_domain = ".jaia.tech";
+    if (host_code.size() > jaia_tech_domain.size() &&
+        host_code.substr(host_code.size() - jaia_tech_domain.size()) == jaia_tech_domain)
+        return host_code;
 
     std::regex host_pattern("([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?");
     std::smatch host_matches;
@@ -123,7 +128,8 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         int return_code = pclose(pipe);
         if (return_code != 0)
         {
-            goby::glog.is_die() && goby::glog << "jaia-ip.py command returned error. " << std::endl;
+            goby::glog.is_die() && goby::glog << "jaia-ip.py command returned error for command: '"
+                                              << command << "'" << std::endl;
         }
         std::string host_ip = ip_output.str();
         goby::glog.is_verbose() && goby::glog << host_code << " (" << jaiabot::config::Net_Name(net)

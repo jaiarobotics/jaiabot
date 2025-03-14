@@ -36,7 +36,6 @@ namespace admin
 {
 namespace ssh
 {
-
 class KnownToolConfigurator
     : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::ssh::KnownTool>
 {

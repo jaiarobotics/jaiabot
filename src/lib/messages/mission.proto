@@ -198,10 +198,10 @@ message MissionTask
     message DiveParameters
     {
         optional double max_depth = 1 [
-            default = 60,
+            default = 50,
             (dccl.field) = {
                 min: 0
-                max: 60
+                max: 50
                 precision: 1
                 units { base_dimensions: "L" }
             },
@@ -211,7 +211,7 @@ message MissionTask
             default = inf,
             (dccl.field) = {
                 min: 0.1
-                max: 60
+                max: 50
                 precision: 1
                 units { base_dimensions: "L" }
             },
@@ -221,7 +221,7 @@ message MissionTask
             default = 0,
             (dccl.field) = {
                 min: 0
-                max: 3600
+                max: 80
                 precision: 0
                 units { base_dimensions: "T" }
             },

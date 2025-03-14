@@ -47,3 +47,13 @@ nvm use ${NODE_VERSION}
 npm install -g npm@${jaia_version_npm}
 # Then, npm can install webpack
 npm install -g --no-audit webpack@${jaia_version_webpack} webpack-cli@${jaia_version_webpack_cli}
+
+# Check if pre-commit hook is installed
+if [ ! -e ${script_dir}/../.git/hooks/pre-commit ]; then
+   # Check if there is a broken symlink
+   if [ -L ${script_dir}/../.git/hooks/pre-commit ]; then
+      rm ${script_dir}/../.git/hooks/pre-commit
+   fi
+   # Install the pre-commit hook
+   ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
+fi

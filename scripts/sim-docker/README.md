@@ -49,6 +49,8 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory` f
       - Example: JCC -> http://127.0.0.1:40001/
       - Example: JCC -> localhost:40001/
     - It may take a couple of minutes for the JCC to load.
+    - The container maps port 9092 to the corresponding host port, this is used for the REST API.
+      - Example: Rest API -> http://localhost:9092/jaia/v1/command/all?api_key=simulation&type=ACTIVATE
 
 5.  **Save the image**
 

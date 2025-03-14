@@ -45,7 +45,7 @@ dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
 detect_bottom_logic_init_timeout: 15 # (optional) (default=15) Seconds
 detect_bottom_logic_after_hold_timeout: 5 # (optional) (default=5) Seconds
 bottoming_timeout: 3 # (optional) (default=3) Seconds
-powered_descent_timeout: 60 # (default=60) Seconds
+powered_descent_timeout: 100 # (default=100) Seconds
 bot_not_rising_timeout: 6 # (optional) (default=6) Seconds
 motor_on_time_increment: 1 # (optional) (default=1) Seconds
 motor_on_time_max: 10 # (optional) (default=10) Seconds
@@ -122,3 +122,5 @@ resolve_no_forward_progress {
     desired_speed_threshold: 0 # m/s - desired speed above which the vehicle is expected to be making forward progress
     trigger_timeout: 15 # seconds - time after desired speed > speed_threshold but pitch > pitch_threshold that triggers EvNoForwardProgress 
 }
+
+subnet_mask: $subnet_mask

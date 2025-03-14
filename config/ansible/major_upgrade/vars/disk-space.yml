@@ -1,0 +1,3 @@
+var_log_min_space_KiB: 20000000
+overlay_min_space_KiB:  8000000
+rootfs_min_space_KiB:   8000000

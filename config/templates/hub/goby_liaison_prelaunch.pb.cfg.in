@@ -16,12 +16,15 @@ add_commander_tab: false
     role: $user_role
 
     $ansible_playbook_full_path
+    ansible_log_dir: "$ansible_log_dir"
+    
     ansible_inventory: "$inventory"
     ansible_config: "ansible-liaison.cfg"
     this_hub: "$this_hub"
     ansible_playbook {
         file: "change-sources.yml" 
         name: "Change JaiaBot repository"
+        section: "Upgrade"
         role: ADVANCED
 
         # added to ansible-playbook -e "repo=continuous"
@@ -48,13 +51,14 @@ add_commander_tab: false
         input_var {
             name: "hub_id"
             display_name: "Hub ID for offline/hub cache updates"
-            value: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",  "22", "23", "24", "25", "26", "27", "28", "29", "30"]
+            static_value: "$this_hub_index"
         }
         
     }
     ansible_playbook {
         file: "check-version.yml" 
         name: "Check for updates to JaiaBot packages"
+        section: "Upgrade"
         role: USER
 
         # Must be present in "ansible_facts" JSON field for output of one of the tasks
@@ -68,8 +72,8 @@ add_commander_tab: false
         }
         output_var {
             name: "jaiabot_upgrade_available"
-            display_name: "Upgrade available?"
-        }
+            display_name: "Minor Upgrade available?"
+        }        
     }
 
     # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
@@ -86,7 +90,8 @@ add_commander_tab: false
     
     ansible_playbook {
         file: "install.yml" 
-        name: "Install or Upgrade JaiaBot packages only"
+        name: "Install or Minor Upgrade JaiaBot packages only"
+        section: "Upgrade"
         role: ADVANCED
         output_var {
             name: "jaiabot_current_version"
@@ -95,7 +100,8 @@ add_commander_tab: false
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
-        name: "Upgrade Jaiabot and system packages"
+        name: "Minor Upgrade Jaiabot and system packages"
+        section: "Upgrade"
         role: USER
         output_var {
             name: "jaiabot_current_version"
@@ -104,8 +110,31 @@ add_commander_tab: false
     }
 
     ansible_playbook {
+        file: "major_upgrade/major-upgrade.yml" 
+        name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+        section: "Upgrade"
+        role: USER
+
+        input_var {
+            name: "hub_id"
+            display_name: "Hub ID for offline/hub cache updates"
+            static_value: "$this_hub_index"
+        }
+
+        input_var {
+            name: "do_backup"
+            display_name: "Make a backup of old Ubuntu filesystem to bot and hub data drives"
+            value: "yes"
+            value: "no"
+        }
+        
+    }
+
+    
+    ansible_playbook {
         file: "check-vpn-status.yml" 
         name: "Check for VPN Status"
+        section: "VPN"
         role: USER
         output_var {
             name: "jaiabot_vpn_active_state"
@@ -120,6 +149,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "change-vpn-state.yml" 
         name: "Change VPN State"
+        section: "VPN"
         role: USER
         input_var {
             name: "state"
@@ -134,17 +164,20 @@ add_commander_tab: false
     ansible_playbook {
         file: "reboot-bots.yml" 
         name: "Reboot Bots"
+        section: "Reboot"
         role: USER
     }
     ansible_playbook {
         file: "reboot-hubs.yml" 
         name: "Reboot Hub"
+        section: "Reboot"
         role: USER
     }    
 
     ansible_playbook {
         file: "factory-reset.yml" 
         name: "Factory Reset [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        section: "Factory"
         role: ADVANCED
         confirmation_required: true
     }    
@@ -152,9 +185,24 @@ add_commander_tab: false
     ansible_playbook {
         file: "factory-upgrade-all.yml" 
         name: "Upgrade all packages on Factory image [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        section: "Factory"
         role: DEVELOPER
         confirmation_required: true
-    }    
+    }
+
+    ansible_playbook {
+        file: "change-comms-links.yml" 
+        name: "Change Communications Links in use"
+        role: USER
+        input_var {
+            name: "comms_link"
+            display_name: "Comms Links"
+            value: "xbee"
+            value: "wifi"
+            value: "xbee,wifi"
+        }
+    }
+    
 
     $vfleet_playbooks
 }

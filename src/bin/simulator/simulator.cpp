@@ -48,6 +48,7 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
@@ -389,7 +390,6 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     // publish pressure as UDP message for bar30 driver
     {
-        std::stringstream ss;
         auto pressure = goby::util::seawater::pressure(depth, latlon.lat);
 
         // interpolate temperature value from table
@@ -397,17 +397,17 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         // randomize temperature
         temperature += temperature_distribution_(generator_);
 
-        // omit in sim
-        std::string time = "";
-
         using goby::util::seawater::bar;
 
-        // date_string, p_mbar, t_celsius
-        ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << "bar30"
-           << "," << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature;
+        jaiabot::protobuf::PressureTemperatureData pressure_temperature_data;
+        // convert pressure from decibars to millibars to mimic output of BARXX sensor
+        pressure_temperature_data.set_pressure_raw(
+            quantity<decltype(si::milli * bar)>(pressure).value());
+        pressure_temperature_data.set_temperature(temperature);
+        pressure_temperature_data.set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
+
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(ss.str());
+        io_data->set_data(pressure_temperature_data.SerializeAsString());
         interthread().publish<pressure_udp_out>(io_data);
     }
 

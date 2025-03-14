@@ -43,7 +43,7 @@ message MissionManager
 
     // safety timeout on powered descent to then transition to unpowered descent
     optional int32 powered_descent_timeout = 28
-        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 100, (dccl.field).units = { base_dimensions: "T" }];
 
     // detect bottom logic initial timeout in seconds. Used to determine
     // when we should start determining we reached bottom in powered descent
@@ -172,11 +172,9 @@ message MissionManager
         default = "/var/log/jaiabot/staging"
     ];  // dir on bot with data to be offloaded
 
-    optional string log_archive_dir = 74 [
-        default = "/var/log/jaiabot/archive"
-    ];  // archived bot data
+    optional string log_archive_dir = 74
+        [default = "/var/log/jaiabot/archive"];  // archived bot data
 
-    
     enum DownloadFileTypes
     {
         NONE = 1;
@@ -243,4 +241,6 @@ message MissionManager
     }
 
     optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
+
+    required uint32 subnet_mask = 89;
 }

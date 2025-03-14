@@ -4,6 +4,7 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
 import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -170,5 +171,8 @@ message Engineering
 
     // For calibration/configuration of Arduino motor/rudder bounds
     optional Bounds bounds = 101;
+
+    // Special case: not sent in message - written upon receipt based on the Link traversed
+    optional Link link = 200 [(dccl.field).omit = true];
 
 }

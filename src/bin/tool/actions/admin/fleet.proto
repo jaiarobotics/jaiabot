@@ -1,0 +1,79 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+import "actions/net.proto";
+
+package jaiabot.config.admin;
+
+message FleetTool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
+        has_help_action: true
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia admin fleet help [action]\""
+        }];
+        create = 1 [(goby.ev).cfg = {
+            short_help_msg: "Create a new fleet config",
+            external_command: "jaia-create-fleet-config.sh",
+            full_help_msg: "Interactive tool to create a new fleet configuration.\n"
+                           "Usage: \"jaia admin fleet create [fleet.cfg]\""
+        }];
+        validate = 2 [(goby.ev).cfg = {
+            short_help_msg: "Validate a new fleet config",
+        }];
+        generate = 3 [(goby.ev).cfg = {
+            short_help_msg: "Generate first boot configuration and write to disk",
+            external_command: "jaia-generate-first-boot.py",
+            external_help_param: "--help"
+        }];
+        vpn_authorize = 4 [(goby.ev).cfg = {
+            short_help_msg: "Push temporary key to vpn.jaia.tech to allow a fleet to configure itself"
+        }];
+        update_iso = 5 [(goby.ev).cfg = {
+            short_help_msg: "Update existing jaiabot_updates ISO with fleet config"
+            external_command: "jaia-fleet-config-update-iso.sh",
+            full_help_msg: "Update existing jaiabot_updates ISO (USB/CD image) with fleet config.\n"
+                           "Usage: \"jaia admin fleet update_iso [fleet.cfg] [updates.iso] [output_updates.iso (optional)]\""
+            }];        
+    }
+
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position: { enable: true }, cli_short: "A", action: HIDDEN }
+        }
+    ];
+}

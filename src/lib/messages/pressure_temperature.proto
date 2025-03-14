@@ -4,6 +4,11 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+enum PressureSensorType {
+    BAR02 = 1;
+    BAR30 = 2;
+}
+
 message PressureTemperatureData
 {
     option (dccl.msg) = {
@@ -15,7 +20,7 @@ message PressureTemperatureData
     optional double temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
-    required string version = 3;
+    required PressureSensorType sensor_type = 3;
 }
 
 message PressureAdjustedData
