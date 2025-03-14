@@ -616,6 +616,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL: break;
                     case jaiabot::protobuf::SETPOINT_DIVE: break;
                     case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: break;
+                    case jaiabot::protobuf::SETPOINT_SUSPEND_PID: break;
                 }
             });
 
