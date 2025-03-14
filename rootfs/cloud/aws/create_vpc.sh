@@ -207,12 +207,8 @@ for placeholder in "${!replacements[@]}"; do
     sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
 
-==== BASE ====
-# Multiline replacement
-FORMATTED_SSH_KEYS=$(echo "$SSH_PUBKEYS" | sed ':a;N;$!ba;s/\n/|||/g')
-sed -i "s\\{{SSH_PUBKEYS}}\\$FORMATTED_SSH_KEYS\\" ${USER_DATA_FILE}
-sed -i 's/|||/\n/g' ${USER_DATA_FILE}
-==== BASE ====
+USER_DATA_FIRST_BOOT_DIR=/tmp/cloudhub-bootdir
+mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 
 USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
