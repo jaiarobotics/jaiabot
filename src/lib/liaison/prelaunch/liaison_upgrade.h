@@ -1,8 +1,8 @@
 #ifndef LIAISON_UPGRADE_H
 #define LIAISON_UPGRADE_H
 
-#include <Wt/Http/Response>
-#include <Wt/WFileResource>
+#include <Wt/Http/Response.h>
+#include <Wt/WFileResource.h>
 
 #include <chrono>
 #include <future>
@@ -21,8 +21,7 @@ namespace jaiabot
 class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 {
   public:
-    LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
-                   Wt::WContainerWidget* parent = 0);
+    LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg);
 
   private:
     class LogFileResource : public Wt::WResource
@@ -46,15 +45,16 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     class AutoScrollWidget : public Wt::WContainerWidget
     {
       public:
-        AutoScrollWidget(Wt::WContainerWidget* parent = nullptr) : Wt::WContainerWidget(parent)
+        AutoScrollWidget()
         {
-            this->setOverflow(Wt::WContainerWidget::OverflowAuto, Wt::Horizontal | Wt::Vertical);
+            this->setOverflow(Wt::Overflow::Auto,
+                              Wt::Orientation::Horizontal | Wt::Orientation::Vertical);
             this->setHeight(300);
         }
 
         void addText(Wt::WString line)
         {
-            new Wt::WText(line + "<br/>", this);
+            this->addNew<Wt::WText>(line + "<br/>");
 
             // JavaScript to scroll to the bottom
             std::string jsCode = "var obj = document.getElementById('" + this->id() +
@@ -76,21 +76,13 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         std::string stdout_file;
         std::string json_file;
 
-        Wt::WGroupBox* group_box;
-        Wt::WContainerWidget* group_div;
-        Wt::WContainerWidget* iv_group_div;
-        Wt::WContainerWidget* run_button_div;
-        Wt::WPushButton* run_button;
-        Wt::WContainerWidget* log_button_div;
-        Wt::WPushButton* log_button;
-        Wt::WContainerWidget* stdout_button_div;
-        Wt::WPushButton* stdout_button;
-        Wt::WContainerWidget* result_div;
-        Wt::WText* result_text;
-        Wt::WTable* result_table;
-
-        Wt::WGroupBox* stdout_group;
-        AutoScrollWidget* stdout_div;
+        Wt::WPushButton* run_button{0};
+        Wt::WPushButton* log_button{0};
+        Wt::WPushButton* stdout_button{0};
+        Wt::WText* result_text{0};
+        Wt::WTable* result_table{0};
+        Wt::WGroupBox* stdout_group{0};
+        AutoScrollWidget* stdout_div{0};
 
         std::vector<std::string>::const_iterator run_text_it;
         // name -> value

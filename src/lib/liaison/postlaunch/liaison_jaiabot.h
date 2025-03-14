@@ -1,9 +1,10 @@
 #ifndef LIAISON_JAIABOT_H
 #define LIAISON_JAIABOT_H
 
-#include <Wt/WEvent>
-#include <Wt/WPushButton>
-#include <Wt/WSlider>
+#include <Wt/WAbstractItemModel.h>
+#include <Wt/WEvent.h>
+#include <Wt/WPushButton.h>
+#include <Wt/WSlider.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/units/io.hpp>
 #include <chrono>
@@ -58,49 +59,37 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     struct VehicleData
     {
         VehicleData(Wt::WStackedWidget*, const protobuf::JaiabotConfig&);
+        VehicleData(const VehicleData&) = delete;
+        VehicleData& operator=(const VehicleData&) = delete;
 
-        Wt::WContainerWidget* vehicle_div;
+        std::unique_ptr<Wt::WContainerWidget> vehicle_div;
 
         struct Controls
         {
             Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
+            Controls(const Controls&) = delete;
+            Controls& operator=(const Controls&) = delete;
 
-            Wt::WGroupBox* controls_box;
-            Wt::WGroupBox* timeout_box;
-            Wt::WSlider* timeout_slider;
-            Wt::WContainerWidget* timeout_text_box;
+            Wt::WSlider* timeout_slider{0};
             Wt::WText* timeout_text{0};
-            Wt::WGroupBox* dive_box;
-            Wt::WContainerWidget* dive_button_box;
-            Wt::WPushButton* dive_button{0};
-            Wt::WContainerWidget* dive_slider_box;
-            Wt::WSlider* dive_slider;
-            Wt::WContainerWidget* dive_text_box;
+            Wt::WSlider* dive_slider{0};
             Wt::WText* dive_text{0};
-            Wt::WGroupBox* motor_box;
-            Wt::WText* motor_left_text{0};
-            Wt::WSlider* motor_slider;
-            Wt::WText* motor_right_text{0};
-            Wt::WContainerWidget* motor_text_box;
+            Wt::WSlider* motor_slider{0};
             Wt::WText* motor_text{0};
-            Wt::WGroupBox* fins_box;
-            Wt::WSlider* port_elevator_slider;
-            Wt::WText* rudder_left_text{0};
-            Wt::WSlider* rudder_slider;
-            Wt::WText* rudder_right_text{0};
-            Wt::WSlider* stbd_elevator_slider;
-            Wt::WContainerWidget* fins_text_box;
+            Wt::WSlider* port_elevator_slider{0};
+            Wt::WSlider* rudder_slider{0};
+
+            Wt::WSlider* stbd_elevator_slider{0};
             Wt::WText* fins_text{0};
-            Wt::WGroupBox* ack_box;
             Wt::WText* ack_text{0};
-            Wt::WGroupBox* data_box;
-            Wt::WText* data_text{0};
 
             protobuf::LowControlAck latest_ack;
 
             // must be static, not sure why (segfault in JSignal otherwise)
             static void timeout_slider_moved(int value, Wt::WText* text)
             {
+                std::cout << "slider moved: " << text << std::endl;
+
                 text->setText(timeout_text_from_value(value));
             }
 
@@ -109,7 +98,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                 text->setText(dive_text_from_value(value));
             }
 
-            static void dive_button_clicked(Wt::WMouseEvent) { dive_start_ = true; }
+            static void dive_button_clicked() { dive_start_ = true; }
 
             static void motor_slider_moved(int value, Wt::WText* text)
             {
@@ -207,20 +196,14 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     };
 
     // vehicle id to Data
-    std::map<int, VehicleData> vehicle_data_;
+    std::map<int, std::unique_ptr<VehicleData>> vehicle_data_;
 
     // convenient info shown on vehicle's liaison
-    Wt::WGroupBox* bot_node_status_box_;
     Wt::WText* bot_node_status_text_;
-    Wt::WGroupBox* bot_tpv_box_;
     Wt::WText* bot_tpv_text_;
-    Wt::WGroupBox* bot_pt_box_;
     Wt::WText* bot_pt_text_;
-    Wt::WGroupBox* bot_salinity_box_;
     Wt::WText* bot_salinity_text_;
-    Wt::WGroupBox* bot_imu_box_;
     Wt::WText* bot_imu_text_;
-    Wt::WGroupBox* bot_low_control_box_;
     Wt::WText* bot_low_control_text_;
 
     // currently shown vehicle id
@@ -242,44 +225,39 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                 int index)
         : LiaisonCommsThread<LiaisonJaiabot>(tab, config, index), tab_(tab)
     {
-        interprocess().subscribe<groups::control_ack>([this](const protobuf::LowControlAck& ack) {
-            tab_->post_to_wt([=]() { tab_->post_control_ack(ack); });
-        });
+        interprocess().subscribe<groups::control_ack>(
+            [this](const protobuf::LowControlAck& ack)
+            { tab_->post_to_wt([=]() { tab_->post_control_ack(ack); }); });
 
         // post the NodeStatus message in its own box
         interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
-            [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
-                tab_->post_to_wt([=]() { tab_->post_node_status(node_status); });
-            });
+            [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
+            { tab_->post_to_wt([=]() { tab_->post_node_status(node_status); }); });
 
         // post the tpv in its own box
         interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-            [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-                tab_->post_to_wt([=]() { tab_->post_tpv(tpv); });
-            });
+            [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+            { tab_->post_to_wt([=]() { tab_->post_tpv(tpv); }); });
 
         // post the pt data in its own box
         interprocess().subscribe<groups::pressure_temperature>(
-            [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
-                tab_->post_to_wt([=]() { tab_->post_pt(pt); });
-            });
+            [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+            { tab_->post_to_wt([=]() { tab_->post_pt(pt); }); });
 
         // post the salinity data in its own box
         interprocess().subscribe<groups::salinity>(
-            [this](const jaiabot::protobuf::SalinityData& salinity) {
-                tab_->post_to_wt([=]() { tab_->post_salinity(salinity); });
-            });
+            [this](const jaiabot::protobuf::SalinityData& salinity)
+            { tab_->post_to_wt([=]() { tab_->post_salinity(salinity); }); });
 
         // post the imu data in its own box
-        interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu) {
-            tab_->post_to_wt([=]() { tab_->post_imu(imu); });
-        });
+        interprocess().subscribe<groups::imu>(
+            [this](const jaiabot::protobuf::IMUData& imu)
+            { tab_->post_to_wt([=]() { tab_->post_imu(imu); }); });
 
         // post the control surfaces data in its own box
         interprocess().subscribe<groups::low_control>(
-            [this](const jaiabot::protobuf::LowControl& low_control) {
-                tab_->post_to_wt([=]() { tab_->post_low_control(low_control); });
-            });
+            [this](const jaiabot::protobuf::LowControl& low_control)
+            { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
 
     } // namespace jaiabot
     ~CommsThread() {}

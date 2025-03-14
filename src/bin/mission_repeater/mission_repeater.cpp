@@ -183,6 +183,9 @@ void jaiabot::apps::MissionRepeater::run_step(ScriptStep& script_step, bool is_r
         case config::MissionRepeater::Script::Step::kDesiredSetpoints:
             interprocess().publish<groups::desired_setpoints>(step.desired_setpoints());
             break;
+        case config::MissionRepeater::Script::Step::PUBLICATION_NOT_SET:
+            glog.is_warn() && glog << "No publication type set, doing nothing" << std::endl;
+            break;
     }
 }
 void jaiabot::apps::MissionRepeater::resume_mission()
