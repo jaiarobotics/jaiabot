@@ -51,7 +51,6 @@ RUN apt-get update && \
             libdccl4:arm64 \
             libdccl4-dev:arm64 \
             dccl4-compiler:amd64 \
-            dccl4-apps:amd64 \
             libgoby3:arm64 \
             libgoby3-dev:arm64 \
             libais-dev:arm64 \
