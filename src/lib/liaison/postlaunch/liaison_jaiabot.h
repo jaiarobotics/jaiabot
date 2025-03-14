@@ -62,9 +62,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
         VehicleData(const VehicleData&) = delete;
         VehicleData& operator=(const VehicleData&) = delete;
 
-        VehicleData(VehicleData&& mE) = default;
-        VehicleData& operator=(VehicleData&& mE) = default;
-
         std::unique_ptr<Wt::WContainerWidget> vehicle_div;
 
         struct Controls
