@@ -6,7 +6,6 @@ import {
     HealthState,
     Warning,
 } from "../../types/protobuf-types";
-import Mission from "../missions/mission";
 import TaskPacket from "../task_packets/task-packets-new";
 import BotSensors from "./bot-sensors";
 
