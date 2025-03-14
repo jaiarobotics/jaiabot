@@ -10,7 +10,7 @@ from jaiabot.messages.camera_driver_pb2 import *
 import logging
 import datetime
 from typing import *
-from jaia_serial import *
+from pyjaia.serial import JaiaSerial
 import subprocess
 
 
@@ -92,7 +92,7 @@ def main():
     else:
         cam = Camera()
 
-    port = JaiaProtobufOverSerial(args.device)
+    port = JaiaSerial(args.device)
 
     while True:
         command = port.read(CameraCommand, timeout=0.1)

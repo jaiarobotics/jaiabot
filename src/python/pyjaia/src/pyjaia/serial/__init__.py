@@ -9,18 +9,33 @@ from binascii import crc32
 log = logging.getLogger('jaia_serial')
 
 
-class JaiaProtobufOverSerial:
+class JaiaSerial:
+    """This class provides a serial interface for protobuf messages, with CRC-32 integrity checking."""
 
     def __init__(self, device: str):
+        """Create a serial interface.
+
+        Args:
+            device (str): Path to the serial device (i.e. "/dev/serialXYZ")
+        """
         self.device = device
         self.port = serial.Serial(device)
     
     def read(self, message_type: Callable[[], Message], timeout=0.1):
+        """Read a protobuf message.
+
+        Args:
+            message_type (Callable[[], Message]): The protobuf class (or any function that returns a protobuf object of the required type).
+            timeout (float, optional): Timeout (seconds) for waiting on the serial port. Defaults to 0.1.
+
+        Returns:
+            _type_: _description_
+        """
         start_time = time.time()
 
         magic = b'JAIA'
 
-        # JAIA {length, 2 bytes} {crc-16, 2 bytes} {data}
+        # JAIA {length, 2 bytes} {crc-32, 4 bytes} {data}
 
         while True:
 
@@ -68,6 +83,11 @@ class JaiaProtobufOverSerial:
                 log.warning(e)
 
     def write(self, message: Message):
+        """Write a protobuf message.
+
+        Args:
+            message (Message): A protobuf message to write.
+        """
         data: bytes = message.SerializeToString()
 
         self.port.write(b'JAIA')

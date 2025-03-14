@@ -5,7 +5,7 @@
 
 from jaiabot.messages.camera_driver_pb2 import *
 import logging, argparse
-from jaia_serial import JaiaProtobufOverSerial
+from pyjaia.serial import JaiaSerial
 from google.protobuf import text_format
 
 
@@ -32,7 +32,7 @@ def main():
         ResponseType = CameraResponse
 
     print(f'Using device {args.device}')
-    port = JaiaProtobufOverSerial(args.device)
+    port = JaiaSerial(args.device)
 
     while True:
         command_string = input('Input command in protobuf string format >> ')

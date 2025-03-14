@@ -78,17 +78,13 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_ECHO = 36
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 37
+    ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 37
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 38
+    ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 38
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 39
+    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER = 39
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 40
-        [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER = 41
-        [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 42
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 40
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
