@@ -9,16 +9,14 @@ Build-Depends: cdbs (>= 0.4.130~),
                libgoby3-moos-dev,
                libgoby3-gui-dev,
                protobuf-compiler,
+               dccl4-compiler,
                libnanopb-dev,
                nanopb
 Build-Depends-Indep:
                python3-protobuf,
                goby3-clang-tool [amd64],
                goby3-interfaces [amd64],
-               dccl4-apps [amd64],
-               nodejs,
-               webpack,
-               npm
+               dccl4-apps [amd64]
 Standards-Version: 3.9.6
 Section: libs
 Homepage: https://github.com/jaiarobotics/jaiabot
