@@ -2,6 +2,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.p
 
 add_library(jaiabot_liaison_prelaunch SHARED jaiabot_liaison_load.cpp liaison_upgrade.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(jaiabot_liaison_prelaunch goby ${Boost_LIBRARIES} jaiabot_messages Wt::Wt)
+target_compile_options(jaiabot_liaison_prelaunch PRIVATE -Wno-return-type-c-linkage)
 
 configure_file(goby_liaison_prelaunch_jaiabot.in ${project_BIN_DIR}/goby_liaison_prelaunch_jaiabot @ONLY)
 

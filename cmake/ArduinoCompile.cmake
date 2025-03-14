@@ -35,7 +35,7 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   # command to run arduino-cli to produce compiled hex
   add_custom_command(OUTPUT ${hex_output} ${hex_output_with_bootloader}
     COMMAND arduino-cli
-    ARGS compile --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
+    ARGS compile --quiet --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
     DEPENDS ${ARDUINO_SOURCE_DIR}/${sketchname}/${sketchname}.ino
     ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
     COMMENT "Running arduino-cli to compile ${sketchname} for ${nickname}")
