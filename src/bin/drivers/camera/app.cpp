@@ -109,7 +109,8 @@ jaiabot::apps::CameraDriver::CameraDriver()
     interprocess().subscribe<camera>([this](const CameraCommand& message) {
         glog.is_verbose() && glog << "CameraCommand: " << message.ShortDebugString() << std::endl;
 
-        interthread().publish<serial_out>(encode_frame(message.SerializeAsString()));
+        auto io_data = encode_frame(message.SerializeAsString());
+        interthread().publish<serial_out>(io_data);
     });
 }
 

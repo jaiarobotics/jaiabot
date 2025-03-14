@@ -118,6 +118,7 @@ constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};
+
 // mission repeater
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};

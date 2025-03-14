@@ -42,16 +42,22 @@ constexpr int BITS_IN_BYTE = 8;
 constexpr auto SERIAL_MAX_SIZE = 2048; // Can be increased, just for safety
 constexpr auto CRC_SIZE = 4;
 
-static const std::string encode_frame(const std::string& data)
+static const std::shared_ptr<goby::middleware::protobuf::IOData>
+encode_frame(const std::string& data)
 {
     std::uint16_t size = data.length();
     std::string size_str = {static_cast<char>((size >> jaiabot::serial::BITS_IN_BYTE) & 0xFF),
                             static_cast<char>(size & 0xFF)};
 
     auto crc = calculate_crc32(data.c_str(), size);
-    std::string crc_data = std::string((const char*)&crc, sizeof(crc));
+    char crc_data[4];
+    for (int i = 0; i < 4; i++) { crc_data[i] = ((char*)&crc)[3 - i]; }
 
-    return std::string(SERIAL_MAGIC, SERIAL_MAGIC_BYTES) + size_str + crc_data + data;
+    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    io_data->set_data(std::string(SERIAL_MAGIC, SERIAL_MAGIC_BYTES) + size_str +
+                      string(crc_data, 4) + data);
+
+    return io_data;
 }
 
 static const std::string decode_frame(const std::string& frame_data)
