@@ -74,7 +74,7 @@ ROOTFS_BUILD_TAG="$(cd "$(dirname "$0")"; git describe --tags HEAD | sed 's/_/~/
 DATE="$(date +%Y%m%d)"
 WORKDIR="$(mktemp -d)"
 STARTDIR="$(pwd)"
-RASPI_FIRMWARE_VERSION=1.20240926
+RASPI_FIRMWARE_VERSION=1.20250305
 
 # Default options that might be overridden
 ROOTFS_BUILD_PATH="$TOPLEVEL/rootfs"
