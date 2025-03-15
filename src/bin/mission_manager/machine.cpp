@@ -356,18 +356,8 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     // do not increment for other triggering events, such as EvIMURestart or EvGPSFix
     if (!has_manual_task_ && task_complete_event)
     {
-        if (task_packet_.type() == protobuf::MissionTask::DIVE && task_packet_.has_dive() &&
-            task_packet_.dive().reached_min_depth())
-        {
-            goby::glog.is_debug1() &&
-                goby::glog << "Minimum depth was reached, do not increment waypoint index"
-                           << std::endl;
-        }
-        else
-        {
-            goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
-            context<InMission>().increment_goal_index();
-        }
+        goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
+        context<InMission>().increment_goal_index();
     }
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
@@ -527,11 +517,6 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
     // Then we can adjust pressure accordingly
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 
-    if (cfg().has_start_camera_command())
-    {
-        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
-    }
-
     loop(EvLoop());
 }
 
@@ -553,6 +538,11 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    if (cfg().has_start_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+    }
 
     if (current_clock >= dive_prep_timeout_)
     {
@@ -953,11 +943,6 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().has_stop_camera_command())
-    {
-        interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
-    }
-
     loop(EvLoop());
 }
 
@@ -984,6 +969,11 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop
         glog << "Entered "
                 "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop: \n"
              << std::endl;
+
+    if (cfg().has_stop_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
+    }
 
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
