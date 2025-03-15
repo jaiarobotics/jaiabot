@@ -22,8 +22,8 @@ sudo usermod -aG sudo newuser
 ```
 3. Verify the user is in the sudo group
 ```
+# OutPut: newuser : newuser sudo
 groups newuser
-(OutPut: newuser : newuser sudo)
 ```
 4. log in as newuser
 ```
