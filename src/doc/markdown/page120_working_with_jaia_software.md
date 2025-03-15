@@ -1,6 +1,7 @@
 # Working With Jaia Software
 
 ### Table of Contents:
+- [Setting Up a New User and Configuring Permissions](#setting-up-a-new-user-and-configuring-permissions)
 - [Launching The Simulator](#launching-the-simulator)
 - [Modifying Code](#modifying-code)
 - [Deploying Code](#deploying-code)
