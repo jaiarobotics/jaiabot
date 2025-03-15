@@ -7,6 +7,57 @@
 - [Deploying Code](#deploying-code)
 
 <br>
+<a id="setting-up-a-new-user-and-configuring-permissions"></a>
+
+# Setting Up a Default New User and Configuring Permissions
+Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+
+1. create new user 
+```
+sudo adduser newuser
+```
+2. Add newuser to the sudo group
+```
+sudo usermod -aG sudo newuser
+```
+3. Verify the user is in the sudo group
+```
+groups newuser
+(OutPut: newuser : newuser sudo)
+```
+4. log in as newuser
+```
+su newuser
+```
+5. Test sudo access
+```
+sudo whoami
+```
+6. Edit the WSL configuration file
+```
+sudo nano /etc/wsl.conf
+```
+7. In 'nano'
+```
+[user]
+default=newuser
+```
+8. save file and exit 'nano'
+```
+ctl + x
+Y
+enter
+```
+9. In PowerShell run
+```
+wsl --shutdown
+```
+10. Verify the Default User in Ubuntu
+```
+open Ubuntu terminal
+```
+
+<br>
 <a id="launching-the-simulator"></a>
 
 # Launching the Simulator
