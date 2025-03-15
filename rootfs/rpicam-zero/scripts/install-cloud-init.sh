@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+
+########################
+## Install cloud-init ##
+########################
+
 apt-get -y update && apt-get install cloud-init -y
 
 mkdir -p /boot/jaiabot/init/
