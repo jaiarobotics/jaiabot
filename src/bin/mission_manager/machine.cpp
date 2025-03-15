@@ -539,6 +539,11 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
+    if (cfg().has_start_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+    }
+
     if (current_clock >= dive_prep_timeout_)
     {
         glog.is_debug2() && glog << "DivePrep completed" << std::endl;
@@ -964,6 +969,12 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop
         glog << "Entered "
                 "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop: \n"
              << std::endl;
+
+    if (cfg().has_stop_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
+    }
+
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);

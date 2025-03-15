@@ -8,6 +8,7 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/modem_message_extensions.proto";
+import "jaiabot/messages/camera_driver.proto";
 
 package jaiabot.config;
 
@@ -243,4 +244,7 @@ message MissionManager
     optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
 
     required uint32 subnet_mask = 89;
+
+    optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
+    optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
 }
