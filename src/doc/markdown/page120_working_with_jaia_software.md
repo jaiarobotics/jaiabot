@@ -1,15 +1,15 @@
 # Working With Jaia Software
 
 ### Table of Contents:
-- [Setting Up a New User and Configuring Permissions](#setting-up-a-new-user-and-configuring-permissions)
+- [Setting Up a New User](#setting-up-a-new-user)
 - [Launching The Simulator](#launching-the-simulator)
 - [Modifying Code](#modifying-code)
 - [Deploying Code](#deploying-code)
 
 <br>
-<a id="setting-up-a-new-user-and-configuring-permissions"></a>
+<a id="setting-up-a-new-user"></a>
 
-# Setting Up a Default New User and Configuring Permissions
+# Setting Up a Default New User
 Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
 
 1. create new user 
@@ -88,6 +88,9 @@ cd /path/to/jaiabot/src/web
 ```
 cd /path/to/jaiabot/config/launch/simulation
 # Set the simulation to run 4 bots at a time warp of 5
+sudo chmod 777 /tmp
+sudo mkdir -p /run/screen
+sudo chmod 777 /run/screen
 ./generate_all_launch.sh 4 5
 ./all.launch
 ```
