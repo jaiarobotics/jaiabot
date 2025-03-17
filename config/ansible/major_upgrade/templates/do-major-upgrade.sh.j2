@@ -103,11 +103,8 @@ fi
 # Reboot    
 ###############################
 
-if [ "{{ upgrade_type }}" = "embedded" ]; then
-    ## in place major upgrade
-    systemctl reboot --force
-else
-    ## AWS AMI
+if [ -e /boot/grub/grub.cfg ]; then
+    ## AWS AMI or VirtualBox VM
     
     # Pivot to new root
     mount --make-rprivate /
@@ -135,3 +132,8 @@ else
 
     grub-install "/dev/$root_device" --no-uefi-secure-boot --removable
 fi
+
+if [ "{{ upgrade_type }}" = "embedded" ]; then
+    systemctl reboot --force
+fi
+ 
