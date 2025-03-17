@@ -55,7 +55,7 @@ if [ -n "$INSTANCE_IDS" ] && [ "$INSTANCE_IDS" != "None" ]; then
     
     # Terminate instances
     echo "Terminating instances: $INSTANCE_IDS"    
-    aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
+    aws ec2 terminate-instances --no-cli-pager --instance-ids $INSTANCE_IDS 
 
     # Wait for termination
     echo "Waiting for instances to terminate..."

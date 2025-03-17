@@ -205,7 +205,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      hub_log_offload_dir=common.hub_log_offload_dir,
                                      # if we're using localhost for wifi comms, use it for data offload as well
-                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index, hub_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times,
                                      hub_gpsd_device=common.hub.gpsd_device(),
                                      subnet_mask=common.comms.subnet_mask,

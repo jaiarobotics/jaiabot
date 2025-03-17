@@ -26,16 +26,6 @@ environment-template-noble: &environment-template-noble
 
 ## Pre-declare Docker containers
 
-docker-base-focal: &docker-base-focal
-  - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
-    auth:
-      username: $DOCKERHUB_USERNAME
-      password: $DOCKERHUB_PASSWORD
-docker-arm64-focal: &docker-arm64-focal
-  - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
-    auth:
-      username: $DOCKERHUB_USERNAME
-      password: $DOCKERHUB_PASSWORD
 docker-base-noble: &docker-base-noble
   - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
     auth:
