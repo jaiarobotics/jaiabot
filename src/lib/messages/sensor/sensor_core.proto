@@ -3,9 +3,9 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/sensor/metadata.proto";
 import "jaiabot/messages/sensor/configuration.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_ec.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_do.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_ph.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ec.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_do.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ph.proto";
 import "jaiabot/messages/sensor/turner__c_fluor.proto";
 import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
 
@@ -44,10 +44,10 @@ message SensorData
     oneof data
     {
         Metadata metadata = 11;
-        AtlasScientificEZOEC ezo_ec = 12;
+        AtlasScientificOEMEC oem_ec = 12;
         BlueRoboticsBar30 bar30 = 13;
-        AtlasScientificEZOpH ezo_ph = 14;
-        AtlasScientificEZODO ezo_do = 15;
+        AtlasScientificOEMpH oem_ph = 14;
+        AtlasScientificOEMDO oem_do = 15;
         TurnerCFluor c_fluor = 16;
         
         // change name to VendorSensor format

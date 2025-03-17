@@ -28,7 +28,7 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
-#include "drivers/atlas_scientific__ezo_ec.h"
+#include "drivers/atlas_scientific__oem_ec.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/catalog.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
@@ -201,13 +201,13 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
     switch (metadata.sensor())
     {
-        case sensor::protobuf::ATLAS_SCIENTIFIC__EZO_EC:
-            launch_thread<AtlasScientificEZOECDriver>(metadata);
+        case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC:
+            launch_thread<AtlasScientificOEMECDriver>(metadata);
             break;
 
         case sensor::protobuf::BLUE_ROBOTICS__BAR30:
-        case sensor::protobuf::ATLAS_SCIENTIFIC__EZO_PH:
-        case sensor::protobuf::ATLAS_SCIENTIFIC__EZO_DO:
+        case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
+        case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
         case sensor::protobuf::TURNER__C_FLUOR:
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "

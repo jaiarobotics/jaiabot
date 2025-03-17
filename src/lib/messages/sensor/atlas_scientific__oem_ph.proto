@@ -4,15 +4,14 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.sensor.protobuf;
 
-message AtlasScientificEZODO
+message AtlasScientificOEMpH
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
 
     // notional - add units and additional fields as needed
-    required double dissolved_oxygen = 1;
+    required double ph = 1;
 }
-
 
 

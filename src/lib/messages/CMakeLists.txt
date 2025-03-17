@@ -10,10 +10,10 @@ set(SENSOR_MESSAGES
   sensor/configuration.proto
   sensor/metadata.proto
   sensor/catalog.proto
-  sensor/atlas_scientific__ezo_ec.proto
+  sensor/atlas_scientific__oem_ec.proto
   sensor/blue_robotics__bar30.proto
-  sensor/atlas_scientific__ezo_do.proto
-  sensor/atlas_scientific__ezo_ph.proto
+  sensor/atlas_scientific__oem_do.proto
+  sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
 )
 

@@ -20,25 +20,25 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "atlas_scientific__ezo_ec.h"
+#include "atlas_scientific__oem_ec.h"
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
 
-jaiabot::apps::AtlasScientificEZOECDriver::AtlasScientificEZOECDriver(
+jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     const jaiabot::sensor::protobuf::Metadata& config)
     : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>(config)
 
 {
-    glog.add_group("ezo_ec", goby::util::Colors::blue);
+    glog.add_group("oem_ec", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
         [this](const sensor::protobuf::SensorData& sensor_data)
         {
-            if (sensor_data.has_ezo_ec())
-                receive_data(sensor_data.ezo_ec());
+            if (sensor_data.has_oem_ec())
+                receive_data(sensor_data.oem_ec());
         });
 
     // configure our sensor
@@ -51,10 +51,10 @@ jaiabot::apps::AtlasScientificEZOECDriver::AtlasScientificEZOECDriver(
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
-void jaiabot::apps::AtlasScientificEZOECDriver::receive_data(
-    const sensor::protobuf::AtlasScientificEZOEC& ec_data)
+void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
+    const sensor::protobuf::AtlasScientificOEMEC& ec_data)
 {
-    glog.is_debug1() && glog << group("ezo_ec")
+    glog.is_debug1() && glog << group("oem_ec")
                              << "Received ec_data: " << ec_data.ShortDebugString() << std::endl;
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread

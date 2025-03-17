@@ -13,7 +13,7 @@ message Metadata
     };
 
     required Sensor sensor = 1;
-    required int32 sensor_version = 2;
+    optional int32 sensor_version = 2;
 
     message Calibration
     {
@@ -31,8 +31,8 @@ message Metadata
         }
         repeated Cal value = 3  [(nanopb).max_count = 16];
     }
-    required Calibration calibration = 3;
-    required uint64 time_purchased = 4 [
+    optional Calibration calibration = 3;
+    optional uint64 time_purchased = 4 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
 
