@@ -4,7 +4,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.p
 
 add_executable(${APP}
   app.cpp
-  drivers/atlas_scientific__ezo_ec.cpp
+  drivers/atlas_scientific__oem_ec.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

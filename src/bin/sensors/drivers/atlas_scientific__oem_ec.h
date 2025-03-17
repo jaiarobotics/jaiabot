@@ -20,10 +20,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_EZO_EC_H
-#define JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_EZO_EC_H
+#ifndef JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_OEM_EC_H
+#define JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_OEM_EC_H
 
-#include "jaiabot/messages/sensor/atlas_scientific__ezo_ec.pb.h"
+#include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
 #include "jaiabot/messages/sensor/metadata.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
@@ -31,14 +31,14 @@ namespace jaiabot
 {
 namespace apps
 {
-class AtlasScientificEZOECDriver
+class AtlasScientificOEMECDriver
     : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>
 {
   public:
-    AtlasScientificEZOECDriver(const jaiabot::sensor::protobuf::Metadata& config);
+    AtlasScientificOEMECDriver(const jaiabot::sensor::protobuf::Metadata& config);
 
   private:
-    void receive_data(const sensor::protobuf::AtlasScientificEZOEC& ec_data);
+    void receive_data(const sensor::protobuf::AtlasScientificOEMEC& ec_data);
 };
 
 } // namespace apps

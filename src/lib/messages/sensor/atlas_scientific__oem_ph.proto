@@ -4,7 +4,7 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.sensor.protobuf;
 
-message AtlasScientificEZOpH
+message AtlasScientificOEMpH
 {
     option (dccl.msg) = {
         unit_system: "si"
