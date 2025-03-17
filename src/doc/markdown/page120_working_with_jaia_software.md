@@ -88,6 +88,7 @@ cd /path/to/jaiabot/src/web
 ```
 cd /path/to/jaiabot/config/launch/simulation
 # Set the simulation to run 4 bots at a time warp of 5
+chmod +x /usr/bin/goby_launch
 sudo chmod 777 /tmp
 sudo mkdir -p /run/screen
 sudo chmod 777 /run/screen
