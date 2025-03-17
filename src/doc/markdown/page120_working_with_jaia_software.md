@@ -48,7 +48,7 @@ ctrl + x
 Y
 enter
 ```
-9. In PowerShell run
+9. In Windows PowerShell terminal
 ```
 wsl --shutdown
 ```
