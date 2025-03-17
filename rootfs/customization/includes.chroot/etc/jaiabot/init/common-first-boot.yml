@@ -54,10 +54,6 @@ runcmd:
   - chmod 600 /etc/jaiabot/ssh/*authorized_keys
   # Check and install any hub keys
   - /etc/jaiabot/init/install-hub-ssh-keys.sh
-  # Setup wireguard VPN (if temporary key is provided)
-  - networkctl down wlan0
-  - networkctl up wlan0
-  - /etc/jaiabot/init/configure-wireguard-service-vpn.sh
   # Format overlay to btrfs (if not already)
   - mkfs.btrfs -f $(blkid -L overlay) -L overlay
 
