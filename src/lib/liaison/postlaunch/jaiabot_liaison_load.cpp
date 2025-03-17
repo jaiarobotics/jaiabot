@@ -4,11 +4,11 @@
 
 extern "C"
 {
-    std::vector<goby::zeromq::LiaisonContainer*>
+    std::vector<std::unique_ptr<goby::zeromq::LiaisonContainer>>
     goby3_liaison_load(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg)
     {
-        std::vector<goby::zeromq::LiaisonContainer*> containers;
-        containers.push_back(new jaiabot::LiaisonJaiabot(cfg));
+        std::vector<std::unique_ptr<goby::zeromq::LiaisonContainer>> containers;
+        containers.emplace_back(std::make_unique<jaiabot::LiaisonJaiabot>(cfg));
         return containers;
     }
 }

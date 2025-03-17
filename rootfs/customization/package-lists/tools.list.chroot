@@ -21,3 +21,5 @@ memtester
 iptables
 ufw
 zip
+iputils-ping
+iputils-tracepath

@@ -95,10 +95,5 @@ ansible_playbook {
         value: "online_with_hub_cache"
         value: "offline"
     }
-    input_var {
-        name: "version"
-        display_name: "Version Branch"
-        value: "1.y"
-    }
     inventory: "/etc/jaiabot/vfleet-inventory.yml"
 }

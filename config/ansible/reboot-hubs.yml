@@ -7,4 +7,4 @@
     - name: Reboot hubs
       # since we're running this on the hub, we will reboot the machine running ansible
       # this precludes using the reboot builtin
-      shell: "systemctl start reboot.target"
+      shell: "systemctl reboot"

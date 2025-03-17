@@ -7,7 +7,7 @@
 
 extern "C"
 {
-    std::vector<goby::zeromq::LiaisonContainer*>
+    std::vector<std::unique_ptr<goby::zeromq::LiaisonContainer>>
     goby3_liaison_load(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg);
 }
 

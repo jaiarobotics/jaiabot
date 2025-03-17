@@ -51,7 +51,13 @@
 #
 #     --distribution
 #         Desired Ubuntu distribution codename (e.g., "focal" or "jammy")
+# 
+#     --repo
+#         Desired Jaiabot repo ("release", "continuous", "beta", "test")
 #
+#     --version
+#         Desired Jaiabot version ("1.y", "2.y")
+# 
 # This script is invoked by the raspi-image-master job in the cgsn_mooring
 # project's CircleCI but can also be invoked directly.
 #
@@ -68,20 +74,33 @@ ROOTFS_BUILD_TAG="$(cd "$(dirname "$0")"; git describe --tags HEAD | sed 's/_/~/
 DATE="$(date +%Y%m%d)"
 WORKDIR="$(mktemp -d)"
 STARTDIR="$(pwd)"
-RASPI_FIRMWARE_VERSION=1.20220331
+RASPI_FIRMWARE_VERSION=1.20250305
 
 # Default options that might be overridden
 ROOTFS_BUILD_PATH="$TOPLEVEL/rootfs"
 DEFAULT_IMAGE_NAME=jaiabot_img-"$ROOTFS_BUILD_TAG".img
 OUTPUT_IMAGE_PATH="$(pwd)"/"$DEFAULT_IMAGE_NAME"
 ROOTFS_TARBALL=
-DISTRIBUTION=focal
+
+set -a; source ${TOPLEVEL}/scripts/common-versions.env; set +a
+DISTRIBUTION=${jaia_version_ubuntu_codename}
+JAIABOT_VERSION=${jaia_version_release_branch}
+JAIABOT_REPO=release
+
 
 # Ensure user is root
 if [ "$UID" -ne 0 ]; then
     echo "This script must be run as root; e.g. using 'sudo'" >&2
     exit 1
 fi
+
+function unmount_bind_mounts {
+    sudo umount "$ROOTFS_PARTITION"/boot/firmware || true
+    sudo umount "$ROOTFS_PARTITION"/dev/pts || true
+    sudo umount "$ROOTFS_PARTITION"/dev || true
+    sudo umount "$ROOTFS_PARTITION"/proc || true
+    sudo umount "$ROOTFS_PARTITION"/sys || true
+}
 
 
 # Set up an exit handler to clean up after ourselves
@@ -94,11 +113,7 @@ function finish {
   
     # Unmount the partitions
     [ -z "$DEBUG" ] &&
-        ( sudo umount "$ROOTFS_PARTITION"/boot/firmware
-          sudo umount "$ROOTFS_PARTITION"/dev/pts
-          sudo umount "$ROOTFS_PARTITION"/dev
-          sudo umount "$ROOTFS_PARTITION"/proc
-          sudo umount "$ROOTFS_PARTITION"/sys
+        ( unmount_bind_mounts
           sudo umount "$ROOTFS_PARTITION"
           sudo umount "$BOOT_PARTITION"
           
@@ -151,11 +166,20 @@ while [[ $# -gt 0 ]]; do
     DISTRIBUTION="$1"
     shift
     ;;
+  --repo)
+    JAIABOT_REPO="$1"
+    shift
+    ;;
+  --version)
+    JAIABOT_VERSION="$1"
+    shift
+    ;;
   *)
     echo "Unexpected argument: $KEY" >&2
     exit 1
   esac
 done
+
 
 if [[ "$NATIVE" == "1" ]]; then
     if [[ $(arch) != "aarch64"  ]]; then
@@ -171,9 +195,8 @@ elif ! enable_binfmt_rule qemu-aarch64; then
     exit 1
 fi
 
-
 # Let's go!
-echo "Building bootable Raspberry Pi image in $WORKDIR"
+echo "Building bootable Raspberry Pi image in $WORKDIR: distro=${DISTRIBUTION}, version=${JAIABOT_VERSION}, repo=${JAIABOT_REPO}"
 cd "$WORKDIR"
 
 # Create a 17.0 GiB image
@@ -184,15 +207,12 @@ SD_IMAGE_PATH="$OUTPUT_IMAGE_PATH"
 # 8 GB underlay ro rootfs
 # 200 MB (to resize to fill disk) log partition 
 dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
-sfdisk --quiet "$SD_IMAGE_PATH" <<EOF
-label: dos 
-device: /dev/sdc
-unit: sectors
-
-/dev/sdc1 : start=        8192, size=      524288, type=c, bootable
-/dev/sdc2 : start=      532480, size=    16777216, type=83
-/dev/sdc3 : start=    17309696, size=    16777216, type=83
-/dev/sdc4 : start=    34086912, size=      409600, type=83
+sfdisk "$SD_IMAGE_PATH" <<EOF
+label: gpt
+size=256MiB, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+size=8GiB,   type=linux
+size=8GiB,   type=linux
+size=200MiB, type=linux
 EOF
 
 # Set up loop device for the partitions
@@ -202,7 +222,7 @@ DISK_DEV=$(echo "$BOOT_DEV" | sed 's|mapper/\(loop[0-9]*\).*|\1|')
 
 # Format the partitions
 sudo mkfs.vfat -F 32 -n boot "$BOOT_DEV"
-sudo mkfs.ext4 -L rootfs "$ROOTFS_DEV"
+sudo mkfs.btrfs -L rootfs "$ROOTFS_DEV"
 sudo mkfs.btrfs -L overlay "$OVERLAY_DEV"
 sudo mkfs.btrfs -L data "$DATA_DEV"
 
@@ -213,6 +233,12 @@ ROOTFS_PARTITION="$WORKDIR"/rootfs
 
 sudo mount "$BOOT_DEV" "$BOOT_PARTITION"
 sudo mount "$ROOTFS_DEV" "$ROOTFS_PARTITION"
+
+if command -v pigz >/dev/null 2>&1; then
+    COMPRESSOR="pigz"
+else
+    COMPRESSOR="gzip"
+fi
 
 if [ -z "$ROOTFS_TARBALL" ]; then
     # Build the rootfs
@@ -233,17 +259,23 @@ if [ -z "$ROOTFS_TARBALL" ]; then
     echo "JAIABOT_IMAGE_BUILD_DATE=\"`date -u`\""  >> config/includes.chroot/etc/jaiabot/version
     echo "RASPI_FIRMWARE_VERSION=$RASPI_FIRMWARE_VERSION"  >> config/includes.chroot/etc/jaiabot/version
 
+    sed -i "s/@DISTRIBUTION@/${DISTRIBUTION}/" config/archives/jaiabot.list.chroot
+    sed -i "s/@JAIABOT_REPO@/${JAIABOT_REPO}/" config/archives/jaiabot.list.chroot
+    sed -i "s/@JAIABOT_VERSION@/${JAIABOT_VERSION}/" config/archives/jaiabot.list.chroot
+
     # Do not include cloud packages in Raspi image - no need for s3fs 
     [ -z "$VIRTUALBOX" ] && rm config/package-lists/cloud.list.chroot
     
     lb build
+    # Need xattrs for ping setcap
+    tar --xattrs --xattrs-include="*" -cf - binary | $COMPRESSOR > binary-tar-xattrs.tar.gz
     cd ..
-    ROOTFS_TARBALL=rootfs-build/binary-tar.tar.gz
+    ROOTFS_TARBALL=rootfs-build/binary-tar-xattrs.tar.gz
 fi
 
 # Install the rootfs tarball to the partition
 sudo tar -C "$ROOTFS_PARTITION" --strip-components 1 \
-  -xpzf "$ROOTFS_TARBALL"
+   --xattrs --xattrs-include="*" -xpzf "$ROOTFS_TARBALL"
 
 GOBY_VERSION=$(chroot $ROOTFS_PARTITION dpkg-query -W -f='${Version}' libgoby3 | cut -d - -f 1)
 JAIABOT_VERSION=$(chroot $ROOTFS_PARTITION dpkg-query -W -f='${Version}' libjaiabot | cut -d - -f 1)
@@ -304,7 +336,7 @@ dtoverlay=spi1-3cs
 
 EOF
 cat > "$BOOT_PARTITION"/cmdline.txt <<EOF
-console=tty1 root=LABEL=rootfs rootfstype=ext4 fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
+console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=btrfs fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
 EOF
 
 # Flash the kernel
@@ -315,10 +347,7 @@ sudo mount -o bind /dev/pts "$ROOTFS_PARTITION"/dev/pts
 sudo mount -o bind /proc "$ROOTFS_PARTITION"/proc
 sudo mount -o bind /sys "$ROOTFS_PARTITION"/sys
 
-# Persist the rootfs in case we want it
-OUTPUT_ROOTFS_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.tar.gz/")
-OUTPUT_METADATA=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.metadata.txt/")
-cp "${ROOTFS_TARBALL}" "${OUTPUT_ROOTFS_TARBALL}"
+OUTPUT_METADATA=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.metadata\.txt/")
 
 # Copy the cloud init info to the boot partition where it is more easily modified on a Windows machine
 sudo mkdir -p "$BOOT_PARTITION"/jaiabot/init
@@ -328,6 +357,22 @@ sudo cp "$ROOTFS_PARTITION"/etc/jaiabot/init/first-boot.preseed.yml.j2 "$BOOT_PA
 echo "export JAIABOT_ROOTFS_GEN_TAG='$ROOTFS_BUILD_TAG'" > ${OUTPUT_METADATA}
 echo "export JAIABOT_VERSION='$JAIABOT_VERSION'" >> ${OUTPUT_METADATA}
 echo "export GOBY_VERSION='$GOBY_VERSION'" >> ${OUTPUT_METADATA}
+
+
+function create_tarballs {
+    # Persist the rootfs and boot for release upgrades
+    OUTPUT_ROOTFS_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.rootfs\.tar\.gz/")
+    OUTPUT_BOOT_TARBALL=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.boot\.tar\.gz/")
+
+    # Create tarball variants of image
+    unmount_bind_mounts   
+    cd rootfs
+    # Need xattrs for ping setcap
+    tar --xattrs --xattrs-include="*" -cf - . | $COMPRESSOR > ${OUTPUT_ROOTFS_TARBALL}
+    cd ../boot
+    tar -cf - . | $COMPRESSOR > ${OUTPUT_BOOT_TARBALL}
+    cd ..    
+}
 
 if [ ! -z "$VIRTUALBOX" ]; then
     sudo chroot rootfs apt-get -y install linux-image-virtual grub-efi-amd64
@@ -350,6 +395,8 @@ if [ ! -z "$VIRTUALBOX" ]; then
     
     # use ipv6 and ipv4 resolv.conf for VirtualBox and AWS instances
     sudo chroot rootfs /bin/bash -c "cat /etc/resolv.conf.ipv6 /etc/resolv.conf.ipv4 > /etc/resolv.conf"
+
+    create_tarballs
     
     # unmount all the image partitions first
     finish
@@ -378,5 +425,8 @@ else
     # Noble flash-kernel added FK_IGNORE_EFI
     sudo chroot rootfs /bin/bash -c "export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
     
-    echo "Raspberry Pi image created at $OUTPUT_IMAGE_PATH"
+    create_tarballs
+    
+    echo "Raspberry Pi image created at $OUTPUT_IMAGE_PATH (also a copy of rootfs at $OUTPUT_ROOTFS_TARBALL and boot at $OUTPUT_BOOT_TARBALL)"
 fi
+

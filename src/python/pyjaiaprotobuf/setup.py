@@ -13,6 +13,6 @@ setup(name='pyjaiaprotobuf',
           'jaiabot.messages'],
       install_requires=[
           'wheel', 
-          'protobuf==3.20.0', 
+          'protobuf', 
           ]
     )

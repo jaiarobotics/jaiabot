@@ -12,7 +12,7 @@ setup(name='pyjaia',
           'pyjaia.waves'],
       install_requires=[
           'wheel', 
-          'protobuf==3.20.0', 
+          'protobuf', 
           'scipy', 
           'numpy', 
           'cmocean',

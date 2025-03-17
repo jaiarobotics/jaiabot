@@ -228,6 +228,9 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                                 command.stop_forward_progress().duration_with_units());
                         break;
 
+                    case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
+                        // no command, do nothing
+                        break;
                 }
             });
 
@@ -467,6 +470,7 @@ void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
         case protobuf::SETPOINT_STOP:
         case protobuf::SETPOINT_POWERED_ASCENT:
         case protobuf::SETPOINT_REMOTE_CONTROL:
+        case protobuf::SETPOINT_SUSPEND_PID:
             moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
             break;
 
