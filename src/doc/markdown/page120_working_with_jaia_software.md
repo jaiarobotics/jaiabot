@@ -44,7 +44,7 @@ default=newuser
 ```
 8. save file and exit 'nano'
 ```
-ctl + x
+ctrl + x
 Y
 enter
 ```
@@ -54,7 +54,7 @@ wsl --shutdown
 ```
 10. Verify the Default User in Ubuntu
 ```
-open Ubuntu terminal
+Open Ubuntu terminal
 ```
 
 <br>
@@ -87,11 +87,15 @@ cd /path/to/jaiabot/src/web
 5. Launch the simulator in a separate terminal
 ```
 cd /path/to/jaiabot/config/launch/simulation
-# Set the simulation to run 4 bots at a time warp of 5
+# Make goby_launch script executable
 chmod +x /usr/bin/goby_launch
+# Grant full read, write, and execute permissions on /temp
 sudo chmod 777 /tmp
+#If need create directory /run/screen
 sudo mkdir -p /run/screen
+# Grant full read, write, and execute permissions on /run/screen
 sudo chmod 777 /run/screen
+# Set the simulation to run 4 bots at a time warp of 5
 ./generate_all_launch.sh 4 5
 ./all.launch
 ```
