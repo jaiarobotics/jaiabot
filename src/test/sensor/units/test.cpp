@@ -3,7 +3,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <boost/units/quantity.hpp>
 
-#include "jaiabot/messages/sensor/atlas_scientific__ezo_ec.pb.h"
+#include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
 
 namespace jaiabot
 {
