@@ -3,9 +3,9 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/sensor/metadata.proto";
 import "jaiabot/messages/sensor/configuration.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_ec.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_do.proto";
-import "jaiabot/messages/sensor/atlas_scientific__ezo_ph.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ec.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_do.proto";
+import "jaiabot/messages/sensor/atlas_scientific__eoem_ph.proto";
 import "jaiabot/messages/sensor/turner__c_fluor.proto";
 import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
 
