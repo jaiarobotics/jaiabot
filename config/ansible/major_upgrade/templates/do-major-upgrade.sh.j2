@@ -119,9 +119,14 @@ if [ -e /boot/grub/grub.cfg ]; then
         mount --move "$mountpoint" "$new_mount"
     done
 
-    # Enable serial console for AWS debugging
-    sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
-    
+    if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then
+        # VirtualBox cloud init source
+        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
+    elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
+        # Enable serial console for AWS debugging
+        sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
+    fi
+       
     update-grub
     
     root_partition=$(findmnt -n -o SOURCE /)
