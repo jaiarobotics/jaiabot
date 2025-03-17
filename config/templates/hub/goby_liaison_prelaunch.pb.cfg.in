@@ -103,26 +103,26 @@ add_commander_tab: false
         }
     }
 
-    ansible_playbook {
-        file: "major_upgrade/major-upgrade.yml" 
-        name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
-        section: "Upgrade"
-        role: USER
+    # ansible_playbook {
+    #     file: "major_upgrade/major-upgrade.yml" 
+    #     name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+    #     section: "Upgrade"
+    #     role: USER
 
-        input_var {
-            name: "hub_id"
-            display_name: "Hub ID for offline/hub cache updates"
-            static_value: "$this_hub_index"
-        }
+    #     input_var {
+    #         name: "hub_id"
+    #         display_name: "Hub ID for offline/hub cache updates"
+    #         static_value: "$this_hub_index"
+    #     }
 
-        input_var {
-            name: "do_backup"
-            display_name: "Make a backup of old Ubuntu filesystem to bot and hub data drives"
-            value: "yes"
-            value: "no"
-        }
+    #     input_var {
+    #         name: "do_backup"
+    #         display_name: "Make a backup of old Ubuntu filesystem to bot and hub data drives"
+    #         value: "yes"
+    #         value: "no"
+    #     }
         
-    }
+    # }
 
     
     ansible_playbook {
