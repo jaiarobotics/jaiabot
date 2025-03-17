@@ -1,18 +1,18 @@
 # Working With Jaia Software
 
 ### Table of Contents:
-- [Setting Up a New User](#setting-up-a-new-user)
+- [Setting Up a Default New User](#setting-up-a-default-new-user)
 - [Launching The Simulator](#launching-the-simulator)
 - [Modifying Code](#modifying-code)
 - [Deploying Code](#deploying-code)
 
 <br>
-<a id="setting-up-a-new-user"></a>
+<a id="setting-up-a-default-new-user"></a>
 
 # Setting Up a Default New User
 Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
 
-1. create new user 
+1. Create new user 
 ```
 sudo adduser newuser
 ```
@@ -25,7 +25,7 @@ sudo usermod -aG sudo newuser
 # OutPut: newuser : newuser sudo
 groups newuser
 ```
-4. log in as newuser
+4. Log in as newuser
 ```
 su newuser
 ```
@@ -42,7 +42,7 @@ sudo nano /etc/wsl.conf
 [user]
 default=newuser
 ```
-8. save file and exit 'nano'
+8. Save file and exit 'nano'
 ```
 ctrl + x
 Y
@@ -52,7 +52,7 @@ enter
 ```
 wsl --shutdown
 ```
-10. Verify the Default User in Ubuntu
+10. Check default user in Ubuntu terminal
 ```
 Open Ubuntu terminal
 ```
