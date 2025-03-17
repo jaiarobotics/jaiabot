@@ -51,13 +51,23 @@ SSID=${jaia_network_service_ssid}
 DHCP=yes
 EOF
 
-cat <<EOF > /etc/systemd/network/30-${jaia_network_eth_iface}.network
+if [[ "${jaia_network_eth_address}" != "" ]]; then
+    cat <<EOF > /etc/systemd/network/30-${jaia_network_eth_iface}.network
+[Match] 
+Name=${jaia_network_eth_iface}
+
+[Network]
+Address=${jaia_network_eth_address}
+EOF
+else
+    cat <<EOF > /etc/systemd/network/30-${jaia_network_eth_iface}.network
 [Match]
 Name=${jaia_network_eth_iface}
 
 [Network]
 DHCP=yes
 EOF
+fi
 
 if [[ "${jaia_network_eth_enabled}" = "false" ]]; then
     cat <<EOF >> /etc/systemd/network/30-${jaia_network_eth_iface}.network
