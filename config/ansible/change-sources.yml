@@ -4,6 +4,7 @@
   become: yes
   gather_facts: yes
   vars:
+    version: "2.y"
     allowed_repos:
       - test
       - continuous
@@ -13,9 +14,6 @@
       - offline
       - online
       - online_with_hub_cache
-    allowed_versions:
-      - 1.y
-      - 2.y
   pre_tasks:
     - name: Check if mode is a valid enumeration
       ansible.builtin.assert:
@@ -30,15 +28,6 @@
           - repo in allowed_repos
         fail_msg: "Invalid repo. Allowed values are: {{ allowed_repos | join(', ') }}"
       when: mode != "offline"
-    - name: Check if version is a valid enumeration (if needed)
-      ansible.builtin.assert:
-        that:
-          - version is defined
-          - version in allowed_versions
-        fail_msg: "Invalid version. Allowed values are: {{ allowed_versions | join(', ') }}"
-      when:
-        - mode != "offline"
-        - repo != "test"
     - name: Check if hub_id is defined
       ansible.builtin.assert:
         that:

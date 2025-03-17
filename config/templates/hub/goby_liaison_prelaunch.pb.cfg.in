@@ -43,11 +43,6 @@ add_commander_tab: false
             value: "offline"
         }
         input_var {
-            name: "version"
-            display_name: "Version Branch"
-            value: "1.y"
-        }
-        input_var {
             name: "hub_id"
             display_name: "Hub ID for offline/hub cache updates"
             static_value: "$this_hub_index"

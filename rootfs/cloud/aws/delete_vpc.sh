@@ -1,12 +1,13 @@
 #!/bin/bash
 
-set -e -u
-
 # Check for required argument
 if [ -z "$1" ]; then
     echo "Usage: $0 <fleet ID>"
     exit 1
 fi
+
+set -e -u
+
 
 FLEET_TAG_VALUE="$1"
 
