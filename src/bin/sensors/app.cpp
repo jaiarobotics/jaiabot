@@ -72,6 +72,11 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
     boost::crc_32_type crc32_calc_;
 };
 
+void hex_string_to_bytes(const char* hex, uint8_t* bytes, size_t length)
+{
+    for (size_t i = 0; i < length; i++) { sscanf(&hex[i * 2], "%2hhx", &bytes[i]); }
+}
+
 } // namespace apps
 } // namespace jaiabot
 
@@ -219,9 +224,4 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
     }
 
     drivers_launched_.insert(metadata.sensor());
-}
-
-void hex_string_to_bytes(const char* hex, uint8_t* bytes, size_t length)
-{
-    for (size_t i = 0; i < length; i++) { sscanf(&hex[i * 2], "%2hhx", &bytes[i]); }
 }
