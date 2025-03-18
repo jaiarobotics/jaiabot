@@ -12,8 +12,6 @@ apt-get -y update && apt-get -y install libcamera-apps libcamera-dev python3-lib
 apt-get -y update && apt-get -y install zile openssh-server
 ln -s /usr/bin/zile /usr/local/bin/emacs
 
-
-
 ###########################
 ## Enable serial console ##
 ###########################
@@ -21,7 +19,6 @@ ln -s /usr/bin/zile /usr/local/bin/emacs
 cat <<EOF >> /boot/config.txt
 enable_uart=1
 EOF
-
 
 ######################
 ## Set default user ##
@@ -38,24 +35,6 @@ apt-get -y remove network-manager
 systemctl enable systemd-networkd
 systemctl mask systemd-networkd-wait-online.service
 
-
-#########################################
-## Prevent RPI from auto resizing root ##
-#########################################
-
-# See https://forums.raspberrypi.com/viewtopic.php?p=2190030#p2189328
-BOOTPATH='/boot'
-ROOTPATH=''
-
-sed -i '/^[[:space:]]*#/!s| init=/usr/lib/raspi-config/init_resize\.sh||' "${BOOTPATH}/cmdline.txt"
-if [ -f "${ROOTPATH}/usr/lib/raspberrypi-sys-mods/firstboot" ]; then
-  cp "${ROOTPATH}/usr/lib/raspberrypi-sys-mods/firstboot" "${ROOTPATH}/usr/lib/raspberrypi-sys-mods/first-boot"
-  sed -i 's|firstboot|first-boot|g' "${ROOTPATH}/usr/lib/raspberrypi-sys-mods/first-boot"
-  sed -i 's|^\(\s*whiptail --infobox \"Resizing root filesystem.*\)$|  return 0\n\n\1|' "${ROOTPATH}/usr/lib/raspberrypi-sys-mods/first-boot" &> /dev/null
-  sed -i '/^[[:space:]]*#/!s| init=/usr/lib/raspberrypi-sys-mods/firstboot| init=/usr/lib/raspberrypi-sys-mods/first-boot|' "${BOOTPATH}/cmdline.txt"
-fi
-
-
 #########################
 ## Install first boot ##
 #########################
@@ -66,7 +45,6 @@ cat <<EOF > /boot/jaiabot/init/first-boot.preseed.yml
 ssh_pwauth: false
 
 bootcmd:
-  - chmod a+x /opt/create-data-partition.sh && /opt/create-data-partition.sh
   - rfkill unblock wifi
 
 users:
@@ -107,5 +85,16 @@ write_files:
 runcmd:
   - systemctl enable wpa_supplicant@wlan0
   - systemctl enable ssh
+
+
+mounts:
+  - [ "LABEL=data", /var/log/jaiabot, btrfs,  "defaults,nofail,x-systemd.device-timeout=30", 0, 1 ]
+
+
+power_state:
+  mode: reboot
+  timeout: 30
+  condition: true
+
 
 EOF
