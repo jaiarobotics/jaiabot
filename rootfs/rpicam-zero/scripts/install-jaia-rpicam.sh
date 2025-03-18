@@ -88,8 +88,7 @@ runcmd:
 
 
 mounts:
-  - [ "LABEL=data", /var/log/jaiabot, btrfs,  "defaults,nofail,x-systemd.device-timeout=30", 0, 1 ]
-
+  - [ "LABEL=data", "/var/log/jaiabot", "auto",  "defaults,nofail,x-systemd.device-timeout=30", "0", "1" ]
 
 power_state:
   mode: reboot

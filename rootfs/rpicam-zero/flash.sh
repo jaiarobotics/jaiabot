@@ -24,6 +24,7 @@ fi
 sudo umount ${out_disk}? || true
 sudo dd if=$img of=$out_disk status=progress bs=10M
 
+sleep 5
 #########################################
 ## Fill disk with exfat data partition ##
 #########################################
@@ -35,7 +36,7 @@ data_partition=3
 ROOTFS_END_SECTOR=$(sudo fdisk -l ${out_disk} | awk "\$1 == \"${out_disk}${rootfs_partition}\" {print \$3}")
 DATA_START_SECTOR=$((ROOTFS_END_SECTOR + 1))
 
-(
+( 
 echo n    # Create new partition
 echo p    # Primary partition
 echo 3    # Partition number 3
