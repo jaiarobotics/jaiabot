@@ -100,7 +100,7 @@ sudo chmod 777 /run/screen
 ./all.launch
 ```
 6. Troubleshooting the simulator
-* Kill all processes
+* Kill all processes in a separate terminal
 ```
 # Kill all processes, then relaunch the simulator
 cd /path/to/jaiabot/scripts
