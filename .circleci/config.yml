@@ -608,7 +608,7 @@ jobs:
             export JAIA_UPGRADE_ISO_SOURCE=local
             export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
 
-            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g')
+            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
 
             rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}"
             
