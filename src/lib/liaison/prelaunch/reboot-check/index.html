@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Reboot Check</title>
+    <link rel="stylesheet" type="text/css" href="liaison.css">
     <script>
-        const serverIP = window.location.hostname; // Get the current server's hostname/IP
+        const serverIP = window.location.hostname;
         const checkInterval = 3000; // 3 seconds
         let serverDown = false;
-
+        let elapsedTime = 0;
+        
         async function checkServer() {
             try {
                 await fetch(`http://${serverIP}:80`, { method: "HEAD", mode: "no-cors" });
@@ -17,15 +19,22 @@
                 serverDown = true;
                 console.log("Server unreachable, waiting...");
             }
-
+            
             if (serverDown) {
-                document.getElementById("status").innerText = "Waiting for Hub to finish rebooting, please wait...";
+                elapsedTime = 0;
+                updateStatus();
                 checkServerRestore();
             } else {
                 setTimeout(checkServer, checkInterval);
             }
         }
-
+        
+        function updateStatus() {
+            document.getElementById("status").innerText = `Waiting for Hub to reboot, please wait... (${elapsedTime}s)`;
+            elapsedTime += 1;
+            setTimeout(updateStatus, 1000);
+        }
+        
         async function checkServerRestore() {
             try {
                 await fetch(`http://${serverIP}:9091`, { method: "HEAD", mode: "no-cors" });
@@ -34,11 +43,22 @@
                 setTimeout(checkServerRestore, checkInterval);
             }
         }
-
+        
         window.onload = checkServer;
     </script>
 </head>
 <body>
-    <h1 id="status">Task finalizing, please wait...</h1>
+    <div id="main">
+        <div id="header">
+            <h1 id="header">Jaiabot Fleet Upgrade and Configuration</h1>
+	    <hr/>
+        </div>
+        <div id="contents">
+            <h2>Hub Reboot Status</h2>
+            <div class="status-box">
+                <p id="status">Finishing task, pending reboot. Please wait...</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
