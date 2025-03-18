@@ -1,6 +1,7 @@
 #include <Wt/WComboBox>
 #include <Wt/WContainerWidget>
 #include <Wt/WDialog>
+#include <Wt/WEnvironment>
 #include <Wt/WGroupBox>
 #include <Wt/WPanel>
 #include <Wt/WPushButton>
@@ -241,6 +242,14 @@ void jaiabot::LiaisonUpgrade::loop()
             }
             else
             {
+                if (playbook.pb_playbook.causes_hub_reboot())
+                {
+                    std::string hostname = wApp->environment().hostName();
+                    if (auto pos = hostname.find(':'))
+                        hostname = hostname.substr(0, pos);
+                    wApp->redirect(hostname + "/reboot-check/index.html");
+                }
+
                 std::ifstream json_log(playbook.json_file, std::ios::in);
                 playbook.last_log.clear();
                 {
