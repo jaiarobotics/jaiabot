@@ -32,6 +32,6 @@
 
 - name: Fail if neither fleet config file exists
   fail:
-    msg: "Neither {{ iso_fleet_cfg }} nor {{ existing_fleet_cfg }} exist on the control node (hub). Please use a ISO image with an attached fleet configuration (use 'jaia admin fleet update_existing' to create this image)"
+    msg: "Neither {{ iso_fleet_cfg }} nor {{ existing_fleet_cfg }} exist on the control node (hub). Please use a ISO image with an attached fleet configuration (use 'jaia admin fleet update_iso' to create this image)"
   when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists
   run_once: true
