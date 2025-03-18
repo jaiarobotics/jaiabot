@@ -29,6 +29,7 @@
 
 #include "config.pb.h"
 #include "drivers/atlas_scientific__oem_ec.h"
+#include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/catalog.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
@@ -120,16 +121,19 @@ void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request
 {
     request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-    glog.is_verbose() && glog << "Sending request to MCU: " << request.ShortDebugString()
-                              << std::endl;
-
     auto io_msg = std::make_shared<goby::middleware::protobuf::IOData>();
     std::string* encoded = io_msg->mutable_data();
     request.SerializeToString(encoded);
-    std::uint32_t crc32_value = compute_crc32(encoded->begin(), encoded->end());
+
+    std::string hex_str = goby::util::hex_encode(io_msg->data());
+    size_t length = hex_str.size() / 2;
+    uint8_t data[length];
+    hex_string_to_bytes(hex.c_str(), data, length);
+    std::uint32_t crc32_value = crc::calculate_crc32(data, length);
 
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
+
     for (int i = bytes_in_crc32 - 1; i >= 0; --i)
     {
         encoded->push_back((crc32_value >> (i * bits_in_byte)) & 0xFF);
@@ -215,4 +219,9 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
     }
 
     drivers_launched_.insert(metadata.sensor());
+}
+
+void hex_string_to_bytes(const char* hex, uint8_t* bytes, size_t length)
+{
+    for (size_t i = 0; i < length; i++) { sscanf(&hex[i * 2], "%2hhx", &bytes[i]); }
 }
