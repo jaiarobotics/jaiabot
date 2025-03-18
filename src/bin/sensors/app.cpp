@@ -29,6 +29,7 @@
 
 #include "config.pb.h"
 #include "drivers/atlas_scientific__oem_ec.h"
+#include "drivers/blue_robotics_bar30.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/catalog.pb.h"
@@ -134,7 +135,7 @@ void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request
     size_t length = hex_str.size() / 2;
     uint8_t data[length];
     hex_string_to_bytes(hex_str.c_str(), data, length);
-    std::uint32_t crc32_value = crc::calculate_crc32(data, length);
+    uint32_t crc32_value = crc::calculate_crc32(data, length);
 
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
@@ -161,8 +162,27 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
                                  << goby::util::hex_encode(io_msg.data()) << std::endl;
 
         const auto& encoded = io_msg.data();
-        if (encoded.size() < bytes_in_crc32)
+        std::string hex_str = goby::util::hex_encode(encoded);
+        size_t length = hex_str.size() / 2;
+        uint8_t data[length];
+
+        if (length < bytes_in_crc32)
             throw(std::runtime_error("Message is too small"));
+
+        hex_string_to_bytes(hex_str.c_str(), data, length);
+        uint32_t computed_crc = crc::calculate_crc32(data, length - bytes_in_crc32);
+
+        uint32_t provided_crc = 0;
+
+        std::size_t i = 0;
+        for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end;
+             ++it, ++i)
+            provided_crc |= (*it) << (i * bits_in_byte);
+
+        if (computed_crc != provided_crc)
+            throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
+                                     ") does not equal CRC on message (" +
+                                     std::to_string(provided_crc) + ")"));
 
         //// TODO - verify CRC check code
         // uint32_t computed_crc = compute_crc32(encoded.begin(), encoded.end() - bytes_in_crc32);
@@ -215,6 +235,8 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             break;
 
         case sensor::protobuf::BLUE_ROBOTICS__BAR30:
+            launch_thread<BlueRoboticsBar30Driver>(metadata);
+            break;
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
         case sensor::protobuf::TURNER__C_FLUOR:
