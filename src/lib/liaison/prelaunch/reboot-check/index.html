@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Reboot Check</title>
+    <script>
+        const serverIP = window.location.hostname; // Get the current server's hostname/IP
+        const checkInterval = 3000; // 3 seconds
+        let serverDown = false;
+
+        async function checkServer() {
+            try {
+                await fetch(`http://${serverIP}:80`, { method: "HEAD", mode: "no-cors" });
+                serverDown = false;
+            } catch (error) {
+                serverDown = true;
+                console.log("Server unreachable, waiting...");
+            }
+
+            if (serverDown) {
+                document.getElementById("status").innerText = "Waiting for Hub to finish rebooting, please wait...";
+                checkServerRestore();
+            } else {
+                setTimeout(checkServer, checkInterval);
+            }
+        }
+
+        async function checkServerRestore() {
+            try {
+                await fetch(`http://${serverIP}:9091`, { method: "HEAD", mode: "no-cors" });
+                window.location.href = `http://${serverIP}:9091`;
+            } catch (error) {
+                setTimeout(checkServerRestore, checkInterval);
+            }
+        }
+
+        window.onload = checkServer;
+    </script>
+</head>
+<body>
+    <h1 id="status">Task finalizing, please wait...</h1>
+</body>
+</html>
