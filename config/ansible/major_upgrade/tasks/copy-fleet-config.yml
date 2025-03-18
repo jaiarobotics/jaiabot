@@ -1,14 +1,7 @@
-- name: Set facts for primary and iso fleet configuration
+- name: Set facts for existing and iso fleet configuration
   set_fact:
-    primary_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
     iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
-
-- name: Check if the primary fleet config file exists on the control node (hub)
-  delegate_to: localhost
-  run_once: true
-  stat:
-    path: "{{ primary_fleet_cfg }}"
-  register: primary_fleet_file
+    existing_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
 
 - name: Check if the iso fleet config file exists on the control node (hub)
   delegate_to: localhost
@@ -16,22 +9,29 @@
   stat:
     path: "{{ iso_fleet_cfg }}"
   register: iso_fleet_file
-  when: not primary_fleet_file.stat.exists
 
-- name: Copy the primary fleet config file if it exists
-  copy:
-    src: "{{ primary_fleet_cfg }}"
-    dest: "{{ upgrade_dir }}"
-  when: primary_fleet_file.stat.exists
+- name: Check if the existing fleet config file exists on the control node (hub)
+  delegate_to: localhost
+  run_once: true
+  stat:
+    path: "{{ existing_fleet_cfg }}"
+  register: existing_fleet_file
+  when: not iso_fleet_file.stat.exists
 
-- name: Copy the iso fleet config file if the primary does not exist
+- name: Copy the iso fleet config file if it exists
   copy:
     src: "{{ iso_fleet_cfg }}"
     dest: "{{ upgrade_dir }}"
-  when: not primary_fleet_file.stat.exists and iso_fleet_file.stat.exists
+  when: iso_fleet_file.stat.exists
+
+- name: Copy the existing fleet config file if the iso config does not exist
+  copy:
+    src: "{{ existing_fleet_cfg }}"
+    dest: "{{ upgrade_dir }}"
+  when: not iso_fleet_file.stat.exists and existing_fleet_file.stat.exists
 
 - name: Fail if neither fleet config file exists
   fail:
-    msg: "Neither {{ primary_fleet_cfg }} nor {{ iso_fleet_cfg }} exist on the control node (hub). Please use a ISO image with an attached fleet configuration (use 'jaia admin fleet update_iso' to create this image)"
-  when: not primary_fleet_file.stat.exists and not iso_fleet_file.stat.exists
+    msg: "Neither {{ iso_fleet_cfg }} nor {{ existing_fleet_cfg }} exist on the control node (hub). Please use a ISO image with an attached fleet configuration (use 'jaia admin fleet update_existing' to create this image)"
+  when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists
   run_once: true
