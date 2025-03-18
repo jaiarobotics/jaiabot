@@ -20,7 +20,14 @@
     - include_tasks: ../tasks/read-debconf.yml
         
   tasks:
-
+    - name: Mount updates disk (on hub)
+      delegate_to: localhost
+      mount:
+        path: /var/www/html/updates
+        src: LABEL=updates
+        state: mounted
+        fstype: auto
+    
     - name: Create the upgrade base working directory
       file:
         path: '{{ upgrade_dir_base }}'
@@ -90,6 +97,7 @@
         dest: '{{ upgrade_dir }}/do-major-upgrade.sh'
         mode: a=rwx
 
+    # Nohup so we complete the ansible job and get to the reboot splash screen before the crazy happens
     - name: Run upgrade script
       shell: |
-        {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1
+        nohup /bin/bash -c 'sleep 5 && {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1 &' > /dev/null
