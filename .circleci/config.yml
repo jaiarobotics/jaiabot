@@ -178,6 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "bug/2.y-ami-name-cannot-contain-tilde"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -185,6 +186,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "2.y"
+        - "bug/2.y-ami-name-cannot-contain-tilde"
 
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -194,6 +196,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "bug/2.y-ami-name-cannot-contain-tilde"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -203,6 +206,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "bug/2.y-ami-name-cannot-contain-tilde"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -608,7 +612,7 @@ jobs:
             export JAIA_UPGRADE_ISO_SOURCE=local
             export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
 
-            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g')
+            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
 
             rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}"
             
