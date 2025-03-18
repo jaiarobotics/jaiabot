@@ -139,6 +139,6 @@ if [ -e /boot/grub/grub.cfg ]; then
 fi
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
-    systemctl reboot --force
+    nohup /bin/bash -c 'sleep 5 && systemctl reboot --force &' > /dev/null
 fi
- 
+

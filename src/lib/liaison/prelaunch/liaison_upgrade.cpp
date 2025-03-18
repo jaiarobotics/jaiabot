@@ -247,7 +247,7 @@ void jaiabot::LiaisonUpgrade::loop()
                     std::string hostname = wApp->environment().hostName();
                     if (auto pos = hostname.find(':'))
                         hostname = hostname.substr(0, pos);
-                    wApp->redirect(hostname + "/reboot-check/index.html");
+                    wApp->redirect("http://" + hostname + "/reboot-check/index.html");
                 }
 
                 std::ifstream json_log(playbook.json_file, std::ios::in);
