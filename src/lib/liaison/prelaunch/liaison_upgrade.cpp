@@ -1,6 +1,7 @@
 #include <Wt/WComboBox.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WDialog.h>
+#include <Wt/WEnvironment.h>
 #include <Wt/WGroupBox.h>
 #include <Wt/WPanel.h>
 #include <Wt/WPushButton.h>
@@ -356,6 +357,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         set_style(result_table->elementAt(row, column), true);
     }
 
+    bool hub_success = false;
     for (const auto& result_p : results)
     {
         column = 0;
@@ -375,6 +377,8 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         {
             case jaiabot::LiaisonUpgrade::Result::SUCCESS:
                 cell->addWidget(std::make_unique<Wt::WText>("Success"));
+                if (result_p.first.find("hub") != std::string::npos)
+                    hub_success = true;
                 break;
             case jaiabot::LiaisonUpgrade::Result::FAILURE:
                 cell->addWidget(std::make_unique<Wt::WText>("Failure"));
@@ -395,6 +399,14 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
 
             set_style(result_table->elementAt(row, column));
         }
+    }
+
+    if (hub_success && playbook.pb_playbook.causes_hub_reboot())
+    {
+        std::string hostname = wApp->environment().hostName();
+        if (auto pos = hostname.find(':'))
+            hostname = hostname.substr(0, pos);
+        wApp->redirect("http://" + hostname + "/reboot-check/index.html");
     }
 
     playbook.result_text->setText("");

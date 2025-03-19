@@ -34,6 +34,7 @@ message UpgradeConfig
         optional string limit = 7;
         optional string inventory = 8; // overrides ansible_inventory at parent scope
         optional string section = 9 [default = "General"];
+        optional bool causes_hub_reboot = 10 [default = false];
     }
     repeated AnsiblePlaybook ansible_playbook = 2;
     required string ansible_inventory = 3;
@@ -48,6 +49,7 @@ message UpgradeConfig
     optional string ansible_log_dir = 7 [default = "/tmp/jaiabot-ansible"];
     
     optional double check_freq = 10 [default = 10];
+
 }
 
 extend goby.apps.zeromq.protobuf.LiaisonConfig
