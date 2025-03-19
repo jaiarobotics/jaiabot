@@ -336,7 +336,7 @@ dtoverlay=spi1-3cs
 
 EOF
 cat > "$BOOT_PARTITION"/cmdline.txt <<EOF
-console=serial0,115200 console=tty1 root=LABEL=rootfs rootfstype=btrfs fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
+console=tty1 root=LABEL=rootfs rootfstype=btrfs fsck.repair=yes rootwait fixrtc net.ifnames=0 dwc_otg.lpm_enable=0 ds=nocloud;s=file:///etc/jaiabot/init/ network-config=disabled
 EOF
 
 # Flash the kernel
