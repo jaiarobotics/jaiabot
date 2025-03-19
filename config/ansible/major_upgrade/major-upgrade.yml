@@ -22,11 +22,8 @@
   tasks:
     - name: Mount updates disk (on hub)
       delegate_to: localhost
-      mount:
-        path: /var/www/html/updates
-        src: LABEL=updates
-        state: mounted
-        fstype: auto
+      shell: |
+        mount | grep -q updates || mount LABEL=updates
     
     - name: Create the upgrade base working directory
       file:
