@@ -51,8 +51,18 @@
     - name: Create the upgrade tmp directory
       file:
         path: '{{ upgrade_tmp_dir }}'
-        state: directory                
-      
+        state: directory
+
+    - name: Check that architecture matches
+      shell: |
+        current_arch=$(dpkg --print-architecture)
+        major_upgrade_arch="{{major_upgrade_arch if major_upgrade_arch is defined else ''}}"
+
+        # for ISOs that include major_upgrade_arch, ensure it matches
+        if [[ ! -z "${major_upgrade_arch}" && ! "${major_upgrade_arch}" = "${current_arch}" ]]; then
+            echo "Major upgrade architecture does not match existing system architecture (${major_upgrade_arch} != ${current_arch})"
+            return 1
+        fi
         
     - name: Check that Ubuntu version is greater than current version
       shell: |
