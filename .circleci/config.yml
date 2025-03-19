@@ -178,6 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "task/add-architecture-to-major-upgrade-iso/2.y"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -194,6 +195,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "task/add-architecture-to-major-upgrade-iso/2.y"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -492,6 +494,7 @@ jobs:
             major_upgrade_rootfs_version=${rootfs_version}
             major_upgrade_version=$(echo ${rootfs_version} | sed 's/.*-v\([1-9]\+\.[0-9]\+\.[0-9]\+.*\)/\1/')
             major_upgrade_ubuntu_version=$(echo ${DISTRO_RELEASE_VERSION} | sed 's/ubuntu//')
+            major_upgrade_arch=${TARGET_ARCH}
             EOF
             
             
