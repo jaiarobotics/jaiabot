@@ -24,7 +24,9 @@
       delegate_to: localhost
       shell: |
         mount | grep -q updates || mount LABEL=updates
-    
+      # without throttle, we get a race condition  
+      throttle: 1
+        
     - name: Create the upgrade base working directory
       file:
         path: '{{ upgrade_dir_base }}'
