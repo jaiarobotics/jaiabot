@@ -20,6 +20,11 @@
     - include_tasks: ../tasks/read-debconf.yml
         
   tasks:
+    - name: Remove known_hosts to avoid SSH connection issues to new bots
+      file:
+        path: /home/jaia/.ssh/known_hosts
+        state: absent
+    
     - name: Mount updates disk (on hub)
       delegate_to: localhost
       shell: |
