@@ -1,0 +1,29 @@
+- name: Check that architecture matches
+  shell: |
+    current_arch=$(dpkg --print-architecture)
+    major_upgrade_arch="{{major_upgrade_arch}}"
+    if [ "${major_upgrade_arch}" = "${current_arch}" ]; then
+      echo "Major upgrade architecture matches existing system architecture (${major_upgrade_arch} = ${current_arch})"
+    else
+      echo "Major upgrade architecture does not match existing system architecture (${major_upgrade_arch} != ${current_arch})"
+      return 1
+    fi
+        
+- name: Check that Ubuntu version is greater than current version
+  shell: |
+    current_ubuntu_version=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)
+    if ! dpkg --compare-versions {{ major_upgrade_ubuntu_version }} gt ${current_ubuntu_version} ; then
+    echo "New Ubuntu version ({{ major_upgrade_ubuntu_version }}) is not greater than current version (${current_ubuntu_version})"
+      return 1
+    fi
+      
+- name: Debug version
+  debug:
+    msg: "Found major upgrade version: {{ major_upgrade_version }}, current version: {{ jaiabot_current_version }}"
+        
+- name: Check that upgrade version is greater than or equal to than current version
+  shell: |
+    if ! dpkg --compare-versions {{ major_upgrade_version }} ge $(echo {{ jaiabot_current_version }} | cut -d '-' -f1) ; then
+    echo "New major version ({{ major_upgrade_version }}) is not greater than or equal to current version ({{ jaiabot_current_version }})"
+      return 1
+    fi

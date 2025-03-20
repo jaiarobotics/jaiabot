@@ -1,0 +1,25 @@
+- name: Set facts for hub key
+  set_fact:
+    hub_privkey: "hub{{ hub_id }}_fleet{{ jaiabot_embedded_fleet_id }}"
+
+- name: Check ssh hub key info
+  delegate_to: localhost
+  stat:
+    path: "/home/jaia/.ssh/{{ hub_privkey }}"
+  register: hub_privkey_file
+
+- name: Fail if ssh hub key does not exist
+  delegate_to: localhost
+  fail:
+    msg: "Hub key must exist in /home/jaia/.ssh/{{ hub_privkey }}"
+  when: not hub_privkey_file.stat.exists
+
+- name: Check hub ssh key matches fleet config ssh key 
+  delegate_to: localhost
+  shell: |
+    existing_hub_privkey_fingerprint=$(ssh-keygen -l -f /home/jaia/.ssh/{{ hub_privkey }})
+    fleet_cfg_hub_privkey_fingerprint=$(ssh-keygen -l -f {{ upgrade_boot_dir }}/jaiabot/init/{{ hub_privkey }})
+    if [ "${existing_hub_privkey_fingerprint}" != "${fleet_cfg_hub_privkey_fingerprint}" ]; then
+      echo "Existing hub SSH key does not match hub SSH key in fleet configuration file. Update the fleet configuration file to match the hub SSH key to ensure connectivity."
+      return 1
+    fi
