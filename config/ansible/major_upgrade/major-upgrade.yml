@@ -20,7 +20,11 @@
     - include_tasks: ../tasks/read-debconf.yml
         
   tasks:
-
+    - name: Mount updates disk (on hub)
+      delegate_to: localhost
+      shell: |
+        mount | grep -q updates || mount LABEL=updates
+    
     - name: Create the upgrade base working directory
       file:
         path: '{{ upgrade_dir_base }}'
@@ -44,8 +48,18 @@
     - name: Create the upgrade tmp directory
       file:
         path: '{{ upgrade_tmp_dir }}'
-        state: directory                
-      
+        state: directory
+
+    - name: Check that architecture matches
+      shell: |
+        current_arch=$(dpkg --print-architecture)
+        major_upgrade_arch="{{major_upgrade_arch}}"
+        if [ "${major_upgrade_arch}" = "${current_arch}" ]; then
+            echo "Major upgrade architecture matches existing system architecture (${major_upgrade_arch} = ${current_arch})"
+        else
+            echo "Major upgrade architecture does not match existing system architecture (${major_upgrade_arch} != ${current_arch})"
+            return 1
+        fi
         
     - name: Check that Ubuntu version is greater than current version
       shell: |
@@ -90,6 +104,7 @@
         dest: '{{ upgrade_dir }}/do-major-upgrade.sh'
         mode: a=rwx
 
+    # Nohup so we complete the ansible job and get to the reboot splash screen before the crazy happens
     - name: Run upgrade script
       shell: |
-        {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1
+        nohup /bin/bash -c 'sleep 5 && {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1 &' > /dev/null

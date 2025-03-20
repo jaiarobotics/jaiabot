@@ -8,4 +8,9 @@ configure_file(goby_liaison_prelaunch_jaiabot.in ${project_BIN_DIR}/goby_liaison
 
 project_install_lib(jaiabot_liaison_prelaunch)
 
+option(install_liaison_reboot_check "Install Liaison Reboot check to /var/www/html/reboot-check" ON)
+if(install_motd)
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/reboot-check DESTINATION /var/www/html)
+endif()
+
 set_property(TARGET jaiabot_liaison_prelaunch PROPERTY CXX_STANDARD 14)

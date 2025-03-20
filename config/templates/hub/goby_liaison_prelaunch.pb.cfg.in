@@ -122,7 +122,8 @@ add_commander_tab: false
     #         value: "no"
     #     }
         
-    # }
+        causes_hub_reboot: true
+    }
 
     
     ansible_playbook {
@@ -166,6 +167,7 @@ add_commander_tab: false
         name: "Reboot Hub"
         section: "Reboot"
         role: USER
+        causes_hub_reboot: true
     }    
 
     ansible_playbook {
