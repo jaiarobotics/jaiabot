@@ -1,7 +1,7 @@
 #include <Wt/WComboBox.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WDialog.h>
-#include <Wt/WEnvironment>
+#include <Wt/WEnvironment.h>
 #include <Wt/WGroupBox.h>
 #include <Wt/WPanel.h>
 #include <Wt/WPushButton.h>
