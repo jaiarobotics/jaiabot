@@ -2,6 +2,6 @@ $app_block
 $interprocess_block
 
 serial_camera {
-    port: "/tmp/bot${bot_id}_camera_0"
+    port: "$serial_camera_port"
     baud: 9600
 }

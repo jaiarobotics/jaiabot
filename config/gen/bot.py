@@ -384,6 +384,11 @@ elif common.app == 'jaiabot_mission_repeater':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index))
+elif common.app == 'jaiabot_driver_camera':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     serial_camera_port=common.bot.serial_camera_port(bot_index)))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
