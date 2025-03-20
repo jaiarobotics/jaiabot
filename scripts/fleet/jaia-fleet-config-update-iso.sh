@@ -32,7 +32,7 @@ fi
 
 
 default_output_iso=$(echo $input_iso | sed "s/\(.*\)\.iso/\1_fleet${fleet_id}.iso/")
-output_iso=${4:-${default_output_iso}}
+output_iso=$(realpath ${4:-${default_output_iso}})
 
 workdir="$(mktemp -d)"
 iso_mountdir=${workdir}/iso

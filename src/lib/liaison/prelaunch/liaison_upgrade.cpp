@@ -1,12 +1,12 @@
-#include <Wt/WComboBox>
-#include <Wt/WContainerWidget>
-#include <Wt/WDialog>
+#include <Wt/WComboBox.h>
+#include <Wt/WContainerWidget.h>
+#include <Wt/WDialog.h>
 #include <Wt/WEnvironment>
-#include <Wt/WGroupBox>
-#include <Wt/WPanel>
-#include <Wt/WPushButton>
-#include <Wt/WTable>
-#include <Wt/WText>
+#include <Wt/WGroupBox.h>
+#include <Wt/WPanel.h>
+#include <Wt/WPushButton.h>
+#include <Wt/WTable.h>
+#include <Wt/WText.h>
 #include <chrono>
 
 #include <boost/process.hpp>
@@ -43,15 +43,14 @@ const WColor jaiabot::LiaisonUpgrade::color_failure_{"red"};
 const std::string stdout_button_show_text{"Show Log"};
 const std::string stdout_button_hide_text{"Hide Log"};
 
-jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
-                                        Wt::WContainerWidget* parent)
+jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg)
     : cfg_(cfg.GetExtension(protobuf::jaiabot_upgrade_config))
 {
     boost::filesystem::create_directories(cfg_.ansible_log_dir());
 
     set_name("Fleet Upgrade");
     const auto update_freq = cfg_.check_freq();
-    timer_.setInterval(1.0 / update_freq * 1.0e3);
+    timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));
     timer_.timeout().connect(this, &LiaisonUpgrade::loop);
 
     for (const auto& playbook : cfg_.ansible_playbook())
@@ -62,9 +61,10 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
         if (!sections.count(playbook.section()))
         {
             SectionWidgets section;
-            section.panel = new Wt::WPanel(this);
-            section.div = new Wt::WContainerWidget(this);
-            section.panel->setCentralWidget(section.div);
+            section.panel = this->addNew<Wt::WPanel>();
+            auto div = std::make_unique<Wt::WContainerWidget>();
+            section.div = div.get();
+            section.panel->setCentralWidget(std::move(div));
             section.panel->setTitle(playbook.section());
             section.panel->setCollapsible(true);
             sections[playbook.section()] = section;
@@ -79,24 +79,25 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
     const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook, Wt::WContainerWidget* parent,
     LiaisonUpgrade* upgrade, std::size_t playbook_index)
     : file(playbook.file()),
-      group_box(new WGroupBox(playbook.name(), parent)),
-      group_div(new WContainerWidget(group_box)),
-      iv_group_div(new WContainerWidget(group_div)),
-      run_button_div(new WContainerWidget(group_div)),
-      run_button(new WPushButton("Run", run_button_div)),
-      stdout_button_div(new WContainerWidget(group_div)),
-      stdout_button(new WPushButton(stdout_button_show_text, stdout_button_div)),
-      log_button_div(new WContainerWidget(group_div)),
-      log_button(new WPushButton("Download Log", log_button_div)),
-      result_div(new WContainerWidget(group_div)),
-      result_text(new WText("", result_div)),
-      result_table(new WTable(result_div)),
-      stdout_group(new WGroupBox("Details", group_div)),
-      stdout_div(new AutoScrollWidget(stdout_group)),
       run_text_it(jaiabot::LiaisonUpgrade::running_.begin()),
       pb_playbook(playbook)
 {
-    result_text->setTextFormat(Wt::PlainText);
+    auto group_box = parent->addNew<WGroupBox>(playbook.name());
+    auto group_div = group_box->addNew<WContainerWidget>();
+    auto iv_group_div = group_div->addNew<WContainerWidget>();
+    auto run_button_div = group_div->addNew<WContainerWidget>();
+    run_button = run_button_div->addNew<WPushButton>("Run");
+    auto stdout_button_div = group_div->addNew<WContainerWidget>();
+    stdout_button = stdout_button_div->addNew<WPushButton>(stdout_button_show_text);
+    auto log_button_div = group_div->addNew<WContainerWidget>();
+    log_button = log_button_div->addNew<WPushButton>("Download Log");
+    auto result_div = group_div->addNew<WContainerWidget>();
+    result_text = result_div->addNew<WText>("");
+    result_table = result_div->addNew<WTable>();
+    stdout_group = group_div->addNew<WGroupBox>("Details");
+    stdout_div = stdout_group->addNew<AutoScrollWidget>();
+
+    result_text->setTextFormat(Wt::TextFormat::Plain);
 
     stdout_group->hide();
 
@@ -109,16 +110,14 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
     iv_group_div->setPadding(default_padding);
     result_div->setPadding(default_padding);
 
-    run_button->clicked().connect(
-        boost::bind(&LiaisonUpgrade::run_ansible_playbook, upgrade, playbook_index));
+    run_button->clicked().connect([=]() { upgrade->run_ansible_playbook(playbook_index); });
     log_button->disable();
     log_resource = std::make_shared<LogFileResource>();
-    log_button->setLink(Wt::WLink(log_resource.get()));
+    log_button->setLink(Wt::WLink(log_resource));
 
-    stdout_button->clicked().connect(
-        boost::bind(&LiaisonUpgrade::toggle_stdout, upgrade, playbook_index));
+    stdout_button->clicked().connect([=]() { upgrade->toggle_stdout(playbook_index); });
 
-    result_table->decorationStyle().setBorder(Wt::WBorder(Wt::WBorder::Solid, 1));
+    result_table->decorationStyle().setBorder(Wt::WBorder(Wt::BorderStyle::Solid, 1));
 
     for (const auto& iv : playbook.input_var())
     {
@@ -128,13 +127,13 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
         }
         else
         {
-            auto* iv_div = new WContainerWidget(iv_group_div);
-            auto* iv_text = new WText(iv.display_name() + ": ", iv_div);
-            auto* iv_selection = new WComboBox(iv_div);
+            auto iv_div = iv_group_div->addNew<WContainerWidget>();
+            auto iv_text = iv_div->addNew<WText>(iv.display_name() + ": ");
+            auto iv_selection = iv_div->addNew<WComboBox>();
             for (const std::string& v : iv.value()) iv_selection->addItem(v);
-            iv_selection->activated().connect(boost::bind(&LiaisonUpgrade::set_input_var, upgrade,
-                                                          boost::placeholders::_1, iv_selection,
-                                                          iv.name(), playbook_index));
+            iv_selection->activated().connect(
+                [=](int index)
+                { upgrade->set_input_var(index, iv_selection, iv.name(), playbook_index); });
             if (iv.value_size() > 0)
                 input_var[iv.name()] = iv.value(0);
         }
@@ -154,14 +153,15 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
     if (playbook.pb_playbook.confirmation_required())
     {
         WDialog dialog("Confirm executing: " + playbook.pb_playbook.name());
-        WPushButton ok("Run", dialog.contents());
-        WPushButton cancel("Cancel", dialog.contents());
+
+        auto ok = dialog.contents()->addNew<WPushButton>("Run");
+        auto cancel = dialog.contents()->addNew<WPushButton>("Cancel");
 
         dialog.rejectWhenEscapePressed();
-        ok.clicked().connect(&dialog, &WDialog::accept);
-        cancel.clicked().connect(&dialog, &WDialog::reject);
+        ok->clicked().connect(&dialog, &WDialog::accept);
+        cancel->clicked().connect(&dialog, &WDialog::reject);
 
-        if (dialog.exec() != WDialog::Accepted)
+        if (dialog.exec() != Wt::DialogCode::Accepted)
             return;
     }
 
@@ -336,23 +336,24 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
     {
         cell->setPadding(default_padding);
         if (header)
-            cell->decorationStyle().font().setWeight(Wt::WFont::Bold);
-        cell->decorationStyle().setBorder(Wt::WBorder(Wt::WBorder::Solid, 1));
+            cell->decorationStyle().font().setWeight(Wt::FontWeight::Bold);
+        cell->decorationStyle().setBorder(Wt::WBorder(Wt::BorderStyle::Solid, 1));
     };
 
     auto* result_table = playbook.result_table;
 
     int column = 0;
     int row = 0;
-    result_table->elementAt(row, column)->addWidget(new Wt::WText("Host Name"));
+    result_table->elementAt(row, column)->addWidget(std::make_unique<Wt::WText>("Host Name"));
     set_style(result_table->elementAt(row, column), true);
     ++column;
-    result_table->elementAt(row, column)->addWidget(new Wt::WText("Status"));
+    result_table->elementAt(row, column)->addWidget(std::make_unique<Wt::WText>("Status"));
     set_style(result_table->elementAt(row, column), true);
     for (const auto& ov : playbook.output_var_order)
     {
         ++column;
-        result_table->elementAt(row, column)->addWidget(new Wt::WText(playbook.output_var.at(ov)));
+        result_table->elementAt(row, column)
+            ->addWidget(std::make_unique<Wt::WText>(playbook.output_var.at(ov)));
         set_style(result_table->elementAt(row, column), true);
     }
 
@@ -361,7 +362,8 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
     {
         column = 0;
         ++row;
-        result_table->elementAt(row, column)->addWidget(new Wt::WText(result_p.first));
+        result_table->elementAt(row, column)
+            ->addWidget(std::make_unique<Wt::WText>(result_p.first));
         set_style(result_table->elementAt(row, column));
 
         ++column;
@@ -374,15 +376,15 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         switch (result_p.second.result)
         {
             case jaiabot::LiaisonUpgrade::Result::SUCCESS:
-                cell->addWidget(new Wt::WText("Success"));
+                cell->addWidget(std::make_unique<Wt::WText>("Success"));
                 if (result_p.first.find("hub") != std::string::npos)
                     hub_success = true;
                 break;
             case jaiabot::LiaisonUpgrade::Result::FAILURE:
-                cell->addWidget(new Wt::WText("Failure"));
+                cell->addWidget(std::make_unique<Wt::WText>("Failure"));
                 break;
             case jaiabot::LiaisonUpgrade::Result::UNREACHABLE:
-                cell->addWidget(new Wt::WText("Unreachable"));
+                cell->addWidget(std::make_unique<Wt::WText>("Unreachable"));
                 break;
         }
 
@@ -392,7 +394,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
             if (result_p.second.output_vars.count(ov))
             {
                 result_table->elementAt(row, column)
-                    ->addWidget(new Wt::WText(result_p.second.output_vars.at(ov)));
+                    ->addWidget(std::make_unique<Wt::WText>(result_p.second.output_vars.at(ov)));
             }
 
             set_style(result_table->elementAt(row, column));

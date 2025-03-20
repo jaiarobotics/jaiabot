@@ -167,13 +167,6 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
     else:
         vfleet_playbooks=''
-
-    # Cloudhub must use a newer pip venv installed ansible since the packaged version (as of Ubuntu 22.04) does not include the required features for EC2
-    if hub_index == cloudhub_index:
-        ansible_playbook_full_path='ansible_playbook_full_path: "/opt/jaia_cloudhub_venv/bin/ansible-playbook"'
-    else:
-        ansible_playbook_full_path=''
-
         
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
@@ -184,8 +177,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_index=hub_index,
-                                     ansible_log_dir=common.jaia_log_dir + '/ansible',
-                                     ansible_playbook_full_path=ansible_playbook_full_path))
+                                     ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
@@ -213,7 +205,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      hub_log_offload_dir=common.hub_log_offload_dir,
                                      # if we're using localhost for wifi comms, use it for data offload as well
-                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index, hub_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times,
                                      hub_gpsd_device=common.hub.gpsd_device(),
                                      subnet_mask=common.comms.subnet_mask,

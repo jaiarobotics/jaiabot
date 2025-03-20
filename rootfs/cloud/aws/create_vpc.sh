@@ -339,14 +339,14 @@ echo ">>>>>> Tagged resources"
 # Wait to get public key
 echo ">>>>>> Waiting for server to startup and first-boot configure to get Wireguard public key";
 while SERVER_WIREGUARD_PUBKEY=$(ssh -o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo cat /etc/wireguard/publickey" || echo Fail); [ "${SERVER_WIREGUARD_PUBKEY}" == "Fail" ]; do
-    echo ">>>>>> Please keep waiting (Connection refused and Permission denied are *expected* for a while...";
+    echo ">>>>>> Please keep waiting (Connection refused and Permission denied are *expected* for a while...)";
     sleep 5
 done
 
 echo ">>>>>> Server Wireguard Pubkey: ${SERVER_WIREGUARD_PUBKEY}"
 
 while ! ssh -o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overlayroot"; do
-    echo ">>>>>> Nearly there... please keep waiting (Connection refused and Permission denied are *expected* for a while...";
+    echo ">>>>>> Nearly there... please keep waiting (Connection refused and Permission denied are *expected* for a while...)";
     sleep 5
 done
 

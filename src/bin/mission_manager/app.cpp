@@ -969,6 +969,13 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::RESTART_ALL_SERVICES:
             interprocess().publish<jaiabot::groups::powerstate_command>(command);
             break;
+
+        case protobuf::Command::MISSION_PLAN_FRAGMENT:
+            // earlier logic prevents this
+            glog.is_warn() &&
+                glog << "MISSION_PLAN_FRAGMENT command not processed by handle_command()"
+                     << std::endl;
+            break;
     }
 }
 

@@ -20,45 +20,28 @@ environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=4 nocheck"
 
-environment-template-focal: &environment-template-focal
-  DISTRO_RELEASE_CODENAME: "focal"
-  DISTRO_RELEASE_VERSION: "ubuntu20.04"
-
-environment-template-jammy: &environment-template-jammy
-  DISTRO_RELEASE_CODENAME: "jammy"
-  DISTRO_RELEASE_VERSION: "ubuntu22.04"
+environment-template-noble: &environment-template-noble
+  DISTRO_RELEASE_CODENAME: "noble"
+  DISTRO_RELEASE_VERSION: "ubuntu24.04"
 
 ## Pre-declare Docker containers
-docker-base-focal: &docker-base-focal
-  - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
-    auth:
-      username: $DOCKERHUB_USERNAME
-      password: $DOCKERHUB_PASSWORD
-          
-docker-arm64-focal: &docker-arm64-focal
-  - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
-    auth:
-      username: $DOCKERHUB_USERNAME
-      password: $DOCKERHUB_PASSWORD
 
-docker-base-jammy: &docker-base-jammy
-  - image: gobysoft/jaiabot-ubuntu-amd64:22.04.1
+docker-base-noble: &docker-base-noble
+  - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
-
-docker-arm64-jammy: &docker-arm64-jammy
-  - image: gobysoft/jaiabot-ubuntu-arm64:22.04.1
+docker-arm64-noble: &docker-arm64-noble
+  - image: gobysoft/jaiabot-ubuntu-arm64:24.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:22.04.1
+  - image: gobysoft/ubuntu-build-base:24.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
-
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
   resource_class: large
@@ -163,6 +146,13 @@ job-template-deb-amd64: &job-template-deb-amd64
         name: Remove original source file to avoid conflicts in merging
         command: |
           rm -f /root/deb/*.orig.tar.xz || true
+    - run: &run-python-venv
+        name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed)
+        command: |
+          apt-get update && apt-get -y install rsync python3-venv python3-dev
+          cd ${CIRCLE_WORKING_DIRECTORY}/src/python
+          unset CC CXX
+          ./build_venv.sh /tmp/jaiabot-python-test
     - persist_to_workspace: &persist-debs
         root: /root/deb
         paths:
@@ -187,14 +177,14 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
-
+        - "2.y"
+          
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
-        - "1.y"
+        - "2.y"
 
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -203,7 +193,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -212,7 +202,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -221,7 +211,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
 
 ## Begin actual config
 version: 2.1
@@ -232,28 +222,17 @@ workflows:
   version: 2
   commit:
     jobs:
-      - amd64-focal-build:
-          <<: *filter-template-normal-builds
-      - amd64-jammy-build:
+      - amd64-noble-build:
           <<: *filter-template-normal-builds
 
       - get-orig-source:
           <<: *filter-template-debian-builds
 
-      - amd64-focal-deb-build:
+      - amd64-noble-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
-      - arm64-focal-deb-build:
-          <<: *filter-template-debian-builds
-          requires:
-            - get-orig-source
-
-      - amd64-jammy-deb-build:
-          <<: *filter-template-debian-builds
-          requires:
-            - get-orig-source
-      - arm64-jammy-deb-build:
+      - arm64-noble-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
@@ -266,43 +245,45 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - amd64-focal-deb-build
-            - arm64-focal-deb-build
-            - amd64-jammy-deb-build
-            - arm64-jammy-deb-build
+            - amd64-noble-deb-build
+            - arm64-noble-deb-build
 
-      # bundle after each package upload
-      - bundle-focal:
+      # rootfs jobs
+      - arm64-raspi-image-create-noble:
+          <<: *filter-template-rootfs-builds
+          requires:
+            - upload
+
+      - amd64-virtualbox-image-create-noble:
+          <<: *filter-template-rootfs-builds
+          requires:
+            - upload
+
+      # bundle after each package upload and rootfs
+      - arm64-bundle-noble:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - upload
+            - arm64-raspi-image-create-noble
 
-      - bundle-jammy:
+      - amd64-bundle-noble:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - upload
-
-      # rootfs jobs - require upload first so we install the same release (not previous release) onto the rootfs
-      - raspi-image-create-jammy:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-      - virtualbox-image-create-jammy:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
+            - amd64-virtualbox-image-create-noble
+            
       - aws-sync:
           requires:
-            - raspi-image-create-jammy
-            - virtualbox-image-create-jammy
+            - arm64-raspi-image-create-noble
+            - amd64-virtualbox-image-create-noble
+            - amd64-bundle-noble
+            - arm64-bundle-noble
           <<: *filter-template-aws-rootfs-builds
 
       # docker creation jobs
@@ -316,7 +297,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -355,57 +336,34 @@ jobs:
             - "*.tar.xz"
             - "changelog"
 
-  amd64-focal-build:
+  amd64-noble-build:
     <<: *job-template-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-noble
       <<: *environment-template-amd64
 
-  amd64-focal-deb-build:
+  amd64-noble-deb-build:
     <<: *job-template-deb-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-noble
       <<: *environment-template-amd64
-  arm64-focal-deb-build:
+  arm64-noble-deb-build:
     <<: *job-template-deb-cross
-    docker: *docker-arm64-focal
+    docker: *docker-arm64-noble
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
-      <<: *environment-template-arm64
-
-  amd64-jammy-build:
-    <<: *job-template-amd64
-    docker: *docker-base-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
-      <<: *environment-template-amd64
-
-  amd64-jammy-deb-build:
-    <<: *job-template-deb-amd64
-    docker: *docker-base-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
-      <<: *environment-template-amd64
-  arm64-jammy-deb-build:
-    <<: *job-template-deb-cross
-    docker: *docker-arm64-jammy
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-arm64
 
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-jammy
+      <<: *environment-template-noble
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -429,57 +387,23 @@ jobs:
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
-  bundle-focal:
-    working_directory: /tmp/bundle/jaiabot
-    machine:
-      image: ubuntu-2204:current
-    resource_class: arm.medium
-    environment:
-      <<: *environment-template-focal
-    steps:
-      - checkout
-      - run: *run-set-deb-rep-and-version
-      - run: &run-bundle-package
-          name: Bundle package (to jaiabot/build/bundle/jaiabot_bundle.tar)
-          command: |
-            cd /tmp/bundle/jaiabot
-            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
-            cd build/bundle
-            export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
-            sudo mkdir -p /tmp/bundle/result
-            sudo cp ../jaiabot_updates.tar /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.tar
-            sudo cp ../jaiabot_updates.iso /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
-
-      - store_artifacts: &store-bundle-artifacts
-          path: /tmp/bundle/result
-
-  bundle-jammy:
-    working_directory: /tmp/bundle/jaiabot
-    machine:
-      image: ubuntu-2204:current
-    resource_class: arm.medium
-    environment:
-      <<: *environment-template-jammy
-    steps:
-      - checkout
-      - run: *run-set-deb-rep-and-version
-      - run: *run-bundle-package
-      - store_artifacts: *store-bundle-artifacts
 
   # rootfs jobs
-  raspi-image-create-jammy:
+  arm64-raspi-image-create-noble:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
       CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
       DEBIAN_FRONTEND: "noninteractive"
+      <<: *environment-template-arm64
     steps:
       - checkout
       - run: &run-install-apt-raspi
           name: Install apt dependencies
           command: sudo apt-get update && sudo apt-get -y install pigz dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget
+      - run: *run-set-deb-rep-and-version
       - run: &run-create-image
           name: Create filesystem image
           command: |
@@ -490,58 +414,139 @@ jobs:
             fi
             export ROOTFS_BUILD_TAG="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"
             export TMP_IMG_NAME=jaiabot
-            mkdir /tmp/images
-            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} ${CREATE_IMAGE_ARGS}
+            mkdir /tmp/${TARGET_ARCH}
+            sudo rootfs/scripts/create_raspi_base_image.sh --dest ${TMP_IMG_NAME}.img --distribution ${DISTRO_RELEASE_CODENAME} --repo ${JAIABOT_APT_REPO} --version ${JAIABOT_APT_VERSION} ${CREATE_IMAGE_ARGS}
             source ${TMP_IMG_NAME}.metadata.txt
             for filename in ${TMP_IMG_NAME}.*; do
               extension="${filename#*.}"
-              mv "${TMP_IMG_NAME}.${extension}" "/tmp/images/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}__code-v${JAIABOT_VERSION}.${extension}"
+              mv "${TMP_IMG_NAME}.${extension}" "/tmp/${TARGET_ARCH}/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}-${CIRCLE_BRANCH_ESC}v${JAIABOT_ROOTFS_GEN_TAG}.${extension}"
             done
+
+            # Avoid permission denied on persist_to_workspace
+            sudo chmod -R a+r /tmp/${TARGET_ARCH}
       - run: &run-compress-image-raspi
           name: Compress image
-          command: pigz /tmp/images/*.img
+          command: pigz /tmp/arm64/*.img
       - store_artifacts: &store-raspi
-          path: /tmp/images/
+          path: /tmp/arm64/
       - persist_to_workspace: &persist-raspi
           root: /tmp
           paths:
-            - "images/*.img.gz"
-            - "images/*.metadata.txt"
+            - "arm64/*.img.gz"
+            - "arm64/*.tar.gz"
+            - "arm64/*.metadata.txt"
 
-  virtualbox-image-create-jammy:
+  amd64-virtualbox-image-create-noble:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     environment:
       CREATE_IMAGE_ARGS: "--virtualbox"
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
       DEBIAN_FRONTEND: "noninteractive"
+      <<: *environment-template-amd64
     steps:
       - checkout
       - run: &run-install-apt-vbox
           name: Install apt dependencies
           command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox
+      - run: *run-set-deb-rep-and-version
       - run: *run-create-image
-      - run: &run-move-vbox
-          name: Move image for storage
+      - run:
+          name: Remove unneeded artifacts
           command: |
-            mkdir /tmp/vbox &&
-            sudo chmod a+rwx /tmp/images/*.ova &&
-            mv /tmp/images/*.ova /tmp/vbox/
+            rm -f /tmp/amd64/*.img /tmp/amd64/*.vdi            
       - store_artifacts: &store-vbox
-          path: /tmp/vbox/
+          path: /tmp/amd64/
       - persist_to_workspace: &persist-vbox
           root: /tmp
           paths:
-            - "vbox/*.ova"
+            - "amd64/*.ova"
+            - "amd64/*.tar.gz"
+            - "amd64/*.metadata.txt"
+            
+  arm64-bundle-noble:
+    working_directory: /tmp/bundle/jaiabot
+    machine:
+      image: ubuntu-2404:current
+    resource_class: arm.medium
+    environment:
+      <<: *environment-template-noble
+      <<: *environment-template-arm64
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - attach_workspace:
+          at: /tmp
+      - run: &run-bundle-package
+          name: Bundle package (to jaiabot/build/bundle/jaiabot_bundle.tar)
+          command: |
+            cd /tmp/bundle/jaiabot
 
+            # Include major upgrade tarballs in .iso
+            mkdir -p build/bundle/major_upgrade
+            mv /tmp/${TARGET_ARCH}/*.tar.gz build/bundle/major_upgrade
+            rootfs_version=$(basename build/bundle/major_upgrade/*.boot.tar.gz .boot.tar.gz)
+            cat \<< EOF  > build/bundle/major_upgrade/version.txt
+            major_upgrade_version_shortcode=v$(echo ${JAIABOT_APT_VERSION} | cut -d '.' -f 1)_${DISTRO_RELEASE_CODENAME}
+            major_upgrade_rootfs_version=${rootfs_version}
+            major_upgrade_version=$(echo ${rootfs_version} | sed 's/.*-v\([1-9]\+\.[0-9]\+\.[0-9]\+.*\)/\1/')
+            major_upgrade_ubuntu_version=$(echo ${DISTRO_RELEASE_VERSION} | sed 's/ubuntu//')
+            EOF
+            
+            
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
+            cd build/bundle
+            export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
+
+            outdir=/tmp/bundle/result/${TARGET_ARCH}
+            sudo mkdir -p ${outdir}
+            iso_name=jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}_${TARGET_ARCH}.iso
+            sudo cp ../jaiabot_updates.iso ${outdir}/${iso_name}
+            sudo cp major_upgrade/version.txt ${outdir}/version.txt
+            cat \<< EOF | sudo tee -a ${outdir}/version.txt
+            iso_name=${iso_name}
+            EOF
+
+      - store_artifacts: &store-bundle-artifacts-arm64
+          path: /tmp/bundle/result/arm64
+
+      - persist_to_workspace: &persist-bundle-arm64
+          root: /tmp
+          paths:
+            - "bundle/result/arm64/*.iso"
+            - "bundle/result/arm64/version.txt"
+
+
+  amd64-bundle-noble:
+    working_directory: /tmp/bundle/jaiabot
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    environment:
+      <<: *environment-template-noble
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - attach_workspace:
+          at: /tmp
+      - run: *run-bundle-package
+      - store_artifacts: &store-bundle-artifacts-amd64
+          path: /tmp/bundle/result/amd64
+      - persist_to_workspace: &persist-bundle-amd64
+          root: /tmp
+          paths:
+            - "bundle/result/amd64/*.iso"
+            - "bundle/result/amd64/version.txt"
+            
   aws-sync:
     docker:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-east-1"
       # only upload latest Ubuntu version to AWS
-      DISTRO_RELEASE_CODENAME: "jammy"
+      DISTRO_RELEASE_CODENAME: "noble"
     resource_class: medium
     steps:
       - checkout
@@ -553,38 +558,62 @@ jobs:
       - run:
           name: Set environmental variables for which repo tag to use (analogous to APT repo names)
           command: |
-            # use script from jaiabot that does the same thing
-
-            git clone https://github.com/jaiarobotics/jaiabot.git
-
-            repo=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
-            version=$(jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
             echo "repo:${repo}"
             echo "version:${version}"
             # export these for later use
             echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
             echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
       - run:
-          name: Delete previous images for this repo/version
+          name: Delete previous images for this repo/version (except release repo)
           command: |
-            aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            if [ ! "${JAIABOT_ROOTFS_GEN_REPO}" = "release" ]; then
+              aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            fi
+      - run:
+          name: Remove unnecessary files before sync to AWS
+          command: |
+            # No need to sync boot.tar.gz and rootfs.tar.gz
+            rm /tmp/arm64/*.tar.gz
+            rm /tmp/amd64/*.tar.gz
       - aws-s3/sync:
           profile_name: OIDC-User
-          from: /tmp/vbox
+          from: /tmp/amd64
           to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
       - aws-s3/sync:
           profile_name: OIDC-User
-          from: /tmp/images
+          from: /tmp/arm64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/bundle/result/amd64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/bundle/result/arm64
           to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
       - run:
           name: Import new AMI
           command: |
-            OVA=$(basename $(ls /tmp/vbox/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
-
+            OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
             IMAGE_NAME=${OVA%.*}
-            # writes result.json for later use
-            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get -y install packer
+            packer plugins install github.com/hashicorp/ansible
+            packer plugins install github.com/hashicorp/amazon
+
+            export JAIA_UPGRADE_ISO_SOURCE=local
+            export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
+
+            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
+
+            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}"
+            
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
+            echo "export JAIABOT_AMI_NAME=${AMI_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
           command: |
@@ -592,9 +621,11 @@ jobs:
       - run:
           name: Tag new AMI
           command: |
-            source /tmp/images/*.metadata.txt
-            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
-            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+            source /tmp/amd64/*.metadata.txt
+            
+            image_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[ImageId]' --output text)
+            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
+            
             aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
               "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
               "Key=jaia_creator,Value=circleci" \

@@ -22,9 +22,10 @@ growpart:
   devices: [/var/log]
 
 bootcmd:
-  # Disable networkd wait as we're using /etc/network/interfaces on Rasp Pi
-  # REMOVE IN V2
+  # Disable networkd wait
+  # TODO - see if we can remove this at some point
   - if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then systemctl mask systemd-networkd-wait-online.service; fi
+
   
 runcmd:
   # Set up log disk
@@ -35,12 +36,6 @@ runcmd:
   - mkdir -p /var/log/apache2
   # Set up I2C
   - /etc/jaiabot/init/setup-i2c.sh
-  # For backwards compatibility
-  # REMOVE IN V2
-  - mkdir -p /etc/jaiabot/dev
-  - ln -s -f /dev/gps0 /etc/jaiabot/dev/gps
-  - ln -s -f /dev/arduino /etc/jaiabot/dev/arduino
-  - ln -s -f /dev/xbee /etc/jaiabot/dev/xbee
   # Install jaiabot embedded for unprivileged jaia user
   - env USER=jaia DEBIAN_FRONTEND=noninteractive dpkg -i --force-confdef /opt/jaiabot-embedded*.deb
   # Append first boot date to version file
@@ -59,9 +54,9 @@ runcmd:
   - chmod 600 /etc/jaiabot/ssh/*authorized_keys
   # Check and install any hub keys
   - /etc/jaiabot/init/install-hub-ssh-keys.sh
-  # Setup wireguard VPN (if temporary key is provided)
-  - ifdown wlan0 && ifup wlan0
-  - /etc/jaiabot/init/configure-wireguard-service-vpn.sh
+  # Format overlay to btrfs (if not already)
+  - mkfs.btrfs -f $(blkid -L overlay) -L overlay
+
   
 # Reboot for overlay to take effect
 power_state:

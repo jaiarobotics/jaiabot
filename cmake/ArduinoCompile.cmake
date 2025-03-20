@@ -1,6 +1,6 @@
 set(ARDUINO_SOURCE_DIR ${project_SRC_DIR}/arduino)
 set(ARDUINO_BINARY_DIR ${project_SHARE_DIR}/jaiabot/arduino)
-set(ARDUINO_SERIAL_PORT /etc/jaiabot/dev/arduino CACHE STRING 
+set(ARDUINO_SERIAL_PORT /dev/arduino CACHE STRING 
   "Serial port for Arduino flashing" )
 set(ARDUINO_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/jaiabot/arduino)
 
@@ -35,7 +35,7 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   # command to run arduino-cli to produce compiled hex
   add_custom_command(OUTPUT ${hex_output} ${hex_output_with_bootloader}
     COMMAND arduino-cli
-    ARGS compile --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
+    ARGS compile --quiet --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
     DEPENDS ${ARDUINO_SOURCE_DIR}/${sketchname}/${sketchname}.ino
     ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
     COMMENT "Running arduino-cli to compile ${sketchname} for ${nickname}")

@@ -96,6 +96,11 @@ wlan_password: "dummy"
 service_vpn_enabled: false
 
 debconf {
+  key: "jaiabot-embedded/mode"
+  type: SELECT
+  value: "simulation"
+}
+debconf {
   key: "jaiabot-embedded/warp"
   type: SELECT
   value: "10"
@@ -110,6 +115,7 @@ debconf {
   type: MULTISELECT
   value: "wifi"
 }
+
 EOF
 
 

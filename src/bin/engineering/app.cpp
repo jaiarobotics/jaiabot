@@ -236,7 +236,8 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
 
     // use vehicle ID as group for command
     auto hub_command_subscriber_group_func =
-        [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
+        [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group
+    {
         return goby::middleware::Group(
             jaiabot::intervehicle::engineering_command_group(command.bot_id()).numeric());
     };
@@ -249,9 +250,8 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
 
     auto hub_command_set_link_data =
         [this](jaiabot::protobuf::Engineering& msg,
-               const goby::middleware::intervehicle::protobuf::Header& header) {
-            jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-        };
+               const goby::middleware::intervehicle::protobuf::Header& header)
+    { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
     goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
         latest_command_sub_cfg_,
