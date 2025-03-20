@@ -39,11 +39,6 @@
   tasks:
     - include_tasks: tasks/read-debconf.yml
   
-    - name: Set version to X.y for test repo
-      set_fact:
-        internal_version: "{{ 'X.y' if repo == 'test' else version }}"
-      when: mode != "offline"
-      
     - name: Remove deprecated gobysoft.list
       ansible.builtin.file:
         dest: "/etc/apt/sources.list.d/gobysoft.list"
