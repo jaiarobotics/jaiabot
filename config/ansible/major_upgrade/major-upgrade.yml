@@ -69,4 +69,4 @@
 
     - name: Set error to success
       set_fact:
-        major_upgrade_error: "No error"
+        major_upgrade_error: "No error: please wait for all systems to complete upgrade before powering off. Once you hear the startup chime, the major upgrade is complete. This process may take another 10-30 minutes to complete."
