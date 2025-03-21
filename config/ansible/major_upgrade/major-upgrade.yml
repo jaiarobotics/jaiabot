@@ -19,6 +19,7 @@
     - include_tasks: ../tasks/read-debconf.yml
 
   tasks:
+    - include_tasks: tasks/hub-clear-known-hosts.yml
     - include_tasks: tasks/hub-mount-updates-disk.yml
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
