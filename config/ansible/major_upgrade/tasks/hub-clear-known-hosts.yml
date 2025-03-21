@@ -1,0 +1,4 @@
+- name: Remove known_hosts to avoid SSH connection issues to new bots
+  file:
+    path: /home/jaia/.ssh/known_hosts
+    state: absent
