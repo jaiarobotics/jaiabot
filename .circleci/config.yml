@@ -569,8 +569,9 @@ jobs:
 
             cd rootfs/rpicam-zero
             ./build.sh
+            
             mkdir /tmp/images
-            mv images/jaiabot__rpicam-zero-bookworm.img /tmp/images/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
+            cp images/jaiabot__rpicam-zero-bookworm.img /tmp/images/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
       - run: *run-compress-image-raspi
       - store_artifacts: *store-raspi
             
