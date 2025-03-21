@@ -1,5 +1,5 @@
 ---
-# Tasks for hub only
+# Tasks for hub only - staging
 - name: Jaiabot major upgrade - Hub staging
   hosts: hubs
   gather_facts: yes
@@ -19,7 +19,6 @@
     - include_tasks: ../tasks/read-debconf.yml
 
   tasks:
-    - include_tasks: tasks/hub-clear-known-hosts.yml
     - include_tasks: tasks/hub-mount-updates-disk.yml
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
@@ -48,25 +47,31 @@
         state: directory
         
   tasks:
-    - include_tasks: ../tasks/get-version.yml
-    - include_tasks: tasks/check-latest-minor-version-installed.yml
-    - include_tasks: tasks/get-major-version.yml
-    - include_tasks: tasks/check-versions.yml
-    - include_tasks: tasks/directory_creation.yml
-    - include_tasks: tasks/check-disk-space.yml
-    - include_tasks: tasks/get-new-filesystems.yml
-    - include_tasks: tasks/set-fleet-config-facts.yml
-    - include_tasks: tasks/copy-fleet-config.yml
-    - include_tasks: tasks/fetch-reuse-files.yml
-    - include_tasks: tasks/backup-old-rootfs-overlay.yml
-    - include_tasks: tasks/prepare-boot-fs.yml
-    - include_tasks: tasks/generate-upgrade-script.yml
+    - name: Run Major Upgrade with Hub cleanup
+      block:
+        - include_tasks: ../tasks/get-version.yml
+        - include_tasks: tasks/check-latest-minor-version-installed.yml
+        - include_tasks: tasks/get-major-version.yml
+        - include_tasks: tasks/check-versions.yml
+        - include_tasks: tasks/directory_creation.yml
+        - include_tasks: tasks/check-disk-space.yml
+        - include_tasks: tasks/get-new-filesystems.yml
+        - include_tasks: tasks/set-fleet-config-facts.yml
+        - include_tasks: tasks/copy-fleet-config.yml
+        - include_tasks: tasks/fetch-reuse-files.yml
+        - include_tasks: tasks/backup-old-rootfs-overlay.yml
+        - include_tasks: tasks/prepare-boot-fs.yml
+        - include_tasks: tasks/generate-upgrade-script.yml
+          # Nohup so we complete the ansible job and get to the reboot splash screen before the crazy happens
+        - name: Run upgrade script
+          shell: |
+            nohup /bin/bash -c 'sleep 5 && {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1 &' > /dev/null
 
-    # Nohup so we complete the ansible job and get to the reboot splash screen before the crazy happens
-    - name: Run upgrade script
-      shell: |
-        nohup /bin/bash -c 'sleep 5 && {{ upgrade_dir }}/do-major-upgrade.sh > {{ upgrade_dir }}/major_upgrade_final.log 2>&1 &' > /dev/null
-
-    - name: Set error to success
-      set_fact:
-        major_upgrade_error: "No error: please wait for all systems to complete upgrade before powering off. Once you hear the startup chime, the major upgrade is complete. This process may take another 10-30 minutes to complete."
+        - name: Set error to success
+          set_fact:
+            major_upgrade_error: "No error: please wait for all systems to complete upgrade before powering off. Once you hear the startup chime, the major upgrade is complete. This process may take another 10-30 minutes to complete."
+      always:
+        # we want to clear the hub known hosts if any bots succeed, so we can still connect to the new machines after upgrade.
+        - name: Clear known hosts on Hub
+          include_tasks: tasks/hub-clear-known-hosts.yml
+          when: inventory_hostname.startswith('hub')
