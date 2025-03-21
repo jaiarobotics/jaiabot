@@ -24,7 +24,9 @@ EOF
 ## Set default user ##
 ######################
 
-echo 'pi:$6$iUNuooIaXkM8jgfN$AwoQhINZrpy7gHefuEu.lsksUzUgue5P8uLDRo5LO04f.xpOpsG6jOKWzG2XmGLc/foNAq0uwcv/I4WM3ChJ40' > /boot/userconf.txt
+# some random password no one knows
+# tr -dc A-Za-z0-9 </dev/urandom | head -c 60 | openssl passwd -6 -stdin
+echo 'pi:$6$1y4De4OszU.GCvZy$k/FX53tHxo.JIa5reFBWxRgo4/mT78VRJ1TCWlumPFTqFfdWAW/koXGzcwW58GLMJu3ypxadQEctX4aZs2pNt1' > /boot/userconf.txt
 
 #########################
 ## Use systemd-network ##
@@ -39,7 +41,7 @@ systemctl mask systemd-networkd-wait-online.service
 ## Install first boot ##
 #########################
 
-cat <<EOF > /boot/jaiabot/init/first-boot.preseed.yml
+cat <<EOF > /boot/jaiabot/init/first-boot.preseed.yml.j2
 #cloud-config
 
 ssh_pwauth: false
@@ -54,19 +56,20 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: true
     ssh_authorized_keys:
-      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyo/c0BMJpE8bzwOQk15xBn3fUhk6Gg8xqIH+ZATw8z3IaYH/5UYeCi8wjwjI1gF61zFlr0BSBuRctNRr1+P88sdeyDAinnplhBXAWBKm5aaC1gjM+IPI6LB8RytxOSMp/w/MRn6meeEsMkIr6+v2qAhBY6vtUObHTu1JE2gB+Cckq0zHdhtUb/tm063i3DfsAaftEAZLzwGS1Ad3jBe+bhydAUSPYxc7njF+meHJTqyzg1Cc9C0hb8bfsOG+LZF/+ap60UaM49ko2MTulvwKABzN5l9vvS4d5RycnkTwIGoY984TB/DrMc6HEqxooz51T4+7ltlgQ+VacgU0xE1f/ toby@aubergine"
-
+{%- for pk in ssh.permanentAuthorizedKeys %}
+      - "{{ pk }}"
+{%- endfor %}
 
 write_files:
   - path: /etc/systemd/network/10-wlan0-fleet.network
     content: |
       [Match]
       Name=wlan0
-      SSID="JAIA-HUB-WIFI-5"
+      SSID="JAIA-HUB-WIFI-{{ fleet }}"
       
       [Network]
-      Address=10.23.5.151
-      Gateway=10.23.5.1
+      Address={{ this.ip }}
+      Gateway={{ this.gateway_ip }}
       DNS=1.1.1.1
       DNS=8.8.8.8
   - path: /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
@@ -76,8 +79,8 @@ write_files:
       country=US
       
       network={
-          ssid="JAIA-HUB-WIFI-5"
-          psk="firefish(9000)"
+          ssid="JAIA-HUB-WIFI-{{ fleet }}"
+          psk="{{ wlanPassword }}"
           id_str="fleet_wifi"
           priority=2
       }
@@ -94,6 +97,5 @@ power_state:
   mode: reboot
   timeout: 30
   condition: true
-
 
 EOF

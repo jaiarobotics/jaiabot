@@ -64,12 +64,11 @@ def get_mount_point(partition):
                 
     return None
 
-def find_bootdir():
-    label = "boot"
+def find_bootdir(label):
     partition = find_partition_by_label(label)
-
+    
     if partition:
-        print(f"Found partition ({partition}) for LABEL=boot")
+        print(f"Found partition ({partition}) for LABEL={label}")
         mount_point = get_mount_point(partition)
 
         if mount_point:
@@ -78,8 +77,7 @@ def find_bootdir():
             print(f"Partition '{label}' exists but is not mounted. Please mount this disk before proceeding")
             sys.exit(1)
     else:
-        print(f"No partition with label '{label}' found. Please insert and mount disk or provide --bootdir")
-        sys.exit(1)
+        return None
 
 def main():
     parser = argparse.ArgumentParser(description="Jaiabot First Boot cloud-init user-data generator.")
@@ -88,7 +86,7 @@ def main():
     parser.add_argument('--binary', type=str, help="Name of binary")
     parser.add_argument('--debug',  help="Output debugging information", action="store_true")
     parser.add_argument('--mode', default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
-    parser.add_argument('type', choices=["bot", "hub"], help="Type of system to generate for")
+    parser.add_argument('type', choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     parser.add_argument('id', type=int, help="ID of bot or hub") 
     args = parser.parse_args()
 
@@ -97,21 +95,41 @@ def main():
     fleet_cfg_json['this']['type'] = args.type
     fleet_cfg_json['this']['id'] = args.id
     fleet_cfg_json['this']['mode'] = args.mode
+
+    node_ip_result = subprocess.run(f'jaia-ip.py --node {args.type} --net wlan --fleet_id {fleet_cfg_json["fleet"]} addr --ipv4 --node_id={args.id}', shell=True, capture_output=True, text=True)
+    fleet_cfg_json['this']['ip'] = node_ip_result.stdout.strip()
+
+    gateway_ip_result = subprocess.run(f'jaia-ip.py --node gateway --net wlan --fleet_id {fleet_cfg_json["fleet"]} addr --ipv4', shell=True, capture_output=True, text=True)
+    fleet_cfg_json['this']['gateway_ip'] = gateway_ip_result.stdout.strip()
+
     
+    # special case types
+    type=args.type
+    if args.type == 'rpicam':
+        type='bot'
+        
     # make sure the bot/hub ID is actually defined in this fleet
-    if args.id not in fleet_cfg_json[args.type + 's']:
-        print(f"{args.type} {args.id} not included in {args.fleetcfg}")
+    if args.id not in fleet_cfg_json[type + 's']:
+        print(f"{type} {args.id} not included in {args.fleetcfg}")
         sys.exit(1)
         
     bootdir = args.bootdir
+
+    boot_labels = ['boot', 'bootfs']
+    for label in boot_labels:
+        bootdir = find_bootdir(label)
+        if bootdir is not None:
+            print(f"Using {bootdir} for --bootdir based on mount point of LABEL={label}")
+            break
+        
     if bootdir is None:
-        bootdir = find_bootdir()
-        print(f"Using {bootdir} for --bootdir based on mount point of LABEL=boot")
-    
+        print(f"No partition with label with any of '{boot_labels}' found. Please insert and mount disk or provide --bootdir")
+        sys.exit(1)
+        
     # set overrides
     if 'debconfOverride' in fleet_cfg_json:
         for override in fleet_cfg_json['debconfOverride']:
-            if override['type'] == args.type.upper() and override['id'] == args.id:
+            if override['type'] == type.upper() and override['id'] == args.id:
                 merge_overrides(fleet_cfg_json, override)
 
     # generate first-boot.preseed.yml
@@ -133,7 +151,7 @@ def main():
     else:
         print("WARNING: No vpn_tmp key provided")
 
-    if args.type == 'hub':
+    if type == 'hub':
         key_found=False
         if 'hub' in fleet_cfg_json['ssh']:
             for hub_key in fleet_cfg_json['ssh']['hub']:

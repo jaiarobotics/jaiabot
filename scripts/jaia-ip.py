@@ -6,7 +6,7 @@ import ipaddress
 
 parser = argparse.ArgumentParser(description='Generate IP address for Jaia systems', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['addr', 'net'], help='Return type (addr is full address for a node, net is the network with subnet mask)')
-parser.add_argument('--node', choices=['bot', 'hub', 'desktop'], help='Type of system')
+parser.add_argument('--node', choices=['bot', 'hub', 'desktop', 'gateway', 'rpicam'], help='Type of system')
 parser.add_argument('--net',  required=True, choices=['wlan', 'fleet_vpn', 'vfleet_vpn', 'cloudhub_vpn', 'cloudhub_eth', 'vfleet_eth', 'vfleet_wlan', 'vpc'], help='Type of network')
 parser.add_argument('--fleet_id', required=True, type=int, help='Fleet id')
 parser.add_argument('--node_id',  default=None, type=int, help='Bot, hub, or desktop index')
@@ -56,14 +56,17 @@ ipv6_mask['vfleet_eth']=64
 ipv6_mask['vfleet_wlan']=ipv6_mask['wlan']
 
 # limited by IPv4 addresses and definitions in jaiabot/src/lib/comms/comms.h
-id={ 'min': { 'bot': 0, 'hub': 0, 'desktop': 1 },
-     'max': { 'bot': 150, 'hub': 30, 'desktop': 9}
+id={ 'min': { 'bot': 0, 'hub': 0, 'desktop': 1, 'gateway': 0, 'rpicam': 0 },
+     'max': { 'bot': 150, 'hub': 30, 'desktop': 9, 'gateway': 0, 'rpicam': 49 }
 }
 
 if args.node_id and not args.node_id in range(id['min'][args.node], id['max'][args.node]+1):
     print(f"node_id for {args.node_id} is not in range: {id['min'][args.node]} to {id['max'][args.node]}", file=sys.stderr)
     exit(1)
 
+if args.node == 'gateway':
+    args.node_id=0
+    
 if args.type =='addr' and (args.node is None or args.node_id is None):
     print(f'Must define --node and --node_id for "addr"',file=sys.stderr)
     exit(1)
@@ -76,6 +79,13 @@ if args.ipv4:
                 ipv4 += 10
             elif args.node == 'bot':
                 ipv4 += 100
+            elif args.node == 'desktop':
+                print(f'desktop node is not supported for ipv4',file=sys.stderr)
+                exit(1)
+            elif args.node == 'rpicam':
+                ipv4 += 50 
+            elif args.node == 'gateway':
+                ipv4 += 1
             print(ipv4)
         elif args.type == 'net':
             ipv4_net = ipaddress.ip_network(str(ipv4_base[args.net]) + '/' + str(ipv4_mask[args.net]))
@@ -112,6 +122,11 @@ elif args.ipv6:
                 ipv6 += 1*2**16 
             elif args.node == 'desktop':
                 ipv6 += 2*2**16             
+            elif args.node == 'gateway':
+                ipv6 += 1
+            elif args.node == 'rpicam':
+                print(f'rpicam node is not supported for ipv6', file=sys.stderr)
+                exit(1)
             print(ipv6)
         elif args.type == 'net':
             ipv6_net = ipaddress.ip_network(str(ipv6) + '/' + str(ipv6_mask[args.net]), strict=False)
