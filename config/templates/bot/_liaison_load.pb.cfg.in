@@ -1,4 +1,13 @@
 load_protobuf {  #  (repeated)
+    name: "jaiabot.protobuf.Command"  #  (required)
+    publish_to {
+        group: "jaiabot::apps::groups::hub_command_this_bot"
+        group_numeric: 11  # jaiabot::INTERVEHICLE_API_VERSION
+        layer: LAYER_INTERPROCESS
+    }
+} 
+
+load_protobuf {  #  (repeated)
     name: "jaiabot.protobuf.CameraCommand"  #  (required)
     publish_to {
         group: "jaiabot::camera"
