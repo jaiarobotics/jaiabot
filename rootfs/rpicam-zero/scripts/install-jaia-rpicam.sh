@@ -12,13 +12,13 @@ apt-get -y update && apt-get -y install libcamera-apps libcamera-dev python3-lib
 apt-get -y update && apt-get -y install zile openssh-server
 ln -s /usr/bin/zile /usr/local/bin/emacs
 
-###########################
-## Enable serial console ##
-###########################
-
+##################################################
+## Enable /dev/ttyAMA0, remove serial console   ##
+##################################################
 cat <<EOF >> /boot/config.txt
 enable_uart=1
 EOF
+sed -i 's|console=serial0,115200||' /boot/cmdline.txt
 
 ######################
 ## Set default user ##
