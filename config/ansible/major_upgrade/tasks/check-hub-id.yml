@@ -1,0 +1,6 @@
+- name: Check if hub_id is defined
+  assert:
+    that:
+      - hub_id is defined
+      - hub_id | int | string == hub_id
+    fail_msg: "Hub ID must be defined and must be an integer"

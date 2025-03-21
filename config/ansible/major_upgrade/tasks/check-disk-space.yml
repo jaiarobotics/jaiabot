@@ -11,7 +11,8 @@
     - { name: "overlay", path: "/media/root-rw", min_space: "{{ overlay_min_space_KiB }}", output: "size" }
     
 - name: Fail if any partition does not meet minimum size
-  fail:
-    msg: "{{ item.item.name }} does not meet the requirement minimum ({{ item.item.min_space | float / 1000000 }}GB required / {{ item.stdout | float / 1000000 }}GB {{ item.item.output }})."
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Insufficent disk space: {{ item.item.name }} does not meet the requirement minimum ({{ item.item.min_space | float / 1000000 }}GB required / {{ item.stdout | float / 1000000 }}GB {{ item.item.output }})."
   when: item.stdout | float < item.item.min_space | float
   loop: "{{ partition_info.results }}"
