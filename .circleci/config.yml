@@ -550,8 +550,9 @@ jobs:
             - "vbox/*.ova"
 
   raspi0-rpicam-image-create-bookworm:
-    docker:
-      - image: cimg/base:current
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium      
     steps:
       - checkout
       - run: *run-set-deb-rep-and-version
