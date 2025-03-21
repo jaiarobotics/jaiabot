@@ -87,6 +87,7 @@ def main():
     parser.add_argument('--bootdir', type=str, help="Path to boot directory (optional, if omitted the path to a mounted LABEL=boot partition will be used if found)")
     parser.add_argument('--binary', type=str, help="Name of binary")
     parser.add_argument('--debug',  help="Output debugging information", action="store_true")
+    parser.add_argument('--hub-ssh-keys-only',  help="Only output the hub SSH keys (skip all other actions)", action="store_true")
     parser.add_argument('--mode', default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
     parser.add_argument('type', choices=["bot", "hub"], help="Type of system to generate for")
     parser.add_argument('id', type=int, help="ID of bot or hub") 
@@ -114,24 +115,25 @@ def main():
             if override['type'] == args.type.upper() and override['id'] == args.id:
                 merge_overrides(fleet_cfg_json, override)
 
-    # generate first-boot.preseed.yml
-    template_file=bootdir + '/jaiabot/init/first-boot.preseed.yml.j2'
-    rendered_output = render_template(template_file, fleet_cfg_json)
-    preseed_yml=bootdir + '/jaiabot/init/first-boot.preseed.yml'    
-    with open(preseed_yml, "w") as f:
-        f.write(rendered_output)
+    if not args.hub_ssh_keys_only:
+        # generate first-boot.preseed.yml
+        template_file=bootdir + '/jaiabot/init/first-boot.preseed.yml.j2'
+        rendered_output = render_template(template_file, fleet_cfg_json)
+        preseed_yml=bootdir + '/jaiabot/init/first-boot.preseed.yml'    
+        with open(preseed_yml, "w") as f:
+            f.write(rendered_output)
 
-    # generate vpn key pair
-    if 'vpnTmp' in fleet_cfg_json['ssh']:
-        vpn_key_priv = bootdir + '/jaiabot/init/id_vpn_tmp'
-        vpn_key_pub = vpn_key_priv + '.pub'
-        with open(vpn_key_priv, "w") as f:
-            f.write(fleet_cfg_json['ssh']['vpnTmp']['privateKey'])
-        with open(vpn_key_pub, "w") as f:
-            f.write(fleet_cfg_json['ssh']['vpnTmp']['publicKey'] + '\n')
-        print(f"Wrote SSH key pair: {vpn_key_priv} and {vpn_key_pub}")
-    else:
-        print("WARNING: No vpn_tmp key provided")
+        # generate vpn key pair
+        if 'vpnTmp' in fleet_cfg_json['ssh']:
+            vpn_key_priv = bootdir + '/jaiabot/init/id_vpn_tmp'
+            vpn_key_pub = vpn_key_priv + '.pub'
+            with open(vpn_key_priv, "w") as f:
+                f.write(fleet_cfg_json['ssh']['vpnTmp']['privateKey'])
+            with open(vpn_key_pub, "w") as f:
+                f.write(fleet_cfg_json['ssh']['vpnTmp']['publicKey'] + '\n')
+            print(f"Wrote SSH key pair: {vpn_key_priv} and {vpn_key_pub}")
+        else:
+            print("WARNING: No vpn_tmp key provided")
 
     if args.type == 'hub':
         key_found=False
@@ -149,14 +151,16 @@ def main():
         if not key_found:
             print(f"WARNING: No hub key provided for hub {args.id}")
 
-        # Also put a copy of fleet config on hubs for future upgrades
-        with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
-            dst.write(src.read())
+        if not args.hub_ssh_keys_only:
+            # Also put a copy of fleet config on hubs for future upgrades
+            with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
+                dst.write(src.read())
 
     if args.debug:
         print(f"Rendered FleetConfig as JSON: {json.dumps(fleet_cfg_json, indent=2)}")
 
-    print(f'Wrote cloud-init file: {preseed_yml}')
+    if not args.hub_ssh_keys_only:
+        print(f'Wrote cloud-init file: {preseed_yml}')
         
 if __name__ == "__main__":
     main()

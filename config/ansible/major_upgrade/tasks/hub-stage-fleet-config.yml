@@ -1,0 +1,35 @@
+- name: Set facts for existing and iso fleet configuration
+  set_fact:
+    iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+    existing_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+
+- name: Check if the iso fleet config file exists 
+  stat:
+    path: "{{ iso_fleet_cfg }}"
+  register: iso_fleet_file
+
+- name: Check if the existing fleet config file exists 
+  stat:
+    path: "{{ existing_fleet_cfg }}"
+  register: existing_fleet_file
+  when: not iso_fleet_file.stat.exists
+
+- name: Stage the iso fleet config file if it exists
+  copy:
+    src: "{{ iso_fleet_cfg }}"
+    dest: "{{ hub_staging_dir }}"
+    remote_src: yes
+  when: iso_fleet_file.stat.exists
+
+- name: Stage the existing fleet config file if the iso config does not exist
+  copy:
+    src: "{{ existing_fleet_cfg }}"
+    dest: "{{ hub_staging_dir }}"
+    remote_src: yes
+  when: not iso_fleet_file.stat.exists and existing_fleet_file.stat.exists
+
+- name: Handle fleet config failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Failed to find fleet configuration: Please contact JaiaRobotics for a USB key or CD with an embedded fleet configuration."
+  when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists

@@ -1,0 +1,11 @@
+- name: Update apt cache
+  # in some case the "apt" module was not doing an update
+  shell: "apt-get update"
+
+- include_tasks: ../../tasks/get-version.yml
+
+- name: Handle minor version
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "New minor version available {{ jaiabot_available_version }}. Please update to this version before running a major upgrade"
+  when: jaiabot_current_version != jaiabot_available_version 

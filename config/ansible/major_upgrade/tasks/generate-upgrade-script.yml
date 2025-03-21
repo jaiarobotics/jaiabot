@@ -1,0 +1,10 @@
+- name: Set facts for upgrade script
+  set_fact:
+    rootfs_filename: '{{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz'
+    upgrade_type: embedded
+        
+- name: Generate upgrade script
+  template:
+    src: templates/do-major-upgrade.sh.j2
+    dest: '{{ upgrade_dir }}/do-major-upgrade.sh'
+    mode: a=rwx
