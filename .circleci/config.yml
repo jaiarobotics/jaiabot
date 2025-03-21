@@ -195,7 +195,18 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "1.y"
+        - "feature/create-pi-zero-image/JAIA-1915"
 
+# which branches to run the pi-zero filesystem builds
+filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
+  filters:
+    tags:
+      only: /.*/
+    branches:
+      only:
+        - "1.y"
+        - "feature/create-pi-zero-image/JAIA-1915"
+        
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
   filters:
@@ -299,6 +310,9 @@ workflows:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
+      - raspi0-rpicam-image-create-bookworm:
+          <<: *filter-template-pi0-rootfs-builds
+          
       - aws-sync:
           requires:
             - raspi-image-create-jammy
@@ -535,6 +549,30 @@ jobs:
           paths:
             - "vbox/*.ova"
 
+  raspi0-rpicam-image-create-bookworm:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - run:
+          name: Build image
+          command: |
+            export ROOTFS_BUILD_TAG="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"
+
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get -y install packer
+            packer plugins install github.com/hashicorp/ansible
+            packer plugins install github.com/hashicorp/amazon
+
+            cd rootfs/rpicam-zero
+            ./build.sh
+            mkdir /tmp/images
+            mv jaiabot__rpicam-zero-bookworm.img /tmp/images/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
+      - run: *run-compress-image-raspi
+      - store_artifacts: *store-raspi
+            
   aws-sync:
     docker:
       - image: cimg/base:current
