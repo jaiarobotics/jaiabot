@@ -10,7 +10,7 @@ from jaiabot.messages.camera_driver_pb2 import *
 import logging
 import datetime
 from typing import *
-from pyjaia.serial import JaiaSerial
+from jaia_serial import JaiaSerial
 import subprocess
 
 

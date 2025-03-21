@@ -5,7 +5,7 @@
 
 from jaiabot.messages.camera_driver_pb2 import *
 import logging, argparse
-from pyjaia.serial import JaiaSerial
+from jaia_serial import JaiaSerial
 from google.protobuf import text_format
 
 
