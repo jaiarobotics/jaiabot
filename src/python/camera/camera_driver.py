@@ -60,7 +60,7 @@ class Camera:
 
 
     def do_command(self, command: CameraCommand):
-        log.info(command)
+        log.info(f'Doing command: {command}')
 
         if command.type == CameraCommand.CameraCommandType.START_IMAGES:
             self.image_capture_interval = command.image_capture_interval
@@ -103,6 +103,7 @@ def main():
         command = port.read(CameraCommand, timeout=0.1)
 
         if command is not None:
+            log.info(f'Received command: {command}')
 
             response = CameraResponse()
             response.id = command.id
@@ -113,6 +114,7 @@ def main():
             cam.do_command(command)
 
             port.write(response)
+            log.info(f'Sent response: {response}')
 
         cam.loop()
 
