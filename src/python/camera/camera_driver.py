@@ -51,8 +51,13 @@ class Camera:
         self.last_image_capture = 0.0
         self.videoprocess = None
 
-        self.output_dir = datetime.datetime.now().strftime('%Y-%b-%d')
-        os.makedirs(self.output_dir, exist_ok=True)
+
+    @property
+    def output_dir(self):
+        dir = datetime.datetime.now().strftime('%Y-%m-%d')
+        os.makedirs(dir, exist_ok=True)
+        return dir
+
 
     def do_command(self, command: CameraCommand):
         log.info(command)
