@@ -1,7 +1,7 @@
 load_protobuf {  #  (repeated)
     name: "jaiabot.protobuf.Command"  #  (required)
     publish_to {
-        group: "jaiabot::apps::groups::hub_command_this_bot"
+        group: "jaiabot::self_command"
         group_numeric: 11  # jaiabot::INTERVEHICLE_API_VERSION
         layer: LAYER_INTERPROCESS
     }
