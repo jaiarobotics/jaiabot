@@ -517,6 +517,11 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
     // Then we can adjust pressure accordingly
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 
+    if (cfg().has_start_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+    }
+
     loop(EvLoop());
 }
 
@@ -538,11 +543,6 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
-
-    if (cfg().has_start_camera_command())
-    {
-        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
-    }
 
     if (current_clock >= dive_prep_timeout_)
     {
@@ -943,6 +943,11 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    if (cfg().has_stop_camera_command())
+    {
+        interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
+    }
+
     loop(EvLoop());
 }
 
@@ -969,11 +974,6 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop
         glog << "Entered "
                 "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop: \n"
              << std::endl;
-
-    if (cfg().has_stop_camera_command())
-    {
-        interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
-    }
 
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
