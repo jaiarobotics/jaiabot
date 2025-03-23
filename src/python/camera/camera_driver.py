@@ -12,6 +12,7 @@ import datetime
 from typing import *
 from jaia_serial import JaiaSerial
 import subprocess
+import signal
 
 
 CAMERA_DRIVER_VERSION = 1
@@ -72,15 +73,24 @@ class Camera:
 
         if command.type == CameraCommand.CameraCommandType.START_VIDEO:
             cmd = [
-                'libcamera-vid', '--codec', 'libav', '-o',
-                f'{self.output_dir}/video-{now_string()}.mp4'
+                'libcamera-vid', 
+                '--codec', 'libav', 
+                '-t', '600sec', 
+                '-o', f'{self.output_dir}/video-{now_string()}.mp4'
             ]
-            self.videoprocess = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            self.videoprocess = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
 
         
         if command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
-            self.videoprocess.terminate()
-            self.videoprocess.wait()
+            log.info('Sending SIGINT to libcamera-vid')
+            self.videoprocess.send_signal(signal.SIGINT)
+            try:
+                self.videoprocess.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                log.info('Sending SIGTERM to libcamera-vid')
+                self.videoprocess.terminate()
+                self.videoprocess.wait(timeout=0.2)
+                log.info('Done')
 
 
     def loop(self):
