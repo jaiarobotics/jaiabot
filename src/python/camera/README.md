@@ -21,3 +21,5 @@ This script performs the following tasks:
 Once the camera driver is installed to the Pi Zero, and the JaiaBot software is deployed to the main Raspberry Pi, you can test the camera by sending `CameraCommand` messages via the bot's Jaia liaison interface.  This is found by navigating your browser to the URL `http://<bot IP or hostname>:30000`.
 
 ![liaison](liaison.png "CameraCommand in Liaison")
+
+See the `src/lib/messages/camera_driver.proto` file for descriptions of each field.
