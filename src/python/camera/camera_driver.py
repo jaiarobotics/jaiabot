@@ -46,16 +46,22 @@ class MockCamera:
 
 
 class Camera:
+    image_capture_interval: float
+    last_image_capture: float
+    videoprocess: subprocess.Popen[bytes]
+    directory: str
+
 
     def __init__(self):
         self.image_capture_interval = None
         self.last_image_capture = 0.0
         self.videoprocess = None
+        self.directory = '/var/log/jaiabot/camera/'
 
 
     @property
     def output_dir(self):
-        dir = datetime.datetime.now().strftime('%Y-%m-%d')
+        dir = self.directory + datetime.datetime.now().strftime('%Y-%m-%d')
         os.makedirs(dir, exist_ok=True)
         return dir
 
