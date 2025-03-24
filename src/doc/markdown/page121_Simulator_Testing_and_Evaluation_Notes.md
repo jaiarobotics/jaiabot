@@ -30,9 +30,71 @@ improvements.
 <a id="test-cases-and-observations"></a>
 
 ### Test Cases And Observations Table
-| **Test Case** | **Expected Outcome** | **Actual Outcome** | **Issues/Errors** | **Notes** |
-|:--------------|:---------------------|:-------------------|:------------------|:----------|
-| Hover over all icons to check labels. | Each icon displays a label. | Each icon has labels and the “Help” icon does explain their functions except for “Reset Rotation,” “Zoom In,” and “Zoom Out.” | No Issues or errors. | The labels for icons on the right of interface are:<br>- System Check All Bots<br>![System Check](https://raw.githubusercontent.com/Kait211/Practice/main/System_Check_All_Bots.png)<br>- Stop All Missions<br>![Stop All Missions](https://raw.githubusercontent.com/Kait211/Practice/main/Stop%20All%20Missions.png)<br>- Run All Missions<br>![Run All Missions](https://raw.githubusercontent.com/Kait211/Practice/main/Run%20All%20Missions.png)<br>- Download All<br>![Download All](https://raw.githubusercontent.com/Kait211/Practice/main/Download%20All.png)<br>- Undo<br>![Undo](https://raw.githubusercontent.com/Kait211/Practice/main/Undo.png)<br>- Help<br>![Help](https://raw.githubusercontent.com/Kait211/Practice/main/Help.png)<br>- Mission Panel<br>![Mission Panel](https://raw.githubusercontent.com/Kait211/Practice/main/Mission%20Panel.png)<br>- Add Rally Point<br>![Add Rally Point](https://raw.githubusercontent.com/Kait211/Practice/main/Add%20Rally%20Point.png)<br>- Edit Optimized Mission Survey<br>![Edit Optimized Mission Survey](https://raw.githubusercontent.com/Kait211/Practice/main/Edit%20Optimized%20Mission%20Survey.png)<br>- Download Queue<br>![Download Queue](https://raw.githubusercontent.com/Kait211/Practice/main/Download%20Queue.png)<br>- Measure Distance<br>![Measure Distance](https://raw.githubusercontent.com/Kait211/Practice/main/Measure%20Distance.png)<br>- Settings<br>![Settings](https://raw.githubusercontent.com/Kait211/Practice/main/Settings.png)<br>- Reset Rotation<br>![Reset Rotation](https://raw.githubusercontent.com/Kait211/Practice/main/Reset%20Rotation.png)<br>- Zoom In<br>![Zoom In](https://raw.githubusercontent.com/Kait211/Practice/main/Zoom%20In.png)<br>- Zoom Out<br>![Zoom Out](https://raw.githubusercontent.com/Kait211/Practice/main/Zoom%20Out.png) |
+<table>
+  <tr>
+    <th>Test Case</th>
+    <th>Expected Outcome</th>
+    <th>Actual Outcome</th>
+    <th>Issues/Errors</th>
+    <th>Notes</th>
+  </tr>
+  <tr>
+    <td valign="top">Hover over all icons to check labels.</td>
+    <td valign="top">Each icon displays a label.</td>
+    <td valign="top">Each icon has labels, and the “Help” icon explains their functions except for “Reset Rotation,” “Zoom In,” and “Zoom Out.”</td>
+    <td valign="top">No Issues or errors.</td>
+    <td valign="top">The labels for icons on the right of the interface are:  
+      <ul>
+        <li><strong>System Check All Bots</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/System_Check_All_Bots.png" alt="System Check" />
+        </li>
+        <li><strong>Stop All Missions</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Stop%20All%20Missions.png" alt="Stop All Missions" />
+        </li>
+        <li><strong>Run All Missions</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Run%20All%20Missions.png" alt="Run All Missions" />
+        </li>
+        <li><strong>Download All</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Download%20All.png" alt="Download All" />
+        </li>
+        <li><strong>Undo</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Undo.png" alt="Undo" />
+        </li>
+        <li><strong>Help</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Help.png" alt="Help" />
+        </li>
+        <li><strong>Mission Panel</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Mission%20Panel.png" alt="Mission Panel" />
+        </li>
+        <li><strong>Add Rally Point</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Add%20Rally%20Point.png" alt="Add Rally Point" />
+        </li>
+        <li><strong>Edit Optimized Mission Survey</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Edit%20Optimized%20Mission%20Survey.png" alt="Edit Optimized Mission Survey" />
+        </li>
+        <li><strong>Download Queue</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Download%20Queue.png" alt="Download Queue" />
+        </li>
+        <li><strong>Measure Distance</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Measure%20Distance.png" alt="Measure Distance" />
+        </li>
+        <li><strong>Settings</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Settings.png" alt="Settings" />
+        </li>
+        <li><strong>Reset Rotation</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Reset%20Rotation.png" alt="Reset Rotation" />
+        </li>
+        <li><strong>Zoom In</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Zoom%20In.png" alt="Zoom In" />
+        </li>
+        <li><strong>Zoom Out</strong><br> 
+          <img src="https://raw.githubusercontent.com/Kait211/Practice/main/Zoom%20Out.png" alt="Zoom Out" />
+        </li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
 
 
 
