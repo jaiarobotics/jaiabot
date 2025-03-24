@@ -73,11 +73,11 @@ class Camera:
             self.image_capture_interval = command.image_capture_interval
             
 
-        if command.type == CameraCommand.CameraCommandType.STOP_IMAGES:
+        elif command.type == CameraCommand.CameraCommandType.STOP_IMAGES:
             self.image_capture_interval = None
             
 
-        if command.type == CameraCommand.CameraCommandType.START_VIDEO:
+        elif command.type == CameraCommand.CameraCommandType.START_VIDEO:
             cmd = [
                 'libcamera-vid', 
                 '--codec', 'libav', 
@@ -87,7 +87,7 @@ class Camera:
             self.videoprocess = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
 
         
-        if command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
+        elif command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
             log.info('Sending SIGINT to libcamera-vid')
             self.videoprocess.send_signal(signal.SIGINT)
             try:
@@ -97,6 +97,10 @@ class Camera:
                 self.videoprocess.terminate()
                 self.videoprocess.wait(timeout=0.2)
                 log.info('Done')
+
+            
+        else:
+            log.warning(f'Unknown CameraCommand.type: {command.type}')
 
 
     def loop(self):
