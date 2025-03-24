@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ -z $1 ]; then
+    echo "Usage: deploy_camera_driver.sh hostname"
+    echo ""
+    echo "Parameters"
+    echo "hostname: hostname or IP address of the destination Pi Zero"
+    exit 1
+fi
+
+
 PYTHON_DIR="../"
 SOURCES="${PYTHON_DIR}/pyjaiaprotobuf ${PYTHON_DIR}/jaia_serial ${PYTHON_DIR}/camera"
 TARGET="$1:"
