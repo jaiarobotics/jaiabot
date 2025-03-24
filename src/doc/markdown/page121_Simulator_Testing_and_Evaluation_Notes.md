@@ -11,6 +11,7 @@
 #Key
 Note: (This key applies to two tables: "Test Cases & Observations" and "Suggestions for Improvement")
 
+### Key:
 ### Test Cases And Observations
 * **Test case**: The specific scenario or function tested in the simulator.
 * **Expected outcome**: What I think will happen upon test case completion.
@@ -24,6 +25,15 @@ improvements.
 * **Current Issue**: Detailing the issue, I see in sim that could be improved.
 * **Suggested Improvement**: Proposed solution to the current issue.
 * **Priority (Low, Medium, High)**: Indicates the urgency of suggested improvement.
+
+<br>
+<a id ="test-cases-and-observations"></a>
+| **Test Case** | **Expected Outcome** | **Actual Outcome** | **Issues/Errors** | **Notes** |
+|--------------|----------------------|--------------------|------------------|----------|
+| Hover over all icons to check labels.| Each icon displays a label. | Each icon has labels and “Help” icon does explain their functions except for “Reset Rotation”, “Zoom In” and “Zoom Out”. | No Issues or errors. | The labels for icons on the right of interface are: <br> * System Check All Bots <br>![System Check](https://raw.githubusercontent.com/Kait211/Practice/main/System_Check_All_Bots.png)|
+
+
+
 
 
 
