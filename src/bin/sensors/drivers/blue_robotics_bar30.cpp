@@ -68,8 +68,7 @@ void jaiabot::apps::BlueRoboticsBar30Driver::receive_data(
 
     if (bar30_data.has_pressure())
     {
-        pressure_temperature_data.set_pressure_raw_with_units(bar30_data.pressure() * si::milli *
-                                                              goby::util::seawater::bar);
+        pressure_temperature_data.set_pressure_raw(bar30_data.pressure());
     }
 
     interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
