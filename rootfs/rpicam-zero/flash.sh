@@ -4,7 +4,7 @@ set -u -e
 
 
 if [ ! $# -eq 2 ]; then
-   echo "Usage $0 /dev/sdX images/jaiabot__rpicam-zero-bookworm.img"
+   echo "Usage $0 /dev/sdX images/jaiabot__rpicam-zero-bookworm.img[.gz]"
    exit 1;
 fi
 
@@ -21,8 +21,20 @@ if [ ! -f $img ]; then
     exit 1
 fi
 
+
+img_ext="${img##*.}"
+echo "$img_ext"
 sudo umount ${out_disk}? || true
-sudo dd if=$img of=$out_disk status=progress bs=10M
+
+if [ "$img_ext" = "gz" ]; then
+    gunzip -c $img | sudo dd of=$out_disk status=progress bs=10M
+elif [ "$img_ext" = "img" ]; then
+    sudo dd if=$img of=$out_disk status=progress bs=10M
+else
+    echo "$img must be gzipped (.gz) or raw img (.img)"
+    exit 1
+fi
+
 
 sleep 5
 #########################################
@@ -46,4 +58,4 @@ echo w    # Write changes
 ) | sudo fdisk $out_disk
 
 sudo partprobe $out_disk
-sudo mkfs.exfat -L data ${out_disk}${data_partition}
+sudo mkfs.vfat -F 32 -n data ${out_disk}${data_partition}
