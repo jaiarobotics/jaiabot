@@ -22,10 +22,15 @@
 
 #include "blue_robotics_bar30.h"
 
+#include <goby/time/system_clock.h>
+#include <goby/util/seawater/units.h>
+
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
+namespace si = boost::units::si;
 
 jaiabot::apps::BlueRoboticsBar30Driver::BlueRoboticsBar30Driver(
     const jaiabot::sensor::protobuf::Metadata& config)
@@ -42,6 +47,7 @@ jaiabot::apps::BlueRoboticsBar30Driver::BlueRoboticsBar30Driver(
 
     // configure our sensor
     sensor::protobuf::SensorRequest request;
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     auto& sensor_cfg = *request.mutable_cfg();
     sensor_cfg.set_sensor(config.sensor());
 
@@ -54,7 +60,19 @@ void jaiabot::apps::BlueRoboticsBar30Driver::receive_data(
     const sensor::protobuf::BlueRoboticsBar30& bar30_data)
 {
     glog.is_debug1() && glog << group("bar30")
-                             << "Received ec_data: " << bar30_data.ShortDebugString() << std::endl;
+                             << "Received bar30_data: " << bar30_data.ShortDebugString()
+                             << std::endl;
 
-    // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
+    jaiabot::protobuf::PressureTemperatureData pressure_temperature_data;
+    pressure_temperature_data.set_sensor_type(jaiabot::protobuf::BAR30);
+
+    if (bar30_data.has_pressure())
+    {
+        pressure_temperature_data.set_pressure_raw_with_units(bar30_data.pressure() * si::milli *
+                                                              goby::util::seawater::bar);
+    }
+
+    interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
+
+    // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd
 }

@@ -164,12 +164,14 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
         const auto& encoded = io_msg.data();
         std::string hex_str = goby::util::hex_encode(encoded);
         size_t length = hex_str.size() / 2;
+
         uint8_t data[length];
 
         if (length < bytes_in_crc32)
             throw(std::runtime_error("Message is too small"));
 
         hex_string_to_bytes(hex_str.c_str(), data, length);
+
         uint32_t computed_crc = crc::calculate_crc32(data, length - bytes_in_crc32);
 
         uint32_t provided_crc = 0;
@@ -180,24 +182,13 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
             provided_crc |= (*it) << (i * bits_in_byte);
 
         if (computed_crc != provided_crc)
+        {
+            glog.is_debug1() && glog << "Computed CRC: " << computed_crc << std::endl;
+            glog.is_debug1() && glog << "Provided CRC: " << provided_crc << std::endl;
             throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
                                      ") does not equal CRC on message (" +
                                      std::to_string(provided_crc) + ")"));
-
-        //// TODO - verify CRC check code
-        // uint32_t computed_crc = compute_crc32(encoded.begin(), encoded.end() - bytes_in_crc32);
-
-        // uint32_t provided_crc = 0;
-
-        // std::size_t i = 0;
-        // for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end;
-        //      ++it, ++i)
-        //     provided_crc |= (*it) << (i * bits_in_byte);
-
-        // if (computed_crc != provided_crc)
-        //     throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
-        //                              ") does not equal CRC on message (" +
-        //                              std::to_string(provided_crc) + ")"));
+        }
 
         sensor::protobuf::SensorData sensor_data;
         sensor_data.ParseFromArray(encoded.data(), encoded.size() - bytes_in_crc32);
