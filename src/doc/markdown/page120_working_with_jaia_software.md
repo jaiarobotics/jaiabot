@@ -11,6 +11,7 @@
 
 # Setting Up a Default New User
 Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+
 Note: Only set up a new default user if there isn't an existing one
 
 1. Create new user 
