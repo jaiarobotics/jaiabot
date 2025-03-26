@@ -1,3 +1,7 @@
+- name: Set required disk space for /var/log based on whether do_backup is set
+  set_fact:
+    var_log_min_space_KiB: '{{ var_log_min_space_backup_KiB if do_backup | bool else var_log_min_space_no_backup_KiB}}'
+
 - name: Check required partition available space / sizes
   shell: "df {{ item.path }} --output={{ item.output }} | tail -1"
   register: partition_info
