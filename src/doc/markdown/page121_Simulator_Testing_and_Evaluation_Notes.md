@@ -8,9 +8,10 @@
 <br>
 <a id="key"></a>
 
-### Key:
+# Key:
 #Key Note: (This key applies to two tables: "Test Cases & Observations" and "Suggestions for Improvement")
-### Test Cases And Observations
+
+**Test Cases And Observations**
 * **Test case**: The specific scenario or function tested in the simulator.
 * **Expected outcome**: What I think will happen upon test case completion.
 * **Actual Outcome**: What actually happens when executing test case in sim.
@@ -18,7 +19,7 @@
 * **Notes**: Additional insights, unanswered questions, or considerations for future testing and
 improvements.
 
-### Suggestions for Improvement
+**Suggestions for Improvement**
 * **Area**: Specific areas of the simulator that could need improvement.
 * **Current Issue**: Detailing the issue, I see in sim that could be improved.
 * **Suggested Improvement**: Proposed solution to the current issue.
@@ -27,7 +28,7 @@ improvements.
 <br>
 <a id="test-cases-and-observations"></a>
 
-### Test Cases And Observations Table:
+# Test Cases And Observations Table:
 <table>
   <tr>
     <th>Test Case</th>
@@ -323,7 +324,7 @@ improvements.
 <br>
 <a id="suggestions-for-improvement"></a>
 
-### Suggestions for Improvement Table:
+# Suggestions for Improvement Table:
 <br>
 <table>
   <tr>
