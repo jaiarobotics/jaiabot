@@ -8,10 +8,8 @@
 <br>
 <a id="key"></a>
 
-#Key
-Note: (This key applies to two tables: "Test Cases & Observations" and "Suggestions for Improvement")
-
 ### Key:
+#Key Note: (This key applies to two tables: "Test Cases & Observations" and "Suggestions for Improvement")
 ### Test Cases And Observations
 * **Test case**: The specific scenario or function tested in the simulator.
 * **Expected outcome**: What I think will happen upon test case completion.
@@ -29,7 +27,7 @@ improvements.
 <br>
 <a id="test-cases-and-observations"></a>
 
-### Test Cases And Observations Table
+### Test Cases And Observations Table:
 <table>
   <tr>
     <th>Test Case</th>
@@ -322,10 +320,81 @@ improvements.
   </tr>
 </table>
 
+<br>
+<a id="suggestions-for-improvement"></a>
 
-
-
-
-
-
-
+### Suggestions for Improvement Table:
+<br>
+<table>
+  <tr>
+    <th>Area</th>
+    <th>Current Issue</th>
+    <th>Suggested Improvement</th>
+    <th>Priority
+    (Low/Medium/High)
+    </th>
+  </tr>
+  <tr>
+    <td valign="top">UI/UX</td>
+    <td valign="top">There is no instruction in help that describes what "Reset Rotation" does.</td>
+    <td valign="top">Add an instruction in "Help" to explain what "Reset Rotation" does.</td>
+    <td valign="top">Low
+</td>
+  </tr>
+  <tr>
+    <td valign="top">UI/UX</td>
+    <td valign="top">There is no instructional video on the simulator.</td>
+    <td valign="top">Add a link to a video showing how to run different missions on the simulator. This would help those who are visual learners to use the sim.</td>
+    <td valign="top">Medium
+</td>
+  </tr>
+  <tr>
+    <td valign="top">UI/UX</td>
+    <td valign="top">There is no animation showing the bot’s journey from beginning to end when traveling waypoints.</td>
+    <td valign="top">I would add an animation showing the journey the bot takes from beginning to end of waypoints.</td>
+    <td valign="top">Medium
+</td>
+  </tr>
+  <tr>
+    <td valign="top">UI/UX</td>
+    <td valign="top">There is no "Clear All" option to set the simulator back to the default settings.</td>
+    <td valign="top">I would add a "Clear All" or "Reset To Default" option.</td>
+    <td valign="top">High
+</td>
+  </tr>
+  <tr>
+    <td valign="top">Bots</td>
+    <td valign="top">When bots are at the rally point, they don’t seem to move when waypoints are placed.</td>
+    <td valign="top">Investigate this issue as it may be a bug that requires troubleshooting.</td>
+    <td valign="top">High
+</td>
+  </tr>
+  <tr>
+    <td valign="top">Bots</td>
+    <td valign="top">After completing a mission and running a waypoint route, if the route is edited, the bot does not change position when "Run Mission" is selected.</td>
+    <td valign="top">Investigate and troubleshoot this potential bug.</td>
+    <td valign="top">High
+</td>
+  </tr>
+  <tr>
+    <td valign="top">Bots</td>
+    <td valign="top">"Clear Mission" in the "Mission Panel" should reset bots to the hub.</td>
+    <td valign="top">Investigate and troubleshoot this potential bug.</td>
+    <td valign="top">High
+</td>
+  </tr>
+  <tr>
+    <td valign="top">Map Layers</td>
+    <td valign="top">In "Settings" under "Map Layers," the Contacts section is empty.</td>
+    <td valign="top">Something should be displayed under "Contacts." This might require new code to execute.</td>
+    <td valign="top">Low
+</td>
+  </tr>
+  <tr>
+    <td valign="top">Bot settings </td>
+    <td valign="top">In bot settings under "Command," the function of "RC Mode" is unclear.</td>
+    <td valign="top">There needs to be a clear explanation of what "RC Mode" does and how to use it.</td>
+    <td valign="top">Medium
+</td>
+  </tr>
+</table>
