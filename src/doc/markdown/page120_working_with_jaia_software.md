@@ -93,7 +93,7 @@ cd /path/to/jaiabot/config/launch/simulation
 chmod +x /usr/bin/goby_launch
 # If needed Grant full read, write, and execute permissions on /temp
 sudo chmod 777 /tmp
-#If needed create directory /run/screen
+# If needed create directory /run/screen
 sudo mkdir -p /run/screen
 # Grant full read, write, and execute permissions on /run/screen
 sudo chmod 777 /run/screen
