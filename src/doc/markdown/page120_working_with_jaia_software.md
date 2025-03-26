@@ -11,6 +11,7 @@
 
 # Setting Up a Default New User
 Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+Note: Only set up a new default user if there isn't an existing one
 
 1. Create new user 
 ```
@@ -87,11 +88,11 @@ cd /path/to/jaiabot/src/web
 5. Launch the simulator in a separate terminal
 ```
 cd /path/to/jaiabot/config/launch/simulation
-# Make goby_launch script executable
+# If needed Make goby_launch script executable
 chmod +x /usr/bin/goby_launch
-# Grant full read, write, and execute permissions on /temp
+# If needed Grant full read, write, and execute permissions on /temp
 sudo chmod 777 /tmp
-#If need create directory /run/screen
+#If needed create directory /run/screen
 sudo mkdir -p /run/screen
 # Grant full read, write, and execute permissions on /run/screen
 sudo chmod 777 /run/screen
