@@ -8,6 +8,7 @@ import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -42,6 +43,10 @@ message Command
         (jaia.field).rest_api.presence = OMITTED  // written by API server
     ];
 
+    // Special case: not sent in message - written upon receipt based on the Link traversed
+    optional Link link = 3 [(dccl.field).omit = true]; 
+
+    
     enum CommandType
     {
         // pre mission
@@ -89,6 +94,7 @@ message Command
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
     }
+
 }
 
 message CommandForHub
@@ -178,7 +184,10 @@ message BotStatus
         BIO = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional BotType bot_type = 7 [(jaia.field).rest_api.presence = GUARANTEED];
-
+    
+    // Special case: not sent in message - written upon receipt based on the Link traversed
+    optional Link link = 8 [(dccl.field).omit = true]; 
+    
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
 
@@ -333,6 +342,8 @@ message BotStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+
 }
 
 message DriftPacket
@@ -562,7 +573,10 @@ message TaskPacket
     ];
     required MissionTask.TaskType type = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
-
+    
+    // Special case: not sent in message - written upon receipt based on the Link traversed
+    optional Link link = 5 [(dccl.field).omit = true]; 
+    
     optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];

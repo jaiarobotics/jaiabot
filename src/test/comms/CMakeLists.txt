@@ -1,3 +1,3 @@
 add_executable(jaiabot_test_comms_conversions test.cpp)
-
+target_link_libraries(jaiabot_test_comms_conversions jaiabot_messages )
 add_test(NAME jaiabot_test_comms_conversions COMMAND jaiabot_test_comms_conversions)

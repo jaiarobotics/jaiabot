@@ -1,0 +1,191 @@
+/* general */
+
+html { height: 95%; }
+ 
+
+body {
+    font-size:100%;
+    height:100%;
+}
+* { font-family: Gentium, serif; }
+
+/* main holds all this
+/*     [                 header                   ]   */
+/*     [           ][                             ]   */  
+/*     [           ][                             ]   */  
+/*     [   menu    ][        contents             ]   */  
+/*     [           ][                             ]   */  
+/*     [           ][                             ]   */  
+
+
+div#main
+{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width:  80%;
+    min-width: 60em;
+    position: relative;
+    height: 100%;
+}
+
+div#header
+{
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    height: 72px;
+}
+
+span#header 
+{
+  position:relative;
+  top: 50%;
+  display:block;
+  font-size: 1.3em;
+  vertical-align: bottom;
+}
+
+div.menu
+{
+  position:absolute;
+  display: block;
+  width: 15%;
+}
+
+ul.menu
+{
+  list-style-type: none;
+  padding:10px;
+}
+
+.Wt-itemview
+{
+ /* height: 10em; */
+}
+
+.Wt-spinbox
+{
+/*    width: 3em*/
+
+}
+
+div#contents
+{
+  position:absolute;
+  display: block;
+  left: 15%;
+  right: 0%;
+}
+
+div.fill
+{
+  width: 100%;
+  height: 100%;
+}
+
+
+input[type="text"]
+ { 
+   width: 20em; 
+ } 
+
+a#goby_logo { display:block; position: absolute; left:0px; top:0px;}
+a#lp_logo { display:block; position: absolute; right:0px; top:0px;}
+
+/*.fl { float:left; }*/
+table.basic_small 
+{
+ border-collapse:collapse;
+ font-size:80%;
+}
+
+table.basic_small td, table.basic_small th
+{ 
+padding: 3px;
+border: 1px solid black;
+}
+
+
+a { outline:0; }
+a:link { color:#006a94; }
+a:hover, a:hover img,  div:hover.do_hover { background:#EEE; }
+a:active {color:#E36034}
+
+a:visited, a:link
+{
+    text-decoration:none;
+    border-bottom:1px dotted #aaa;
+}
+
+a.no_ul
+{
+    text-decoration:none;
+    border-bottom:0px; 
+}
+
+
+.Wt-treetable table.even
+{
+    background-color: #fff;
+}
+
+.Wt-treetable table.odd
+{
+    background-color: #eee;
+}
+
+tr.even
+{
+    background-color: #fff;
+}
+
+tr.odd
+{
+    background-color: #eee;
+}
+
+li.even
+{
+    background-color: #fff;
+}
+
+li.odd
+{
+    background-color: #eee;
+}
+
+
+/* for scope trees */
+.faded
+{
+    color:gray;
+}
+
+.invisible
+{
+    visibility:hidden;
+}
+
+.fixed-right
+{
+    position:fixed; bottom:2%; right:2%; z-index:1;
+    font-size:80%;
+    max-width:40%;
+    overflow: auto;
+}
+
+.fixed-left
+{
+    position:fixed; bottom:2%; left:2%; z-index:1;
+    font-size:80%;
+    max-width:40%;
+    overflow: auto;
+    background-color: #fff;
+    border:1px solid;
+    padding:2px;
+}
+
+.Wt-progressbar .Wt-pgb-bar {
+    background: #1C9FCB
+}

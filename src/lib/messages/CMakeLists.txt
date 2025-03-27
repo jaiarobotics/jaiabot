@@ -30,6 +30,8 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/option_extensions.proto
   jaiabot/messages/motor.proto
   jaiabot/messages/fleet_config.proto
+  jaiabot/messages/link.proto
+  jaiabot/messages/udp_driver.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})

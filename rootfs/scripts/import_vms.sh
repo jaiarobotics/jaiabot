@@ -105,6 +105,11 @@ debconf {
   type: SELECT
   value: "developer"
 }
+debconf {
+  key: "jaiabot-embedded/comms_links"
+  type: MULTISELECT
+  value: "wifi"
+}
 EOF
 
 

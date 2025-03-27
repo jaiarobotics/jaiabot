@@ -109,7 +109,7 @@ echo "######################################################"
 echo "## Choose Fleet                                     ##"
 echo "######################################################"
 
-FLEETS=($(seq 0 31))
+FLEETS=($(seq 0 250))
 run_wt_menu "Fleet Configuration" "Which fleet to create?" "${FLEETS[@]}"
 [ $? -eq 0 ] || exit 1
 FLEET_ID="$WT_CHOICE"
@@ -152,7 +152,20 @@ do
     PRIVKEY="/tmp/${KEYNAME}"
     PUBKEY="${PRIVKEY}.pub"
     rm -f $PRIVKEY $PUBKEY
-    ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME"
+
+    run_wt_inputbox "Fleet Configuration" "Hub ${HUB_ID} SSH Private Key: If creating a fleet configuration for upgrading an existing fleet, enter the path to the existing Hub ${HUB_ID} SSH **PRIVATE** key file (hub${HUB_ID}_fleet{FLEET_ID}). If creating a new fleet, leave blank to generate a new key."
+    HUB_PRIVKEY_PATH=$WT_TEXT
+
+    if [ -z "${HUB_PRIVKEY_PATH}" ]; then    
+        ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME"
+    elif [ -e "${HUB_PRIVKEY_PATH}" ]; then
+        cp ${HUB_PRIVKEY_PATH} ${PRIVKEY}
+        ssh-keygen -c -f ${PRIVKEY} -C "$KEYNAME"
+        ssh-keygen -f ${PRIVKEY} -y > ${PUBKEY}
+    else
+        echo "Hub key does not exist: ${HUB_PRIVKEY_PATH}"
+        exit 1
+    fi
     PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})    
     PUBKEY_CONTENTS="\"$(cat ${PUBKEY})\""
     echo "  hub { id: ${HUB_ID} private_key: ${PRIVKEY_CONTENTS} public_key: ${PUBKEY_CONTENTS} }" >> $out
@@ -226,7 +239,8 @@ else
     git_branch=default
 fi
 
-debconf_image_name=jaia_fleet_debconf_${git_branch}
+# docker requires lowercase tag names, hence the sed filter
+debconf_image_name=jaia_fleet_debconf_$(echo ${git_branch} | sed 's|\(.*\)|\L\1|')
 if [ "$(docker image ls ${debconf_image_name} --format='true')" != "true" ];
 then
     echo "Building the docker ${debconf_image_name} image"
@@ -272,7 +286,7 @@ debconf-get-selections | grep jaiabot-embedded | sed 's/^unknown/jaiabot-embedde
 function parse_debconf() {
     local input=$1
     local spaces=$2
-    awk '
+    awk -v FS='\t' -v OFS='\t' '
 BEGIN {
     # Print opening of the debconf entries
     printf ""

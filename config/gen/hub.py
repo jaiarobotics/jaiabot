@@ -29,7 +29,7 @@ except:
     
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
-debug_log_file_dir=log_file_dir 
+debug_log_file_dir=log_file_dir
 
 node_id = 0 
 wifi_modem_id = common.comms.wifi_modem_id(node_id)
@@ -43,7 +43,6 @@ liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_loa
 vfleet_shutdown_times=''
 if common.is_vfleet:
     vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 300 }'
-    
     
 verbosities = \
 { 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
@@ -75,7 +74,8 @@ except FileNotFoundError:
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
-if common.jaia_comms_mode == common.CommsMode.XBEE:
+link_block=''
+if common.CommsMode.XBEE in common.jaia_comms_modes:
     if is_simulation():
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
     else:
@@ -86,7 +86,7 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
     except:    
         xbee_encryption_password=""
     
-    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+    link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.xbee_modem_id(node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
@@ -98,12 +98,14 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
-elif common.jaia_comms_mode == common.CommsMode.WIFI:
-    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+if common.CommsMode.WIFI in common.jaia_comms_modes:
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
-                                            local_port=common.udp.wifi_udp_port(node_id),
-                                            remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
+                                            local_port=common.udp.wifi_udp_port(node_id, hub_index),
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
+                                            hub_endpoints='',
+                                            wifi_hub_id='hub_id: ' + str(hub_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
@@ -112,7 +114,6 @@ liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jai
 liaison_bind_addr='0.0.0.0'
 if common.is_vfleet or hub_index == cloudhub_index:
     liaison_bind_addr='0::0'
-
 
 if common.app == 'gobyd':
     if hub_index == cloudhub_index:
@@ -150,7 +151,7 @@ elif common.app == 'jaiabot_health':
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
-        liaison_port=30000+node_id
+        liaison_port=30010+hub_index
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -183,18 +184,19 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_index=hub_index,
+                                     ansible_log_dir=common.jaia_log_dir + '/ansible',
                                      ansible_playbook_full_path=ansible_playbook_full_path))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.hub.gpsd_port(node_id),
-                                     gpsd_device=common.hub.gpsd_device(node_id)))
+                                     gpsd_port=common.hub.gpsd_port(hub_index),
+                                     gpsd_device=common.hub.gpsd_device()))
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     hub_gpsd_device=common.hub.gpsd_device(node_id))) 
+                                     hub_gpsd_device=common.hub.gpsd_device())) 
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
@@ -213,7 +215,9 @@ elif common.app == 'jaiabot_hub_manager':
                                      # if we're using localhost for wifi comms, use it for data offload as well
                                      use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
                                      vfleet_shutdown_times=vfleet_shutdown_times,
-                                     hub_gpsd_device=common.hub.gpsd_device(node_id)))
+                                     hub_gpsd_device=common.hub.gpsd_device(),
+                                     subnet_mask=common.comms.subnet_mask,
+                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes) + "]"))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
@@ -234,7 +238,7 @@ elif common.app == 'jaiabot_metadata':
 elif common.app == 'gpsd':
     # Run for forwarding contacts
     devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])
-    print('-S {} {}'.format(common.hub.gpsd_port(node_id), devices_str))
+    print('-S {} {}'.format(common.hub.gpsd_port(hub_index), devices_str))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:

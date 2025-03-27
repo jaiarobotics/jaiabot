@@ -1,4 +1,7 @@
-// Copyright 2011-2021:
+// This file was forked from Goby on Feb 26, 2025
+// Original copyright follows:
+//
+// Copyright 2011-2023:
 //   GobySoft, LLC (2013-)
 //   Massachusetts Institute of Technology (2007-2014)
 //   Community contributors (see AUTHORS file)
@@ -25,8 +28,6 @@
 #ifndef GOBY_ACOMMS_MODEMDRIVER_UDP_DRIVER_H
 #define GOBY_ACOMMS_MODEMDRIVER_UDP_DRIVER_H
 
-#include "xbee.h"
-
 #include <array>   // for array
 #include <cstddef> // for size_t
 #include <cstdint> // for uint32_t
@@ -34,12 +35,12 @@
 #include <memory>  // for unique_ptr
 #include <set>     // for set
 
+#include <boost/asio/ip/udp.hpp> // for udp, udp::endpoint
+
 #include "goby/acomms/modemdriver/driver_base.h" // for ModemDriverBase
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
-#include "goby/time/steady_clock.h"              // for SteadyClock
-
-#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
-#include "jaiabot/messages/xbee_extensions.pb.h"          // For our custom config
+#include "goby/util/asio_compat.h"               // for io_context
+#include "jaiabot/messages/udp_driver.pb.h"
 
 extern "C"
 {
@@ -70,60 +71,63 @@ namespace jaiabot
 {
 namespace comms
 {
-class XBeeDriver : public goby::acomms::ModemDriverBase
+
+class UDPDriver : public goby::acomms::ModemDriverBase
 {
   public:
-    XBeeDriver();
-    ~XBeeDriver() override;
+    UDPDriver();
+    ~UDPDriver() override;
 
     void startup(const goby::acomms::protobuf::DriverConfig& cfg) override;
     void shutdown() override;
     void do_work() override;
     void handle_initiate_transmission(const goby::acomms::protobuf::ModemTransmission& m) override;
 
+    void report(goby::acomms::protobuf::ModemReport* report) override;
+
   private:
+    void update_remote(const jaiabot::udp::protobuf::Config::EndPoint& remote,
+                       bool clear_existing = false);
+
     void start_send(const goby::acomms::protobuf::ModemTransmission& msg);
     void send_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void start_receive();
     void receive_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void receive_message(const goby::acomms::protobuf::ModemTransmission& m);
 
-    bool parse_modem_message(std::string in, goby::acomms::protobuf::ModemTransmission* out);
-    void serialize_modem_message(std::string* out,
-                                 const goby::acomms::protobuf::ModemTransmission& in);
-
-    const xbee::protobuf::Config& config_extension()
+    const jaiabot::udp::protobuf::Config& config_extension()
     {
-        return driver_cfg_.GetExtension(xbee::protobuf::config);
+        return driver_cfg_.GetExtension(jaiabot::udp::protobuf::config);
     }
 
-    void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
+    // for multihub
+    void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* msg);
     void set_active_hub_peer(int hub_id);
-
-    bool read_hub_info_file(jaiabot::protobuf::HubInfo& hub_info);
-    bool write_hub_info_file(const jaiabot::protobuf::HubInfo& hub_info);
 
   private:
     goby::acomms::protobuf::DriverConfig driver_cfg_;
+    boost::asio::io_context io_context_;
+    std::unique_ptr<boost::asio::ip::udp::socket> socket_;
+    // modem id to endpoint
+    std::multimap<int, boost::asio::ip::udp::endpoint> receivers_;
+    boost::asio::ip::udp::endpoint sender_;
 
-    XBeeDevice device_;
+    // (16 bit length = 65535 - 8 byte UDP header - 20 byte IP
+    static constexpr size_t UDP_MAX_PACKET_SIZE = 65507;
+
+    std::array<char, UDP_MAX_PACKET_SIZE> receive_buffer_;
 
     // ids we are providing acks for, normally just our modem_id()
     std::set<unsigned> application_ack_ids_;
 
     std::uint32_t next_frame_{0};
-    bool test_comms_{false};
-    std::map<int32_t, goby::time::SteadyClock::time_point> send_time_{};
-    std::size_t number_of_bytes_to_send_{0};
 
     bool have_active_hub_{false};
     int active_hub_id_{-1};
-
-    // 1
-    int hub_xbee_base_modem_id_{-1};
-
-    // 1 + number of modems in link*link
-    int hub_xbee_modem_id_{-1};
+    int hub_wifi_base_modem_id_{-1};
+    int hub_wifi_modem_id_{-1};
+    // maps hub ID to endpoint
+    std::map<int, jaiabot::udp::protobuf::Config::EndPoint> hub_endpoints_;
 };
 } // namespace comms
 } // namespace jaiabot
