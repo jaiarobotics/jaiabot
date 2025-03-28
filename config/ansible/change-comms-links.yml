@@ -1,0 +1,27 @@
+---
+- name: Change the enabled communications links (modems)
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    allowed_values:
+      - wifi
+      - xbee
+      - xbee,wifi
+  pre_tasks:
+    - name: Check if comms_link is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - comms_link is defined
+          - comms_link in allowed_values
+        fail_msg: "Invalid comms_link. Allowed values are: {{ allowed_values | join('; ') }}"
+  tasks:
+    - name: Set new comms_link debconf
+      debconf:
+        name: jaiabot_embedded
+        question: "jaiabot-embedded/comms_links"
+        value: "{{ comms_link }}"
+        vtype: "multiselect"
+
+    - name: Reconfigure package
+      command: dpkg-reconfigure -f noninteractive jaiabot-embedded

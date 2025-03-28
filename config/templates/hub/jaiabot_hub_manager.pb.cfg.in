@@ -49,10 +49,9 @@ task_packet_sub_cfg {
     }
 }
 
-xbee {
-    $xbee_config
+expected_bots {
+    $expected_bots
 }
-
 data_offload_script: "jaiahub-dataoffload.sh"
 log_staging_dir: "$bot_log_staging_dir"
 log_offload_dir: "$hub_log_offload_dir"
@@ -72,3 +71,6 @@ contact_gps { contact: 3  gpsd_device: "udp://0.0.0.0:33003" use_cog: true}
 
 # multiplied by number of bots
 contact_blackout_seconds: 2
+
+subnet_mask: $subnet_mask
+link_to_subscribe_on: $links_to_subscribe_on

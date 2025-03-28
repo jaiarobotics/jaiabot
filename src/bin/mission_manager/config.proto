@@ -172,11 +172,9 @@ message MissionManager
         default = "/var/log/jaiabot/staging"
     ];  // dir on bot with data to be offloaded
 
-    optional string log_archive_dir = 74 [
-        default = "/var/log/jaiabot/archive"
-    ];  // archived bot data
+    optional string log_archive_dir = 74
+        [default = "/var/log/jaiabot/archive"];  // archived bot data
 
-    
     enum DownloadFileTypes
     {
         NONE = 1;
@@ -243,4 +241,6 @@ message MissionManager
     }
 
     optional ResolveNoForwardProgress resolve_no_forward_progress = 88;
+
+    required uint32 subnet_mask = 89;
 }

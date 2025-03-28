@@ -69,7 +69,6 @@ jaia_motor_harness_type="NONE"
 if "jaia_motor_harness_type" in os.environ:
     jaia_motor_harness_type=os.environ['jaia_motor_harness_type']
 
-
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
@@ -136,30 +135,43 @@ except FileNotFoundError:
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
-if common.jaia_comms_mode == common.CommsMode.XBEE:
+link_block=''
+if common.CommsMode.XBEE in common.jaia_comms_modes:
     subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
     else:
         xbee_serial_port='/dev/xbee'
 
-    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+    try:
+        xbee_encryption_password=os.environ['jaia_rf_encryption_password']
+    except:    
+        xbee_encryption_password=""
+        
+    link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.xbee_modem_id(node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
-                                            xbee_config=common.comms.xbee_config(),
                                             xbee_hub_id='',
+                                            use_encryption='true' if xbee_encryption_password else 'false',
+                                            encryption_password=xbee_encryption_password,
+                                            fleet_id=fleet_index,
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
-elif common.jaia_comms_mode == common.CommsMode.WIFI:
+if common.CommsMode.WIFI in common.jaia_comms_modes:
+    # used for virtualfleet as until we have an inventory file we don't send any hub subscriptions out without an Xbee config.
+    default_hub_id=1
+
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
-    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
                                             modem_id=common.comms.wifi_modem_id(node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
-                                            remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
+                                            wifi_hub_id='',
+                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
+                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
@@ -222,7 +234,7 @@ elif common.app == 'goby_logger':
 elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
     liaison_port=30000
     if is_simulation():
-        liaison_port=30000+node_id
+        liaison_port=30100+bot_index
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -307,13 +319,15 @@ elif common.app == 'jaiabot_mission_manager':
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
                                      fleet_id=fleet_index,
-                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type))
+                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start))
+                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

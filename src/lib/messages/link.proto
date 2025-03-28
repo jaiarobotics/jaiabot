@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+// these enum values MUST match those in config/gen/common/comms.py 'subnet_index'
+enum Link
+{
+    LINK_UNKNOWN = -1;
+    LINK_XBEE = 0;
+    LINK_WIFI = 1;
+}

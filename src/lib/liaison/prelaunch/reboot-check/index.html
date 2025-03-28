@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Reboot Check</title>
+    <link rel="stylesheet" type="text/css" href="liaison.css">
+    <script>
+      const serverIP = window.location.hostname;
+      const checkInterval = 1000; // 1 second
+      let serverDown = false;
+      let elapsedTime = 0;
+      
+      async function checkServer() {
+          try {
+              await fetch(`http://${serverIP}:80`, { method: "HEAD", mode: "no-cors" });
+              serverDown = false;
+          } catch (error) {
+              serverDown = true;
+              console.log("Server unreachable, waiting...");
+          }
+          
+          updateStatus();
+          if (serverDown) {
+              checkServerRestore();
+          } else {
+              setTimeout(checkServer, checkInterval);
+          }
+      }
+      
+      function updateStatus() {
+          if (serverDown) {             
+              document.getElementById("status").innerText = `Waiting for Hub to finish rebooting, please wait... (${elapsedTime}s)`;
+              setTimeout(updateStatus, 1000);  // 1 second
+          }
+          else {
+              document.getElementById("status").innerText = `Finishing task (this make take several minutes), please wait... (${elapsedTime}s)`;
+          }
+          elapsedTime += 1;
+      }
+      
+      async function checkServerRestore() {
+          try {
+              await fetch(`http://${serverIP}:9091`, { method: "HEAD", mode: "no-cors" });
+              window.location.href = `http://${serverIP}:9091`;
+          } catch (error) {
+              setTimeout(checkServerRestore, checkInterval);
+          }
+      }
+      
+      window.onload = checkServer;
+    </script>
+  </head>
+  <body>
+    <div id="main">
+      <div id="header">
+        <span id="header">goby liaison: Jaiabot Fleet Upgrade and Configuration</span>
+      </div>
+      <hr/>
+      <div id="contents">
+        <h2>Hub Reboot Status</h2>
+        <div class="status-box">
+          <p id="status">Please wait...</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
