@@ -156,8 +156,6 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
 
-    io_msg.
-
     try
     {
         glog.is_debug1() && glog << "Received bytes from MCU: "
