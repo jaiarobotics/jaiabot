@@ -131,11 +131,7 @@ void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request
     std::string* encoded = io_msg->mutable_data();
     request.SerializeToString(encoded);
 
-    std::string hex_str = goby::util::hex_encode(io_msg->data());
-    size_t length = hex_str.size() / 2;
-    uint8_t data[length];
-    hex_string_to_bytes(hex_str.c_str(), data, length);
-    uint32_t crc32_value = crc::calculate_crc32(data, length);
+    uint32_t crc32_value = crc::calculate_crc32(encoded, encoded->size());
 
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
