@@ -62,12 +62,6 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
     void receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata);
 
-    template <typename C> std::uint32_t compute_crc32(C begin, C end)
-    {
-        crc32_calc_.process_bytes(&(*begin), end - begin);
-        return crc32_calc_.checksum();
-    }
-
   private:
     std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
     boost::crc_32_type crc32_calc_;
@@ -146,6 +140,7 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 {
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
+
     try
     {
         glog.is_debug1() && glog << "Received bytes from MCU: "
