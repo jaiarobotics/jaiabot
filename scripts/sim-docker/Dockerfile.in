@@ -13,14 +13,16 @@ RUN echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/2.y `lsb_rele
 # Install the public key for packages.gobysoft.org
 RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
 # Add jaia packages to your apt sources
-RUN echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot_continuous.list
-# Install the public key for packages.jaiabot.org
+#RUN echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot_continuous.list
+# Use the dev branch for testing, restore above when ready to merge
+RUN echo "deb http://packages.jaia.tech/ubuntu/test/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot.list
+// # Install the public key for packages.jaiabot.org
 RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32
 
 # Update apt
 RUN apt-get -y update
 # Install the required packages   
 RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntp ntpstat python3-systemd ansible
-# we may need this if line 4 is not enough
+# we may need this if line 4 is not enough 
 RUN useradd -mUs /bin/bash jaia
 #COPY ./entrypoint.sh /entrypoint.sh
