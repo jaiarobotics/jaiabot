@@ -155,20 +155,18 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 {
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
-
     try
     {
         glog.is_debug1() && glog << "Received bytes from MCU: "
                                  << goby::util::hex_encode(io_msg.data()) << std::endl;
 
         const auto& encoded = io_msg.data();
-        std::vector<uint8_t> mcu_bytes(encoded.begin(), encoded.end());
 
-        if (mcu_bytes.size() < bytes_in_crc32)
+        if (encoded.size() < bytes_in_crc32)
             throw(std::runtime_error("Message is too small"));
 
         uint32_t computed_crc =
-            crc::calculate_crc32(mcu_bytes.data(), mcu_bytes.size() - bytes_in_crc32);
+            crc::calculate_crc32(encoded.data(), encoded.size() - bytes_in_crc32);
         uint32_t provided_crc = 0;
 
         std::size_t i = 0;
