@@ -156,24 +156,19 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
 
+    io_msg.
+
     try
     {
         glog.is_debug1() && glog << "Received bytes from MCU: "
                                  << goby::util::hex_encode(io_msg.data()) << std::endl;
 
         const auto& encoded = io_msg.data();
-        std::string hex_str = goby::util::hex_encode(encoded);
-        size_t length = hex_str.size() / 2;
-
-        uint8_t data[length];
-
-        if (length < bytes_in_crc32)
+        if (encoded.size() < bytes_in_crc32)
             throw(std::runtime_error("Message is too small"));
 
-        hex_string_to_bytes(hex_str.c_str(), data, length);
-
-        uint32_t computed_crc = crc::calculate_crc32(data, length - bytes_in_crc32);
-
+        uint32_t computed_crc =
+            crc::calculate_crc32(encoded.data(), encoded.size() - bytes_in_crc32);
         uint32_t provided_crc = 0;
 
         std::size_t i = 0;
@@ -183,8 +178,6 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 
         if (computed_crc != provided_crc)
         {
-            glog.is_debug1() && glog << "Computed CRC: " << computed_crc << std::endl;
-            glog.is_debug1() && glog << "Provided CRC: " << provided_crc << std::endl;
             throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
                                      ") does not equal CRC on message (" +
                                      std::to_string(provided_crc) + ")"));
