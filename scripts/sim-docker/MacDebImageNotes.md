@@ -2,43 +2,39 @@
 
 ## Dockerfile
 
-Created a static `Dockerfile` to test building an image from deb packages.  Should fold into the `Dockerfile.in` before final merge.  Static file was used to avoid installing cmake on the Mac, will be needed in the future.
-Static file checked into branch to document it, should not be merged!
+Updated Dockerfile.in to install everything from pre-built packages instead of building from source.  
 
 Used `2.y` versions of all packages to avoid issues with `pip install` items
 
-#### Dockerfile
+#### Dockerfile.in
 
 ```
-# This static Dockerfile was created to avoid having to install cmake on the Mac
-# We should switch to using the Dockerfile.in to avoid hard coded versions etc
-FROM ubuntu:noble
+FROM ubuntu:@JAIA_VERSION_UBUNTU_CODENAME@
 ENV jaia_log_dir=/var/log/jaiabot
 ENV jaia_mode=simulation
-ENV USER=jaia
+ENV USER=root
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
-RUN apt-get install -y sudo git gnupg lsb-release apt-utils vim
-#items below must be installed here because ENV is not passed through sudo in the scripts below
+RUN apt-get install -y git gnupg lsb-release apt-utils vim screen
 # Install packages to allow apt to use a repository over HTTPS:
-RUN sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
-# Add packages.gobysoft.org mirror to your apt sources
+RUN apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
 RUN default_version=${jaia_version_release_branch}
-
-RUN echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/2.y `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
+# Add packages.gobysoft.org mirror to your apt sources
+RUN echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # Install the public key for packages.gobysoft.org
-RUN sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
-
-RUN echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/jaiabot_continuous.list
+RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
+# Add jaia packages to your apt sources
+RUN echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot_continuous.list
 # Install the public key for packages.jaiabot.org
-RUN sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32
+RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32
 
 # Update apt
-RUN sudo apt-get -y update
+RUN apt-get -y update
 # Install the required packages   
-RUN sudo apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntp ntpstat python3-systemd ansible
+RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntp ntpstat python3-systemd ansible
 # we may need this if line 4 is not enough
-#RUN useradd -mUs /bin/bash jaia
+RUN useradd -mUs /bin/bash jaia
+#COPY ./entrypoint.sh /entrypoint.sh
 ```
 
 ## Creating Initial Image
@@ -65,9 +61,8 @@ Launch from `/usr/share/jaiabot/config/launch/simulation`
 
 The libraries installed by the deb packages had version numbers on them, which caused problems with the launch scripts.  `bot.launch` and `hub.launch` were edited to look for the correct version of the libraries.
 
-Liaison was removed from the simulation but can probably be added back in with this suggestion from Toby, if that works need to add `goby_liason` back to the `goby_coroner` list of apps
 
-```replace `goby_liaison_jaiabot`with`[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison` which should work for both local machines and installed versions. Then we can get rid of that unused shell script (`goby_liaison_jaiabot`)```
+replaced `goby_liaison_jaiabot`with`[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison` which should work for both local machines and installed versions. Note: we can get rid of that unused shell script (`goby_liaison_jaiabot`)
 
 #### bot.launch
 
@@ -83,7 +78,7 @@ Liaison was removed from the simulation but can probably be added back in with t
 gobyd <(../../gen/bot.py gobyd)
 [env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/bot.py goby_intervehicle_portal)  -vvv -n
 [env=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1] goby_moos_gateway <(../../gen/bot.py goby_moos_gateway)
-#goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
+[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison <(../../gen/bot.py goby_liaison)
 jaiabot_simulator <(../../gen/bot.py jaiabot_simulator)
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
 jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
@@ -106,7 +101,7 @@ jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
 jaiabot_engineering <(../../gen/bot.py jaiabot_engineering) -vvvv
 
-goby_coroner <(../../gen/bot.py goby_coroner) --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_adafruit_BNO055_driver --expected_name jaiabot_atlas_scientific_ezo_ec_driver
+goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_adafruit_BNO055_driver --expected_name jaiabot_atlas_scientific_ezo_ec_driver
 jaiabot_health <(../../gen/bot.py jaiabot_health)
 
 # Need to confirm the below lines included from engineering launch, but commented to match standard
@@ -119,6 +114,7 @@ jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver
 
 # Salinity sensor
 jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
+
 ```
 
 #### hub.launch
@@ -130,7 +126,7 @@ jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientif
 
 gobyd <(../../gen/hub.py gobyd) -vvv -n
 [env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/hub.py goby_intervehicle_portal) -vvv -n
-#goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
+[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison <(../../gen/hub.py goby_liaison)
 jaiabot_simulator <(../../gen/hub.py jaiabot_simulator)
 goby_gps <(../../gen/hub.py goby_gps)
 goby_logger <(../../gen/hub.py goby_logger)
@@ -147,6 +143,7 @@ goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --exp
 jaiabot_health <(../../gen/hub.py jaiabot_health)
 
 #[kill=SIGTERM] ../../../build/amd64/share/jaiabot/web/server/app.py
+
 ```
 
 ### Getting JCC Running
@@ -167,7 +164,9 @@ root@9a7f65d7bbef:/usr/share/jaiabot/web/server# source /usr/share/jaiabot/pytho
 ### TODO
 
 * Replace static Dockerfile with Dockerfile.in
+  * DONE
 * Test new Dockerfile.in builing of images for both AMD and ARM architectures
+  * Tested on Ubuntu, passed after editing 2 launch scripts
   * install cmake on Mac and run the same way as on Ubuntu
 * Find a way to get around the library versioning so we do not need to edit the launch scripts.
 * Create entry file to launch the sim and JCC
