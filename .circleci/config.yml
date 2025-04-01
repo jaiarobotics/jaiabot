@@ -290,7 +290,11 @@ workflows:
           <<: *filter-template-aws-rootfs-builds
 
       # docker creation jobs
-      - docker-sim:
+      - docker-sim-arm64:
+          <<: *filter-template-docker-sim-builds
+          requires:
+            - upload
+      - docker-sim-amd64:
           <<: *filter-template-docker-sim-builds
           requires:
             - upload
@@ -643,9 +647,9 @@ jobs:
               "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
               "Key=goby_version_when_built,Value=${GOBY_VERSION}"
-  docker-sim:
+  docker-sim-arm64:
     working_directory: /tmp/docker/jaiabot
-    docker:
+    docker: &docker-sim-docker
       - image: cimg/base:current
         auth:
           username: $DOCKERHUB_USERNAME
@@ -656,7 +660,7 @@ jobs:
       - run: *run-set-deb-rep-and-version
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
+      - run: &run-build-docker-sim
           name: Build and Push Docker Sim Image
           command: |
             cmake -P cmake/ConfigureDockerfiles.cmake
@@ -671,3 +675,14 @@ jobs:
             docker build --no-cache -t gobysoft/jaiabot-sim:$TAG .
             echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
             docker push gobysoft/jaiabot-sim:$TAG
+  
+  docker-sim-amd64:
+    working_directory: /tmp/docker/jaiabot
+    docker: *docker-sim-docker
+    resource_class: large
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: *run-build-docker-sim
