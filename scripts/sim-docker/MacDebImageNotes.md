@@ -2,7 +2,7 @@
 
 ## Dockerfile
 
-Updated Dockerfile.in to install everything from pre-built packages instead of building from source.  
+Updated Dockerfile.in to install everything from pre-built packages instead of building from source.
 
 Used `2.y` versions of all packages to avoid issues with `pip install` items
 
@@ -14,13 +14,31 @@ see file in branch
 
 ## Creating Initial Image
 
-Build on ARM machine, running on AMD machine is VERY slow.
+Build on host machine of tartget, cross compiling is very slow.
 
 `docker build  --no-cache -t jaiauser:jaia-sim-image .`
 
+### install cmake on M1 Mac
+
+To use the Dockerfile.in we need to run cmake so first install that on the Mac
+
+`arch -arm64 brew install cmake`
+
+Because the Mac is BSD based and not GNU the `chown` command does not support the `--reference` option.
+
+The following lines were commented out of `cmake/ConfigureDockerfiles.cmake`
+
+```
+  # make Dockerfile same owner as Dockerfile.in
+  # execute_process(
+  #   COMMAND chown --reference=${I} ${OUT}
+  #  )
+```
+This is just a temporary test, will use circleci to build image so we do not have to deal with the differences between Mac Unix and Linus
+
 ## Testing Initial Image
 
-Launched the image in a container without using any entrypoint 
+Launched the image in a container without using any entrypoint
 
 `docker run --rm --name jaia-sim-container -d -i -t -p "40001:40001" -p "9092:9092" jaiauser:jaia-sim-image /bin/bash`
 
@@ -35,7 +53,6 @@ Logged into runnig container to manually launch the simulation and JCC
 Launch from `/usr/share/jaiabot/config/launch/simulation`
 
 The libraries installed by the deb packages had version numbers on them, which caused problems with the launch scripts.  `bot.launch` and `hub.launch` were edited to look for the correct version of the libraries.
-
 
 replaced `goby_liaison_jaiabot`with`[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison` which should work for both local machines and installed versions. Note: we can get rid of that unused shell script (`goby_liaison_jaiabot`)
 
@@ -64,8 +81,12 @@ root@9a7f65d7bbef:/usr/share/jaiabot/web/server# source /usr/share/jaiabot/pytho
 * Replace static Dockerfile with Dockerfile.in
   * DONE
 * Test new Dockerfile.in builing of images for both AMD and ARM architectures
+  * DONE
   * Tested on Ubuntu, passed after editing 2 launch scripts
   * install cmake on Mac and run the same way as on Ubuntu
+    * built and tested image from Dockerfile.in with cmake on Mac, however needed to edit the cmake file
+    * image ran fine
+    * will create images in circleci to avoid having to deal with Mac Unix oddities
 * Find a way to get around the library versioning so we do not need to edit the launch scripts.
   * DONE updated launch scripts
 * Create entry file to launch the sim and JCC
