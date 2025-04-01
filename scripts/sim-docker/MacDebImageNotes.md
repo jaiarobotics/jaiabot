@@ -18,23 +18,7 @@ Build on host machine of tartget, cross compiling is very slow.
 
 `docker build  --no-cache -t jaiauser:jaia-sim-image .`
 
-### install cmake on M1 Mac
-
-To use the Dockerfile.in we need to run cmake so first install that on the Mac
-
-`arch -arm64 brew install cmake`
-
-Because the Mac is BSD based and not GNU the `chown` command does not support the `--reference` option.
-
-The following lines were commented out of `cmake/ConfigureDockerfiles.cmake`
-
-```
-  # make Dockerfile same owner as Dockerfile.in
-  # execute_process(
-  #   COMMAND chown --reference=${I} ${OUT}
-  #  )
-```
-This is just a temporary test, will use circleci to build image so we do not have to deal with the differences between Mac Unix and Linus
+### 
 
 ## Testing Initial Image
 
@@ -76,7 +60,13 @@ root@9a7f65d7bbef:/usr/share/jaiabot/web/server# source /usr/share/jaiabot/pytho
 
 ```
 
-### TODO
+## Circleci Building and Pushing Docker Images
+
+circleci job `docker-sim` split into `docker-sim-arm64` & `docker-sim-`amd64` to build and push the Docker Sim image to https://hub.docker.com/r/gobysoft/jaiabot-sim-arm64/tags & https://hub.docker.com/r/gobysoft/jaiabot-sim-amd64/tags
+
+Currently being built as test builds on branch `bug/2.y/docker-simulator-metadata-mac/JAIA-1929`
+
+## TODO
 
 * Replace static Dockerfile with Dockerfile.in
   * DONE
@@ -89,6 +79,10 @@ root@9a7f65d7bbef:/usr/share/jaiabot/web/server# source /usr/share/jaiabot/pytho
     * will create images in circleci to avoid having to deal with Mac Unix oddities
 * Find a way to get around the library versioning so we do not need to edit the launch scripts.
   * DONE updated launch scripts
+* Update circleci to build both AMD and ARM docker images and push to the hub
+  * Done
+  * Need to remove test builds from config when done
 * Create entry file to launch the sim and JCC
 * Use `${JAIABOT_APT_REPO) ` as docker build --build-arg
-* Update circleci to build both AMD and ARM docker images and push to the hub
+* Use Manifest when pushing separate images to make pulling simpler
+  * (See Toby private message for details)
