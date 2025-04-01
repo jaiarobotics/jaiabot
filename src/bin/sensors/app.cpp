@@ -62,21 +62,10 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
     void receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata);
 
-    template <typename C> std::uint32_t compute_crc32(C begin, C end)
-    {
-        crc32_calc_.process_bytes(&(*begin), end - begin);
-        return crc32_calc_.checksum();
-    }
-
   private:
     std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
     boost::crc_32_type crc32_calc_;
 };
-
-void hex_string_to_bytes(const char* hex, uint8_t* bytes, size_t length)
-{
-    for (size_t i = 0; i < length; i++) { sscanf(&hex[i * 2], "%2hhx", &bytes[i]); }
-}
 
 } // namespace apps
 } // namespace jaiabot
@@ -131,11 +120,7 @@ void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request
     std::string* encoded = io_msg->mutable_data();
     request.SerializeToString(encoded);
 
-    std::string hex_str = goby::util::hex_encode(io_msg->data());
-    size_t length = hex_str.size() / 2;
-    uint8_t data[length];
-    hex_string_to_bytes(hex_str.c_str(), data, length);
-    uint32_t crc32_value = crc::calculate_crc32(data, length);
+    uint32_t crc32_value = crc::calculate_crc32(encoded->data(), encoded->size());
 
     constexpr int bits_in_byte = 8;
     constexpr int bytes_in_crc32 = 4;
@@ -162,18 +147,12 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
                                  << goby::util::hex_encode(io_msg.data()) << std::endl;
 
         const auto& encoded = io_msg.data();
-        std::string hex_str = goby::util::hex_encode(encoded);
-        size_t length = hex_str.size() / 2;
 
-        uint8_t data[length];
-
-        if (length < bytes_in_crc32)
+        if (encoded.size() < bytes_in_crc32)
             throw(std::runtime_error("Message is too small"));
 
-        hex_string_to_bytes(hex_str.c_str(), data, length);
-
-        uint32_t computed_crc = crc::calculate_crc32(data, length - bytes_in_crc32);
-
+        uint32_t computed_crc =
+            crc::calculate_crc32(encoded.data(), encoded.size() - bytes_in_crc32);
         uint32_t provided_crc = 0;
 
         std::size_t i = 0;
@@ -183,8 +162,6 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 
         if (computed_crc != provided_crc)
         {
-            glog.is_debug1() && glog << "Computed CRC: " << computed_crc << std::endl;
-            glog.is_debug1() && glog << "Provided CRC: " << provided_crc << std::endl;
             throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
                                      ") does not equal CRC on message (" +
                                      std::to_string(provided_crc) + ")"));
