@@ -648,6 +648,8 @@ jobs:
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
               "Key=goby_version_when_built,Value=${GOBY_VERSION}"
   docker-sim-arm64:
+    environment:
+      <<: *environment-template-arm64    
     working_directory: /tmp/docker/jaiabot
     docker: &docker-sim-docker
       - image: cimg/base:current
@@ -672,11 +674,13 @@ jobs:
               TAG="${JAIABOT_APT_VERSION}-${JAIABOT_APT_REPO}"
             fi
             
-            docker build --no-cache -t gobysoft/jaiabot-sim:$TAG .
+            docker build --no-cache -t gobysoft/jaiabot-sim-$TARGET_ARCH:$TAG .
             echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
-            docker push gobysoft/jaiabot-sim:$TAG
+            docker push gobysoft/jaiabot-sim-$TARGET_ARCH:$TAG
   
   docker-sim-amd64:
+    environment:
+      <<: *environment-template-amd64    
     working_directory: /tmp/docker/jaiabot
     docker: *docker-sim-docker
     resource_class: large
