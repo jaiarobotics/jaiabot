@@ -213,6 +213,8 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "2.y"
+        - "bug/2.y/docker-simulator-metadata-mac/JAIA-1929"
+
 
 ## Begin actual config
 version: 2.1
@@ -290,6 +292,8 @@ workflows:
       # docker creation jobs
       - docker-sim:
           <<: *filter-template-docker-sim-builds
+          requires:
+            - upload
 
 jobs:
   get-orig-source:
@@ -646,7 +650,7 @@ jobs:
         auth:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_PASSWORD
-    resource_class: large
+    resource_class: arm.large
     steps:
       - checkout
       - run: *run-set-deb-rep-and-version
