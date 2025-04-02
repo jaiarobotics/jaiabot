@@ -4,6 +4,7 @@
 - [Key](#key)
 - [Test Cases And Observations](#test-cases-and-observations)
 - [Suggestions For Improvement](#suggestions-for-improvement)
+- [Demonstrating Issues in the Simulator](#demonstrating-issues-in-the-simulator)
 
 <br>
 <a id="key"></a>
@@ -319,6 +320,14 @@ improvements.
     <td valign="top">Must investigate "RC Mode" further to understand how to utilize it.
 </td>
   </tr>
+  <tr>
+    <td valign="top">Click “Hub” and under “Links” click icons JDV, Router, and upgrade.</td>
+    <td valign="top">I expect the links to appear in my browser.</td>
+    <td valign="top">All links lead to a “THIS SITE CAN’T BE REACHED” error.</td>
+    <td valign="top">This is an issue; the links should lead to their respective pages, but they result in a "THIS SITE CAN’T BE REACHED" error instead.</td>
+    <td valign="top">The issue could stem from my browser or internet connection, or it may be a deeper error.
+</td>
+  </tr>
 </table>
 
 <br>
@@ -398,4 +407,17 @@ improvements.
     <td valign="top">Medium
 </td>
   </tr>
+  </tr>
+  <tr>
+    <td valign="top">Links</td>
+    <td valign="top">The links in Hub lead to a "THIS SITE CAN’T BE REACHED" error.</td>
+    <td valign="top">Investigate potential issues with browser, internet connection, or URL misconfiguration. If needed, check server-side code for errors.</td>
+    <td valign="top">Medium
+</td>
 </table>
+
+<br>
+<a id="demonstrating-issues-in-the-simulator"></a>
+
+# test video
+[![Video Title](https://img.youtube.com/vi/vWUjNNcKMnQ/0.jpg)](https://www.youtube.com/watch?v=vWUjNNcKMnQ&t=5s)
