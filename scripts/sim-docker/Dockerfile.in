@@ -1,8 +1,10 @@
 FROM ubuntu:@JAIA_VERSION_UBUNTU_CODENAME@
+ARG JAIABOT_APT_REPO="continuous"
 ENV jaia_log_dir=/var/log/jaiabot
 ENV jaia_mode=simulation
 ENV USER=root
 ENV DEBIAN_FRONTEND=noninteractive
+RUN echo "JAIABOT_APT_REPO = $JAIABOT_APT_REPO"
 RUN apt-get update
 RUN apt-get install -y git gnupg lsb-release apt-utils vim screen
 # Install packages to allow apt to use a repository over HTTPS:
@@ -15,7 +17,7 @@ RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F
 # Add jaia packages to your apt sources
 #RUN echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot_continuous.list
 # Use the dev branch for testing, restore above when ready to merge
-RUN echo "deb http://packages.jaia.tech/ubuntu/test/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot.list
+RUN echo "deb http://packages.jaia.tech/ubuntu/$JAIABOT_APT_REPO/2.y `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot.list
 # Install the public key for packages.jaiabot.org
 RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32
 

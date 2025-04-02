@@ -86,5 +86,7 @@ Currently being built as test builds on branch `bug/2.y/docker-simulator-metadat
   * DONE
   * May need to adjust image names and update launch-container.sh
 * Use `${JAIABOT_APT_REPO) ` as docker build --build-arg
+  * DONE
+  * Need to verify circleci builds
 * Use Manifest when pushing separate images to make pulling simpler
   * (See Toby private message for details)
