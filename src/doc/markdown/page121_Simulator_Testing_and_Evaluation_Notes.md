@@ -419,5 +419,7 @@ improvements.
 <br>
 <a id="demonstrating-issues-in-the-simulator"></a>
 
-# test video
+# Demonstrating Issues in the Simulator Video
 [![Video Title](https://img.youtube.com/vi/vWUjNNcKMnQ/0.jpg)](https://www.youtube.com/watch?v=vWUjNNcKMnQ&t=5s)
+
+**Description:** A quick demonstration of the issues I encountered while testing the simulator, called Simulation  - Jaia Command and Control.
