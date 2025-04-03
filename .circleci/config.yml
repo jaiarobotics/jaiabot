@@ -716,4 +716,5 @@ jobs:
             fi
 
             docker manifest create gobysoft/jaiabot-sim:$TAG gobysoft/jaiabot-sim:$TAG-amd64 gobysoft/jaiabot-sim:$TAG-arm64
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
             docker manifest push gobysoft/jaiabot-sim:$TAG
