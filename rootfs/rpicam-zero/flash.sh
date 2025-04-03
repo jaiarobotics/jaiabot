@@ -54,8 +54,11 @@ echo p    # Primary partition
 echo 3    # Partition number 3
 echo ${DATA_START_SECTOR}
 echo      # Default end (uses all available space)
+echo t    # Change type
+echo 3    # Partition number 3
+echo 07   # exFAT/NTFS
 echo w    # Write changes
 ) | sudo fdisk $out_disk
 
 sudo partprobe $out_disk
-sudo mkfs.vfat -F 32 -n data ${out_disk}${data_partition}
+sudo mkfs.exfat -n data ${out_disk}${data_partition}
