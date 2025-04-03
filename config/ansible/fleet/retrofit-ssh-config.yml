@@ -6,6 +6,7 @@
   vars:
     rootfs_dir: "{{ (playbook_dir + '../../../../rootfs') | realpath }}"
     rootfs_includes_dir: "{{ rootfs_dir + '/customization/includes.chroot' }}"
+    config_dir: "{{ (rootfs_dir + '/../config') | realpath }}"
 
   pre_tasks:
     - include_tasks: tasks/set-facts.yml
@@ -15,7 +16,7 @@
         
     - name: Copy root ssh keys
       synchronize:
-        src: "{{ rootfs_includes_dir }}/etc/jaiabot/ssh/root_authorized_keys"
+        src: "{{ config_dir }}/ssh/root_authorized_keys"
         dest: "/tmp/root_authorized_keys"
         rsync_path: "sudo {{ RO_CMD }} rsync"
         
