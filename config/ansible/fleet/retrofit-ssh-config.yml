@@ -42,7 +42,15 @@
         {{ RO_ROOT_CMD }} chown root:root /etc/udev/rules.d/70-jaiabot_yubikey.rules
         
     - include_tasks: tasks/set-jaiabot-ssh-perms.yml
-        
-    - name: Install yubikey-manager
+      
+- name: Retrofit hubs with yubikey-manager
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  pre_tasks:
+    - include_tasks: tasks/set-facts.yml
+  tasks:
+    - name: Install latest yubikey-manager
       shell: |
-        {{ RO_ROOT_CMD }} apt-get update && apt-get -y install yubikey-manager
+        apt-get -y install software-properties-common
+        {{ RO_ROOT_CMD }} add-apt-repository -y ppa:yubico/stable && apt-get -y install yubikey-manager libfido2-1
