@@ -702,7 +702,10 @@ jobs:
     docker: *docker-sim-docker
     resource_class: medium
     steps:
+      - checkout
       - run: *run-set-deb-rep-and-version
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           name: Create and push docker manifest
           command: |
