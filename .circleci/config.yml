@@ -702,6 +702,7 @@ jobs:
     docker: *docker-sim-docker
     resource_class: medium
     steps:
+      - run: *run-set-deb-rep-and-version
       - run:
           name: Create and push docker manifest
           command: |

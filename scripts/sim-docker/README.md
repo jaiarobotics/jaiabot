@@ -21,26 +21,21 @@ The user must use a terminal/command prompt environment to run the Jaiabot Docke
 
 ## Using pre-built Docker images (preferred)
 
-As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.  Users are encouraged to pull the image appropriate for their host machine directly from the hub.
+As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software. 
 
 ### Download the image
 
 - Choose the `<tag>` of the version you want (e.g. `2.1.0` or `2.y-beta`, `2.y-continuous`, `2.y-test` )for the latest of the respective repository.
-- Pull the appropriate image for your machine
-  - AMD64 (Most Linux and Windows machines, older Macs)
-    - use gobysoft/jaiabot-sim-amd64<tag>
-    - e.g. `docker pull gobysoft/jaiabot-sim-amd64:2.y-continuous`
-  - ARM64 (Newer Macs, M1, M2 etc.)
-    - use gobysoft/jaiabot-sim-arm64
-    - e.g. `docker pull gobysoft/jaiabot-sim-arm64:2.y-continuous`
+- Pull the image
+  - use gobysoft/jaiabot-sim:<tag>
+    - e.g. `docker pull gobysoft/jaiabot-sim:2.0.0`
   - Available images can be found at
-    - https://hub.docker.com/r/gobysoft/jaiabot-sim-amd64/tags
-    - https://hub.docker.com/r/gobysoft/jaiabot-sim-arm64/tags
+    - https://hub.docker.com/r/gobysoft/jaiabot-sim/tags
 - Check image
   - `docker images` will list all availble images on your machine.  You should see one that looks like
     ```
     REPOSITORY                   TAG                    IMAGE ID       CREATED        SIZE
-    gobysoft/jaiabot-sim-amd64   2.y-continuous         751dc04f83a9   21 hours ago   2.68GB
+    gobysoft/jaiabot-sim         2.0.0                  751dc04f83a9   21 hours ago   2.68GB
     ```
 
 ### Run the Simulator
