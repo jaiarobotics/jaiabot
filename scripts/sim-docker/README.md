@@ -1,5 +1,6 @@
 - [How to use the Jaiabot Simulator in a Docker](#how-to-use-the-jaiabot-simulator-in-a-docker)
-  - [Using pre-built Docker images (preferred)](#using-pre-built-docker-images-preferred)
+  - [Install Docker](#install-docker)
+  - [Download pre-built Docker images (preferred)](#download-pre-built-docker-images-preferred)
     - [Download the image](#download-the-image)
     - [Run the Simulator](#run-the-simulator)
       - [Setup the simulation](#setup-the-simulation)
@@ -10,16 +11,19 @@
 
 # How to use the Jaiabot Simulator in a Docker
 
-User must install Docker on their host machine. See https://www.docker.com/get-started/
+## Install Docker
+
+The user must install Docker on their host machine. See https://www.docker.com/get-started/
+
+The user must use a terminal/command prompt environment to run the Jaiabot Docker Simulation.  Desktop versions of docker do not support all of the options used.  However, depending on how docker was installed you may need to launch the desktop app to start the docker engine.
 
 A few important Docker terms:
 
 - _image_ - refers to a self contained run enviroment
 - _container_ - refers to a running instance of an image
 
-The user must use a terminal/command prompt environment to run the Jaiabot Docker Simulation.  Desktop versions of Docker do not support all of the options used.
 
-## Using pre-built Docker images (preferred)
+## Download pre-built Docker images (preferred)
 
 As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software. 
 
