@@ -22,24 +22,24 @@
 
 #include <goby/time/system_clock.h>
 
-#include "atlas_scientific__oem_ec.h"
+#include "atlas_scientific__oem_do.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
 
-jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
+jaiabot::apps::AtlasScientificOEMDODriver::AtlasScientificOEMDODriver(
     const jaiabot::sensor::protobuf::Metadata& config)
     : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>(config)
 
 {
-    glog.add_group("oem_ec", goby::util::Colors::blue);
+    glog.add_group("oem_do", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
         [this](const sensor::protobuf::SensorData& sensor_data)
         {
-            if (sensor_data.has_oem_ec())
-                receive_data(sensor_data.oem_ec());
+            if (sensor_data.has_oem_do())
+                receive_data(sensor_data.oem_do());
         });
 
     // configure our sensor
@@ -53,11 +53,11 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
-void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
-    const sensor::protobuf::AtlasScientificOEMEC& ec_data)
+void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
+    const sensor::protobuf::AtlasScientificOEMDO& do_data)
 {
-    glog.is_debug1() && glog << group("oem_ec")
-                             << "Received ec_data: " << ec_data.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("oem_do")
+                             << "Received do_data: " << do_data.ShortDebugString() << std::endl;
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
 }

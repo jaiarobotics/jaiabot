@@ -29,6 +29,8 @@
 
 #include "config.pb.h"
 #include "drivers/atlas_scientific__oem_ec.h"
+#include "drivers/atlas_scientific__oem_do.h"
+#include "drivers/atlas_scientific__oem_ph.h"
 #include "drivers/blue_robotics_bar30.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
@@ -205,9 +207,19 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
         case sensor::protobuf::BLUE_ROBOTICS__BAR30:
             launch_thread<BlueRoboticsBar30Driver>(metadata);
             break;
+
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
+            launch_thread<AtlasScientificOEMPHDriver>(metadata);
+            break;
+
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
+            launch_thread<AtlasScientificOEMDODriver>(metadata);
+            break;
+            
         case sensor::protobuf::TURNER__C_FLUOR:
+            launch_thread<TurnerCFluorDriver>(metadata);
+            break;
+            
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "
                                    << sensor::protobuf::Sensor_Name(metadata.sensor()) << std::endl;
