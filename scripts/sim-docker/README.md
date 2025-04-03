@@ -32,7 +32,7 @@ As of 2.y release the Jaiabot Docker Simulation images are generated for both AM
   - Available images can be found at
     - https://hub.docker.com/r/gobysoft/jaiabot-sim/tags
 - Check image
-  - `docker images` will list all availble images on your machine.  You should see one that looks like
+  - `docker images` will list all available images on your machine.  You should see one that looks like
     ```
     REPOSITORY                   TAG                    IMAGE ID       CREATED        SIZE
     gobysoft/jaiabot-sim         2.0.0                  751dc04f83a9   21 hours ago   2.68GB
@@ -54,7 +54,7 @@ JAIA_SIM_FLEET=20
 
 The following command will launch the Jaiabot Simulator in a Docker container.  This can be run from any directory but make sure `sim_env_vars.txt` is in that directory.
 
-`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env-file sim_env_vars.txt jaiauser:jaia-sim-image /bin/bash -li "/entrypoint.sh"`
+`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env-file sim_env_vars.txt gobysoft/jaiabot-sim:2.0.0 /bin/bash -li "/entrypoint.sh"`
 
 Explanation of command.
 ```
@@ -64,7 +64,7 @@ Explanation of command.
   "-d -i -t" Tells docker to run in a detached mode and to include an interactive terminal. This allows the user to log into the running container if needed (advanced)
   "--env-file sim_env_vars.txt" Specifies the file containing the environment variables used by the simulation
   "-p 40001:40001 -p 9092:9092 Exposes the ports used by JCC and Liaison to the host machine
-  "gobysoft/jaiabot-sim-amd64:2.y-continuous" Identifies the image to run the user should change this to the image they want
+  "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
   "/bin/bash -li "/entrypoint.sh" Tells docker to launch a bash shell and use the entrypoint.sh script to run the simulation and JCC
 ```
 
