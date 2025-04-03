@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 jaiabot::apps::Sensors::Sensors()
-    : zeromq::MultiThreadApplication<config::Sensors>(0.1 * boost::units::si::hertz)
+    : zeromq::MultiThreadApplication<config::Sensors>(1.0 / 30.0 * si::hertz)
 {
     using MCUSerialThread =
         goby::middleware::io::SerialThreadCOBS<mcu_serial_in, mcu_serial_out,
@@ -110,13 +110,14 @@ void jaiabot::apps::Sensors::loop()
 void jaiabot::apps::Sensors::query_metadata()
 {
     sensor::protobuf::SensorRequest request;
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     request.set_request_metadata(true);
     send_to_mcu(request);
 }
 
 void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request)
 {
-    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    glog.is_verbose() && glog << "Send data to MCU: " << request.ShortDebugString() << std::endl;
 
     auto io_msg = std::make_shared<goby::middleware::protobuf::IOData>();
     std::string* encoded = io_msg->mutable_data();
@@ -215,11 +216,11 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
             launch_thread<AtlasScientificOEMDODriver>(metadata);
             break;
-            
-        case sensor::protobuf::TURNER__C_FLUOR:
-            launch_thread<TurnerCFluorDriver>(metadata);
-            break;
-            
+
+            //case sensor::protobuf::TURNER__C_FLUOR:
+            //    launch_thread<TurnerCFluorDriver>(metadata);
+            //    break;
+
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "
                                    << sensor::protobuf::Sensor_Name(metadata.sensor()) << std::endl;

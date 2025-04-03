@@ -52,7 +52,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     sensor_cfg.set_sensor(config.sensor());
 
     // TODO - hardcode or configuration?
-    sensor_cfg.set_sample_freq_with_units(10 * boost::units::si::hertz);
+    sensor_cfg.set_sample_freq_with_units(1 * boost::units::si::hertz);
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 

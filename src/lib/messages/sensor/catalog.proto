@@ -5,6 +5,7 @@ package jaiabot.sensor.protobuf;
 // vendor__product
 enum Sensor
 {
+    NONE = 0;
     ATLAS_SCIENTIFIC__OEM_EC = 1;
     BLUE_ROBOTICS__BAR30 = 2;
     ATLAS_SCIENTIFIC__OEM_PH = 3;
