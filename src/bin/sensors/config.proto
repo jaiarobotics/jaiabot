@@ -33,4 +33,5 @@ message Sensors
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
     optional goby.middleware.protobuf.SerialConfig mcu_serial = 3;
+    optional int32 sample_rate = 4;
 }

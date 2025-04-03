@@ -55,3 +55,9 @@ message SensorData
     }
 }
 
+message SensorThreadConfig
+{
+    optional Metadata metadata = 1;
+    optional int32 sample_rate = 2;
+}
+

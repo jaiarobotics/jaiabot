@@ -24,7 +24,7 @@
 #define JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_OEM_EC_H
 
 #include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
-#include "jaiabot/messages/sensor/metadata.pb.h"
+#include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
 namespace jaiabot
@@ -32,10 +32,10 @@ namespace jaiabot
 namespace apps
 {
 class AtlasScientificOEMECDriver
-    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>
+    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>
 {
   public:
-    AtlasScientificOEMECDriver(const jaiabot::sensor::protobuf::Metadata& config);
+    AtlasScientificOEMECDriver(const jaiabot::sensor::protobuf::SensorThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::AtlasScientificOEMEC& ec_data);
