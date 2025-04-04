@@ -24,7 +24,7 @@
 #define JAIABOT_SENSORS_DRIVERS_BLUE_ROBOTICS_BAR30_H
 
 #include "jaiabot/messages/sensor/blue_robotics__bar30.pb.h"
-#include "jaiabot/messages/sensor/metadata.pb.h"
+#include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
 namespace jaiabot
@@ -32,10 +32,10 @@ namespace jaiabot
 namespace apps
 {
 class BlueRoboticsBar30Driver
-    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>
+    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>
 {
   public:
-    BlueRoboticsBar30Driver(const jaiabot::sensor::protobuf::Metadata& config);
+    BlueRoboticsBar30Driver(const jaiabot::sensor::protobuf::SensorThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::BlueRoboticsBar30& ec_data);

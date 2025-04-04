@@ -209,17 +209,17 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<AtlasScientificOEMECDriver>(thread_cfg);
             break;
 
-            // case sensor::protobuf::BLUE_ROBOTICS__BAR30:
-            //     launch_thread<BlueRoboticsBar30Driver>(thread_cfg);
-            //     break;
+        case sensor::protobuf::BLUE_ROBOTICS__BAR30:
+            launch_thread<BlueRoboticsBar30Driver>(thread_cfg);
+            break;
 
-            // case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
-            //     launch_thread<AtlasScientificOEMPHDriver>(thread_cfg);
-            //     break;
+        case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
+            launch_thread<AtlasScientificOEMPHDriver>(thread_cfg);
+            break;
 
-            // case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
-            //     launch_thread<AtlasScientificOEMDODriver>(thread_cfg);
-            //     break;
+        case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
+            launch_thread<AtlasScientificOEMDODriver>(thread_cfg);
+            break;
 
             // case sensor::protobuf::TURNER__C_FLUOR:
             //    launch_thread<TurnerCFluorDriver>(thread_cfg);

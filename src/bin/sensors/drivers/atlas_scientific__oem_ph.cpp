@@ -24,13 +24,12 @@
 
 #include "atlas_scientific__oem_ph.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
 
 jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
-    const jaiabot::sensor::protobuf::Metadata& config)
-    : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>(config)
+    const jaiabot::sensor::protobuf::SensorThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>(config)
 
 {
     glog.add_group("oem_ph", goby::util::Colors::blue);
@@ -46,10 +45,10 @@ jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
     sensor::protobuf::SensorRequest request;
     request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     auto& sensor_cfg = *request.mutable_cfg();
-    sensor_cfg.set_sensor(config.sensor());
+    sensor_cfg.set_sensor(config.metadata().sensor());
 
     // TODO - hardcode or configuration?
-    sensor_cfg.set_sample_freq_with_units(1 * boost::units::si::hertz);
+    sensor_cfg.set_sample_freq_with_units(config.sample_rate() * boost::units::si::hertz);
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 

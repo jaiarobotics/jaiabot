@@ -24,7 +24,6 @@
 
 #include "atlas_scientific__oem_ec.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
 
