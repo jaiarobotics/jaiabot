@@ -48,7 +48,6 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     auto& sensor_cfg = *request.mutable_cfg();
     sensor_cfg.set_sensor(config.metadata().sensor());
 
-    // TODO - hardcode or configuration?
     sensor_cfg.set_sample_freq_with_units(config.sample_rate() * boost::units::si::hertz);
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
