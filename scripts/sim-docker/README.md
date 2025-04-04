@@ -1,15 +1,15 @@
+# How to use the Jaiabot Simulator in a Docker
+
 - [How to use the Jaiabot Simulator in a Docker](#how-to-use-the-jaiabot-simulator-in-a-docker)
   - [Install Docker](#install-docker)
   - [Download pre-built Docker images (preferred)](#download-pre-built-docker-images-preferred)
-    - [Download the image](#download-the-image)
-    - [Run the Simulator](#run-the-simulator)
-      - [Setup the simulation](#setup-the-simulation)
-      - [Launch the container](#launch-the-container)
-    - [Using JCC](#using-jcc)
-    - [Stopping the Simulation](#stopping-the-simulation)
+  - [Run the Simulator](#run-the-simulator)
+    - [Set the simulation run parameters](#set-the-simulation-run-parameters)
+    - [Using an env-file](#using-an-env-file)
+    - [Using command line arguments](#using-command-line-arguments)
+  - [Accessing JCC](#accessing-jcc)
+  - [Stop the Simulator](#stop-the-simulator)
   - [Working with images locally (advanced, Linux platforms only)](#working-with-images-locally-advanced-linux-platforms-only)
-
-# How to use the Jaiabot Simulator in a Docker
 
 ## Install Docker
 
@@ -22,12 +22,9 @@ A few important Docker terms:
 - _image_ - refers to a self contained run enviroment
 - _container_ - refers to a running instance of an image
 
-
 ## Download pre-built Docker images (preferred)
 
-As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software. 
-
-### Download the image
+As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.
 
 - Choose the `<tag>` of the version you want (e.g. `2.1.0` or `2.y-beta`, `2.y-continuous`, `2.y-test` )for the latest of the respective repository.
 - Pull the image
@@ -42,25 +39,29 @@ As of 2.y release the Jaiabot Docker Simulation images are generated for both AM
     gobysoft/jaiabot-sim         2.0.0                  751dc04f83a9   21 hours ago   2.68GB
     ```
 
-### Run the Simulator
+## Run the Simulator
 
-#### Setup the simulation
+### Set the simulation run parameters
 
-The fleet number, the number of bots and the simulation warp speed are specified in environment variables and passed to the simulator in a text file.  An example file is provided in the jaiabot repo `scripts/sim-docker/sim_env_vars.txt`
+The fleet number, the number of bots and the simulation warp are specified in environment variables and can be passed to the simulator in a text file or provided as command line parameters.  Examples of both methods described below.
+
+### Using an env-file
+
+An example of the text file is provided in the jaiabot repo `scripts/sim-docker/sim_env_vars.txt`
 
 Users can edit the existing file or create their own locally.  Format of file is
+
 ```
 JAIA_SIM_BOTS=3
 JAIA_SIM_WARP=2
 JAIA_SIM_FLEET=20
 ```
-#### Launch the container
-
 The following command will launch the Jaiabot Simulator in a Docker container.  This can be run from any directory but make sure `sim_env_vars.txt` is in that directory.
 
 `docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env-file sim_env_vars.txt gobysoft/jaiabot-sim:2.0.0 /bin/bash -li "/entrypoint.sh"`
 
 Explanation of command.
+
 ```
   "docker run" Command to run the image in a new container 
   "--rm" Tells docker to remove the container after it is stopped
@@ -74,13 +75,21 @@ Explanation of command.
   "/bin/bash -li "/entrypoint.sh" Tells docker to launch a bash shell and use the entrypoint.sh script to run the simulation and JCC
 ```
 
-### Using JCC
+### Using command line arguments
+
+Alternatively users can provide the run parameters as command line arguments.
+
+The following command will launch the Jaiabot Simulator in a Docker container.  This can be run from any directory.
+
+`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 gobysoft/jaiabot-sim:2.0.0 /bin/bash -li "/entrypoint.sh"`
+
+## Accessing JCC
 
 At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
 
 http://localhost:40001/
 
-### Stopping the Simulation
+## Stop the Simulator
 
 The following command will stop the running container and remove it when done.
 
@@ -95,50 +104,50 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
 - Build the image**  (advanced)
 
 `./build-image.sh`
-  - builds `2.y-continuous` image locally
-  - tags image `jaiauser:jaia-sim-image`
-  
-  
+
+- builds `2.y-continuous` image locally
+- tags image `jaiauser:jaia-sim-image`
 
 **Launch the container**
 
 `./launch-container.sh`
+
 - This will launch the Docker container to run the simulation.
 
 **Save the image**
 
 `./save-image.sh`
+
 - This save the Docker Image to a file for transport.
 - The file will be named ./jaia-sim-image.tar.gz.
 
 **Load the image**
 
 `./load-image.sh`
+
 - This load the Docker Image from the file jaia-sim-image.tar.gz.
 - The file should be in the local directory when the script is run.
 
 **Other useful Docker commands**
 
-
 `docker images` This will list all available images on your machine.
-  ```
-    REPOSITORY   TAG                  IMAGE ID       CREATED             SIZE
-    jaiauser     jaia-sim-image       777cba4e942c   About an hour ago   5.46GB
-  ```
 
+```
+  REPOSITORY   TAG                  IMAGE ID       CREATED             SIZE
+  jaiauser     jaia-sim-image       777cba4e942c   About an hour ago   5.46GB
+```
 
 `docker ps` This will list all running Docker containers.
 
-  ```
-    CONTAINER ID   IMAGE                          COMMAND                  CREATED          STATUS          PORTS     NAMES
-    f377d7195cfc   jaiauser:jaia-sim-image        "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-container
-  ```
+```
+  CONTAINER ID   IMAGE                          COMMAND                  CREATED          STATUS          PORTS     NAMES
+  f377d7195cfc   jaiauser:jaia-sim-image        "/bin/bash -li /entr…"   28 minutes ago   Up 28 minutes             jaia-sim-container
+```
 
-`docker stop <container-id>` This will stop the running container. 
+`docker stop <container-id>` This will stop the running container.
 
 `docker rm <container-id>` This can be used to remove a stopped container if needed.
 
 `docker rmi <image-id>` This can be used to remove an image. Note if an image is used by a container, even one that is stopped, you will not be able to remove it. You must first remove the container.
 
 `docker exec -it jaia-sim-container bash` This can be used to log into a running container. This can be useful if you want to monitor how things are running.
-
