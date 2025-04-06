@@ -822,4 +822,8 @@ void jaiabot::apps::BotPidControl::all_stop()
 
     rudder_ = 0.0;
     toggleRudderPid(false);
+
+    // Reset elevators to neutral (0 represents center in the normalized scale)
+    port_elevator_ = 0.0;
+    stbd_elevator_ = 0.0;
 }
