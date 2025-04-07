@@ -95,6 +95,9 @@ jaiabot::apps::Sensors::Sensors()
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
         [this](const sensor::protobuf::SensorRequest& request) { send_to_mcu(request); });
 
+    interprocess().subscribe<jaiabot::groups::mcu_command>(
+        [this](const sensor::protobuf::SensorRequest& request) { send_to_mcu(request); });
+
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
 }
 
