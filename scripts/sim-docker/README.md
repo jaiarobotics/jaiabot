@@ -69,7 +69,7 @@ Explanation of command.
   "-d -i -t" Tells docker to run in a detached mode and to include an interactive terminal. This allows the user to log into the running container if needed (advanced)
   "-p 40001:40001" Exposes the port used by JCC to the host machine
   "-p 9092:9092 " Exposes the port used by used for the REST APIto the host machine
-      - Example: Rest API -> http://localhost:9092/jaia/v1/command/all?api_key=simulation&type=ACTIVATE
+      - Example: Rest API -> http://localhost:9092/jaia/v1/status/all?api_key=simulation
   "--env-file sim_env_vars.txt" Specifies the file containing the environment variables used by the simulation
   "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
   "/bin/bash -li "/entrypoint.sh" Tells docker to launch a bash shell and use the entrypoint.sh script to run the simulation and JCC

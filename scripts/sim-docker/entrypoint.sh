@@ -5,6 +5,7 @@ cd /usr/share/jaiabot/web/server
 source /usr/share/jaiabot/python/venv/bin/activate
 ./app.py &
 cd /jaiabot/build/amd64/share/jaiabot/web/rest_api/
+source /usr/share/jaiabot/python/venv/bin/activate
 ./app.py localhost &
 cd /usr/share/jaiabot/config/launch/simulation
 ./generate_all_launch.sh $JAIA_SIM_BOTS $JAIA_SIM_WARP
