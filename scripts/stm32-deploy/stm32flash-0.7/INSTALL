@@ -1,0 +1,31 @@
+
+Building stm32flash
+
+A set of static makefiles is provided that should work on most operating
+systems with a standard build environment, for instance GNU make and gcc.
+
+1. Build executable
+
+	make
+
+2. Install executable and manual page (optional)
+
+	make install
+
+   The install location base can be set with the PREFIX flag (default
+   is /usr/local), e.g. make install PREFIX=/opt
+
+
+Using autotools
+
+If using a git checkout, you must have autoconf installed and run:
+
+	autoreconf -i -v
+
+to generate configure and various macro files. If using the release
+tarballs this step is not necessary.
+
+Then run ./configure to generate makefiles. Use ./configure --help to
+list general options.
+
+Finally run "make" and "make install" as described above.

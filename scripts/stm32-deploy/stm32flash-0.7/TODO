@@ -1,0 +1,7 @@
+GPIO pin sequences:
+- Set up all pins in one first pass before starting changing their values
+  to minimize timing delays due to exported device nodes getting ready
+
+AUTHORS:
+- Add contributors from Geoffrey's commits
+

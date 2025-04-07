@@ -1,0 +1,35 @@
+0.7 (2022-03-26)
+
+- Fix I2C page-by-page erase (Yann Sionneau)
+- Fix hex file base address not used, extraneous base padding (Renaud Fivet)
+- Fix truncated read from stdin (Renaud Fivet)
+- Fix input buffer flush on Windows (Jan Belohoubek)
+- More baud rates available, up to 4000000
+- Allow skipping serial port setup with -b 0
+- Support STM32L412xx/422xx (Andy Little)
+- Support STM32G05xxx/061xx (Luca Amati), STM32G0B0/B1/C1xx, STM32G491xx/A1xx
+
+
+0.6 (2021-02-12)
+
+stm32flash 0.6 is a maintenance release with these highlights:
+- Many more devices supported G0/G4/F7/H7/L4 (various contributors)
+- GPIO sequencing reworked (Roman Savrulin)
+- Serial port handling improved (Mickael Gardet)
+- Many code improvements (Antonio Borneo)
+- Only erase needed pages if flashing from file (Tormod Volden)
+
+
+0.5 (2016-02-11)
+
+- support for multiple bank sizes
+- improved serial port support on Windows
+- improved erase functionality
+- improved hex parser
+- many new devices and device info corrections
+
+
+0.4 (2014-10-04)
+- support for programming over I2C (Antonio Borneo)
+- code refactored to make it easier to add other transports (Antonio Borneo)
+
