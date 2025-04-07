@@ -15,6 +15,7 @@ import {
     mdiWrench,
     mdiSquareEditOutline,
     mdiRuler,
+    mdiShutdown,
 } from "@mdi/js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-common-types";
@@ -117,6 +118,12 @@ const buttons: ButtonDescriptor[] = [
         description:
             "Click two or more points to measure the total distance along a set of line segments.",
     },
+    {
+        iconPath: mdiShutdown,
+        name: "Shutdown",
+        description: "Shut down the hub to end session"
+    },
+
 ];
 
 interface Props {
