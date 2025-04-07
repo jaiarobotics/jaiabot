@@ -222,7 +222,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "1.y"
-        - "bug/1.y/fix-docker-sim"
 
 ## Begin actual config
 version: 2.1
