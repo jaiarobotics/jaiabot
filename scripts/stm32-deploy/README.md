@@ -1,2 +1,8 @@
 # STM32 Deploy
-To deploy code to the STM32 MCU without using the ST-Link debugger, copy this directory, `stm32-deploy`, onto a vehicle. Prior to running `deploy.sh`, you will need to move a `JAIA_BIO-PAYLOAD.elf` file from the STM32CubeIDE inside this directory.
+To deploy code to the STM32 MCU without using the ST-Link debugger:
+1. Copy the `stm32-deploy` directory onto a vehicle
+2. Move a `JAIA_BIO-PAYLOAD.elf` file from the STM32CubeIDE inside the `stm32-deploy` directory on the vehicle
+3. `cd` into `stm32-deploy` on the vhicle
+4. Run `tar -xvzf stm32flash-0.7.tar.gz`
+5. Run `deploy.sh`
+
