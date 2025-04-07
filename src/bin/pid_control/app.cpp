@@ -152,15 +152,20 @@ jaiabot::apps::BotPidControl::BotPidControl()
     heading_constant_pid_->set_limits(-100.0, 100.0);
     heading_constant_pid_->set_auto();
 
+    ///////////// Currenty it is calculating the stbd based on the current roll trying to achive a roll of 1.5 ///////
+    float target_ = 1.5;
     if (cfg().has_roll_pid_gains())
     {
         auto& gains = cfg().roll_pid_gains();
-        roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, gains.kp(), gains.ki(),
-                            gains.kd());
+        // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, gains.kp(), gains.ki(),
+        //                     gains.kd());
+        roll_pid_ =
+            new Pid(&actual_roll_, &stbd_elevator_, &target_, gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
-        roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, 1, 0.5, 0);
+        // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, 0.0001, 0, 0);
+        roll_pid_ = new Pid(&actual_roll_, &stbd_elevator_, &target_, 0.0001, 0, 0);
     }
     roll_pid_->set_limits(-100.0, 100.0);
     roll_pid_->set_auto();
@@ -378,6 +383,16 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             {
                 heading_constant_pid_->compute();
             }
+
+            ////////////////////// subsrface transit PID
+            if (roll_pid_->need_compute())
+            {
+                roll_pid_->compute();
+            }
+            glog.is_debug2() &&
+                glog << group("main") << "target_roll  = " << 1.5    // trying to get this
+                     << ", actual_roll  = " << actual_roll_          // reads this
+                     << ", stbd  = " << stbd_elevator_ << std::endl; // commands this
         }
 
         glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading_
