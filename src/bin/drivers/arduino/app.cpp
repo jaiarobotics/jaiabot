@@ -443,7 +443,7 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     if (control_surfaces.has_motor() && control_surfaces.has_rudder())
     {
         int turningMultiplier;
-        int tunring;
+        int turning;
         int throttle_port;
         int throttle_star;
         int throttle;
