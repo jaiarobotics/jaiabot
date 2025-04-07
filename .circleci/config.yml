@@ -178,7 +178,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
-        - "bug/2.y/docker-simulator-metadata-mac/JAIA-1929"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -213,7 +212,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "2.y"
-        - "bug/2.y/docker-simulator-metadata-mac/JAIA-1929"
 
 
 ## Begin actual config
