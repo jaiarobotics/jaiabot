@@ -440,14 +440,50 @@ int jaiabot::apps::ArduinoDriver::calculateMotorMicroseconds(const int& input)
 
 void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
-    if (control_surfaces.has_motor())
+    if (control_surfaces.has_motor() && control_surfaces.has_rudder())
     {
-        target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
+        int turningMultiplier;
+        int tunring;
+        int throttle_port;
+        int throttle_star;
+        int throttle;
+
+        // Define how much we turn
+        turningMultiplier = 2;
+
+        turning = control_surfaces.rudder();
+        throttle = control_surfaces.motor();
+        if (turning == 0)
+        {
+            throttle_port = throttle;
+            throttle_star = throttle;
+        }
+        else if (turning > 0)
+        {
+            throttle_port = throttle;
+            throttle_star = throttle - abs(turning) * turningMultiplier;
+        }
+        else if (turning < 0)
+        {
+            throttle_star = throttle;
+            throttle_port = throttle - abs(turning) * turningMultiplier;
+        }
+
+        // target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
+        // target_port_ = calculateMotorMicroseconds(control_surfaces.port_elevator());
+        target_motor_ = calculateMotorMicroseconds(throttle_star);
+        target_port_ = calculateMotorMicroseconds(throttle_port);
 
         // Do not go lower than max_reverse
         if (target_motor_ < max_reverse_)
         {
             target_motor_ = max_reverse_;
+        }
+
+        // Do not go lower than max_reverse
+        if (target_port_ < max_reverse_)
+        {
+            target_port_ = max_reverse_;
         }
     }
 
@@ -457,22 +493,22 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     //         surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds_.port().lower(),
     //                                    bounds_.port().center(), bounds_.port().upper());
     // }
-    if (control_surfaces.has_port_elevator())
-    {
-        target_port_ = calculateMotorMicroseconds(control_surfaces.port_elevator());
+    // if (control_surfaces.has_port_elevator())
+    // {
+    //     target_port_ = calculateMotorMicroseconds(control_surfaces.port_elevator());
 
-        // Do not go lower than max_reverse
-        if (target_port_ < max_reverse_)
-        {
-            target_port_ = max_reverse_;
-        }
-    }
+    //     // Do not go lower than max_reverse
+    //     if (target_port_ < max_reverse_)
+    //     {
+    //         target_port_ = max_reverse_;
+    //     }
+    // }
 
-    if (control_surfaces.has_rudder())
-    {
-        rudder_ = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds_.rudder().lower(),
-                                             bounds_.rudder().center(), bounds_.rudder().upper());
-    }
+    // if (control_surfaces.has_rudder()) // ignoring this bc we only car about stbd
+    // {
+    //     rudder_ = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds_.rudder().lower(),
+    //                                          bounds_.rudder().center(), bounds_.rudder().upper());
+    // }
 
     if (control_surfaces.has_stbd_elevator())
     {
@@ -557,7 +593,8 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
             arduino_actuators.set_motor(corrected_motor);
             arduino_actuators.set_port_elevator(corrected_port);
 
-            arduino_actuators.set_rudder(rudder_);
+            // arduino_actuators.set_rudder(rudder_);
+            arduino_actuators.set_rudder(stbd_elevator_);
             arduino_actuators.set_stbd_elevator(stbd_elevator_);
 
             arduino_actuators.set_led_switch_on(led_switch_on);
