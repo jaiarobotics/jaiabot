@@ -71,7 +71,6 @@ namespace jaiabot
 {
 namespace comms
 {
-
 class UDPDriver : public goby::acomms::ModemDriverBase
 {
   public:

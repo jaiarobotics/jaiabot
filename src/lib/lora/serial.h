@@ -52,7 +52,7 @@ template <const goby::middleware::Group& line_in_group,
               goby::middleware::io::PubSubLayer::INTERTHREAD,
           template <class> class ThreadType = goby::middleware::SimpleThread,
           bool use_indexed_groups = false>
-class SerialThreadLoRaFeather
+class SerialThreadCRC32
     : public goby::middleware::io::detail::SerialThread<line_in_group, line_out_group,
                                                         publish_layer, subscribe_layer, ThreadType,
                                                         use_indexed_groups>
@@ -62,12 +62,12 @@ class SerialThreadLoRaFeather
                                                    subscribe_layer, ThreadType, use_indexed_groups>;
 
   public:
-    SerialThreadLoRaFeather(const goby::middleware::protobuf::SerialConfig& config, int index = -1)
+    SerialThreadCRC32(const goby::middleware::protobuf::SerialConfig& config, int index = -1)
         : Base(config, index)
     {
     }
 
-    ~SerialThreadLoRaFeather() {}
+    ~SerialThreadCRC32() {}
 
   private:
     void async_read() override;
@@ -135,9 +135,8 @@ template <const goby::middleware::Group& line_in_group,
           goby::middleware::io::PubSubLayer publish_layer,
           goby::middleware::io::PubSubLayer subscribe_layer, template <class> class ThreadType,
           bool use_indexed_groups>
-void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publish_layer,
-                                            subscribe_layer, ThreadType,
-                                            use_indexed_groups>::async_read()
+void jaiabot::lora::SerialThreadCRC32<line_in_group, line_out_group, publish_layer, subscribe_layer,
+                                      ThreadType, use_indexed_groups>::async_read()
 {
     buffer_write_ptr_ = buffer_.data();
     read_first_byte();
@@ -148,9 +147,8 @@ template <const goby::middleware::Group& line_in_group,
           goby::middleware::io::PubSubLayer publish_layer,
           goby::middleware::io::PubSubLayer subscribe_layer, template <class> class ThreadType,
           bool use_indexed_groups>
-void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publish_layer,
-                                            subscribe_layer, ThreadType,
-                                            use_indexed_groups>::read_first_byte()
+void jaiabot::lora::SerialThreadCRC32<line_in_group, line_out_group, publish_layer, subscribe_layer,
+                                      ThreadType, use_indexed_groups>::read_first_byte()
 {
     boost::asio::async_read(
         this->mutable_serial_port(),
@@ -185,9 +183,8 @@ template <const goby::middleware::Group& line_in_group,
           goby::middleware::io::PubSubLayer publish_layer,
           goby::middleware::io::PubSubLayer subscribe_layer, template <class> class ThreadType,
           bool use_indexed_groups>
-void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publish_layer,
-                                            subscribe_layer, ThreadType,
-                                            use_indexed_groups>::read_magic()
+void jaiabot::lora::SerialThreadCRC32<line_in_group, line_out_group, publish_layer, subscribe_layer,
+                                      ThreadType, use_indexed_groups>::read_magic()
 {
     boost::asio::async_read(
         this->mutable_serial_port(),
@@ -224,9 +221,8 @@ template <const goby::middleware::Group& line_in_group,
           goby::middleware::io::PubSubLayer publish_layer,
           goby::middleware::io::PubSubLayer subscribe_layer, template <class> class ThreadType,
           bool use_indexed_groups>
-void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publish_layer,
-                                            subscribe_layer, ThreadType,
-                                            use_indexed_groups>::read_size()
+void jaiabot::lora::SerialThreadCRC32<line_in_group, line_out_group, publish_layer, subscribe_layer,
+                                      ThreadType, use_indexed_groups>::read_size()
 {
     boost::asio::async_read(
         this->mutable_serial_port(),
@@ -268,9 +264,8 @@ template <const goby::middleware::Group& line_in_group,
           goby::middleware::io::PubSubLayer publish_layer,
           goby::middleware::io::PubSubLayer subscribe_layer, template <class> class ThreadType,
           bool use_indexed_groups>
-void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publish_layer,
-                                            subscribe_layer, ThreadType,
-                                            use_indexed_groups>::read_body()
+void jaiabot::lora::SerialThreadCRC32<line_in_group, line_out_group, publish_layer, subscribe_layer,
+                                      ThreadType, use_indexed_groups>::read_body()
 {
     boost::asio::async_read(
         this->mutable_serial_port(),
