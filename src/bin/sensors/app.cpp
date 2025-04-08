@@ -32,6 +32,7 @@
 #include "drivers/atlas_scientific__oem_do.h"
 #include "drivers/atlas_scientific__oem_ph.h"
 #include "drivers/blue_robotics_bar30.h"
+#include "drivers/turner__c_fluor.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/catalog.pb.h"
