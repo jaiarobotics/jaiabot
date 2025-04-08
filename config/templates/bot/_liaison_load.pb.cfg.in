@@ -1,0 +1,6 @@
+load_protobuf {  #  (repeated)
+    name: "jaiabot.sensor.protobuf.SensorRequest"  #  (required)
+    publish_to {
+        group: "jaiabot_sensors::mcu_command"
+    }
+}

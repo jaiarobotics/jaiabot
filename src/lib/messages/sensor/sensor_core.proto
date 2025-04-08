@@ -11,6 +11,11 @@ import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
 
 package jaiabot.sensor.protobuf;
 
+enum MCUCommand
+{
+    ENTER_BOOTLOADER_MODE = 1;
+}
+
 message SensorRequest
 {
     option (dccl.msg) = {
@@ -29,6 +34,8 @@ message SensorRequest
         // change name to VendorSensor format
         //  EchoCommand echo_command = 13;
     }
+
+    optional MCUCommand mcu_command = 20;
 }
 
 message SensorData
@@ -60,4 +67,3 @@ message SensorThreadConfig
     optional Metadata metadata = 1;
     optional int32 sample_rate = 2;
 }
-
