@@ -11,7 +11,8 @@ message AtlasScientificOEMDO
     };
 
     // notional - add units and additional fields as needed
-    required double dissolved_oxygen = 1;
+    optional double dissolved_oxygen = 1;
+    optional double temperature = 2;
 }
 
 
