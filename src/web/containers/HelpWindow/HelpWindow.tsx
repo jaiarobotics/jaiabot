@@ -60,7 +60,7 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiCheckboxMarkedCirclePlusOutline,
         name: "System Check All Bots",
         description:
-            "Run a system check on all bots in the pod.  Missions can only be run after the system check completes successfully.",
+            "Test !Run a system check on all bots in the pod.  Missions can only be run after the system check completes successfully.",
     },
     {
         imgSrc: rallyIcon,
