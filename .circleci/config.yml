@@ -178,6 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "feature/2.y/docker-sim-jdv/JAIA-1951"
           
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -212,7 +213,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "2.y"
-
+        - "feature/2.y/docker-sim-jdv/JAIA-1951"
 
 ## Begin actual config
 version: 2.1
