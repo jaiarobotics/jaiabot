@@ -9,6 +9,7 @@ echo "🟢 Installing packages on $HOSTNAME"
 
 # Copy our systemd .service file
 echo "🟢 Copying camera_driver.service on $HOSTNAME"
+envsubst < ./camera/camera_driver.service.template > ./camera/camera_driver.service
 sudo rsync ./camera/camera_driver.service /etc/systemd/system/
 
 # Stop, reload, restart, enable
