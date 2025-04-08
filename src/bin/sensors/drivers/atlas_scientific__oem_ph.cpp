@@ -58,5 +58,9 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     glog.is_debug1() && glog << group("oem_ph")
                              << "Received ph_data: " << ph_data.ShortDebugString() << std::endl;
 
+    jaiabot::sensor::protobuf::AtlasScientificOEMpH ph_msg;
+    ph_msg.set_ph(ph_data.ph());
+    interprocess().publish<jaiabot::groups::ph>(ph_msg);
+
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
 }

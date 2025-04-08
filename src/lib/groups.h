@@ -43,8 +43,11 @@ constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
+constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
+
 constexpr goby::middleware::Group mcu_pb_data_out{
     "jaiabot::sensors::mcu_pb_data_out"}; // parsed SensorRequest
 constexpr goby::middleware::Group mcu_pb_data_in{
