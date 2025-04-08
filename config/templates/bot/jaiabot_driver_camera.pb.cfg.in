@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+serial_camera {
+    port: "$serial_camera_port"
+    baud: 9600
+}

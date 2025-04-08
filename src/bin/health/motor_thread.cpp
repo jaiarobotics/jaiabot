@@ -20,12 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "goby/util/sci.h" // for linear_interpolate
 #include <boost/units/io.hpp>
 #include <goby/middleware/io/udp_point_to_point.h>
-#include "goby/util/sci.h" // for linear_interpolate
 
-#include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/motor.pb.h"
 
 #include "system_thread.h"
 
@@ -36,33 +36,34 @@ using goby::glog;
 constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
-jaiabot::apps::MotorStatusThread::MotorStatusThread(
-    const jaiabot::config::MotorStatusConfig& cfg)
+jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::MotorStatusConfig& cfg)
     : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
 {
     status_.set_motor_harness_type(cfg.motor_harness_type());
 
-    interthread().subscribe<jaiabot::groups::motor_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-        jaiabot::protobuf::Motor motor;
-        if (!motor.ParseFromString(data.data()))
-        {
-            glog.is_warn() && glog << "Couldn't deserialize Motor message from UDP packet"
-                                   << std::endl;
-            return;
-        }
-        glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
-                                 << std::endl;
+    interthread().subscribe<jaiabot::groups::motor_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& data) {
+            jaiabot::protobuf::Motor motor;
+            if (!motor.ParseFromString(data.data()))
+            {
+                glog.is_warn() && glog << "Couldn't deserialize Motor message from UDP packet"
+                                       << std::endl;
+                return;
+            }
+            glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
+                                     << std::endl;
 
-        rpm_value_ = motor.rpm();        
-        last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
-    });
+            rpm_value_ = motor.rpm();
+            last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
+        });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             if (arduino_response.has_thermistor_voltage())
             {
                 float voltage = arduino_response.thermistor_voltage();
-                float resistance = thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
+                float resistance =
+                    thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
                 float temperature =
                     goby::util::linear_interpolate(resistance, resistance_to_temperature_);
                 float temperature_celsius = (temperature - 32) / 1.8;
@@ -116,7 +117,8 @@ void jaiabot::apps::MotorStatusThread::health(goby::middleware::protobuf::Thread
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    if (last_motor_rpm_report_time_ + std::chrono::seconds(cfg().motor_rpm_report_timeout_seconds()) <
+    if (last_motor_rpm_report_time_ +
+            std::chrono::seconds(cfg().motor_rpm_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on RPM listener" << std::endl;
@@ -125,7 +127,8 @@ void jaiabot::apps::MotorStatusThread::health(goby::middleware::protobuf::Thread
             ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_RPM_LISTENER);
     }
 
-    if (last_motor_thermistor_report_time_ + std::chrono::seconds(cfg().motor_thermistor_report_timeout_seconds()) <
+    if (last_motor_thermistor_report_time_ +
+            std::chrono::seconds(cfg().motor_thermistor_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on thermistor data" << std::endl;

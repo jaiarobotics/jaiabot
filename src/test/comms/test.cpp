@@ -6,7 +6,6 @@ namespace jaiabot
 {
 namespace comms
 {
-
 constexpr int subnet_mask = 0xFF00;
 
 BOOST_AUTO_TEST_SUITE(modem_id_conversion_tests)

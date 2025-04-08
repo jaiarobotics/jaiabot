@@ -582,9 +582,7 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
     write("+++");
 
     this->async_read_with_timeout(
-        buffer, delimiter, timeout_seconds,
-        [this](const std::string& result)
-        {
+        buffer, delimiter, timeout_seconds, [this](const std::string& result) {
             glog.is_debug1() && glog << group(glog_group) << "Result: " << result
                                      << "\nResult is empty: " << result.empty() << std::endl;
 
@@ -635,21 +633,18 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     timer->expires_from_now(boost::posix_time::seconds(timeout_seconds));
 
     // Set up the timer's asynchronous wait operation
-    timer->async_wait(
-        [&](const boost::system::error_code& ec)
+    timer->async_wait([&](const boost::system::error_code& ec) {
+        if (!ec)
         {
-            if (!ec)
-            {
-                // Timer expired, handle timeout
-                handler("timeout");
-            }
-        });
+            // Timer expired, handle timeout
+            handler("timeout");
+        }
+    });
 
     // Initiate an asynchronous read operation on the serial port
     boost::asio::async_read_until(
         *port, boost::asio::dynamic_buffer(buffer), delimiter,
-        [&](const boost::system::error_code& ec, std::size_t bytes_transferred)
-        {
+        [&](const boost::system::error_code& ec, std::size_t bytes_transferred) {
             if (!ec)
             {
                 // Cancel the timer if read is successful
@@ -678,9 +673,7 @@ std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str)
 {
     std::ostringstream hexStream;
     for (unsigned char c : str)
-    {
-        hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " ";
-    }
+    { hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " "; }
     return hexStream.str();
 }
 

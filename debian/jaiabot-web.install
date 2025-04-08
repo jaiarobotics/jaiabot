@@ -1,2 +1,3 @@
 usr/share/jaiabot/web/*
 etc/apache2/sites-available/*
+var/www/html/reboot-check/*
