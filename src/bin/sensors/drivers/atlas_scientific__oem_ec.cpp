@@ -61,7 +61,6 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     ec_msg.set_conductivity(ec_data.conductivity());
     ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
     ec_msg.set_salinity(ec_data.salinity());
-    ec_msg.set_specific_gravity(ec_data.specific_gravity());
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
