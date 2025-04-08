@@ -3,9 +3,7 @@ Description=JaiaBot Camera Driver
 
 [Service]
 Type=simple
-User=root
-Group=root
-
+User=${USER}
 WorkingDirectory=/home/${USER}
 ExecStart=/home/${USER}/venv/bin/python3 ./camera/camera_driver.py --device /dev/ttyS0
 
