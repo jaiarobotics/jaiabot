@@ -152,7 +152,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     heading_constant_pid_->set_limits(-100.0, 100.0);
     heading_constant_pid_->set_auto();
 
-    ///////////// Currenty it is calculating the stbd based on the current roll trying to achive a roll of 1.5 ///////
+    ///////////// Currenty it is calculating the stbd based on the current depth trying to achive a depth of 1.5 ///////
     float target_ = 1.5;
     if (cfg().has_roll_pid_gains())
     {
@@ -160,12 +160,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
         // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, gains.kp(), gains.ki(),
         //                     gains.kd());
         roll_pid_ =
-            new Pid(&actual_roll_, &stbd_elevator_, &target_, gains.kp(), gains.ki(), gains.kd());
+            new Pid(&actual_depth_, &stbd_elevator_, &target_, gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
         // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, 0.0001, 0, 0);
-        roll_pid_ = new Pid(&actual_roll_, &stbd_elevator_, &target_, 0.0001, 0, 0);
+        roll_pid_ = new Pid(&actual_depth_, &stbd_elevator_, &target_, 0.1, 0, 0);
     }
     roll_pid_->set_limits(-100.0, 100.0);
     roll_pid_->set_auto();
@@ -375,6 +375,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             {
                 heading_pid_->compute();
             }
+            stbd_elevator_ = 0.0; ///// so that when it is not in constant heading it adjust to 0
         }
         else
         {
@@ -389,10 +390,10 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             {
                 roll_pid_->compute();
             }
-            glog.is_debug2() &&
-                glog << group("main") << "target_roll  = " << 1.5    // trying to get this
-                     << ", actual_roll  = " << actual_roll_          // reads this
-                     << ", stbd  = " << stbd_elevator_ << std::endl; // commands this
+            glog.is_debug2() && glog << group("main") << "target_  = " << 1.5 // trying to get this
+                                     << ", actual_depth  = " << actual_depth_ // reads this
+                                     << ", stbd  = " << stbd_elevator_
+                                     << std::endl; // commands this
         }
 
         glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading_
