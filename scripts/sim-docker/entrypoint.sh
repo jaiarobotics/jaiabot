@@ -10,5 +10,5 @@ cd /usr/share/jaiabot/web/server
 cd /usr/share/jaiabot/web/rest_api/
 ./app.py &
 cd /usr/share/jaiabot/web/jdv/server
-python3 jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiat/web/jdv/client/dist/ -p 40011 &
+python3 jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiat/web/jdv/client/dist/ -p 40011
 

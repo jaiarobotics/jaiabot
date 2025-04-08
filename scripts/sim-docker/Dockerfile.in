@@ -28,4 +28,4 @@ RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-pyth
 # we may need this if line 4 is not enough 
 RUN useradd -mUs /bin/bash jaia
 COPY ./entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/bin/bash", "-li", "/entrypoint.sh"]
+# ENTRYPOINT ["/bin/bash", "-li", "/entrypoint.sh"]
