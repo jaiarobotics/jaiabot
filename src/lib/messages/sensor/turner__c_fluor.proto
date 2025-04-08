@@ -11,7 +11,7 @@ message TurnerCFluor
     };
 
     // notional - add units and additional fields as needed
-    required double fluorescence = 1;
+    required double concentration = 1;
 }
 
 

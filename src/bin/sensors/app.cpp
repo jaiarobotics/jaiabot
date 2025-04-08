@@ -224,9 +224,9 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<AtlasScientificOEMDODriver>(thread_cfg);
             break;
 
-            // case sensor::protobuf::TURNER__C_FLUOR:
-            //    launch_thread<TurnerCFluorDriver>(thread_cfg);
-            //    break;
+        case sensor::protobuf::TURNER__C_FLUOR:
+            launch_thread<TurnerCFluorDriver>(thread_cfg);
+            break;
 
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "
