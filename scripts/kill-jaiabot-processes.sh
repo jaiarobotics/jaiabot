@@ -4,7 +4,6 @@ declare -a ProcessArray=(
     gobyd
     goby_launch
     goby_liaison
-    goby_liaison_jaiabot
     goby_moos_gateway
     goby_opencpn_interface
     goby_intervehicle_portal

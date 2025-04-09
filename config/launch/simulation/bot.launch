@@ -7,9 +7,9 @@
 
 # start the Goby processes
 gobyd <(../../gen/bot.py gobyd)
-[env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so:libjaiabot_wifi.so] goby_intervehicle_portal <(../../gen/bot.py goby_intervehicle_portal)  -vvv -n
-[env=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so:libjaiabot_moos_gateway_plugin.so] goby_moos_gateway <(../../gen/bot.py goby_moos_gateway)
-goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
+[env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/bot.py goby_intervehicle_portal)  -vvv -n
+[env=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1] goby_moos_gateway <(../../gen/bot.py goby_moos_gateway)
+[env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison <(../../gen/bot.py goby_liaison)
 jaiabot_simulator <(../../gen/bot.py jaiabot_simulator)
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
 jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
