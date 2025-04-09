@@ -4,4 +4,5 @@ mcu_serial {
     port: "$port"
     baud: $baud
 }
-sample_rate: 1
+sample_rate: 10
+
