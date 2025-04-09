@@ -1,6 +1,17 @@
+- name: Set oldssh dir facts
+  set_fact:
+    oldssh_key_dir: '/home/jaia/.ssh/prior_{{ major_upgrade_version_shortcode }}'
+
 - name: Fetch files to reuse on new image
   shell: |
+    # wireguard
     mkdir -p {{ upgrade_reuse_dir }}
     for file in /etc/wireguard/*; do
       rsync -aPR $file {{ upgrade_reuse_dir }}
     done
+
+    # old ssh pubkey (if exists)
+    if [ -d {{ hub_staging_oldssh_dir }} ]; then
+      mkdir -p {{ upgrade_reuse_dir }}{{ oldssh_key_dir }}
+      rsync -aP {{ hub_staging_oldssh_dir }}/ {{ upgrade_reuse_dir }}{{ oldssh_key_dir }}/
+    fi

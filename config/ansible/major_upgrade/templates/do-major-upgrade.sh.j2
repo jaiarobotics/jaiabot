@@ -50,8 +50,12 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     ###############################
     # Restore reuse files
     ###############################
-
     rsync -aP {{ upgrade_reuse_dir }}/ ${new_ro_rootfs_mountpoint}/
+
+    ## If an old ssh key exists, make sure we add it to the .ssh config
+    if [ -d {{ oldssh_key_dir }} ]; then
+        echo "IdentifyFile {{ oldssh_key_dir }}/{{ hub_privkey if hub_privkey is defined or 'INVALID_KEY' }}" >> /home/jaia/.ssh/config
+    fi
 
     ###############################
     # Write new boot dir
