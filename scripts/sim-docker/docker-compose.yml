@@ -1,0 +1,32 @@
+# Docker Compose file for launching the JAIA Simulator
+# To launch the simulator 
+# docker compose up -d jaia-sim
+# To stop the simulator
+# docker compose down
+
+services:
+
+  jaia-sim:
+    image: gobysoft/jaiabot-sim:2.y-test
+    container_name: jaia-sim-container
+
+    # Simulation Environment
+    environment:
+      JAIA_SIM_BOTS: 5
+      JAIA_SIM_WARP: 3
+      JAIA_SIM_FLEET: 30
+
+    # Expose necessary ports for simulation communication
+    # All ports will be available at localhost
+    ports:
+      - "40001:40001"      # JCC 
+      - "9092:9092"        # REST API
+      - "40011:40011"      # JDV
+
+    volumes:
+      # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
+      - ./jdv_data:/var/log/jaiabot/bot_offload
+
+    stdin_open: true
+    tty: true
+    restart: "no"
