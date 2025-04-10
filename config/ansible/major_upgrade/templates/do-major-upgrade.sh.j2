@@ -32,10 +32,9 @@ else
 fi
 
 ###############################
-# Remove rootfs overlayconf file (so if extraction step fails or is interrupted, will still boot into old underlay).
+# Backup/remove rootfs overlayconf file (so if extraction step fails or is interrupted, will still boot into old underlay).
 ###############################
-
-rm -f /etc/overlayroot.conf
+mv /etc/overlayroot.conf /etc/overlayroot.conf.bak
 
 ###############################
 # Extract new rootfs
@@ -52,10 +51,17 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     ###############################
     rsync -aP {{ upgrade_reuse_dir }}/ ${new_ro_rootfs_mountpoint}/
 
-    ## If an old ssh key exists, make sure we add it to the .ssh config
-    if [ -d {{ oldssh_key_dir }} ]; then
-        echo "IdentifyFile {{ oldssh_key_dir }}/{{ hub_privkey if hub_privkey is defined or 'INVALID_KEY' }}" >> /home/jaia/.ssh/config
+
+    ## For hubs, if an old ssh key exists, make sure we add it to the SSH config
+    {% if hub_privkey is defined %}
+    if [ -d ${new_ro_rootfs_mountpoint}{{ oldssh_key_dir }} ]; then
+        cat <<EOF > ${new_ro_rootfs_mountpoint}/etc/ssh/ssh_config.d/50_hubkey_prior_{{ major_upgrade_version_shortcode }}
+Host 10.23.*.*
+    StrictHostKeyChecking accept-new
+    IdentifyFile {{ oldssh_key_dir }}/{{ hub_privkey }}
+EOF
     fi
+    {% endif %}
 
     ###############################
     # Write new boot dir
@@ -90,6 +96,7 @@ btrfs filesystem label ${new_ro_rootfs_mountpoint} "rootfs"
 
 ###############################
 # Clean up
+
 ###############################
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
@@ -123,6 +130,21 @@ if [ -e /boot/grub/grub.cfg ]; then
         mount --move "$mountpoint" "$new_mount"
     done
 
+    # install grub
+    root_partition=$(findmnt -n -o SOURCE /)
+    root_device=$(lsblk -no PKNAME "$root_partition")
+
+    mount -o remount,rw $boot_mountpoint
+    mount -o bind $boot_mountpoint /boot/efi
+
+    if ! grub-install "/dev/$root_device" --no-uefi-secure-boot --removable; then
+        # older VMs use BIOS
+        apt-get -y remove grub-efi-amd64
+        apt-get -y install grub-pc
+        grub-install "/dev/$root_device" --target=i386-pc
+    fi
+
+    # update grub
     if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then
         # VirtualBox cloud init source
         sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
@@ -132,14 +154,6 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
        
     update-grub
-    
-    root_partition=$(findmnt -n -o SOURCE /)
-    root_device=$(lsblk -no PKNAME "$root_partition")
-
-    mount -o remount,rw $boot_mountpoint
-    mount -o bind $boot_mountpoint /boot/efi
-
-    grub-install "/dev/$root_device" --no-uefi-secure-boot --removable
 fi
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
