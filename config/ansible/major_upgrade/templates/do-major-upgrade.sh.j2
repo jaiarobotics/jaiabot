@@ -55,10 +55,11 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     ## For hubs, if an old ssh key exists, make sure we add it to the SSH config
     {% if hub_privkey is defined %}
     if [ -d ${new_ro_rootfs_mountpoint}{{ oldssh_key_dir }} ]; then
-        cat <<EOF > ${new_ro_rootfs_mountpoint}/etc/ssh/ssh_config.d/50_hubkey_prior_{{ major_upgrade_version_shortcode }}
+        chown -R jaia:jaia /home/jaia
+        cat <<EOF > ${new_ro_rootfs_mountpoint}/etc/ssh/ssh_config.d/hubkey_prior_{{ major_upgrade_version_shortcode }}.conf
 Host 10.23.*.*
     StrictHostKeyChecking accept-new
-    IdentifyFile {{ oldssh_key_dir }}/{{ hub_privkey }}
+    IdentityFile {{ oldssh_key_dir }}/{{ hub_privkey }}
 EOF
     fi
     {% endif %}
@@ -145,7 +146,7 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
 
     # update grub
-    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ]; then
+    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] || [ "$(cloud-init query cloud_id)" = "" ]; then
         # VirtualBox cloud init source
         sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
