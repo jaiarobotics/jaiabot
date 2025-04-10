@@ -1,6 +1,6 @@
 - name: Set oldssh dir facts
   set_fact:
-    oldssh_key_dir: '/home/jaia/.ssh/prior_{{ major_upgrade_version_shortcode }}'
+    oldssh_key_dir: '/etc/jaiabot/ssh/prior_{{ major_upgrade_version_shortcode }}'
 
 - name: Fetch files to reuse on new image
   shell: |
