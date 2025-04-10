@@ -412,7 +412,7 @@ jaiabot_apps = [
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_sensors',
      'description': 'JaiaBot Sensors',
-     'template': 'goby-app.service.in',
+     'template': 'jaiabot_sensors.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SENSORS',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},

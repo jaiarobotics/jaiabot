@@ -1,0 +1,21 @@
+[Unit]
+Description=JaiaBot Sensors
+
+BindsTo=jaiabot_health.service
+After=jaiabot_health.service
+
+
+[Service]
+User=jaia
+Group=jaia
+
+EnvironmentFile=/etc/jaiabot/runtime.env
+ExecStartPre=/usr/bin/reset-bio-payload-board.sh
+ExecStartPre=/usr/bin/jaiabot_failure_reporter -C '/usr/share/jaiabot/config/gen/bot.py jaiabot_failure_reporter' --state START --error_code ERROR__FAILED__JAIABOT_SENSORS --service_name jaiabot_sensors
+ExecStart=/usr/bin/jaiabot_sensors -C '/usr/share/jaiabot/config/gen/bot.py jaiabot_sensors'
+ExecStop=/usr/bin/goby_terminate -C '/usr/share/jaiabot/config/gen/bot.py goby_terminate' --target_pid $MAINPID
+ExecStopPost=/usr/bin/jaiabot_failure_reporter -C '/usr/share/jaiabot/config/gen/bot.py jaiabot_failure_reporter' --state STOP --error_code ERROR__FAILED__JAIABOT_SENSORS --service_name jaiabot_sensors --service_result $SERVICE_RESULT
+
+
+[Install]
+WantedBy=jaiabot_health.service
