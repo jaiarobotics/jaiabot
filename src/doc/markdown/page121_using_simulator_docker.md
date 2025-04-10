@@ -58,7 +58,7 @@ Example:
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.y-test
+    image: gobysoft/jaiabot-sim:2.0.0
     container_name: jaia-sim-container
 
     # Simulation Environment
@@ -191,6 +191,7 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
 `docker stop <container-id>` This will stop the running container.
 
 `docker rm <container-id>` This can be used to remove a stopped container if needed.
+
 
 `docker rmi <image-id>` This can be used to remove an image. Note if an image is used by a container, even one that is stopped, you will not be able to remove it. You must first remove the container.
 

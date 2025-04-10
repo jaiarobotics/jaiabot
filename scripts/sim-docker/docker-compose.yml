@@ -7,8 +7,8 @@
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.y-test
-    container_name: jaia-sim-container
+    image: gobysoft/jaiabot-sim:2.y-test   # image to use for simulation
+    container_name: jaia-sim-container     # name of container for simulation
 
     # Simulation Environment
     environment:
@@ -27,6 +27,7 @@ services:
       # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
       - ./jdv_data:/var/log/jaiabot/bot_offload
 
-    stdin_open: true
+    stdin_open: true # Include stdin and tty so user can attach to running container
     tty: true
-    restart: "no"
+    restart: "no" # Remove the container after running
+    
