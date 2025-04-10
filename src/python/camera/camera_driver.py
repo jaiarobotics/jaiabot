@@ -32,7 +32,7 @@ def parse_args():
 
 
 def now_string():
-    return datetime.datetime.now().isoformat()
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
 
 class MockCamera:
