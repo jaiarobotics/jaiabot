@@ -263,6 +263,7 @@ common_macros['jaiabot_share_dir'] = args.jaiabot_share_dir
 common_macros['ansible_dir'] = args.ansible_dir
 common_macros['goby_bin_dir'] = args.goby_bin_dir
 common_macros['moos_bin_dir'] = args.moos_bin_dir
+common_macros['exec_start_pre'] = ''
 common_macros['extra_service'] = ''
 common_macros['extra_unit'] = ''
 common_macros['extra_flags'] = ''
@@ -412,8 +413,9 @@ jaiabot_apps = [
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_sensors',
      'description': 'JaiaBot Sensors',
-     'template': 'jaiabot_sensors.service.in',
+     'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SENSORS',
+     'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
