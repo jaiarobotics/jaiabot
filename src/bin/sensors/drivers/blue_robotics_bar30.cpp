@@ -22,6 +22,7 @@
 
 #include "blue_robotics_bar30.h"
 
+#include <boost/units/systems/temperature/celsius.hpp>
 #include <goby/time/system_clock.h>
 #include <goby/util/seawater/units.h>
 
@@ -69,6 +70,13 @@ void jaiabot::apps::BlueRoboticsBar30Driver::receive_data(
     {
         pressure_temperature_data.set_pressure_raw_with_units(bar30_data.pressure() * si::deci *
                                                               goby::util::seawater::bar);
+    }
+
+    if (bar30_data.has_temperature())
+    {
+        pressure_temperature_data.set_temperature_with_units(
+            bar30_data.temperature() *
+            boost::units::absolute<boost::units::celsius::temperature>());
     }
 
     interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);

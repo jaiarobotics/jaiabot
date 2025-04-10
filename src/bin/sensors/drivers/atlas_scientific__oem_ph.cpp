@@ -59,7 +59,15 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
                              << "Received ph_data: " << ph_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMpH ph_msg;
-    ph_msg.set_ph(ph_data.ph());
+
+    if (ph_data.has_ph())
+    {
+        ph_msg.set_ph(ph_data.ph());
+    }
+    if (ph_data.has_temperature())
+    {
+        ph_msg.set_temperature(ph_data.temperature());
+    }
     interprocess().publish<jaiabot::groups::ph>(ph_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
