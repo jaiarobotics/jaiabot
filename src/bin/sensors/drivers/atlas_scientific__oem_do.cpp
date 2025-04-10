@@ -59,7 +59,14 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
                              << "Received do_data: " << do_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMDO do_msg;
-    do_msg.set_dissolved_oxygen(do_data.dissolved_oxygen());
+    if (do_data.has_dissolved_oxygen())
+    {
+        do_msg.set_dissolved_oxygen(do_data.dissolved_oxygen());
+    }
+    if (do_data.has_temperature())
+    {
+        do_msg.set_temperature(do_data.temperature());
+    }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
