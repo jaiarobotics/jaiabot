@@ -145,7 +145,7 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
 
     # update grub
-    if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then
+    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ]; then
         # VirtualBox cloud init source
         sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
