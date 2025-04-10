@@ -24,7 +24,7 @@ RUN apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D
 # Update apt
 RUN apt-get -y update
 # Install the required packages   
-RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntp ntpstat python3-systemd ansible
+RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntp ntpstat python3-systemd ansible rsync
 # we may need this if line 4 is not enough 
 RUN useradd -mUs /bin/bash jaia
 COPY ./entrypoint.sh /entrypoint.sh
