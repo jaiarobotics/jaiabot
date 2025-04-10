@@ -1,6 +1,9 @@
-## arduino
-KERNEL=="ttyUSB0", SYMLINK+="arduino"
+## Arduino
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="arduino"
 
-## xbee
+## BIO payload board
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="bio-payload"
+
+## XBee
 KERNEL=="ttyAMA2", SYMLINK+="xbee"
 
