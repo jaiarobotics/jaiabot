@@ -37,6 +37,10 @@
     - do_backup: yes
       
   pre_tasks:
+    - name: Stop Jaiabot
+      shell: |
+        systemctl stop jaiabot
+
     - include_tasks: tasks/set-error-fact.yml
     - include_tasks: tasks/check-hub-id.yml
     - include_tasks: ../tasks/read-debconf.yml
