@@ -16,6 +16,7 @@ jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
+jaiabot_sensors <(../../gen/bot.py jaiabot_sensors)
 
 # vehicle MOOS components
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
@@ -45,3 +46,7 @@ jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver
 
 # Salinity sensor
 jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
+
+# Camera
+[kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_1
+jaiabot_driver_camera <(../../gen/bot.py jaiabot_driver_camera) -vv

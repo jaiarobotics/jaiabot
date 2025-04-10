@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package jaiabot.sensor.protobuf;
+
+// vendor__product
+enum Sensor
+{
+    NONE = 1;
+    ATLAS_SCIENTIFIC__OEM_EC = 2;
+    BLUE_ROBOTICS__BAR30 = 3;
+    ATLAS_SCIENTIFIC__OEM_PH = 4;
+    ATLAS_SCIENTIFIC__OEM_DO = 5;
+    TURNER__C_FLUOR = 6;
+}

@@ -1,0 +1,2 @@
+add_executable(jaiabot_test_sensor_mcu test.c)
+target_link_libraries(jaiabot_test_sensor_mcu jaiabot_messages_c)

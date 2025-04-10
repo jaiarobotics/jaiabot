@@ -1,12 +1,14 @@
 syntax = "proto2";
 
+import "nanopb.proto";
+
 package jaiabot.protobuf;
 
 message LoRaMessage
 {
     required int32 src = 1;
     required int32 dest = 2;
-    optional bytes data = 3;
+    optional bytes data = 3 [(nanopb).max_size = 251];
     enum MessageType
     {
         LORA_DATA = 1;            // bidirectional

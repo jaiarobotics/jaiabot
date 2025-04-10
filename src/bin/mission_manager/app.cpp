@@ -31,8 +31,8 @@
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -529,8 +529,9 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto hub_command_set_link_data =
         [this](protobuf::Command& msg,
-               const goby::middleware::intervehicle::protobuf::Header& header)
-    { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+               const goby::middleware::intervehicle::protobuf::Header& header) {
+            jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
+        };
 
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
         latest_command_sub_cfg_,
@@ -539,8 +540,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
         {/*expire func*/},
         hub_command_set_link_data};
 
-    auto command_callback = [this](const protobuf::Command& input_command)
-    {
+    auto command_callback = [this](const protobuf::Command& input_command) {
         if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
         {
             protobuf::Command out_command;

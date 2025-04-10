@@ -133,7 +133,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     glog.add_group("command", goby::util::Colors::green);
     glog.add_group("arduino", goby::util::Colors::blue);
 
-    using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
+    using SerialThread = jaiabot::lora::SerialThreadCRC32<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
     // Creating Compatible Version Table

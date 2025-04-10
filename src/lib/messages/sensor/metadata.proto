@@ -1,0 +1,47 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/sensor/catalog.proto";
+import "nanopb.proto";
+
+package jaiabot.sensor.protobuf;
+
+message Metadata
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required Sensor sensor = 1;
+    optional int32 sensor_version = 2;
+
+    message Calibration
+    {
+        required uint64 time_performed = 1 [(dccl.field) = {
+            units { prefix: "micro" derived_dimensions: "time" }
+        }];
+        optional uint64 time_to_recalibrate = 2 [(dccl.field) = {
+            units { prefix: "micro" derived_dimensions: "time" }
+        }];
+
+        message Cal
+        {
+            required string key = 1 [(nanopb).max_size = 16];
+            required double value = 2 [(nanopb).max_size = 64];
+        }
+        repeated Cal value = 3  [(nanopb).max_count = 16];
+    }
+    optional Calibration calibration = 3;
+    optional uint64 time_purchased = 4 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    message MetadataValue
+    {
+        required string key = 1 [(nanopb).max_size = 16];
+        required string value = 2 [(nanopb).max_size = 64];
+    }
+
+    repeated MetadataValue metadata = 5 [(nanopb).max_count = 16];
+}
+

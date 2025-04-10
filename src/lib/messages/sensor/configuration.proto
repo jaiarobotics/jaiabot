@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+import "jaiabot/messages/sensor/catalog.proto";
+import "dccl/option_extensions.proto";
+
+package jaiabot.sensor.protobuf;
+
+message Configuration
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required Sensor sensor = 1;
+
+    optional double sample_freq = 2
+        [(dccl.field) = { units { derived_dimensions: "frequency" } }];
+
+    message Cfg
+    {
+        required string key = 1 [(nanopb).max_size = 16];
+        required string value = 2 [(nanopb).max_size = 64];
+    }
+    repeated Cfg cfg = 3 [(nanopb).max_count = 16];
+}
