@@ -1,14 +1,17 @@
 # Using the Jaiabot Simulator in a Docker
 
-- [How to use the Jaiabot Simulator in a Docker](#how-to-use-the-jaiabot-simulator-in-a-docker)
+- [Using the Jaiabot Simulator in a Docker](#using-the-jaiabot-simulator-in-a-docker)
   - [Install Docker](#install-docker)
   - [Download pre-built Docker images (preferred)](#download-pre-built-docker-images-preferred)
   - [Run the Simulator](#run-the-simulator)
-    - [Set the simulation run parameters](#set-the-simulation-run-parameters)
-    - [Using an env-file](#using-an-env-file)
-    - [Using command line arguments](#using-command-line-arguments)
-  - [Accessing JCC](#accessing-jcc)
-  - [Stop the Simulator](#stop-the-simulator)
+    - [Using docker compose](#using-docker-compose)
+      - [Start the simulator](#start-the-simulator)
+      - [Stop the simulator](#stop-the-simulator)
+    - [Using docker run](#using-docker-run)
+      - [Start the simulator](#start-the-simulator-1)
+      - [Stop the simulator](#stop-the-simulator-1)
+  - [Using JCC](#using-jcc)
+  - [Using JDV](#using-jdv)
   - [Working with images locally (advanced, Linux platforms only)](#working-with-images-locally-advanced-linux-platforms-only)
 
 ## Install Docker
@@ -41,24 +44,63 @@ As of 2.y release the Jaiabot Docker Simulation images are generated for both AM
 
 ## Run the Simulator
 
-### Set the simulation run parameters
+### Using docker compose
+Docker compose provides a platform independent way to configure and run docker conatainers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from `scripts/sim-docker/docker-compose.yml` at https://github.com/jaiarobotics/jaiabot
 
-The fleet number, the number of bots and the simulation warp are specified in environment variables and can be passed to the simulator in a text file or provided as command line parameters.  Examples of both methods described below.
-
-### Using an env-file
-
-An example of the text file is provided in the jaiabot repo `scripts/sim-docker/sim_env_vars.txt`
-
-Users can edit the existing file or create their own locally.  Format of file is
-
+Example:
 ```
-JAIA_SIM_BOTS=3
-JAIA_SIM_WARP=2
-JAIA_SIM_FLEET=20
-```
-The following command will launch the Jaiabot Simulator in a Docker container.  This can be run from any directory but make sure `sim_env_vars.txt` is in that directory.
+# Docker Compose file for launching the JAIA Simulator
+# To launch the simulator 
+# docker compose up -d jaia-sim
+# To stop the simulator
+# docker compose down
 
-`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env-file sim_env_vars.txt gobysoft/jaiabot-sim:2.0.0 /bin/bash -li "/entrypoint.sh"`
+services:
+
+  jaia-sim:
+    image: gobysoft/jaiabot-sim:2.y-test
+    container_name: jaia-sim-container
+
+    # Simulation Environment
+    environment:
+      JAIA_SIM_BOTS: 5
+      JAIA_SIM_WARP: 3
+      JAIA_SIM_FLEET: 30
+
+    # Expose necessary ports for simulation communication
+    # All ports will be available at localhost
+    ports:
+      - "40001:40001"      # JCC 
+      - "9092:9092"        # REST API
+      - "40011:40011"      # JDV
+
+    volumes:
+      # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
+      - ./jdv_data:/var/log/jaiabot/bot_offload
+
+    stdin_open: true
+    tty: true
+    restart: "no"
+```
+#### Start the simulator
+
+From the same directory as the `docker-compose.yml` file the following command will launch the simulator, including JCC, JDV, and the Jaia REST API.
+
+`docker compose up -d jaia-sim`
+
+#### Stop the simulator
+
+From the same directory as the `docker-compose.yml` file the following command will shut down the simulator, stop the container and remove it.
+
+`docker compose down`
+
+### Using docker run
+
+If the user does not want to use docker compose the simulation can also be run using the `docker run` command.
+
+#### Start the simulator
+
+`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 -p 40011:40011 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 -v ./jdv_data:/var/log/jaiabot/bot_offload gobysoft/jaiabot-sim:2.0.0 /bin/bash`
 
 Explanation of command.
 
@@ -70,30 +112,32 @@ Explanation of command.
   "-p 40001:40001" Exposes the port used by JCC to the host machine
   "-p 9092:9092 " Exposes the port used by used for the REST APIto the host machine
       - Example: Rest API -> http://localhost:9092/jaia/v1/status/all?api_key=simulation
-  "--env-file sim_env_vars.txt" Specifies the file containing the environment variables used by the simulation
+  "-p 40011:40011" Exposes the port used by JDV to the host machine
+  "-env JAIA_SIM_BOTS=5" Number of bots used in sim
+  "--env JAIA_SIM_WARP=3" Warp factor used in sim
+  "--env JAIA_SIM_FLEET=30" Fleet number used in sim
+  "-v ./jdv_data:/var/log/jaiabot/bot_offload" Mounts the bot_offload folder in the container to ./jdv_data on host machine
   "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
-  "/bin/bash -li "/entrypoint.sh" Tells docker to launch a bash shell and use the entrypoint.sh script to run the simulation and JCC
+  "/bin/bash -li Tells docker to launch a bash shell
 ```
 
-### Using command line arguments
+#### Stop the simulator
 
-Alternatively users can provide the run parameters as command line arguments.
+The following command will shut down the simulator, stop the container and remove it.
 
-The following command will launch the Jaiabot Simulator in a Docker container.  This can be run from any directory.
+`docker stop jaia-sim-container`
 
-`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 gobysoft/jaiabot-sim:2.0.0 /bin/bash -li "/entrypoint.sh"`
-
-## Accessing JCC
+## Using JCC
 
 At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
 
 http://localhost:40001/
 
-## Stop the Simulator
+## Using JDV
 
-The following command will stop the running container and remove it when done.
+JDV can be used by opening the following URL. (note launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
 
-`docker stop jaia-sim-container`
+http://localhost:40011/
 
 ## Working with images locally (advanced, Linux platforms only)
 
