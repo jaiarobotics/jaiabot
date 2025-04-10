@@ -13,6 +13,7 @@ message AtlasScientificOEMpH
     // notional - add units and additional fields as needed
     optional double ph = 1;
     optional double temperature = 2;
+    optional double temperature_voltage = 3;
 }
 
 

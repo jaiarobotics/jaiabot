@@ -59,7 +59,14 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
                              << std::endl;
 
     jaiabot::sensor::protobuf::TurnerCFluor turner_c_fluor_msg;
-    turner_c_fluor_msg.set_concentration(turner_c_fluor_data.concentration());
+    if (turner_c_fluor_data.has_concentration())
+    {
+        turner_c_fluor_msg.set_concentration(turner_c_fluor_data.concentration());
+    }
+    if (turner_c_fluor_data.has_concentration_voltage())
+    {
+        turner_c_fluor_msg.set_concentration_voltage(turner_c_fluor_data.concentration_voltage());
+    }
     interprocess().publish<jaiabot::groups::concentration>(turner_c_fluor_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd

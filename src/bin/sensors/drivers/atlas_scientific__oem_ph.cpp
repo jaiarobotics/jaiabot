@@ -42,7 +42,7 @@ jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
         });
 
     // configure our sensor
-    sensor::protobuf::SensorRequest request;
+    sensor::protobuf::SensorRequest request; 
     request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     auto& sensor_cfg = *request.mutable_cfg();
     sensor_cfg.set_sensor(config.metadata().sensor());
@@ -67,6 +67,10 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     if (ph_data.has_temperature())
     {
         ph_msg.set_temperature(ph_data.temperature());
+    }
+    if (ph_data.has_temperature_voltage())
+    {
+        ph_msg.set_temperature_voltage(ph_data.temperature_voltage());
     }
     interprocess().publish<jaiabot::groups::ph>(ph_msg);
 

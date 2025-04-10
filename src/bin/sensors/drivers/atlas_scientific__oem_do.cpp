@@ -67,6 +67,10 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
     {
         do_msg.set_temperature(do_data.temperature());
     }
+    if (do_data.has_temperature_voltage())
+    {
+        do_msg.set_temperature_voltage(do_data.temperature_voltage());
+    }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
