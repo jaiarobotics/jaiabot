@@ -58,9 +58,18 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
                              << "Received ec_data: " << ec_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMEC ec_msg;
-    ec_msg.set_conductivity(ec_data.conductivity());
-    ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
-    ec_msg.set_salinity(ec_data.salinity());
+    if (ec_data.has_conductivity())
+    {
+        ec_msg.set_conductivity(ec_data.conductivity());
+    }
+    if (ec_data.has_total_dissolved_solids())
+    {
+        ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
+    }
+    if (ec_data.has_salinity())
+    {
+        ec_msg.set_salinity(ec_data.salinity());
+    }
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
