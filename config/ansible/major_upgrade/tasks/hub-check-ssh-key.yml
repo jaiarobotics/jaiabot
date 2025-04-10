@@ -29,13 +29,13 @@
     mkdir -p {{ hub_staging_dir }}/jaiabot/init
     jaia admin fleet generate --bootdir {{ hub_staging_dir }} {{ staged_fleet_cfg }} hub {{ jaiabot_embedded_hub_id }} --hub-ssh-keys-only
   
-- name: Check hub if ssh key matches fleet config ssh key - if so, delete the old key
+- name: Check if hub ssh key matches fleet config ssh key - if so, delete the old key
   shell: |
     existing_hub_privkey_fingerprint=$(ssh-keygen -l -f {{ hub_staging_oldssh_dir }}/{{ hub_privkey }})
     fleet_cfg_hub_privkey_fingerprint=$(ssh-keygen -l -f {{ hub_staging_dir }}/jaiabot/init/{{ hub_privkey }})
     if [ "${existing_hub_privkey_fingerprint}" != "${fleet_cfg_hub_privkey_fingerprint}" ]; then
       echo "Existing hub SSH key does not match hub SSH key in fleet configuration file. Update the fleet configuration file to match the hub SSH key to ensure connectivity."
     else
-      echo "Existing hub SSH key matches hub SSH key in fleet configuration file. Removing oldssh key as it's not needed"
+      echo "Existing hub SSH key matches hub SSH key in fleet configuration file. Removing old ssh key as it's not needed"
       rm -rf {{ hub_staging_oldssh_dir }}
     fi
