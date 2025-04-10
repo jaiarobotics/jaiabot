@@ -21,6 +21,7 @@
 - name: Check hub ssh key matches fleet config ssh key 
   shell: |
     existing_hub_privkey_fingerprint=$(ssh-keygen -l -f /home/jaia/.ssh/{{ hub_privkey }})
+    chmod 0600 {{ hub_staging_dir }}/jaiabot/init/{{ hub_privkey }}
     fleet_cfg_hub_privkey_fingerprint=$(ssh-keygen -l -f {{ hub_staging_dir }}/jaiabot/init/{{ hub_privkey }})
     if [ "${existing_hub_privkey_fingerprint}" != "${fleet_cfg_hub_privkey_fingerprint}" ]; then
       echo "Existing hub SSH key does not match hub SSH key in fleet configuration file. Update the fleet configuration file to match the hub SSH key to ensure connectivity."
