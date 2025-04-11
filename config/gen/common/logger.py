@@ -12,7 +12,7 @@ GOBY_LOGGER_GROUP_REGEX_DICT = {
 try:
     jaia_goby_log_level = os.environ['jaia_goby_log_level']
 except:
-    jaia_goby_log_level = 'RELEASE'
+    jaia_goby_log_level = 'ENGINEERING'
 
 
 group_regex = GOBY_LOGGER_GROUP_REGEX_DICT[jaia_goby_log_level]

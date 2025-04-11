@@ -389,6 +389,16 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             if (roll_pid_->need_compute())
             {
                 roll_pid_->compute();
+
+                                
+                if (stbd_elevator_ > 5 && stbd_elevator_ < 10)
+                {
+                    stbd_elevator_ *= 10;
+                }
+                if (stbd_elevator_ > 2 && stbd_elevator_ < 5)
+                {
+                    stbd_elevator_ *= 5;
+                }
             }
             glog.is_debug2() && glog << group("main") << "target_  = " << 1.5 // trying to get this
                                      << ", actual_depth  = " << actual_depth_ // reads this
