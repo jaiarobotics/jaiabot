@@ -43,5 +43,6 @@ message Metadata
     }
 
     repeated MetadataValue metadata = 5 [(nanopb).max_count = 16];
+    optional bool init_failed = 6;
 }
 
