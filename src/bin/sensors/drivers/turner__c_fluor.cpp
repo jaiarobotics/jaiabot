@@ -34,8 +34,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
-        [this](const sensor::protobuf::SensorData& sensor_data)
-        {
+        [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_c_fluor())
                 receive_data(sensor_data.c_fluor());
         });
@@ -54,9 +53,8 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
     const sensor::protobuf::TurnerCFluor& turner_c_fluor_data)
 {
-    glog.is_debug1() && glog << group("turner_c_fluor")
-                             << "Received turner_c_fluor_data: " << turner_c_fluor_data.ShortDebugString()
-                             << std::endl;
+    glog.is_debug1() && glog << group("turner_c_fluor") << "Received turner_c_fluor_data: "
+                             << turner_c_fluor_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::TurnerCFluor turner_c_fluor_msg;
     turner_c_fluor_msg.set_concentration(turner_c_fluor_data.concentration());

@@ -35,8 +35,7 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     glog.add_group("oem_ec", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
-        [this](const sensor::protobuf::SensorData& sensor_data)
-        {
+        [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
         });
