@@ -377,7 +377,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Web GUI Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_WEB_PORTAL',
-     'runs_on': [Type.HUB,]
+     'runs_on': [Type.HUB],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison_standalone',
      'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
@@ -597,7 +597,7 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'subdir': 'motor',
         'args': '',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'}
@@ -610,7 +610,7 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'description': 'JaiaBot TSYS01 Temperature Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_tsys01.py',
         'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
@@ -618,7 +618,7 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'subdir': 'tsys01_temperature_sensor',
         'args': '-p 20006',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
@@ -631,7 +631,7 @@ jaia_firmware = [
      'template': 'hub-button-led-poweroff.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'hub-button-led-services-running.py',
@@ -639,7 +639,7 @@ jaia_firmware = [
      'template': 'hub-button-led-services-running.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'hub-button-trigger.py',
@@ -647,7 +647,7 @@ jaia_firmware = [
      'template': 'hub-button-trigger.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'gps-spi-pty.py',
@@ -655,7 +655,7 @@ jaia_firmware = [
      'template': 'gps_spi_pty.service.in',
      'subdir': 'gps',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME,
      'gps_type': GPS_TYPE.SPI},
     {'exe': 'gps-i2c-pty.py',
@@ -663,7 +663,7 @@ jaia_firmware = [
      'template': 'gps_i2c_pty.service.in',
      'subdir': 'gps',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME,
      'gps_type': GPS_TYPE.I2C},
      {'exe': 'arduino_spi_gpio_pin.py',
@@ -671,20 +671,20 @@ jaia_firmware = [
      'template': 'arduino-spi-gpio-pin.service.in',
      'subdir': 'arduino',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME},
      {'exe': 'jaia_firm_backup_date.sh',
      'description': 'Backup the date to a file when we have a valid date time ntp',
      'template': 'backup-date.service.in',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME},
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
      'subdir': 'adafruit',
      'args': '--imu_install_type=' + jaia_imu_install_type.value,
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
      'run_at_boot': False},
@@ -693,7 +693,7 @@ jaia_firmware = [
      'template': 'echo-reset-gpio-pin.service.in',
      'subdir': 'echo',
      'args': '',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'run_at_boot': False}
 ]
@@ -751,7 +751,7 @@ for app in jaiabot_apps:
 def is_firm_run(firm):
     macros={**common_macros, **firm}
 
-    if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
+    if (jaia_type not in macros['runs_on'] and Type.BOTH not in macros['runs_on']):
         return False
     
     if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):
