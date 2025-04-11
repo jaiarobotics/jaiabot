@@ -259,7 +259,7 @@ export function HelpWindow(props: Props) {
                             {index === 20 && (
                                 <tr className="instruction-note-row">
                                     <td colSpan={3} className="instruction-note">
-                                        TEST!!!.
+                                        TEST!!! Test!!!!.
                                     </td>
                                 </tr>
                             )}
