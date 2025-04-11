@@ -33,6 +33,7 @@ As of 2.y release the Jaiabot Docker Simulation images are generated for both AM
 - Pull the image
   - use gobysoft/jaiabot-sim:<tag>
     - e.g. `docker pull gobysoft/jaiabot-sim:2.0.0`
+    - docker will pull the appropriate image for your machine architecture
   - Available images can be found at
     - https://hub.docker.com/r/gobysoft/jaiabot-sim/tags
 - Check image
@@ -113,7 +114,7 @@ Explanation of command.
   "-p 9092:9092 " Exposes the port used by used for the REST APIto the host machine
       - Example: Rest API -> http://localhost:9092/jaia/v1/status/all?api_key=simulation
   "-p 40011:40011" Exposes the port used by JDV to the host machine
-  "-env JAIA_SIM_BOTS=5" Number of bots used in sim
+  "--env JAIA_SIM_BOTS=5" Number of bots used in sim
   "--env JAIA_SIM_WARP=3" Warp factor used in sim
   "--env JAIA_SIM_FLEET=30" Fleet number used in sim
   "-v ./jdv_data:/var/log/jaiabot/bot_offload" Mounts the bot_offload folder in the container to ./jdv_data on host machine
