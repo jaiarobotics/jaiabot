@@ -1,6 +1,6 @@
-# Using the Jaiabot Simulator in a Docker
+# Using the Jaiabot Simulator in Docker
 
-- [Using the Jaiabot Simulator in a Docker](#using-the-jaiabot-simulator-in-a-docker)
+- [Using the Jaiabot Simulator in Docker](#using-the-jaiabot-simulator-in-docker)
   - [Install Docker](#install-docker)
   - [Download pre-built Docker images (preferred)](#download-pre-built-docker-images-preferred)
   - [Run the Simulator](#run-the-simulator)
@@ -18,18 +18,18 @@
 
 The user must install Docker on their host machine. See https://www.docker.com/get-started/
 
-The user must use a terminal/command prompt environment to run the Jaiabot Docker Simulation.  Desktop versions of docker do not support all of the options used.  However, depending on how docker was installed you may need to launch the desktop app to start the docker engine.
+The user must use a terminal/command prompt environment to run the Jaiabot Docker Simulation. Desktop versions of docker do not support all of the options used.  Depending on how docker was installed you may need to launch the desktop app to start the docker engine.
 
 A few important Docker terms:
 
-- _image_ - refers to a self contained run enviroment
+- _image_ - refers to a self contained runtime environment
 - _container_ - refers to a running instance of an image
 
 ## Download pre-built Docker images (preferred)
 
-As of 2.y release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.
+As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.
 
-- Choose the `<tag>` of the version you want (e.g. `2.1.0` or `2.y-beta`, `2.y-continuous`, `2.y-test` )for the latest of the respective repository.
+- Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
 - Pull the image
   - use gobysoft/jaiabot-sim:<tag>
     - e.g. `docker pull gobysoft/jaiabot-sim:2.0.0`
@@ -46,7 +46,7 @@ As of 2.y release the Jaiabot Docker Simulation images are generated for both AM
 ## Run the Simulator
 
 ### Using docker compose
-Docker compose provides a platform independent way to configure and run docker conatainers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from `scripts/sim-docker/docker-compose.yml` at https://github.com/jaiarobotics/jaiabot
+Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from `scripts/sim-docker/docker-compose.yml` at https://github.com/jaiarobotics/jaiabot
 
 Example:
 ```
@@ -97,7 +97,7 @@ From the same directory as the `docker-compose.yml` file the following command w
 
 ### Using docker run
 
-If the user does not want to use docker compose the simulation can also be run using the `docker run` command.
+If the user does not want to use docker compose, the simulation can also be run using the `docker run` command.
 
 #### Start the simulator
 
@@ -111,7 +111,7 @@ Explanation of command.
   "--name jaia-sim-container" Names the container "jaia-sim-container"
   "-d -i -t" Tells docker to run in a detached mode and to include an interactive terminal. This allows the user to log into the running container if needed (advanced)
   "-p 40001:40001" Exposes the port used by JCC to the host machine
-  "-p 9092:9092 " Exposes the port used by used for the REST APIto the host machine
+  "-p 9092:9092" Exposes the port used for the REST API to the host machine
       - Example: Rest API -> http://localhost:9092/jaia/v1/status/all?api_key=simulation
   "-p 40011:40011" Exposes the port used by JDV to the host machine
   "--env JAIA_SIM_BOTS=5" Number of bots used in sim
@@ -119,7 +119,7 @@ Explanation of command.
   "--env JAIA_SIM_FLEET=30" Fleet number used in sim
   "-v ./jdv_data:/var/log/jaiabot/bot_offload" Mounts the bot_offload folder in the container to ./jdv_data on host machine
   "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
-  "/bin/bash -li Tells docker to launch a bash shell
+  "/bin/bash -li" Tells docker to launch a bash shell
 ```
 
 #### Stop the simulator
@@ -136,7 +136,7 @@ http://localhost:40001/
 
 ## Using JDV
 
-JDV can be used by opening the following URL. (note launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
+JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
 
 http://localhost:40011/
 
@@ -163,14 +163,14 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
 
 `./save-image.sh`
 
-- This save the Docker Image to a file for transport.
+- This saves the Docker Image to a file for transport.
 - The file will be named ./jaia-sim-image.tar.gz.
 
 **Load the image**
 
 `./load-image.sh`
 
-- This load the Docker Image from the file jaia-sim-image.tar.gz.
+- This loads the Docker Image from the file jaia-sim-image.tar.gz.
 - The file should be in the local directory when the script is run.
 
 **Other useful Docker commands**
