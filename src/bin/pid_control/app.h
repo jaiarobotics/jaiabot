@@ -88,6 +88,10 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     bool _elevator_is_using_pid_ = false;
     void toggleElevatorPid(const bool enabled);
     Pid* roll_pid_;
+    ///////////// Currenty it is calculating the stbd based on the current depth trying to achive a depth of 1.5 ///////
+    float depth_multiplier_ = 36.0; // taken as heading error ranges from +/-180 and depth goal in the future would range from +/- 5m to start (+/- becasue of overshoot or coming up from a deeper depth)
+    float target_ = 1.5 * depth_multiplier_;
+    float actual_depth_multipied_;
 
     // Pitch targeting
     float target_pitch_ = 0.0;

@@ -152,20 +152,18 @@ jaiabot::apps::BotPidControl::BotPidControl()
     heading_constant_pid_->set_limits(-100.0, 100.0);
     heading_constant_pid_->set_auto();
 
-    ///////////// Currenty it is calculating the stbd based on the current depth trying to achive a depth of 1.5 ///////
-    float target_ = 1.5;
     if (cfg().has_roll_pid_gains())
     {
         auto& gains = cfg().roll_pid_gains();
         // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, gains.kp(), gains.ki(),
         //                     gains.kd());
         roll_pid_ =
-            new Pid(&actual_depth_, &stbd_elevator_, &target_, gains.kp(), gains.ki(), gains.kd());
+            new Pid(&actual_depth_multipied_, &stbd_elevator_, &target_, gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
         // roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, 0.0001, 0, 0);
-        roll_pid_ = new Pid(&actual_depth_, &stbd_elevator_, &target_, 0.1, 0, 0);
+        roll_pid_ = new Pid(&actual_depth_multipied_, &stbd_elevator_, &target_, 0.1, 0, 0);
     }
     roll_pid_->set_limits(-100.0, 100.0);
     roll_pid_->set_auto();
@@ -245,6 +243,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
             if (node_status.has_global_fix() && node_status.global_fix().has_depth())
             {
                 actual_depth_ = node_status.global_fix().depth();
+                actual_depth_multipied_ = actual_depth_ * depth_multiplier_;
             }
 
             glog.is_debug2() && glog << "Actual speed: " << actual_speed_
@@ -389,19 +388,10 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             if (roll_pid_->need_compute())
             {
                 roll_pid_->compute();
-
-                                
-                if (stbd_elevator_ > 5 && stbd_elevator_ < 10)
-                {
-                    stbd_elevator_ *= 10;
-                }
-                if (stbd_elevator_ > 2 && stbd_elevator_ < 5)
-                {
-                    stbd_elevator_ *= 5;
-                }
             }
             glog.is_debug2() && glog << group("main") << "target_  = " << 1.5 // trying to get this
-                                     << ", actual_depth  = " << actual_depth_ // reads this
+                                     << ", actual_depth  = " << actual_depth_ 
+                                     << ", actual_depth_multiplied  = " << actual_depth_multipied_ // reads this
                                      << ", stbd  = " << stbd_elevator_
                                      << std::endl; // commands this
         }
