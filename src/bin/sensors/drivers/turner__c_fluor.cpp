@@ -67,7 +67,7 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
     {
         turner_c_fluor_msg.set_concentration_voltage(turner_c_fluor_data.concentration_voltage());
     }
-    interprocess().publish<jaiabot::groups::concentration>(turner_c_fluor_msg);
+    interprocess().publish<jaiabot::groups::fluorometer>(turner_c_fluor_msg);
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd
 }
