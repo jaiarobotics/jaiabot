@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e -u
 
+script_dir=$(dirname $0)
+echo "script_dir: ${script_dir}"
 
 # --binary=jaia admin fleet create
 binary="$1"
@@ -229,7 +231,8 @@ echo "## (may take a bit to prepare)                      ##"
 echo "######################################################"
 
 
-git_branch=$(git branch --show-current 2> /dev/null || true)
+git_branch=$(cd ${script_dir}; git branch --show-current 2> /dev/null || true)
+echo "git branch: ${git_branch}"
 # if running in git, use the same rev
 if [ ! "${git_branch}" = "" ]; then
     git_branch_cmd="-b ${git_branch}"
