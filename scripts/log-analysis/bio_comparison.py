@@ -36,7 +36,7 @@ def main():
         print(speed)
 
         print(combined_df)
-
+ 
         print(f"Max Current: {analysis_utils.get_max_value(combined_df, 'current')}")
         print(f"Min Current: {analysis_utils.get_min_value(combined_df, 'current')}")
         print(f"Mean Current: {analysis_utils.get_mean_value(combined_df, 'current')}")

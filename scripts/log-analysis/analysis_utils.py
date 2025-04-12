@@ -28,6 +28,28 @@ def get_speedOverGround_data(file: h5py.File):
     
     return pd.DataFrame({'utime': utime, 'speed': speed})
 
+def get_ph_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/_utime_"])
+    ph = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph"])
+    temperature = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/temperature"])
+    
+    return pd.DataFrame({'utime': utime, 'ph': ph, 'temperature': temperature})
+
+def get_ec_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/_utime_"])
+    ec = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/conductivity"])
+    
+    return pd.DataFrame({'utime': utime, 'ec': ec})
+
+def get_do_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/_utime_"])
+    do = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/dissolved_oxygen"])
+    temperature = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/temperature"])
+    
+    return pd.DataFrame({'utime': utime, 'do': do, 'temperature': temperature})
+
+def utime_to_datetime(df: pd.DataFrame, dataset: str):
+    return pd.to_datetime(df[dataset], unit='us')
 
 
 ### DATA ANALYSIS ###
@@ -43,6 +65,9 @@ def get_mean_value(df: pd.DataFrame, dataset: str) -> float: #Mean value of a da
 def get_median_value(df: pd.DataFrame, dataset: str) -> float: #Median value of a dataset
     return df[dataset].median()
 
+def get_mode_value(df: pd.DataFrame, dataset: str) -> float: #Mode value of a dataset
+    return df[dataset].mode()
+
 def get_std_dev_value(df: pd.DataFrame, dataset: str) -> float: #Standard deviation of a dataset 
     return df[dataset].std()
 
@@ -51,7 +76,7 @@ def get_std_dev_value(df: pd.DataFrame, dataset: str) -> float: #Standard deviat
 ### DATA VISUALIZATION ###
 def plot_2_series(df: pd.DataFrame,
                  x_axis: str,
-                 y_axis: str,
+                 y_axis: list[str],
                  title: str = None,
                  x_label: str = None,
                  y_label: str = None) -> go.Figure:
@@ -72,21 +97,23 @@ def plot_2_series(df: pd.DataFrame,
     # Input validation
     if x_axis not in df.columns:
         raise ValueError(f"Column '{x_axis}' not found in DataFrame")
-    if y_axis not in df.columns:
-        raise ValueError(f"Column '{y_axis}' not found in DataFrame")
+    for y in y_axis:
+        if y not in df.columns:
+            raise ValueError(f"Column '{y}' not found in DataFrame")
     
     # Create figure
     fig = go.Figure()
     
     # Add scatter plot
-    fig.add_trace(
-        go.Scatter(
-            x=df[x_axis],
-            y=df[y_axis],
-            mode='lines',
-            name=y_axis
+    for chart in y_axis:
+        fig.add_trace(
+            go.Scatter(
+                x=df[x_axis],
+                y=df[chart],
+                mode='lines',
+                name=chart
+            )
         )
-    )
     
     # Update layout
     fig.update_layout(
@@ -102,9 +129,10 @@ def plot_2_series(df: pd.DataFrame,
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     
+    fig.show()
     return fig
 
-def plot_series_x_time(df: pd.DataFrame,
+def plot_series_x_utime(df: pd.DataFrame,
                     y_axis: str,
                     title: str = None,
                     y_label: str = None) -> go.Figure:
@@ -153,6 +181,7 @@ def plot_series_x_time(df: pd.DataFrame,
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     
+    fig.show()
     return fig 
 
 
