@@ -67,6 +67,30 @@ def get_do_data(file: h5py.File):
 
     return df
 
+def get_bar30_data(file: h5py.File):
+    depth_utime = np.array(file["/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/_utime_"])
+    calculated_depth = np.array(file["/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth"])
+    df_calculated = pd.DataFrame({'utime': depth_utime, 'Depth': calculated_depth})
+
+    raw_utime = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/_utime_"])
+    pressure_raw = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/pressure_raw"])
+    temperature = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature"])
+    df_raw = pd.DataFrame({'utime': raw_utime, 'Bar30 Temperature': temperature})
+
+    df = combine_data([df_calculated, df_raw])
+    df.attrs["file_name"] = file.filename
+
+    return df
+
+def get_fluor_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
+    concentration = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
+
+    df = pd.DataFrame({'utime': utime, 'Fluorometer Concentration': concentration})
+    df.attrs["file_name"] = file.filename
+
+    return df
+
 def utime_to_datetime(df: pd.DataFrame, dataset: str):
     return pd.to_datetime(df[dataset], unit='us')
 
