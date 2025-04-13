@@ -1,52 +1,71 @@
 ### IMPORTS ###
 import h5py
+import re
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.io as pio
 
 from pathlib import Path
 from contextlib import contextmanager
-
 
 ### DATA ACQUISITION ###
 def get_current_data(file: h5py.File):
     utime = np.array(file["/jaiabot::arduino_to_pi/jaiabot.protobuf.ArduinoResponse/_utime_"])
     current = np.array(file["/jaiabot::arduino_to_pi/jaiabot.protobuf.ArduinoResponse/vcccurrent"])
     
-    return pd.DataFrame({'utime': utime, 'current': current})
+    df = pd.DataFrame({'utime': utime, 'current': current})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_RPM_data(file: h5py.File):
     utime = np.array(file["/jaiabot::motor_status/jaiabot.protobuf.Motor/_utime_"])
     rpm = np.array(file["/jaiabot::motor_status/jaiabot.protobuf.Motor/rpm"])
     
-    return pd.DataFrame({'utime': utime, 'rpm': rpm})
+    df = pd.DataFrame({'utime': utime, 'rpm': rpm})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_speedOverGround_data(file: h5py.File):
     utime = np.array(file["/jaiabot::bot_status;12/jaiabot.protobuf.BotStatus/_utime_"])
     speed = np.array(file["/jaiabot::bot_status;12/jaiabot.protobuf.BotStatus/speed/over_ground"])
     
-    return pd.DataFrame({'utime': utime, 'speed': speed})
+    df = pd.DataFrame({'utime': utime, 'speed': speed})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_ph_data(file: h5py.File):
     utime = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/_utime_"])
     ph = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph"])
     temperature = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/temperature"])
     
-    return pd.DataFrame({'utime': utime, 'ph': ph, 'temperature': temperature})
+    df = pd.DataFrame({'utime': utime, 'pH': ph, 'pH Temperature': temperature})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_ec_data(file: h5py.File):
     utime = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/_utime_"])
     ec = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/conductivity"])
     
-    return pd.DataFrame({'utime': utime, 'ec': ec})
+    df = pd.DataFrame({'utime': utime, 'EC': ec})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_do_data(file: h5py.File):
     utime = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/_utime_"])
     do = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/dissolved_oxygen"])
     temperature = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/temperature"])
-    
-    return pd.DataFrame({'utime': utime, 'do': do, 'temperature': temperature})
+
+    df = pd.DataFrame({'utime': utime, 'DO': do, 'DO Temperature': temperature})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def utime_to_datetime(df: pd.DataFrame, dataset: str):
     return pd.to_datetime(df[dataset], unit='us')
@@ -65,7 +84,7 @@ def get_mean_value(df: pd.DataFrame, dataset: str) -> float: #Mean value of a da
 def get_median_value(df: pd.DataFrame, dataset: str) -> float: #Median value of a dataset
     return df[dataset].median()
 
-def get_mode_value(df: pd.DataFrame, dataset: str) -> float: #Mode value of a dataset
+def get_mode_value(df: pd.DataFrame, dataset: str) -> float: #Mode of a dataset
     return df[dataset].mode()
 
 def get_std_dev_value(df: pd.DataFrame, dataset: str) -> float: #Standard deviation of a dataset 
@@ -80,6 +99,9 @@ def plot_2_series(df: pd.DataFrame,
                  title: str = None,
                  x_label: str = None,
                  y_label: str = None) -> go.Figure:
+    
+    list(pio.templates)
+
     """
     Creates a Plotly 2D plot from a DataFrame using specified columns.
     
@@ -120,12 +142,11 @@ def plot_2_series(df: pd.DataFrame,
         title=title or f"{y_axis} vs {x_axis}",
         xaxis_title=x_label or x_axis,
         yaxis_title=y_label or y_axis,
-        template='plotly_white',  # Clean, professional template
+        template='simple_white',
         showlegend=True,
         hovermode='x unified'
     )
     
-    # Add grid lines and improve appearance
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     
@@ -133,7 +154,7 @@ def plot_2_series(df: pd.DataFrame,
     return fig
 
 def plot_series_x_utime(df: pd.DataFrame,
-                    y_axis: str,
+                    y_axis: list[str],
                     title: str = None,
                     y_label: str = None) -> go.Figure:
     """
@@ -151,33 +172,34 @@ def plot_series_x_utime(df: pd.DataFrame,
         Plotly Figure object
     """
     # Input validation
-    if y_axis not in df.columns:
-        raise ValueError(f"Column '{y_axis}' not found in DataFrame")
+    for y in y_axis:
+        if y not in df.columns:
+            raise ValueError(f"Column '{y}' not found in DataFrame")
     
     # Create figure
     fig = go.Figure()
     
     # Add scatter plot
-    fig.add_trace(
-        go.Scatter(
-            x=df['utime'],
-            y=df[y_axis],
-            mode='lines',
-            name=y_axis
+    for y in y_axis:
+        fig.add_trace(
+            go.Scatter(
+                x=df['utime'],
+                y=df[y],
+                mode='lines',
+                name=y
+            )
         )
-    )
     
     # Update layout
     fig.update_layout(
         title=title or f"{y_axis} vs {'utime'}",
         xaxis_title="utime",
         yaxis_title=y_label or y_axis,
-        template='plotly_white',  # Clean, professional template
+        template='simple_white',
         showlegend=True,
         hovermode='x unified'
     )
     
-    # Add grid lines and improve appearance
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     
@@ -230,9 +252,13 @@ def combine_data(dataframes: list[pd.DataFrame],
     # Combine DataFrames side by side, keeping only one utime column
     result = aligned_dfs[0]
     for df in aligned_dfs[1:]:
+        raw_file = df.attrs.get("file_name", "")
+        match = re.search(r'(bot\d+_fleet\d+)', raw_file)
+        suffix = match.group(1) if match else "df"
+        
         result = pd.merge(result, df.drop('utime', axis=1), 
                          left_index=True, right_index=True,
-                         how=join_type)
+                         how=join_type, suffixes=('', f'_{suffix}'))
     
     if drop_duplicates:
         result.drop_duplicates(inplace=True)
