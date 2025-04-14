@@ -23,7 +23,11 @@ class AtlasOEM:
 
     # Unsigned Byte
     def readUnsignedByte(self, offset):
-        return self._bus.read_byte_data(self._address, offset)
+        try:
+            return self._bus.read_byte_data(self._address, offset)
+        except IOError:
+            print("IOError, continuing anyway...")
+            return 0
 
     def writeUnsignedByte(self, offset, value: int):
         self._bus.write_byte_data(self._address, offset, value)
@@ -43,9 +47,13 @@ class AtlasOEM:
 
     # Signed Long Float
     def readSignedLongFloat(self, offset) -> float:
-        b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
-        i = int.from_bytes(b, 'big', signed=True)
-        return i / 100.0
+        try:
+            b = bytes(self._bus.read_i2c_block_data(self._address, offset, 4))
+            i = int.from_bytes(b, 'big', signed=True)
+            return i / 100.0
+        except IOError:
+            print("IOError, continuing anyway...")
+            return 0
 
     def writeSignedLongFloat(self, offset, value: float):
         i = int(value * 100)
@@ -346,14 +354,19 @@ def doCalibration(description: str, type: int):
         print('Getting 10 seconds of data...')
         ec_old = None
         for i in range(0, 10):
-            ec = probe.EC()
-            if ec_old:
-                delta_percent = abs(ec - ec_old) / ec_old * 100
+            if probe.newReadingAvailable() == 1:
+                ec = probe.EC()
+                if ec_old:
+                    delta_percent = abs(ec - ec_old) / ec_old * 100
+                else:
+                    delta_percent = 0.0
+                print(f'time:{datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
+                ec_old = ec
             else:
-                delta_percent = 0.0
-            print(f'time:{datetime.datetime.now()}  EC: {ec: 6.0f}  delta: {delta_percent: 3.2f}%')
-            ec_old = ec
+                print("No new reading")
+                continue
             time.sleep(1)
+
         if input('Calibrate now (Y/n)?').lower() in ['', 'y']:
             break
 
