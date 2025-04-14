@@ -105,9 +105,9 @@ void jaiabot::apps::BlueRoboticsBar30Driver::health(
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on blue robotics bar30 report" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__MISSING_DATA__BLUEROBOTICS_BAR30_DATA);
+            ->add_error(protobuf::ERROR__MISSING_DATA__BLUEROBOTICS_BAR30_DATA);
 
         // Send configuration request at a configured rate
         if (last_trigger_cfg_resend_time_ + std::chrono::seconds(trigger_cfg_resend_timeout_) <

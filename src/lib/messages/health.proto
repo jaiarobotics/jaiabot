@@ -225,6 +225,10 @@ enum Error
     ];  // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
     ERROR__ARDUINO_CONNECTION_FAILED = 704
         [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // jaiabot_sensor
+    ERROR__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 800
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 enum Warning
@@ -328,9 +332,7 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 802
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 803
-        [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA = 804
+    WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA = 803
         [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
