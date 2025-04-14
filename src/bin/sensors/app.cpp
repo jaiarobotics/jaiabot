@@ -93,8 +93,8 @@ jaiabot::apps::Sensors::Sensors()
                                                goby::middleware::io::PubSubLayer::INTERTHREAD>;
 
     // receive data from MCU
-    interthread().subscribe<mcu_serial_in>([this](const goby::middleware::protobuf::IOData& io_msg)
-                                           { receive_from_mcu(io_msg); });
+    interthread().subscribe<mcu_serial_in>(
+        [this](const goby::middleware::protobuf::IOData& io_msg) { receive_from_mcu(io_msg); });
 
     // send requests from driver threads
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
@@ -159,9 +159,7 @@ void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request
     constexpr int bytes_in_crc32 = 4;
 
     for (int i = bytes_in_crc32 - 1; i >= 0; --i)
-    {
-        encoded->push_back((crc32_value >> (i * bits_in_byte)) & 0xFF);
-    }
+    { encoded->push_back((crc32_value >> (i * bits_in_byte)) & 0xFF); }
 
     glog.is_debug1() && glog << "Sending bytes to MCU: " << goby::util::hex_encode(io_msg->data())
                              << std::endl;
