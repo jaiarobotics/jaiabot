@@ -68,7 +68,6 @@ function getButtonRow(descriptor: ButtonDescriptor) {
 }
 
 const buttons: ButtonDescriptor[] = [
-    //here
     {
         iconPath: mdiCheckboxMarkedCirclePlusOutline,
         name: "System Check All Bots",
@@ -100,7 +99,7 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiViewList,
         name: "Mission Panel",
         description:
-            "Open the Mission Panel, which shows each run in the current mission, along with the bots assigned to each run. Bots can be auto-assigned to runs automatically. Missions can also be saved, loaded, and cleared from this panel",
+            "Open the Mission Panel, which shows each run in the current mission, along with the bots assigned to each run. Bots can be auto-assigned to runs automatically. Missions can also be saved, loaded, and cleared from this panel.",
     },
     {
         imgSrc: rallyIcon,
@@ -145,7 +144,6 @@ const buttons: ButtonDescriptor[] = [
         name: "Zoom out",
         description: "Decrease the map's magnification.",
     },
-    //here
     {
         iconPath: mdiPower,
         name: "Shutdown",
@@ -163,50 +161,49 @@ const buttons: ButtonDescriptor[] = [
     },
     {
         iconPath: mdiChartLine,
-        name: "test",
-        description: "test",
+        name: "JDV",
+        description: "Link for JDV charts.",
     },
     {
         iconPath: mdiWifiCog,
-        name: "test",
-        description: "test",
+        name: "Router",
+        description: "Link for router.",
     },
     {
         iconPath: mdiWrenchCog,
         name: "Upgrade",
-        description: "test",
+        description: "Link for upgrades.",
     },
-    //here
     {
         iconPath: mdiStop,
-        name: "Stop",
-        description: "test",
+        name: "Stop Mission",
+        description: "Stop mission for a chosen bot.",
     },
     {
         iconPath: mdiPlay,
-        name: "RC mode",
-        description: "test",
+        name: "Run Mission",
+        description: "Play mission for a chosen bot.",
     },
     {
         iconPath: mdiDelete,
         name: "Clear Mission",
-        description: "test",
+        description: "Clear mission for a chosen bot.",
     },
-    //here
     {
         iconPath: mdiController,
         name: "RC mode",
-        description: "test",
+        description:
+            "Romote controller to control Manual Dual, Manual Single, and Dive. User can use throttle to move forward/backwards and rudder to change direction.",
     },
     {
         iconPath: mdiSkipNext,
-        name: "test",
-        description: "test",
+        name: "Next Task",
+        description: "Have chosen bot skip to the next task.",
     },
     {
         iconPath: mdiDownload,
-        name: "test",
-        description: "test",
+        name: "Retry Data Offload",
+        description: "Download data for chosen bot.",
     },
 ];
 
@@ -235,17 +232,24 @@ export function HelpWindow(props: Props) {
                 <tbody>
                     {buttons.map((button, index) => (
                         <>
-                            {index === 0 && (
+                            {index === 0 && ( //fix this
                                 <tr className="instruction-note-row">
                                     <td colSpan={3} className="instruction-note">
-                                        Commands in the commandsDrawer.
+                                        Commands at the top right.
+                                    </td>
+                                </tr>
+                            )}
+                            {index === 5 && ( //fix this
+                                <tr className="instruction-note-row">
+                                    <td colSpan={3} className="instruction-note">
+                                        Commands towards the right.
                                     </td>
                                 </tr>
                             )}
                             {index === 14 && (
                                 <tr className="instruction-note-row">
                                     <td colSpan={3} className="instruction-note">
-                                        Commands under the Hub.
+                                        Hub Commands.
                                     </td>
                                 </tr>
                             )}
@@ -259,7 +263,7 @@ export function HelpWindow(props: Props) {
                             {index === 20 && (
                                 <tr className="instruction-note-row">
                                     <td colSpan={3} className="instruction-note">
-                                        TEST!!! Test!!!!.
+                                        Bot commands.
                                     </td>
                                 </tr>
                             )}
@@ -268,7 +272,16 @@ export function HelpWindow(props: Props) {
                     ))}
                 </tbody>
             </table>
-            <div className="help-footer-text">For more help</div>
+            <div className="help-workaround-text">
+                {" "}
+                After a completed mission run, to run a new or edited mission. First stop the bot,
+                then Download data, next run system check, and finally run mission.
+            </div>
+            <br></br>
+            <div className="help-footer-text">
+                {" "}
+                For more information click the Jaia logo at the top right.
+            </div>
         </div>
     );
 }
