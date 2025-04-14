@@ -45,9 +45,12 @@ class AtlasScientificOEMPHDriver
     void send_cfg();
 
   private:
-    goby::time::SteadyClock::time_point last_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_report_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_trigger_cfg_resend_time_{
+        goby::time::SteadyClock::now()};
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
+    int32_t trigger_cfg_resend_timeout_{20};
 };
 
 } // namespace apps

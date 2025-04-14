@@ -45,7 +45,7 @@ jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
 
     // Set timeout on missing report
     report_timeout_ = config.report_timeout_seconds();
-    last_report_time_ = goby::time::SteadyClock::now();
+    trigger_cfg_resend_timeout_ = config.trigger_cfg_resend_timeout_seconds();
 
     // configure our sensor
     send_cfg();
@@ -97,7 +97,13 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::health(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA);
 
-        send_cfg();
+        // Send configuration request at a configured rate
+        if (last_trigger_cfg_resend_time_ + std::chrono::seconds(trigger_cfg_resend_timeout_) <
+            goby::time::SteadyClock::now())
+        {
+            send_cfg();
+            last_trigger_cfg_resend_time_ = goby::time::SteadyClock::now();
+        }
     }
 
     health.set_state(health_state);

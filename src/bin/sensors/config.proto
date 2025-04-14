@@ -32,30 +32,35 @@ message AtlasOEMECThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 trigger_cfg_resend_timeout_seconds = 3 [default = 20];
 }
 
 message BlueRoboticsBar30ThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 trigger_cfg_resend_timeout_seconds = 3 [default = 20];
 }
 
 message AtlasOEMPHThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 trigger_cfg_resend_timeout_seconds = 3 [default = 20];
 }
 
 message AtlasOEMDOThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 trigger_cfg_resend_timeout_seconds = 3 [default = 20];
 }
 
 message TurnorCFluorThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 trigger_cfg_resend_timeout_seconds = 3 [default = 20];
 }
 
 message Sensors
