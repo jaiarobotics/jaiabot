@@ -70,7 +70,10 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
   private:
     std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
     std::set<jaiabot::sensor::protobuf::Sensor> failed_initializations;
-    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning> warning_names;
+    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Error>
+        initialization_error_names;
+    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
+        initialization_warning_names;
     boost::crc_32_type crc32_calc_;
 };
 
@@ -105,16 +108,18 @@ jaiabot::apps::Sensors::Sensors()
 
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
 
-    warning_names = {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
-                      jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO},
-                     {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
-                      jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC},
-                     {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
-                      jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
-                     {jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,
-                      jaiabot::protobuf::WARNING__INIT_FAILED__BLUE_ROBOTICS__BAR30},
-                     {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
-                      jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR}};
+    initialization_error_names = {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,
+                                   jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
+
+    initialization_warning_names = {
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO},
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC},
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
+        {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
+         jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -132,8 +137,16 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
 
     for (const jaiabot::sensor::protobuf::Sensor& sensor : failed_initializations)
     {
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(warning_names.at(sensor));
+        if (initialization_error_names.count(sensor) == 1)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(initialization_error_names.at(sensor));
+        }
+        else if (initialization_warning_names.count(sensor) == 1)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(initialization_warning_names.at(sensor));
+        }
     }
 }
 
