@@ -28,8 +28,8 @@
 using goby::glog;
 
 jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
-    const jaiabot::sensor::protobuf::SensorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>(config)
+    const jaiabot::config::AtlasOEMPHThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::AtlasOEMPHThreadConfig>(config)
 
 {
     glog.add_group("oem_ph", goby::util::Colors::blue);
@@ -40,15 +40,15 @@ jaiabot::apps::AtlasScientificOEMPHDriver::AtlasScientificOEMPHDriver(
                 receive_data(sensor_data.oem_ph());
         });
 
-    // configure our sensor
-    sensor::protobuf::SensorRequest request;
-    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    auto& sensor_cfg = *request.mutable_cfg();
-    sensor_cfg.set_sensor(config.metadata().sensor());
+    // Set sample rate config
+    sample_rate_ = config.sample_rate();
 
-    // TODO - hardcode or configuration?
-    sensor_cfg.set_sample_freq_with_units(config.sample_rate() * boost::units::si::hertz);
-    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+    // Set timeout on missing report
+    report_timeout_ = config.report_timeout_seconds();
+    last_report_time_ = goby::time::SteadyClock::now();
+
+    // configure our sensor
+    send_cfg();
 }
 
 void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
@@ -69,5 +69,36 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     }
     interprocess().publish<jaiabot::groups::ph>(ph_msg);
 
+    last_report_time_ = goby::time::SteadyClock::now();
+
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
+}
+
+void jaiabot::apps::AtlasScientificOEMPHDriver::send_cfg()
+{
+    sensor::protobuf::SensorRequest request;
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    auto& sensor_cfg = *request.mutable_cfg();
+    sensor_cfg.set_sensor(jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH);
+
+    sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+}
+
+void jaiabot::apps::AtlasScientificOEMPHDriver::health(
+    goby::middleware::protobuf::ThreadHealth& health)
+{
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on atlas oem ph report" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA);
+
+        send_cfg();
+    }
+
+    health.set_state(health_state);
 }

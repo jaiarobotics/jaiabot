@@ -320,6 +320,18 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSION__DATA_POST_OFFLOAD_FAILED = 723
         [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // from jaiabot_sensor
+    WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 800
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 801
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 802
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 803
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA = 804
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message LinuxHardwareStatus

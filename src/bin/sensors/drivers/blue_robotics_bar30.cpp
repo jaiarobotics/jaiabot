@@ -33,8 +33,8 @@ using goby::glog;
 namespace si = boost::units::si;
 
 jaiabot::apps::BlueRoboticsBar30Driver::BlueRoboticsBar30Driver(
-    const jaiabot::sensor::protobuf::SensorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>(config)
+    const jaiabot::config::BlueRoboticsBar30ThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::BlueRoboticsBar30ThreadConfig>(config)
 
 {
     glog.add_group("bar30", goby::util::Colors::blue);
@@ -45,15 +45,15 @@ jaiabot::apps::BlueRoboticsBar30Driver::BlueRoboticsBar30Driver(
                 receive_data(sensor_data.bar30());
         });
 
-    // configure our sensor
-    sensor::protobuf::SensorRequest request;
-    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    auto& sensor_cfg = *request.mutable_cfg();
-    sensor_cfg.set_sensor(config.metadata().sensor());
+    // Set sample rate config
+    sample_rate_ = config.sample_rate();
 
-    // TODO - hardcode or configuration?
-    sensor_cfg.set_sample_freq_with_units(config.sample_rate() * boost::units::si::hertz);
-    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+    // Set timeout on missing report
+    report_timeout_ = config.report_timeout_seconds();
+    last_report_time_ = goby::time::SteadyClock::now();
+
+    // configure our sensor
+    send_cfg();
 }
 
 void jaiabot::apps::BlueRoboticsBar30Driver::receive_data(
@@ -81,5 +81,36 @@ void jaiabot::apps::BlueRoboticsBar30Driver::receive_data(
 
     interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
 
+    last_report_time_ = goby::time::SteadyClock::now();
+
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd
+}
+
+void jaiabot::apps::BlueRoboticsBar30Driver::send_cfg()
+{
+    sensor::protobuf::SensorRequest request;
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    auto& sensor_cfg = *request.mutable_cfg();
+    sensor_cfg.set_sensor(jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30);
+
+    sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+}
+
+void jaiabot::apps::BlueRoboticsBar30Driver::health(
+    goby::middleware::protobuf::ThreadHealth& health)
+{
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on blue robotics bar30 report" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__MISSING_DATA__BLUEROBOTICS_BAR30_DATA);
+
+        send_cfg();
+    }
+
+    health.set_state(health_state);
 }

@@ -192,10 +192,6 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 
 void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata)
 {
-    sensor::protobuf::SensorThreadConfig thread_cfg;
-    thread_cfg.mutable_metadata()->CopyFrom(metadata);
-    thread_cfg.set_sample_rate(cfg().sample_rate());
-
     if (drivers_launched_.count(metadata.sensor()))
     {
         glog.is_warn() && glog << "Driver already launched for sensor: "
@@ -208,23 +204,23 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
     switch (metadata.sensor())
     {
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC:
-            launch_thread<AtlasScientificOEMECDriver>(thread_cfg);
+            launch_thread<AtlasScientificOEMECDriver>(cfg().ec());
             break;
 
         case sensor::protobuf::BLUE_ROBOTICS__BAR30:
-            launch_thread<BlueRoboticsBar30Driver>(thread_cfg);
+            launch_thread<BlueRoboticsBar30Driver>(cfg().bar30());
             break;
 
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH:
-            launch_thread<AtlasScientificOEMPHDriver>(thread_cfg);
+            launch_thread<AtlasScientificOEMPHDriver>(cfg().ph());
             break;
 
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO:
-            launch_thread<AtlasScientificOEMDODriver>(thread_cfg);
+            launch_thread<AtlasScientificOEMDODriver>(cfg().dissolved_oxygen());
             break;
 
         case sensor::protobuf::TURNER__C_FLUOR:
-            launch_thread<TurnerCFluorDriver>(thread_cfg);
+            launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
             break;
 
         default:
