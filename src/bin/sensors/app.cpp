@@ -236,6 +236,7 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
     if (metadata.init_failed())
     {
         failed_initializations.insert(metadata.sensor());
+        return;
     }
 
     switch (metadata.sensor())
