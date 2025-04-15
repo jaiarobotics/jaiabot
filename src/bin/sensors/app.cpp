@@ -35,6 +35,7 @@
 #include "drivers/turner__c_fluor.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/catalog.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
@@ -60,6 +61,7 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void query_metadata();
     void send_to_mcu(sensor::protobuf::SensorRequest request);
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
@@ -67,6 +69,11 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
 
   private:
     std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
+    std::set<jaiabot::sensor::protobuf::Sensor> failed_initializations;
+    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Error>
+        initialization_error_names;
+    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
+        initialization_warning_names;
     boost::crc_32_type crc32_calc_;
 };
 
@@ -100,6 +107,19 @@ jaiabot::apps::Sensors::Sensors()
         [this](const sensor::protobuf::SensorRequest& request) { send_to_mcu(request); });
 
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
+
+    initialization_error_names = {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,
+                                   jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
+
+    initialization_warning_names = {
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO},
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC},
+        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+         jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
+        {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
+         jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -108,6 +128,25 @@ void jaiabot::apps::Sensors::loop()
     {
         // keep querying the MCU until it responds with at least one sensor
         query_metadata();
+    }
+}
+
+void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+
+    for (const jaiabot::sensor::protobuf::Sensor& sensor : failed_initializations)
+    {
+        if (initialization_error_names.count(sensor) == 1)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(initialization_error_names.at(sensor));
+        }
+        else if (initialization_warning_names.count(sensor) == 1)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(initialization_warning_names.at(sensor));
+        }
     }
 }
 
@@ -202,6 +241,12 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
                                << sensor::protobuf::Sensor_Name(metadata.sensor())
                                << ", not launching another." << std::endl;
 
+        return;
+    }
+
+    if (metadata.init_failed())
+    {
+        failed_initializations.insert(metadata.sensor());
         return;
     }
 
