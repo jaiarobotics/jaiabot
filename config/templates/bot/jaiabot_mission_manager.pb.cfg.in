@@ -135,3 +135,5 @@ stop_camera_command {
     id: 2
     type: STOP_IMAGES
 }
+
+camera_type: $camera_type
