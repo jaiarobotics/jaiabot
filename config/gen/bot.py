@@ -323,7 +323,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
-                                     subnet_mask=common.comms.subnet_mask))
+                                     subnet_mask=common.comms.subnet_mask,
+                                     camera_type=common.camera_type))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,

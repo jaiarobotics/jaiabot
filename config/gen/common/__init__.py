@@ -91,3 +91,5 @@ def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):
                                       tty_verbosity = tty_verbosity,
                                       file_log=file_log,
                                       simulation=simulation_block)
+
+camera_type = os.getenv('jaia_camera_type', default='NO_CAMERA')

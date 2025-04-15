@@ -247,6 +247,11 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
-    optional bool camera_is_present = 92;
+
+    enum CameraType {
+        NO_CAMERA = 0;
+        AFT = 1;
+    }
+    optional CameraType camera_type = 92;
 
 }
