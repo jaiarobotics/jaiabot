@@ -14,6 +14,7 @@ message Metadata
 
     required Sensor sensor = 1;
     optional int32 sensor_version = 2;
+    optional int32 payload_board_version = 6;
 
     message Calibration
     {
