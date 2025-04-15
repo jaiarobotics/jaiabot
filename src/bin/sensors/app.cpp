@@ -250,6 +250,12 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
         return;
     }
 
+    if (metadata.has_payload_board_version())
+    {
+        glog.is_verbose() && glog << "BIO Payload Software Version: "
+                                  << metadata.payload_board_version() << std::endl;
+    }
+
     switch (metadata.sensor())
     {
         case sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC:
