@@ -386,6 +386,12 @@ jaiabot_apps = [
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
      'runs_on': [Type.HUB],
      'runs_on_cloudhub': True},
+    {'exe': 'jaiabot_data_vision',
+     'description': 'jaiabot_data_vision visualize log data',
+     'template': 'jaiabot_data_vision.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
+     'runs_on': [Type.HUB],
+     'runs_on_cloudhub': True},
 
     ## ALL BOT Services ##
 
