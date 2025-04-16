@@ -66,6 +66,10 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
     {
         do_msg.set_temperature(do_data.temperature());
     }
+    if (do_data.has_temperature_voltage())
+    {
+        do_msg.set_temperature_voltage(do_data.temperature_voltage());
+    }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();

@@ -67,6 +67,10 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     {
         ph_msg.set_temperature(ph_data.temperature());
     }
+    if (ph_data.has_temperature_voltage())
+    {
+        ph_msg.set_temperature_voltage(ph_data.temperature_voltage());
+    }
     interprocess().publish<jaiabot::groups::ph>(ph_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();

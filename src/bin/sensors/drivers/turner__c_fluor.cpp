@@ -57,8 +57,15 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
                              << turner_c_fluor_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::TurnerCFluor turner_c_fluor_msg;
-    turner_c_fluor_msg.set_concentration(turner_c_fluor_data.concentration());
-    interprocess().publish<jaiabot::groups::concentration>(turner_c_fluor_msg);
+    if (turner_c_fluor_data.has_concentration())
+    {
+        turner_c_fluor_msg.set_concentration(turner_c_fluor_data.concentration());
+    }
+    if (turner_c_fluor_data.has_concentration_voltage())
+    {
+        turner_c_fluor_msg.set_concentration_voltage(turner_c_fluor_data.concentration_voltage());
+    }
+    interprocess().publish<jaiabot::groups::fluorometer>(turner_c_fluor_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();
 

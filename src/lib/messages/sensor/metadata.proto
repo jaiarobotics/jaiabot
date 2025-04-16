@@ -14,6 +14,7 @@ message Metadata
 
     required Sensor sensor = 1;
     optional int32 sensor_version = 2;
+    optional int32 payload_board_version = 6;
 
     message Calibration
     {
@@ -43,5 +44,6 @@ message Metadata
     }
 
     repeated MetadataValue metadata = 5 [(nanopb).max_count = 16];
+    optional bool init_failed = 7;
 }
 
