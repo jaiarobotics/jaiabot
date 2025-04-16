@@ -28,8 +28,8 @@
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
-    const jaiabot::sensor::protobuf::SensorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>(config)
+    const jaiabot::config::TurnorCFluorThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>(config)
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
@@ -39,15 +39,15 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
                 receive_data(sensor_data.c_fluor());
         });
 
-    // configure our sensor
-    sensor::protobuf::SensorRequest request;
-    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    auto& sensor_cfg = *request.mutable_cfg();
-    sensor_cfg.set_sensor(config.metadata().sensor());
+    // Set sample rate config
+    sample_rate_ = config.sample_rate();
 
-    // TODO - hardcode or configuration?
-    sensor_cfg.set_sample_freq_with_units(1 * boost::units::si::hertz);
-    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+    // Set timeout on missing report
+    report_timeout_ = config.report_timeout_seconds();
+    resend_cfg_timeout_ = config.resend_cfg_timeout_seconds();
+
+    // configure our sensor
+    send_cfg();
 }
 
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
@@ -67,5 +67,41 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
     }
     interprocess().publish<jaiabot::groups::fluorometer>(turner_c_fluor_msg);
 
+    last_report_time_ = goby::time::SteadyClock::now();
+
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd
+}
+
+void jaiabot::apps::TurnerCFluorDriver::send_cfg()
+{
+    sensor::protobuf::SensorRequest request;
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    auto& sensor_cfg = *request.mutable_cfg();
+    sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
+
+    sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+    interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
+}
+
+void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on turner c fluorometer report" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA);
+
+        // Send configuration request at a configured rate
+        if (last_resend_cfg_time_ + std::chrono::seconds(resend_cfg_timeout_) <
+            goby::time::SteadyClock::now())
+        {
+            send_cfg();
+            last_resend_cfg_time_ = goby::time::SteadyClock::now();
+        }
+    }
+
+    health.set_state(health_state);
 }

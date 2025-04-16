@@ -28,10 +28,49 @@ import "goby/middleware/protobuf/serial_config.proto";
 
 package jaiabot.config;
 
+message AtlasOEMECThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message BlueRoboticsBar30ThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message AtlasOEMPHThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message AtlasOEMDOThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message TurnorCFluorThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
 message Sensors
 {
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
     optional goby.middleware.protobuf.SerialConfig mcu_serial = 3;
-    optional int32 sample_rate = 4;
+    optional AtlasOEMECThreadConfig ec = 10;
+    optional BlueRoboticsBar30ThreadConfig bar30 = 20;
+    optional AtlasOEMPHThreadConfig ph = 30;
+    optional AtlasOEMDOThreadConfig dissolved_oxygen = 40;
+    optional TurnorCFluorThreadConfig fluorometer = 50;  
 }

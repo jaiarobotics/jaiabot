@@ -61,9 +61,3 @@ message SensorData
         // EchoData echo_data = 17;
     }
 }
-
-message SensorThreadConfig
-{
-    optional Metadata metadata = 1;
-    optional int32 sample_rate = 2;
-}

@@ -23,6 +23,8 @@
 #ifndef JAIABOT_SENSORS_DRIVERS_TURNER_C_FLUOR_H
 #define JAIABOT_SENSORS_DRIVERS_TURNER_C_FLUOR_H
 
+#include "config.pb.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include "jaiabot/messages/sensor/turner__c_fluor.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
@@ -32,13 +34,22 @@ namespace jaiabot
 namespace apps
 {
 class TurnerCFluorDriver
-    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::SensorThreadConfig>
+    : public goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>
 {
   public:
-    TurnerCFluorDriver(const jaiabot::sensor::protobuf::SensorThreadConfig& config);
+    TurnerCFluorDriver(const jaiabot::config::TurnorCFluorThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void send_cfg();
+
+  private:
+    goby::time::SteadyClock::time_point last_report_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_resend_cfg_time_{goby::time::SteadyClock::now()};
+    int32_t sample_rate_{10};
+    int32_t report_timeout_{20};
+    int32_t resend_cfg_timeout_{20};
 };
 
 } // namespace apps
