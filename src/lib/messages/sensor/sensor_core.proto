@@ -16,6 +16,22 @@ enum MCUCommand
     ENTER_BOOTLOADER_MODE = 1;
 }
 
+enum CalibrationCommand
+{
+    START_EC_CALIBRATION = 1;
+    CALIBRATE_EC_DRY = 2;
+    CALIBRATE_EC_LOW = 3;
+    CALIBRATE_EC_HIGH = 4;
+    START_PH_CALIBRATION = 5;
+    CALIBRATE_PH_LOW = 6;
+    CALIBRATE_PH_MID = 7;
+    CALIBRATE_PH_HIGH = 8;
+    START_DO_CALIBRATION = 9;
+    CALIBRATE_DO_LOW = 10;
+    CALIBRATE_DO_HIGH = 11;
+    STOP_CALIBRATION = 12;
+}
+
 message SensorRequest
 {
     option (dccl.msg) = {
@@ -36,6 +52,7 @@ message SensorRequest
     }
 
     optional MCUCommand mcu_command = 20;
+    optional CalibrationCommand calibration_command = 21;
 }
 
 message SensorData
@@ -60,4 +77,10 @@ message SensorData
         // change name to VendorSensor format
         // EchoData echo_data = 17;
     }
+}
+
+message SensorThreadConfig
+{
+    optional Metadata metadata = 1;
+    optional int32 sample_rate = 2;
 }
