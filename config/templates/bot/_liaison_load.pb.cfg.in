@@ -1,18 +1,13 @@
-load_protobuf {  #  (repeated)
-    name: "jaiabot.protobuf.Command"  #  (required)
+load_protobuf {
+    name: "jaiabot.sensor.protobuf.SensorRequest" 
     publish_to {
-        group: "jaiabot::self_command"
-        group_numeric: 11  # jaiabot::INTERVEHICLE_API_VERSION
-        layer: LAYER_INTERPROCESS
+        group: "jaiabot_sensors::mcu_command"
     }
 } 
 
-load_protobuf {  #  (repeated)
-    name: "jaiabot.protobuf.CameraCommand"  #  (required)
+load_protobuf {
+    name: "jaiabot.protobuf.CameraCommand" 
     publish_to {
         group: "jaiabot::camera"
-        group_numeric: 11  # jaiabot::INTERVEHICLE_API_VERSION
-        layer: LAYER_INTERPROCESS
     }
-} 
-
+}

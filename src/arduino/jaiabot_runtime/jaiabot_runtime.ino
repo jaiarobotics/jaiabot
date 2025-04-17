@@ -8,7 +8,7 @@
 #ifdef UENUM
 #undef UENUM
 #endif
-#include "jaiabot/messages/nanopb/arduino.pb.h"
+#include "nanopb/jaiabot/messages/arduino.pb.h"
 #include "crc16.h"
 
 // Indicates the code version

@@ -46,7 +46,6 @@ using namespace jaiabot::protobuf;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-
 namespace jaiabot
 {
 namespace apps

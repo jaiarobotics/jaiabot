@@ -7,7 +7,6 @@
 
 #include "goby/middleware/io/detail/io_interface.h"     // for PubSubLayer
 #include "goby/middleware/io/detail/serial_interface.h" // for SerialThread
-#include "jaiabot/messages/nanopb/feather.pb.h"
 
 #include "crc32.h"
 
