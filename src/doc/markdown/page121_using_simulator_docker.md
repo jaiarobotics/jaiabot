@@ -2,17 +2,20 @@
 
 - [Using the Jaiabot Simulator in Docker](#using-the-jaiabot-simulator-in-docker)
   - [Install Docker](#install-docker)
-  - [Download pre-built Docker images (preferred)](#download-pre-built-docker-images-preferred)
+  - [Download pre-built Docker images](#download-pre-built-docker-images)
   - [Run the Simulator](#run-the-simulator)
     - [Using docker compose](#using-docker-compose)
-      - [Start the simulator](#start-the-simulator)
-      - [Stop the simulator](#stop-the-simulator)
-    - [Using docker run](#using-docker-run)
-      - [Start the simulator](#start-the-simulator-1)
-      - [Stop the simulator](#stop-the-simulator-1)
+    - [Start the simulator](#start-the-simulator)
+    - [Stop the simulator](#stop-the-simulator)
   - [Using JCC](#using-jcc)
   - [Using JDV](#using-jdv)
-  - [Working with images locally (advanced, Linux platforms only)](#working-with-images-locally-advanced-linux-platforms-only)
+  - [Using Jaia REST API](#using-jaia-rest-api)
+    - [Example](#example)
+  - [Appendix: Advanced Use](#appendix-advanced-use)
+    - [Using docker run](#using-docker-run)
+    - [Start the simulator](#start-the-simulator-1)
+    - [Stop the simulator](#stop-the-simulator-1)
+    - [Working with images locally (Linux platforms only)](#working-with-images-locally-linux-platforms-only)
 
 ## Install Docker
 
@@ -25,7 +28,7 @@ A few important Docker terms:
 - _image_ - refers to a self contained runtime environment
 - _container_ - refers to a running instance of an image
 
-## Download pre-built Docker images (preferred)
+## Download pre-built Docker images
 
 As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.
 
@@ -46,7 +49,7 @@ As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both 
 ## Run the Simulator
 
 ### Using docker compose
-Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from `scripts/sim-docker/docker-compose.yml` at https://github.com/jaiarobotics/jaiabot
+Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
 
 Example:
 ```
@@ -83,23 +86,100 @@ services:
     tty: true
     restart: "no"
 ```
-#### Start the simulator
+### Start the simulator
 
 From the same directory as the `docker-compose.yml` file the following command will launch the simulator, including JCC, JDV, and the Jaia REST API.
 
 `docker compose up -d jaia-sim`
 
-#### Stop the simulator
+### Stop the simulator
 
 From the same directory as the `docker-compose.yml` file the following command will shut down the simulator, stop the container and remove it.
 
 `docker compose down`
 
+
+## Using JCC
+
+At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
+
+http://localhost:40001/
+
+## Using JDV
+
+JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
+
+http://localhost:40011/
+
+## Using Jaia REST API
+
+The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser using the api_key "simulation".
+
+For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html)
+
+### Example
+**Get status of bot #2**
+
+`http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
+
+returns
+
+```
+{
+  "request": {
+    "api_key": "simulation",
+    "status": true,
+    "target": {
+      "bots": [2]
+    }
+  },
+  "status": {
+    "bots": [
+      {
+        "attitude": {
+          "course_over_ground": 180,
+          "heading": 166,
+          "pitch": 85,
+          "roll": -57
+        },
+        "battery_percent": 95,
+        "bot_id": 2,
+        "bot_type": "HYDRO",
+        "calibration_status": 3,
+        "depth": 0,
+        "hdop": 1.01,
+        "health_state": "HEALTH__OK",
+        "link": "LINK_WIFI",
+        "location": {
+          "lat": 41.661405,
+          "lon": -71.272252
+        },
+        "mission_state": "PRE_DEPLOYMENT__IDLE",
+        "pdop": 2.2,
+        "received_time": "1744898838214380",
+        "salinity": 20,
+        "speed": {
+          "over_ground": 0
+        },
+        "temperature": 14.96,
+        "time": "1744898838000000",
+        "wifi_link_quality_percentage": 100
+      }
+    ]
+  },
+  "target": {
+    "bots": [2]
+  }
+}
+```
+
+## Appendix: Advanced Use
+
 ### Using docker run
 
 If the user does not want to use docker compose, the simulation can also be run using the `docker run` command.
 
-#### Start the simulator
+### Start the simulator
 
 `docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 -p 40011:40011 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 -v ./jdv_data:/var/log/jaiabot/bot_offload gobysoft/jaiabot-sim:2.0.0 /bin/bash`
 
@@ -119,28 +199,16 @@ Explanation of command.
   "--env JAIA_SIM_FLEET=30" Fleet number used in sim
   "-v ./jdv_data:/var/log/jaiabot/bot_offload" Mounts the bot_offload folder in the container to ./jdv_data on host machine
   "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
-  "/bin/bash -li" Tells docker to launch a bash shell
+  "/bin/bash" Tells docker to launch a bash shell
 ```
 
-#### Stop the simulator
+### Stop the simulator
 
 The following command will shut down the simulator, stop the container and remove it.
 
 `docker stop jaia-sim-container`
 
-## Using JCC
-
-At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
-
-http://localhost:40001/
-
-## Using JDV
-
-JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
-
-http://localhost:40011/
-
-## Working with images locally (advanced, Linux platforms only)
+### Working with images locally (Linux platforms only)
 
 This section is intended for experienced Linux users only. Building and managing images locally is not recommended on other platforms, please use pre-built images.
 
