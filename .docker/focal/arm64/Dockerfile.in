@@ -99,4 +99,4 @@ ENV PATH $NODE_PATH:$PATH
 # Work around issue where linux-libc-dev distributed for amd64 is newer than that for arm64
 # https://answers.launchpad.net/ubuntu/+question/821539
 # We want to unhold this version for when this image is updated in the future
-RUN apt-mark unhold linux-libc-dev:amd46
+RUN apt-mark unhold linux-libc-dev:amd64
