@@ -213,7 +213,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only:
         - "2.y"
 
-
 ## Begin actual config
 version: 2.1
 orbs:
