@@ -10,6 +10,24 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ENV CROSS_COMPILE_ARCHS "arm64"
 
+# Allow us to install packages for cross-compiling architectures
+RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
+    ARCHS_LIST=$(IFS=,; echo "${ARCHS[*]}") && \
+    for ARCH in "${ARCHS[@]}"; do dpkg --add-architecture "$ARCH"; done && \
+    sed -i 's/deb /deb [arch=amd64] /' /etc/apt/sources.list && \
+    egrep "^deb " /etc/apt/sources.list | sed "s/amd64/${ARCHS_LIST}/" \
+        | sed 's|http://.*.ubuntu.com/ubuntu/|http://ports.ubuntu.com/|' \
+        >> /etc/apt/sources.list
+
+# Work around issue where linux-libc-dev distributed for amd64 is newer than that for arm64
+# by installing the arm64 version of linux-libc-dev for amd64 and then holding that package back from updates
+# https://answers.launchpad.net/ubuntu/+question/821539
+# See also unhold at bottom of Dockerfile
+RUN apt-get update && \
+    apt-get -y install linux-libc-dev:amd64=$(apt-cache policy linux-libc-dev:arm64 | awk '/Candidate:/ {print $2}') && \
+    apt-get -y install linux-libc-dev:arm64 && \
+    apt-mark hold linux-libc-dev:amd64
+
 RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y --no-install-recommends install \
@@ -19,15 +37,6 @@ RUN apt-get update && \
             dput cdbs \
             gcc-aarch64-linux-gnu \
             && rm -rf /var/lib/apt/lists/*
-
-# Allow us to install packages for cross-compiling architectures
-RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
-    ARCHS_LIST=$(IFS=,; echo "${ARCHS[*]}") && \
-    for ARCH in "${ARCHS[@]}"; do dpkg --add-architecture "$ARCH"; done && \
-    sed -i 's/deb /deb [arch=amd64] /' /etc/apt/sources.list && \
-    egrep "^deb " /etc/apt/sources.list | sed "s/amd64/${ARCHS_LIST}/" \
-        | sed 's|http://.*.ubuntu.com/ubuntu/|http://ports.ubuntu.com/|' \
-        >> /etc/apt/sources.list
 
 # Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
 RUN echo -e "deb http://packages.jaia.tech/ubuntu/${repo}/${version}/ ${distro}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${repo}/${version}/ ${distro}/" >> /etc/apt/sources.list.d/jaiabot_${repo}_${version}.list && \
@@ -86,3 +95,8 @@ RUN source $NVM_DIR/nvm.sh \
 # NVM Post Install Setup
 ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
 ENV PATH $NODE_PATH:$PATH
+
+# Work around issue where linux-libc-dev distributed for amd64 is newer than that for arm64
+# https://answers.launchpad.net/ubuntu/+question/821539
+# We want to unhold this version for when this image is updated in the future
+RUN apt-mark unhold linux-libc-dev:amd46
