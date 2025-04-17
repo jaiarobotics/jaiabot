@@ -83,8 +83,9 @@ def get_bar30_data(file: h5py.File):
     return df
 
 def get_fluor_data(file: h5py.File):
-    utime = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
-    concentration = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
+    utime = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
+    # concentration = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
+    concentration = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
 
     df = pd.DataFrame({'utime': utime, 'Fluorometer Concentration': concentration})
     df.attrs["file_name"] = file.filename
@@ -218,6 +219,59 @@ def plot_series_x_utime(df: pd.DataFrame,
     fig.update_layout(
         title=title or f"{y_axis} vs {'utime'}",
         xaxis_title="utime",
+        yaxis_title=y_label or y_axis,
+        template='simple_white',
+        showlegend=True,
+        hovermode='x unified'
+    )
+    
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+    
+    fig.show()
+    return fig 
+
+def plot_series_x_datetime(df: pd.DataFrame,
+                    y_axis: list[str],
+                    title: str = None,
+                    y_label: str = None) -> go.Figure:
+    """
+    Creates a Plotly 2D plot from a DataFrame using specified columns.
+    
+    Args:
+        df: Input DataFrame containing the data
+        x_axis: Column name to use for x-axis
+        y_axis: Column name to use for y-axis
+        title: Optional plot title
+        x_label: Optional x-axis label (defaults to x_axis if None)
+        y_label: Optional y-axis label (defaults to y_axis if None)
+    
+    Returns:
+        Plotly Figure object
+    """
+    # Input validation
+    for y in y_axis:
+        if y not in df.columns:
+            raise ValueError(f"Column '{y}' not found in DataFrame")
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Add scatter plot
+    for y in y_axis:
+        fig.add_trace(
+            go.Scatter(
+                x=df['datetime'],
+                y=df[y],
+                mode='lines',
+                name=y
+            )
+        )
+    
+    # Update layout
+    fig.update_layout(
+        title=title or f"{y_axis} vs {'datetime'}",
+        xaxis_title="datetime",
         yaxis_title=y_label or y_axis,
         template='simple_white',
         showlegend=True,

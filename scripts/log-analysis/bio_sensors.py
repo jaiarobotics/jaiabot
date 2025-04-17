@@ -56,7 +56,7 @@ def main():
                     combined_df.to_csv(output_dir / f"{h5_file.stem}.csv", index=False)
                 
                 # Plot all sensor series for one file
-                au.plot_series_x_utime(combined_df, y_axis=[combined_df.columns[i] for i in range(1, len(combined_df.columns))], title=f"{h5_file.stem}", y_label='Bio Sensor Data')
+                au.plot_series_x_datetime(combined_df, y_axis=[combined_df.columns[i] for i in range(1, len(combined_df.columns))], title=f"{h5_file.stem}", y_label='Bio Sensor Data')
                 
                 # Uncomment to plot each sensor series individually
                 # au.plot_series_x_utime(combined_df, y_axis=['ph'], title=f"{h5_file.stem} - pH", y_label='pH')
@@ -89,11 +89,11 @@ def main():
     df_bar30['datetime'] = au.utime_to_datetime(df_bar30, 'utime')
     df_fluoro['datetime'] = au.utime_to_datetime(df_fluoro, 'utime')
 
-    au.plot_series_x_utime(df_ec, y_axis=[df_ec.columns[i] for i in range(1, len(df_ec.columns))], title='EC', y_label='Conductivity')
-    au.plot_series_x_utime(df_do, y_axis=[df_do.columns[i] for i in range(1, len(df_do.columns))], title='DO', y_label='Dissolved Oxygen')
-    au.plot_series_x_utime(df_ph, y_axis=[df_ph.columns[i] for i in range(1, len(df_ph.columns))], title='PH', y_label='PH')
-    au.plot_series_x_utime(df_bar30, y_axis=[df_bar30.columns[i] for i in range(1, len(df_bar30.columns))], title='Bar 30', y_label='Bar 30')
-    au.plot_series_x_utime(df_fluoro, y_axis=[df_fluoro.columns[i] for i in range(1, len(df_fluoro.columns))], title="Fluorometer Concentration", y_label="Fluorometer")
+    au.plot_series_x_datetime(df_ec, y_axis=[df_ec.columns[i] for i in range(1, len(df_ec.columns))], title='EC', y_label='Conductivity')
+    au.plot_series_x_datetime(df_do, y_axis=[df_do.columns[i] for i in range(1, len(df_do.columns))], title='DO', y_label='Dissolved Oxygen')
+    au.plot_series_x_datetime(df_ph, y_axis=[df_ph.columns[i] for i in range(1, len(df_ph.columns))], title='PH', y_label='PH')
+    au.plot_series_x_datetime(df_bar30, y_axis=[df_bar30.columns[i] for i in range(1, len(df_bar30.columns))], title='Bar 30', y_label='Bar 30')
+    au.plot_series_x_datetime(df_fluoro, y_axis=[df_fluoro.columns[i] for i in range(1, len(df_fluoro.columns))], title="Fluorometer Concentration", y_label="Fluorometer")
 
     # print(df_ec)
     # print(df_do)
