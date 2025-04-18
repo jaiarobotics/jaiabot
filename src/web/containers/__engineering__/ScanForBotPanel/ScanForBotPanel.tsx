@@ -3,7 +3,7 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 import React from "react";
-import { error, success, warning, info, debug } from "../../../notifications/notifications";
+import { error, success, warning, info, debug } from "../../../utils/notifications";
 import Button from "@mui/material/Button";
 import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
 import { JaiaAPI } from "../../../utils/jaia-api";
