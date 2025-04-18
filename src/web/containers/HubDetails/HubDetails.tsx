@@ -1,7 +1,7 @@
 // React -- Jaia
 import { useContext, useEffect, useState } from "react";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/Jaia/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/JaiaContext";
 import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
 
 // Utilities

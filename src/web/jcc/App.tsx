@@ -1,5 +1,5 @@
 // Jaia
-import { JaiaContextProvider } from "../context/Jaia/JaiaContext";
+import { JaiaContextProvider } from "../context/JaiaContext";
 
 // Style
 import "./App.less";
