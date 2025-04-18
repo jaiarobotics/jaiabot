@@ -409,6 +409,12 @@ function handleClosedDetails(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Handles cleanup when a waypoint panel closes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleClosedWaypointPanel(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
 
@@ -566,6 +572,13 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
     return mutableState;
 }
 
+/**
+ * Opens panel for the selected waypoint
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {SelectedWaypoint} clickedWaypoint Identifies which waypoint was clicked by operator
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
     jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
 
