@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 jaiabot::apps::Sensors::Sensors()
-    : zeromq::MultiThreadApplication<config::Sensors>(1.0 / 30.0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::Sensors>(1.0 / 20.0 * si::hertz)
 {
     using MCUSerialThread =
         goby::middleware::io::SerialThreadCOBS<mcu_serial_in, mcu_serial_out,
