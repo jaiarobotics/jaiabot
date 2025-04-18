@@ -180,8 +180,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
     // subscribe for commands from engineering
     interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
-        [this](const jaiabot::protobuf::Engineering& command)
-        {
+        [this](const jaiabot::protobuf::Engineering& command) {
             if (command.has_pid_control())
             {
                 handle_engineering_command(command.pid_control());
@@ -197,13 +196,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
     // subscribe for commands from mission manager
     interprocess()
         .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
-            [this](const jaiabot::protobuf::DesiredSetpoints& command)
-            { handle_command(command); });
+            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
+                handle_command(command);
+            });
 
     // Subscribe to get vehicle movement and orientation, for PID targeting
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
-        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
-        {
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             glog.is_debug2() && glog << "Received node status: " << node_status.ShortDebugString()
                                      << std::endl;
 

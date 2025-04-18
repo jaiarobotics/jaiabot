@@ -22,5 +22,5 @@ message Bounds{
 	optional SurfaceBounds strb = 1;
 	optional SurfaceBounds port = 2;
 	optional SurfaceBounds rudder = 3;
-	optional MotorBounds motor = 4;               
+	optional MotorBounds motor = 4;                
     }

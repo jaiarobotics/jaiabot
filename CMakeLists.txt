@@ -108,11 +108,11 @@ foreach(I ${INCLUDE_FILES})
 endforeach()
 foreach(I ${PROTO_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
-  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 foreach(I ${NANOPB_OPTIONS_FILES})
-  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 
@@ -196,6 +196,7 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
   # Utilities
