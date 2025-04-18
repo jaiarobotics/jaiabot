@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.sensor.protobuf;
+
+message AtlasScientificOEMEC
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double conductivity = 1;
+    // REQUIRES DCCL 4.2.2 - uncomment when we wrap this in
+    // [(dccl.field) = {
+    // units {
+    //         custom {
+    //             unit: "jaiabot::units::microsiemens_per_cm_unit"
+    //             header: "jaiabot/units/conductivity.h"
+    //         }
+    //     }
+    // }];
+    
+    required double total_dissolved_solids = 2;
+    required double salinity = 3;
+    required double specific_gravity = 4;
+}
+
+
+

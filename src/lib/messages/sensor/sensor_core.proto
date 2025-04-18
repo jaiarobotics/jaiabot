@@ -1,0 +1,57 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/sensor/metadata.proto";
+import "jaiabot/messages/sensor/configuration.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ec.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_do.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ph.proto";
+import "jaiabot/messages/sensor/turner__c_fluor.proto";
+import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
+
+package jaiabot.sensor.protobuf;
+
+message SensorRequest
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required uint64 time = 1 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    oneof request_data
+    {
+        bool request_metadata = 11;
+        Configuration cfg = 12;
+
+        // change name to VendorSensor format
+        //  EchoCommand echo_command = 13;
+    }
+}
+
+message SensorData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required uint64 time = 1 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    oneof data
+    {
+        Metadata metadata = 11;
+        AtlasScientificOEMEC oem_ec = 12;
+        BlueRoboticsBar30 bar30 = 13;
+        AtlasScientificOEMpH oem_ph = 14;
+        AtlasScientificOEMDO oem_do = 15;
+        TurnerCFluor c_fluor = 16;
+        
+        // change name to VendorSensor format
+        // EchoData echo_data = 17;
+    }
+}
+

@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package jaiabot.sensor.protobuf;
+
+message BlueRoboticsBar30
+{
+    optional double pressure = 1; // mbar
+    optional double temperature = 2; // degC
+}
