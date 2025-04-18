@@ -1,6 +1,6 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { PanelNames } from "../../types/context-types";
 
 import Icon from "@mdi/react";
