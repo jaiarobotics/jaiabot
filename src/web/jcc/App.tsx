@@ -35,6 +35,9 @@ export default function App() {
     );
 }
 
+/**
+ * Controls the rendering of HubDetails and BotDetails
+ */
 function Details() {
     const jaiaContext = useContext(JaiaContext);
 
@@ -52,6 +55,9 @@ function Details() {
     }
 }
 
+/**
+ *  Controls the rendering of JCC panels
+ */
 function Panel() {
     const jaiaContext = useContext(JaiaContext);
 
