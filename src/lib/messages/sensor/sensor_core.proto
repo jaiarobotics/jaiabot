@@ -54,6 +54,7 @@ message SensorRequest
 
     optional MCUCommand mcu_command = 20;
     optional CalibrationType calibration_type = 21;
+    required double calibration_value = 22;
 }
 
 message SensorData
