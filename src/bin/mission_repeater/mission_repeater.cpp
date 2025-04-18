@@ -74,8 +74,7 @@ int main(int argc, char* argv[])
 jaiabot::apps::MissionRepeater::MissionRepeater() : ApplicationBase(10 * boost::units::si::hertz)
 {
     interprocess().subscribe<jaiabot::groups::mission_report>(
-        [this](const protobuf::MissionReport& report)
-        {
+        [this](const protobuf::MissionReport& report) {
             // start script when mission just begins recovery
             if (!script_started_ &&
                 report.state() == protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT)

@@ -10,7 +10,7 @@ message AtlasScientificOEMEC
         unit_system: "si"
     };
 
-    required double conductivity = 1;
+    optional double conductivity = 1;
     // REQUIRES DCCL 4.2.2 - uncomment when we wrap this in
     // [(dccl.field) = {
     // units {
@@ -21,9 +21,8 @@ message AtlasScientificOEMEC
     //     }
     // }];
     
-    required double total_dissolved_solids = 2;
-    required double salinity = 3;
-    required double specific_gravity = 4;
+    optional double total_dissolved_solids = 2;
+    optional double salinity = 3;
 }
 
 

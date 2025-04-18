@@ -91,9 +91,7 @@ void jaiabot::comms::UDPDriver::startup(const goby::acomms::protobuf::DriverConf
     for (const auto& remote : config_extension().remote()) { update_remote(remote); }
 
     for (const auto& hub_ep : config_extension().hub_endpoint())
-    {
-        hub_endpoints_.insert(std::make_pair(hub_ep.hub_id(), hub_ep.remote()));
-    }
+    { hub_endpoints_.insert(std::make_pair(hub_ep.hub_id(), hub_ep.remote())); }
 
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
@@ -209,8 +207,7 @@ void jaiabot::comms::UDPDriver::start_send(const goby::acomms::protobuf::ModemTr
     raw_msg.set_raw(bytes);
     signal_raw_outgoing(raw_msg);
 
-    auto send = [&](const boost::asio::ip::udp::endpoint& receiver)
-    {
+    auto send = [&](const boost::asio::ip::udp::endpoint& receiver) {
         socket_->async_send_to(boost::asio::buffer(bytes), receiver,
                                boost::bind(&UDPDriver::send_complete, this, boost::placeholders::_1,
                                            boost::placeholders::_2));

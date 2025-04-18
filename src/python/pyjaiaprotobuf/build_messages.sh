@@ -3,13 +3,21 @@
 set -e
 
 # The root of the jaiabot directory tree, where we'll find the source proto files
-JAIABOT_DIR="$1"
+if [[ -z "$1" ]]; then
+    JAIABOT_DIR="$(pwd)/../../../"
+else
+    JAIABOT_DIR=$"$1"
+fi  
 
 # Where to find the jaiabot .proto source files
 JAIABOT_MESSAGES_DIR="${JAIABOT_DIR}/src/lib/messages/"
 
 # The target directory in which to build the protobuf python files
-PYTHON_OUT_DIR="$2"
+if [[ -z "$2" ]]; then
+    PYTHON_OUT_DIR="$(pwd)/"
+else
+    PYTHON_OUT_DIR=$"$2"
+fi  
 
 echo "🟢 Building Jaia protobuf python modules"
 
