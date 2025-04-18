@@ -335,6 +335,12 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     return mutableState;
 }
 
+/**
+ * Makes call to remove a waypoint from a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleDeleteWaypoint(mutableState: JaiaContextType) {
     const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
@@ -349,6 +355,13 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Updates the task associated with a waypoint based on the operator's selection
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {TaskType} taskType Name of the task selected
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
     const waypoint = getWaypoint();
     const task = waypoint.getTask();
@@ -366,6 +379,13 @@ function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
     return mutableState;
 }
 
+/**
+ * Makes call to update the parameters of a task based on user input
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {TaskParameterPair} taskParameterPair The name of the input updated and its value
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
@@ -604,6 +624,11 @@ function syncOpenLayers() {
     missionLayer.updateFeatures();
 }
 
+/**
+ * Retrieves the Waypoint object that is currently selected
+ *
+ * @returns {Waypoint} Access to Waypoint modifiers
+ */
 function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missions.getMission(selectedWaypoint.missionID);

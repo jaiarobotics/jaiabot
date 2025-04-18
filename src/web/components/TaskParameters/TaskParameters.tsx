@@ -17,6 +17,9 @@ interface SubProps {
     onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+/**
+ * Renders input fields for the provided task
+ */
 export default function TaskParameters(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
@@ -42,6 +45,9 @@ export default function TaskParameters(props: Props) {
     }
 }
 
+/**
+ * Renders input fields for a dive task
+ */
 function DiveParameters(props: SubProps) {
     return (
         <div className="task-parameters">
@@ -88,6 +94,9 @@ function DiveParameters(props: SubProps) {
     );
 }
 
+/**
+ * Renders input fields for a drift task
+ */
 function DriftParameters(props: SubProps) {
     return (
         <div className="task-parameters">
@@ -104,6 +113,9 @@ function DriftParameters(props: SubProps) {
     );
 }
 
+/**
+ * Renders input fields for a constant heading task
+ */
 function ConstantHeading(props: SubProps) {
     return (
         <div className="task-parameters">

@@ -40,6 +40,12 @@ export default class Task {
         return this.type;
     }
 
+    /**
+     * Initializes the task parameters when an operator selects a new task
+     *
+     * @param {TaskType} type Name of selected task
+     * @returns {void}
+     */
     setType(type: TaskType) {
         const defaultParams = jaiaGlobal.getDefaultTaskParameters();
 
@@ -63,6 +69,12 @@ export default class Task {
         this.type = type;
     }
 
+    /**
+     * Handles inputs made by the operator to change task parameters
+     *
+     * @param {TaskParameterPair} taskParameterPair Name of parameter + its value
+     * @returns {void}
+     */
     setParameter(taskParameterPair: TaskParameterPair) {
         const key = taskParameterPair.key;
         let value = taskParameterPair.value;
