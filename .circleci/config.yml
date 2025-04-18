@@ -195,7 +195,6 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "1.y"
-        - "feature/create-pi-zero-image/JAIA-1915"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -205,7 +204,6 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
     branches:
       only:
         - "1.y"
-        - "feature/create-pi-zero-image/JAIA-1915"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
