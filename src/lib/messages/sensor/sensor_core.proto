@@ -8,6 +8,7 @@ import "jaiabot/messages/sensor/atlas_scientific__oem_do.proto";
 import "jaiabot/messages/sensor/atlas_scientific__oem_ph.proto";
 import "jaiabot/messages/sensor/turner__c_fluor.proto";
 import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
+import "jaiabot/messages/sensor/catalog.proto";
 
 package jaiabot.sensor.protobuf;
 
@@ -16,20 +17,20 @@ enum MCUCommand
     ENTER_BOOTLOADER_MODE = 1;
 }
 
-enum CalibrationCommand
+enum CalibrationType
 {
     START_EC_CALIBRATION = 1;
     CALIBRATE_EC_DRY = 2;
     CALIBRATE_EC_LOW = 3;
     CALIBRATE_EC_HIGH = 4;
-    START_PH_CALIBRATION = 5;
-    CALIBRATE_PH_LOW = 6;
-    CALIBRATE_PH_MID = 7;
-    CALIBRATE_PH_HIGH = 8;
-    START_DO_CALIBRATION = 9;
-    CALIBRATE_DO_LOW = 10;
-    CALIBRATE_DO_HIGH = 11;
-    STOP_CALIBRATION = 12;
+    START_DO_CALIBRATION = 5;
+    CALIBRATE_DO_LOW = 6;
+    CALIBRATE_DO_HIGH = 7;
+    START_PH_CALIBRATION = 8;
+    CALIBRATE_PH_LOW = 9;
+    CALIBRATE_PH_MID = 10;
+    CALIBRATE_PH_HIGH = 11;
+    STOP_CALIBRATION = 12; 
 }
 
 message SensorRequest
@@ -52,7 +53,7 @@ message SensorRequest
     }
 
     optional MCUCommand mcu_command = 20;
-    optional CalibrationCommand calibration_command = 21;
+    optional CalibrationType calibration_type = 21;
 }
 
 message SensorData
