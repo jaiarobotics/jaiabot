@@ -16,3 +16,16 @@ load_protobuf {  #  (repeated)
     }
 } 
 
+load_protobuf {
+    name: "jaiabot.sensor.protobuf.SensorRequest" 
+    publish_to {
+        group: "jaiabot_sensors::mcu_command"
+    }
+} 
+
+load_protobuf {
+    name: "jaiabot.protobuf.CameraCommand" 
+    publish_to {
+        group: "jaiabot::camera"
+    }
+}
