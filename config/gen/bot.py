@@ -50,7 +50,7 @@ if "jaia_arduino_type" in os.environ:
 if jaia_arduino_type == "spi":
     jaia_arduino_dev_location="/dev/ttyAMA1"
 elif jaia_arduino_type == 'usb':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
+    jaia_arduino_dev_location="/dev/arduino"
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 

@@ -61,10 +61,11 @@
 
 * SalinityData
   * required double conductivity
-  * required double total_dissolved_solids
-  * required double salinity
-    * Description: Measured in PSS
-  * required double specific_gravity
+    * Description: Measured in μS/cm
+  * required double total_dissolved_solids (beta)
+    * Description: Measured in ppm
+  * required double salinity (beta)
+    * Description: Measured in PSU (ppt)
 
 ## Section: Low Control
 
