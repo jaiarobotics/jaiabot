@@ -2,29 +2,29 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 import { JaiaActions } from "./jaia-actions";
 
-import { bots } from "../../data/bots/bots";
-import { hubs } from "../../data/hubs/hubs";
-import { missions } from "../../data/missions/missions";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import Bot from "../../data/bots/bot";
-import Hub from "../../data/hubs/hub";
-import Mission from "../../data/missions/mission";
+import { bots } from "../data/bots/bots";
+import { hubs } from "../data/hubs/hubs";
+import { missions } from "../data/missions/missions";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
+import { missionsManager } from "../data/missions_manager/missions-manager";
+import Bot from "../data/bots/bot";
+import Hub from "../data/hubs/hub";
+import Mission from "../data/missions/mission";
 
-import { botLayer } from "../../openlayers/layers/vector/bot-layer";
-import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { botLayer } from "../openlayers/layers/vector/bot-layer";
+import { hubLayer } from "../openlayers/layers/vector/hub-layer";
+import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
-import { GeographicCoordinate } from "../../types/protobuf-types";
-import { NodeTypes, SelectedNode } from "../../types/jaia-system-types";
-import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../../utils/constants";
+import { GeographicCoordinate } from "../types/protobuf-types";
+import { NodeTypes, SelectedNode } from "../types/jaia-system-types";
+import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
     HubAccordionStates,
     BotAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
     PanelNames,
-} from "../../types/context-types";
+} from "../types/context-types";
 
 export interface JaiaContextType {
     bots: Map<number, Bot>;

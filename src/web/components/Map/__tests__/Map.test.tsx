@@ -6,7 +6,7 @@ import { Feature } from "ol";
 import { Geometry } from "ol/geom";
 
 import Map from "../Map";
-import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
+import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";

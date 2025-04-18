@@ -3,8 +3,8 @@ import { useContext } from "react";
 
 // Jaia
 import MissionsList from "./MissionsList/MissionsList";
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { PanelNames } from "../../types/context-types";
 
 // MUI | MDI
