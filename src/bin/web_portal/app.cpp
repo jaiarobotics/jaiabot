@@ -32,7 +32,6 @@
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/portal.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
 
 #include <vector>
 

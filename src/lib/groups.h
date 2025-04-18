@@ -45,6 +45,10 @@ constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
+constexpr goby::middleware::Group mcu_pb_data_out{
+    "jaiabot::sensors::mcu_pb_data_out"}; // parsed SensorRequest
+constexpr goby::middleware::Group mcu_pb_data_in{
+    "jaiabot::sensors::mcu_pb_data_in"}; // parsed SensorData
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};

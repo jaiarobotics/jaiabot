@@ -23,11 +23,13 @@ rm -f ${PROTO_INCLUDE}/dccl
 ln -sf ${DCCL_DIR:-/usr/include/dccl} ${PROTO_INCLUDE}/dccl
 rm -f ${PROTO_INCLUDE}/jaiabot
 ln -sf "${JAIABOT_DIR}/src/lib" ${PROTO_INCLUDE}/jaiabot
+rm -f ${PROTO_INCLUDE}/nanopb
+ln -sf /usr/lib/python3/dist-packages/proto/nanopb.proto ${PROTO_INCLUDE}/nanopb.proto
 
 # Create output directory
 mkdir -p $PYTHON_OUT_DIR
 
-protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto
+protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto ${PROTO_INCLUDE}/nanopb.proto
 
 # Remove the temporary proto_include directory
 rm -rf ${PROTO_INCLUDE}

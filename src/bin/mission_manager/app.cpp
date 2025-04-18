@@ -31,8 +31,8 @@
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
