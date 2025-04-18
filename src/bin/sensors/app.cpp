@@ -106,6 +106,9 @@ jaiabot::apps::Sensors::Sensors()
     interprocess().subscribe<jaiabot::groups::mcu_command>(
         [this](const sensor::protobuf::SensorRequest& request) { send_to_mcu(request); });
 
+    interprocess().subscribe<jaiabot::groups::mcu_calibration_command>(
+        [this](const sensor::protobuf::SensorRequest& request) { send_to_mcu(request); });
+        
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
 
     initialization_error_names = {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,

@@ -54,6 +54,7 @@ constexpr goby::middleware::Group mcu_pb_data_out{
 constexpr goby::middleware::Group mcu_pb_data_in{
     "jaiabot::sensors::mcu_pb_data_in"}; // parsed SensorData
 constexpr goby::middleware::Group mcu_command{"jaiabot_sensors::mcu_command"};
+constexpr goby::middleware::Group mcu_calibration_command{"jaiabot_sensors::mcu_calibration_command"};
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
