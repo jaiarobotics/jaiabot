@@ -8,10 +8,11 @@
     wget -c -O "{{ upgrade_dir }}/$(basename {{ upgrade_boot_url }})" "{{ upgrade_boot_url }}"
   args:
     creates: "{{ upgrade_dir }}/$(basename {{ upgrade_boot_url }})"
+  throttle: 1
     
 - name: Download the upgrade image rootfs using wget
   shell: |
     wget -c -O "{{ upgrade_dir }}/$(basename {{ upgrade_rootfs_url }})" "{{ upgrade_rootfs_url }}"
   args:
     creates: "{{ upgrade_dir }}/$(basename {{ upgrade_rootfs_url }})"
-
+  throttle: 1

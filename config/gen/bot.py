@@ -231,7 +231,7 @@ elif common.app == 'goby_logger':
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
                                      goby_logger_group_regex=logger.group_regex))
-elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
+elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
         liaison_port=30100+bot_index
