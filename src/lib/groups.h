@@ -48,6 +48,11 @@ constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
+constexpr goby::middleware::Group mcu_pb_data_out{
+    "jaiabot::sensors::mcu_pb_data_out"}; // parsed SensorRequest
+constexpr goby::middleware::Group mcu_pb_data_in{
+    "jaiabot::sensors::mcu_pb_data_in"}; // parsed SensorData
+constexpr goby::middleware::Group mcu_command{"jaiabot_sensors::mcu_command"};
 
 constexpr goby::middleware::Group mcu_pb_data_out{
     "jaiabot::sensors::mcu_pb_data_out"}; // parsed SensorRequest
