@@ -1,5 +1,6 @@
 import { useContext, useEffect } from "react";
 
+import TaskParameters from "../TaskParameters/TaskParameters";
 import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
 import { JaiaActions } from "../../context/Jaia/jaia-actions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -12,7 +13,6 @@ import { mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
-import TaskParameters from "../TaskParameters/TaskParameters";
 
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);

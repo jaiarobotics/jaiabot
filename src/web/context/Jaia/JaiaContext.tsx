@@ -361,8 +361,6 @@ function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
         waypoint.setTask(newTask);
     }
 
-    mutableState.missions = missions.getMissions();
-
     missionLayer.updateFeatures();
 
     return mutableState;
@@ -374,9 +372,8 @@ function handleChangeTaskParameter(
 ) {
     const waypoint = getWaypoint();
     const task = waypoint.getTask();
-    task.setParameter(taskParameterPair);
 
-    mutableState.missions = missions.getMissions();
+    task.setParameter(taskParameterPair);
 
     return mutableState;
 }

@@ -10,6 +10,10 @@ const defaultTaskParameters: TaskParameters = {
     maxDepth: 10,
     depthInterval: 10,
     holdTime: 0,
+    driftTime: 0,
+    heading: 180,
+    constantHeadingTime: 30,
+    speed: 2,
 };
 
 class JaiaGlobal {
