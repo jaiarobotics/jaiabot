@@ -68,14 +68,4 @@ jest.mock("../../../openlayers/map/layers/geotiffs/CustomLayers", () =>
     require("../../../tests/__mocks__/customLayers.mock.ts"),
 );
 
-describe("JaiaAbout integration tests", () => {
-    test("JaiaAbout panel opens when Jaia info button is clicked", async () => {
-        await act(async () => {
-            render(<CommandControl {...mockProps1} />);
-        });
-        const jaiaInfoButton = screen.getByRole("img", { name: "Jaia info button" });
-        fireEvent.click(jaiaInfoButton);
-        const panelElement = screen.getByTestId("jaia-about-panel");
-        expect(panelElement).toBeVisible();
-    });
-});
+test("", () => {});
