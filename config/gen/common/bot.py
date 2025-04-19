@@ -1,4 +1,4 @@
-from common import is_simulation, is_runtime
+from common import is_simulation
 import common.comms
 
 def bot_index_to_node_id(bot_index):
@@ -25,3 +25,18 @@ def gpsd_port(node_id):
     else:
         default_gpsd_port=2947
         return default_gpsd_port
+
+def serial_camera_port(bot_id: int):
+    """Get the device path to the serial port connected to the Pi Zero device running the camera driver.
+
+    Args:
+        bot_id (int): The bot id.
+
+    Returns:
+        str: Path to the serial port, i.e. "/dev/ttyAMA3"
+    """
+    if is_simulation():
+        return f"/tmp/bot{bot_id}_camera_0"
+    else:
+        return '/dev/ttyAMA3'
+
