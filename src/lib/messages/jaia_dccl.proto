@@ -307,6 +307,11 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
+    // raw_salinity straight from the chip, without temperature compensation
+    optional double raw_salinity = 60
+        [(dccl.field) = { min: 0 max: 100 precision: 1 }];
+
+    // salinity, calculated from the chip's conductivity combined with the temperature and pressure
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
 
