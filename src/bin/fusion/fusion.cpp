@@ -572,9 +572,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             if (salinityData.has_conductivity() && latest_bot_status_.has_temperature() &&
                 latest_pressure_adjusted_data_.has_pressure_adjusted())
             {
+                const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+
                 latest_bot_status_.set_salinity(calculate_calibrated_salinity(
                     salinityData.conductivity(), latest_bot_status_.temperature(),
-                    latest_pressure_adjusted_data_.pressure_adjusted()));
+                    latest_pressure_adjusted_data_.pressure_adjusted() +
+                        ATMOSPHERIC_PRESSURE_DECIBARS));
             }
         });
 
