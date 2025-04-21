@@ -1,7 +1,7 @@
 // Copyright 2024:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
+//   Matthew Ferro <matt.ferro@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -23,8 +23,10 @@
 #ifndef JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_OEM_EC_H
 #define JAIABOT_SENSORS_DRIVERS_ATLAS_SCIENTIFIC_OEM_EC_H
 
+#include "config.pb.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
-#include "jaiabot/messages/sensor/metadata.pb.h"
+#include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
 namespace jaiabot
@@ -32,13 +34,22 @@ namespace jaiabot
 namespace apps
 {
 class AtlasScientificOEMECDriver
-    : public goby::middleware::SimpleThread<jaiabot::sensor::protobuf::Metadata>
+    : public goby::middleware::SimpleThread<jaiabot::config::AtlasOEMECThreadConfig>
 {
   public:
-    AtlasScientificOEMECDriver(const jaiabot::sensor::protobuf::Metadata& config);
+    AtlasScientificOEMECDriver(const jaiabot::config::AtlasOEMECThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::AtlasScientificOEMEC& ec_data);
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void send_cfg();
+
+  private:
+    goby::time::SteadyClock::time_point last_report_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_resend_cfg_time_{goby::time::SteadyClock::now()};
+    int32_t sample_rate_{10};
+    int32_t report_timeout_{20};
+    int32_t resend_cfg_timeout_{20};
 };
 
 } // namespace apps

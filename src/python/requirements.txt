@@ -77,3 +77,4 @@ zipp==3.17.0
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
+./jaia_serial
