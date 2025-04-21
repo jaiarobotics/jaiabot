@@ -30,7 +30,6 @@
 
 #include <goby/zeromq/application/single_thread.h>
 
-#include "calibrated_salinity.h"
 #include "config.pb.h"
 #include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
@@ -45,6 +44,7 @@
 #include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/utils/calibrated_salinity.h"
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
