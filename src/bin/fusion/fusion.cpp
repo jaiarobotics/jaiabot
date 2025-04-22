@@ -83,7 +83,6 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
-    jaiabot::protobuf::PressureAdjustedData latest_pressure_adjusted_data_;
     jaiabot::protobuf::Engineering latest_engineering_status;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
@@ -429,8 +428,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
         [this](const jaiabot::protobuf::PressureAdjustedData& pa)
         {
-            latest_pressure_adjusted_data_ = pa;
-
             if (pa.has_calculated_depth())
             {
                 latest_node_status_.mutable_global_fix()->set_depth_with_units(
@@ -499,19 +496,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& salinityData) {
-            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
-            latest_bot_status_.set_raw_salinity(salinityData.salinity());
-
-            if (salinityData.has_conductivity() && latest_bot_status_.has_temperature() &&
-                latest_pressure_adjusted_data_.has_pressure_adjusted())
+        [this](const jaiabot::protobuf::SalinityData& salinity_data)
+        {
+            if (salinity_data.has_salinity_calculated())
             {
-                const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-
-                latest_bot_status_.set_salinity(calculate_calibrated_salinity(
-                    salinityData.conductivity(), latest_bot_status_.temperature(),
-                    latest_pressure_adjusted_data_.pressure_adjusted() +
-                        ATMOSPHERIC_PRESSURE_DECIBARS));
+                latest_bot_status_.set_salinity(salinity_data.salinity_calculated());
             }
         });
 
