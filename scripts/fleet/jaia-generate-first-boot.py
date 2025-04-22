@@ -116,13 +116,16 @@ def main():
         
     bootdir = args.bootdir
 
-    boot_labels = ['boot', 'bootfs']
-    for label in boot_labels:
-        bootdir = find_bootdir(label)
-        if bootdir is not None:
-            print(f"Using {bootdir} for --bootdir based on mount point of LABEL={label}")
-            break
-        
+    # if not specified on the command line, search for boot dir
+    if bootdir is None:
+        boot_labels = ['boot', 'bootfs']
+        for label in boot_labels:
+            bootdir = find_bootdir(label)
+            if bootdir is not None:
+                print(f"Using {bootdir} for --bootdir based on mount point of LABEL={label}")
+                break
+
+    # error if boot dir is still not found
     if bootdir is None:
         print(f"No partition with label with any of '{boot_labels}' found. Please insert and mount disk or provide --bootdir")
         sys.exit(1)
