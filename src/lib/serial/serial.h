@@ -9,7 +9,7 @@
 #include "goby/middleware/io/detail/serial_interface.h" // for SerialThread
 #include "nanopb/jaiabot/messages/feather.pb.h"
 
-#include "crc16.h"
+#include "jaiabot/crc/crc16.h"
 
 namespace goby
 {

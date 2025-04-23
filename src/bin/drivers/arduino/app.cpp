@@ -29,12 +29,12 @@ using namespace std;
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/serial/serial.h"
 #include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())

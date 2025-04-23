@@ -1,1 +1,1 @@
-../../lib/lora/crc16.h
+../../lib/crc/crc16.h
