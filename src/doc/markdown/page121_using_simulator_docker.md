@@ -30,16 +30,27 @@ A few important Docker terms:
 
 ## Download pre-built Docker images
 
-As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the Gobysoft Dockerhub with each release of Jaiabot software.
+As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the [Gobysoft Dockerhub](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) with each release of Jaiabot software.
 
-- Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
-- Pull the image
-  - use gobysoft/jaiabot-sim:<tag>
-    - e.g. `docker pull gobysoft/jaiabot-sim:2.0.0`
-    - docker will pull the appropriate image for your machine architecture
-  - Available images can be found at
-    - https://hub.docker.com/r/gobysoft/jaiabot-sim/tags
-- Check image
+- Available images can be found at- [https://hub.docker.com/r/gobysoft/jaiabot-sim/tags](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) .
+- Open the URL in a browser
+
+
+  - Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
+
+  - You do not need to specify the architecture in the tag (arm vs. amd), docker will pull the appropriate image for your machine architecture.
+
+  - Use the "Copy" button on the web page to copy the pull command.
+- Open the Terminal app on your system
+- Check that docker engine is running
+
+  - `docker ps -a`
+    - if you get an error launch your Docker Desktop app
+- Paste or type the docker pull command into your Terminal app
+
+  -  `docker pull gobysoft/jaiabot-sim:2.y-continuous`
+- Check image in the Terminal
+
   - `docker images` will list all available images on your machine.  You should see one that looks like
     ```
     REPOSITORY                   TAG                    IMAGE ID       CREATED        SIZE
@@ -49,9 +60,26 @@ As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both 
 ## Run the Simulator
 
 ### Using docker compose
-Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.  The user can download a pre-defined file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
+
+Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.
+
+* Open a browswer
+* Copy example file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)  
+
+* This file will be used in the Terminal app to launch the simulator, 
+  * copy the file to the folder you plan to run simulator from.  
+*  You can edit the file using any standard text editor.
+   *  `image:` the image and tag you want to run 
+      * best practice is to pull the image before launching the simulator
+      * docker will pull the image if it is not found local and exists on the hub 
+   * `environment:` Set Jaia sim envoronment variables to configure the simulator
+   * `ports:` Defines the ports used by the sim, do not edit
+   * `volumes:` Maps local directory to JDV data directory in the sim container
+     * replace `./jdv_data` with local folder you want to use
+     * do not edit `/var/log/jaiabot/bot_offload`
 
 Example:
+
 ```
 # Docker Compose file for launching the JAIA Simulator
 # To launch the simulator 
@@ -86,30 +114,40 @@ services:
     tty: true
     restart: "no"
 ```
+
 ### Start the simulator
 
-From the same directory as the `docker-compose.yml` file the following command will launch the simulator, including JCC, JDV, and the Jaia REST API.
-
-`docker compose up -d jaia-sim`
+* Open the Terminal app
+* Change to the directory with the `docker-compose.yml` file
+* Start the simulator from the Terminal (includes JCC, JDV, REST API).
+  * `docker compose up -d jaia-sim`
+* Simulator will be running in a background container
+* Check the status of the conatainer
+  * `docker ps`
 
 ### Stop the simulator
 
-From the same directory as the `docker-compose.yml` file the following command will shut down the simulator, stop the container and remove it.
-
-`docker compose down`
+* In Terminal app
+* Open the Terminal app
+* Change to the directory with the `docker-compose.yml` file
+* Stop the simulator from the Terminal
+  * `docker compose down`
 
 
 ## Using JCC
 
 At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
 
-http://localhost:40001/
+* Open in a browser
+  * http://localhost:40001/
+
 
 ## Using JDV
 
 JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
 
-http://localhost:40011/
+* Open in a browser
+  * http://localhost:40011/
 
 ## Using Jaia REST API
 
@@ -118,9 +156,11 @@ The Jaia REST API can be exercised in the Docker simulation by submitting the ap
 For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html)
 
 ### Example
-**Get status of bot #2**
 
-`http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
+**Get status of bot #2**
+* Submit URL in Bro
+
+  * `http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
 
 returns
 
@@ -174,6 +214,8 @@ returns
 ```
 
 ## Appendix: Advanced Use
+
+The commands in this section should be run in a terminal using the bash shell.
 
 ### Using docker run
 
@@ -260,7 +302,6 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
 `docker stop <container-id>` This will stop the running container.
 
 `docker rm <container-id>` This can be used to remove a stopped container if needed.
-
 
 `docker rmi <image-id>` This can be used to remove an image. Note if an image is used by a container, even one that is stopped, you will not be able to remove it. You must first remove the container.
 

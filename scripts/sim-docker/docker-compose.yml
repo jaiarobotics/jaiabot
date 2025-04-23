@@ -7,7 +7,7 @@
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.y-test   # image to use for simulation
+    image: gobysoft/jaiabot-sim:2.y-continuous   # image to use for simulation
     container_name: jaia-sim-container     # name of container for simulation
 
     # Simulation Environment
@@ -20,8 +20,8 @@ services:
     # All ports will be available at localhost
     ports:
       - "40001:40001"      # JCC 
-      - "9092:9092"        # REST API
       - "40011:40011"      # JDV
+      - "9092:9092"        # REST API
 
     volumes:
       # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
