@@ -1,0 +1,7 @@
+- name: Set error fact if task failed
+  set_fact:
+    major_upgrade_error: "{{ error_message }}"
+
+- name: Fail with message
+  fail:
+    msg: "{{ error_message }}"
