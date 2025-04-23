@@ -7,9 +7,9 @@
     - [Using docker compose](#using-docker-compose)
     - [Start the simulator](#start-the-simulator)
     - [Stop the simulator](#stop-the-simulator)
-  - [Using JCC](#using-jcc)
-  - [Using JDV](#using-jdv)
-  - [Using Jaia REST API](#using-jaia-rest-api)
+  - [JCC](#jcc)
+  - [JDV](#jdv)
+  - [Jaia REST API](#jaia-rest-api)
     - [Example](#example)
   - [Appendix: Advanced Use](#appendix-advanced-use)
     - [Using docker run](#using-docker-run)
@@ -61,7 +61,7 @@ As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both 
 
 ### Using docker compose
 
-Docker compose provides a platform-independent way to configure and run docker containers.  The easiest way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.
+Docker compose provides a platform-independent way to configure and run docker containers.  The recommended way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.
 
 * Open a browswer
 * Copy example file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)  
@@ -103,8 +103,8 @@ services:
     # All ports will be available at localhost
     ports:
       - "40001:40001"      # JCC 
-      - "9092:9092"        # REST API
       - "40011:40011"      # JDV
+      - "9092:9092"        # REST API
 
     volumes:
       # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
@@ -127,14 +127,13 @@ services:
 
 ### Stop the simulator
 
-* In Terminal app
 * Open the Terminal app
 * Change to the directory with the `docker-compose.yml` file
 * Stop the simulator from the Terminal
   * `docker compose down`
 
 
-## Using JCC
+## JCC
 
 At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
 
@@ -142,14 +141,14 @@ At this point the simulation is up and running in the docker container and the u
   * http://localhost:40001/
 
 
-## Using JDV
+## JDV
 
 JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
 
 * Open in a browser
   * http://localhost:40011/
 
-## Using Jaia REST API
+## Jaia REST API
 
 The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser using the api_key "simulation".
 
@@ -158,7 +157,7 @@ For more information on using the REST API see [REST API](http://52.36.157.57/md
 ### Example
 
 **Get status of bot #2**
-* Submit URL in Bro
+* Submit URL in Browser
 
   * `http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
 
@@ -215,7 +214,7 @@ returns
 
 ## Appendix: Advanced Use
 
-The commands in this section should be run in a terminal using the bash shell.
+The commands described in this section need to be run in a Terminal app.
 
 ### Using docker run
 
