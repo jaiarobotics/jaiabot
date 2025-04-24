@@ -17,20 +17,32 @@ enum MCUCommand
     ENTER_BOOTLOADER_MODE = 1;
 }
 
+enum CompensationType
+{
+    SET_EC_TEMPERATURE_COMPENSATION = 1;
+    SET_DO_SALINITY_COMPENSATION = 2;
+    SET_DO_PRESSURE_COMPENSATION = 3;
+    SET_DO_TEMPERATURE_COMPENSATION = 4;
+    SET_PH_TEMPERATURE_COMPENSATION = 5;
+}
+
 enum CalibrationType
 {
     START_EC_CALIBRATION = 1;
     CALIBRATE_EC_DRY = 2;
     CALIBRATE_EC_LOW = 3;
     CALIBRATE_EC_HIGH = 4;
-    START_DO_CALIBRATION = 5;
-    CALIBRATE_DO_LOW = 6;
-    CALIBRATE_DO_HIGH = 7;
-    START_PH_CALIBRATION = 8;
-    CALIBRATE_PH_LOW = 9;
-    CALIBRATE_PH_MID = 10;
-    CALIBRATE_PH_HIGH = 11;
-    STOP_CALIBRATION = 12; 
+    CLEAR_EC_CALIBRATION = 5;
+    START_DO_CALIBRATION = 6;
+    CALIBRATE_DO_LOW = 7;
+    CALIBRATE_DO_HIGH = 8;
+    CLEAR_DO_CALIBRATION = 9;   
+    START_PH_CALIBRATION = 10;
+    CALIBRATE_PH_LOW = 11;
+    CALIBRATE_PH_MID = 12;
+    CALIBRATE_PH_HIGH = 13;
+    CLEAR_PH_CALIBRATION = 14;
+    STOP_CALIBRATION = 15; // stop calibration and return to normal operation
 }
 
 message SensorRequest
@@ -55,6 +67,8 @@ message SensorRequest
     optional MCUCommand mcu_command = 20;
     optional CalibrationType calibration_type = 21;
     optional double calibration_value = 22;
+    optional CompensationType compensation_type = 23;
+    optional double compensation_value = 24;
 }
 
 message SensorData
