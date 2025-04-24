@@ -34,7 +34,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
-#include "jaiabot/serial/serial.h"
+#include "jaiabot/serial/serial_fletcher16.h"
 #include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -133,7 +133,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     glog.add_group("command", goby::util::Colors::green);
     glog.add_group("arduino", goby::util::Colors::blue);
 
-    using SerialThread = jaiabot::lora::SerialThreadCRC32<serial_in, serial_out>;
+    using SerialThread = jaiabot::lora::SerialThreadFletcher16<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
     // Creating Compatible Version Table
