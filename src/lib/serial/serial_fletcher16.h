@@ -280,6 +280,8 @@ void jaiabot::lora::SerialThreadFletcher16<line_in_group, line_out_group, publis
         [this](const boost::system::error_code& ec, std::size_t bytes_transferred) {
             if (!ec && bytes_transferred > 0)
             {
+                // Need to check fletcher-16 checksum for message integrity here
+
                 buffer_write_ptr_ += bytes_transferred;
                 auto io_msg = std::make_shared<goby::middleware::protobuf::IOData>();
                 io_msg->set_data(std::string(buffer_.data(), buffer_write_ptr_));
