@@ -1,0 +1,3 @@
+- name: Set facts for the staged fleet configuration
+  set_fact:
+    staged_fleet_cfg: "{{ hub_staging_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
