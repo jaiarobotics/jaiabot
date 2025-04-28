@@ -35,7 +35,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
-    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
+    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>( 
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_c_fluor())
                 receive_data(sensor_data.c_fluor());
@@ -107,7 +107,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     auto* cal_offset = sensor_cfg.add_cfg();
     cal_offset->set_key("offset");
-    cal_offset->set_value(std::to_string(existing_calibration.fluorometer().fluorometer_offset()));
+    cal_offset->set_value(existing_calibration.fluorometer().fluorometer_offset());
 
     auto* cal_coefficient = sensor_cfg.add_cfg();
     cal_coefficient->set_key("coefficient");
@@ -115,7 +115,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     auto* fluorometer_sn = sensor_cfg.add_cfg();
     fluorometer_sn->set_key("serial_number");
-    fluorometer_sn->set_value(std::to_string(existing_calibration.fluorometer().fluorometer_serial_number()));
+    fluorometer_sn->set_value(existing_calibration.fluorometer().fluorometer_serial_number());
 
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
