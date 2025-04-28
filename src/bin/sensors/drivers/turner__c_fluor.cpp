@@ -25,6 +25,8 @@
 #include "jaiabot/groups.h"
 #include "turner__c_fluor.h"
 
+#include "/etc/jaiabot/calibration_coefficient.pb.cfg"
+
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
@@ -80,6 +82,20 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+    
+    auto& cal_offset = *sensor_cfg.mutable_cfg();
+    auto& cal_coefficient = *sensor_cfg.mutable_cfg();
+    auto& fluorometer_sn = *sensor_cfg.mutable_cfg();
+
+    cal_offset.set_key("offset");
+    cal_offset.set_value(fluorometer.offset());
+
+    cal_coefficient.set_key("coefficient");
+    cal_coefficient.set_value(fluorometer.calibration_coefficient());
+
+    fluorometer_sn.set_key("serial_number");
+    fluorometer_sn.set_value(fluorometer.serial_number());
+
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
