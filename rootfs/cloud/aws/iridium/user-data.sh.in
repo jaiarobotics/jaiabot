@@ -1,6 +1,1 @@
 #!/bin/bash
-
-mkdir -p /etc/jaiabot/ssh
-cat <<EOF > /etc/jaiabot/ssh/root_authorized_keys
-${ROOT_PUBKEYS}
-EOF

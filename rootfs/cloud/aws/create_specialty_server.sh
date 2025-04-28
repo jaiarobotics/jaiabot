@@ -9,7 +9,7 @@ if (( "$#" != 1 )); then
     exit 1
 fi
 
-source $1
+set -a; source $1; set +a;
 
 if [[ ! -d ${SCRIPT_PATH}/${SERVER_TYPE} ]]; then
    echo "${SERVER_TYPE} is not a valid SERVER_TYPE"
@@ -57,11 +57,15 @@ network_interfaces_json=$(jq -n -c \
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
 
-ROOT_PUBKEYS=$(cat ${SCRIPT_PATH}/../../../config/ssh/root_authorized_keys)
 eval "echo \"$(< ${USER_DATA_SCRIPT_IN})\"" > ${USER_DATA_SCRIPT}
-USER_DATA_CORE=${SCRIPT_PATH}/${SERVER_TYPE}/user-data
+USER_DATA_CORE_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.yaml.in"
+USER_DATA_CORE="${TMPDIR}/user-data.yaml"
+
+envsubst < ${USER_DATA_CORE_IN} > ${USER_DATA_CORE}
+
 USER_DATA_FILE=${TMPDIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_CORE}:cloud-config > ${USER_DATA_FILE}
+
 
 # Launch the EC2 instance
 INSTANCE_ID=$(run ".Instances[0].InstanceId" aws ec2 run-instances \

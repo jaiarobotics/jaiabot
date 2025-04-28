@@ -205,6 +205,7 @@ set(scripts_to_install
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
+  system/jaia_iridium_tunnel.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
