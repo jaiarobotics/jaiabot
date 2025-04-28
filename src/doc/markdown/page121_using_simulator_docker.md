@@ -77,12 +77,12 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 
 Docker compose provides a platform-independent way to configure and run docker containers.  The user can configure the JAIA Simulator simply by editing the `docker-compose.yml` file.
 
-1. Open a browswer.
+1. Open a browser.
 2. Copy example file from [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml) .
 3. This file will be used in the Terminal app to launch the simulator.
 
    * copy the file to your home folder.
-4. You can edit the file using any standard text editor.
+4. You can edit the  `docker-compose.yml` file using any standard text editor.
 
    * `image:` the image and tag you want to run
      * docker will automatically pull the image from the hub if needed
