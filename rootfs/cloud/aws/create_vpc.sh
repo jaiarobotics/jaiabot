@@ -1,55 +1,19 @@
 #!/bin/bash
 set -u -e
 
+SCRIPT_PATH=$(dirname "$0")
+source ${SCRIPT_PATH}/includes/aws_run.sh
+
 # Check if necessary parameters are provided
 if (( "$#" != 1 )); then
     echo "Usage: $0 vpc.conf"
     exit 1
 fi
 
-handle_failure() {
-    echo "FAILURE"
-    exit 1
-}
-trap handle_failure ERR
-
-# Runs an AWS command, optionally displays the output if DEBUG=true, and returns a jq filter if set
-function run() {
-    # $1: jq filter
-    # ${@:2}: AWS CLI command
-    
-    # Execute the AWS CLI command and capture the output
-    local aws_command_output
-    echo "" >&2
-    aws_command_output=$(set -x; "${@:2}" --output json)
-    result=$?
-
-    if [[ "$DEBUG" = "true" ]]; then
-        # Display the full output in compact form
-        echo "$aws_command_output" | jq -c . >&2
-    fi
-
-    if [ ! -z "$1" ]; then
-       # Apply the jq filter and return the result
-       local filtered_output
-       filtered_output=$(echo "$aws_command_output" | jq -r "$1")
-       echo "$filtered_output"
-    fi
-
-    if [[ "$result" = "0" ]]; then
-        echo "OK" >&2
-    fi
-    echo "" >&2
-    
-    return $result
-}
-
-
 set -a
 source $1
 set +a
 
-SCRIPT_PATH=$(dirname "$0")
 IP_PY=$(realpath "${SCRIPT_PATH}/../../../scripts/jaia-ip.py")
 JCC_HUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ipv6)
 
