@@ -25,8 +25,6 @@
 #include "jaiabot/groups.h"
 #include "turner__c_fluor.h"
 
-#include "/etc/jaiabot/calibration_coefficient.pb.cfg"
-
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
