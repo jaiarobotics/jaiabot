@@ -178,6 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "feature/2.y/iridium/jaia-1972"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
