@@ -30,8 +30,8 @@
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
-    const jaiabot::config::TurnorCFluorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>(config)
+    const jaiabot::config::TurnerCFluorThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
@@ -129,7 +129,7 @@ void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::Threa
         glog.is_warn() && glog << "Timeout on turner c fluorometer report" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA);
+            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA);
 
         // Send configuration request at a configured rate
         if (last_resend_cfg_time_ + std::chrono::seconds(resend_cfg_timeout_) <
