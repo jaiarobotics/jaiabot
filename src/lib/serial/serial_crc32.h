@@ -8,7 +8,7 @@
 #include "goby/middleware/io/detail/io_interface.h"     // for PubSubLayer
 #include "goby/middleware/io/detail/serial_interface.h" // for SerialThread
 
-#include "crc32.h"
+#include "jaiabot/crc/crc32.h"
 
 using crc::calculate_crc32;
 
