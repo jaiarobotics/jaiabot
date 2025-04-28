@@ -23,6 +23,7 @@
 #include <goby/time/system_clock.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/protobuf/calibration_coefficients.pb.h"
 #include "turner__c_fluor.h"
 
 using goby::glog;
@@ -81,12 +82,14 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
     
-    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficient.pb.cfg
-    auto existing_calibration_file = std::ifstream("/etc/jaiabot/calibration_coefficient.pb.cfg");
+    auto existing_calibration = jaiabot::protobuf::CalibrationCoefficients();
+
+    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
+    auto existing_calibration_file = std::ifstream("/etc/jaiabot/calibration_coefficients.pb.cfg");
     
     if (existing_calibration_file.fail())
     {
-        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/calibration_coefficient.pb.cfg" << std::endl;
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/calibration_coefficients.pb.cfg" << std::endl;
     }
     else
     { 
@@ -96,7 +99,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
         if (!google::protobuf::TextFormat::ParseFromString(existing_calibration_stringstream.str(),
                                                            &existing_calibration))
         {
-            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficient.pb.cfg"
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
                                    << std::endl;
         }
     }

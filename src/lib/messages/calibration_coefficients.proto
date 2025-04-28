@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message CalibrationCoefficients {
+    optional float fluorometer_offset = 1;
+    optional float fluorometer_calibration_coefficient = 2;
+    optional string fluorometer_serial_number = 3;
+}
