@@ -1,7 +1,9 @@
 #cloud-config
 
-ssh_pwauth: false
+hostname: jaia-iridium
 
+ssh_pwauth: false
+  
 users:
   - name: jaia
     groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
