@@ -34,10 +34,10 @@ namespace jaiabot
 namespace apps
 {
 class TurnerCFluorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>
+    : public goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
 {
   public:
-    TurnerCFluorDriver(const jaiabot::config::TurnorCFluorThreadConfig& config);
+    TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
