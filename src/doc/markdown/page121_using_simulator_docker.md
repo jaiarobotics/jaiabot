@@ -52,7 +52,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 9. Create a `jdv_data` folder in your home folder.  This will be used to access JDV data in the container
    * example: `mkdir jdv_data`
 11. Enter the following command.
-    * `docker compose up -d jaia-sim`Open a browser.
+    * `docker compose up -d jaia-sim` .
     
 12. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
 
@@ -135,7 +135,7 @@ services:
 
 The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser using the api_key "simulation".
 
-For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html)
+For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html) .
 
 #### Example
 
