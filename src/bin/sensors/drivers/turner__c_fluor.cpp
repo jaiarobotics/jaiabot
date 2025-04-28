@@ -26,6 +26,7 @@
 #include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/calibration_coefficients.pb.h"
+#include "jaiabot/messages/sensor/configuration.pb.h"
 #include "turner__c_fluor.h"
 
 using goby::glog;
@@ -44,7 +45,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>( 
         [this](const sensor::protobuf::SensorRequest& sensor_request) {
-            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_count() > 0) {
+            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_size() > 0) {
                 receive_cfg(sensor_request.cfg());
             }
         });
@@ -60,12 +61,12 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     send_cfg();
 }
 
-jaiabot::apps:TurnerCFluorDriver::receive_cfg(
+void jaiabot::apps::TurnerCFluorDriver::receive_cfg(
     const sensor::protobuf::Configuration& cfg)
 {
     glog.is_debug1() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
 
-    auto existing_fluoro_cfg = jaiabot::protobuf::Configuration();
+    auto existing_fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
 
     // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
     auto existing_fluoro_cfg_file = std::ifstream("/etc/jaiabot/fluorometer_config.pb.cfg");
@@ -87,7 +88,7 @@ jaiabot::apps:TurnerCFluorDriver::receive_cfg(
         }
     }
 
-    auto fluoro_cfg = jaiabot::protobuf::Configuration();
+    auto fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
     fluoro_cfg.CopyFrom(existing_fluoro_cfg);
     fluoro_cfg.MergeFrom(cfg);
 
