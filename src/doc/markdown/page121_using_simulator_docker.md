@@ -48,9 +48,10 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
    * Above the code on the right there is download button to download the raw file to your computer (down arrow)
 6. Open your Downloads folder and move the docker-compose.yml file to your home directory
 7. Open your Terminal app (Windows Powershell, Mac Terminal, Ubuntu Terminal)
-8. From your home directory enter the following command
-9. `docker compose up -d jaia-sim`
-10. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
+8. Change to your home directory 
+9. Enter the following command
+   * `docker compose up -d jaia-sim`
+11. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
 
 ## Open JCC
 
@@ -65,7 +66,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 ## Stop the simulator
 
 1. Open the Terminal app
-2. Change to the directory with the `docker-compose.yml` file
+2. Change to your home directory
 3. Stop the simulator from the Terminal
    * `docker compose down`
 
