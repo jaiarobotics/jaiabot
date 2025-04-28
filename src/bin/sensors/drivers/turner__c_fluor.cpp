@@ -22,6 +22,7 @@
 
 #include <goby/time/system_clock.h>
 #include <fstream>
+
 #include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/calibration_coefficients.pb.h"
@@ -41,6 +42,13 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
                 receive_data(sensor_data.c_fluor());
         });
 
+    interthread().subscribe<jaiabot::groups::mcu_pb_data_out>( 
+        [this](const sensor::protobuf::SensorRequest& sensor_request) {
+            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_count() > 0) {
+                receive_cfg(sensor_request.cfg());
+            }
+        });
+
     // Set sample rate config
     sample_rate_ = config.sample_rate();
 
@@ -50,6 +58,42 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 
     // configure our sensor
     send_cfg();
+}
+
+jaiabot::apps:TurnerCFluorDriver::receive_cfg(
+    const sensor::protobuf::Configuration& cfg)
+{
+    glog.is_debug1() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
+
+    auto existing_fluoro_cfg = jaiabot::protobuf::Configuration();
+
+    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
+    auto existing_fluoro_cfg_file = std::ifstream("/etc/jaiabot/fluorometer_config.pb.cfg");
+    
+    if (existing_fluoro_cfg_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/fluorometer_config.pb.cfg" << std::endl;
+    }
+    else
+    {
+        std::stringstream existing_fluoro_cfg_stringstream;
+        existing_fluoro_cfg_stringstream << existing_fluoro_cfg_file.rdbuf();
+
+        if (!google::protobuf::TextFormat::ParseFromString(existing_fluoro_cfg_stringstream.str(),
+                                                           &existing_fluoro_cfg))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
+                                   << std::endl;
+        }
+    }
+
+    auto fluoro_cfg = jaiabot::protobuf::Configuration();
+    fluoro_cfg.CopyFrom(existing_fluoro_cfg);
+    fluoro_cfg.MergeFrom(cfg);
+
+    auto cfg_file = std::ofstream("/etc/jaiabot/fluorometer_config.pb.cfg");
+    cfg_file << fluoro_cfg.DebugString();
+    cfg_file.close();
 }
 
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
