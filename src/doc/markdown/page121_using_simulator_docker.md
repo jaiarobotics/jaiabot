@@ -1,25 +1,24 @@
-# Using the Jaiabot Simulator in Docker
+# Using the Jaiabot Simulator in Docker <!-- omit in toc -->
 
-- [Using the Jaiabot Simulator in Docker](#using-the-jaiabot-simulator-in-docker)
-  - [About Docker](#about-docker)
-    - [Install Docker](#install-docker)
-    - [Using Docker to run the Jaia Simulator](#using-docker-to-run-the-jaia-simulator)
-  - [Launch the Jaia Simulator in Docker](#launch-the-jaia-simulator-in-docker)
-  - [Congfigure the Simulator](#congfigure-the-simulator)
-  - [Download pre-built Docker images](#download-pre-built-docker-images)
-    - [Start the simulator](#start-the-simulator)
-    - [Stop the simulator](#stop-the-simulator)
-  - [JCC](#jcc)
-  - [JDV](#jdv)
-  - [Jaia REST API](#jaia-rest-api)
+- [Introduction](#introduction)
+  - [Install Docker](#install-docker)
+  - [Using Docker to run the Jaia Simulator](#using-docker-to-run-the-jaia-simulator)
+- [Run the Jaia Simulator in Docker](#run-the-jaia-simulator-in-docker)
+- [Open JCC](#open-jcc)
+- [Open JDV](#open-jdv)
+- [Stop the simulator](#stop-the-simulator)
+- [Congfigure the Simulator](#congfigure-the-simulator)
+- [Additional Features](#additional-features)
+  - [Use the Jaia REST API](#use-the-jaia-rest-api)
     - [Example](#example)
-  - [Appendix: Advanced Use](#appendix-advanced-use)
-    - [Using docker run](#using-docker-run)
-    - [Start the simulator](#start-the-simulator-1)
-    - [Stop the simulator](#stop-the-simulator-1)
-    - [Working with images locally (Linux platforms only)](#working-with-images-locally-linux-platforms-only)
+  - [Manage additional Docker images lcoally](#manage-additional-docker-images-lcoally)
+- [Appendix: Advanced Use](#appendix-advanced-use)
+  - [Using docker run](#using-docker-run)
+  - [Start the simulator](#start-the-simulator)
+  - [Stop the simulator](#stop-the-simulator-1)
+  - [Working with images locally (Linux platforms only)](#working-with-images-locally-linux-platforms-only)
 
-## About Docker
+## Introduction
 
 Docker allows applications to run in environments other than the one they were developed for by encapsulating the application in a container.  The container will run an image, which is a self contained run time environment for the application.  The Jaia Simulator, including JCC, JDV and the REST API can be run on any machine using Docker.
 
@@ -29,7 +28,7 @@ We recommend installing Docker Desktop for your host machine as this provides al
 
 Basic steps
 
-1. Open Browser
+1. Open a browser
 2. Open Docker Desktop webpage [https://docs.docker.com/desktop/](https://docs.docker.com/desktop/https:/)
 3. At the bottom of the page there should be section titled "Install Docker Desktop" with links for different operating systems.
 4. Click the link for the instructions for your machine
@@ -40,40 +39,54 @@ Basic steps
 Installing Docker Desktop installs all the tools needed to run the Jaia Simulator.  However, the Docker Desktop application can not be used to launch the Jaia Simulator directly.
 The user will use a terminal/command prompt environment to run the Jaiabot Docker Simulation. Detailed instructions follow.
 
-## Launch the Jaia Simulator in Docker
-
+## Run the Jaia Simulator in Docker
 
 1. Open the Docker Desktop application.  This insures all Docker services are running.
 2. Open a browser.
-3. Open [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.ymlhttps:/)
-4. Download the file.  Above the code on the right there is download button to download the raw file to your computer (down arrow)
-5. Open your Downloads folder and move the docker-compose.yml file to your home directory
-6. Open your Terminal app (Windows Powershell, Mac Terminal, Ubuntu Terminal)
-7. From your home directory enter the following command
-8. `docker compose up -d jaia-sim`
-9. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
-10. Open JCC in a browser http://localhost:40001/
-11. Open JDV in a browser http://localhost:40011/
+3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.ymlhttps:/)
+4. Download the file.  
+   * Above the code on the right there is download button to download the raw file to your computer (down arrow)
+6. Open your Downloads folder and move the docker-compose.yml file to your home directory
+7. Open your Terminal app (Windows Powershell, Mac Terminal, Ubuntu Terminal)
+8. From your home directory enter the following command
+9. `docker compose up -d jaia-sim`
+10. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
+
+## Open JCC
+
+1. Open a browser
+2. Enter the URL http://localhost:40001/
+
+## Open JDV
+
+1. Open a browser
+2. Enter the URL http://localhost:40011/
+
+## Stop the simulator
+
+1. Open the Terminal app
+2. Change to the directory with the `docker-compose.yml` file
+3. Stop the simulator from the Terminal
+   * `docker compose down`
 
 ## Congfigure the Simulator
 
 Docker compose provides a platform-independent way to configure and run docker containers.  The recommended way to launch the JAIA Simulator in docker is to use a `docker-compose.yml` file.
 
-* Open a browswer
-* Copy example file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
-* This file will be used in the Terminal app to launch the simulator,
+1. Open a browswer
+2. Copy example file from [docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
+3. This file will be used in the Terminal app to launch the simulator,
 
-  * copy the file to the folder you plan to run simulator from.
-* You can edit the file using any standard text editor.
+   * copy the file to the folder you plan to run simulator from.
+4. You can edit the file using any standard text editor.
 
-  * `image:` the image and tag you want to run
-    * best practice is to pull the image before launching the simulator
-    * docker will pull the image if it is not found local and exists on the hub
-  * `environment:` Set Jaia sim envoronment variables to configure the simulator
-  * `ports:` Defines the ports used by the sim, do not edit
-  * `volumes:` Maps local directory to JDV data directory in the sim container
-    * replace `./jdv_data` with local folder you want to use
-    * do not edit `/var/log/jaiabot/bot_offload`
+   * `image:` the image and tag you want to run
+     * docker will automatically pull the image from the hub if needed
+   * `environment:` Set Jaia sim envoronment variables to configure the simulator
+   * `ports:` Defines the ports used by the sim, do not edit
+   * `volumes:` Maps local directory to JDV data directory in the sim container
+     * replace `./jdv_data` with local folder you want to use
+     * do not edit `/var/log/jaiabot/bot_offload`
 
 Example:
 
@@ -87,8 +100,8 @@ Example:
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.0.0
-    container_name: jaia-sim-container
+    image: gobysoft/jaiabot-sim:2.y-continuous   # image to use for simulation
+    container_name: jaia-sim-container     # name of container for simulation
 
     # Simulation Environment
     environment:
@@ -107,93 +120,27 @@ services:
       # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
       - ./jdv_data:/var/log/jaiabot/bot_offload
 
-    stdin_open: true
+    stdin_open: true # Include stdin and tty so user can attach to running container
     tty: true
-    restart: "no"
+    restart: "no" # Remove the container after running
+
 ```
-## Download pre-built Docker images
+## Additional Features
 
-As of 2.0.0 release the Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the [Gobysoft Dockerhub](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) with each release of Jaiabot software.
-
-* Available images can be found at [https://hub.docker.com/r/gobysoft/jaiabot-sim/tags](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) .
-* Open the URL in a browser
-
-  * Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
-  * You do not need to specify the architecture in the tag (arm vs. amd), docker will pull the appropriate image for your machine architecture.
-  * Use the "Copy" button on the web page to copy the pull command.
-* Open the Terminal app on your system
-
-  * Windows Powershell
-  * Mac Terminal
-  * Ubuntu Terminal
-* Check that docker engine is running
-
-  * `docker ps -a`
-    * if you get an error launch your Docker Desktop app
-* Paste or type the docker pull command into your Terminal app
-
-  * `docker pull gobysoft/jaiabot-sim:2.y-continuous`
-* Check image in the Terminal
-
-  * `docker images` will list all available images on your machine.  You should see one that looks like
-    ```
-    REPOSITORY                   TAG                    IMAGE ID       CREATED        SIZE
-    gobysoft/jaiabot-sim         2.0.0                  751dc04f83a9   21 hours ago   2.68GB
-    ```
-
-
-
-
-### Start the simulator
-
-* Open the Terminal app
-
-  * Windows Powershell
-  * Mac Terminal
-  * Ubuntu Terminal
-* Change to the directory with the `docker-compose.yml` file
-* Start the simulator from the Terminal (includes JCC, JDV, REST API).
-
-  * `docker compose up -d jaia-sim`
-* Simulator will be running in a background container
-* Check the status of the conatainer
-
-  * `docker ps`
-
-### Stop the simulator
-
-* Open the Terminal app
-* Change to the directory with the `docker-compose.yml` file
-* Stop the simulator from the Terminal
-  * `docker compose down`
-
-## JCC
-
-At this point the simulation is up and running in the docker container and the user simply needs to open a browser and open the following URL
-
-* Open in a browser
-  * http://localhost:40001/
-
-## JDV
-
-JDV can be used by opening the following URL. (Note: launching JDV from the Hub Details panel of JCC in simulation is not supported at this time.)
-
-* Open in a browser
-  * http://localhost:40011/
-
-## Jaia REST API
+### Use the Jaia REST API
 
 The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser using the api_key "simulation".
 
 For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html)
 
-### Example
+#### Example
 
 **Get status of bot #2**
 
-* Submit URL in Browser
+1. Open a browser
+2. Submit URL in browser
 
-  * `http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
+* `http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
 
 returns
 
@@ -245,6 +192,34 @@ returns
   }
 }
 ```
+### Manage additional Docker images lcoally
+
+Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the [Gobysoft Dockerhub](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) with each release of Jaiabot software.  The examples above will download the 2.y-continuous image.  If the user wishes to use a different version of the simulator they can simply edit the image tag as described above.  If the user wishes to manage multiple images on thier machine they can use the following instructions.
+
+1. Open a browser
+2. Enter URL [https://hub.docker.com/r/gobysoft/jaiabot-sim/tags](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags)
+3. Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
+
+   * You do not need to specify the architecture in the tag (arm vs. amd), docker will pull the appropriate image for your machine architecture.
+   * Use the "Copy" button on the web page to copy the pull command.
+4. Open the Terminal app on your system
+
+5. Check that docker engine is running
+
+   * `docker ps -a`
+     * if you get an error launch your Docker Desktop app
+6. Paste or type the docker pull command into your Terminal app
+
+   * `docker pull gobysoft/jaiabot-sim:2.y-continuous`
+7. Check image in the Terminal
+
+   * `docker images` will list all available images on your machine.  You should see one that looks like
+
+     ```
+     REPOSITORY                   TAG                    IMAGE ID       CREATED        SIZE
+     gobysoft/jaiabot-sim         2.0.0                  751dc04f83a9   21 hours ago   2.68GB
+
+     ```
 
 ## Appendix: Advanced Use
 
