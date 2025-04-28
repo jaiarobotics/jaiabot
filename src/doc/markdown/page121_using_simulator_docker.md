@@ -44,14 +44,17 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 1. Open the Docker Desktop application.  This insures all Docker services are running.
 2. Open a browser.
 3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.ymlhttps:/)
-4. Download the file.  
+4. Download the `docker-compose.yml` file.  
    * Above the code on the right there is download button to download the raw file to your computer (down arrow) .
-6. Open your Downloads folder and move the docker-compose.yml file to your home directory.
+6. Open your Downloads folder and move the `docker-compose.yml` file to your home folder.
 7. Open your Terminal app (Windows Powershell, Mac Terminal, Ubuntu Terminal).
-8. Change to your home directory.
-9. Enter the following command.
-   * `docker compose up -d jaia-sim`
-11. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
+8. Change to your home folder.
+9. Create a `jdv_data` folder in your home folder.  This will be used to access JDV data in the container
+   * example: `mkdir jdv_data`
+11. Enter the following command.
+    * `docker compose up -d jaia-sim`Open a browser.
+    
+12. The Jaia Simulator (includes JCC, JDV, REST API) will be now running in a background container
 
 ## Open JCC
 
@@ -66,7 +69,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 ## Stop the simulator
 
 1. Open the Terminal app.
-2. Change to your home directory.
+2. Change to your home folder.
 3. Enter the following command.
    * `docker compose down`
 
@@ -78,15 +81,15 @@ Docker compose provides a platform-independent way to configure and run docker c
 2. Copy example file from [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml) .
 3. This file will be used in the Terminal app to launch the simulator.
 
-   * copy the file to the folder your home directory.
+   * copy the file to your home folder.
 4. You can edit the file using any standard text editor.
 
    * `image:` the image and tag you want to run
      * docker will automatically pull the image from the hub if needed
    * `environment:` Set Jaia sim envoronment variables to configure the simulator
    * `ports:` Defines the ports used by the sim, do not edit
-   * `volumes:` Maps local directory to JDV data directory in the sim container
-     * replace `./jdv_data` with local folder you want to use
+   * `volumes:` Maps local folder to JDV data folder in the sim container
+     * replace `./jdv_data` with other local folder if needed
      * do not edit `/var/log/jaiabot/bot_offload`
 
 Example:
@@ -118,7 +121,7 @@ services:
       - "9092:9092"        # REST API
 
     volumes:
-      # shared folder mapping for JDV, replace "./jdv_data" with other directory as needed
+      # shared folder mapping for JDV, replace "./jdv_data" with other folder as needed
       - ./jdv_data:/var/log/jaiabot/bot_offload
 
     stdin_open: true # Include stdin and tty so user can attach to running container
@@ -263,7 +266,7 @@ The following command will shut down the simulator, stop the container and remov
 
 This section is intended for experienced Linux users only. Building and managing images locally is not recommended on other platforms, please use pre-built images.
 
-_All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
+_All commands should be executed in the `jaiabot/scripts/sim-docker folder`_
 
 * Build the image**  (advanced)
 
@@ -290,7 +293,7 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker directory`_
 `./load-image.sh`
 
 * This loads the Docker Image from the file jaia-sim-image.tar.gz.
-* The file should be in the local directory when the script is run.
+* The file should be in the local folder when the script is run.
 
 **Other useful Docker commands**
 
