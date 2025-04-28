@@ -23,7 +23,7 @@
 #include <goby/time/system_clock.h>
 
 #include "jaiabot/groups.h"
-#include "jaiabot/protobuf/calibration_coefficients.pb.h"
+#include "jaiabot/messages/calibration_coefficients.pb.h"
 #include "turner__c_fluor.h"
 
 using goby::glog;
