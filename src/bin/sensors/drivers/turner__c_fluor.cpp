@@ -106,15 +106,15 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     }
 
     auto* cal_offset = sensor_cfg.add_cfg();
-    cal_offset->set_key("offset");
+    cal_offset->set_key("fluorometer_offset");
     cal_offset->set_value(std::to_string(existing_calibration.fluorometer().fluorometer_offset()));
 
     auto* cal_coefficient = sensor_cfg.add_cfg();
-    cal_coefficient->set_key("coefficient");
+    cal_coefficient->set_key("fluorometer_calibration_coefficient");
     cal_coefficient->set_value(existing_calibration.fluorometer().fluorometer_calibration_coefficient());
 
     auto* fluorometer_sn = sensor_cfg.add_cfg();
-    fluorometer_sn->set_key("serial_number");
+    fluorometer_sn->set_key("fluorometer_serial_number");
     fluorometer_sn->set_value(std::to_string(existing_calibration.fluorometer().fluorometer_serial_number()));
 
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
