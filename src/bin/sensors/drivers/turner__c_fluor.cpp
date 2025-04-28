@@ -83,25 +83,44 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
     
-    auto& cal_offset = *sensor_cfg.mutable_cfg();
-    auto& cal_coefficient = *sensor_cfg.mutable_cfg();
-    auto& fluorometer_sn = *sensor_cfg.mutable_cfg();
+    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficient.pb.cfg
+    auto existing_calibration_file = std::ifstream("/etc/jaiabot/calibration_coefficient.pb.cfg");
+    
+    if (existing_calibration_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/calibration_coefficient.pb.cfg" << std::endl;
+    }
+    else
+    { 
+        std::stringstream existing_calibration_stringstream;
+        existing_calibration_stringstream << existing_calibration_file.rdbuf();
 
-    cal_offset.set_key("offset");
-    cal_offset.set_value(fluorometer.offset());
+        if (!google::protobuf::TextFormat::ParseFromString(existing_calibration_stringstream.str(),
+                                                           &existing_calibration))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficient.pb.cfg"
+                                   << std::endl;
+        }
+    }
 
-    cal_coefficient.set_key("coefficient");
-    cal_coefficient.set_value(fluorometer.calibration_coefficient());
+    auto* cal_offset = sensor_cfg.add_cfg();
+    cal_offset->set_key("offset");
+    cal_offset->set_value(existing_calibration.offset());
 
-    fluorometer_sn.set_key("serial_number");
-    fluorometer_sn.set_value(fluorometer.serial_number());
+    auto* cal_coefficient = sensor_cfg.add_cfg();
+    cal_coefficient->set_key("coefficient");
+    cal_coefficient->set_value(existing_calibration.calibration_coefficient());
+
+    auto* fluorometer_sn = sensor_cfg.add_cfg();
+    fluorometer_sn->set_key("serial_number");
+    fluorometer_sn->set_value(existing_calibration.serial_number());
 
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
 void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+    auto health_state = goby::middleware::protobuf::HEALTH__OK; 
 
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {
