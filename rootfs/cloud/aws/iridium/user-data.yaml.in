@@ -50,6 +50,7 @@ packages:
   - jaiabot-apps
   - jaiabot-config
   - socat
+  - wireguard
 
 
 runcmd:

@@ -37,9 +37,7 @@ AMI_ID=$(run '.Parameters[0].Value' aws ssm get-parameters --names /aws/service/
 SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_${SERVER_TYPE}_$(date -Iminutes -u)" --description "jaia ${SERVER_TYPE} Security Group")
 echo ">>>>>> Created ${SERVER_TYPE} Security Group with ID: $SECURITY_GROUP_ID"
 
-# Set Up Security Group Rules
-run "" aws ec2 authorize-security-group-ingress --group-id $SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Allowed SSH (port 22) on Security Group"
+create_security_group_rules ${SECURITY_GROUP_ID}
 
 network_interfaces_json=$(jq -n -c \
                   --arg subnetId "$SUBNET_ID" \
