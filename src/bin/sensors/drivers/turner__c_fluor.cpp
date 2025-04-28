@@ -21,7 +21,8 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <goby/time/system_clock.h>
-
+#include <fstream>
+#include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/calibration_coefficients.pb.h"
 #include "turner__c_fluor.h"
@@ -106,7 +107,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     auto* cal_offset = sensor_cfg.add_cfg();
     cal_offset->set_key("offset");
-    cal_offset->set_value(existing_calibration.fluorometer_offset());
+    cal_offset->set_value(std::to_string(existing_calibration.fluorometer_offset()));
 
     auto* cal_coefficient = sensor_cfg.add_cfg();
     cal_coefficient->set_key("coefficient");

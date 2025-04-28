@@ -4,8 +4,12 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message CalibrationCoefficients {
+message Fluorometer {
     optional string fluorometer_offset = 1;
     optional string fluorometer_calibration_coefficient = 2;
     optional string fluorometer_serial_number = 3;
+}
+
+message CalibrationCoefficients {
+    optional Fluorometer fluorometer = 1;
 }
