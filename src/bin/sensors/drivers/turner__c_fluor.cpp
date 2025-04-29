@@ -46,7 +46,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
         [this](const sensor::protobuf::SensorRequest& sensor_request) {
             glog.is_debug1() && glog << "Received sensor request" << std::endl;
-            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_count() > 0) {
+            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_size() > 0) {
                 glog.is_debug1() && glog << "Received sensor request with cfg" << std::endl;
                 receive_cfg(sensor_request.cfg());
             }
