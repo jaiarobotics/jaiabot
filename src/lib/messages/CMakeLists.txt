@@ -25,7 +25,6 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   high_control.proto
   control_surfaces.proto
   feather.proto
-  lora_test.proto
   imu.proto
   mission.proto
   jaia_dccl.proto
