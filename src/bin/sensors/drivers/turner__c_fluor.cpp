@@ -45,9 +45,9 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
         [this](const sensor::protobuf::SensorRequest& sensor_request) {
-            glog.is_debug1() && glog << "Received sensor request" << std::endl;
+            glog.is_warn() && glog << "Received sensor request" << std::endl;
             if (sensor_request.has_cfg() && sensor_request.cfg().cfg_size() > 0) {
-                glog.is_debug1() && glog << "Received sensor request with cfg" << std::endl;
+                glog.is_warn() && glog << "Received sensor request with cfg" << std::endl;
                 receive_cfg(sensor_request.cfg());
             }
         });
@@ -66,7 +66,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 void jaiabot::apps::TurnerCFluorDriver::receive_cfg(
     const jaiabot::sensor::protobuf::Configuration& cfg)
 {
-    glog.is_debug1() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
+    glog.is_warn() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
 
     auto existing_fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
 
