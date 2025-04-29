@@ -62,7 +62,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 }
 
 void jaiabot::apps::TurnerCFluorDriver::receive_cfg(
-    const sensor::protobuf::Configuration& cfg)
+    const jaiabot::sensor::protobuf::Configuration& cfg)
 {
     glog.is_debug1() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
 
