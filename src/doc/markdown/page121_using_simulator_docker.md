@@ -29,7 +29,7 @@ We recommend installing Docker Desktop for your host machine as this provides al
 Basic steps
 
 1. Open a browser.
-2. Open Docker Desktop webpage [https://docs.docker.com/desktop/](https://docs.docker.com/desktop/https:/) .
+2. Open Docker Desktop webpage [https://docs.docker.com/desktop/](https://docs.docker.com/desktop/) .
 3. At the bottom of the page there should be section titled "Install Docker Desktop" with links for different operating systems.
 4. Click the link for the instructions for your machine.
 5. Follow instructions on page.
@@ -43,7 +43,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 
 1. Open the Docker Desktop application.  This insures all Docker services are running.
 2. Open a browser.
-3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.ymlhttps:/)
+3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
 4. Download the `docker-compose.yml` file.  
    * Above the code on the right there is download button to download the raw file to your computer (down arrow) .
 6. Open your Downloads folder and move the `docker-compose.yml` file to your home folder.
