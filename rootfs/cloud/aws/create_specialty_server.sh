@@ -9,18 +9,18 @@ if (( "$#" != 1 )); then
     exit 1
 fi
 
+ARCH=arm64
+INSTANCE_TYPE=t4g.nano
+REGION=us-west-2
+# default subnet for jaia servers in us-west-2
+SUBNET_ID=subnet-f5f17b8d
+
 set -a; source $1; set +a;
 
 if [[ ! -d ${SCRIPT_PATH}/${SERVER_TYPE} ]]; then
    echo "${SERVER_TYPE} is not a valid SERVER_TYPE"
    exit 1
 fi
-
-ARCH=arm64
-INSTANCE_TYPE=t4g.nano
-REGION=us-west-2
-# default subnet for jaia servers in us-west-2
-SUBNET_ID=subnet-f5f17b8d
 
 if [[ "$DEBUG" = "true" ]]; then
     echo "Using tmp dir: ${TMPDIR}"
