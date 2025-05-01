@@ -218,7 +218,8 @@ elif common.app == 'jaiabot_hub_manager':
                                      vfleet_shutdown_times=vfleet_shutdown_times,
                                      hub_gpsd_device=common.hub.gpsd_device(),
                                      subnet_mask=common.comms.subnet_mask,
-                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes) + "]"))
+                                      # do not hub subscribe automatically on Iridium to save data - let the bots subscribe as we only have one hub
+                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes if mode != common.CommsMode.IRIDIUM) + "]"))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

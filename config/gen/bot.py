@@ -179,10 +179,8 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
 
 
 if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
-    if is_simulation():
-        subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.modem_id("iridium",common.comms.hub_node_id)) + ' changed: true }'
-    else:
-        subscribe_to_hub_on_start=''
+    # have the bots subscribe when we're using Iridium as there's only one hub
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.modem_id("iridium",common.comms.hub_node_id)) + ' changed: true }'
     
     if is_simulation():
         iridium_serial_port='/tmp/iridium' + str(bot_index)
