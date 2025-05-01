@@ -32,7 +32,7 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir
 
 node_id = 0 
-wifi_modem_id = common.comms.wifi_modem_id(node_id)
+wifi_modem_id = common.comms.modem_id("wifi",node_id)
 vehicle_type= 'HUB'
 
 templates_dir=common.jaia_templates_dir
@@ -73,6 +73,7 @@ except FileNotFoundError:
     xbee_info = 'xbee {}'
 
 ack_timeout=10
+iridium_ack_timeout=120
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 link_block=''
 if common.CommsMode.XBEE in common.jaia_comms_modes:
@@ -88,7 +89,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     
     link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_hub_id='hub_id: ' + str(hub_index),
@@ -101,7 +102,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
 if common.CommsMode.WIFI in common.jaia_comms_modes:
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.wifi_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("wifi",node_id),
                                             local_port=common.udp.wifi_udp_port(node_id, hub_index),
                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
                                             hub_endpoints='',
@@ -109,6 +110,14 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
+
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+    link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
+                                            subnet_mask=common.comms.subnet_mask,
+                                            modem_id=common.comms.modem_id("iridium",node_id),
+                                            mac_slots=common.comms.iridium_mac_slots(node_id),
+                                            sub_buffer=sub_buffer_config,
+                                            ack_timeout=iridium_ack_timeout)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'

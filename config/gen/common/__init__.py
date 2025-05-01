@@ -54,6 +54,7 @@ except FileNotFoundError:
 class CommsMode(Enum):
      WIFI = "wifi"
      XBEE = "xbee"
+     IRIDIUM = "iridium"
 
 jaia_comms_modes=[]
 try:

@@ -6,7 +6,7 @@ import math
 
 subnet_mask=0xFF00
 
-subnet_index={'xbee': 0, 'wifi': 1}
+subnet_index={'xbee': 0, 'wifi': 1, 'iridium': 2}
 num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 
 # first id is hub id
@@ -22,11 +22,8 @@ all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['ad
 def base_modem_id(node_id):
     return node_id + 1
 
-def wifi_modem_id(node_id):
-    return base_modem_id(node_id) + subnet_index['wifi']*num_modems_in_subnet
-
-def xbee_modem_id(node_id):
-    return base_modem_id(node_id) + subnet_index['xbee']*num_modems_in_subnet
+def modem_id(link, node_id):
+    return base_modem_id(node_id) + subnet_index[link]*num_modems_in_subnet
 
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     if node_id == hub_node_id:
@@ -64,9 +61,15 @@ def wifi_hub_remotes(this_node_id, fleet_index):
     return hub_eps
 
 def wifi_mac_slots(node_id):
-    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
+    slots = 'slot { src: ' + str(modem_id("wifi", node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
     return slots
 
 def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.1 }\n'
+    slots = 'slot { src: ' + str(modem_id("xbee", node_id)) + ' slot_seconds: 0.1 }\n'
+    return slots
+
+def iridium_mac_slots(node_id):
+    # SBD is rate 0 in the Goby driver
+    sbd_rate=0
+    slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 30 rate: ' + str(sbd_rate) + ' }\n'
     return slots
