@@ -115,7 +115,7 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
     link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,
                                             modem_id=common.comms.modem_id("iridium",node_id),
-                                            mac_slots=common.comms.iridium_mac_slots(node_id),
+                                            mac_slots=common.comms.iridium_shore_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=iridium_ack_timeout)
 
