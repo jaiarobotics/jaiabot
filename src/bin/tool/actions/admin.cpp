@@ -1,6 +1,7 @@
 #include "goby/middleware/application/tool.h"
 
 #include "admin.h"
+#include "admin/fleet.h"
 #include "admin/ssh.h"
 #include "common.h"
 
@@ -27,6 +28,12 @@ jaiabot::apps::AdminTool::AdminTool()
                                 action_for_help);
                             break;
 
+                        case jaiabot::config::AdminTool::fleet:
+                            tool_helper.help<jaiabot::apps::admin::FleetTool,
+                                             jaiabot::apps::admin::FleetToolConfigurator>(
+                                action_for_help);
+                            break;
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -38,6 +45,12 @@ jaiabot::apps::AdminTool::AdminTool()
             case jaiabot::config::AdminTool::ssh:
                 tool_helper.run_subtool<jaiabot::apps::admin::SSHTool,
                                         jaiabot::apps::admin::SSHToolConfigurator>();
+
+                break;
+
+            case jaiabot::config::AdminTool::fleet:
+                tool_helper.run_subtool<jaiabot::apps::admin::FleetTool,
+                                        jaiabot::apps::admin::FleetToolConfigurator>();
 
                 break;
 

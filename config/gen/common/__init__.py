@@ -53,15 +53,15 @@ except FileNotFoundError:
 
 class CommsMode(Enum):
      WIFI = "wifi"
-     XBEE = "xbee"     
+     XBEE = "xbee"
 
+jaia_comms_modes=[]
 try:
-    jaia_comms_mode=CommsMode(os.environ['jaia_comms_mode'])
-except:    
-    if is_simulation():
-        jaia_comms_mode = CommsMode.WIFI
-    if is_runtime():
-        jaia_comms_mode = CommsMode.XBEE
+    modes=os.environ['jaia_comms_mode'].split(",")
+    for mode in modes:
+        jaia_comms_modes.append(CommsMode(mode))
+except:
+    config.fail('Must set jaia_comms_mode environmental variable to one or more (comma-delimited) of these options: ' + ", ".join(e.value for e in CommsMode))
 
 
 def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):

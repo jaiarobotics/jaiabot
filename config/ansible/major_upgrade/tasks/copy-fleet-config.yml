@@ -1,0 +1,4 @@
+- name: Copy the staged fleet config file
+  copy:
+    src: "{{ staged_fleet_cfg }}"
+    dest: "{{ upgrade_dir }}"

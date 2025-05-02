@@ -42,4 +42,11 @@ message Metadata
 
     // Is this a real bot, or just a fantasy?
     optional bool is_simulation = 11;
+
+    optional uint32 fleet_id = 20;
+    oneof node_type
+    {
+        uint32 hub_id = 21;
+        uint32 bot_id = 22;
+    }
 }

@@ -106,7 +106,9 @@ jaiabot::apps::admin::ssh::AddTool::AddTool()
 
     // Run 'jaia ssh' with command to remove old key (if exists) and append new to tmp_authorized_keys
     goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
-    subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
+
+    if (app_cfg().has_user())
+        subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
     subtool_cfg.add_extra_cli_param("sudo sed -i '\\|" + pubkey.b64_key + "|d' " +
                                     authorized_keys_file + "; " + "echo '" + pubkey.to_str() +

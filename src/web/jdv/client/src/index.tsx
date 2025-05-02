@@ -483,7 +483,7 @@ class LogApp extends React.Component {
             // Plot the data in series_list
             let dates = series._utime_.map((utime) => new Date(utime / 1e3));
             // Keep the original utime for internal use
-            let x_utime = series._utime_; 
+            let x_utime = series._utime_;
             let hovertext = series.series_y.map((y) => series.hovertext?.[y]);
 
             // Set the y-axis for this plot

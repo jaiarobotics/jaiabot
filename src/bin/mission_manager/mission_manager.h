@@ -53,6 +53,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
 
     void check_forward_progress();
+    void publish_mission_report(protobuf::MissionState state);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
@@ -88,8 +89,11 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     // Store when we get a new hub
     int32_t hub_id_{0};
 
-    // Store previous command time to ensure it is newer and to ignore duplicates
-    uint64_t prev_command_time_{0};
+    // Store previous commands time to ensure commands ignore duplicates
+    std::set<uint64_t> prev_command_times_;
+    // only store up to the last N previous command times to avoid
+    // potential memory leak on very long missions
+    constexpr static std::size_t command_history_max_count_{100};
 
     // Data for determining if we are making forward progress
     struct ForwardProgressData
