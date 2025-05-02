@@ -1,5 +1,6 @@
 // Provide the Web API IndexedDB interface to Jest
 import "fake-indexeddb/auto";
+import "jest-canvas-mock";
 
 // Provide the Web API ResizeObserver interface to Jest
 global.ResizeObserver = class ResizeObserver {
@@ -15,6 +16,9 @@ global.ResizeObserver = class ResizeObserver {
 
     disconnect() {}
 };
+
+// If your code or Plotly uses URL.createObjectURL in the browser, mock it:
+global.URL.createObjectURL = jest.fn();
 
 // Silence non error output while running tests
 global.console.log = jest.fn();
