@@ -2330,7 +2330,15 @@ export default class CommandControl extends React.Component {
             }
 
             if (feature.get("type") === "depth-contour") {
-                this.setState({ isDepthContourPlot3DDisplayed: true });
+                const botId = this.selectedBotId();
+                const runList = this.getRunList();
+                const botsAssignedToRuns = runList?.botsAssignedToRuns;
+                const noRunBeingEdited = runList.runIdInEditMode === "";
+                const botIsValid = !botId || botId in botsAssignedToRuns;
+
+                if (noRunBeingEdited && botIsValid) {
+                    this.setState({ isDepthContourPlot3DDisplayed: true });
+                }
             }
         }
 
