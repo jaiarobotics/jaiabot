@@ -11,7 +11,8 @@ message SalinityData
     };
 
     required double conductivity = 1;
-    required double total_dissolved_solids = 2;
-    required double salinity = 3;
-    required double specific_gravity = 4;
+    required double specific_conductivity = 2;
+    required double total_dissolved_solids = 3;
+    required double salinity = 4;
+    required double specific_gravity = 5;
 }
