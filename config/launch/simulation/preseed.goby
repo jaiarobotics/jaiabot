@@ -1,2 +1,3 @@
 export jaia_mode=simulation
-source $(dirname $BASH_SOURCE)/../../preseed.goby
+export jaia_comms_mode=wifi
+source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"

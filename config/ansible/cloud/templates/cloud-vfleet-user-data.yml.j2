@@ -1,0 +1,46 @@
+#cloud-config
+
+# Allows this config to merge correctly with common-first-boot.yml
+# See https://cloudinit.readthedocs.io/en/latest/reference/merging.html
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [no_replace, recurse_list]
+    
+bootcmd:
+  - mount -o remount,rw /boot/firmware  
+  
+write_files:
+  ## Set /etc/network/interfaces
+  - path: /etc/network/interfaces
+    content: |
+      # Overwrite standard Jaia interfaces for AWS
+      auto lo
+      iface lo inet loopback
+      auto eth0
+      iface eth0 inet dhcp
+  ## Configure VPN
+  - path: /etc/wireguard/wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}.conf
+    content: |
+      {% filter indent(6) %}{% include 'wireguard_client.conf.j2' %}{% endfilter %}
+{% if item.node_type == 'hub' %}
+  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_index }}
+    content: |
+      {% filter indent(6) %}{{ lookup('file', virtualhub_ssh_privkey_path) ~ '\n' }}{% endfilter %}
+  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_index }}.pub
+    content: |
+      {% filter indent(6) %}{{ lookup('file', virtualhub_ssh_pubkey_path) }}{% endfilter %}
+{% endif %}
+  ## Update DNS to avoid timeouts reaching IPv4 servers
+  - path: /etc/resolv.conf
+    content: |
+      nameserver 2606:4700:4700::1111
+      nameserver 2001:4860:4860::8888
+
+runcmd:
+  ## Restore default hostname
+  - hostnamectl set-hostname "jaia-unnamed"
+  ## enable VPN  
+  - systemctl enable wg-quick@wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}
+

@@ -1,0 +1,15 @@
+- name: Set upgrade directory
+  set_fact:
+    upgrade_dir: '{{ upgrade_dir_base }}/{{ major_upgrade_version_shortcode }}'
+
+- name: Set upgrade directory children
+  set_fact:
+    upgrade_tmp_dir: '{{ upgrade_dir }}/tmp'
+    upgrade_reuse_dir: '{{ upgrade_dir }}/reuse'
+    upgrade_backup_dir: '{{ upgrade_dir }}/backup'
+    upgrade_boot_dir: '{{ upgrade_dir }}/boot'
+
+- name: Create the upgrade tmp directory
+  file:
+    path: '{{ upgrade_tmp_dir }}'
+    state: directory

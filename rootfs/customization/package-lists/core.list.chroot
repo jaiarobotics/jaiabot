@@ -13,6 +13,7 @@ wpasupplicant
 # for gps-i2c-pipe.py
 python3-smbus
 apache2
-# for first boot script
+# for first boot
+cloud-init
 debconf-utils
 yubikey-manager

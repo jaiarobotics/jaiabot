@@ -85,23 +85,21 @@ jaiabot::apps::TSYS01TemperatureSensorDriver::TSYS01TemperatureSensorDriver()
         goby::middleware::io::UDPPointToPointThread<tsys01_udp_in, tsys01_udp_out>;
     launch_thread<TSYS01UDPThread>(cfg().udp_config());
 
-    interthread().subscribe<tsys01_udp_in>(
-        [this](const goby::middleware::protobuf::IOData& data)
+    interthread().subscribe<tsys01_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
+        jaiabot::protobuf::TSYS01Data tsys01_data;
+        if (!tsys01_data.ParseFromString(data.data()))
         {
-            jaiabot::protobuf::TSYS01Data tsys01_data;
-            if (!tsys01_data.ParseFromString(data.data()))
-            {
-                glog.is_warn() && glog << "Couldn't deserialize TSYS01Data from UDP packet"
-                                       << std::endl;
-                return;
-            }
+            glog.is_warn() && glog << "Couldn't deserialize TSYS01Data from UDP packet"
+                                   << std::endl;
+            return;
+        }
 
-            glog.is_debug2() && glog << "Publishing TSYS01Data: " << tsys01_data.ShortDebugString()
-                                     << std::endl;
+        glog.is_debug2() && glog << "Publishing TSYS01Data: " << tsys01_data.ShortDebugString()
+                                 << std::endl;
 
-            interprocess().publish<groups::tsys01>(tsys01_data);
-            last_tsys01_report_time_ = goby::time::SteadyClock::now();
-        });
+        interprocess().publish<groups::tsys01>(tsys01_data);
+        last_tsys01_report_time_ = goby::time::SteadyClock::now();
+    });
 }
 
 void jaiabot::apps::TSYS01TemperatureSensorDriver::loop()

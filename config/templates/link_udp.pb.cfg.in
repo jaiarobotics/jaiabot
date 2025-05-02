@@ -2,13 +2,16 @@ link {
     modem_id: $modem_id
     subnet_mask: $subnet_mask
     driver {
-        driver_type: DRIVER_UDP
-        [goby.acomms.udp.protobuf.config] { 
+        driver_name: "jaiabot_wifi_driver"
+        [jaiabot.udp.protobuf.config] { 
             local {                   
                 port: $local_port
             }
             $remotes
+            $hub_endpoints
             max_frame_size: 1400
+            $wifi_hub_id
+            subnet_mask: $subnet_mask
         }
     }
     mac { 

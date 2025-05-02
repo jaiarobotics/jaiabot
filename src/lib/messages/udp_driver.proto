@@ -1,0 +1,43 @@
+syntax = "proto2";
+import "goby/protobuf/option_extensions.proto";
+import "goby/acomms/protobuf/driver_base.proto"; // load up message DriverBaseConfig
+
+package jaiabot.udp.protobuf;
+
+message Config
+{
+    message EndPoint
+    {
+        optional uint32 modem_id = 1 [default = 0];
+        optional string ip = 2 [default = "127.0.0.1"];
+        required uint32 port = 3;
+    }
+
+    required EndPoint local = 1
+        [(goby.field).description = "The endpoint of the local machine "
+                                    "(IP address can be omitted)"];
+    repeated EndPoint remote = 2
+        [(goby.field).description = "An endpoint of the receiving machine."];
+    optional int32 max_frame_size = 3 [default = 1400];
+    optional bool ipv6 = 4 [default = false];
+
+    repeated uint32 additional_application_ack_modem_id = 21;
+
+    // Jaia additions
+    optional int32 hub_id = 30
+        [(goby.field).description =
+             "If this node is a hub, set its hub_id here."];
+    required uint32 subnet_mask = 31;
+
+    message HubEndPoints
+    {
+        required int32 hub_id = 1;
+        required EndPoint remote = 2;
+    }
+    repeated HubEndPoints hub_endpoint = 32;
+}
+
+extend goby.acomms.protobuf.DriverConfig
+{
+    optional Config config = 1501;
+}

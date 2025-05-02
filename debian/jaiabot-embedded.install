@@ -1,2 +1,3 @@
 /etc/update-motd.d/*
 /etc/jaiabot/ssh/*
+usr/share/jaiabot/init/*

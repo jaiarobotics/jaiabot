@@ -1,18 +1,18 @@
 #!/usr/bin/python3
-from time import sleep
 from enum import Enum
-from datetime import datetime
 import random
 import argparse
 import socket
 import logging
-
+import time
 from jaiabot.messages.pressure_temperature_pb2 import PressureTemperatureData
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
-parser.add_argument('-p', '--port', metavar='port', default=20001, type=int, help='port to publish T & P')
+parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=20001, type=int, help='port to receive data')
+parser.add_argument('-sp', '--send_port', metavar='send_port', default=20100, type=int, help='port to send data')
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('-t', dest='sensor_type', default='bar30', help='Type of Blue Robotics pressure-temperature sensor')
+parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 50, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
@@ -42,21 +42,28 @@ class SensorError(Exception):
     pass
 
 class Sensor:
+    # Data rate to Oversampling options
+    osr_mapping = {
+        100: 2,
+        50: 3,
+        20: 4,
+        10: 5
+    }
+
     def __init__(self):
         self.is_setup = False
         self.pressure_0 = None
         self.sensor_type = None
+        self.osr_value = self.osr_mapping.get(args.data_rate, 5)
 
     def setup(self):
         if not self.is_setup:
-            
             if args.sensor_type == SensorType.BAR02.name:
                 self.sensor = ms5837.MS5837_02BA()
                 self.sensor_type = SensorType.BAR02.num
             else:
                 self.sensor = ms5837.MS5837_30BA()
                 self.sensor_type = SensorType.BAR30.num
-            
             if not self.sensor.init():
                 log.error("Cannot initialize Blue Robotics pressure-temperature sensor.")
                 raise SensorError()
@@ -72,19 +79,17 @@ class Sensor:
             self.setup()
 
         try:
-            if self.sensor.read():
+            if self.sensor.read(oversampling=self.osr_value):
                 if self.pressure_0 is None:
                     self.pressure_0 = self.sensor.pressure()
 
                 return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
-                
             else:
                 log.warning('Sensor read fail')
                 self.is_setup = False
         except OSError as e:
             self.is_setup = False
             raise e
-
 
 class SensorSimulator:
 
@@ -106,36 +111,55 @@ else:
 
 
 # Create socket
-port = args.port
-
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', port))
+sock.bind(('', args.receive_port))
+# Send data to localhost on port 20100
+addr = ("localhost", args.send_port)
+
+# Target send interval (in seconds)
+target_interval = 1.0 / args.data_rate  
+# Next scheduled send time
+next_send_time = time.perf_counter()  
 
 while True:
-    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+    loop_start = time.perf_counter()
 
-    # Respond to anyone who sends us a packet
+    # Read data from sensor
     try:
         p_mbar, t_celsius = sensor.read()
     except Exception as e:
         log.warning(e)
         continue
 
+    # Validate sensor values
     try:
-        float(p_mbar)
+        p_mbar = float(p_mbar)
+        t_celsius = float(t_celsius)
     except Exception as e:
-        log.error(f'Pressure cannot be converted to a float. {e}')
-        continue
-    
-    try:
-        float(t_celsius)
-    except Exception as e:
-        log.error(f'Temperature cannot be converted to a float. {e}')
+        log.error(f"Invalid sensor data: {e}")
         continue
 
+    # Create and send the protobuf message
     pressure_temperature_data = PressureTemperatureData()
     pressure_temperature_data.pressure_raw = p_mbar
     pressure_temperature_data.temperature = t_celsius
     pressure_temperature_data.sensor_type = sensor.sensor_type
 
-    sock.sendto(pressure_temperature_data.SerializeToString(), addr)
+    try:
+        sock.sendto(pressure_temperature_data.SerializeToString(), addr)
+    except Exception as e:
+        log.error(f"Failed to send data: {e}")
+
+    # Measure loop duration
+    loop_duration = time.perf_counter() - loop_start
+
+    # Adjust next send time dynamically
+    next_send_time += target_interval
+
+    # Calculate time remaining before next send
+    sleep_time = max(0, next_send_time - time.perf_counter())
+
+    # Sleep for the remaining interval
+    time.sleep(sleep_time)
+
+

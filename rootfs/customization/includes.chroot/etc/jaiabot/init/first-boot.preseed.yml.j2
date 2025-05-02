@@ -1,0 +1,63 @@
+#cloud-config
+
+# Allows this config to merge correctly with common-first-boot.yml
+# See https://cloudinit.readthedocs.io/en/latest/reference/merging.html
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+   
+# Bot/Hub information (debconf for jaiabot-embedded)
+apt:
+  debconf_selections:
+    jaiabot_embedded_set: |
+      jaiabot-embedded jaiabot-embedded/fleet_id select {{ fleet }}
+      jaiabot-embedded jaiabot-embedded/type select {{ this.type }}
+      jaiabot-embedded jaiabot-embedded/bot_id select {{ this.id if this.type == "bot" else 0 }}
+      jaiabot-embedded jaiabot-embedded/hub_id select {{ this.id if this.type == "hub" else 0  }}
+      jaiabot-embedded jaiabot-embedded/mode select {{ this.mode }}
+{%- for d in debconf %}
+      jaiabot-embedded {{ d.key }} {{ d.type|lower }} {{ d.value }}
+{%- endfor %}
+write_files:
+  ## SSH authorized keys
+  # hub keys
+  - path: /etc/jaiabot/ssh/hub_authorized_keys
+    content: |
+{%- for h in ssh.hub %}
+      {{ h.publicKey }}
+{%- endfor %}
+  # permanent keys - gets moved to /home/jaia/.ssh/authorized_keys after jaia user is created
+  - path: /etc/jaiabot/ssh/jaia_authorized_keys
+    content: |
+{%- for pk in ssh.permanentAuthorizedKeys %}
+      {{ pk }}
+{%- endfor %}
+  ## Wifi
+  # SSID, address and gateway XXX and YYY will be automatically updated by jaiabot-embedded postinst
+  - path: /etc/network/interfaces.d/wlan0
+    content: |
+      auto wlan0
+      iface wlan0 inet static
+{%- if wlanPassword != "dummy" %}    
+        wpa-essid SSID
+        wpa-psk {{ wlanPassword }}
+{%- endif %}
+        address 10.23.XXX.YYY
+        netmask 255.255.255.0
+        gateway 10.23.XXX.1
+  - path: /etc/network/interfaces.d/eth0
+    content: |
+      # auto eth0
+      # iface eth0 inet static
+      #   address 10.23.XXX.YYY
+      #   netmask 255.255.255.0
+      #   gateway 10.23.XXX.1
+
+runcmd:
+  - if [ ! -e /etc/jaiabot/inventory.yml ]; then /etc/jaiabot/init/jaia-create-ansible-inventory.sh -b "{{ bots | join(",") }}" -h "{{ hubs | join(",") }}" > /etc/jaiabot/inventory.yml; fi
+  # Install fleetN.cfg if provided
+  - if [ -e /boot/firmware/jaiabot/init/fleet{{ fleet }}.cfg ]; then cp /boot/firmware/jaiabot/init/fleet{{ fleet }}.cfg /etc/jaiabot; fi
+  # Enable or disable service VPN 
+  - sudo systemctl {{ "enable" if serviceVpnEnabled else "disable" }} wg-quick@wg_jaia

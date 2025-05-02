@@ -128,7 +128,8 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         int return_code = pclose(pipe);
         if (return_code != 0)
         {
-            goby::glog.is_die() && goby::glog << "jaia-ip.py command returned error. " << std::endl;
+            goby::glog.is_die() && goby::glog << "jaia-ip.py command returned error for command: '"
+                                              << command << "'" << std::endl;
         }
         std::string host_ip = ip_output.str();
         goby::glog.is_verbose() && goby::glog << host_code << " (" << jaiabot::config::Net_Name(net)

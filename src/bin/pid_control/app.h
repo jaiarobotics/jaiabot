@@ -9,8 +9,8 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #include "PID/PID.h"
@@ -102,6 +102,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     // Arduino Response for motor in percent
     int arduino_motor_throttle_{0};
+
+    // if true, don't send low control (used by mission_repeater)
+    bool suspended_{false};
 
   private:
     void loop() override;

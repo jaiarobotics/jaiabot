@@ -1,0 +1,97 @@
+$app_block
+$interprocess_block
+
+bot_id: $bot_id
+
+script {
+    # shut off the PID controller
+    step {
+        duration: 1 # sec
+        step_marker: 0
+        desired_setpoints {
+            type: SETPOINT_SUSPEND_PID
+        }
+    }
+
+    # straight leg
+    step { 
+        duration: 100 # sec
+        step_marker: 1
+        repeat_interval: 1 # sec
+        low_control { 
+            id: 0
+            vehicle: $bot_id
+            time: 0
+            control_surfaces { 
+                motor: 40
+                port_elevator: 0
+                stbd_elevator: 0
+                rudder: 0
+                timeout: 5
+                led_switch_on: false
+            }
+        }
+    }
+
+    # turn
+    step { 
+        duration: 20 # sec
+        step_marker: 2
+        repeat_interval: 1 # sec
+        low_control { 
+            id: 0
+            vehicle: $bot_id
+            time: 0
+            control_surfaces { 
+                motor: 20
+                port_elevator: 0
+                stbd_elevator: 0
+                rudder: -15
+                timeout: 5
+                led_switch_on: false
+            }
+        }
+    }
+
+    # straight leg
+    step { 
+        duration: 100 # sec
+        step_marker: 3
+        repeat_interval: 1 # sec
+        low_control { 
+            id: 0
+            vehicle: $bot_id
+            time: 0
+            control_surfaces { 
+                motor: 40
+                port_elevator: 0
+                stbd_elevator: 0
+                rudder: 0
+                timeout: 5
+                led_switch_on: false
+            }
+        }
+    }
+
+    # tight turn
+    step { 
+        duration: 100 # sec
+        step_marker: 4
+        repeat_interval: 1 # sec
+        low_control { 
+            id: 0
+            vehicle: $bot_id
+            time: 0
+            control_surfaces { 
+                motor: 20
+                port_elevator: 0
+                stbd_elevator: 0
+                rudder: -30
+                timeout: 5
+                led_switch_on: false
+            }
+        }
+    }
+
+    
+}

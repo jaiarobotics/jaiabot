@@ -14,6 +14,7 @@ enum SetpointType
         2;              // fixed heading, speed, etc. for a given duration
     SETPOINT_DIVE = 3;  // Inverse drive control (dive_depth)
     SETPOINT_POWERED_ASCENT = 4;  // Power ascent to surface
+    SETPOINT_SUSPEND_PID = 5; // stop sending PID based control messages until another SETPOINT is sent
 }
 
 message RemoteControl
