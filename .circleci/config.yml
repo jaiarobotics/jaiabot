@@ -94,7 +94,7 @@ job-template-amd64: &job-template-amd64
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y goby3-clang-tool dccl4-apps || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -Dbuild_web=OFF .. && cmake --build . -- -j4 && cmake -Dbuild_web=ON && cmake --build . -- -j4
     - run: &run-tests
         name: Run tests
         command: |
