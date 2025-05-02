@@ -103,6 +103,7 @@ function create_virtualbox {
     # Create VM
     VBoxManage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefolder="$(dirname ${DISK})"
     # Set memory and network
+    VBoxManage modifyvm $MACHINENAME --firmware efi    
     VBoxManage modifyvm $MACHINENAME --ioapic on
     VBoxManage modifyvm $MACHINENAME --memory 1024 --vram 128
     VBoxManage modifyvm $MACHINENAME --nic1 nat

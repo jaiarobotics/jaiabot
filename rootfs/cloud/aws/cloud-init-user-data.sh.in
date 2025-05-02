@@ -57,6 +57,7 @@ PrivateKey = ${SERVER_VPN_PRIVATEKEY}
 PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -A FORWARD -i wg_cloudhub -j ACCEPT;
 PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -D FORWARD -i wg_cloudhub -j ACCEPT;
 
+
 [Peer]
 # Initial Setup Client
 PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
@@ -65,15 +66,13 @@ EOF
 
 systemctl enable wg-quick@wg_cloudhub
 
-## SSH Keys
-mkdir -p /home/jaia/.ssh
-cat << EOF >> /home/jaia/.ssh/authorized_keys
-{{SSH_PUBKEYS}}
+## Set network interfaces file
+cat <<EOF > /etc/network/interfaces
+auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet dhcp
 EOF
-chown -R jaia:jaia /home/jaia/.ssh
-
-## Restore network interfaces file for reboot after first-boot config
-mv /etc/network/vmimport.interfaces /etc/network/interfaces
 
 ## Restore default hostname
 hostnamectl set-hostname "jaia-unnamed"
@@ -96,7 +95,7 @@ jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
 jaia_jcc_hub_ip={{JCC_HUB_IP}}
 EOF
 
-## Add inventory for CloudHub prelaunch GUI (rather than run fleet-config.sh on one machine)
+## Add inventory for CloudHub prelaunch GUI
 cat <<EOF > /etc/jaiabot/inventory.yml
 hubs:
   hosts:
@@ -116,55 +115,12 @@ EOF
 
 # also need latest boto3
 pip3 install -U boto3
-cd /tmp
+cd /opt
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
+unzip -q awscliv2.zip
 ./aws/install
 
 ## Add s3 entry for data
 cat <<EOF >> /etc/fstab
 {{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}},tmpdir=/var/log/jaiabot 0 0
 EOF
-
-## Preseed jaiabot
-mount -o remount,rw /boot/firmware
-mkdir -p /boot/firmware/jaiabot/init
-cat << EOF | tee /boot/firmware/jaiabot/init/first-boot.preseed
-
-jaia_run_first_boot=true
-jaia_stress_tests=false
-
-########################################################
-# Network
-########################################################
-jaia_disable_ethernet=false
-jaia_configure_wifi=false
-jaia_wifi_ssid=dummy
-jaia_wifi_password=dummy
-
-#########################################################
-# Preseed jaiabot-embedded package debconf queries
-# See jaiabot-embedded.templates from jaiabot-debian 
-# https://github.com/jaiarobotics/jaiabot-debian/blob/1.y/jaiabot-embedded.templates
-# To dump config in the correct format on a bot that is configured use: "debconf-get-selections  | grep jaia"
-#########################################################
-jaia_install_jaiabot_embedded=true
-jaia_embedded_debconf=\$(cat << EOM
-jaiabot-embedded	jaiabot-embedded/fleet_id	select	{{FLEET_ID}}
-jaiabot-embedded	jaiabot-embedded/type	select	hub
-jaiabot-embedded	jaiabot-embedded/mode	select	runtime
-jaiabot-embedded	jaiabot-embedded/warp	select	1
-jaiabot-embedded	jaiabot-embedded/bot_id	select	0
-jaiabot-embedded	jaiabot-embedded/hub_id	select	{{CLOUDHUB_ID}}
-jaiabot-embedded	jaiabot-embedded/arduino_type	select	none
-jaiabot-embedded	jaiabot-embedded/electronics_stack	select	2
-jaiabot-embedded	jaiabot-embedded/led_type	select	none
-EOM
-)
-
-jaia_reboot=true
-
-EOF
-
-systemctl restart first_boot
-
