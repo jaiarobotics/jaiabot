@@ -45,3 +45,12 @@ The `gravity` vector points in the upward direction, away from the ground.  This
 
 The `linear_acceleration` vector points in the direction of the acceleration.  This vector is also reported in units of $m/{s^2}$.
 
+### Quaternion
+
+The `quaternion` vector behaves as in the following chart.
+
+| Orientation | Pitch ($\degree$) | Roll ($\degree$) | `quaternion` (wxyz) |
+| ----------- | -------- | -- | --------------- |
+| <img src="bot_standard.png" width="400pt"> | 0 | 0 | `(0.55, 0.01, -0.01, -0.8)` |
+| <img src="bot_pitch_positive.png" width="400pt"> | +32 | 0 | `(0.53, -0.17, -0.19, -0.8)` |
+| <img src="bot_roll.png" width="400pt"> | 0 | +87 | `(0.39, 0.45, -0.52, -0.58)` |
