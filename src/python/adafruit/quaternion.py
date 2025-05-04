@@ -68,3 +68,9 @@ class Quaternion:
         result_quaternion = self.unit_inverse() * v_quaternion * self
         return Vector3(result_quaternion.x, result_quaternion.y, result_quaternion.z)
 
+
+if __name__ == '__main__':
+    q = Quaternion(0.39, 0.45, -0.52, -0.58)
+    print(q.to_euler_angles())
+
+
