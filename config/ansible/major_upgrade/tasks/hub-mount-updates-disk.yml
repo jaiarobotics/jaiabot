@@ -1,0 +1,15 @@
+- name: Mount updates disk
+  mount:
+    path: /var/www/html/updates
+    src: LABEL=updates
+    state: mounted
+    fstype: auto
+  register: mount_updates_result
+  ignore_errors: yes
+
+
+- name: Handle Mount updates failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Mounting updates disk failed: Ensure USB key or CD is installed in hub"
+  when: mount_updates_result.failed

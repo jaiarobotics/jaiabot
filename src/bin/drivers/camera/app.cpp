@@ -37,7 +37,7 @@ using jaiabot::groups::camera;
 constexpr goby::middleware::Group serial_in{"camera::serial_in"};
 constexpr goby::middleware::Group serial_out{"camera::serial_out"};
 
-#include "jaiabot/lora/serial_crc32.h"
+#include "jaiabot/serial/serial_crc32.h"
 using namespace jaiabot::serial;
 
 #include "jaiabot/messages/camera_driver.pb.h"

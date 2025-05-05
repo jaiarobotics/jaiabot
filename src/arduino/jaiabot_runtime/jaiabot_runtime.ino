@@ -9,7 +9,7 @@
 #undef UENUM
 #endif
 #include "nanopb/jaiabot/messages/arduino.pb.h"
-#include "crc16.h"
+#include "fletcher16.h"
 
 // Indicates the code version
 // If you are increasing this version than update
@@ -229,8 +229,6 @@ void setup()
     }
     delay(10);
   }*/
-
-  init_crc16_tab();
 
   // Send startup code
   send_ack(jaiabot_protobuf_ArduinoStatusCode_STARTUP);
