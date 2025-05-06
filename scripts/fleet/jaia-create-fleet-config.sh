@@ -354,6 +354,27 @@ while : ; do
 done
 
 echo "######################################################"
+echo "## Communications Configuration                     ##"
+echo "######################################################"
+
+echo "comms {" >> $out
+
+if grep -q iridium $out; then
+    echo "######################################################"
+    echo "## Iridium SBD Configuration                        ##"
+    echo "######################################################"
+    for BOT_ID_QUOTED in ${BOT_IDS}
+    do
+        BOT_ID=$(eval echo ${BOT_ID_QUOTED})
+        run_wt_inputbox "Fleet Configuration" "Enter Iridium IMEI for Bot ${BOT_ID}"
+        IMEI=$WT_TEXT
+        echo "  iridium_sbd { bot_id: $BOT_ID imei: \"$IMEI\" }" >> $out
+    done
+fi
+
+echo "}" >> $out
+
+echo "######################################################"
 echo "## Validate fleet configuration                     ##"
 echo "######################################################"
 
