@@ -5,7 +5,7 @@ import { TaskPacket } from "../../shared/JAIAProtobuf";
 import { getColorScale } from "./DepthColorMap";
 import Icon from "@mdi/react";
 import Button from "@mui/material/Button";
-import { mdiWindowClose } from "@mdi/js";
+import { mdiWindowClose, mdiDockLeft, mdiDockRight, mdiWindowMaximize } from "@mdi/js";
 
 interface Props {
     taskPackets: TaskPacket[];
@@ -13,10 +13,37 @@ interface Props {
 }
 
 export default function DepthContourPlot3D(props: Props) {
+    const [window_position, set_window_position] = React.useState("center");
+
     const topBar = (
         <div className="depth-contour-plot-topbar">
             <Button onClick={props.onClose}>
                 <Icon path={mdiWindowClose} title="Close Window"></Icon>
+            </Button>
+            <div className="spacer"></div>
+            <Button
+                onClick={() => {
+                    Plotly.purge("depth-contour-plot");
+                    set_window_position("left-half");
+                }}
+            >
+                <Icon path={mdiDockLeft} title="Left Half"></Icon>
+            </Button>
+            <Button
+                onClick={() => {
+                    Plotly.purge("depth-contour-plot");
+                    set_window_position("center");
+                }}
+            >
+                <Icon path={mdiWindowMaximize} title="Centered"></Icon>
+            </Button>
+            <Button
+                onClick={() => {
+                    Plotly.purge("depth-contour-plot");
+                    set_window_position("right-half");
+                }}
+            >
+                <Icon path={mdiDockRight} title="Right Half"></Icon>
             </Button>
         </div>
     );
@@ -24,10 +51,10 @@ export default function DepthContourPlot3D(props: Props) {
 
     React.useEffect(() => {
         setupDepthContourPlot3D(props.taskPackets);
-    }, []);
+    }, [window_position]);
 
     return (
-        <div className="depth-contour-plot-container centered rounded shadowed">
+        <div className={`depth-contour-plot-container ${window_position} rounded shadowed`}>
             {topBar}
             {div}
         </div>
