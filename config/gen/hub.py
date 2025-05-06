@@ -26,6 +26,15 @@ try:
     user_role=os.environ['jaia_user_role'].upper()
 except:
     user_role='USER'
+
+try:
+    cloudhub_type=os.environ['jaia_cloudhub_type'].upper()
+except:
+    cloudhub_type='SECONDARY'
+
+is_cloudhub = hub_index == cloudhub_index
+if not is_cloudhub:
+    cloudhub_type=''
     
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
@@ -121,11 +130,11 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'
-if common.is_vfleet or hub_index == cloudhub_index:
+if common.is_vfleet or is_cloudhub:
     liaison_bind_addr='0::0'
 
 if common.app == 'gobyd':
-    if hub_index == cloudhub_index:
+    if cloudhub_type == 'SECONDARY':
         required_clients=''
     else:
         required_clients='required_client: "goby_intervehicle_portal"'
@@ -172,7 +181,7 @@ elif common.app == 'goby_liaison_prelaunch':
     liaison_port=9091
     this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)
     inventory='/etc/jaiabot/inventory.yml'
-    if hub_index == cloudhub_index:
+    if is_cloudhub:
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
     else:
         vfleet_playbooks=''
