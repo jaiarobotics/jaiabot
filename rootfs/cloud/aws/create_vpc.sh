@@ -177,22 +177,6 @@ mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
 
-FLEET_CONFIG=${USER_DATA_FIRST_BOOT_DIR}/fleet${FLEET_ID}.cfg
-perm_ssh_keys=$(echo "${SSH_PUBKEYS}" | sed 's/^/permanent_authorized_keys: "/' | sed 's/$/"/')
-cat <<EOF > ${FLEET_CONFIG}
-fleet: ${FLEET_ID}
-hubs: [ ${CLOUDHUB_ID} ]
-ssh {
-${perm_ssh_keys}
-}
-wlan_password: "dummy"
-service_vpn_enabled: false
-debconf {
-  key: "jaiabot-embedded/comms_links"
-  type: MULTISELECT
-  value: "wifi"
-}
-EOF
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
 USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml

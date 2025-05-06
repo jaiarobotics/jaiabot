@@ -317,7 +317,7 @@ elif jaia_type == Type.HUB:
 
 
 # most firmware does not run on Cloudhubs at all
-firmware_common_macros = common_macros
+firmware_common_macros = common_macros.copy()
 firmware_common_macros['runs_on_cloudhub'] = CloudHubType.NEVER
     
     
