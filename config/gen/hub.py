@@ -185,7 +185,10 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
     else:
         vfleet_playbooks=''
-        
+
+    limit=''
+    if cloudhub_type == 'PRIMARY':
+        limit='limit: "all"'
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -195,6 +198,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_index=hub_index,
+                                     limit=limit,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',

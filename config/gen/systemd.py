@@ -531,7 +531,8 @@ jaiabot_apps = [
      'description': 'Jaia Firewall/Wifi Updater',
      'template': 'wifi_ufw_update.service.in',
      'runs_on': Type.BOTH,
-     'runs_when': Mode.RUNTIME}
+     'runs_when': Mode.RUNTIME,
+     'runs_on_cloudhub': CloudHubType.NEVER}
 ]
 
 if jaia_imu_type.value == 'bno085':
