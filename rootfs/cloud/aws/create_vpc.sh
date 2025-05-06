@@ -181,6 +181,20 @@ cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
 USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
 
+# Append SSH keys to user data script so they get installed
+cat <<EOFF >> ${USER_DATA_SCRIPT}
+## Install SSH keys
+PRESEED_DIR="/boot/firmware/jaiabot/init"
+mount -o remount,rw /boot/firmware
+cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID})
+EOF
+
+cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub)
+EOF
+EOFF
+
 USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
 

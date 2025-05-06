@@ -58,9 +58,10 @@ class CommsMode(Enum):
 
 jaia_comms_modes=[]
 try:
-    modes=os.environ['jaia_comms_mode'].split(",")
-    for mode in modes:
-        jaia_comms_modes.append(CommsMode(mode))
+    modes=os.environ['jaia_comms_mode']
+    if modes:
+        for mode in modes.split(","):
+            jaia_comms_modes.append(CommsMode(mode))
 except:
     config.fail('Must set jaia_comms_mode environmental variable to one or more (comma-delimited) of these options: ' + ", ".join(e.value for e in CommsMode))
 
