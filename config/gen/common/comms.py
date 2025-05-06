@@ -3,6 +3,7 @@ from common import udp
 import common.bot
 import netifaces
 import math
+import json
 
 subnet_mask=0xFF00
 
@@ -79,3 +80,20 @@ def iridium_shore_mac_slots(node_id):
     # no reason to really rate limit commands substantially
     slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 5 rate: ' + str(sbd_rate) + ' }\n'
     return slots
+
+def iridium_modem_imei_mapping():
+    mapping=''
+    if is_simulation():
+        first_bot_node_id=1
+        for node_id in range(first_bot_node_id, number_of_bots_max+first_bot_node_id):
+            modem_id = base_modem_id(node_id)
+            bot_id = node_id - 1
+            mapping += 'modem_id_to_imei { modem_id: ' + str(modem_id) + ' imei: "' + f'{bot_id:015d}' + '" }\n'
+        
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            bots = json.load(f)
+            for bot in bots:
+                mapping += 'modem_id_to_imei { modem_id: ' + str(base_modem_id(bot["botId"] + 1)) + ' imei: "' + bot["imei"] + '" }\n'
+        
+    return mapping

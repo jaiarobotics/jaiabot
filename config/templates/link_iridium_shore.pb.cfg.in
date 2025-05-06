@@ -10,26 +10,10 @@ link {
             
             mo_sbd_server_port: 11800
 
-            # runtime
-            # mt_sbd_server_address: "iridium.jaia.tech"
-            # mt_sbd_server_port: 10800 + fleet_id
+            mt_sbd_server_address: "$iridium_mt_server_address"
+            mt_sbd_server_port: $iridium_mt_server_port
 
-            # Actual lookup table
-            #  modem_id_to_imei {  #  (repeated)
-            #      modem_id: 2
-            #      imei: "xxxxxxxxxxxxxxx"  #  (required)
-            #  }
-
-            
-            # simulation
-            mt_sbd_server_address: "127.0.0.1"
-            mt_sbd_server_port: 10800
-           
-            modem_id_to_imei { modem_id: 3 imei: "000000000000001" }
-            modem_id_to_imei { modem_id: 4 imei: "000000000000002" }
-            modem_id_to_imei { modem_id: 5 imei: "000000000000003" }
-            modem_id_to_imei { modem_id: 6 imei: "000000000000004" }
-            modem_id_to_imei { modem_id: 7 imei: "000000000000005" }
+            $modem_imei_map
     }
 
         

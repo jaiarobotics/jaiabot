@@ -121,12 +121,23 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             ack_timeout=ack_timeout)
 
 if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+
+    if is_simulation():
+        iridium_mt_server_address='127.0.0.1'
+        iridium_mt_server_port=10800
+    else:
+        iridium_mt_server_address='iridium.jaia.tech'
+        iridium_mt_server_port=10800+fleet_index
+        
     link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
-                                            subnet_mask=common.comms.subnet_mask,
-                                            modem_id=common.comms.modem_id("iridium",node_id),
-                                            mac_slots=common.comms.iridium_shore_mac_slots(node_id),
-                                            sub_buffer=sub_buffer_config,
-                                            ack_timeout=iridium_ack_timeout)
+                                             subnet_mask=common.comms.subnet_mask,
+                                             modem_id=common.comms.modem_id("iridium",node_id),
+                                             mac_slots=common.comms.iridium_shore_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=iridium_ack_timeout,
+                                             modem_imei_map=common.comms.iridium_modem_imei_mapping(),
+                                             iridium_mt_server_address=iridium_mt_server_address,
+                                             iridium_mt_server_port=iridium_mt_server_port)
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'

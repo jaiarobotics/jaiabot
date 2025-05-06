@@ -195,6 +195,16 @@ $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID
 EOF
 EOFF
 
+# Install Iridium configuration if it exists
+if [ -e ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/iridium.json ]; then 
+cat <<EOFF >> ${USER_DATA_SCRIPT}
+## Install Iridium config
+cat <<EOF > \${PRESEED_DIR}/iridium.json
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/iridium.json)
+EOF
+EOFF
+fi 
+
 USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
 
