@@ -1,4 +1,4 @@
-# JaiaBot Software test
+# JaiaBot Software
 
 This repository houses the source code for the JaiaBot micro-UUV. 
 

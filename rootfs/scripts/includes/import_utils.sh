@@ -25,6 +25,7 @@ function write_preseed()
     sudo mount "${VBOX_MOUNT_PATH}/vol0" /mnt
  
     tmp_boot="/tmp/import_vms"
+    rm -rf ${tmp_boot}
     mkdir -p ${tmp_boot}/jaiabot/init
     cp /mnt/jaiabot/init/* ${tmp_boot}/jaiabot/init
     jaia admin fleet generate /tmp/fleet.cfg --mode simulation ${BOT_OR_HUB} ${N} --bootdir ${tmp_boot}
