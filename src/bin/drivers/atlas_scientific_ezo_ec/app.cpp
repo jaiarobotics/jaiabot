@@ -135,7 +135,7 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
                 last_pressure_adjusted_data_.has_pressure_adjusted())
             {
                 const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-                const double salinity_calculated = calculate_calibrated_salinity(
+                const double salinity_calculated = calculate_derived_salinity(
                     conductivity, last_pressure_temperature_data_.temperature(),
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);

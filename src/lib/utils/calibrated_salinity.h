@@ -1,7 +1,7 @@
 #include <math.h>
 
-double calculate_calibrated_salinity(const double measured_conductivity, const double temperature,
-                                     const double pressure)
+double calculate_derived_salinity(const double measured_conductivity, const double temperature,
+                                  const double pressure)
 {
     // Calculate salinity given measured conductivity, temperature, and pressure.
 
