@@ -127,6 +127,11 @@ add_commander_tab: false
             value: "yes"
             value: "no"
         }
+
+        output_var {
+            name: "major_upgrade_error"
+            display_name: "Error"
+        }
         
         causes_hub_reboot: true
     }
