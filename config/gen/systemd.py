@@ -759,7 +759,7 @@ for app in jaiabot_apps:
             
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
-    macros={**common_macros, **firm}
+    macros={**firmware_common_macros, **firm}
 
     if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
         return False

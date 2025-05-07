@@ -10,6 +10,7 @@ from common import logger
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
 from pathlib import Path
+import subprocess
 
 try:
     fleet_index=int(os.environ['jaia_fleet_index'])
@@ -126,7 +127,10 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         iridium_mt_server_address='127.0.0.1'
         iridium_mt_server_port=10800
     else:
-        iridium_mt_server_address='iridium.jaia.tech'
+        # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
+        iridium_jaia_tech_hub_id=25
+        result = subprocess.run(f"jaia-ip.py addr --node hub --node_id {iridium_jaia_tech_hub_id} --net cloudhub_vpn --fleet_id {fleet_index} --ipv6", stdout=subprocess.PIPE, shell=True)
+        iridium_mt_server_address=result.stdout.decode().strip()
         iridium_mt_server_port=10800+fleet_index
         
     link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
