@@ -1,0 +1,6 @@
+- name: Prepare new boot fs
+  shell: |
+    mkdir -p {{ upgrade_boot_dir }}
+    tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
+    jaia admin fleet generate --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
+    rm -f {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
