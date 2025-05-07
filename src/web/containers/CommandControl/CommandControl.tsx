@@ -2077,10 +2077,10 @@ export default class CommandControl extends React.Component {
         this.updateMissionHistory(runList);
     }
 
-    handleEvent(evt: MapBrowserEvent<UIEvent>) {
+    handleEvent(evt: MapBrowserEvent<PointerEvent>) {
         switch (evt.type) {
             case "click":
-                return this.clickEvent(evt as MapBrowserEvent<UIEvent>);
+                return this.clickEvent(evt as MapBrowserEvent<PointerEvent>);
             case "dragging":
                 return;
         }
@@ -2090,14 +2090,14 @@ export default class CommandControl extends React.Component {
     /**
      * Click handler for JCC map
      *
-     * @param {MapBrowserEvent<UIEvent>} evt stores data on where the click occured
+     * @param {MapBrowserEvent<PointerEvent>} evt stores data on where the click occured
      * @returns {void}
      *
      * @notes
      * /refactor >> figure out what was clicked on, then pass to the correct secondary handler to
      *              break up this function
      */
-    clickEvent(evt: MapBrowserEvent<UIEvent>) {
+    clickEvent(evt: MapBrowserEvent<PointerEvent>) {
         const map = evt.map;
         const feature = map.forEachFeatureAtPixel(
             evt.pixel,
@@ -2420,10 +2420,10 @@ export default class CommandControl extends React.Component {
     /**
      * Moves a waypoint from its existing location to a new location selected by the operator
      *
-     * @param {MapBrowserEvent<UIEvent>} evt Holds the new location for the waypoint
+     * @param {MapBrowserEvent<PointerEvent>} evt Holds the new location for the waypoint
      * @returns {boolean} Whether or not the waypoint moved
      */
-    clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
+    clickToMoveWaypoint(evt: MapBrowserEvent<PointerEvent>) {
         const goalNum = this.state.goalBeingEdited?.goalIndex;
         const geoCoordinate = getGeographicCoordinate(evt.coordinate, map);
         let runList = { ...this.state.runList };
