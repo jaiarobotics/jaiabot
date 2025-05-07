@@ -36,7 +36,7 @@
 #include "jaiabot/messages/moos.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
-#include "jaiabot/utils/calibrated_salinity.h"
+#include "jaiabot/utils/derived_salinity.h"
 
 using goby::glog;
 namespace si = boost::units::si;
