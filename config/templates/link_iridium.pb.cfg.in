@@ -5,9 +5,8 @@ link {
         driver_type: DRIVER_IRIDIUM  
         connection_type: CONNECTION_SERIAL
         serial_port: "$serial_port"
-        serial_baud: 9600
+        serial_baud: 19200
         [goby.acomms.iridium.protobuf.config] {
-            config: "+IPR=5,0"     # 9600 baud
             config: "+CGSN"        # Report IMEI
             config: "+CGMM"        # Request Model Identifier
             config: "+CGMI"        # Request Manufacturer Identification
