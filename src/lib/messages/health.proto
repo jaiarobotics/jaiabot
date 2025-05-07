@@ -346,7 +346,7 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 806
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 807
+    WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA = 807
         [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
