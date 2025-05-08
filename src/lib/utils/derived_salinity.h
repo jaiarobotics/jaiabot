@@ -13,6 +13,9 @@ double calculate_derived_salinity(const double measured_conductivity, const doub
     // Returns:
     //     {double} salinity in PSU (ppt)
 
+    // Notes:
+    //     URL: https://repository.oceanbestpractices.org/bitstream/handle/11329/109/059832eb.pdf?sequence=1&isAllowed=y
+
     // Salinity constants
     const double a0 = 0.0080;
     const double a1 = -0.1692;
