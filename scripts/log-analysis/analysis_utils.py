@@ -82,6 +82,66 @@ def get_bar30_data(file: h5py.File):
 
     return df
 
+def get_taskpacket_data(file: h5py.File):
+    # Pattern to match full path and extract task_id
+    pattern = re.compile(r"jaiabot::task_packet;(\d+)/jaiabot\.protobuf\.TaskPacket/_utime_")
+
+    task_id = None
+
+    def find_task_id(name):
+        nonlocal task_id
+        if pattern.match(name):
+            task_id = pattern.match(name).group(1)
+            return True  # Found it
+
+    file.visit(find_task_id)
+
+    if task_id is None:
+        raise ValueError("No valid task_id found in the file.")
+
+    base = f"jaiabot::task_packet;{task_id}/jaiabot.protobuf.TaskPacket"
+    print(base)
+
+    # Task Packet metadata
+    try:
+        utime = np.array(file[f"{base}/_utime_"])
+        start_time = np.array(file[f"{base}/start_time"])
+        end_time = np.array(file[f"{base}/end_time"])
+        type = np.array(file[f"{base}/type"])
+        task_packet_df = pd.DataFrame({'utime': utime, 'Start Time': start_time, 'End Time': end_time, 'Type': type})
+    except:
+        print(f"No task packet data found for {file.filename}")
+        task_packet_df = pd.DataFrame()
+    
+    # Dive
+    try:
+        dive_lat_start = np.array(file[f"{base}/dive/start_location/lat"])
+        dive_lon_start = np.array(file[f"{base}/dive/start_location/lon"])
+        depth_achieved = np.array(file[f"{base}/dive/depth_achieved"])
+        bottom_dive = np.array(file[f"{base}/dive/bottom_dive"])
+        dive_df = pd.DataFrame({'utime': utime, 'Dive Latitude Start': dive_lat_start, 'Dive Longitude Start': dive_lon_start, 'Depth Achieved': depth_achieved, 'Bottom Dive': bottom_dive})
+    except:
+        print(f"No dive data found for {file.filename}")
+        dive_df = pd.DataFrame()
+    
+    # Drift
+    try:
+        drift_duration = np.array(file[f"{base}/drift/drift_duration"])
+        drift_heading = np.array(file[f"{base}/drift/estimated_drift/heading"])
+        drift_speed = np.array(file[f"{base}/drift/estimated_drift/speed"])
+        swh = np.array(file[f"{base}/drift/significant_wave_height"])
+        drift_df = pd.DataFrame({'utime': utime, 'Drift Duration': drift_duration, 'Drift Heading': drift_heading, 'Drift Speed': drift_speed, 'Significant Wave Height': swh})
+    except:
+        print(f"No drift data found for {file.filename}")
+        drift_df = pd.DataFrame()
+    
+    # Combine all dataframes
+    df = combine_data([task_packet_df, dive_df, drift_df])
+    df.attrs["file_name"] = file.filename
+
+    return df
+    
+
 def get_fluor_data(file: h5py.File):
     utime = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
     # concentration = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
