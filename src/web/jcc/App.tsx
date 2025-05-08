@@ -1,7 +1,7 @@
 import { useContext } from "react";
 
 // Jaia
-import { JaiaContext, JaiaContextProvider } from "../context/Jaia/JaiaContext";
+import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 import { PanelNames } from "../types/context-types";
 import { NodeTypes } from "../types/jaia-system-types";
 

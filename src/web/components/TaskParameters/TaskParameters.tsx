@@ -1,10 +1,10 @@
 import React, { useContext } from "react";
-import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
 
 import Task from "../../data/tasks/task";
 import { TaskParameterKeys } from "../../types/jaia-system-types";
 import { TaskType } from "../../types/protobuf-types";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import "./TaskParameters.less";
 

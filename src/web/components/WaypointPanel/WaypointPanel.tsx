@@ -1,8 +1,8 @@
 import { useContext, useEffect } from "react";
 
 import TaskParameters from "../TaskParameters/TaskParameters";
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { TaskType } from "../../types/protobuf-types";
 

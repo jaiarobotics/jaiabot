@@ -6,8 +6,8 @@ import {
     JaiaContextType,
     JaiaDispatchContext,
     JaiaAction,
-} from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+} from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 

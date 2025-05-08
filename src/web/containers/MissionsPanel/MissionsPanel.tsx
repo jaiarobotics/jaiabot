@@ -2,10 +2,9 @@
 import { useContext } from "react";
 
 // Jaia
-import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
 import MissionsList from "./MissionsList/MissionsList";
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { PanelNames } from "../../types/context-types";
 
 // MUI | MDI
@@ -69,7 +68,6 @@ export default function MissionsPanel() {
     return (
         <div className="jaia-panel missions-panel">
             <div className="jaia-panel-title">Mission Set</div>
-            <MissionSpeedSettings />
             <div className="jaia-button-row">
                 <Button
                     className="jaia-button"

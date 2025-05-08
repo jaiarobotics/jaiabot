@@ -5,7 +5,7 @@ import Gamepad from "react-gamepad";
 import MenuItem from "@mui/material/MenuItem";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import { Icon } from "@mdi/react";
-import { error, success } from "../../notifications/notifications";
+import { error, success } from "../../utils/notifications";
 import { mdiPlay } from "@mdi/js";
 import { JaiaAPI } from "../../utils/jaia-api";
 import { Engineering } from "../../types/protobuf-types";
