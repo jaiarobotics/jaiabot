@@ -100,11 +100,11 @@ def get_taskpacket_data(file: h5py.File):
         raise ValueError("No valid task_id found in the file.")
 
     base = f"jaiabot::task_packet;{task_id}/jaiabot.protobuf.TaskPacket"
-    print(base)
 
     # Task Packet metadata
     try:
         utime = np.array(file[f"{base}/_utime_"])
+        bot_id = np.array(file[f"{base}/bot_id"])
         start_time = np.array(file[f"{base}/start_time"])
         end_time = np.array(file[f"{base}/end_time"])
         type = np.array(file[f"{base}/type"])
@@ -347,6 +347,8 @@ def plot_series_x_datetime(df: pd.DataFrame,
 
 
 ### DATA CLEANING ###
+
+# Combine dataframes based on utime column, forward-filling missing values.
 def combine_data(dataframes: list[pd.DataFrame], 
                 join_type: str = 'outer',
                 drop_duplicates: bool = False) -> pd.DataFrame:
