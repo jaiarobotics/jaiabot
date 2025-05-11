@@ -123,7 +123,7 @@ class Interface:
     # MetaData
     metadata = {}
 
-    all_task_packets = []
+    all_task_packets: List[Dict] = []
     offloaded_task_packet_files_prev = -1
     offloaded_task_packet_files_curr = 0
     taskPacketPath = '/var/log/jaiabot/bot_offload/'
