@@ -98,8 +98,8 @@ export class TaskData {
     update(startDate?: string, endDate?: string) {
         return jaiaAPI
             .getTaskPackets(startDate, endDate)
-            .then((taskPackets) => {
-                this.updateTaskPacketsLayers(taskPackets);
+            .then((response) => {
+                this.updateTaskPacketsLayers(response.result.included);
 
                 this._updateInterpolatedDrifts(startDate, endDate);
                 this._updateContourPlot(startDate, endDate);
@@ -292,14 +292,14 @@ export class TaskData {
      * @param {TaskPacket[]} taskPackets provides updated array of TaskPackets
      * @returns {void}
      */
-    updateTaskPacketsLayers(taskPackets: TaskPacket[]) {
+    updateTaskPacketsLayers(includedTaskPackets: TaskPacket[]) {
         const divePacketLayer = this.divePacketLayer;
         const driftPacketLayer = this.driftPacketLayer;
 
         const divePacketFeatures = [];
         const driftPacketFeatures = [];
 
-        for (const taskPacket of taskPackets) {
+        for (const taskPacket of includedTaskPackets) {
             if (taskPacket?.dive) {
                 // Dive packets include both dive and drift data
                 const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer);
@@ -327,7 +327,7 @@ export class TaskData {
         this.diveSource.addFeatures(divePacketFeatures);
         this.driftSource.addFeatures(driftPacketFeatures);
 
-        this.setTaskPackets(taskPackets);
+        this.setTaskPackets(includedTaskPackets);
     }
 
     /**

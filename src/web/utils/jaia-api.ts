@@ -16,6 +16,8 @@ export interface JaiaError {
 export type BotPathPoint = [utime: number, lon: number, lat: number];
 export type BotPaths = { [key: string]: BotPathPoint[] };
 
+export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
+
 export interface JaiaResponse<T> {
     error?: JaiaError;
     result?: T;
@@ -143,7 +145,7 @@ export class JaiaAPI {
      * Expected startDate format: yyyy-mm-dd hh:mm
      * Expected endDate format: yyyy-mm-dd hh:mm
      */
-    getTaskPackets(startDate?: string, endDate?: string) {
+    getTaskPackets(startDate?: string, endDate?: string): Promise<JaiaResponse<TaskPackets>> {
         if (startDate && endDate) {
             const startDateStr = convertHTMLStrDateToISO(startDate);
             const endDateStr = convertHTMLStrDateToISO(endDate);

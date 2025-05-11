@@ -550,13 +550,13 @@ class Interface:
         )
 
         if end_date == "":
-            return self.all_task_packets[start_index:]
-        
-        end_index = bisect.bisect_right(
-            list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)),
-            utime(end_date)
-        )
-        
+            end_index = len(self.all_task_packets)
+        else:
+            end_index = bisect.bisect_right(
+                list(map(lambda task_packet: int(task_packet['start_time']),  self.all_task_packets)),
+                utime(end_date)
+            )
+
         return self.all_task_packets[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
