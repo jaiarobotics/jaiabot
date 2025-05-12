@@ -121,6 +121,7 @@ import "./CommandControl.less";
 // Utility
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
+import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -249,6 +250,7 @@ interface State {
     taskPacketsTimeline: { [key: string]: string | boolean };
     isClusterModeOn: boolean;
     isHelpWindowDisplayed: boolean;
+    isDepthContourPlot3DDisplayed: boolean;
 
     disconnectionMessage?: string;
     viewportPadding: number[];
@@ -428,6 +430,7 @@ export default class CommandControl extends React.Component {
             },
             isClusterModeOn: true,
             isHelpWindowDisplayed: false,
+            isDepthContourPlot3DDisplayed: false,
 
             viewportPadding: [
                 viewportDefaultPadding,
@@ -2074,10 +2077,10 @@ export default class CommandControl extends React.Component {
         this.updateMissionHistory(runList);
     }
 
-    handleEvent(evt: MapBrowserEvent<UIEvent>) {
+    handleEvent(evt: MapBrowserEvent<PointerEvent>) {
         switch (evt.type) {
             case "click":
-                return this.clickEvent(evt as MapBrowserEvent<UIEvent>);
+                return this.clickEvent(evt as MapBrowserEvent<PointerEvent>);
             case "dragging":
                 return;
         }
@@ -2087,14 +2090,14 @@ export default class CommandControl extends React.Component {
     /**
      * Click handler for JCC map
      *
-     * @param {MapBrowserEvent<UIEvent>} evt stores data on where the click occured
+     * @param {MapBrowserEvent<PointerEvent>} evt stores data on where the click occured
      * @returns {void}
      *
      * @notes
      * /refactor >> figure out what was clicked on, then pass to the correct secondary handler to
      *              break up this function
      */
-    clickEvent(evt: MapBrowserEvent<UIEvent>) {
+    clickEvent(evt: MapBrowserEvent<PointerEvent>) {
         const map = evt.map;
         const feature = map.forEachFeatureAtPixel(
             evt.pixel,
@@ -2122,6 +2125,7 @@ export default class CommandControl extends React.Component {
                 "wpt",
                 "line",
                 "contact",
+                "depth-contour",
             ];
             const isCollection = feature.get("features");
 
@@ -2324,6 +2328,18 @@ export default class CommandControl extends React.Component {
 
                 return;
             }
+
+            if (feature.get("type") === "depth-contour") {
+                const botId = this.selectedBotId();
+                const runList = this.getRunList();
+                const botsAssignedToRuns = runList?.botsAssignedToRuns;
+                const noRunBeingEdited = runList.runIdInEditMode === "";
+                const botIsValid = !botId || botId in botsAssignedToRuns;
+
+                if (noRunBeingEdited && botIsValid) {
+                    this.setState({ isDepthContourPlot3DDisplayed: true });
+                }
+            }
         }
 
         if (this.state.goalBeingEdited) {
@@ -2404,10 +2420,10 @@ export default class CommandControl extends React.Component {
     /**
      * Moves a waypoint from its existing location to a new location selected by the operator
      *
-     * @param {MapBrowserEvent<UIEvent>} evt Holds the new location for the waypoint
+     * @param {MapBrowserEvent<PointerEvent>} evt Holds the new location for the waypoint
      * @returns {boolean} Whether or not the waypoint moved
      */
-    clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
+    clickToMoveWaypoint(evt: MapBrowserEvent<PointerEvent>) {
         const goalNum = this.state.goalBeingEdited?.goalIndex;
         const geoCoordinate = getGeographicCoordinate(evt.coordinate, map);
         let runList = { ...this.state.runList };
@@ -4292,6 +4308,20 @@ export default class CommandControl extends React.Component {
                 break;
         }
 
+        var depthContourPlot = null;
+        if (this.state.isDepthContourPlot3DDisplayed) {
+            const closeContourPlot = () => {
+                this.setState({ isDepthContourPlot3DDisplayed: false }); // Come on JavaScript.  Leave this alone.
+            };
+
+            depthContourPlot = (
+                <DepthContourPlot3D
+                    taskPackets={taskData.taskPackets}
+                    onClose={closeContourPlot}
+                ></DepthContourPlot3D>
+            );
+        }
+
         return (
             <div
                 id="jcc_container"
@@ -4347,6 +4377,8 @@ export default class CommandControl extends React.Component {
                         }}
                     ></HelpWindow>
                 ) : null}
+
+                {depthContourPlot}
 
                 {this.state.customAlert}
             </div>
