@@ -8,6 +8,15 @@ if [ -z "${JAIABOT_MAKE_FLAGS}" ]; then
     JAIABOT_MAKE_FLAGS=
 fi
 
+# Pares through user input arguments for more user-friendly interaction
+for arg in "$@"; do
+    case $arg in --enable-testing)
+        JAIABOT_CMAKE_FLAGS="${JAIABOT_CMAKE_FLAGS} -Denable_testing=ON"
+        shift
+        ;;
+    esac
+done
+
 # Allow user to set nproc for their system, if desired
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
     MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)

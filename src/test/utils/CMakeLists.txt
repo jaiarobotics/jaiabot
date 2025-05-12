@@ -1,0 +1,3 @@
+add_executable(jaiabot_test_utils test_specific_conductivity_calculation.cpp)
+
+add_test(NAME jaiabot_test_utils COMMAND jaiabot_test_utils)
