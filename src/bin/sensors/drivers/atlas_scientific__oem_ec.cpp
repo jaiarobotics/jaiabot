@@ -27,16 +27,6 @@
 
 using goby::glog;
 
-double calculate_specific_conductivity(double conductivity, double temperature)
-{
-    double temperature_coefficient = 0.0191;
-    double EC_25;
-
-    EC_25 = conductivity / (1 + temperature_coefficient * (temperature - 25));
-
-    return EC_25;
-}
-
 jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     const jaiabot::config::AtlasOEMECThreadConfig& config)
     : goby::middleware::SimpleThread<jaiabot::config::AtlasOEMECThreadConfig>(config)
@@ -71,16 +61,6 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     if (ec_data.has_conductivity())
     {
         ec_msg.set_conductivity(ec_data.conductivity());
-        if (last_pressure_temperature_data_.has_temperature())
-        {
-            const double specific_conductivity = calculate_specific_conductivity(
-                ec_msg.conductivity(), last_pressure_temperature_data_.temperature());
-            ec_msg.set_specific_conductivity(specific_conductivity);
-        }
-        else
-        {
-            ec_msg.clear_specific_conductivity();
-        }
     }
     if (ec_data.has_total_dissolved_solids())
     {
@@ -92,9 +72,6 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     }
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
-    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data)
-        { last_pressure_temperature_data_ = pressure_temperature_data; });
     last_report_time_ = goby::time::SteadyClock::now();
 
     // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
