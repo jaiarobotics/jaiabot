@@ -24,11 +24,28 @@ export enum DialogActions {
     CONFIRMED = 1,
 }
 
+/**
+ * Produces the dialog box that appears when clicking on the activate all button.
+ * This dialog will be a confirmation if at least one Bot can accept the command.
+ * It will describe the reason(s) the other Bots cannot accept the command.
+ */
 export function ActivateAllDialog(props: DialogProps) {
+    /**
+     * Applies the base class "jaia-dialog" and appends "alert"
+     * if no Bots are in a state to receive the command
+     *
+     * @returns {string} The class name for the dialog div
+     */
     const getClassName = () => {
         return `jaia-dialog ${props.availableBotIDs.length === 0 ? "alert" : ""}`;
     };
 
+    /**
+     * Places each message to be displayed in the dialox box in an array.
+     * The messages depend on the state of the Bot and the requirments of the command.
+     *
+     * @returns {string[]} The messages to be displayed in the dialog box
+     */
     const generateMessage = () => {
         return [
             generateSubMessage(props.availableBotIDs, TextTypes.AVAILABLE),
@@ -36,6 +53,14 @@ export function ActivateAllDialog(props: DialogProps) {
         ];
     };
 
+    /**
+     * Produces the messages that appear in the dialog box. These messages describe
+     * which Bot(s) can accept the command and which Bot(s) cannot.
+     *
+     * @param {number[]} botIDs Bots that fall into the condition of the textType
+     * @param {TextTypes} textType Describes the relationship of Bots to the command
+     * @returns {string} Sub message to display to an operator in the dialog box
+     */
     const generateSubMessage = (botIDs: number[], textType: TextTypes) => {
         if (botIDs.length === 0) {
             return "";
@@ -85,6 +110,10 @@ export function ActivateAllDialog(props: DialogProps) {
     );
 }
 
+/**
+ * Produces the title for the dialog box. If there is nothing blocking the command from
+ * being sent to at least one Bot the title will be Confirm, otherwise it will be Alert.
+ */
 function Title(props: TitleProps) {
     if (props.availableBotIDs.length > 0) {
         return <h1>Confirm</h1>;
@@ -93,6 +122,11 @@ function Title(props: TitleProps) {
     return <h1>Alert</h1>;
 }
 
+/**
+ * Produces the buttons for the dialox box.
+ * For a confirmation dialog, the buttons will be Cancel and Confirm.
+ * For an alert, the button will be Activate.
+ */
 function ButtonRow(props: ButtonRowProps) {
     if (props.availableBotIDs.length > 0) {
         return (
