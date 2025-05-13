@@ -80,7 +80,7 @@ export function ActivateAllDialog(props: DialogProps) {
             if (i + 1 < botIDs.length) {
                 subMessage += botIDs[i] + ", ";
             } else {
-                subMessage += botIDs[i];
+                subMessage += botIDs[i] + " ";
             }
         }
 
@@ -143,4 +143,9 @@ function ButtonRow(props: ButtonRowProps) {
             </div>
         );
     }
+    return (
+        <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+            Close
+        </button>
+    );
 }
