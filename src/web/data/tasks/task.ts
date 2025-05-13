@@ -83,7 +83,7 @@ export default class Task {
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
                 this.setMaxDepth(value);
-                mutableDefaults.maxDepth = value;
+                mutableDefaults.maxDepth = this.maxDepth;
                 break;
             case TaskParameterKeys.DEPTH_INTERVAL:
                 this.setDepthInterval(value);
