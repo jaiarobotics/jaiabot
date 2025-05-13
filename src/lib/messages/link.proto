@@ -1,7 +1,5 @@
 syntax = "proto2";
 
-import "goby/acomms/protobuf/buffer.proto";
-
 package jaiabot.protobuf;
 
 // these enum values MUST match those in config/gen/common/comms.py 'subnet_index'
@@ -11,16 +9,4 @@ enum Link
     LINK_XBEE = 0;
     LINK_WIFI = 1;
     LINK_IRIDIUM = 2;
-}
-
-message LinkAwareBufferConfig
-{
-    required goby.acomms.protobuf.DynamicBufferConfig buffer_base = 1;
-
-    message LinkBufferConfig
-    {
-        required Link link = 1;
-        required goby.acomms.protobuf.DynamicBufferConfig buffer = 2;
-    }
-    repeated LinkBufferConfig buffer_override = 2;
 }

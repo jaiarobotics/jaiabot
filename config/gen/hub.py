@@ -163,6 +163,7 @@ elif common.app == 'goby_intervehicle_portal':
     persist_subscriptions = 'persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'
 
     # don't persist subscriptions on Cloudhub to reduce unnecessary Iridium usage for bots that aren't in use
+    # this means that if Cloudhub is restarted, the bots will also need to be restarted, but that should cause little issue for normal operations
     if is_cloudhub:
         persist_subscriptions = ''
     

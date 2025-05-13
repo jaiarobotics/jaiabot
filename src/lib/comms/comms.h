@@ -28,6 +28,7 @@
 
 #include "jaiabot/exception.h"
 #include "jaiabot/messages/link.pb.h"
+#include "jaiabot/messages/link_config.pb.h"
 
 namespace jaiabot
 {

@@ -29,6 +29,7 @@ import "goby/middleware/protobuf/pty_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/tcp_config.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/link_config.proto";
 
 package jaiabot.config;
 
