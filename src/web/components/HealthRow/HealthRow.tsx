@@ -12,6 +12,11 @@ import "./HealthRow.less";
  */
 export default function HealthRow() {
     const jaiaContext = useContext(JaiaContext);
+
+    if (jaiaContext === null) {
+        return <div></div>;
+    }
+
     const selectedNode = jaiaContext.selectedNode;
 
     let healthState = HealthState.HEALTH__DEGRADED;
@@ -52,11 +57,15 @@ export default function HealthRow() {
     return (
         <div className="health-row">
             <p className={getHealthStateClassName()}>{healthState}</p>
-            {errors.map((error) => (
-                <p className="error">{error}</p>
+            {errors.map((error, index) => (
+                <p className="error" key={index}>
+                    {error}
+                </p>
             ))}
-            {warnings.map((warning) => (
-                <p className="warning">{warning}</p>
+            {warnings.map((warning, index) => (
+                <p className="warning" key={index}>
+                    {warning}
+                </p>
             ))}
         </div>
     );
