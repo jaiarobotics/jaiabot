@@ -625,7 +625,7 @@ jobs:
 
             AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
 
-            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}"
+            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}"
             
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
             echo "export JAIABOT_AMI_NAME=${AMI_NAME}" >> $BASH_ENV

@@ -34,6 +34,10 @@
     - name: Remount firmware read-only
       shell: "mount -o remount,ro /boot/firmware"
 
-    - name: Restore update-grub
-      shell: "mv /usr/sbin/update-grub.tmp /usr/sbin/update-grub"
+    - name: Restore update-grub and Update linux-image-virtual in read-only underlay
+      shell: |
+        mv /usr/sbin/update-grub.tmp /usr/sbin/update-grub
+        mount -o bind /dev /media/root-ro/dev
+        overlayroot-chroot /bin/bash -c "apt-get update && apt-get -y install linux-image-virtual"
+        umount /media/root-ro/dev
       when: ansible_architecture == "x86_64"

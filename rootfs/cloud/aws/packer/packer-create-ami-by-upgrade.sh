@@ -1,18 +1,22 @@
 #!/bin/bash
 
+# usage ./packer-create-ami-by-upgrade.sh <ami_name> <upgrade repo: release, beta, etc.>
+
 set -u -e
 
 REGION=us-east-1
 JAIA_AWS_ACCOUNT=120512385734
-BASE_REPO=test
+
+# change to release once 1.20.0 is released
+BASE_REPO=continuous
 BASE_VERSION=1.y
 
-UPGRADE_REPO=test
+UPGRADE_REPO=${2}
 UPGRADE_VERSION=2.y
 
 SCRIPT_PATH=$(dirname "$0")
 
-UPGRADE_AMI_NAME=${1:-"TEST-packer-ami-jaia-${UPGRADE_REPO}-${UPGRADE_VERSION}"}
+UPGRADE_AMI_NAME=${1}
 JAIA_UPGRADE_ISO_SOURCE=${JAIA_UPGRADE_ISO_SOURCE:-"s3"}
 JAIA_UPGRADE_ISO_LOCAL_DIR=${JAIA_UPGRADE_ISO_LOCAL_DIR:-""}
 
