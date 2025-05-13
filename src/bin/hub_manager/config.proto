@@ -24,8 +24,6 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/transporter_config.proto";
-import "jaiabot/messages/xbee_extensions.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "goby/middleware/protobuf/pty_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
@@ -48,11 +46,9 @@ message HubManager
     }
     optional ExpectedBots expected_bots = 17;
 
-    required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
-    required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
-        12;
-    required goby.middleware.protobuf.TransporterConfig
-        engineering_status_sub_cfg = 13;
+    required jaiabot.protobuf.LinkAwareBufferConfig status_buffer = 11;
+    required jaiabot.protobuf.LinkAwareBufferConfig task_packet_buffer = 12;
+    required jaiabot.protobuf.LinkAwareBufferConfig engineering_status_buffer = 13;
 
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];

@@ -72,7 +72,7 @@ def xbee_mac_slots(node_id):
 def iridium_mac_slots(node_id):
     # SBD is rate 0 in the Goby driver
     sbd_rate=0
-    slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 30 rate: ' + str(sbd_rate) + ' [goby.acomms.iridium.protobuf.transmission]: { if_no_data_do_mailbox_check: false } }\n'
+    slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 15 rate: ' + str(sbd_rate) + ' [goby.acomms.iridium.protobuf.transmission]: { if_no_data_do_mailbox_check: false } }\n'
     return slots
 
 def iridium_shore_mac_slots(node_id):

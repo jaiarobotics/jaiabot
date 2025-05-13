@@ -159,11 +159,17 @@ if common.app == 'gobyd':
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
                                      required_clients=required_clients))
-elif common.app == 'goby_intervehicle_portal':    
+elif common.app == 'goby_intervehicle_portal':
+    persist_subscriptions = 'persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'
+
+    # don't persist subscriptions on Cloudhub to reduce unnecessary Iridium usage for bots that aren't in use
+    if is_cloudhub:
+        persist_subscriptions = ''
+    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     persist_subscriptions='persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }',
+                                     persist_subscriptions=persist_subscriptions,
                                      link_block=link_block))
 elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
