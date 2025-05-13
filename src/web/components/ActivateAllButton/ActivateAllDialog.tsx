@@ -2,6 +2,7 @@ interface DialogProps {
     isVisible: boolean;
     availableBotIDs: number[];
     activatedBotIDs: number[];
+    noCommsBotIDs: number[];
     onClose: (dialogAction: DialogActions) => void;
 }
 
@@ -17,6 +18,7 @@ interface ButtonRowProps {
 enum TextTypes {
     AVAILABLE = 0,
     ACTIVATED = 1,
+    NO_COMMS = 2,
 }
 
 export enum DialogActions {
@@ -50,6 +52,7 @@ export function ActivateAllDialog(props: DialogProps) {
         return [
             generateSubMessage(props.availableBotIDs, TextTypes.AVAILABLE),
             generateSubMessage(props.activatedBotIDs, TextTypes.ACTIVATED),
+            generateSubMessage(props.noCommsBotIDs, TextTypes.NO_COMMS),
         ];
     };
 
@@ -87,6 +90,8 @@ export function ActivateAllDialog(props: DialogProps) {
         // Message end
         if (textType === TextTypes.ACTIVATED) {
             subMessage += `because ${botIDs.length > 1 ? "they are activated" : "it is activated"}`;
+        } else if (textType === TextTypes.NO_COMMS) {
+            subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub" : "it does not have comms with the Hub"}`;
         }
 
         return subMessage;

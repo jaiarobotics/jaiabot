@@ -9,6 +9,8 @@ import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 import Bot from "../../data/bots/bot";
 import { CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable } from "../../utils/commands";
+import { microsecondsToSeconds } from "../../utils/conversions";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
 import "../../style/stylesheets/util.less";
 
@@ -24,6 +26,7 @@ export default function ActivateAllButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [availableBotIDs, setAvailableBotIDs] = useState([]);
     const [activatedBotIDs, setActivatedBotIDs] = useState([]);
+    const [noCommsBotIDs, setNoCommsBotIDs] = useState([]);
 
     /**
      * Loops through the connected Bots and categorizes them based on their
@@ -35,9 +38,14 @@ export default function ActivateAllButton(props: Props) {
     const groupBotsByState = () => {
         const tempAvailableBotIDs = [];
         const tempActivatedBotIDs = [];
+        const tempNoCommsBotIDs = [];
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (!isCommandAvailable(CommandType.ACTIVATE, bot.getMissionStatus().missionState)) {
+            if (microsecondsToSeconds(bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+                tempNoCommsBotIDs.push(bot.getBotID());
+            } else if (
+                !isCommandAvailable(CommandType.ACTIVATE, bot.getMissionStatus().missionState)
+            ) {
                 tempActivatedBotIDs.push(bot.getBotID());
             } else {
                 tempAvailableBotIDs.push(bot.getBotID());
@@ -46,6 +54,7 @@ export default function ActivateAllButton(props: Props) {
 
         setAvailableBotIDs(tempAvailableBotIDs);
         setActivatedBotIDs(tempActivatedBotIDs);
+        setNoCommsBotIDs(tempNoCommsBotIDs);
     };
 
     /**
@@ -86,6 +95,7 @@ export default function ActivateAllButton(props: Props) {
                 isVisible={isDialogVisible}
                 availableBotIDs={availableBotIDs}
                 activatedBotIDs={activatedBotIDs}
+                noCommsBotIDs={noCommsBotIDs}
                 onClose={onDialogClose}
             />
         </div>

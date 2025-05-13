@@ -6,7 +6,6 @@ import {
     HealthState,
     Warning,
 } from "../../types/protobuf-types";
-import Mission from "../missions/mission";
 import TaskPacket from "../task_packets/task-packets-new";
 import BotSensors from "./bot-sensors";
 
@@ -108,10 +107,12 @@ export default class Bot {
         this.wifiLinkQuality = wifiLinkQuality;
     }
 
+    // microseconds
     getStatusAge() {
         return this.statusAge;
     }
 
+    // microseconds
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
     }

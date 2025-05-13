@@ -10,21 +10,37 @@ import { MissionState } from "../../../types/protobuf-types";
 const botStatusMock1: PortalBotStatus = {
     bot_id: 1,
     mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock2: PortalBotStatus = {
     bot_id: 2,
     mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock3: PortalBotStatus = {
     bot_id: 3,
     mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock4: PortalBotStatus = {
     bot_id: 4,
     mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    portalStatusAge: 1_000_000, // microseconds
+};
+
+const botStatusMock5: PortalBotStatus = {
+    bot_id: 5,
+    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    portalStatusAge: 40_000_000, // microseconds
+};
+
+const botStatusMock6: PortalBotStatus = {
+    bot_id: 6,
+    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    portalStatusAge: 40_000_000, // microseconds
 };
 
 test("Click activate all button with two Bots in pre-deployment idle", async () => {
@@ -93,6 +109,82 @@ test("Click activate all button with all Bots already activated", async () => {
     const closeButton = screen.getByText("Close");
     await userEvent.click(closeButton);
     expect(screen.queryByText("Alert")).toBeNull();
+
+    // Clean up
+    bots.getBots().clear();
+});
+
+test("Click activate all button with Bot out of comms range", async () => {
+    // Set up data model
+    bots.setBot(botStatusMock5);
+
+    // Render activate all button
+    render(<ActivateAllButton bots={bots.getBots()} />);
+    const button = screen.getByRole("button", { name: "activate-all-bots" });
+    await userEvent.click(button);
+    expect(screen.getByText("Alert")).toBeInTheDocument();
+    expect(
+        screen.getByText(
+            "Cannot send command to Bot: 5 because it does not have comms with the Hub",
+        ),
+    ).toBeInTheDocument();
+
+    // Close dialog
+    const closeButton = screen.getByText("Close");
+    await userEvent.click(closeButton);
+    expect(screen.queryByText("Alert")).toBeNull();
+
+    // Clean up
+    bots.getBots().clear();
+});
+
+test("Click activate all button with Bots out of comms range", async () => {
+    // Set up data model
+    bots.setBot(botStatusMock5);
+    bots.setBot(botStatusMock6);
+
+    // Render activate all button
+    render(<ActivateAllButton bots={bots.getBots()} />);
+    const button = screen.getByRole("button", { name: "activate-all-bots" });
+    await userEvent.click(button);
+    expect(screen.getByText("Alert")).toBeInTheDocument();
+    expect(
+        screen.getByText(
+            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub",
+        ),
+    ).toBeInTheDocument();
+
+    // Close dialog
+    const closeButton = screen.getByText("Close");
+    await userEvent.click(closeButton);
+    expect(screen.queryByText("Alert")).toBeNull();
+
+    // Clean up
+    bots.getBots().clear();
+});
+
+test("Click activate all button with one Bot ready and two out of comms range", async () => {
+    // Set up data model
+    bots.setBot(botStatusMock1);
+    bots.setBot(botStatusMock5);
+    bots.setBot(botStatusMock6);
+
+    // Render activate all button
+    render(<ActivateAllButton bots={bots.getBots()} />);
+    const button = screen.getByRole("button", { name: "activate-all-bots" });
+    await userEvent.click(button);
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
+    expect(screen.getByText("Send command to Bot: 1")).toBeInTheDocument();
+    expect(
+        screen.getByText(
+            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub",
+        ),
+    ).toBeInTheDocument();
+
+    // Close dialog
+    const activateButton = screen.getByText("Activate");
+    await userEvent.click(activateButton);
+    expect(screen.queryByText("Confirm")).toBeNull();
 
     // Clean up
     bots.getBots().clear();
