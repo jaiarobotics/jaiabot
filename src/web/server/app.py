@@ -16,7 +16,7 @@ from geotiffs import GeoTiffs
 
 def parseDate(date):
     if date is None or date == '':
-        return ''
+        return None
     
     try:
         date_str = str(date).split(".")[0]
