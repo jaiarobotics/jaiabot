@@ -1,5 +1,26 @@
 from typing import *
 from math import *
+from datetime import *
+
+
+def now():
+    return int(datetime.now().timestamp() * 1e6)
+
+
+def utcnow():
+    return int(datetime.utcnow().timestamp() * 1e6)
+
+
+def utime(d: datetime):
+    '''Returns the utime for a datetime object'''
+    return int(d.replace(tzinfo=timezone.utc).timestamp() * 1e6)
+
+
+def floatFrom(obj):
+    try:
+        return float(obj)
+    except:
+        return None
 
 
 def get_task_packet_id(task_packet: Dict) -> str:
