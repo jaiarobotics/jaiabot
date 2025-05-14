@@ -159,8 +159,8 @@ export class JaiaAPI {
         }
     }
 
-    getTaskPacketsCount() {
-        return this.get(`jaia/v0/task-packets-count`);
+    getTaskPacketsVersion() {
+        return this.get(`jaia/v0/task-packets-version`);
     }
 
     /**

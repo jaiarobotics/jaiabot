@@ -124,6 +124,7 @@ class Interface:
     metadata = {}
 
     all_task_packets: List[Dict] = []
+    task_packets_version = 0
     offloaded_task_packet_files_prev = -1
     offloaded_task_packet_files_curr = 0
     taskPacketPath = '/var/log/jaiabot/bot_offload/'
@@ -528,6 +529,7 @@ class Interface:
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
         self.all_task_packets.append(task_packet)
+        self.task_packets_version += 1
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -565,12 +567,12 @@ class Interface:
 
         return self.get_task_packets_subset(start_date, end_date)
     
-    def get_total_task_packets_count(self):
-        """Gets the count of all TaskPackets
+    def get_task_packets_version(self) -> int:
+        """Gets the version of the set of TaskPackets.  When task packet(s) gets added, removed, changed, etc., the version gets incremented.
         Returns:
-            int: The count of all TaskPackets
+            int: The version of the set of TaskPackets
         """
-        return len(self.all_task_packets)
+        return self.task_packets_version
 
     # Contour map
     
@@ -633,6 +635,7 @@ class Interface:
                 try:
                     taskPacket: Dict = json.loads(line)
                     self.all_task_packets.append(taskPacket)
+                    self.task_packets_version += 1
                 except json.JSONDecodeError as e:
                     logging.warning(f"Error decoding JSON line: {line} because {e}")
 

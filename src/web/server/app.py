@@ -251,9 +251,9 @@ def getPackets():
 
     return JaiaResponse(result)
 
-@app.route('/jaia/v0/task-packets-count', methods=['GET'])
+@app.route('/jaia/v0/task-packets-version', methods=['GET'])
 def getPacketsCount():
-    return JSONResponse(jaia_interface.get_total_task_packets_count())
+    return JSONResponse(jaia_interface.get_task_packets_version())
 
 ######## Contour map
 

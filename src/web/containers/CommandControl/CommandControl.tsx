@@ -289,7 +289,7 @@ export default class CommandControl extends React.Component {
     oldPodStatus?: PodStatus;
     missionPlans?: CommandList = null;
     taskPackets: TaskPacket[];
-    taskPacketsCount: number;
+    taskPacketsVersion: number;
     enabledEditStates: string[];
     enabledDownloadStates: string[];
     interactions: Interactions;
@@ -489,7 +489,7 @@ export default class CommandControl extends React.Component {
         this.podStatusPollId = null;
         this.metadataPollId = null;
         this.taskPackets = [];
-        this.taskPacketsCount = 0;
+        this.taskPacketsVersion = 0;
         this.enabledEditStates = [
             "PRE_DEPLOYMENT",
             "RECOVERY",
@@ -1082,11 +1082,11 @@ export default class CommandControl extends React.Component {
     pollTaskPackets() {
         this.setTaskPacketDates();
         this.api
-            .getTaskPacketsCount()
-            .then((count) => {
+            .getTaskPacketsVersion()
+            .then((version) => {
                 // TaskPackets to be displayed is different than current display
-                if (this.getTaskPacketsCount() !== count) {
-                    this.setTaskPacketsCount(count);
+                if (this.getTaskPacketsVersion() !== version) {
+                    this.setTaskPacketsVersion(version);
 
                     let end = "";
 
@@ -2788,12 +2788,12 @@ export default class CommandControl extends React.Component {
         this.taskPackets = taskPackets;
     }
 
-    getTaskPacketsCount() {
-        return this.taskPacketsCount;
+    getTaskPacketsVersion() {
+        return this.taskPacketsVersion;
     }
 
-    setTaskPacketsCount(count: number) {
-        this.taskPacketsCount = count;
+    setTaskPacketsVersion(count: number) {
+        this.taskPacketsVersion = count;
     }
 
     /**
