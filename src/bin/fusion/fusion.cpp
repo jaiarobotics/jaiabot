@@ -44,6 +44,7 @@
 #include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/utils/derived_salinity.h"
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
@@ -425,7 +426,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
+        {
             if (pa.has_calculated_depth())
             {
                 latest_node_status_.mutable_global_fix()->set_depth_with_units(
@@ -494,9 +496,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& salinityData) {
-            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
-            latest_bot_status_.set_salinity(salinityData.salinity());
+        [this](const jaiabot::protobuf::SalinityData& salinity_data)
+        {
+            if (salinity_data.has_salinity_calculated())
+            {
+                latest_bot_status_.set_salinity(salinity_data.salinity_calculated());
+            }
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(

@@ -421,7 +421,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         // omit in sim
         std::string time = "";
-        std::string conductivity = "0.0";
+        std::string conductivity = "45000.0";
         std::string dissolved_solids = "0.0";
         std::string specific_gravity = "0.0";
 
