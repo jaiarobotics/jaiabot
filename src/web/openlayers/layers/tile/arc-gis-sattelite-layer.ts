@@ -10,6 +10,7 @@ export const arcGISSatelliteLayer = new TileLayer({
         attributions:
             "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community, ESRI",
         attributionsCollapsible: false,
+        wrapX: false,
     }),
     visible: false,
 });

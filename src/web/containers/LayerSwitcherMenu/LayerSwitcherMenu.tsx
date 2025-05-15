@@ -17,7 +17,11 @@ import { grey } from "@mui/material/colors";
 
 import "./LayerSwitcherMenu.less";
 
-const BASE_MAPS = [LayerTitles.OSM_LAYER, LayerTitles.ARC_GIS_SATELLITE_LAYER];
+const BASE_MAPS = [
+    LayerTitles.OSM_LAYER,
+    LayerTitles.ARC_GIS_SATELLITE_LAYER,
+    LayerTitles.NOAA_ENC_LAYER,
+];
 
 /**
  * Creates the accordions for toggling the visibility of map layers
@@ -165,6 +169,14 @@ export default function LayerSwitcherMenu() {
                                 sx={getCheckboxStyle()}
                             />
                             <p>ArcGIS Satellite Imagery</p>
+                        </div>
+                        <div className="layer-container">
+                            <Radio
+                                onClick={() => handleBaseMapClick(LayerTitles.NOAA_ENC_LAYER)}
+                                checked={LayerTitles.NOAA_ENC_LAYER === checkedBaseMap}
+                                sx={getCheckboxStyle()}
+                            />
+                            <p>NOAA Navigational Charts</p>
                         </div>
                     </AccordionDetails>
                 </Accordion>
