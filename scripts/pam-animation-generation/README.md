@@ -26,7 +26,7 @@ TODO
 
 * visualize should have a line for the threshold
 
-* Change name to PAM
+* Change name to PAM to visulization
 
 * animated vis (have a moving time bar) on visualization 
 

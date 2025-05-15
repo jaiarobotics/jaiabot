@@ -24,6 +24,8 @@ Usage example:
 
 import os, glob, argparse, re, datetime, csv
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
@@ -217,7 +219,9 @@ def main():
     output_filename = f"{base}_{args.norm_type}_vmin{args.vmin}_vmax{args.vmax}_gamma{args.gamma}_cf{inband_params['cf']}_bw{inband_params['bw']}_sl{inband_params['sl']}_ol{inband_params['ol']}_ad{args.alert_duration}.png"
     
     if args.save:
+        print("About to save figure …")
         plt.savefig(output_filename, dpi=300, bbox_inches='tight')
+        print("Done saving!")
         print(f"Plot saved as {output_filename}")
     else:
         plt.show()

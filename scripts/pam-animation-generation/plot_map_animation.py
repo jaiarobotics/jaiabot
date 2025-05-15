@@ -27,7 +27,7 @@ vmin, vmax, gamma, inâ€‘band parameters, alert duration) followed by animationâ€
 (--duration and --fps).
 
 Usage example:
-  python3 plot_map_animation.py --data-dir Recoding_D/ --norm-type power --vmin -73 --vmax -62.69 --gamma 69 --cmap viridis --alert-duration 1.5 --save-video --duration 5 --fps 20 --trail-length 15 --overlay-legend
+  python3 plot_map_animation.py --data-dir Recoding_D/ --norm-type power --vmin -73 --vmax -62.69 --gamma 69 --cmap viridis --alert-duration 1.5 --save --duration 5 --fps 20 --trail-length 15 --overlay-legend
 """
 
 import os, glob, argparse, re, datetime, csv, subprocess
@@ -35,6 +35,8 @@ import numpy as np
 import pandas as pd
 import h5py
 import rasterio
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.colors as mcolors
