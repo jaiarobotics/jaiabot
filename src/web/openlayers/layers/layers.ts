@@ -7,10 +7,10 @@ import { missionLayer } from "./vector/mission-layer";
 import { LayerTitles } from "../../types/openlayers-types";
 
 class Layers {
-    private layers: Map<string, Layer>;
+    private layers: Map<LayerTitles, Layer>;
 
     constructor() {
-        this.layers = new Map<string, Layer>();
+        this.layers = new Map<LayerTitles, Layer>();
         // Tile layers
         this.layers.set(LayerTitles.OSM_LAYER, OSMLayer);
         // Vector layers
