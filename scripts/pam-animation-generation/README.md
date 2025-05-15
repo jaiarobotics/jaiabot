@@ -32,7 +32,7 @@ TODO
 
 * check for the correct selection table with inband power - if there are multiple I am not sure which one it will chose
 
-* (add 1. different noise floors 2. remove Raven Pro from the loop by calcauting inband powers - would need to concatinate the files and would also be good to be able to visulize signal 3. remove need to sort audio files by bots - add botIDfleetID (need this bc multiple bots collect at the same time and multiple fleets) to the file name to match time and ID to h5 then based on a time you could grab audio files from a single source)
+* (add 1. different noise floors 1a. legend has to be manually sized 2. remove Raven Pro from the loop by calcauting inband powers - would need to concatinate the files and would also be good to be able to visulize signal 3. remove need to sort audio files by bots - add botIDfleetID (need this bc multiple bots collect at the same time and multiple fleets) to the file name to match time and ID to h5 then based on a time you could grab audio files from a single source)
 
 ----------------------
 reference example files <\Jaia\Product Development - Documents\Field Operations\20250225 TOEE25_2 LOE1_1 Panama City Beach\TOEE25.2 LOE1.1 fleet 23 PAM acoustic data> and the <\Jaia\Product Development - Documents\Field Operations\20250225 TOEE25_2 LOE1_1 Panama City Beach\20250224-26 PAM fleet 23 logs>
