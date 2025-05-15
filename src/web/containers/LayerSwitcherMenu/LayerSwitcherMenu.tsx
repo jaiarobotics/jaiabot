@@ -17,6 +17,8 @@ import { grey } from "@mui/material/colors";
 
 import "./LayerSwitcherMenu.less";
 
+const BASE_MAPS = [LayerTitles.OSM_LAYER, LayerTitles.ARC_GIS_SATELLITE_LAYER];
+
 /**
  * Creates the accordions for toggling the visibility of map layers
  */
@@ -44,8 +46,21 @@ export default function LayerSwitcherMenu() {
         return defaultLayerCheckedStates;
     };
 
+    /**
+     * Retrieves the visible base map layer to use as the default when the LayerSwitcherMenu mounts
+     *
+     * @returns {LayerTitles} Name of visible base map layer
+     */
+    const getDefaultBaseMapLayerCheckedState = () => {
+        for (const baseMapTitle of BASE_MAPS) {
+            if (layers.getLayer(baseMapTitle).isVisible()) {
+                return baseMapTitle;
+            }
+        }
+    };
+
     const [layerCheckedStates, setLayerCheckedStates] = useState(getDefaultLayerCheckedStates());
-    const [checkedBaseMap, setCheckedBaseMap] = useState(LayerTitles.OSM_LAYER);
+    const [checkedBaseMap, setCheckedBaseMap] = useState(getDefaultBaseMapLayerCheckedState());
     const [accordionTheme, setAccordionTheme] = useState(
         createTheme({
             transitions: {
@@ -94,6 +109,15 @@ export default function LayerSwitcherMenu() {
      * @returns {void}
      */
     const handleBaseMapClick = (layerTitle: LayerTitles) => {
+        if (checkedBaseMap !== layerTitle) {
+            // Make the previous selection not visible
+            const currentLayer = layers.getLayer(checkedBaseMap);
+            currentLayer.setVisible(false);
+            // Make the latest selection visible
+            const newLayer = layers.getLayer(layerTitle);
+            newLayer.setVisible(true);
+        }
+
         setCheckedBaseMap(layerTitle);
     };
 
@@ -131,6 +155,16 @@ export default function LayerSwitcherMenu() {
                                 sx={getCheckboxStyle()}
                             />
                             <p>Open Street Maps</p>
+                        </div>
+                        <div className="layer-container">
+                            <Radio
+                                onClick={() =>
+                                    handleBaseMapClick(LayerTitles.ARC_GIS_SATELLITE_LAYER)
+                                }
+                                checked={LayerTitles.ARC_GIS_SATELLITE_LAYER === checkedBaseMap}
+                                sx={getCheckboxStyle()}
+                            />
+                            <p>ArcGIS Satellite Imagery</p>
                         </div>
                     </AccordionDetails>
                 </Accordion>
