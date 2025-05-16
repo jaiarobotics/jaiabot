@@ -34,22 +34,6 @@ class Layers {
     addLayer(layerTitle: LayerTitles, layer: Layer) {
         this.getLayers().set(layerTitle, layer);
     }
-
-    displayLayer(layerTitle: LayerTitles) {
-        let layer = this.getLayers().get(layerTitle);
-
-        if (layer) {
-            layer.setVisible(true);
-        }
-    }
-
-    hideLayer(layerTitle: LayerTitles) {
-        let layer = this.getLayers().get(layerTitle);
-
-        if (layer) {
-            layer.setVisible(false);
-        }
-    }
 }
 
 export const layers = new Layers();
