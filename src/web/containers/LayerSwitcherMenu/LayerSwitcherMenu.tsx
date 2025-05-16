@@ -40,7 +40,7 @@ export default function LayerSwitcherMenu() {
         const defaultLayerCheckedStates = new Map<LayerTitles, boolean>();
 
         for (const [layerTitle, layer] of layers.getLayers().entries()) {
-            if (layer.isVisible()) {
+            if (layer.getVisible()) {
                 defaultLayerCheckedStates.set(layerTitle, true);
             } else {
                 defaultLayerCheckedStates.set(layerTitle, false);
@@ -57,7 +57,7 @@ export default function LayerSwitcherMenu() {
      */
     const getDefaultBaseMapLayerCheckedState = () => {
         for (const baseMapTitle of BASE_MAPS) {
-            if (layers.getLayer(baseMapTitle).isVisible()) {
+            if (layers.getLayer(baseMapTitle).getVisible()) {
                 return baseMapTitle;
             }
         }
@@ -97,11 +97,11 @@ export default function LayerSwitcherMenu() {
      */
     const handleLayerClick = (layerTitle: LayerTitles) => {
         const layer = layers.getLayer(layerTitle);
-        const updatedIsVisible = !layer.isVisible();
-        layer.setVisible(updatedIsVisible);
+        const updatedVisible = !layer.getVisible();
+        layer.setVisible(updatedVisible);
 
         const updatedLayerCheckedStates = new Map(layerCheckedStates);
-        updatedLayerCheckedStates.set(layerTitle, updatedIsVisible);
+        updatedLayerCheckedStates.set(layerTitle, updatedVisible);
         setLayerCheckedStates(updatedLayerCheckedStates);
     };
 
@@ -157,6 +157,7 @@ export default function LayerSwitcherMenu() {
                                 onClick={() => handleBaseMapClick(LayerTitles.OSM_LAYER)}
                                 checked={LayerTitles.OSM_LAYER === checkedBaseMap}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.OSM_LAYER}-radio`}
                             />
                             <p>Open Street Maps</p>
                         </div>
@@ -167,6 +168,7 @@ export default function LayerSwitcherMenu() {
                                 }
                                 checked={LayerTitles.ARC_GIS_SATELLITE_LAYER === checkedBaseMap}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.ARC_GIS_SATELLITE_LAYER}-radio`}
                             />
                             <p>ArcGIS Satellite Imagery</p>
                         </div>
@@ -175,6 +177,7 @@ export default function LayerSwitcherMenu() {
                                 onClick={() => handleBaseMapClick(LayerTitles.NOAA_ENC_LAYER)}
                                 checked={LayerTitles.NOAA_ENC_LAYER === checkedBaseMap}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.NOAA_ENC_LAYER}-radio`}
                             />
                             <p>NOAA Navigational Charts</p>
                         </div>
@@ -197,6 +200,7 @@ export default function LayerSwitcherMenu() {
                                 onClick={() => handleLayerClick(LayerTitles.BOT_LAYER)}
                                 checked={layerCheckedStates.get(LayerTitles.BOT_LAYER)}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.BOT_LAYER}-checkbox`}
                             />
                             <p>Bots</p>
                         </div>
@@ -205,6 +209,7 @@ export default function LayerSwitcherMenu() {
                                 onClick={() => handleLayerClick(LayerTitles.HUB_LAYER)}
                                 checked={layerCheckedStates.get(LayerTitles.HUB_LAYER)}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.HUB_LAYER}-checkbox`}
                             />
                             <p>Hubs</p>
                         </div>
@@ -213,6 +218,7 @@ export default function LayerSwitcherMenu() {
                                 onClick={() => handleLayerClick(LayerTitles.MISSION_LAYER)}
                                 checked={layerCheckedStates.get(LayerTitles.MISSION_LAYER)}
                                 sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.MISSION_LAYER}-checkbox`}
                             />
                             <p>Missions</p>
                         </div>
