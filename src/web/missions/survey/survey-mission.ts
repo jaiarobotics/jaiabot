@@ -99,14 +99,14 @@ export function getSurveyMissionPlans(
     let mpg = missionPlanningGrid;
     let mpgKeys = Object.keys(mpg);
 
-    // How many lanes to group per bot
+    // How many lanes to group per run
     let lanesPerBot = missionLanesPerRun;
     let applyEndTaskPerLane = missionApplyEndTaskPerLane;
 
     let groupIndex = 0;
 
     for (let i = 0; i < mpgKeys.length; i += lanesPerBot) {
-        const botKey = mpgKeys[groupIndex]; // this gives "0", "1", "2", ...
+        const botKey = mpgKeys[groupIndex];
         const botId = Number(botKey);
 
         let botGoals: Goal[] = [];
@@ -165,7 +165,7 @@ export function getSurveyMissionPlans(
         });
 
         missionPlans[botId] = {
-            bot_id: -1, // You can update this with the real bot ID if needed
+            bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {
@@ -180,8 +180,6 @@ export function getSurveyMissionPlans(
 
         groupIndex++;
     }
-
-    console.log(missionPlans);
 
     return missionPlans;
 }
