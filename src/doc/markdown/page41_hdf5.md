@@ -64,8 +64,12 @@
     * Description: Measured in μS/cm
   * required double total_dissolved_solids (beta)
     * Description: Measured in ppm
-  * required double salinity (beta)
+  * required double salinity_chip (beta)
     * Description: Measured in PSU (ppt)
+  * required double salinity_calculated (beta)
+    * Description: Measured in PSU (ppt)
+  * required double specific_conductivity (beta)
+    * Description: Measured in μS/cm
 
 ## Section: Low Control
 
