@@ -28,11 +28,11 @@ class Layers {
     }
 
     getLayer(layerTitle: LayerTitles) {
-        return this.getLayers().get(layerTitle);
+        return this.layers.get(layerTitle);
     }
 
     addLayer(layerTitle: LayerTitles, layer: Layer) {
-        this.getLayers().set(layerTitle, layer);
+        this.layers.set(layerTitle, layer);
     }
 }
 
