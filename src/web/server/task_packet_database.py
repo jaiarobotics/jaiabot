@@ -11,7 +11,7 @@ from pprint import pprint
 l = logging.getLogger('task_packet_database')
 
 
-def now():
+def now_utime():
     return int(datetime.now().timestamp() * 1e6)
 
 
@@ -21,13 +21,13 @@ class TaskPacketDatabase:
     # A map of task_packet_id to task_packet
     all_task_packets: Dict[str, Dict] = {} 
 
-    excluded_task_packet_ids: List[str] = []
+    excluded_task_packet_ids: Set[str] = set()
     task_packets_version = 0
     offloaded_task_packet_files_prev = -1
     offloaded_task_packet_files_curr = 0
 
     # Set the initial time for checking for task packet files
-    start_task_packet_check_time = now()
+    next_check_time = now_utime()
 
     # Time between checking for task packet files (10 Seconds)
     task_packet_check_interval = 10_000_000
@@ -38,11 +38,12 @@ class TaskPacketDatabase:
 
     def loop(self):
         # Check if the desired time interval has passed
-        if now() - self.start_task_packet_check_time >= self.task_packet_check_interval:
+        if now_utime() > self.next_check_time:
             self.load_taskpacket_files()
+            self.load_excluded_task_packet_ids()
             
             # Reset the start time
-            self.start_task_packet_check_time = now()
+            self.next_check_time = now_utime() + self.task_packet_check_interval
          
 
     def add_task_packet(self, task_packet: Dict):
@@ -105,3 +106,14 @@ class TaskPacketDatabase:
                 except json.JSONDecodeError as e:
                     l.warning(f"Error decoding JSON line: {line} because {e}")
 
+
+    def load_excluded_task_packet_ids(self):
+        file_path = self.path + 'excluded_task_packet_ids.json'
+        try:
+            file = open(file_path, 'r')
+        except FileNotFoundError:
+            open(file_path, 'w').write('[]\n')
+            file = open(file_path, 'r')
+
+        self.excluded_task_packet_ids = set(json.load(file))
+    

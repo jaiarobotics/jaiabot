@@ -3,7 +3,7 @@ from math import *
 from datetime import *
 
 
-def now():
+def now_utime():
     return int(datetime.now().timestamp() * 1e6)
 
 
