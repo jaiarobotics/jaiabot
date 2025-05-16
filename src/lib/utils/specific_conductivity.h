@@ -25,6 +25,17 @@ double viscosity_ratio(double temperature_celsius)
  * a bunch of if-statements, we fit a 3rd-degree polynomial using Python's
  * scikit-learn (PolynomialFeatures + LinearRegression)
  * 
+ * Inputs were normalized EC and temperature, and we calculated 'b' by rearranging:
+ * 
+ *     specific = measured * pow(mu_ratio, b)
+ *      → b = log(expected / measured) / log(mu_ratio)
+ * 
+ *  The resulting fit works surprisingly well — it's smooth, doesn't need special
+ *  cases, and holds up across all our test solutions from ~13 mS/cm up to 100 mS/cm,
+ *  and 5°C to 50°C.
+ * 
+ * If you need to retrain this, check out the script in test/utils/test_helpers/test_specific_conductivity.py
+ * 
  * @param measured_conductivity 
  * @param temperature 
  * @return double 
