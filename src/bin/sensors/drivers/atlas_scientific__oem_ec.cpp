@@ -66,9 +66,9 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     {
         ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
     }
-    if (ec_data.has_salinity())
+    if (ec_data.has_salinity_chip())
     {
-        ec_msg.set_salinity(ec_data.salinity());
+        ec_msg.set_salinity_chip(ec_data.salinity_chip());
     }
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 

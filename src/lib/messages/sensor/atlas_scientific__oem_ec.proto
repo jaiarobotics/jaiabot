@@ -23,7 +23,8 @@ message AtlasScientificOEMEC
     // }];
     
     optional double total_dissolved_solids = 3;
-    optional double salinity = 4;
+    optional double salinity_chip = 4;
+    optional double salinity_calculated = 5;
 }
 
 
