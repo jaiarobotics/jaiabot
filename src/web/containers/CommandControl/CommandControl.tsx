@@ -333,6 +333,8 @@ export default class CommandControl extends React.Component {
                 spRallyFinishDist: 0,
                 selectedBots: [],
                 useMaxLength: true,
+                missionLanesPerRun: 1,
+                missionApplyEndTaskPerLane: true,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
@@ -1982,6 +1984,8 @@ export default class CommandControl extends React.Component {
                 missionBaseGoal,
                 missionStartTask,
                 missionEndTask,
+                this.state.missionParams.missionLanesPerRun,
+                this.state.missionParams.missionApplyEndTaskPerLane,
             );
             const planningGridFeatures = featuresFromMissionPlanningGrid(
                 missionPlanningGrid,
@@ -3920,6 +3924,8 @@ export default class CommandControl extends React.Component {
                                 missionBaseGoal,
                                 missionStartTask,
                                 missionEndTask,
+                                this.state.missionParams.missionLanesPerRun,
+                                this.state.missionParams.missionApplyEndTaskPerLane,
                             );
 
                             let runList = this.getRunList();

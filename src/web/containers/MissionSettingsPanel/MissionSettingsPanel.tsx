@@ -37,6 +37,8 @@ export interface MissionParams {
     spRallyFinishDist: number;
     selectedBots: number[];
     useMaxLength: boolean;
+    missionLanesPerRun: number;
+    missionApplyEndTaskPerLane: boolean;
 }
 
 interface Props {
@@ -81,6 +83,8 @@ interface State {
     // This is the final task for bots to do at the last line waypoint
     missionEndTask: MissionTask;
     botList?: { [key: string]: BotStatus };
+    missionLanesPerRun: number;
+    missionApplyEndTaskPerLane: boolean;
 }
 
 export class MissionSettingsPanel extends React.Component {
@@ -101,6 +105,8 @@ export class MissionSettingsPanel extends React.Component {
             missionStartTask: props.missionStartTask,
             missionEndTask: props.missionEndTask,
             botList: props.botList,
+            missionLanesPerRun: 1,
+            missionApplyEndTaskPerLane: true,
         };
 
         this.onClose = props.onClose;
@@ -172,6 +178,16 @@ export class MissionSettingsPanel extends React.Component {
         this.props.setIsSRPEnabled(!this.props.isSRPEnabled);
     }
 
+    /**
+     * Switches toggle state and applys end task per lane if true
+     *
+     * @returns {void}
+     */
+    handleEndTaskPerLaneClick() {
+        this.props.missionParams.missionApplyEndTaskPerLane =
+            !this.props.missionParams.missionApplyEndTaskPerLane;
+    }
+
     render() {
         const { map, centerLineString } = this.props;
         const missionType = this.state.missionParams?.missionType;
@@ -219,6 +235,16 @@ export class MissionSettingsPanel extends React.Component {
                             value={this.props.missionParams.numRuns}
                             name="numRuns"
                             onChange={this.changeRunCount.bind(this)}
+                        />
+                    </div>
+
+                    <div className="mission-settings-input-label">Number Lanes Per Run:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.missionLanesPerRun}
+                            name="numRuns"
+                            onChange={this.changeLanesPerRunCount.bind(this)}
                         />
                     </div>
 
@@ -309,6 +335,11 @@ export class MissionSettingsPanel extends React.Component {
                             onChange={(missionEndTask) => {
                                 this.setState({ missionEndTask });
                             }}
+                        />
+                        <div className="mission-settings-tasks-title">Apply End Task Per Lane:</div>
+                        <JaiaToggle
+                            checked={() => this.props.missionParams.missionApplyEndTaskPerLane}
+                            onClick={() => this.handleEndTaskPerLaneClick()}
                         />
                     </div>
 
@@ -468,6 +499,24 @@ export class MissionSettingsPanel extends React.Component {
 
         let missionParams = { ...this.props.missionParams };
         missionParams.numRuns = value;
+        this.props.setMissionParams(missionParams);
+    }
+
+    /**
+     * Updates the number of lanes per run value based on input changes
+     *
+     * @param {Event} evt Contains the number of lanes per run value
+     * @returns {void}
+     */
+    changeLanesPerRunCount(evt: Event) {
+        const element = evt.target as HTMLInputElement;
+        const value = this.validateNumInput(Number(element.value));
+
+        let missionParams = { ...this.props.missionParams };
+        missionParams.missionLanesPerRun = value;
+        missionParams.numGoals = Math.floor(
+            missionParams.numGoals / missionParams.missionLanesPerRun,
+        );
         this.props.setMissionParams(missionParams);
     }
 

@@ -90,51 +90,71 @@ export function getSurveyMissionPlans(
     missionBaseGoal: Goal,
     missionStartTask: MissionTask,
     missionEndTask: MissionTask,
+    missionLanesPerRun: number,
+    missionApplyEndTaskPerLane: boolean,
 ) {
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
 
     let mpg = missionPlanningGrid;
     let mpgKeys = Object.keys(mpg);
-    mpgKeys.forEach((key) => {
-        const botId = Number(key);
 
-        // TODO: Update the mission plan for the bots at the same time??
-        // Create the goals from the missionPlanningGrid
-        let botGoals = [];
+    // How many lanes to group per bot
+    let lanesPerBot = missionLanesPerRun;
+    let applyEndTaskPerLane = missionApplyEndTaskPerLane;
 
-        // Rally Point Goals
-        let botGoal: Goal = {
+    let groupIndex = 0;
+
+    for (let i = 0; i < mpgKeys.length; i += lanesPerBot) {
+        const botKey = mpgKeys[groupIndex]; // this gives "0", "1", "2", ...
+        const botId = Number(botKey);
+
+        let botGoals: Goal[] = [];
+
+        // Rally Start
+        botGoals.push({
             location: {
                 lat: rallyStartLocation?.lat,
                 lon: rallyStartLocation?.lon,
             },
             task: missionStartTask,
-        };
-        botGoals.push(botGoal);
+        });
 
-        // Mission Goals
-        const botMissionGoalPositions: Position[] = mpg[key];
+        let combinedGoalPositions: { pos: Position; task: MissionTask }[] = [];
 
-        botMissionGoalPositions.forEach((goal: Position, index: number) => {
-            let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0];
+        for (let j = 0; j < lanesPerBot && i + j < mpgKeys.length; j++) {
+            const key = mpgKeys[i + j];
+            const positions = mpg[key];
 
-            // For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
-            const isLastGoal = index == botMissionGoalPositions.length - 1;
-            const task = isLastGoal ? missionEndTask : missionBaseGoal.task;
+            positions.forEach((goal: Position, index: number) => {
+                const isLastInLane = index === positions.length - 1;
+                const task =
+                    applyEndTaskPerLane && isLastInLane ? missionEndTask : missionBaseGoal.task;
 
-            botGoal = {
+                combinedGoalPositions.push({ pos: goal, task });
+            });
+        }
+
+        // Fallback: assign missionEndTask to last goal in combined list if the flag is false
+        if (!applyEndTaskPerLane && combinedGoalPositions.length > 0) {
+            combinedGoalPositions[combinedGoalPositions.length - 1].task = missionEndTask;
+        }
+
+        // Convert and add tasks
+        combinedGoalPositions.forEach(({ pos, task }) => {
+            const goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(pos)))[0];
+
+            botGoals.push({
                 location: {
                     lat: goalWgs84[1],
                     lon: goalWgs84[0],
                 },
-                task: task,
-            };
-            botGoals.push(botGoal);
+                task,
+            });
         });
 
-        // Home Goals
-        botGoal = {
+        // Rally End
+        botGoals.push({
             location: {
                 lat: rallyEndLocation?.lat,
                 lon: rallyEndLocation?.lon,
@@ -142,11 +162,10 @@ export function getSurveyMissionPlans(
             task: {
                 type: TaskType.NONE,
             },
-        };
-        botGoals.push(botGoal);
+        });
 
-        let command: Command = {
-            bot_id: -1,
+        missionPlans[botId] = {
+            bot_id: -1, // You can update this with the real bot ID if needed
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {
@@ -158,8 +177,11 @@ export function getSurveyMissionPlans(
                 },
             },
         };
-        missionPlans[botId] = command;
-    });
+
+        groupIndex++;
+    }
+
+    console.log(missionPlans);
 
     return missionPlans;
 }
