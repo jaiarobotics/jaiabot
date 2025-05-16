@@ -4,3 +4,6 @@ export const DETAILS_DECIMALS = 2;
 export const TEXT_OFFSET_RADIUS = 11;
 export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
+export const INITAL_ZOOM_DURATION = 3000; // milliseconds
+export const INITIAL_ZOOM = 15; // OpenLayers zoom level
+export const MERCATOR = "EPSG:3857";
