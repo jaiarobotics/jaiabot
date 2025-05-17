@@ -128,7 +128,7 @@ export class SurveyLines {
                     commandControl.state;
                 let stringCoords = geom1.getGeometry().getCoordinates();
 
-                this.validateSurveySpacingInputs();
+                this.validateSurveyInputs();
 
                 if (stringCoords[0].length >= 2 && startRally && endRally) {
                     let coords = stringCoords.slice(-2);
@@ -146,9 +146,11 @@ export class SurveyLines {
 
                     missionParams.orientation = rotationAngle;
                     let numRuns = Number(missionParams.numRuns);
+                    let numGoalsPerLane = Math.floor(
+                        missionParams.numGoals / missionParams.lanesPerRun,
+                    );
                     let maxLineLength =
-                        (Number(missionParams.pointSpacing) * Number(missionParams.numGoals)) /
-                        1000;
+                        (Number(missionParams.pointSpacing) * numGoalsPerLane) / 1000;
                     let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
 
                     // Check if user selects length > allowed (numWpts * pointSpacing), if so make centerLine max length
@@ -349,13 +351,21 @@ export class SurveyLines {
      * We know this code needs a refactor as it violates React best practices. This is a
      * temporary solution to meet an urgent business requirement.
      */
-    validateSurveySpacingInputs() {
+    validateSurveyInputs() {
         if (this.commandControl.state.missionParams.pointSpacing === 0) {
             this.commandControl.state.missionParams.pointSpacing = 1;
         }
 
         if (this.commandControl.state.missionParams.lineSpacing === 0) {
             this.commandControl.state.missionParams.lineSpacing = 1;
+        }
+
+        if (this.commandControl.state.missionParams.numRuns === 0) {
+            this.commandControl.state.missionParams.numRuns = 1;
+        }
+
+        if (this.commandControl.state.missionParams.lanesPerRun === 0) {
+            this.commandControl.state.missionParams.lanesPerRun = 1;
         }
     }
 }

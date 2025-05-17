@@ -90,8 +90,7 @@ export function getSurveyMissionPlans(
     missionBaseGoal: Goal,
     missionStartTask: MissionTask,
     missionEndTask: MissionTask,
-    missionLanesPerRun: number,
-    missionApplyEndTaskPerLane: boolean,
+    lanesPerRun: number,
 ) {
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
@@ -100,8 +99,7 @@ export function getSurveyMissionPlans(
     let mpgKeys = Object.keys(mpg);
 
     // How many lanes to group per run
-    let lanesPerBot = missionLanesPerRun;
-    let applyEndTaskPerLane = missionApplyEndTaskPerLane;
+    let lanesPerBot = lanesPerRun;
 
     let groupIndex = 0;
 
@@ -128,16 +126,10 @@ export function getSurveyMissionPlans(
 
             positions.forEach((goal: Position, index: number) => {
                 const isLastInLane = index === positions.length - 1;
-                const task =
-                    applyEndTaskPerLane && isLastInLane ? missionEndTask : missionBaseGoal.task;
+                const task = isLastInLane ? missionEndTask : missionBaseGoal.task;
 
                 combinedGoalPositions.push({ pos: goal, task });
             });
-        }
-
-        // Fallback: assign missionEndTask to last goal in combined list if the flag is false
-        if (!applyEndTaskPerLane && combinedGoalPositions.length > 0) {
-            combinedGoalPositions[combinedGoalPositions.length - 1].task = missionEndTask;
         }
 
         // Convert and add tasks
