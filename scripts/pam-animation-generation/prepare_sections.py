@@ -26,7 +26,7 @@ import csv
 
 def parse_wav_timestamp(filename):
     # Expected filename format: runXXX_YYYY-MM-dd_hh-mm-ss.wav
-    pattern = r'run\d+_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.wav'
+    pattern = r'run\d+_h\d+_f\d+_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})_\d+\.wav'
     match = re.search(pattern, filename)
     if not match:
         raise ValueError(f"Filename {filename} does not match expected pattern.")
