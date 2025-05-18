@@ -479,12 +479,12 @@ class Interface:
         Returns:
             dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives.
         """
-        return pyjaia.contours.taskPacketsToColorMap(self.task_packet_database.get_task_packets(start_date, end_date))
+        return pyjaia.contours.taskPacketsToColorMap(self.task_packet_database.get_task_packets(start_date, end_date)["included"])
 
     # Drift map
 
     def get_drift_map(self, start_date, end_date):
-        return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.task_packet_database.get_task_packets(start_date, end_date))
+        return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.task_packet_database.get_task_packets(start_date, end_date)["included"])
 
     # Bot paths
 

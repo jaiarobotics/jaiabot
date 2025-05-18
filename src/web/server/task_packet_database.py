@@ -70,9 +70,24 @@ class TaskPacketDatabase:
         else:
             end_utime = 9e99
 
-        results = list(filter(lambda task_packet: start_utime <= int(task_packet['start_time']) <= end_utime, self.all_task_packets.values()))
+        result = {
+            "included": [],
+            "excluded": []
+        }
 
-        return results
+        for task_packet in self.all_task_packets.values():
+            if not (start_utime <= int(task_packet['start_time']) <= end_utime):
+                # Outside requested time range
+                continue
+
+            task_packet_id = get_task_packet_id(task_packet)
+
+            if get_task_packet_id(task_packet) in self.excluded_task_packet_ids:
+                result["excluded"].append(task_packet)
+            else:
+                result["included"].append(task_packet)
+
+        return result
     
 
     def get_task_packets_version(self) -> int:
@@ -111,9 +126,27 @@ class TaskPacketDatabase:
         file_path = self.path + 'excluded_task_packet_ids.json'
         try:
             file = open(file_path, 'r')
-        except FileNotFoundError:
-            open(file_path, 'w').write('[]\n')
-            file = open(file_path, 'r')
+            self.excluded_task_packet_ids = set(json.load(file))
+        except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
+            l.warning(e)
+            self.excluded_task_packet_ids = set([])
 
-        self.excluded_task_packet_ids = set(json.load(file))
+
+    def save_excluded_task_packet_ids(self):
+        file_path = self.path + 'excluded_task_packet_ids.json'
+        with open(file_path, 'w') as file:
+            json.dump(list(self.excluded_task_packet_ids), file)
     
+
+    def set_task_packet_included(self, task_packet_id: str, included: bool):
+        if included:
+            try:
+                self.excluded_task_packet_ids.remove(task_packet_id)
+            except KeyError:
+                l.warning(f'task_packet_id "{task_packet_id}" was not excluded, no need to remove it.')
+        else:
+            self.excluded_task_packet_ids.add(task_packet_id)
+
+        self.save_excluded_task_packet_ids()
+        self.task_packets_version += 1
+

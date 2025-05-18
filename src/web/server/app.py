@@ -244,16 +244,17 @@ def getPackets():
     startDate = parseDate(request.args.get('startDate', (datetime.now(timezone.utc) - timedelta(hours=14))))
     endDate = parseDate(request.args.get('endDate', ''))
 
-    result = {
-        "included": jaia_interface.task_packet_database.get_task_packets(start_date=startDate, end_date=endDate),
-        "excluded": []
-    }
-
+    result = jaia_interface.task_packet_database.get_task_packets(start_date=startDate, end_date=endDate)
     return JaiaResponse(result)
 
 @app.route('/jaia/v0/task-packets-version', methods=['GET'])
 def getPacketsCount():
     return JSONResponse(jaia_interface.task_packet_database.get_task_packets_version())
+
+@app.route('/jaia/v0/task-packet-include', methods=['POST'])
+def postTaskPacketInclude():
+    jaia_interface.task_packet_database.set_task_packet_included(request.json["task_packet_id"], request.json["include"])
+    return JSONResponse({"status": "ok"})
 
 ######## Contour map
 
