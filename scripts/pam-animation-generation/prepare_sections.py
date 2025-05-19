@@ -89,8 +89,8 @@ def process_node_folder(node_path, section_length, overlap_percentage, center_fr
             "Channel": "1",
             "Begin Time (s)": f"{begin:.2f}",
             "End Time (s)": f"{end:.2f}",
-            "Low Freq (Hz)": f"{center_freq - bandwidth/2:.0f}",
-            "High Freq (Hz)": f"{center_freq + bandwidth/2:.0f}",
+            "Low Freq (Hz)": f"{center_freq - bandwidth:.0f}",
+            "High Freq (Hz)": f"{center_freq + bandwidth:.0f}",
             "Inband Power (dB FS)": ""
         })
         selection += 1

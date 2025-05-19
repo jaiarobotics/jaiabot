@@ -115,7 +115,7 @@ def load_node_h5(node_dir):
     return times, lat, lon, depth
 
 def parse_wav_timestamp(filename):
-    pattern = r'run\d+_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.wav'
+    pattern = r'run\d+_h\d+_f\d+_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})_\d+\.wav'
     match = re.search(pattern, filename)
     if not match:
         raise ValueError(f"Filename {filename} does not match expected pattern.")
@@ -211,6 +211,7 @@ def load_nodes(data_dir):
     return nodes
 
 def load_source_tracks(data_dir):
+    print(f"Loading source tracks from {data_dir}")
     source_folder = get_source_folder(data_dir)
     csv_files = glob.glob(os.path.join(source_folder, "**", "*.csv"), recursive=True)
     sources = []
@@ -409,7 +410,7 @@ def update_nodes(node_scatters, node_alerts, node_depth_texts, nodes, current_re
         
         if alert_condition:
             node_scatters[node["id"]].set_alpha(0)
-            node_alerts[node["id"]].set_data(node_lon, node_lat)
+            node_alerts[node["id"]].set_data([node_lon], [node_lat])
             node_alerts[node["id"]].set_marker('*')
             node_alerts[node["id"]].set_markersize(16)
             node_alerts[node["id"]].set_markerfacecolor(cmap(norm(vmax)))
@@ -436,14 +437,14 @@ def update_nodes(node_scatters, node_alerts, node_depth_texts, nodes, current_re
 def update_sources(source_trails, source_markers, source_depth_texts, sources, current_real_time, trail_length):
     for src in sources:
         if current_real_time < src["times"][0] or current_real_time > src["times"][-1]:
-            source_markers[src["name"]].set_data(np.nan, np.nan)
+            source_markers[src["name"]].set_data([np.nan], [np.nan])
             source_trails[src["name"]].set_segments([])
             source_depth_texts[src["name"]].set_text("")
         else:
             rel_sec = (current_real_time - src["t0"]).total_seconds()
             cur_lat = src["f_lat"](rel_sec)
             cur_lon = src["f_lon"](rel_sec)
-            source_markers[src["name"]].set_data(cur_lon, cur_lat)
+            source_markers[src["name"]].set_data([cur_lon], [cur_lat])
             lower_bound = current_real_time - datetime.timedelta(seconds=trail_length)
             trail_mask = np.array([(t >= lower_bound) and (t <= current_real_time) for t in src["times"]])
             if trail_mask.sum() < 2:
