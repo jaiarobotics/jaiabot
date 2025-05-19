@@ -25,6 +25,10 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     feature.setProperties({
         type: "dive",
         id: Math.random(),
+        task_packet: task_packet,
+        selected: false,
+        animated: false,
+        // Below data is now redundant, and we can refactor it away
         depthAchieved: Number(dive.depth_achieved?.toFixed(2)), // (m)
         diveRate: Number(dive.dive_rate?.toFixed(2)), // (m/s)
         bottomDive: dive.bottom_dive,
@@ -32,15 +36,13 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
         startTime: task_packet.start_time,
         endTime: task_packet.end_time,
         startLocation: dive.start_location,
-        selected: false,
-        animated: false,
     });
     feature.setStyle(Styles.divePacketIconStyle(feature));
     return feature;
 }
 
-export function createDriftPacketFeature(map: Map, taskPacket: TaskPacket) {
-    const drift = taskPacket.drift;
+export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
+    const drift = task_packet.drift;
 
     const startLon = drift?.start_location?.lon;
     const startLat = drift?.start_location?.lat;
@@ -57,16 +59,18 @@ export function createDriftPacketFeature(map: Map, taskPacket: TaskPacket) {
         drift: drift,
         type: "drift",
         id: Math.random(),
+        task_packet: task_packet,
+        selected: false,
+        animated: false,
+        // Below data is now redundant, and we can refactor it away
         duration: Number(drift?.drift_duration?.toFixed(2)), // (s)
         speed: Number(drift?.estimated_drift?.speed?.toFixed(2)), // (m/s)
         driftDirection: Number(drift?.estimated_drift?.heading?.toFixed(2)),
         sigWaveHeight: Number(drift?.significant_wave_height?.toFixed(2)),
-        botId: taskPacket.bot_id,
-        startTime: taskPacket.start_time,
-        endTime: taskPacket.end_time,
+        botId: task_packet.bot_id,
+        startTime: task_packet.start_time,
+        endTime: task_packet.end_time,
         startLocation: drift?.start_location,
-        selected: false,
-        animated: false,
     });
     const style = Styles.driftPacketIconStyle(feature);
     feature.setStyle(style);

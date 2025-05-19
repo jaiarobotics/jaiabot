@@ -163,6 +163,16 @@ export class JaiaAPI {
         return this.get(`jaia/v0/task-packets-version`);
     }
 
+    async postTaskPacketInclude(
+        task_packet_id: string,
+        include: boolean,
+    ): Promise<JaiaResponse<any>> {
+        return this.post("jaia/v0/task-packet-include", {
+            task_packet_id: task_packet_id,
+            include: include,
+        });
+    }
+
     /**
      * Get a set of depth contours from the backend in GeoJSON format.
      *
