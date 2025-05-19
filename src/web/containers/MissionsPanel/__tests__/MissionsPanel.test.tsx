@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
 import SideButtonList from "../../../components/SideButtonList/SideButtonList";
-import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
+import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";

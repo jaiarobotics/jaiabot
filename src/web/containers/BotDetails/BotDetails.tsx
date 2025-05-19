@@ -1,13 +1,14 @@
 import React, { useContext, useState } from "react";
 
 // Jaia Imports
+import HealthRow from "../../components/HealthRow/HealthRow";
 import {
     JaiaContext,
     JaiaContextType,
     JaiaDispatchContext,
     JaiaAction,
-} from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+} from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
@@ -302,7 +303,9 @@ export default function BotDetails() {
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
-                            <AccordionDetails></AccordionDetails>
+                            <AccordionDetails>
+                                <HealthRow />
+                            </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
 
