@@ -69,13 +69,13 @@ interface JaiaContextProviderProps {
     children: ReactNode;
 }
 
-const defaultHubAccordionStates = {
+const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
 };
 
-const defaultBotAccordionStates = {
+const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
     commands: false,
     advancedCommands: false,
@@ -390,11 +390,8 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
-    const waypoint = getWaypoint();
-    const task = waypoint.getTask();
-
+    const task = getWaypoint().getTask();
     task.setParameter(taskParameterPair);
-
     return mutableState;
 }
 

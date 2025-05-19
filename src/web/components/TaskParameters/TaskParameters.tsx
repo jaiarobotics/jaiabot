@@ -47,15 +47,20 @@ export default function TaskParameters(props: Props) {
 
 /**
  * Renders input fields for a dive task
+ *
+ * @notes
+ * Number(value).toString() remvoes the leading zero from input fields
  */
 function DiveParameters(props: SubProps) {
+    const diveParameters = props.task.getDiveParameters();
+
     return (
         <div className="task-parameters">
             <div>Max Depth</div>
             <input
                 name={TaskParameterKeys.MAX_DEPTH}
                 type="number"
-                value={props.task.getMaxDepth()}
+                value={Number(diveParameters.max_depth).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -65,7 +70,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DEPTH_INTERVAL}
                 type="number"
-                value={props.task.getDepthInterval()}
+                value={Number(diveParameters.depth_interval).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -75,7 +80,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.HOLD_TIME}
                 type="number"
-                value={props.task.getHoldTime()}
+                value={Number(diveParameters.hold_time).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -85,7 +90,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={props.task.getDriftTime()}
+                value={Number(props.task.getDrfitParameters().drift_time).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -96,6 +101,9 @@ function DiveParameters(props: SubProps) {
 
 /**
  * Renders input fields for a drift task
+ *
+ * @notes
+ * Number(value).toString() remvoes the leading zero from input fields
  */
 function DriftParameters(props: SubProps) {
     return (
@@ -104,7 +112,7 @@ function DriftParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={props.task.getDriftTime()}
+                value={Number(props.task.getDrfitParameters().drift_time).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -115,15 +123,19 @@ function DriftParameters(props: SubProps) {
 
 /**
  * Renders input fields for a constant heading task
+ *
+ * @notes
+ * Number(value).toString() remvoes the leading zero from input fields
  */
 function ConstantHeading(props: SubProps) {
+    const constantHeadingParameters = props.task.getConstantHeadingParameters();
     return (
         <div className="task-parameters">
             <div>Heading</div>
             <input
                 name={TaskParameterKeys.HEADING}
                 type="number"
-                value={props.task.getHeading()}
+                value={Number(constantHeadingParameters.constant_heading).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -133,7 +145,7 @@ function ConstantHeading(props: SubProps) {
             <input
                 name={TaskParameterKeys.CONSTANT_HEADING_TIME}
                 type="number"
-                value={props.task.getConstantHeadingTime()}
+                value={Number(constantHeadingParameters.constant_heading_time).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -143,7 +155,7 @@ function ConstantHeading(props: SubProps) {
             <input
                 name={TaskParameterKeys.SPEED}
                 type="number"
-                value={props.task.getSpeed()}
+                value={Number(constantHeadingParameters.constant_heading_speed).toString()}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -151,7 +163,10 @@ function ConstantHeading(props: SubProps) {
 
             <div>Distance</div>
             <div className="distance-calc">
-                {(props.task.getConstantHeadingTime() * props.task.getSpeed()).toFixed(0)}
+                {(
+                    constantHeadingParameters.constant_heading_time *
+                    constantHeadingParameters.constant_heading_speed
+                ).toFixed(0)}
             </div>
             <div className="units">m</div>
         </div>
