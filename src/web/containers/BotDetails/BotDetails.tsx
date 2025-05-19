@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
 // Jaia Imports
+import HealthRow from "../../components/HealthRow/HealthRow";
 import {
     JaiaContext,
     JaiaContextType,
@@ -30,6 +31,7 @@ import {
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
+import ActivateButton from "../../components/ActivateButton/ActivateButton";
 
 // MDI and MUI
 import {
@@ -40,7 +42,6 @@ import {
     mdiRestart,
     mdiSkipNext,
     mdiRestartAlert,
-    mdiCheckboxMarkedCirclePlusOutline,
 } from "@mdi/js";
 import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
@@ -241,12 +242,7 @@ export default function BotDetails() {
                             </AccordionSummary>
                             <AccordionDetails>
                                 <div className="accordion-details-buttons bot-commands">
-                                    <Button className="jaia-button">
-                                        <Icon
-                                            path={mdiCheckboxMarkedCirclePlusOutline}
-                                            title="System Check"
-                                        />
-                                    </Button>
+                                    <ActivateButton bot={bot} />
                                     <Button className="jaia-button">
                                         <img
                                             src={rcModeIcon}
@@ -302,7 +298,9 @@ export default function BotDetails() {
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
-                            <AccordionDetails></AccordionDetails>
+                            <AccordionDetails>
+                                <HealthRow />
+                            </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
 
