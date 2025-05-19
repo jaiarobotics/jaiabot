@@ -1,4 +1,4 @@
-import { TaskType } from "../../types/protobuf-types";
+import { TaskType, MissionTask } from "../../types/protobuf-types";
 import ConstantHeadingParameters from "./parameters/constant-heading-parameters";
 import DiveParameters from "./parameters/dive-parameters";
 import DriftParameters from "./parameters/drift-parameters";
@@ -60,5 +60,26 @@ export default class Task {
 
     setIsEnablePAM(isEnablePAM: boolean) {
         this.isEnablePAM = isEnablePAM;
+    }
+
+    packageTaskForHub() {
+        const missionTask: MissionTask = {
+            type: this.type,
+        };
+
+        switch (this.type) {
+            case TaskType.DIVE:
+                // missionTask.diveParameters = this.getDiveParameters();
+                // missionTask.driftParameters = this.getDriftParameters();
+                break;
+            case TaskType.SURFACE_DRIFT:
+                // missionTask.driftParameters = this.getDriftParameters();
+                break;
+            case TaskType.CONSTANT_HEADING:
+                // missionTask.constandHeadingParameters = this.getConstantHeadingParameters();
+                break;
+        }
+
+        return missionTask;
     }
 }

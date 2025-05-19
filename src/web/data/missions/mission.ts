@@ -1,4 +1,10 @@
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import {
+    GeographicCoordinate,
+    Goal,
+    MissionPlan,
+    MissionStart,
+    MovementType,
+} from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {
@@ -8,7 +14,10 @@ export default class Mission {
     private movableWaypointNum: number;
 
     constructor() {
+        // missionID assigned by missions singleton
         this.waypoints = [];
+        this.repeats = 1;
+        this.movableWaypointNum = 0;
     }
 
     getMissionID() {
@@ -74,5 +83,33 @@ export default class Mission {
                 }),
             );
         }
+    }
+
+    packageMissionForHub() {
+        const missionPlan: MissionPlan = {
+            start: MissionStart.START_IMMEDIATELY,
+            movement: MovementType.TRANSIT,
+            goal: this.packageWaypointsForHub(),
+            recovery: {
+                recover_at_final_goal: true,
+            },
+            speeds: {
+                transit: 3,
+                stationkeep_outer: 2,
+            },
+            repeats: this.repeats,
+        };
+
+        return missionPlan;
+    }
+
+    packageWaypointsForHub() {
+        const goals: Goal[] = [];
+
+        for (const waypoint of this.waypoints) {
+            goals.push(waypoint.packageWaypointForHub());
+        }
+
+        return goals;
     }
 }

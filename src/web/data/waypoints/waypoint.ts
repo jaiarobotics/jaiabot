@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 import Task from "../tasks/task";
 
 export default class Waypoint {
@@ -21,5 +21,14 @@ export default class Waypoint {
 
     setTask(task: Task) {
         this.task = task;
+    }
+
+    packageWaypointForHub() {
+        const goal: Goal = {
+            location: this.location,
+            task: this.task.packageTaskForHub(),
+        };
+
+        return goal;
     }
 }
