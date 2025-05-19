@@ -36,6 +36,7 @@ import { MissionLibraryLocalStorage } from "../../utils/mission-library";
 import { playDisconnectReconnectSounds } from "../../style/audio/disconnect-sounds";
 import { error, success, warning, info } from "../../notifications/notifications";
 import { CustomAlert, CustomAlertProps } from "../../shared/CustomAlert";
+import { readLocalStorage, writeLocalStorage } from "../../shared/LocalStorage";
 import {
     MissionSettingsPanel,
     MissionSettings,
@@ -593,6 +594,14 @@ export default class CommandControl extends React.Component {
                 );
             }
         });
+
+        // Load taskPacketsTimeline
+        this.setState({
+            taskPacketsTimeline: readLocalStorage(
+                "taskPacketsTimeline",
+                this.state.taskPacketsTimeline,
+            ),
+        });
     }
 
     /**
@@ -685,6 +694,11 @@ export default class CommandControl extends React.Component {
             prevState.visiblePanel != PanelType.SETTINGS
         ) {
             this.setupMapLayersPanel();
+        }
+
+        // Persist the task taskPacketsTimeline, if changed
+        if (prevState.taskPacketsTimeline != this.state.taskPacketsTimeline) {
+            writeLocalStorage("taskPacketsTimeline", this.state.taskPacketsTimeline);
         }
     }
 
