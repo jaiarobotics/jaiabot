@@ -8,8 +8,9 @@ import { Button } from "@mui/material";
 import { mdiStop } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { CommandType } from "../../types/protobuf-types";
-import { isCommandAvailable } from "../../utils/commands";
+
+import { Command, CommandType } from "../../types/protobuf-types";
+import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import "../../style/stylesheets/util.less";
 
@@ -64,7 +65,11 @@ export default function StopButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            // Send stop command
+            const stopCommand: Command = {
+                bot_id: props.bot.getBotID(),
+                type: CommandType.STOP,
+            };
+            sendBotCommand(stopCommand);
         }
     };
 

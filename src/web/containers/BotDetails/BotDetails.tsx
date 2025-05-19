@@ -9,9 +9,14 @@ import {
     JaiaAction,
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+
+import StopButton from "../../components/StopButton/StopButton";
+import ActivateButton from "../../components/ActivateButton/ActivateButton";
+
 import { NodeTypes } from "../../types/jaia-system-types";
-import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
+import { MissionStatus } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
+import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -24,26 +29,17 @@ import {
     getDistToWaypoint,
     isBotLogging,
 } from "./bot-details";
-import { MissionStatus } from "../../types/jaia-system-types";
+
+import { DEFAULT_HUB_ID } from "../../utils/constants";
 import {
     formatLatitude,
     formatLongitude,
     formatAttitudeAngle,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
-import ActivateButton from "../../components/ActivateButton/ActivateButton";
 
 // MDI and MUI
-import {
-    mdiPlay,
-    mdiStop,
-    mdiPower,
-    mdiDelete,
-    mdiRestart,
-    mdiSkipNext,
-    mdiRestartAlert,
-} from "@mdi/js";
+import { mdiPlay, mdiPower, mdiDelete, mdiRestart, mdiSkipNext, mdiRestartAlert } from "@mdi/js";
 import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -128,9 +124,7 @@ export default function BotDetails() {
                     </div>
                     <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
-                        <Button className="jaia-button">
-                            <Icon path={mdiStop} title="Stop Mission" />
-                        </Button>
+                        <StopButton bot={bot} />
                         <Button className="jaia-button">
                             <Icon path={mdiPlay} title="Run Mission" />
                         </Button>
