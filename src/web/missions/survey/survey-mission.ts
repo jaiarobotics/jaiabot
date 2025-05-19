@@ -96,17 +96,13 @@ export function getSurveyMissionPlans(
     let millisecondsSinceEpoch = new Date().getTime();
 
     let mpg = missionPlanningGrid;
-    let mpgKeys = Object.keys(mpg);
+    let laneKeys = Object.keys(mpg);
+    let runIndex = 0;
 
-    // How many lanes to group per run
-    let lanesPerBot = lanesPerRun;
-
-    let groupIndex = 0;
-
-    for (let i = 0; i < mpgKeys.length; i += lanesPerBot) {
-        const botKey = mpgKeys[groupIndex];
-        const botId = Number(botKey);
-
+    // Loop through all mission runs, grouping them by lanesPerRun,
+    // so each bot is assigned one run that may include multiple adjacent lanes
+    // (e.g., if lanesPerRun = 2, bot 1 gets runs 0 & 1, bot 2 gets runs 2 & 3, etc.)
+    for (let i = 0; i < laneKeys.length; i += lanesPerRun) {
         let botGoals: Goal[] = [];
 
         // Rally Start
@@ -118,32 +114,28 @@ export function getSurveyMissionPlans(
             task: missionStartTask,
         });
 
-        let combinedGoalPositions: { pos: Position; task: MissionTask }[] = [];
-
-        for (let j = 0; j < lanesPerBot && i + j < mpgKeys.length; j++) {
-            const key = mpgKeys[i + j];
+        // For each lane in this run group, convert its positions to WGS84 and
+        // push them directly to botGoals, assigning missionEndTask to the last point in each lane
+        for (let j = 0; j < lanesPerRun && i + j < laneKeys.length; j++) {
+            const key = laneKeys[i + j];
             const positions = mpg[key];
 
+            // Convert and add tasks
             positions.forEach((goal: Position, index: number) => {
                 const isLastInLane = index === positions.length - 1;
                 const task = isLastInLane ? missionEndTask : missionBaseGoal.task;
 
-                combinedGoalPositions.push({ pos: goal, task });
+                const goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0];
+
+                botGoals.push({
+                    location: {
+                        lat: goalWgs84[1],
+                        lon: goalWgs84[0],
+                    },
+                    task,
+                });
             });
         }
-
-        // Convert and add tasks
-        combinedGoalPositions.forEach(({ pos, task }) => {
-            const goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(pos)))[0];
-
-            botGoals.push({
-                location: {
-                    lat: goalWgs84[1],
-                    lon: goalWgs84[0],
-                },
-                task,
-            });
-        });
 
         // Rally End
         botGoals.push({
@@ -156,7 +148,7 @@ export function getSurveyMissionPlans(
             },
         });
 
-        missionPlans[botId] = {
+        missionPlans[runIndex] = {
             bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
@@ -169,8 +161,7 @@ export function getSurveyMissionPlans(
                 },
             },
         };
-
-        groupIndex++;
+        runIndex++;
     }
 
     return missionPlans;
