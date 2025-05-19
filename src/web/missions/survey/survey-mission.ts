@@ -101,7 +101,7 @@ export function getSurveyMissionPlans(
 
     // Loop through all mission runs, grouping them by lanesPerRun,
     // so each bot is assigned one run that may include multiple adjacent lanes
-    // (e.g., if lanesPerRun = 2, bot 1 gets runs 0 & 1, bot 2 gets runs 2 & 3, etc.)
+    // (e.g., if lanesPerRun = 2, bot 1 gets runs 1 & 2, bot 2 gets runs 3 & 4, etc.)
     for (let i = 0; i < laneKeys.length; i += lanesPerRun) {
         let botGoals: Goal[] = [];
 
