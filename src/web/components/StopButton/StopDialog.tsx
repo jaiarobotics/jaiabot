@@ -66,8 +66,8 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Stop.
+ * For a confirmation dialog, the buttons will be Cancel and Stop.
+ * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
