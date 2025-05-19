@@ -19,6 +19,7 @@ import * as turf from "@turf/turf";
 import { Units } from "@turf/turf";
 import { getMapCoordinate } from "../../shared/Utilities";
 import { Geometry, LineString } from "ol/geom";
+import { persistVisibility } from "../../openlayers/map/layers/visible-layer-persistance";
 
 // Constants
 const POLL_INTERVAL = 5000;
@@ -53,6 +54,7 @@ export class TaskData {
             style: this.createClusterIconStyle.bind(this),
             visible: false,
         });
+        persistVisibility(this.divePacketLayer);
 
         this.driftPacketLayer = new VectorLayer({
             properties: {
@@ -64,6 +66,7 @@ export class TaskData {
             style: this.createClusterIconStyle.bind(this),
             visible: false,
         });
+        persistVisibility(this.driftPacketLayer);
 
         this.driftMapLayer = new VectorLayer({
             properties: {
@@ -75,6 +78,7 @@ export class TaskData {
             visible: false,
             style: Styles.driftMapStyle,
         });
+        persistVisibility(this.driftMapLayer);
 
         this.contourLayer = new VectorLayer({
             properties: {
@@ -85,6 +89,7 @@ export class TaskData {
             source: null,
             visible: false,
         });
+        persistVisibility(this.contourLayer);
     }
 
     /**

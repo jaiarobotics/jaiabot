@@ -2283,7 +2283,7 @@ export default class CommandControl extends React.Component {
                 const driftFeature = feature.get("features")[0];
                 const selectedTaskPacket = driftFeature.get("task_packet") as TaskPacket;
 
-                this.setTaskPacketInterval(driftFeature, "drfit");
+                this.setTaskPacketInterval(driftFeature, "drift");
 
                 this.setState(
                     {
