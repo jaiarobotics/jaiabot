@@ -1,8 +1,7 @@
 // React -- Jaia
 import { useContext, useEffect, useState } from "react";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/Jaia/JaiaContext";
-import { HealthStatusLine } from "../../components/HealthStatusLine/HealthStatusLine";
+import { JaiaActions } from "../../context/jaia-actions";
+import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/JaiaContext";
 
 // Utilities
 import {
@@ -196,7 +195,6 @@ export default function HubDetails() {
                         <AccordionDetails>
                             <table>
                                 <tbody>
-                                    <HealthStatusLine healthState={hub.getHealthState()} />
                                     <tr>
                                         <td>Latitude</td>
                                         <td>

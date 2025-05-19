@@ -1,6 +1,6 @@
 import { useEffect, useContext } from "react";
-import { JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";

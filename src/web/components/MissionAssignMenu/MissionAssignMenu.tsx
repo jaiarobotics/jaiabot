@@ -11,8 +11,8 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 interface Props {
     missionID: number;

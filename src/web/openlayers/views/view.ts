@@ -1,6 +1,5 @@
 import { View } from "ol";
-
-const MERCATOR = "EPSG:3857";
+import { MERCATOR } from "../../utils/constants";
 
 export const view = new View({
     projection: MERCATOR,
