@@ -23,6 +23,7 @@
 #include <goby/time/system_clock.h>
 
 #include "atlas_scientific__oem_ph.h"
+#include "jaiabot/utils/ph_temperature_compensation.h"
 #include "jaiabot/groups.h"
 
 using goby::glog;
@@ -67,6 +68,12 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     {
         ph_msg.set_temperature(ph_data.temperature());
     }
+    if (ph_data.has_ph() && ph_data.has_temperature()) 
+    {
+        const double ph_atc = temperature_compensated_ph(ph_data.ph(), ph_data.temperature());
+        ph_msg.set_ph_atc(ph_atc);
+    }
+
     if (ph_data.has_temperature_voltage())
     {
         ph_msg.set_temperature_voltage(ph_data.temperature_voltage());
