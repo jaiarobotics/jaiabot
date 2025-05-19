@@ -2322,7 +2322,7 @@ export default class CommandControl extends React.Component {
                     end_time: { value: endTime.toLocaleString(), units: "" },
                 };
 
-                this.setTaskPacketInterval(driftFeature, "drfit");
+                this.setTaskPacketInterval(driftFeature, "drift");
 
                 this.setState(
                     {
