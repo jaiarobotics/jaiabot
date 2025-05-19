@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
 // Jaia Imports
+import HealthRow from "../../components/HealthRow/HealthRow";
 import {
     JaiaContext,
     JaiaContextType,
@@ -307,7 +308,9 @@ export default function BotDetails() {
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
-                            <AccordionDetails></AccordionDetails>
+                            <AccordionDetails>
+                                <HealthRow />
+                            </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
 
