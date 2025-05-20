@@ -9,7 +9,6 @@ import {
     JaiaAction,
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { NodeTypes } from "../../types/jaia-system-types";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
 
@@ -67,10 +66,6 @@ export default function BotDetails() {
             },
         }),
     );
-
-    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
-        return <div></div>;
-    }
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
