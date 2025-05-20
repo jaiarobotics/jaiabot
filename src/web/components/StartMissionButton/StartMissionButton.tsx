@@ -8,13 +8,7 @@ import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
 
-import {
-    Command,
-    CommandType,
-    MissionPlan,
-    MissionStart,
-    MovementType,
-} from "../../types/protobuf-types";
+import { Command, CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import { mdiPlay } from "@mdi/js";
