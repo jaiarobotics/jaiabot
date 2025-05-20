@@ -42,7 +42,8 @@ export function generateWaypointFeature(
     });
 
     feature.set("type", MapFeatureTypes.WAYPOINT);
-    feature.set("id", waypointNum);
+    feature.set("waypointNum", waypointNum);
+    feature.set("missionID", missionID);
     feature.setStyle(generateWaypointStyle(waypointNum, missionID));
     return feature;
 }
