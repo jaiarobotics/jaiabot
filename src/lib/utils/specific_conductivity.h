@@ -1,5 +1,22 @@
 /**
- * @brief Viscosity ratio: µ_t / µ_25 using Hayashi's equation (log base 10)
+ * @brief Calculates the viscosity ratio µ_t / µ_25 using the empirical formula, 
+ * which models how water's viscosity changes with temperature.
+ *
+ * The equation is:
+ *     log10(µ_t / µ_25) = [A(25 - T) - B(25 - T)^2] / (T + C)
+ *
+ * This is used in conductivity compensation to adjust for the effect of temperature
+ * on ion mobility.
+ * 
+ * @param temperature_celsius Temperature in degrees Celsius
+ * @return double Viscosity ratio µ_t / µ_25
+ * 
+ * @note
+ * 
+ * References:
+ *  - https://www.aqion.de/site/112
+ *  - https://pubs.usgs.gov/wsp/2311/report.pdf
+ *  - https://link.springer.com/article/10.1023/B:EMAS.0000031719.83065.68 (Hayashi study, 2004)
  * 
  */
 double viscosity_ratio(double temperature_celsius)
@@ -36,17 +53,17 @@ double viscosity_ratio(double temperature_celsius)
  * 
  * If you need to retrain this, check out the script in jaiabot/scripts/util_helpers/test_specific_conductivity.py
  * 
- * @param measured_conductivity 
- * @param temperature 
- * @return double 
+ * @param measured_conductivity Measured EC in µS/cm
+ * @param temperature_celsius Temperature in degrees Celsius
+ * @return double Best-fit exponent b for temperature compensation
  */
-double tuned_b(double measured_conductivity, double temperature)
+double tuned_b(double measured_conductivity, double temperature_celsius)
 {
     // Normalize inputs
     // range: ~0.05 to 1.5
     double ec = measured_conductivity / 100000.0;  
     // range: 0 to 1
-    double t = temperature / 50.0;
+    double t = temperature_celsius / 50.0;
 
     // Polynomial model: b = intercept + coef1*ec 
     //                        + coef2*t + coef3*ec*t 
@@ -70,9 +87,9 @@ double tuned_b(double measured_conductivity, double temperature)
  * @brief Specific conductivity - Viscosity-based compensation with auto-tuned b to get 
  * corrected value that represents the measured conductivity as if the solution were at a standard temperature of 25 °C
  * 
- * @param measured_conductivity 
- * @param temperature_celsius 
- * @return double 
+ * @param measured_conductivity Measured conductivity in µS/cm
+ * @param temperature_celsius Temperature of the measurement in degrees Celsius
+ * @return double Specific conductivity at 25 °C
  */
 double calculate_specific_conductivity(const double measured_conductivity, const double temperature_celsius)
 {
