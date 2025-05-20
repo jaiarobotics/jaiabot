@@ -10,19 +10,27 @@ import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
+import Task from "../data/tasks/task";
 
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
-import { GeographicCoordinate } from "../types/protobuf-types";
-import { NodeTypes, SelectedNode } from "../types/jaia-system-types";
+import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
+import {
+    NodeTypes,
+    SelectedNode,
+    SelectedWaypoint,
+    TaskParameterPair,
+} from "../types/jaia-system-types";
 import {
     HubAccordionStates,
     BotAccordionStates,
+    MapLayerAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
+    MapLayerAccordionNames,
     PanelNames,
 } from "../types/context-types";
 
@@ -32,10 +40,12 @@ export interface JaiaContextType {
     missions: Map<number, Mission>;
 
     selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
     visibleDetails: NodeTypes;
     visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
 }
@@ -45,11 +55,16 @@ export interface JaiaAction {
     botID?: number;
     missionID?: number;
 
-    selectedNode?: SelectedNode;
+    clickedNode?: SelectedNode;
+    clickedWaypoint?: SelectedWaypoint;
+
     location?: GeographicCoordinate;
+    taskType?: TaskType;
+    taskParameterPair?: TaskParameterPair;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
+    mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
 }
@@ -58,13 +73,13 @@ interface JaiaContextProviderProps {
     children: ReactNode;
 }
 
-const defaultHubAccordionStates = {
+const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
 };
 
-const defaultBotAccordionStates = {
+const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
     commands: false,
     advancedCommands: false,
@@ -73,6 +88,13 @@ const defaultBotAccordionStates = {
     gps: false,
     imu: false,
     sensor: false,
+};
+
+const defaultMapLayerAccordionStates = {
+    baseMaps: false,
+    bathymetry: false,
+    measurements: false,
+    mission: false,
 };
 
 export const JaiaContext = createContext<JaiaContextType>(null);
@@ -112,17 +134,32 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
+        case JaiaActions.DELETE_WAYPOINT:
+            return handleDeleteWaypoint(mutableState);
+
+        case JaiaActions.SELECT_TASK:
+            return handleSelectTask(mutableState, action.taskType);
+
+        case JaiaActions.CHANGE_TASK_PARAMETER:
+            return handleChangeTaskParameter(mutableState, action.taskParameterPair);
+
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
+        case JaiaActions.CLOSED_WAYPOINT_PANEL:
+            return handleClosedWaypointPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
-            return handleClickedNode(mutableState, action.selectedNode);
+            return handleClickedNode(mutableState, action.clickedNode);
 
         case JaiaActions.CLICKED_HUB_ACCORDION:
             return handleClickedHubAccordion(mutableState, action.hubAccordionName);
 
         case JaiaActions.CLICKED_BOT_ACCORDION:
             return handleClickedBotAccordion(mutableState, action.botAccordionName);
+
+        case JaiaActions.CLICKED_MAP_LAYERS_ACCORDION:
+            return handleClickedMapLayersAccordion(mutableState, action.mapLayerAccordionName);
 
         case JaiaActions.CLICKED_MISSION_ACCORDION:
             return handleClickedMissionAccordion(
@@ -136,6 +173,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
+
+        case JaiaActions.CLICKED_WAYPOINT:
+            return handleClickedWaypoint(mutableState, action.clickedWaypoint);
 
         default:
             return state;
@@ -160,6 +200,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
+    mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
 
     return mutableState;
@@ -310,6 +351,66 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
 }
 
 /**
+ * Makes call to remove a waypoint from a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleDeleteWaypoint(mutableState: JaiaContextType) {
+    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+
+    mutableState.missions = missions.getMissions();
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.visiblePanel = PanelNames.NONE;
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+/**
+ * Updates the task associated with a waypoint based on the operator's selection
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {TaskType} taskType Name of the task selected
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
+    const waypoint = getWaypoint();
+    const task = waypoint.getTask();
+
+    if (task) {
+        task.setType(taskType);
+    } else {
+        const newTask = new Task();
+        newTask.setType(taskType);
+        waypoint.setTask(newTask);
+    }
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+/**
+ * Makes call to update the parameters of a task based on user input
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {TaskParameterPair} taskParameterPair The name of the input updated and its value
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleChangeTaskParameter(
+    mutableState: JaiaContextType,
+    taskParameterPair: TaskParameterPair,
+) {
+    const task = getWaypoint().getTask();
+    task.setParameter(taskParameterPair);
+    return mutableState;
+}
+
+/**
  * Closes the Bot or Hub details panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -317,6 +418,20 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
  */
 function handleClosedDetails(mutableState: JaiaContextType) {
     mutableState.visibleDetails = NodeTypes.NONE;
+    return mutableState;
+}
+
+/**
+ * Handles cleanup when a waypoint panel closes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClosedWaypointPanel(mutableState: JaiaContextType) {
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+
     return mutableState;
 }
 
@@ -346,7 +461,7 @@ function handleClickedNode(mutableState: JaiaContextType, clickedNode: SelectedN
  * Opens and closes the Hub details accordions
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {string} accordionName Accordion to open or close
+ * @param {HubAccordionNames} accordionName Accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedHubAccordion(
@@ -374,7 +489,7 @@ function handleClickedHubAccordion(
  * Opens and closes the Bot details accordions
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {string} accordionName Which accordion to open or close
+ * @param {BotAccordionNames} accordionName Which accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedBotAccordion(
@@ -408,6 +523,37 @@ function handleClickedBotAccordion(
             break;
         case BotAccordionNames.SENSOR:
             botAccordionStates.sensor = !botAccordionStates.sensor;
+            break;
+    }
+    return mutableState;
+}
+
+/**
+ * Opens and closes the map layer group accordions
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {MapLayerAccordionNames} accordionName Which accordion to open or close
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedMapLayersAccordion(
+    mutableState: JaiaContextType,
+    accordionName: MapLayerAccordionNames,
+) {
+    if (!accordionName) throw new Error("Invalid accordionName");
+
+    let mapLayerAccordionStates = mutableState.mapLayerAccordionStates;
+    switch (accordionName) {
+        case MapLayerAccordionNames.BASE_MAPS:
+            mapLayerAccordionStates.baseMaps = !mapLayerAccordionStates.baseMaps;
+            break;
+        case MapLayerAccordionNames.BATHYMETRY:
+            mapLayerAccordionStates.bathymetry = !mapLayerAccordionStates.bathymetry;
+            break;
+        case MapLayerAccordionNames.MEASUREMENTS:
+            mapLayerAccordionStates.measurements = !mapLayerAccordionStates.measurements;
+            break;
+        case MapLayerAccordionNames.MISSION:
+            mapLayerAccordionStates.mission = !mapLayerAccordionStates.mission;
             break;
     }
     return mutableState;
@@ -469,6 +615,22 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
     return mutableState;
 }
 
+/**
+ * Opens panel for the selected waypoint
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {SelectedWaypoint} clickedWaypoint Identifies which waypoint was clicked by operator
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
+    jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
+
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.visiblePanel = PanelNames.WAYPOINT;
+
+    return mutableState;
+}
+
 export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
     const [state, dispatch] = useReducer(jaiaReducer, null);
 
@@ -516,4 +678,15 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+}
+
+/**
+ * Retrieves the Waypoint object that is currently selected
+ *
+ * @returns {Waypoint} Access to Waypoint modifiers
+ */
+function getWaypoint() {
+    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    const mission = missions.getMission(selectedWaypoint.missionID);
+    return mission.getWaypoint(selectedWaypoint.waypointNum);
 }

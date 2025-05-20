@@ -13,7 +13,6 @@ import { JaiaActions } from "../../context/jaia-actions";
 import StopButton from "../../components/StopButton/StopButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
 
-import { NodeTypes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
@@ -63,10 +62,6 @@ export default function BotDetails() {
             },
         }),
     );
-
-    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
-        return <div></div>;
-    }
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
