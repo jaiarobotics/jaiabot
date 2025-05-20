@@ -1,0 +1,31 @@
+@import "../../style/stylesheets/util.less";
+
+.layer-switcher-menu {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    padding: 12px;
+
+    width: 300px;
+    background-color: @overlay-background;
+}
+
+.layer-group {
+    display: grid;
+    row-gap: 6px;
+}
+
+.layer-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.layer-container span {
+    padding: 0;
+}
+
+.layer-container p {
+    user-select: none;
+}
