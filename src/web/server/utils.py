@@ -7,10 +7,6 @@ def now_utime():
     return int(datetime.now().timestamp() * 1e6)
 
 
-def utcnow():
-    return int(datetime.utcnow().timestamp() * 1e6)
-
-
 def utime(d: datetime):
     '''Returns the utime for a datetime object'''
     return int(d.replace(tzinfo=timezone.utc).timestamp() * 1e6)

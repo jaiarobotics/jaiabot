@@ -21,7 +21,7 @@ function getTaskPacketId(task_packet: TaskPacket) {
 export function TaskPacketPanel(props: Props) {
     const task_packet = props.selectedTaskPacket;
 
-    // Probably want to refactor this into a type with optional name, value, units
+    // TODO: Probably want to refactor this into a type with optional name, value, units
     var taskPacketData: { [key: string]: { [key: string]: string } };
 
     if (props.type == "dive") {

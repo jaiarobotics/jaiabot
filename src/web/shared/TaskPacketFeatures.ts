@@ -28,7 +28,7 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
         task_packet: task_packet,
         selected: false,
         animated: false,
-        // Below data is now redundant, and we can refactor it away
+        // TODO: Below data is now redundant, and we can refactor it away
         depthAchieved: Number(dive.depth_achieved?.toFixed(2)), // (m)
         diveRate: Number(dive.dive_rate?.toFixed(2)), // (m/s)
         bottomDive: dive.bottom_dive,
@@ -62,7 +62,7 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         task_packet: task_packet,
         selected: false,
         animated: false,
-        // Below data is now redundant, and we can refactor it away
+        // TODO: Below data is now redundant, and we can refactor it away
         duration: Number(drift?.drift_duration?.toFixed(2)), // (s)
         speed: Number(drift?.estimated_drift?.speed?.toFixed(2)), // (m/s)
         driftDirection: Number(drift?.estimated_drift?.heading?.toFixed(2)),
