@@ -23,6 +23,8 @@
 #include <goby/time/system_clock.h>
 
 #include "atlas_scientific__oem_ec.h"
+#include "jaiabot/utils/specific_conductivity.h"
+#include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/groups.h"
 
 using goby::glog;
@@ -38,6 +40,14 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
+            if (sensor_data.has_oem_do())
+                last_do_data_ = sensor_data.oem_do();
+        });
+
+    // subscribe for pressure adjusted measurements (pressure -> depth)
+    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+            last_pressure_adjusted_data_ = pa;
         });
 
     // Set sample rate config
@@ -70,6 +80,25 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     {
         ec_msg.set_salinity_chip(ec_data.salinity_chip());
     }
+    // Using do data temperature because the bar30 is not
+    // reporting accurately enough embedded into the midbody
+    if (last_do_data_.has_temperature())
+    {
+        const double specific_conductivity = calculate_specific_conductivity(
+            ec_msg.conductivity(), last_do_data_.temperature());
+        ec_msg.set_specific_conductivity(specific_conductivity);
+    }
+    if (last_do_data_.has_temperature() &&
+        last_pressure_adjusted_data_.has_pressure_adjusted())
+    {
+        const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+        const double salinity_calculated = calculate_derived_salinity(
+            ec_msg.conductivity(), last_do_data_.temperature(),
+            last_pressure_adjusted_data_.pressure_adjusted() +
+                ATMOSPHERIC_PRESSURE_DECIBARS);
+        ec_msg.set_salinity_calculated(salinity_calculated);
+    }
+    
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();
