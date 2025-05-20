@@ -1,10 +1,12 @@
 import React, { useContext } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import Task from "../../data/tasks/task";
+
 import { TaskParameterKeys } from "../../types/jaia-system-types";
 import { TaskType } from "../../types/protobuf-types";
-import { JaiaActions } from "../../context/jaia-actions";
+import { formatNumericalInput } from "../../utils/input";
 
 import "./TaskParameters.less";
 
@@ -47,9 +49,6 @@ export default function TaskParameters(props: Props) {
 
 /**
  * Renders input fields for a dive task
- *
- * @notes
- * Number(value).toString() remvoes the leading zero from input fields
  */
 function DiveParameters(props: SubProps) {
     const diveParameters = props.task.getDiveParameters();
@@ -60,7 +59,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.MAX_DEPTH}
                 type="number"
-                value={Number(diveParameters.max_depth).toString()}
+                value={formatNumericalInput(diveParameters.max_depth)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -70,7 +69,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DEPTH_INTERVAL}
                 type="number"
-                value={Number(diveParameters.depth_interval).toString()}
+                value={formatNumericalInput(diveParameters.depth_interval)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -80,7 +79,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.HOLD_TIME}
                 type="number"
-                value={Number(diveParameters.hold_time).toString()}
+                value={formatNumericalInput(diveParameters.hold_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -90,7 +89,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={Number(props.task.getDrfitParameters().drift_time).toString()}
+                value={formatNumericalInput(props.task.getDrfitParameters().drift_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -101,9 +100,6 @@ function DiveParameters(props: SubProps) {
 
 /**
  * Renders input fields for a drift task
- *
- * @notes
- * Number(value).toString() remvoes the leading zero from input fields
  */
 function DriftParameters(props: SubProps) {
     return (
@@ -112,7 +108,7 @@ function DriftParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={Number(props.task.getDrfitParameters().drift_time).toString()}
+                value={formatNumericalInput(props.task.getDrfitParameters().drift_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -123,9 +119,6 @@ function DriftParameters(props: SubProps) {
 
 /**
  * Renders input fields for a constant heading task
- *
- * @notes
- * Number(value).toString() remvoes the leading zero from input fields
  */
 function ConstantHeading(props: SubProps) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
@@ -135,7 +128,7 @@ function ConstantHeading(props: SubProps) {
             <input
                 name={TaskParameterKeys.HEADING}
                 type="number"
-                value={Number(constantHeadingParameters.constant_heading).toString()}
+                value={formatNumericalInput(constantHeadingParameters.constant_heading)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -145,7 +138,7 @@ function ConstantHeading(props: SubProps) {
             <input
                 name={TaskParameterKeys.CONSTANT_HEADING_TIME}
                 type="number"
-                value={Number(constantHeadingParameters.constant_heading_time).toString()}
+                value={formatNumericalInput(constantHeadingParameters.constant_heading_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -155,7 +148,7 @@ function ConstantHeading(props: SubProps) {
             <input
                 name={TaskParameterKeys.SPEED}
                 type="number"
-                value={Number(constantHeadingParameters.constant_heading_speed).toString()}
+                value={formatNumericalInput(constantHeadingParameters.constant_heading_speed)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
