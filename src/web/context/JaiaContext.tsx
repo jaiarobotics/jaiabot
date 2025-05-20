@@ -378,15 +378,10 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
-    const waypoint = getWaypoint();
-    const task = waypoint.getTask();
+    const task = getTask();
 
     if (task) {
         task.setType(taskType);
-    } else {
-        const newTask = new Task();
-        newTask.setType(taskType);
-        waypoint.setTask(newTask);
     }
 
     missionLayer.updateFeatures();
@@ -405,7 +400,7 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
-    const task = getWaypoint().getTask();
+    const task = getTask();
     task.setParameter(taskParameterPair);
     return mutableState;
 }
@@ -681,12 +676,12 @@ function syncOpenLayers() {
 }
 
 /**
- * Retrieves the Waypoint object that is currently selected
+ * Retrieves the Task object connected to the currently selected waypoint
  *
- * @returns {Waypoint} Access to Waypoint modifiers
+ * @returns {Task} Access to Task modifiers
  */
-function getWaypoint() {
+function getTask() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missions.getMission(selectedWaypoint.missionID);
-    return mission.getWaypoint(selectedWaypoint.waypointNum);
+    return mission.getWaypoint(selectedWaypoint.waypointNum).getTask();
 }

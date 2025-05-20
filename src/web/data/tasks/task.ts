@@ -38,6 +38,7 @@ export default class Task {
     private isEnablePAM: boolean;
 
     constructor() {
+        this.type = TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
@@ -160,7 +161,7 @@ export default class Task {
     private updateDefaultTaskParameters() {
         jaiaGlobal.setDefaultTaskParameters({
             dive: this.getDiveParameters(),
-            drift: this.getDrfitParameters(),
+            drift: this.getDriftParameters(),
             constantHeading: this.getConstantHeadingParameters(),
         });
     }
@@ -173,7 +174,7 @@ export default class Task {
         this.diveParameters = { ...diveParameters };
     }
 
-    getDrfitParameters() {
+    getDriftParameters() {
         return this.driftParameters;
     }
 
@@ -204,14 +205,14 @@ export default class Task {
 
         switch (this.type) {
             case TaskType.DIVE:
-                // missionTask.diveParameters = this.getDiveParameters();
-                // missionTask.driftParameters = this.getDriftParameters();
+                missionTask.dive = this.getDiveParameters();
+                missionTask.surface_drift = this.getDriftParameters();
                 break;
             case TaskType.SURFACE_DRIFT:
-                // missionTask.driftParameters = this.getDriftParameters();
+                missionTask.surface_drift = this.getDriftParameters();
                 break;
             case TaskType.CONSTANT_HEADING:
-                // missionTask.constandHeadingParameters = this.getConstantHeadingParameters();
+                missionTask.constant_heading = this.getConstantHeadingParameters();
                 break;
         }
 

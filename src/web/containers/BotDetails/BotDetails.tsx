@@ -50,6 +50,7 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
+import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -120,9 +121,7 @@ export default function BotDetails() {
                     <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
                         <StopButton bot={bot} />
-                        <Button className="jaia-button">
-                            <Icon path={mdiPlay} title="Run Mission" />
-                        </Button>
+                        <StartMissionButton bot={bot} mission={mission} />
                         <Button className="jaia-button">
                             <Icon path={mdiDelete} title="Clear Mission" />
                         </Button>

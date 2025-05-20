@@ -5,7 +5,9 @@ export default class Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
 
-    constructor() {}
+    constructor() {
+        this.task = new Task();
+    }
 
     getLocation() {
         return this.location;
