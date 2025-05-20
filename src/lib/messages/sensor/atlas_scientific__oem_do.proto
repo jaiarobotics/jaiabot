@@ -14,6 +14,12 @@ message AtlasScientificOEMDO
     optional double dissolved_oxygen = 1;
     optional double temperature = 2;
     optional double temperature_voltage = 3;
+    // Max DO at current T/S/P
+    optional double max_do = 4;
+    // Max DO at 0 ppt, same T and P, scaled by observed saturation
+    optional double normalized_max_do = 5;
+    // Measured DO / max DO at current T/S/P
+    optional double saturation_percent = 6;
 }
 
 

@@ -24,6 +24,7 @@
 
 #include "atlas_scientific__oem_do.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/utils/dissovled_oxygen_compensation.h"
 
 using goby::glog;
 
@@ -38,6 +39,11 @@ jaiabot::apps::AtlasScientificOEMDODriver::AtlasScientificOEMDODriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_do())
                 receive_data(sensor_data.oem_do());
+        });
+
+    interprocess().subscribe<jaiabot::groups::salinity>(
+        [this](const jaiabot::protobuf::SalinityData& salinity_data) {
+            last_salinity_reading_ = salinity_data;
         });
 
     // Set sample rate config
@@ -69,6 +75,23 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
     if (do_data.has_temperature_voltage())
     {
         do_msg.set_temperature_voltage(do_data.temperature_voltage());
+    }
+
+    if (last_salinity_reading_.has_salinity_calculated() && do_data.has_dissolved_oxygen() &&
+        do_data.has_temperature())
+    {
+        // Max DO at current T/S/P
+        double max_do = calculate_max_dissolved_oxygen(
+            do_data.temperature(), last_salinity_reading_.salinity_calculated());
+        // Max DO at 0 ppt, same T and P, scaled by observed saturation
+        double saturation_percent = (do_data.dissolved_oxygen() / max_do) * 100.0;
+        // Measured DO / max DO at current T/S/P
+        double normalized_max_do = calculate_max_dissolved_oxygen(do_data.temperature(), 0.0) *
+                                   (saturation_percent / 100.0);
+
+        do_msg.set_max_do(max_do);
+        do_msg.set_saturation_percent(saturation_percent);
+        do_msg.set_normalized_max_do(normalized_max_do);
     }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 
