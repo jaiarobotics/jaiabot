@@ -32,6 +32,20 @@ export interface BotAccordionStates {
     sensor: boolean;
 }
 
+export const enum MapLayerAccordionNames {
+    BASE_MAPS = "baseMaps",
+    BATHYMETRY = "bathymetry",
+    MEASUREMENTS = "measurements",
+    MISSION = "mission",
+}
+
+export interface MapLayerAccordionStates {
+    baseMaps: boolean;
+    bathymetry: boolean;
+    measurements: boolean;
+    mission: boolean;
+}
+
 export const enum PanelNames {
     NONE = "none",
     MISSIONS = "missions",
