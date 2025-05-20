@@ -4,7 +4,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { layers } from "../../openlayers/layers/layers";
 import { LayerTitles } from "../../types/openlayers-types";
-import { MapLayerGroupNames } from "../../types/context-types";
+import { MapLayerAccordionNames } from "../../types/context-types";
 
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
@@ -77,13 +77,13 @@ export default function LayerSwitcherMenu() {
      * Notifies Context which accordion the operator clicked on. This data lives in Context
      * to preserve the accordion states through mounts/unmounts of the LayerSwitcherMenu.
      *
-     * @param {MapLayerGroupNames} accordionName Name of the accordion selected
+     * @param {MapLayerAccordionNames} accordionName Name of the accordion selected
      * @returns {void}
      */
-    const handleAccordionClick = (accordionName: MapLayerGroupNames) => {
+    const handleAccordionClick = (accordionName: MapLayerAccordionNames) => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_MAP_LAYERS_ACCORDION,
-            mapLayerGroupName: accordionName,
+            mapLayerAccordionName: accordionName,
         });
     };
 
@@ -145,8 +145,8 @@ export default function LayerSwitcherMenu() {
             <ThemeProvider theme={accordionTheme}>
                 <Accordion
                     className="accordion-container"
-                    expanded={jaiaContext.mapLayerGroupStates.baseMaps}
-                    onChange={() => handleAccordionClick(MapLayerGroupNames.BASE_MAPS)}
+                    expanded={jaiaContext.mapLayerAccordionStates.baseMaps}
+                    onChange={() => handleAccordionClick(MapLayerAccordionNames.BASE_MAPS)}
                 >
                     <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
                         <Typography>Base Maps</Typography>
@@ -188,8 +188,8 @@ export default function LayerSwitcherMenu() {
             <ThemeProvider theme={accordionTheme}>
                 <Accordion
                     className="accordion-container"
-                    expanded={jaiaContext.mapLayerGroupStates.mission}
-                    onChange={() => handleAccordionClick(MapLayerGroupNames.MISSION)}
+                    expanded={jaiaContext.mapLayerAccordionStates.mission}
+                    onChange={() => handleAccordionClick(MapLayerAccordionNames.MISSION)}
                 >
                     <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
                         <Typography>Mission</Typography>

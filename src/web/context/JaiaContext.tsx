@@ -21,10 +21,10 @@ import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
     HubAccordionStates,
     BotAccordionStates,
-    MapLayerGroupStates,
+    MapLayerAccordionStates,
     HubAccordionNames,
     BotAccordionNames,
-    MapLayerGroupNames,
+    MapLayerAccordionNames,
     PanelNames,
 } from "../types/context-types";
 
@@ -38,7 +38,7 @@ export interface JaiaContextType {
     visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
-    mapLayerGroupStates: MapLayerGroupStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
 }
@@ -53,7 +53,7 @@ export interface JaiaAction {
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
-    mapLayerGroupName?: MapLayerGroupNames;
+    mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
 }
@@ -79,7 +79,7 @@ const defaultBotAccordionStates = {
     sensor: false,
 };
 
-const defaultMapLayerGroupStates = {
+const defaultMapLayerAccordionStates = {
     baseMaps: false,
     bathymetry: false,
     measurements: false,
@@ -136,7 +136,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleClickedBotAccordion(mutableState, action.botAccordionName);
 
         case JaiaActions.CLICKED_MAP_LAYERS_ACCORDION:
-            return handleClickedMapLayersAccordion(mutableState, action.mapLayerGroupName);
+            return handleClickedMapLayersAccordion(mutableState, action.mapLayerAccordionName);
 
         case JaiaActions.CLICKED_MISSION_ACCORDION:
             return handleClickedMissionAccordion(
@@ -174,7 +174,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
-    mutableState.mapLayerGroupStates = defaultMapLayerGroupStates;
+    mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
 
     return mutableState;
@@ -432,28 +432,28 @@ function handleClickedBotAccordion(
  * Opens and closes the map layer group accordions
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {MapLayerGroupNames} accordionName Which accordion to open or close
+ * @param {MapLayerAccordionNames} accordionName Which accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedMapLayersAccordion(
     mutableState: JaiaContextType,
-    accordionName: MapLayerGroupNames,
+    accordionName: MapLayerAccordionNames,
 ) {
     if (!accordionName) throw new Error("Invalid accordionName");
 
-    let mapLayerGroupStates = mutableState.mapLayerGroupStates;
+    let mapLayerAccordionStates = mutableState.mapLayerAccordionStates;
     switch (accordionName) {
-        case MapLayerGroupNames.BASE_MAPS:
-            mapLayerGroupStates.baseMaps = !mapLayerGroupStates.baseMaps;
+        case MapLayerAccordionNames.BASE_MAPS:
+            mapLayerAccordionStates.baseMaps = !mapLayerAccordionStates.baseMaps;
             break;
-        case MapLayerGroupNames.BATHYMETRY:
-            mapLayerGroupStates.bathymetry = !mapLayerGroupStates.bathymetry;
+        case MapLayerAccordionNames.BATHYMETRY:
+            mapLayerAccordionStates.bathymetry = !mapLayerAccordionStates.bathymetry;
             break;
-        case MapLayerGroupNames.MEASUREMENTS:
-            mapLayerGroupStates.measurements = !mapLayerGroupStates.measurements;
+        case MapLayerAccordionNames.MEASUREMENTS:
+            mapLayerAccordionStates.measurements = !mapLayerAccordionStates.measurements;
             break;
-        case MapLayerGroupNames.MISSION:
-            mapLayerGroupStates.mission = !mapLayerGroupStates.mission;
+        case MapLayerAccordionNames.MISSION:
+            mapLayerAccordionStates.mission = !mapLayerAccordionStates.mission;
             break;
     }
     return mutableState;
