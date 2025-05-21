@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test_specific_conductivity)
     };
 
     const TestData tests[] = {
-        //Hamilton reference: https://www.hamiltoncompany.com/process-analytics/conductivity-knowledge/temperature-influence-on-conductivity-standards
+        // Hamilton reference: https://www.hamiltoncompany.com/process-analytics/conductivity-knowledge/temperature-influence-on-conductivity-standards
         // 12880 uS/cm - reference: Hamilton
         {8210, 5, 12880}, {8440, 6, 12880}, {8660, 7, 12880}, {8880, 8, 12880},
         {9110, 9, 12880}, {9340, 10, 12880}, {9560, 11, 12880}, {9790, 12, 12880},
