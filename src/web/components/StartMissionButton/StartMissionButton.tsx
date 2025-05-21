@@ -84,7 +84,7 @@ export default function StartMissionButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
-                type: CommandType.START_MISSION,
+                type: CommandType.MISSION_PLAN,
                 plan: props.mission.packageMissionForHub(),
             };
             sendBotCommand(startMissionCommand);
