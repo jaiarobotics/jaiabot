@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
 import { PanelType } from "../CommandControl/CommandControl";
 import "./TaskPacketPanel.less";
 import { jaiaAPI } from "../../utils/jaia-api";
-import { Button } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
 import { TaskPacket } from "../../shared/JAIAProtobuf";
 
 interface Props {
@@ -20,6 +20,8 @@ function getTaskPacketId(task_packet: TaskPacket) {
 }
 
 export function TaskPacketPanel(props: Props) {
+    var [busy, setBusy] = useState(false);
+
     const task_packet = props.selectedTaskPacket;
 
     // TODO: Probably want to refactor this into a type with optional name, value, units
@@ -74,17 +76,35 @@ export function TaskPacketPanel(props: Props) {
 
     function includeTaskPacket() {
         const task_packet_id = getTaskPacketId(task_packet);
-        jaiaAPI.postTaskPacketInclude(task_packet_id, true).then((response) => {
-            props.pollTaskPackets();
-        });
+        setBusy(true);
+        jaiaAPI
+            .postTaskPacketInclude(task_packet_id, true)
+            .then((response) => {
+                props.pollTaskPackets();
+            })
+            .finally(() => {
+                setBusy(false);
+            });
     }
 
     function excludeTaskPacket() {
         const task_packet_id = getTaskPacketId(task_packet);
-        jaiaAPI.postTaskPacketInclude(task_packet_id, false).then((response) => {
-            props.pollTaskPackets();
-        });
+        jaiaAPI
+            .postTaskPacketInclude(task_packet_id, false)
+            .then((response) => {
+                props.pollTaskPackets();
+            })
+            .finally(() => {
+                setBusy(false);
+            });
     }
+
+    // Since I cannot turn the CircularProgress off (why not, @mui/material?), I set it to "determinate" with 0% progress as a placeholder of the same size to avoid jittering of html elements.
+    const progressIndicator = busy ? (
+        <CircularProgress variant="indeterminate"></CircularProgress>
+    ) : (
+        <CircularProgress variant="determinate"></CircularProgress>
+    );
 
     return (
         <div className="task-packet-panel-base-grid">
@@ -132,6 +152,7 @@ export function TaskPacketPanel(props: Props) {
                         })}
                         <Button onClick={includeTaskPacket}>Include</Button>
                         <Button onClick={excludeTaskPacket}>Exclude</Button>
+                        {progressIndicator}
                     </div>
                 </div>
             </div>
