@@ -11,6 +11,7 @@ interface Props {
     type: string;
     selectedTaskPacket: TaskPacket;
     setVisiblePanel: (panelType: PanelType) => void;
+    pollTaskPackets: () => void;
 }
 
 function getTaskPacketId(task_packet: TaskPacket) {
@@ -73,12 +74,16 @@ export function TaskPacketPanel(props: Props) {
 
     function includeTaskPacket() {
         const task_packet_id = getTaskPacketId(task_packet);
-        jaiaAPI.postTaskPacketInclude(task_packet_id, true);
+        jaiaAPI.postTaskPacketInclude(task_packet_id, true).then((response) => {
+            props.pollTaskPackets();
+        });
     }
 
     function excludeTaskPacket() {
         const task_packet_id = getTaskPacketId(task_packet);
-        jaiaAPI.postTaskPacketInclude(task_packet_id, false);
+        jaiaAPI.postTaskPacketInclude(task_packet_id, false).then((response) => {
+            props.pollTaskPackets();
+        });
     }
 
     return (

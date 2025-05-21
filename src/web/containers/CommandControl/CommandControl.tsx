@@ -4259,6 +4259,7 @@ export default class CommandControl extends React.Component {
                         type={this.state.taskPacketType}
                         selectedTaskPacket={this.state.selectedTaskPacket}
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
+                        pollTaskPackets={this.pollTaskPackets.bind(this)}
                     />
                 );
                 break;
