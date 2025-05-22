@@ -89,7 +89,7 @@ function DiveParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={formatNumericalInput(props.task.getDrfitParameters().drift_time)}
+                value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -108,7 +108,7 @@ function DriftParameters(props: SubProps) {
             <input
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
-                value={formatNumericalInput(props.task.getDrfitParameters().drift_time)}
+                value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
