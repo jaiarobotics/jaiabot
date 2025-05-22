@@ -64,9 +64,9 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
                              << "Received do_data: " << do_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMDO do_msg;
-    if (do_data.has_dissolved_oxygen())
+    if (do_data.has_do_raw())
     {
-        do_msg.set_dissolved_oxygen(do_data.dissolved_oxygen());
+        do_msg.set_do_raw(do_data.do_raw());
     }
     if (do_data.has_temperature())
     {
@@ -77,21 +77,23 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
         do_msg.set_temperature_voltage(do_data.temperature_voltage());
     }
 
-    if (last_salinity_reading_.has_salinity_calculated() && do_data.has_dissolved_oxygen() &&
+    if (last_salinity_reading_.has_salinity_calculated() && do_data.has_do_raw() &&
         do_data.has_temperature())
     {
-        // Max DO at current T/S/P
-        double max_do = calculate_max_dissolved_oxygen(
+        // DO Solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)
+        double do_solubility = calculate_dissolved_oxygen_solubility(
             do_data.temperature(), last_salinity_reading_.salinity_calculated());
-        // Max DO at 0 ppt, same T and P, scaled by observed saturation
-        double saturation_percent = (do_data.dissolved_oxygen() / max_do) * 100.0;
-        // Measured DO / max DO at current T/S/P
-        double normalized_max_do = calculate_max_dissolved_oxygen(do_data.temperature(), 0.0) *
-                                   (saturation_percent / 100.0);
+        // Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg)
+        double do_saturation_percent =
+            calculate_do_saturation_percent(do_data.do_raw(), do_solubility);
+        // DO Solubility at 0 salinity (ppt), same temperature (C) and pressure (mmhg), scaled by observed saturation
+        double do_normalized_solubility =
+            calculate_dissolved_oxygen_solubility(do_data.temperature(), 0.0) *
+            (do_saturation_percent / 100.0);
 
-        do_msg.set_max_do(max_do);
-        do_msg.set_saturation_percent(saturation_percent);
-        do_msg.set_normalized_max_do(normalized_max_do);
+        do_msg.set_do_solubility(do_solubility);
+        do_msg.set_do_saturation_percent(do_saturation_percent);
+        do_msg.set_do_normalized_solubility(do_normalized_solubility);
     }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 

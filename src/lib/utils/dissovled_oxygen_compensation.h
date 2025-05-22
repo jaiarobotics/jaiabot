@@ -46,11 +46,12 @@ double salinity_correction(double temperature_k, double salinity_ppt)
  * @return DO saturation in mg/L at standard atmospheric pressure and zero salinity.
  * 
  * Reference:
- * - https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf
+ * - Weiss, R. F. (1970). The solubility of nitrogen, oxygen and argon in water and seawater.
+ * - USGS WQ.2011.03 memo: https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf
  */
 double calculate_do_saturation_fresh(double temperature_k)
 {
-    // Constants from Benson & Krause (1984), as recommended in USGS WQ.2011.03
+    // Constants from Weiss (1970), Equation (7) in USGS WQ.2011.03
     const double a0 = -173.4292;
     const double a1 = 249.6339;
     const double a2 = 143.3483;
@@ -81,8 +82,8 @@ double calculate_do_saturation_fresh(double temperature_k)
  * - https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf
  * - https://water.usgs.gov/water-resources/software/DOTABLES/
  */
-double calculate_max_dissolved_oxygen(double temperature_celsius, double salinity_ppt,
-                                      double pressure_mmhg = 760.0)
+double calculate_dissolved_oxygen_solubility(double temperature_celsius, double salinity_ppt,
+                                             double pressure_mmhg = 760.0)
 {
     const double kelvin_offset = 273.15;
     double temperature_k = temperature_celsius + kelvin_offset;
@@ -91,4 +92,9 @@ double calculate_max_dissolved_oxygen(double temperature_celsius, double salinit
     double pressure_factor = pressure_correction(pressure_mmhg);
 
     return do_saturation * salinity_factor * pressure_factor;
+}
+
+double calculate_do_saturation_percent(double do_raw, double do_max)
+{
+    return (do_raw / do_max) * 100.0;
 }
