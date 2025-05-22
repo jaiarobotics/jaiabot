@@ -158,7 +158,7 @@ def load_node_inband_table(node_dir):
     if not m:
         raise ValueError(f"Wav filename {first_wav} does not match expected pattern.")
     global_start = datetime.datetime.strptime(m.group(1), "%Y-%m-%d_%H-%M-%S")
-    table_files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections.txt"))
+    table_files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections*.txt"))
     if not table_files:
         raise FileNotFoundError(f"No inbandPower table file found in {node_dir}")
     table_path = table_files[0]
@@ -179,11 +179,11 @@ def load_node_inband_table(node_dir):
     return sections, section_times
 
 def get_inband_params_from_node(node_dir):
-    files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections.txt"))
+    files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections*.txt"))
     if not files:
         return None
     filename = os.path.basename(files[0])
-    m = re.search(r'_cf(?P<cf>\d+)_bw(?P<bw>\d+)_sl(?P<sl>[\d.]+)_ol(?P<ol>[\d.]+)_inbandPower\.Table\.1\.selections\.txt', filename)
+    m = re.search(r'_cf(?P<cf>\d+)_bw(?P<bw>\d+)_sl(?P<sl>[\d.]+)_ol(?P<ol>[\d.]+)_inbandPower\.Table\.1\.selections_peaksOnly\.txt', filename)
     if m:
         return m.groupdict()
     return None
@@ -198,7 +198,7 @@ def load_nodes(data_dir):
     for nd in node_folders:
         try:
             global_start = get_global_start_time_from_node(nd)
-            table_path = glob.glob(os.path.join(nd, "*_inbandPower.Table.1.selections.txt"))[0]
+            table_path = glob.glob(os.path.join(nd, "*_inbandPower.Table.1.selections*.txt"))[0]
             times, powers = read_inband_table(table_path, global_start)
             times_h5, lats_h5, lons_h5, depths_h5 = load_node_h5(nd)
             node_id = os.path.basename(nd)

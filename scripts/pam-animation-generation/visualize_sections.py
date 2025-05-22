@@ -72,7 +72,7 @@ def load_nodes(data_dir):
     for node_dir in node_folders:
         try:
             global_start = get_global_start_time_from_node(node_dir)
-            table_files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections.txt"))
+            table_files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections*.txt"))
             if not table_files:
                 print(f"No inbandPower table file found in {node_dir}. Skipping.")
                 continue
@@ -85,11 +85,11 @@ def load_nodes(data_dir):
     return nodes_data
 
 def get_inband_params_from_node(node_dir):
-    files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections.txt"))
+    files = glob.glob(os.path.join(node_dir, "*_inbandPower.Table.1.selections*.txt"))
     if not files:
         return None
     filename = os.path.basename(files[0])
-    m = re.search(r'_cf(?P<cf>\d+)_bw(?P<bw>\d+)_sl(?P<sl>[\d.]+)_ol(?P<ol>[\d.]+)_inbandPower\.Table\.1\.selections\.txt', filename)
+    m = re.search(r'_cf(?P<cf>\d+)_bw(?P<bw>\d+)_sl(?P<sl>[\d.]+)_ol(?P<ol>[\d.]+)_inbandPower\.Table\.1\.selections_peaksOnly\.txt', filename)
     if m:
         return m.groupdict()
     return None
@@ -216,7 +216,7 @@ def main():
     
     fig.tight_layout()
     base = os.path.basename(os.path.normpath(args.data_dir))
-    output_filename = f"{base}_{args.norm_type}_vmin{args.vmin}_vmax{args.vmax}_gamma{args.gamma}_cf{inband_params['cf']}_bw{inband_params['bw']}_sl{inband_params['sl']}_ol{inband_params['ol']}_ad{args.alert_duration}.png"
+    output_filename = f"{base}_{args.norm_type}_vmin{args.vmin}_vmax{args.vmax}_gamma{args.gamma}_cf{inband_params['cf']}_bw{inband_params['bw']}_sl{inband_params['sl']}_ol{inband_params['ol']}_ad{args.alert_duration}_450minPeakDis.png"
     
     if args.save:
         print("About to save figure …")
