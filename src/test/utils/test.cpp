@@ -41,6 +41,9 @@ BOOST_AUTO_TEST_CASE(test_specific_conductivity)
 
     const TestData tests[] = {
         // Hamilton reference: https://www.hamiltoncompany.com/process-analytics/conductivity-knowledge/temperature-influence-on-conductivity-standards
+        // 147 uS/cm - reference: Hamilton
+        {92, 5, 147}, {105, 10, 147}, {119, 15, 147}, {133, 20, 147},
+        {147, 25, 147}, {162, 30, 147}, {176, 35, 147}, {192, 40, 147},
         // 12880 uS/cm - reference: Hamilton
         {8210, 5, 12880}, {8440, 6, 12880}, {8660, 7, 12880}, {8880, 8, 12880},
         {9110, 9, 12880}, {9340, 10, 12880}, {9560, 11, 12880}, {9790, 12, 12880},
@@ -74,7 +77,7 @@ BOOST_AUTO_TEST_CASE(test_specific_conductivity)
         {124000, 37, 100000}, {127000, 38, 100000}, {129000, 39, 100000}, {131000, 40, 100000},
         {133000, 41, 100000}, {135000, 42, 100000}, {137000, 43, 100000}, {140000, 44, 100000},
         {142000, 45, 100000}, {144000, 46, 100000}, {146000, 47, 100000}, {149000, 48, 100000},
-        {151000, 49, 100000}, {153000, 50, 100000}
+        {151000, 49, 100000}, {153000, 50, 100000},
     };
 
     for (auto test : tests)

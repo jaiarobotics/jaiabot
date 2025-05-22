@@ -84,8 +84,16 @@ double tuned_b(double measured_conductivity, double temperature_celsius)
 }
 
 /**
- * @brief Specific conductivity - Viscosity-based compensation with auto-tuned b to get 
- * corrected value that represents the measured conductivity as if the solution were at a standard temperature of 25 °C
+ * @brief Computes specific conductivity at 25 °C using temperature compensation.
+ *
+ * For measured conductivity values below 8000 µS/cm, this uses a standard linear
+ * correction model based on a 1.91%/°C adjustment factor, commonly used for
+ * KCl-based calibration solutions such as 147, 706, and 1413 µS/cm standards.
+ *
+ * For values above 8000 µS/cm, this uses a viscosity-based model with an
+ * auto-tuned exponent 'b', derived from empirical data across a wide range of
+ * temperatures and conductivities. This approach better captures nonlinear effects
+ * at higher ion concentrations.
  * 
  * @param measured_conductivity Measured conductivity in µS/cm
  * @param temperature_celsius Temperature of the measurement in degrees Celsius
@@ -93,7 +101,15 @@ double tuned_b(double measured_conductivity, double temperature_celsius)
  */
 double calculate_specific_conductivity(const double measured_conductivity, const double temperature_celsius)
 {
-    double b = tuned_b(measured_conductivity, temperature_celsius);
-    double mu_ratio = viscosity_ratio(temperature_celsius);
-    return measured_conductivity * std::pow(mu_ratio, b);
+    if (measured_conductivity < 8000.0)
+    {
+        // Linear model for low EC (<8000 µS/cm)
+        return measured_conductivity / (1.0 + 0.0191 * (temperature_celsius - 25.0));
+    }
+    else
+    {
+        double b = tuned_b(measured_conductivity, temperature_celsius);
+        double mu_ratio = viscosity_ratio(temperature_celsius);
+        return measured_conductivity * std::pow(mu_ratio, b);
+    }
 }
