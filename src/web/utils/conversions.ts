@@ -7,3 +7,7 @@
 export function microsecondsToSeconds(microseconds: number) {
     return microseconds / 1_000_000;
 }
+
+export function degreesToRadians(degrees: number) {
+    return (degrees * Math.PI) / 180;
+}

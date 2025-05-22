@@ -13,6 +13,7 @@ import { view } from "../views/view";
 import { MapIconColors } from "../../utils/style";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { degreesToRadians } from "../../utils/conversions";
 import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Util
@@ -44,7 +45,7 @@ export function generateBotFeature(botID: number) {
 }
 
 function generateBotStyle(bot: Bot) {
-    const heading = bot.getBotSensors().getIMU().getHeading() ?? 0;
+    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
 
     return new Style({
         image: new Icon({

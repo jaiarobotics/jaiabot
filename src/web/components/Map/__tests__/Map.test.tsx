@@ -97,7 +97,7 @@ test("Click on map twice with mission in edit mode", () => {
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
     expect(missionLayerFeatures.length).toBe(1);
     expect(missionLayerFeatures[0].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[0].get("id")).toBe(1);
+    expect(missionLayerFeatures[0].get("waypointNum")).toBe(1);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
@@ -107,7 +107,7 @@ test("Click on map twice with mission in edit mode", () => {
     // 2 waypoints and a line segment [waypoint, line, waypoint]
     expect(missionLayerFeatures.length).toBe(3);
     expect(missionLayerFeatures[2].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[2].get("id")).toBe(2);
+    expect(missionLayerFeatures[2].get("waypointNum")).toBe(2);
 
     // Reset states
     missions.deleteAllMissions();
@@ -136,7 +136,7 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
     expect(missionLayerFeatures.length).toBe(1);
     expect(missionLayerFeatures[0].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[0].get("id")).toBe(1);
+    expect(missionLayerFeatures[0].get("waypointNum")).toBe(1);
 
     expect(missions.getMissionIDInEditMode()).toBe(1);
 

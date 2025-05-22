@@ -1,4 +1,4 @@
-import { DisabledCodes, messages } from "./data-offload-messages";
+import { DisabledCodes, messages } from "./start-mission-messages";
 
 interface DialogProps {
     isVisible: boolean;
@@ -21,11 +21,11 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the data offload button.
+ * Produces the dialog box that appears when clicking on the start mission button.
  * This dialog will be an alert if the command cannot be
  * sent or a confirmation prior to sending the command.
  */
-export function DataOffloadDialog(props: DialogProps) {
+export function StartMissionDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -41,7 +41,7 @@ export function DataOffloadDialog(props: DialogProps) {
     }
 
     return (
-        <div className="jaia-dialog-container">
+        <div>
             <div className="blocking-overlay" onClick={() => {}}></div>
             <div className={getClassName()}>
                 <Title disabledCode={props.disabledCode} />
@@ -66,7 +66,7 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Start Data Offload.
+ * For a confirmation dialog, the buttons will be Cancel and Start Mission.
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
@@ -80,7 +80,24 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Start Data Offload
+                    Start Mission
+                </button>
+            </div>
+        );
+    }
+
+    // Override low battery alert
+    if (props.disabledCode === DisabledCodes.LOW_BATTERY) {
+        return (
+            <div className="dialog-button-row">
+                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+                    Close
+                </button>
+                <button
+                    className="dialog-button"
+                    onClick={() => props.onClose(DialogActions.CONFIRMED)}
+                >
+                    Override
                 </button>
             </div>
         );
