@@ -86,6 +86,23 @@ function ButtonRow(props: ButtonRowProps) {
         );
     }
 
+    // Override low battery alert
+    if (props.disabledCode === DisabledCodes.LOW_BATTERY) {
+        return (
+            <div className="dialog-button-row">
+                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+                    Close
+                </button>
+                <button
+                    className="dialog-button"
+                    onClick={() => props.onClose(DialogActions.CONFIRMED)}
+                >
+                    Override
+                </button>
+            </div>
+        );
+    }
+
     return (
         <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
             Close

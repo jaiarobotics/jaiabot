@@ -7,15 +7,17 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
+import Mission from "../../data/missions/mission";
 
 import { Command, CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import { mdiPlay } from "@mdi/js";
-import "../../style/stylesheets/util.less";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { UNASSIGNED_ID } from "../../utils/constants";
-import Mission from "../../data/missions/mission";
+import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
+import { microsecondsToSeconds } from "../../utils/conversions";
+
+import "../../style/stylesheets/util.less";
 
 interface Props {
     bot: Bot;
@@ -50,7 +52,9 @@ export default function StartMissionButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        // Comms check
+        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            return DisabledCodes.NO_COMMS;
+        }
 
         if (
             !isCommandAvailable(
@@ -67,7 +71,9 @@ export default function StartMissionButton(props: Props) {
 
         // Download queue check
 
-        // Low battery check
+        if (props.bot.getBatteryPercent() < MIN_BATTERY_PERCENT) {
+            return DisabledCodes.LOW_BATTERY;
+        }
 
         return DisabledCodes.NONE;
     };
