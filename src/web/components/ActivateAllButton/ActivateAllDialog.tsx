@@ -102,7 +102,7 @@ export function ActivateAllDialog(props: DialogProps) {
     }
 
     return (
-        <div>
+        <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}></div>
             <div className={getClassName()}>
                 <Title availableBotIDs={props.availableBotIDs} />

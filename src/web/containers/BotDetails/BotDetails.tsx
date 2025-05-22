@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
+import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import {
     JaiaContext,
     JaiaContextType,
@@ -9,6 +10,7 @@ import {
     JaiaAction,
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+
 import { NodeTypes } from "../../types/jaia-system-types";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import { BotAccordionNames } from "../../types/context-types";
@@ -134,9 +136,10 @@ export default function BotDetails() {
                         <Button className="jaia-button">
                             <Icon path={mdiPlay} title="Run Mission" />
                         </Button>
-                        <Button className="jaia-button">
-                            <Icon path={mdiDelete} title="Clear Mission" />
-                        </Button>
+                        <DeleteMissionButton
+                            deleteAll={false}
+                            missionID={mission?.getMissionID()}
+                        />
                     </div>
                 </div>
                 <div className="accordions-container">
