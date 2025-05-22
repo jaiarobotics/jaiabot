@@ -14,7 +14,7 @@
  * This function assumes the input pH was measured using the slope corresponding
  * to the actual in-situ temperature, and adjusts it to match the reference slope at 25°C.
  * 
- * @param raw_ph              pH value measured at in-situ temperature (not yet compensated)
+ * @param measured_ph         pH value measured at in-situ temperature (not yet compensated)
  * @param temperature_celsius in-situ temperature at time of measurement
  * @return double             pH value compensated to 25°C conditions
  * 
