@@ -4,6 +4,7 @@ import {
     ConstantHeadingParameters,
     DiveParameters,
     DriftParameters,
+    MissionTask,
     TaskType,
 } from "../../types/protobuf-types";
 
@@ -37,6 +38,7 @@ export default class Task {
     private isEnablePAM: boolean;
 
     constructor() {
+        this.type = TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
@@ -159,7 +161,7 @@ export default class Task {
     private updateDefaultTaskParameters() {
         jaiaGlobal.setDefaultTaskParameters({
             dive: this.getDiveParameters(),
-            drift: this.getDrfitParameters(),
+            drift: this.getDriftParameters(),
             constantHeading: this.getConstantHeadingParameters(),
         });
     }
@@ -172,7 +174,7 @@ export default class Task {
         this.diveParameters = { ...diveParameters };
     }
 
-    getDrfitParameters() {
+    getDriftParameters() {
         return this.driftParameters;
     }
 
@@ -194,5 +196,26 @@ export default class Task {
 
     setIsEnablePAM(isEnablePAM: boolean) {
         this.isEnablePAM = isEnablePAM;
+    }
+
+    packageTaskForHub() {
+        const missionTask: MissionTask = {
+            type: this.type,
+        };
+
+        switch (this.type) {
+            case TaskType.DIVE:
+                missionTask.dive = this.getDiveParameters();
+                missionTask.surface_drift = this.getDriftParameters();
+                break;
+            case TaskType.SURFACE_DRIFT:
+                missionTask.surface_drift = this.getDriftParameters();
+                break;
+            case TaskType.CONSTANT_HEADING:
+                missionTask.constant_heading = this.getConstantHeadingParameters();
+                break;
+        }
+
+        return missionTask;
     }
 }
