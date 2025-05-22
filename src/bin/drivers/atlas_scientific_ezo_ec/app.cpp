@@ -129,8 +129,8 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
 
             jaiabot::protobuf::SalinityData output;
 
-            const double conductivity = std::stod(fields[index++]);
-            output.set_conductivity_raw(conductivity);
+            const double conductivity_raw = std::stod(fields[index++]);
+            output.set_conductivity_raw(conductivity_raw);
 
             if (last_pressure_temperature_data_.has_temperature())
             {
@@ -144,7 +144,7 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
             {
                 const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
                 const double salinity_calculated = calculate_derived_salinity(
-                    conductivity, last_pressure_temperature_data_.temperature(),
+                    conductivity_raw, last_pressure_temperature_data_.temperature(),
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);
                 output.set_salinity_calculated(salinity_calculated);
