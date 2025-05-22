@@ -23,15 +23,19 @@ test("Clone a mission and test values", () => {
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
     waypoint1.setTask(task1);
 
-    let missionCopyLodash = cloneDeep(originalMission);
-    expect(missionCopyLodash.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
-    expect(missionCopyLodash.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
-    expect(missionCopyLodash.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
-    expect(missionCopyLodash.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
+    let missionCopy = cloneDeep(originalMission);
+    expect(missionCopy.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
+    expect(missionCopy.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
+    expect(missionCopy.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
+    expect(missionCopy.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
 
-    let missionCopyWindow = structuredClone(originalMission);
-
-    //modify the original
+    // modify the original
     waypoint1.setLocation(locationB);
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 24 });
+
+    // verify the copy did not change
+    expect(missionCopy.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
+    expect(missionCopy.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
+    expect(missionCopy.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
+    expect(missionCopy.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
 });
