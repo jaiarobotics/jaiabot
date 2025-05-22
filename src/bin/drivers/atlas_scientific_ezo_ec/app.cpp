@@ -130,17 +130,13 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
             jaiabot::protobuf::SalinityData output;
 
             const double conductivity = std::stod(fields[index++]);
-            output.set_conductivity(conductivity);
+            output.set_conductivity_raw(conductivity);
 
             if (last_pressure_temperature_data_.has_temperature())
             {
                 const double specific_conductivity = calculate_specific_conductivity(
-                    output.conductivity(), last_pressure_temperature_data_.temperature());
-                output.set_specific_conductivity(specific_conductivity);
-            }
-            else
-            {
-                output.clear_specific_conductivity();
+                    output.conductivity_raw(), last_pressure_temperature_data_.temperature());
+                output.set_conductivity(specific_conductivity);
             }
 
             if (last_pressure_temperature_data_.has_temperature() &&
@@ -152,10 +148,6 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);
                 output.set_salinity_calculated(salinity_calculated);
-            }
-            else
-            {
-                output.clear_salinity_calculated();
             }
 
             output.set_total_dissolved_solids(std::stod(fields[index++]));

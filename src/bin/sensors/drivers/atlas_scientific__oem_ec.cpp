@@ -40,8 +40,8 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
-            if (sensor_data.has_oem_do())
-                last_do_data_ = sensor_data.oem_do();
+            if (sensor_data.has_oem_ph())
+                last_ph_data_ = sensor_data.oem_ph();
         });
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
@@ -68,9 +68,9 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
                              << "Received ec_data: " << ec_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMEC ec_msg;
-    if (ec_data.has_conductivity())
+    if (ec_data.has_conductivity_raw())
     {
-        ec_msg.set_conductivity(ec_data.conductivity());
+        ec_msg.set_conductivity_raw(ec_data.conductivity_raw());
     }
     if (ec_data.has_total_dissolved_solids())
     {
@@ -82,20 +82,18 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     }
     // Using do data temperature because the bar30 is not
     // reporting accurately enough embedded into the midbody
-    if (last_do_data_.has_temperature())
+    if (last_ph_data_.has_temperature())
     {
-        const double specific_conductivity = calculate_specific_conductivity(
-            ec_msg.conductivity(), last_do_data_.temperature());
-        ec_msg.set_specific_conductivity(specific_conductivity);
+        const double specific_conductivity =
+            calculate_specific_conductivity(ec_msg.conductivity_raw(), last_ph_data_.temperature());
+        ec_msg.set_conductivity(specific_conductivity);
     }
-    if (last_do_data_.has_temperature() &&
-        last_pressure_adjusted_data_.has_pressure_adjusted())
+    if (last_ph_data_.has_temperature() && last_pressure_adjusted_data_.has_pressure_adjusted())
     {
         const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
         const double salinity_calculated = calculate_derived_salinity(
-            ec_msg.conductivity(), last_do_data_.temperature(),
-            last_pressure_adjusted_data_.pressure_adjusted() +
-                ATMOSPHERIC_PRESSURE_DECIBARS);
+            ec_msg.conductivity(), last_ph_data_.temperature(),
+            last_pressure_adjusted_data_.pressure_adjusted() + ATMOSPHERIC_PRESSURE_DECIBARS);
         ec_msg.set_salinity_calculated(salinity_calculated);
     }
     
