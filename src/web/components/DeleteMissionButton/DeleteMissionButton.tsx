@@ -46,7 +46,7 @@ export default function DeleteMissionButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (props.missionID && props.missionID === UNASSIGNED_ID) {
+        if (!props.deleteAll && !props.missionID) {
             return DisabledCodes.NO_MISSION;
         }
 
@@ -74,6 +74,10 @@ export default function DeleteMissionButton(props: Props) {
             }
         }
     };
+
+    if (jaiaContext === null) {
+        return <div></div>;
+    }
 
     return (
         <div>
