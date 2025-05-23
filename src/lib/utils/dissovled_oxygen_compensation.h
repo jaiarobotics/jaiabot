@@ -1,13 +1,21 @@
 #include <cmath>
 
 /**
- * @brief Converts barometric pressure to a correction factor relative to standard sea-level pressure (760 mmHg).
+ * @brief Approximates the effect of barometric pressure on dissolved oxygen (DO) solubility.
+ * 
+ * This function applies a simple linear scaling based on the ratio of the measured pressure
+ * to standard sea-level pressure (760 mmHg). It is suitable for most field applications where
+ * high-precision correction is not required.
+ * 
+ * For more precise calculations, especially at high elevations or in scientific contexts,
+ * a more complex model accounting for non-ideal gas behavior, water vapor pressure, and
+ * oxygen mole fraction is available in equations (9)–(11) of the USGS WQ.2011.03 memo.
  * 
  * @param pressure_mmhg Barometric pressure in mmHg (default: 760 mmHg).
- * @return Correction factor to adjust DO saturation for pressure deviation.
+ * @return Approximate correction factor to scale DO solubility for pressure deviations.
  * 
- * Reference: 
- * - https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf
+ * Reference:
+ * - USGS WQ.2011.03: https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf
  */
 double pressure_correction(double pressure_mmhg = 760.0) { return pressure_mmhg / 760.0; }
 
