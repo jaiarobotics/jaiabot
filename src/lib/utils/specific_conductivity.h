@@ -87,8 +87,7 @@ double tuned_b(double measured_conductivity, double temperature_celsius)
  * @brief Computes specific conductivity at 25 °C using temperature compensation.
  *
  * For measured conductivity values below 8000 µS/cm, this uses a standard linear
- * correction model based on a 1.91%/°C adjustment factor, commonly used for
- * KCl-based calibration solutions such as 147, 706, and 1413 µS/cm standards.
+ * correction model based on a 1.91%/°C adjustment factor.
  *
  * For values above 8000 µS/cm, this uses a viscosity-based model with an
  * auto-tuned exponent 'b', derived from empirical data across a wide range of
