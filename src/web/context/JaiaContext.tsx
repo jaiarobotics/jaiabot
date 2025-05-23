@@ -33,6 +33,7 @@ import {
     MapLayerAccordionNames,
     PanelNames,
 } from "../types/context-types";
+import cloneDeep from "lodash/cloneDeep";
 
 export interface JaiaContextType {
     bots: Map<number, Bot>;
@@ -121,6 +122,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.DELETE_MISSION:
             return handleDeleteMission(mutableState, action.missionID);
+
+        case JaiaActions.DUPLICATE_MISSION:
+            return handleDuplicateMission(mutableState, action.missionID);
 
         case JaiaActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
@@ -258,6 +262,27 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
 
     missionLayer.updateFeatures();
 
+    return mutableState;
+}
+
+/**
+ * Makes a call to duplicate a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Which mission to delete
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleDuplicateMission(mutableState: JaiaContextType, missionID: number) {
+    // create a complete clone of the existing mission
+    let missionCopy = cloneDeep(missions.getMission(missionID));
+    const newMissionID = missions.addMission(missionCopy);
+
+    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.missions = missions.getMissions();
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionAccordionStates[newMissionID] = true;
+
+    syncOpenLayers();
     return mutableState;
 }
 

@@ -77,7 +77,12 @@ export default function MissionsList() {
      * @notes
      * To be implemented in a separate ticket
      */
-    const handleDuplicateMissionClick = (missionID: number) => {};
+    const handleDuplicateMissionClick = (missionID: number) => {
+        jaiaDispatch({
+            type: JaiaActions.DUPLICATE_MISSION,
+            missionID: missionID,
+        });
+    };
 
     /**
      * Triggered when the operator clicks the delete mission button
