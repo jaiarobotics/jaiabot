@@ -281,7 +281,7 @@ message BotStatus
     // bounds should match MissionPlan.goal max_repeat value *
     // expected_fragments max
     optional int32 active_goal = 41 [
-        (dccl.field) = { min: 0 max: 29 },
+        (dccl.field) = { min: 0 max: 80 },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
     optional double distance_to_active_goal = 42 [
