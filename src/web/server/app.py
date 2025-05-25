@@ -248,7 +248,7 @@ def getPackets():
     return JaiaResponse(result)
 
 @app.route('/jaia/v0/task-packets-version', methods=['GET'])
-def getPacketsCount():
+def getTaskPacketsVersion():
     return JSONResponse(jaia_interface.task_packet_database.get_task_packets_version())
 
 @app.route('/jaia/v0/task-packet-include', methods=['POST'])
