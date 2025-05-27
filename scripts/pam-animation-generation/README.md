@@ -8,7 +8,7 @@ work flow
 * within the recording directory create two folders (nodes and sources and also place a geotiff with a scale to serve as the background for the animation
 * in the nodes folder, create a folder for each recorder (e.g. node_2, node_3, node_4)
 * inside each recorder folder, place the h5 file and the series of audio recording files
-* in the source folder, create a folder (named as you would like it to appear in the legend and include a color for the marker e.g. "Red Lightweight AUV") with a source h5 or csv with the headers (time	lat	lon	depth) and time = ms since the last epoch UTC, lat and lon = decimal degrees, depth = meters
+* in the source folder, create a folder (named as you would like it to appear in the legend and include a color for the marker e.g. "Red Lightweight AUV") with a source h5 or csv with the headers (time	lat	lon	depth) and time = micro-seconds since the last epoch UTC (UNIX), lat and lon = decimal degrees, depth = meters
 * run prepare sections on a recording folder with node subfolders to generate "_generated" selection tables for each series of recordings
 * import audio files and selection tables to RAVEN 1) drag the files onto raven and then 2) drag the selction table into the selection panel
 * turn off the waveform from the views panel so that they do not appear in the selection table when you save it
