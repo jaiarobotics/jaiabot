@@ -143,16 +143,15 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
                 last_pressure_adjusted_data_.has_pressure_adjusted())
             {
                 const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-                const double salinity_calculated = calculate_derived_salinity(
+                const double salinity = calculate_derived_salinity(
                     conductivity_raw, last_pressure_temperature_data_.temperature(),
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);
-                output.set_salinity_calculated(salinity_calculated);
+                output.set_salinity(salinity);
             }
 
             output.set_total_dissolved_solids(std::stod(fields[index++]));
-            output.set_salinity_chip(std::stod(fields[index++]));
-            output.set_specific_gravity(std::stod(fields[index++]));
+            output.set_salinity_raw(std::stod(fields[index++]));
 
             glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
 

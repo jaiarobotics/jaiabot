@@ -76,9 +76,9 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     {
         ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
     }
-    if (ec_data.has_salinity_chip())
+    if (ec_data.has_salinity_raw())
     {
-        ec_msg.set_salinity_chip(ec_data.salinity_chip());
+        ec_msg.set_salinity_raw(ec_data.salinity_raw());
     }
     // Using do data temperature because the bar30 is not
     // reporting accurately enough embedded into the midbody
@@ -91,10 +91,10 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     if (last_ph_data_.has_temperature() && last_pressure_adjusted_data_.has_pressure_adjusted())
     {
         const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-        const double salinity_calculated = calculate_derived_salinity(
+        const double salinity = calculate_derived_salinity(
             ec_msg.conductivity_raw(), last_ph_data_.temperature(),
             last_pressure_adjusted_data_.pressure_adjusted() + ATMOSPHERIC_PRESSURE_DECIBARS);
-        ec_msg.set_salinity_calculated(salinity_calculated);
+        ec_msg.set_salinity(salinity);
     }
     
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);

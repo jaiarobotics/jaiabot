@@ -496,9 +496,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& salinity_data) {
-            if (salinity_data.has_salinity_calculated())
+            if (salinity_data.has_salinity())
             {
-                latest_bot_status_.set_salinity(salinity_data.salinity_calculated());
+                latest_bot_status_.set_salinity(salinity_data.salinity());
             }
         });
 
