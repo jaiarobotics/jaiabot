@@ -77,12 +77,12 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
         do_msg.set_temperature_voltage(do_data.temperature_voltage());
     }
 
-    if (last_salinity_reading_.has_salinity_calculated() && do_data.has_do_raw() &&
+    if (last_salinity_reading_.has_salinity() && do_data.has_do_raw() &&
         do_data.has_temperature())
     {
         // DO Solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)
         double do_solubility = calculate_dissolved_oxygen_solubility(
-            do_data.temperature(), last_salinity_reading_.salinity_calculated());
+            do_data.temperature(), last_salinity_reading_.salinity());
         // Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg)
         double do_saturation_percent =
             calculate_do_saturation_percent(do_data.do_raw(), do_solubility);

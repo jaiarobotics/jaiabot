@@ -23,6 +23,8 @@
 #include <goby/time/system_clock.h>
 
 #include "atlas_scientific__oem_ec.h"
+#include "jaiabot/utils/specific_conductivity.h"
+#include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/groups.h"
 
 using goby::glog;
@@ -38,6 +40,14 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
+            if (sensor_data.has_oem_ph())
+                last_ph_data_ = sensor_data.oem_ph();
+        });
+
+    // subscribe for pressure adjusted measurements (pressure -> depth)
+    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+            last_pressure_adjusted_data_ = pa;
         });
 
     // Set sample rate config
@@ -58,18 +68,35 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
                              << "Received ec_data: " << ec_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMEC ec_msg;
-    if (ec_data.has_conductivity())
+    if (ec_data.has_conductivity_raw())
     {
-        ec_msg.set_conductivity(ec_data.conductivity());
+        ec_msg.set_conductivity_raw(ec_data.conductivity_raw());
     }
     if (ec_data.has_total_dissolved_solids())
     {
         ec_msg.set_total_dissolved_solids(ec_data.total_dissolved_solids());
     }
-    if (ec_data.has_salinity())
+    if (ec_data.has_salinity_raw())
     {
-        ec_msg.set_salinity(ec_data.salinity());
+        ec_msg.set_salinity_raw(ec_data.salinity_raw());
     }
+    // Using do data temperature because the bar30 is not
+    // reporting accurately enough embedded into the midbody
+    if (last_ph_data_.has_temperature())
+    {
+        const double specific_conductivity =
+            calculate_specific_conductivity(ec_msg.conductivity_raw(), last_ph_data_.temperature());
+        ec_msg.set_conductivity(specific_conductivity);
+    }
+    if (last_ph_data_.has_temperature() && last_pressure_adjusted_data_.has_pressure_adjusted())
+    {
+        const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+        const double salinity = calculate_derived_salinity(
+            ec_msg.conductivity_raw(), last_ph_data_.temperature(),
+            last_pressure_adjusted_data_.pressure_adjusted() + ATMOSPHERIC_PRESSURE_DECIBARS);
+        ec_msg.set_salinity(salinity);
+    }
+    
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();
