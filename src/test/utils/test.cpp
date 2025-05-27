@@ -1,5 +1,6 @@
 #define BOOST_TEST_MODULE jaiabot_test_utils
 #include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/ph_temperature_compensation.h"
 #include "jaiabot/utils/specific_conductivity.h"
 #include <boost/test/included/unit_test.hpp>
 
@@ -27,6 +28,61 @@ BOOST_AUTO_TEST_CASE(test_derived_salinity)
         const double S = calculate_derived_salinity(measured_conductivity, test.t, test.p);
 
         BOOST_CHECK_CLOSE(S, test.S, 0.00001);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_ph_temperature_compensation)
+{
+    struct TestData
+    {
+        double ph_raw, temp, ph_expected;
+    };
+
+    const TestData tests[] = {
+        // Reference: https://mantech-inc.com/faq/how-does-mantech-account-for-temperature-compensation-and-correction-in-ph-measurements/
+        // PH: 4.00 raw at different temperatures and corrected to 25 C
+        {4.00, 0.0, 3.775}, {4.00, 5.0, 3.82}, {4.00, 15.0, 3.91}, {4.00, 25.0, 4.00}, 
+        {4.00, 35.0, 4.09}, {4.00, 45.0, 4.18},
+        // PH: 4.00 expected at 25 C with different raw input
+        {4.225, 0.0, 4.00}, {4.18, 5.0, 4.00}, {4.09, 15.0, 4.00}, {4.00, 25.0, 4.00},
+        {3.91, 35.0, 4.00}, {3.82, 45.0, 4.00},
+        // PH: 5 raw at different temperatures and corrected to 25 C
+        {5.00, 0.0, 4.85}, {5.00, 5.0, 4.88}, {5.00, 15.0, 4.94}, {5.00, 25.0, 5.00}, 
+        {5.00, 35.0, 5.03}, {5.00, 45.0, 5.06},
+        // PH: 5.00 expected at 25 C with different raw input
+        {5.15, 0.0, 5.00}, {5.12, 5.0, 5.00}, {5.06, 15.0, 5.00}, {5.00, 25.0, 5.00},
+        {4.97, 35.0, 5.00}, {4.94, 45.0, 5.00},
+        // PH: 7.00 raw at different temperatures and corrected to 25 C
+        {7.00, 0.0, 7.00}, {7.00, 5.0, 7.00}, {7.00, 15.0, 7.00}, {7.00, 25.0, 7.00}, 
+        {7.00, 35.0, 7.00}, {7.00, 45.0, 7.00},
+        // PH: 10.00 raw at different temperatures and corrected to 25 C
+        {10.00, 0.0, 10.225}, {10.00, 5.0, 10.18}, {10.00, 15.0, 10.09}, {10.00, 25.0, 10.00}, 
+        {10.00, 35.0, 9.91}, {10.00, 45.0, 9.82},
+        // PH: 10.00 expected at 25 C with different raw input
+        {9.775, 0.0, 10.00}, {9.82, 5.0, 10.00}, {9.91, 15.0, 10.00}, {10.00, 25.0, 10.00},
+        {10.09, 35.0, 10.00}, {10.18, 45.0, 10.00},
+        // PH: 14.00 raw at different temperatures and corrected to 25 C
+        {14.00, 0.0, 14.525}, {14.00, 5.0, 14.42}, {14.00, 15.0, 14.21}, {14.00, 25.0, 14.00}, 
+        {14.00, 35.0, 13.79}, {14.00, 45.0, 13.58},
+        // PH: 14.00 expected at 25 C with different raw input
+        {13.475, 0.0, 14.00}, {13.58, 5.0, 14.00}, {13.79, 15.0, 14.00}, {14.00, 25.0, 14.00},
+        {14.21, 35.0, 14.00}, {14.42, 45.0, 14.00},
+    };
+
+
+    for (auto test : tests)
+    {
+        const double ph = temperature_compensated_ph(test.ph_raw, test.temp);
+
+        double percent_diff = 100.0 * std::abs(ph - test.ph_expected) / test.ph_expected;
+
+        std::cout << "Measured: " << test.ph_raw
+                << " Temp: " << test.temp
+                << " Expected: " << test.ph_expected
+                << " Got: " << ph
+                << " Percent diff: " << percent_diff << "%" << std::endl;
+
+        BOOST_CHECK_CLOSE(ph, test.ph_expected, 2);
     }
 }
 
