@@ -31,7 +31,7 @@ The Euler Angles are reported as `pitch`, `roll`, and `heading`.  The convention
 
 ### Gravity
 
-The `gravity` vector points in the upward direction, away from the ground.  This vector is reported in units of $m/{s^2}$.  The magnitude of this vector will be close to Earth's gravitational constant, $g_0\approx9.8m/{s^2}$.
+The `gravity` vector represents the negative force of gravity, away from the ground.  This vector is reported in the sensor's frame of reference, in units of $m/{s^2}$.  The magnitude of this vector will be close to Earth's gravitational constant, $g_0\approx9.8m/{s^2}$.
 
 #### Examples
 
