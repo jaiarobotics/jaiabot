@@ -70,8 +70,8 @@ void jaiabot::apps::AtlasScientificOEMPHDriver::receive_data(
     }
     if (ph_data.has_ph_raw() && ph_data.has_temperature()) 
     {
-        const double ph_atc = temperature_compensated_ph(ph_data.ph(), ph_data.temperature());
-        ph_msg.set_ph(ph_atc);
+        const double ph = temperature_compensated_ph(ph_data.ph_raw(), ph_data.temperature());
+        ph_msg.set_ph(ph);
     }
     if (ph_data.has_temperature_voltage())
     {

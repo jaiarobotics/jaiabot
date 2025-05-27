@@ -72,17 +72,17 @@ BOOST_AUTO_TEST_CASE(test_ph_temperature_compensation)
 
     for (auto test : tests)
     {
-        const double ph_atc = temperature_compensated_ph(test.ph_raw, test.temp);
+        const double ph = temperature_compensated_ph(test.ph_raw, test.temp);
 
-        double percent_diff = 100.0 * std::abs(ph_atc - test.ph_expected) / test.ph_expected;
+        double percent_diff = 100.0 * std::abs(ph - test.ph_expected) / test.ph_expected;
 
         std::cout << "Measured: " << test.ph_raw
                 << " Temp: " << test.temp
                 << " Expected: " << test.ph_expected
-                << " Got: " << ph_atc
+                << " Got: " << ph
                 << " Percent diff: " << percent_diff << "%" << std::endl;
 
-        BOOST_CHECK_CLOSE(ph_atc, test.ph_expected, 2);
+        BOOST_CHECK_CLOSE(ph, test.ph_expected, 2);
     }
 }
 
