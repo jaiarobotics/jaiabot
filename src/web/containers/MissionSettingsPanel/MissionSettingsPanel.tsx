@@ -225,16 +225,6 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-input-label">Number Lanes Per Run:</div>
-                    <div className="mission-settings-input-row">
-                        <input
-                            className="mission-settings-num-input"
-                            value={this.props.missionParams.lanesPerRun}
-                            name="numLanesPerRun"
-                            onChange={this.changeLanesPerRunCount.bind(this)}
-                        />
-                    </div>
-
                     <div className="mission-settings-input-label">Start Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
                         <Select
@@ -477,21 +467,6 @@ export class MissionSettingsPanel extends React.Component {
 
         let missionParams = { ...this.props.missionParams };
         missionParams.numRuns = value;
-        this.props.setMissionParams(missionParams);
-    }
-
-    /**
-     * Updates the number of lanes per run value based on input changes
-     *
-     * @param {Event} evt Contains the number of lanes per run value
-     * @returns {void}
-     */
-    changeLanesPerRunCount(evt: Event) {
-        const element = evt.target as HTMLInputElement;
-        const value = this.validateNumInput(Number(element.value));
-
-        let missionParams = { ...this.props.missionParams };
-        missionParams.lanesPerRun = value;
         this.props.setMissionParams(missionParams);
     }
 

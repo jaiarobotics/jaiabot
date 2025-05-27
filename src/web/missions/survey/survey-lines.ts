@@ -363,9 +363,5 @@ export class SurveyLines {
         if (this.commandControl.state.missionParams.numRuns === 0) {
             this.commandControl.state.missionParams.numRuns = 1;
         }
-
-        if (this.commandControl.state.missionParams.lanesPerRun === 0) {
-            this.commandControl.state.missionParams.lanesPerRun = 1;
-        }
     }
 }
