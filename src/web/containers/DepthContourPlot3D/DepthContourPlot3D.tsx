@@ -118,6 +118,7 @@ function setupDepthContourPlot3D(taskPackets: TaskPacket[]) {
                 title: {
                     text: "Bottom Depth (m)",
                 },
+                range: [-60.0, 0.0],
             },
         },
     };
