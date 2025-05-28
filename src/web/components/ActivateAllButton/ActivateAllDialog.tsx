@@ -89,9 +89,9 @@ export function ActivateAllDialog(props: DialogProps) {
 
         // Message end
         if (textType === TextTypes.ACTIVATED) {
-            subMessage += `because ${botIDs.length > 1 ? "they are activated" : "it is activated"}`;
+            subMessage += `because ${botIDs.length > 1 ? "they are activated." : "it is activated."}`;
         } else if (textType === TextTypes.NO_COMMS) {
-            subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub" : "it does not have comms with the Hub"}`;
+            subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub." : "it does not have comms with the Hub."}`;
         }
 
         return subMessage;
@@ -102,7 +102,7 @@ export function ActivateAllDialog(props: DialogProps) {
     }
 
     return (
-        <div>
+        <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}></div>
             <div className={getClassName()}>
                 <Title availableBotIDs={props.availableBotIDs} />
