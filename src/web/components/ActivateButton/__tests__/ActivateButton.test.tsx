@@ -36,5 +36,5 @@ test("Click activate button in enabled state", async () => {
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
-    expect(screen.getByText("Activate Bot")).toBeInTheDocument();
+    expect(screen.getByText("Activate")).toBeInTheDocument();
 });

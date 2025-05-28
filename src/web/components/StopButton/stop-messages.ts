@@ -4,5 +4,5 @@ export enum DisabledCodes {
 }
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NONE, ""],
-    [DisabledCodes.MISSION_STATE, "The Bot can only be stopped while it is performing a mission"],
+    [DisabledCodes.MISSION_STATE, "The Bot can only be stopped while it is performing a mission."],
 ]);
