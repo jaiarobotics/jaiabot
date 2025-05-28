@@ -11,8 +11,10 @@ import {
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import StopButton from "../../components/StopButton/StopButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
+import StopButton from "../../components/StopButton/StopButton";
+import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
+import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
 
 import { MissionStatus } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
@@ -51,7 +53,6 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
-import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -245,9 +246,7 @@ export default function BotDetails() {
                                             title="RC Mode"
                                         ></img>
                                     </Button>
-                                    <Button className="jaia-button">
-                                        <Icon path={mdiSkipNext} title="Next Task" />
-                                    </Button>
+                                    <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
