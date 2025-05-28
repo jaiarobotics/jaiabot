@@ -21,22 +21,35 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <goby/time/system_clock.h>
+#include <fstream>
 
+#include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/calibration_coefficients.pb.h"
+#include "jaiabot/messages/sensor/configuration.pb.h"
 #include "turner__c_fluor.h"
 
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
-    const jaiabot::config::TurnorCFluorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>(config)
+    const jaiabot::config::TurnerCFluorThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
-    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
+    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>( 
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_c_fluor())
                 receive_data(sensor_data.c_fluor());
+        });
+
+    interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
+        [this](const sensor::protobuf::SensorRequest& sensor_request) {
+            glog.is_warn() && glog << "Received sensor request" << std::endl;
+            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_size() > 0) {
+                glog.is_warn() && glog << "Received sensor request with cfg" << std::endl;
+                receive_cfg(sensor_request.cfg());
+            }
         });
 
     // Set sample rate config
@@ -48,6 +61,42 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 
     // configure our sensor
     send_cfg();
+}
+
+void jaiabot::apps::TurnerCFluorDriver::receive_cfg(
+    const jaiabot::sensor::protobuf::Configuration& cfg)
+{
+    glog.is_warn() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
+
+    auto existing_fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
+
+    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
+    auto existing_fluoro_cfg_file = std::ifstream("/etc/jaiabot/fluorometer_config.pb.cfg");
+    
+    if (existing_fluoro_cfg_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/fluorometer_config.pb.cfg" << std::endl;
+    }
+    else
+    {
+        std::stringstream existing_fluoro_cfg_stringstream;
+        existing_fluoro_cfg_stringstream << existing_fluoro_cfg_file.rdbuf();
+
+        if (!google::protobuf::TextFormat::ParseFromString(existing_fluoro_cfg_stringstream.str(),
+                                                           &existing_fluoro_cfg))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
+                                   << std::endl;
+        }
+    }
+
+    auto fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
+    fluoro_cfg.CopyFrom(existing_fluoro_cfg);
+    fluoro_cfg.MergeFrom(cfg);
+
+    auto cfg_file = std::ofstream("/etc/jaiabot/fluorometer_config.pb.cfg");
+    cfg_file << fluoro_cfg.DebugString();
+    cfg_file.close();
 }
 
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
@@ -80,19 +129,54 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+    
+    auto existing_calibration = jaiabot::protobuf::CalibrationCoefficients();
+
+    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
+    auto existing_calibration_file = std::ifstream("/etc/jaiabot/calibration_coefficients.pb.cfg");
+    
+    if (existing_calibration_file.fail())
+    {
+        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/calibration_coefficients.pb.cfg" << std::endl;
+    }
+    else
+    { 
+        std::stringstream existing_calibration_stringstream;
+        existing_calibration_stringstream << existing_calibration_file.rdbuf();
+
+        if (!google::protobuf::TextFormat::ParseFromString(existing_calibration_stringstream.str(),
+                                                           &existing_calibration))
+        {
+            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
+                                   << std::endl;
+        }
+    }
+
+    auto* cal_offset = sensor_cfg.add_cfg();
+    cal_offset->set_key("fluorometer_offset");
+    cal_offset->set_value(existing_calibration.fluorometer().fluorometer_offset());
+
+    auto* cal_coefficient = sensor_cfg.add_cfg();
+    cal_coefficient->set_key("fluorometer_calibration_coefficient");
+    cal_coefficient->set_value(existing_calibration.fluorometer().fluorometer_calibration_coefficient());
+
+    auto* fluorometer_sn = sensor_cfg.add_cfg();
+    fluorometer_sn->set_key("fluorometer_serial_number");
+    fluorometer_sn->set_value(existing_calibration.fluorometer().fluorometer_serial_number());
+
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
 void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+    auto health_state = goby::middleware::protobuf::HEALTH__OK; 
 
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on turner c fluorometer report" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA);
+            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA);
 
         // Send configuration request at a configured rate
         if (last_resend_cfg_time_ + std::chrono::seconds(resend_cfg_timeout_) <
