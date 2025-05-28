@@ -13,6 +13,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 import StopButton from "../../components/StopButton/StopButton";
 import SystemButton from "../../components/SystemButton/SystemButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
+import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
 import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
@@ -244,9 +245,7 @@ export default function BotDetails() {
                                             title="RC Mode"
                                         ></img>
                                     </Button>
-                                    <Button className="jaia-button">
-                                        <Icon path={mdiSkipNext} title="Next Task" />
-                                    </Button>
+                                    <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
