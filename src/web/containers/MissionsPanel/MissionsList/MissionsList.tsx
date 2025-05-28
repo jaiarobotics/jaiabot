@@ -121,11 +121,12 @@ export default function MissionsList() {
                                 <Button
                                     className="jaia-button"
                                     aria-label="duplicate-mission"
+                                    data-testid={`Duplicate Mission ${mission.getMissionID()}`}
                                     onClick={() =>
                                         handleDuplicateMissionClick(mission.getMissionID())
                                     }
                                 >
-                                    <Icon path={mdiContentDuplicate} />
+                                    <Icon path={mdiContentDuplicate} title="Duplicate Mission" />
                                 </Button>
                                 <DeleteMissionButton
                                     deleteAll={false}

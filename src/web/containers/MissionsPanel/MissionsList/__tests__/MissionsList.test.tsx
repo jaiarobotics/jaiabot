@@ -5,27 +5,12 @@ import MissionsList from "../MissionsList";
 import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
 import { missions } from "../../../../data/missions/missions";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import Mission from "../../../../data/missions/mission";
-import {
-    locationA,
-    locationB,
-    locationC,
-    locationD,
-} from "../../../../data/tests/__mocks__/waypoint-mock";
+import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";
-const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    portalStatusAge: 1,
-};
 
-const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    portalStatusAge: 1,
-};
-
-test("Exercise Duplicate Mission Buttone", async () => {
+test("Exercise Duplicate Mission Button", async () => {
     // pre-seed data model with original mission
     let originalMission = new Mission();
     const originalID: number = missions.addMission(originalMission);
@@ -46,10 +31,25 @@ test("Exercise Duplicate Mission Buttone", async () => {
     });
     const missionsList = screen.getByTestId("missions-list");
 
+    // verify original mission is displayed
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
     const mission1AccordionChildren = Array.from(mission1Accordion.children);
     expect(mission1AccordionChildren[0].textContent).toBe("Mission-1");
     expect(mission1AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(1);
     expect(missions.getMission(1).getMissionID()).toBe(1);
+
+    const duplicateMissionButton1 = screen.getByTestId("Duplicate Mission 1");
+    expect(duplicateMissionButton1).toBeInTheDocument();
+
+    // Click the duplicate button
+    await userEvent.click(duplicateMissionButton1);
+
+    // verify duplicate mission is displayed
+    const mission2Accordion = screen.getByText("Mission-2").parentElement;
+    const mission2AccordionChildren = Array.from(mission2Accordion.children);
+    expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
+    expect(mission2AccordionChildren[1].textContent).toBe("Unassigned");
+    expect(Array.from(missionsList.children).length).toBe(2);
+    expect(missions.getMission(2).getMissionID()).toBe(2);
 });
