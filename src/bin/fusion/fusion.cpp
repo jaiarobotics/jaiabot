@@ -494,9 +494,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& salinityData) {
-            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
-            latest_bot_status_.set_salinity(salinityData.salinity());
+        [this](const jaiabot::protobuf::SalinityData& salinity_data) {
+            if (salinity_data.has_salinity())
+            {
+                latest_bot_status_.set_salinity(salinity_data.salinity());
+            }
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
