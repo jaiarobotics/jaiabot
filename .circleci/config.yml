@@ -188,7 +188,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "task/sensor-pressure-uniform-output-python-and-stm32/JAIA-1991"
        
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
