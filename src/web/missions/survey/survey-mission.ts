@@ -40,8 +40,6 @@ export function featuresFromMissionPlanningGrid(
     let mpgKeys = Object.keys(mpg);
 
     mpgKeys.forEach((key) => {
-        const bot_id = Number(key);
-
         let mpGridFeature = new OlFeature({
             geometry: new OlMultiPoint(mpg[key]),
             style: new OlStyle({
@@ -90,51 +88,66 @@ export function getSurveyMissionPlans(
     missionBaseGoal: Goal,
     missionStartTask: MissionTask,
     missionEndTask: MissionTask,
+    numBots: number,
 ) {
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
 
     let mpg = missionPlanningGrid;
-    let mpgKeys = Object.keys(mpg);
-    mpgKeys.forEach((key) => {
-        const botId = Number(key);
+    let laneKeys = Object.keys(mpg);
+    let runIndex = 0;
+    let remainder = laneKeys.length % numBots; // Remainder of extra lanes that we haven't accounted for if our run number and fleet size don't divide evenly
 
-        // TODO: Update the mission plan for the bots at the same time??
-        // Create the goals from the missionPlanningGrid
-        let botGoals = [];
+    // Loop through all mission runs, grouping them by lanesPerRun,
+    // so each bot is assigned one run that may include multiple adjacent lanes
+    // (e.g., if lanesPerRun = 2, bot 1 gets runs 1 & 2, bot 2 gets runs 3 & 4, etc.)
+    let i = 0;
+    while (i < laneKeys.length) {
+        // Calculate the number of lanes per run for this run group
+        let lanesPerRun = Math.floor(laneKeys.length / numBots);
 
-        // Rally Point Goals
-        let botGoal: Goal = {
+        // If there is still a remainder that we haven't accounted for, add one to lanesPerRun
+        if (remainder > 0) {
+            lanesPerRun = lanesPerRun + 1;
+            remainder = remainder - 1;
+        }
+
+        let botGoals: Goal[] = [];
+
+        // Rally Start
+        botGoals.push({
             location: {
                 lat: rallyStartLocation?.lat,
                 lon: rallyStartLocation?.lon,
             },
             task: missionStartTask,
-        };
-        botGoals.push(botGoal);
-
-        // Mission Goals
-        const botMissionGoalPositions: Position[] = mpg[key];
-
-        botMissionGoalPositions.forEach((goal: Position, index: number) => {
-            let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0];
-
-            // For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
-            const isLastGoal = index == botMissionGoalPositions.length - 1;
-            const task = isLastGoal ? missionEndTask : missionBaseGoal.task;
-
-            botGoal = {
-                location: {
-                    lat: goalWgs84[1],
-                    lon: goalWgs84[0],
-                },
-                task: task,
-            };
-            botGoals.push(botGoal);
         });
 
-        // Home Goals
-        botGoal = {
+        // For each lane in this run group, convert its positions to WGS84 and
+        // push them directly to botGoals, assigning missionEndTask to the last point in each lane
+        for (let j = 0; j < lanesPerRun && i + j < laneKeys.length; j++) {
+            const key = laneKeys[i + j];
+            const positions = mpg[key];
+
+            // Convert and add tasks
+            positions.forEach((goal: Position, index: number) => {
+                const isLastInLane = index === positions.length - 1;
+                const task = isLastInLane ? missionEndTask : missionBaseGoal.task;
+
+                const goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0];
+
+                botGoals.push({
+                    location: {
+                        lat: goalWgs84[1],
+                        lon: goalWgs84[0],
+                    },
+                    task,
+                });
+            });
+        }
+
+        // Rally End
+        botGoals.push({
             location: {
                 lat: rallyEndLocation?.lat,
                 lon: rallyEndLocation?.lon,
@@ -142,10 +155,9 @@ export function getSurveyMissionPlans(
             task: {
                 type: TaskType.NONE,
             },
-        };
-        botGoals.push(botGoal);
+        });
 
-        let command: Command = {
+        missionPlans[runIndex] = {
             bot_id: -1,
             time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
@@ -158,8 +170,9 @@ export function getSurveyMissionPlans(
                 },
             },
         };
-        missionPlans[botId] = command;
-    });
+        runIndex++;
+        i += lanesPerRun;
+    }
 
     return missionPlans;
 }

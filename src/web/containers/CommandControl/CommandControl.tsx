@@ -322,7 +322,7 @@ export default class CommandControl extends React.Component {
 
             missionParams: {
                 missionType: "lines",
-                numRuns: 4,
+                numRuns: -1,
                 numGoals: MAX_GOALS - 2,
                 pointSpacing: 30,
                 lineSpacing: 30,
@@ -333,6 +333,7 @@ export default class CommandControl extends React.Component {
                 spRallyFinishDist: 0,
                 selectedBots: [],
                 useMaxLength: true,
+                lanesPerRun: 1,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
@@ -1975,6 +1976,10 @@ export default class CommandControl extends React.Component {
             this.state;
 
         if (missionPlanningGrid) {
+            const planningGridFeatures = featuresFromMissionPlanningGrid(
+                missionPlanningGrid,
+                missionBaseGoal,
+            );
             this.missionPlans = getSurveyMissionPlans(
                 this.state.startRally?.get("location"),
                 this.state.endRally?.get("location"),
@@ -1982,11 +1987,9 @@ export default class CommandControl extends React.Component {
                 missionBaseGoal,
                 missionStartTask,
                 missionEndTask,
+                Object.keys(this.state.podStatus.bots).length,
             );
-            const planningGridFeatures = featuresFromMissionPlanningGrid(
-                missionPlanningGrid,
-                missionBaseGoal,
-            );
+
             missionPlanningFeaturesList.push(...planningGridFeatures);
         }
 
@@ -3920,6 +3923,7 @@ export default class CommandControl extends React.Component {
                                 missionBaseGoal,
                                 missionStartTask,
                                 missionEndTask,
+                                Object.keys(this.state.podStatus.bots).length,
                             );
 
                             let runList = this.getRunList();
