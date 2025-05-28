@@ -189,7 +189,6 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "1.y"
         - "feature/calibrate-bio-sensors-through-stm32"
-
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:

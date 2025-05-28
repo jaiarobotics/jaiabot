@@ -227,6 +227,10 @@ endif()
 # add the code
 add_subdirectory(src)
 
+add_custom_target(jaiabot_core)
+foreach(app_target ${PROJECT_APP_LIST})
+  add_dependencies(jaiabot_core ${app_target})
+endforeach()
 
 if(export_goby_interfaces)
   # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (2.y)?
