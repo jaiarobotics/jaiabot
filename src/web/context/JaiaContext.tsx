@@ -269,12 +269,12 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
  * Makes a call to duplicate a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {number} missionID Which mission to delete
+ * @param {number} missionID Which mission to duplicate
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDuplicateMission(mutableState: JaiaContextType, missionID: number) {
     // create a complete clone of the existing mission
-    let missionCopy = cloneDeep(missions.getMission(missionID));
+    const missionCopy = cloneDeep(missions.getMission(missionID));
     const newMissionID = missions.addMission(missionCopy);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
