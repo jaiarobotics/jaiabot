@@ -37,6 +37,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -128,27 +129,29 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
 
             jaiabot::protobuf::SalinityData output;
 
-            const double conductivity = std::stod(fields[index++]);
-            output.set_conductivity(conductivity);
+            const double conductivity_raw = std::stod(fields[index++]);
+            output.set_conductivity_raw(conductivity_raw);
+
+            if (last_pressure_temperature_data_.has_temperature())
+            {
+                const double specific_conductivity = calculate_specific_conductivity(
+                    output.conductivity_raw(), last_pressure_temperature_data_.temperature());
+                output.set_conductivity(specific_conductivity);
+            }
 
             if (last_pressure_temperature_data_.has_temperature() &&
                 last_pressure_adjusted_data_.has_pressure_adjusted())
             {
                 const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-                const double salinity_calculated = calculate_derived_salinity(
-                    conductivity, last_pressure_temperature_data_.temperature(),
+                const double salinity = calculate_derived_salinity(
+                    conductivity_raw, last_pressure_temperature_data_.temperature(),
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);
-                output.set_salinity_calculated(salinity_calculated);
-            }
-            else
-            {
-                output.clear_salinity_calculated();
+                output.set_salinity(salinity);
             }
 
             output.set_total_dissolved_solids(std::stod(fields[index++]));
-            output.set_salinity_chip(std::stod(fields[index++]));
-            output.set_specific_gravity(std::stod(fields[index++]));
+            output.set_salinity_raw(std::stod(fields[index++]));
 
             glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
 
@@ -158,13 +161,15 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
-        { last_pressure_temperature_data_ = pt; });
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+            last_pressure_temperature_data_ = pt;
+        });
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
-        { last_pressure_adjusted_data_ = pa; });
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+            last_pressure_adjusted_data_ = pa;
+        });
 
     interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
         if (moos_msg.key() == "JAIABOT_MISSION_STATE")

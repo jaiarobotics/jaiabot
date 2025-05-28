@@ -15,6 +15,10 @@ interface Props {
 export default function DepthContourPlot3D(props: Props) {
     const [window_position, set_window_position] = React.useState("center");
 
+    React.useEffect(() => {
+        setupDepthContourPlot3D(props.taskPackets);
+    }, [window_position]);
+
     const topBar = (
         <div className="depth-contour-plot-topbar">
             <Button onClick={props.onClose}>
@@ -48,10 +52,6 @@ export default function DepthContourPlot3D(props: Props) {
         </div>
     );
     const div = <div id="depth-contour-plot"></div>;
-
-    React.useEffect(() => {
-        setupDepthContourPlot3D(props.taskPackets);
-    }, [window_position]);
 
     return (
         <div className={`depth-contour-plot-container ${window_position} rounded shadowed`}>
@@ -118,6 +118,7 @@ function setupDepthContourPlot3D(taskPackets: TaskPacket[]) {
                 title: {
                     text: "Bottom Depth (m)",
                 },
+                range: [-60.0, 0.0],
             },
         },
     };

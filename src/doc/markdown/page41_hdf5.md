@@ -60,10 +60,14 @@
 ### Group: salinity
 
 * SalinityData
-  * required double conductivity
+  * required double conductivity_raw
     * Description: Measured in μS/cm
+  * required double conductivity (beta)
+    * Description: Conductivity at 25 °C using temperature compensation measured in μS/cm 
   * required double total_dissolved_solids (beta)
     * Description: Measured in ppm
+  * required double salinity_raw (beta)
+    * Description: Measured in PSU (ppt)
   * required double salinity (beta)
     * Description: Measured in PSU (ppt)
 

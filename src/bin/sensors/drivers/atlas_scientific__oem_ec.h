@@ -26,7 +26,10 @@
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
+#include "jaiabot/messages/sensor/atlas_scientific__oem_ph.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
+
 #include <goby/zeromq/application/multi_thread.h>
 
 namespace jaiabot
@@ -50,6 +53,9 @@ class AtlasScientificOEMECDriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
+    // These are used for calculating the salinity from the conductivity
+    sensor::protobuf::AtlasScientificOEMpH last_ph_data_;
+    jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
 };
 
 } // namespace apps
