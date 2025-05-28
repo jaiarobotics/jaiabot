@@ -12,11 +12,6 @@ const commandStates: Map<CommandType, RegExp[]> = new Map<CommandType, RegExp[]>
         CommandType.REBOOT_COMPUTER,
         [/^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/, /^PRE_DEPLOYMENT.+$/, /^POST_DEPLOYMENT.+$/],
     ],
-    [CommandType.NEXT_TASK, [/^IN_MISSION__(?!REMOTE_CONTROL).+$/]],
-    [
-        CommandType.REBOOT_COMPUTER,
-        [/^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/, /^PRE_DEPLOYMENT.+$/, /^POST_DEPLOYMENT.+$/],
-    ],
     [CommandType.RECOVERED, [/^PRE_DEPLOYMENT.+$/, /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/]],
     [
         CommandType.REMOTE_CONTROL_TASK,

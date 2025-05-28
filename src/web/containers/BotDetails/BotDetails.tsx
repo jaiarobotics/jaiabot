@@ -11,9 +11,11 @@ import {
 import { JaiaActions } from "../../context/jaia-actions";
 
 import StopButton from "../../components/StopButton/StopButton";
+import SystemButton from "../../components/SystemButton/SystemButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
+import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
-import { MissionStatus } from "../../types/jaia-system-types";
+import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
 import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 
@@ -38,7 +40,7 @@ import {
 } from "../../shared/Utilities";
 
 // MDI and MUI
-import { mdiPlay, mdiPower, mdiDelete, mdiRestart, mdiSkipNext, mdiRestartAlert } from "@mdi/js";
+import { mdiDelete, mdiSkipNext } from "@mdi/js";
 import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -50,7 +52,6 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
-import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -262,15 +263,12 @@ export default function BotDetails() {
                                     </AccordionSummary>
 
                                     <AccordionDetails className="accordion-details-buttons advanced-commands">
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiPower} title="Shutdown" />
-                                        </Button>
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiRestartAlert} title="Reboot" />
-                                        </Button>
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiRestart} title="Restart Services" />
-                                        </Button>
+                                        <SystemButton bot={bot} type={SystemButtonTypes.SHUTDOWN} />
+                                        <SystemButton bot={bot} type={SystemButtonTypes.REBOOT} />
+                                        <SystemButton
+                                            bot={bot}
+                                            type={SystemButtonTypes.RESTART_SERVICES}
+                                        />
                                     </AccordionDetails>
                                 </Accordion>
                             </AccordionDetails>
