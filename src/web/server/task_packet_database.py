@@ -128,8 +128,9 @@ class TaskPacketDatabase:
             file = open(file_path, 'r')
             self.excluded_task_packet_ids = set(json.load(file))
         except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
-            l.warning(e)
+            l.info(e)
             self.excluded_task_packet_ids = set([])
+            self.save_excluded_task_packet_ids()
 
 
     def save_excluded_task_packet_ids(self):
