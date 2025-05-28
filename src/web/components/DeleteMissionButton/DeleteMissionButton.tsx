@@ -1,14 +1,14 @@
 import { useContext, useState } from "react";
 
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+
 import { DeleteMissionDialog, DialogActions } from "./DeleteMissionDialog";
 import { DisabledCodes } from "./delete-mission-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiDelete } from "@mdi/js";
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { UNASSIGNED_ID } from "../../utils/constants";
-import { JaiaActions } from "../../context/jaia-actions";
 
 interface Props {
     deleteAll: boolean;
@@ -41,11 +41,13 @@ export default function DeleteMissionButton(props: Props) {
     };
 
     /**
-     * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
+     * Checks the Bot's state and decides what disabled code (if any) applies
+     * based on the button conditions
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        // Bot not assigned to mission
         if (!props.deleteAll && !props.missionID) {
             return DisabledCodes.NO_MISSION;
         }

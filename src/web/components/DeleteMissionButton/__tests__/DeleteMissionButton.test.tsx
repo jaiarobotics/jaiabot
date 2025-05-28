@@ -49,20 +49,6 @@ test("Simulate mission assignment in Bot details or mission accordion", async ()
     expect(screen.getAllByText("Delete Mission").length).toBe(2);
 });
 
-test("Simulate mission assignment in BotDetails", async () => {
-    render(
-        <JaiaContextProvider>
-            <DeleteMissionButton deleteAll={false} missionID={missionID} />
-        </JaiaContextProvider>,
-    );
-    const button = screen.getByRole("button", { name: "delete-mission" });
-    await userEvent.click(button);
-    expect(screen.getByText("Confirm"));
-    expect(screen.getByText("Cancel"));
-    // Includes button text and helper text that appears when hovering over button
-    expect(screen.getAllByText("Delete Mission").length).toBe(2);
-});
-
 test("Delete all missions", async () => {
     render(
         <JaiaContextProvider>
@@ -114,6 +100,7 @@ test("Click Delete Mission confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete Mission")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
+    expect(missions.getMissions().size).toBe(0);
 });
 
 test("Click Delete All Missions confirmation button", async () => {
@@ -130,4 +117,5 @@ test("Click Delete All Missions confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete All Missions")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
+    expect(missions.getMissions().size).toBe(0);
 });
