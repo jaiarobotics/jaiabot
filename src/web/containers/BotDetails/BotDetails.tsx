@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
+import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import {
     JaiaContext,
     JaiaContextType,
@@ -10,8 +11,10 @@ import {
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import StopButton from "../../components/StopButton/StopButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
+import StopButton from "../../components/StopButton/StopButton";
+import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
+import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
 
 import { MissionStatus } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
@@ -50,7 +53,6 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
-import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -122,9 +124,10 @@ export default function BotDetails() {
                     <div className="details-toolbar">
                         <StopButton bot={bot} />
                         <StartMissionButton bot={bot} mission={mission} />
-                        <Button className="jaia-button">
-                            <Icon path={mdiDelete} title="Clear Mission" />
-                        </Button>
+                        <DeleteMissionButton
+                            deleteAll={false}
+                            missionID={mission?.getMissionID()}
+                        />
                     </div>
                 </div>
                 <div className="accordions-container">
@@ -243,9 +246,7 @@ export default function BotDetails() {
                                             title="RC Mode"
                                         ></img>
                                     </Button>
-                                    <Button className="jaia-button">
-                                        <Icon path={mdiSkipNext} title="Next Task" />
-                                    </Button>
+                                    <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}

@@ -5,6 +5,7 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
+import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteMissionButton";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
@@ -85,19 +86,6 @@ export default function MissionsList() {
     };
 
     /**
-     * Triggered when the operator clicks the delete mission button
-     *
-     * @param {number} missionID ID of the mission to be deleted
-     * @returns {void}
-     */
-    const handleDeleteMissionClick = (missionID: number) => {
-        jaiaDispatch({
-            type: JaiaActions.DELETE_MISSION,
-            missionID: missionID,
-        });
-    };
-
-    /**
      * Triggered when the operator clicks the edit mission toggle
      *
      * @param {number} missionID ID of the mission toggled
@@ -139,13 +127,10 @@ export default function MissionsList() {
                                 >
                                     <Icon path={mdiContentDuplicate} />
                                 </Button>
-                                <Button
-                                    className="jaia-button"
-                                    aria-label="delete-mission"
-                                    onClick={() => handleDeleteMissionClick(mission.getMissionID())}
-                                >
-                                    <Icon path={mdiDelete} />
-                                </Button>
+                                <DeleteMissionButton
+                                    deleteAll={false}
+                                    missionID={mission.getMissionID()}
+                                />
                                 <JaiaToggle
                                     checked={() =>
                                         jaiaContext.missionIDInEditMode === mission.getMissionID()

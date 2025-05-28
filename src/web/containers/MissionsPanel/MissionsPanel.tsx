@@ -3,6 +3,7 @@ import { useContext } from "react";
 
 // Jaia
 import MissionsList from "./MissionsList/MissionsList";
+import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { PanelNames } from "../../types/context-types";
@@ -33,15 +34,6 @@ export default function MissionsPanel() {
      */
     const handleAddMissionClick = () => {
         jaiaDispatch({ type: JaiaActions.ADD_MISSION });
-    };
-
-    /**
-     * Dispatches the actions to clear all missions when an operator clicks the delete all missions button
-     *
-     * @returns {void}
-     */
-    const handleDeleteAllMissionsClick = () => {
-        jaiaDispatch({ type: JaiaActions.DELETE_ALL_MISSIONS });
     };
 
     /**
@@ -76,13 +68,7 @@ export default function MissionsPanel() {
                 >
                     <Icon path={mdiPlus} title="Add mission" />
                 </Button>
-                <Button
-                    className="jaia-button"
-                    aria-label="delete-all-missions"
-                    onClick={() => handleDeleteAllMissionsClick()}
-                >
-                    <Icon path={mdiDelete} title="Delete all missions" />
-                </Button>
+                <DeleteMissionButton deleteAll={true} />
                 <Button
                     className="jaia-button"
                     aria-label="load-missions"
