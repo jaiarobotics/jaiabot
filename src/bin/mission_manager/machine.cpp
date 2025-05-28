@@ -356,8 +356,18 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     // do not increment for other triggering events, such as EvIMURestart or EvGPSFix
     if (!has_manual_task_ && task_complete_event)
     {
-        goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
-        context<InMission>().increment_goal_index();
+        if (task_packet_.type() == protobuf::MissionTask::DIVE && task_packet_.has_dive() &&
+            task_packet_.dive().reached_min_depth())
+        {
+            goby::glog.is_debug1() &&
+                goby::glog << "Minimum depth was reached, do not increment waypoint index"
+                           << std::endl;
+        }
+        else
+        {
+            goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
+            context<InMission>().increment_goal_index();
+        }
     }
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
