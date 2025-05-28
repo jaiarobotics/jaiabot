@@ -81,7 +81,7 @@ export default function SystemButton(props: Props) {
             case SystemButtonTypes.SHUTDOWN:
                 return "Shutdown";
             case SystemButtonTypes.REBOOT:
-                return "Restart";
+                return "Reboot";
             case SystemButtonTypes.RESTART_SERVICES:
                 return "Restart Services";
         }

@@ -38,7 +38,7 @@ const testCases: TestParams[] = [
         ariaLabel: "shutdown-individual-bot",
         buttonText: "Shutdown",
     },
-    { type: SystemButtonTypes.REBOOT, ariaLabel: "reboot-individual-bot", buttonText: "Restart" },
+    { type: SystemButtonTypes.REBOOT, ariaLabel: "reboot-individual-bot", buttonText: "Reboot" },
     {
         type: SystemButtonTypes.RESTART_SERVICES,
         ariaLabel: "restart-services-individual-bot",

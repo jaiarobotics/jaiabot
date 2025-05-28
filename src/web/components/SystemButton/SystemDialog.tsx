@@ -54,7 +54,7 @@ export function SystemDialog(props: DialogProps) {
             case SystemButtonTypes.SHUTDOWN:
                 return "The shutdown " + endMsg;
             case SystemButtonTypes.REBOOT:
-                return "The restart " + endMsg;
+                return "The reboot " + endMsg;
             case SystemButtonTypes.RESTART_SERVICES:
                 return "The restart services " + endMsg;
         }
@@ -104,7 +104,7 @@ function ButtonRow(props: ButtonRowProps) {
             case SystemButtonTypes.SHUTDOWN:
                 return "Shutdown";
             case SystemButtonTypes.REBOOT:
-                return "Restart";
+                return "Reboot";
             case SystemButtonTypes.RESTART_SERVICES:
                 return "Restart Services";
         }
