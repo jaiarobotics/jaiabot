@@ -37,6 +37,7 @@ export interface MissionParams {
     spRallyFinishDist: number;
     selectedBots: number[];
     useMaxLength: boolean;
+    lanesPerRun: number;
 }
 
 interface Props {
@@ -109,7 +110,9 @@ export class MissionSettingsPanel extends React.Component {
         this.onTaskTypeChange = props.onTaskTypeChange;
 
         //Initialize the number of runs to the number of bots
-        this.props.missionParams.numRuns = Object.keys(this.props.botList).length;
+        if (this.props.missionParams.numRuns === -1) {
+            this.props.missionParams.numRuns = Object.keys(this.props.botList).length;
+        }
     }
 
     componentDidUpdate() {
@@ -278,9 +281,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div
-                        className={`mission-settings-task-container ${this.isMissionDrawn() ? "mission-settings-show" : "mission-settings-hide"}`}
-                    >
+                    <div className={`mission-settings-task-container mission-settings-show`}>
                         <div className="mission-settings-tasks-title">Start Rally Task:</div>
                         <TaskSettingsPanel
                             title="Start Task"
@@ -295,9 +296,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div
-                        className={`mission-settings-task-container ${this.isMissionDrawn() ? "mission-settings-show" : "mission-settings-hide"}`}
-                    >
+                    <div className={`mission-settings-task-container mission-settings-show`}>
                         <div className="mission-settings-tasks-title">End Survey Task:</div>
                         <TaskSettingsPanel
                             title="End Task"
