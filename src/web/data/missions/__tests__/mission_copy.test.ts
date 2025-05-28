@@ -1,15 +1,8 @@
 import Mission from "../mission";
 import { locationA, locationB, locationC, locationD } from "../../tests/__mocks__/waypoint-mock";
 import { missions } from "../missions";
-import TaskParameters from "../../../components/TaskParameters/TaskParameters";
 import Task from "../../tasks/task";
-import {
-    ConstantHeadingParameters,
-    DiveParameters,
-    DriftParameters,
-    MissionTask,
-    TaskType,
-} from "../../../types/protobuf-types";
+import { TaskType } from "../../../types/protobuf-types";
 import { TaskParameterKeys, TaskParameterPair } from "../../../types/jaia-system-types";
 import cloneDeep from "lodash/cloneDeep";
 
@@ -29,6 +22,7 @@ test("Clone a mission and test values", () => {
     const cloneID: number = missions.addMission(cloneMission);
     expect(missions.getMissions().size).toEqual(2);
     expect(cloneID).not.toEqual(originalID);
+    expect(missions.getMissionIDInEditMode()).toEqual(cloneID);
 
     expect(cloneMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
     expect(cloneMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
