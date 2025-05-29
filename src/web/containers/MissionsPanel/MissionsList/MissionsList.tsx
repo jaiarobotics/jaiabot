@@ -14,7 +14,7 @@ import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Icon from "@mdi/react";
-import { mdiContentDuplicate, mdiDelete } from "@mdi/js";
+import { mdiContentDuplicate } from "@mdi/js";
 import {
     Accordion,
     AccordionDetails,
@@ -78,7 +78,12 @@ export default function MissionsList() {
      * @notes
      * To be implemented in a separate ticket
      */
-    const handleDuplicateMissionClick = (missionID: number) => {};
+    const handleDuplicateMissionClick = (missionID: number) => {
+        jaiaDispatch({
+            type: JaiaActions.DUPLICATE_MISSION,
+            missionID: missionID,
+        });
+    };
 
     /**
      * Triggered when the operator clicks the edit mission toggle
@@ -116,11 +121,12 @@ export default function MissionsList() {
                                 <Button
                                     className="jaia-button"
                                     aria-label="duplicate-mission"
+                                    data-testid={`duplicate-mission-${mission.getMissionID()}`}
                                     onClick={() =>
                                         handleDuplicateMissionClick(mission.getMissionID())
                                     }
                                 >
-                                    <Icon path={mdiContentDuplicate} />
+                                    <Icon path={mdiContentDuplicate} title="Duplicate Mission" />
                                 </Button>
                                 <DeleteMissionButton
                                     deleteAll={false}
