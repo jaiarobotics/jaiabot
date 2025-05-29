@@ -73,9 +73,9 @@ export function StartAllMissionsDialog(props: DialogProps) {
 
         // Message start
         if (disabledCode === DisabledCodes.NONE) {
-            subMessage += `Send command to Bot${botIDs.length > 1 ? "s: " : ": "}`;
+            subMessage += `Send mission${botIDs.length > 1 ? "s" : ""} to Bot${botIDs.length > 1 ? "s: " : ": "}`;
         } else {
-            subMessage += `Cannot send mission${botIDs.length > 1 ? "s " : ""} to Bot${botIDs.length > 1 ? "s: " : ": "}`;
+            subMessage += `Cannot send mission${botIDs.length > 1 ? "s" : ""} to Bot${botIDs.length > 1 ? "s: " : ": "}`;
         }
 
         // Adding Bot IDs to message
