@@ -10,9 +10,9 @@ message SalinityData
         unit_system: "si"
     };
 
-    required double conductivity_raw = 1;
-    required double conductivity = 2;
-    required double total_dissolved_solids = 3;
-    required double salinity_raw = 4;
-    required double salinity = 5;
+    optional double conductivity_raw = 1;
+    optional double conductivity = 2;
+    optional double total_dissolved_solids = 3;
+    optional double salinity_raw = 4;
+    optional double salinity = 5;
 }
