@@ -1,9 +1,11 @@
-import { DisabledCodes, messages } from "./activate-messages";
+import { SystemButtonTypes } from "../../types/jaia-system-types";
+import { DisabledCodes } from "./system-messages";
 
 interface DialogProps {
     isVisible: boolean;
     disabledCode: DisabledCodes;
     onClose: (dialogAction: DialogActions) => void;
+    systemButton: SystemButtonTypes;
 }
 
 interface TitleProps {
@@ -13,6 +15,7 @@ interface TitleProps {
 interface ButtonRowProps {
     disabledCode: DisabledCodes;
     onClose: (dialogAction: DialogActions) => void;
+    systemButton: SystemButtonTypes;
 }
 
 export enum DialogActions {
@@ -21,11 +24,11 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the activate button.
+ * Produces the dialog box that appears when clicking one of the system buttons.
  * This dialog will be an alert if the command cannot be
  * sent or a confirmation prior to sending the command.
  */
-export function ActivateDialog(props: DialogProps) {
+export function SystemDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -36,17 +39,42 @@ export function ActivateDialog(props: DialogProps) {
         return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
     };
 
+    /**
+     * Creates the alert message for each system button type
+     *
+     * @returns {string} Alert message when the button is not available
+     */
+    const generateAlertMessage = () => {
+        if (props.disabledCode === DisabledCodes.NONE) {
+            return "";
+        }
+
+        const endMsg = "command cannot be sent because the Bot needs to be stopped.";
+        switch (props.systemButton) {
+            case SystemButtonTypes.SHUTDOWN:
+                return "The shutdown " + endMsg;
+            case SystemButtonTypes.REBOOT:
+                return "The reboot " + endMsg;
+            case SystemButtonTypes.RESTART_SERVICES:
+                return "The restart services " + endMsg;
+        }
+    };
+
     if (!props.isVisible) {
         return <div></div>;
     }
 
     return (
-        <div className="jaia-dialog-container">
+        <div>
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={getClassName()}>
                     <Title disabledCode={props.disabledCode} />
-                    <p>{messages.get(props.disabledCode)}</p>
-                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                    <p>{generateAlertMessage()}</p>
+                    <ButtonRow
+                        disabledCode={props.disabledCode}
+                        onClose={props.onClose}
+                        systemButton={props.systemButton}
+                    />
                 </div>
             </div>
         </div>
@@ -67,10 +95,21 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Activate.
+ * For a confirmation dialog, the buttons will be Cancel and [Shutdown, Reboot, Restart Services].
+ * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
+    const getButtonText = () => {
+        switch (props.systemButton) {
+            case SystemButtonTypes.SHUTDOWN:
+                return "Shutdown";
+            case SystemButtonTypes.REBOOT:
+                return "Reboot";
+            case SystemButtonTypes.RESTART_SERVICES:
+                return "Restart Services";
+        }
+    };
+
     if (props.disabledCode === DisabledCodes.NONE) {
         return (
             <div className="dialog-button-row">
@@ -81,7 +120,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Activate
+                    {getButtonText()}
                 </button>
             </div>
         );

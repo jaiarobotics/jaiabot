@@ -79,7 +79,7 @@ test("Click activate all button with two Bots in pre-deployment idle and one Bot
     expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Send command to Bots: 1, 2")).toBeInTheDocument();
     expect(
-        screen.getByText("Cannot send command to Bot: 3 because it is activated"),
+        screen.getByText("Cannot send command to Bot: 3 because it is activated."),
     ).toBeInTheDocument();
     expect(screen.getByText("Activate")).toBeInTheDocument();
 
@@ -103,7 +103,7 @@ test("Click activate all button with all Bots already activated", async () => {
     await userEvent.click(button);
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(
-        screen.getByText("Cannot send command to Bots: 3, 4 because they are activated"),
+        screen.getByText("Cannot send command to Bots: 3, 4 because they are activated."),
     ).toBeInTheDocument();
 
     // Close dialog
@@ -126,7 +126,7 @@ test("Click activate all button with Bot out of comms range", async () => {
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(
         screen.getByText(
-            "Cannot send command to Bot: 5 because it does not have comms with the Hub",
+            "Cannot send command to Bot: 5 because it does not have comms with the Hub.",
         ),
     ).toBeInTheDocument();
 
@@ -151,7 +151,7 @@ test("Click activate all button with Bots out of comms range", async () => {
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(
         screen.getByText(
-            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub",
+            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub.",
         ),
     ).toBeInTheDocument();
 
@@ -178,7 +178,7 @@ test("Click activate all button with one Bot ready and two out of comms range", 
     expect(screen.getByText("Send command to Bot: 1")).toBeInTheDocument();
     expect(
         screen.getByText(
-            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub",
+            "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub.",
         ),
     ).toBeInTheDocument();
 

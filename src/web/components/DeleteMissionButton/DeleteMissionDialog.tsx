@@ -1,9 +1,10 @@
-import { DisabledCodes, messages } from "./activate-messages";
+import { DisabledCodes, messages } from "./delete-mission-messages";
 
 interface DialogProps {
     isVisible: boolean;
     disabledCode: DisabledCodes;
     onClose: (dialogAction: DialogActions) => void;
+    deleteAll: boolean;
 }
 
 interface TitleProps {
@@ -13,6 +14,7 @@ interface TitleProps {
 interface ButtonRowProps {
     disabledCode: DisabledCodes;
     onClose: (dialogAction: DialogActions) => void;
+    deleteAll: boolean;
 }
 
 export enum DialogActions {
@@ -21,11 +23,11 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the activate button.
- * This dialog will be an alert if the command cannot be
- * sent or a confirmation prior to sending the command.
+ * Produces the dialog box that appears when clicking on a delete mission
+ * or delete all missions button. This dialog will be an alert if the command
+ * cannot be sent or a confirmation prior to sending the command.
  */
-export function ActivateDialog(props: DialogProps) {
+export function DeleteMissionDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -46,7 +48,11 @@ export function ActivateDialog(props: DialogProps) {
                 <div className={getClassName()}>
                     <Title disabledCode={props.disabledCode} />
                     <p>{messages.get(props.disabledCode)}</p>
-                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                    <ButtonRow
+                        disabledCode={props.disabledCode}
+                        onClose={props.onClose}
+                        deleteAll={props.deleteAll}
+                    />
                 </div>
             </div>
         </div>
@@ -67,8 +73,8 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Activate.
+ * For a confirmation dialog, the buttons will be Cancel and Delete.
+ * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
@@ -81,7 +87,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Activate
+                    {props.deleteAll ? "Delete All Missions" : "Delete Mission"}
                 </button>
             </div>
         );

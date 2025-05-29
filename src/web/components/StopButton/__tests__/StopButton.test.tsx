@@ -8,12 +8,12 @@ import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";
 
-type testParams = {
+interface TestParams {
     missionState: MissionState;
     buttonAvailable: boolean;
-};
+}
 
-const testCases: testParams[] = [
+const testCases: TestParams[] = [
     { missionState: MissionState.PRE_DEPLOYMENT__STARTING_UP, buttonAvailable: false },
     { missionState: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT, buttonAvailable: true },
     { missionState: MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP, buttonAvailable: true },
