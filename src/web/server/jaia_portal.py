@@ -15,7 +15,7 @@ from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
 from jaiabot.messages.hub_pb2 import HubStatus
 
-from task_packet_database import *
+from pyjaia.task_packet_database import *
 
 import google.protobuf.json_format
 
