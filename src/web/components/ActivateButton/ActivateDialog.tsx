@@ -21,7 +21,7 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the actdivate button.
+ * Produces the dialog box that appears when clicking on the activate button.
  * This dialog will be an alert if the command cannot be
  * sent or a confirmation prior to sending the command.
  */
@@ -41,7 +41,7 @@ export function ActivateDialog(props: DialogProps) {
     }
 
     return (
-        <div>
+        <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={getClassName()}>
                     <Title disabledCode={props.disabledCode} />
@@ -68,7 +68,7 @@ function Title(props: TitleProps) {
 /**
  * Produces the buttons for the dialox box.
  * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Activate Bot.
+ * For an alert, the button will be Activate.
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode === DisabledCodes.NONE) {
@@ -81,7 +81,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Activate Bot
+                    Activate
                 </button>
             </div>
         );
