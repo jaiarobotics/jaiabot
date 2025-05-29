@@ -1,6 +1,5 @@
-// React
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
-import { JaiaActions } from "./jaia-actions";
+import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
@@ -10,12 +9,12 @@ import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
-import Task from "../data/tasks/task";
 
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
+import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
@@ -121,6 +120,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.DELETE_MISSION:
             return handleDeleteMission(mutableState, action.missionID);
+
+        case JaiaActions.DUPLICATE_MISSION:
+            return handleDuplicateMission(mutableState, action.missionID);
 
         case JaiaActions.DELETE_ALL_MISSIONS:
             return handleDeleteAllMissions(mutableState);
@@ -257,6 +259,29 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
     mutableState.bots = bots.getBots();
 
     missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+/**
+ * Makes a call to duplicate a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Which mission to duplicate
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleDuplicateMission(mutableState: JaiaContextType, missionID: number) {
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+
+    // Create a complete clone of the existing mission
+    const missionCopy = cloneDeep(missions.getMission(missionID));
+    const newMissionID = missions.addMission(missionCopy);
+
+    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionAccordionStates[newMissionID] = true;
+
+    syncOpenLayers();
 
     return mutableState;
 }
