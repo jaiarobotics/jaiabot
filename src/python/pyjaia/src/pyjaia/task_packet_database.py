@@ -1,5 +1,5 @@
 from typing import *
-from utils import *
+from .utils import get_task_packet_id, utime, now_utime
 from datetime import datetime
 import glob
 from pathlib import Path
@@ -9,10 +9,6 @@ from pprint import pprint
 
 
 l = logging.getLogger('task_packet_database')
-
-
-def now_utime():
-    return int(datetime.now().timestamp() * 1e6)
 
 
 class TaskPacketDatabase:

@@ -13,13 +13,12 @@ import pyjaia.drift_interpolation
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
-from jaiabot.messages.hub_pb2 import HubStatus
 
-from pyjaia.task_packet_database import *
+from pyjaia.task_packet_database import TaskPacketDatabase
+from pyjaia.utils import now_utime
 
 import google.protobuf.json_format
 
-from time import sleep
 from pathlib import *
 from pprint import *
 from typing import *
