@@ -24,7 +24,7 @@
 
 #include "atlas_scientific__oem_do.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/utils/dissovled_oxygen_compensation.h"
+#include "jaiabot/utils/dissolved_oxygen_compensation.h"
 
 using goby::glog;
 
