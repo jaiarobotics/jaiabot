@@ -5,7 +5,7 @@ import argparse
 import socket
 import logging
 import time
-from jaiabot.messages.pressure_temperature_pb2 import PressureTemperatureData
+from jaiabot.messages.sensor.pressure_temperature_pb2 import PressureTemperatureData
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
 parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=20001, type=int, help='port to receive data')
