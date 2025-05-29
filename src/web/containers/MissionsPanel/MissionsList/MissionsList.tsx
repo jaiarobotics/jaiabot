@@ -14,7 +14,7 @@ import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Icon from "@mdi/react";
-import { mdiContentDuplicate, mdiDelete } from "@mdi/js";
+import { mdiContentDuplicate } from "@mdi/js";
 import {
     Accordion,
     AccordionDetails,
@@ -121,7 +121,7 @@ export default function MissionsList() {
                                 <Button
                                     className="jaia-button"
                                     aria-label="duplicate-mission"
-                                    data-testid={`Duplicate Mission ${mission.getMissionID()}`}
+                                    data-testid={`duplicate-mission-${mission.getMissionID()}`}
                                     onClick={() =>
                                         handleDuplicateMissionClick(mission.getMissionID())
                                     }

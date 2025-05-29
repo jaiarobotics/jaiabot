@@ -11,9 +11,9 @@ import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";
 
 test("Exercise Duplicate Mission Button", async () => {
-    // pre-seed data model with original mission
+    // Pre-seed data model with original mission
     let originalMission = new Mission();
-    const originalID: number = missions.addMission(originalMission);
+    const originalID = missions.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
     let waypoint1 = originalMission.getWaypoint(1);
@@ -21,7 +21,7 @@ test("Exercise Duplicate Mission Button", async () => {
     task1.setType(TaskType.DIVE);
     waypoint1.setTask(task1);
 
-    // render the missions list
+    // Render the missions list
     await act(async () => {
         render(
             <JaiaContextProvider>
@@ -31,7 +31,7 @@ test("Exercise Duplicate Mission Button", async () => {
     });
     const missionsList = screen.getByTestId("missions-list");
 
-    // verify original mission is displayed
+    // Verify original mission is displayed
     const mission1Accordion = screen.getByText("Mission-1").parentElement;
     const mission1AccordionChildren = Array.from(mission1Accordion.children);
     expect(mission1AccordionChildren[0].textContent).toBe("Mission-1");
@@ -39,13 +39,13 @@ test("Exercise Duplicate Mission Button", async () => {
     expect(Array.from(missionsList.children).length).toBe(1);
     expect(missions.getMission(1).getMissionID()).toBe(1);
 
-    const duplicateMissionButton1 = screen.getByTestId("Duplicate Mission 1");
+    const duplicateMissionButton1 = screen.getByTestId("duplicate-mission-1");
     expect(duplicateMissionButton1).toBeInTheDocument();
 
     // Click the duplicate button
     await userEvent.click(duplicateMissionButton1);
 
-    // verify duplicate mission is displayed
+    // Verify duplicate mission is displayed
     const mission2Accordion = screen.getByText("Mission-2").parentElement;
     const mission2AccordionChildren = Array.from(mission2Accordion.children);
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");

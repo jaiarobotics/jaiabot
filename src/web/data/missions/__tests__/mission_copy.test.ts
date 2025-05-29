@@ -17,7 +17,7 @@ test("Clone a mission and test values", () => {
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
     waypoint1.setTask(task1);
 
-    // clone the mission and addit to the missions data
+    // Clone the mission and add it to the missions data
     let cloneMission = cloneDeep(originalMission);
     const cloneID: number = missions.addMission(cloneMission);
     expect(missions.getMissions().size).toEqual(2);
@@ -29,17 +29,17 @@ test("Clone a mission and test values", () => {
     expect(cloneMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
     expect(cloneMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
 
-    // modify the original location and max depth
+    // Modify the original location and max depth
     waypoint1.setLocation(locationB);
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 24 });
 
-    // verify the copy did not change
+    // Verify the copy did not change
     expect(cloneMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
     expect(cloneMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
     expect(cloneMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
     expect(cloneMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
 
-    // modify the copy task type and parameters
+    // Modify the copy task type and parameters
     cloneMission.getWaypoint(1).getTask().setType(TaskType.CONSTANT_HEADING);
     cloneMission.getWaypoint(1).getTask().setConstantHeadingParameters({
         constant_heading: 234,
@@ -47,20 +47,20 @@ test("Clone a mission and test values", () => {
         constant_heading_speed: 2.5,
     });
 
-    // verify original did not change
+    // Verify original did not change
     expect(originalMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
     expect(
         originalMission.getWaypoint(1).getTask().getConstantHeadingParameters().constant_heading,
     ).not.toEqual(234);
-    // verify the partameters are a different reference
+    // Verify the partameters are a different reference
     expect(originalMission.getWaypoint(1).getTask().getConstantHeadingParameters()).not.toEqual(
         cloneMission.getWaypoint(1).getTask().getConstantHeadingParameters(),
     );
 
-    // add a waypoint to original mission
+    // Add a waypoint to original mission
     originalMission.addWaypoint(locationC);
     expect(originalMission.getWaypoints().length).toEqual(2);
 
-    // verfiy copy did not change
+    // Verfiy copy did not change
     expect(cloneMission.getWaypoints().length).toEqual(1);
 });

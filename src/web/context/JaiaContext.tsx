@@ -1,6 +1,5 @@
-// React
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
-import { JaiaActions } from "./jaia-actions";
+import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
@@ -10,12 +9,12 @@ import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
-import Task from "../data/tasks/task";
 
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
+import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
@@ -33,7 +32,6 @@ import {
     MapLayerAccordionNames,
     PanelNames,
 } from "../types/context-types";
-import cloneDeep from "lodash/cloneDeep";
 
 export interface JaiaContextType {
     bots: Map<number, Bot>;
@@ -273,16 +271,18 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDuplicateMission(mutableState: JaiaContextType, missionID: number) {
-    // create a complete clone of the existing mission
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+
+    // Create a complete clone of the existing mission
     const missionCopy = cloneDeep(missions.getMission(missionID));
     const newMissionID = missions.addMission(missionCopy);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missions = missions.getMissions();
     mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
+
     return mutableState;
 }
 
