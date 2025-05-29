@@ -48,3 +48,9 @@ export interface TaskParameterPair {
     key: TaskParameterKeys;
     value: number;
 }
+
+export enum SystemButtonTypes {
+    SHUTDOWN = 1,
+    REBOOT = 2,
+    RESTART_SERVICES = 3,
+}
