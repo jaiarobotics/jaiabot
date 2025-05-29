@@ -30,6 +30,7 @@ class TaskPacketDatabase:
 
     def __init__(self, path: str="/var/log/jaiabot/bot_offload/"):
         self.path = path
+        self.loop()
     
 
     def loop(self):
@@ -45,6 +46,35 @@ class TaskPacketDatabase:
     def add_task_packet(self, task_packet: Dict):
         self.all_task_packets[get_task_packet_id(task_packet)] = task_packet
         self.task_packets_version += 1
+
+
+    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None):
+        """Queries the task packets.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): List of bot_ids.
+            start_utime (Union[int, None]): Start of time window (or None if no minimum time)
+            end_utime (Union[int, None]): End of time window (or None if no maximum time)
+            included (Union[bool, None]): Included or excluded task packets (None for both types)
+
+        Returns:
+            list[dict]: A list of task packets that match the criteria.
+        """
+        results = self.all_task_packets.values()
+
+        if bot_ids is not None:
+            results = filter(lambda tp: tp["bot_id"] in bot_ids, results)
+
+        if start_utime is not None:
+            results = filter(lambda tp: int(tp["start_time"]) >= start_utime, results)
+
+        if end_utime is not None:
+            results = filter(lambda tp: int(tp["start_time"]) <= end_utime, results)
+
+        if included is not None:
+            results = filter(lambda tp: (get_task_packet_id(tp) in self.excluded_task_packet_ids) != included, results)
+
+        return list(results)
 
 
     def get_task_packets(self, start_date: datetime, end_date: datetime):

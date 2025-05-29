@@ -6,12 +6,14 @@ from queue import Queue
 from typing import *
 from pathlib import Path
 from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
-from google.protobuf.json_format import ParseDict
+from google.protobuf.json_format import ParseDict, MessageToDict
+from google.protobuf.message import Message
 import threading
 import logging
 import bisect
 import glob
 import json
+from pyjaia.task_packet_database import TaskPacketDatabase
 
 
 from common.time import utc_now_microseconds
@@ -32,66 +34,14 @@ class Data:
     hub_metadata = {}
 
     # Task Packets
-    task_packets = []
+    task_packet_database = TaskPacketDatabase()
 
     # Path to the .taskpacket files
     task_packet_files_path = "/var/log/jaiabot/bot_offload"
     task_packet_loaded_filenames: Set[str] = set()
 
     def __init__(self) -> None:
-        self.load_taskpacket_files()
-
-
-    def load_taskpacket_files(self):
-        """Appends TaskPackets from *.taskpacket files in the bot_offload directory 
-           to the list of all TaskPackets. Removes duplicates between offloaded and live
-           TaskPackets and sorts the list by start time.
-        Returns: None
-        """
-        task_packet_filenames = set(glob.glob(self.task_packet_files_path + '/*.taskpacket'))
-
-        taskpacket_filenames_to_load = task_packet_filenames - self.task_packet_loaded_filenames
-
-        for filePath in taskpacket_filenames_to_load:
-            log.debug(f'Loading from {filePath}')
-            filePath = Path(filePath)
-
-            for line in open(filePath):
-                try:
-                    taskPacketDict: Dict = json.loads(line)
-                    taskPacket = ParseDict(taskPacketDict, TaskPacket())
-                    self.task_packets.append(taskPacket)
-                    log.debug(f'Loaded task packet start_time={taskPacket.start_time}')
-                except json.JSONDecodeError as e:
-                    log.debug(f"Error decoding JSON line: {line} because {e}")
-
-        log.debug(f'Loaded {len(self.task_packets)} task packets')
-
-        self.sort_and_filter_task_packets()
-
-
-    def sort_and_filter_task_packets(self):
-        """Sorts and filters duplicate task packets that can occur after data offloading.
-        """
-        self.task_packets.sort(key=lambda taskPacket: taskPacket.start_time)
-
-        THRESHOLD_MICROSEC = 1_000_000
-
-        latest_task_packet_start_times: Dict[int, int] = {}
-
-        filtered_task_packets = []
-
-        for task_packet in self.task_packets:
-            bot_id = task_packet.bot_id
-            start_time = task_packet.start_time
-
-            if bot_id in latest_task_packet_start_times and start_time - latest_task_packet_start_times[bot_id] < THRESHOLD_MICROSEC:
-                continue
-            else:
-                filtered_task_packets.append(task_packet)
-                latest_task_packet_start_times[bot_id] = start_time
-            
-        self.task_packets = filtered_task_packets
+        pass
 
 
     def get_task_packets(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]):
@@ -104,30 +54,16 @@ class Data:
         Returns:
             List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
         """
-        # Sort the task packets by dates
-        self.sort_and_filter_task_packets()
+        # Update if necessary
+        self.task_packet_database.loop()
 
-        # Filter by bot_id if we got a set of bot_ids
-        if bot_ids is not None:
-            bot_ids_set = set(bot_ids)
-            filtered_task_packets = list(filter(lambda task_packet: task_packet.bot_id in bot_ids_set, self.task_packets))
-        else:
-            filtered_task_packets = self.task_packets
+        # This function returns dictionary representations of the task packets
+        task_packet_dicts = self.task_packet_database.query_task_packets(bot_ids=bot_ids, start_utime=start_time_microseconds, end_utime=end_time_microseconds)
 
-        # bisect module doesn't have key functions till python 3.10!
-        start_times = [task_packet.start_time for task_packet in filtered_task_packets]
+        # Convert the dicts into TaskPacket protobuf message objects
+        task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
 
-        if start_time_microseconds is not None:
-            start_index = bisect.bisect_left(start_times, start_time_microseconds)
-        else:
-            start_index = 0
-
-        if end_time_microseconds is not None:
-            end_index = bisect.bisect_right(start_times, end_time_microseconds)
-        else:
-            end_index = len(filtered_task_packets)
-        
-        return filtered_task_packets[start_index:end_index]
+        return task_packets
 
 
     def process_portal_to_client_message(self, hub_id, msg):
@@ -145,7 +81,7 @@ class Data:
         if msg.HasField('task_packet'):
             log.info('Task packet received')
             packet = msg.task_packet
-            self.task_packets.append(packet)
+            self.task_packet_database.add_task_packet(MessageToDict(packet, preserving_proto_field_name=True))
 
         if msg.HasField('device_metadata'):
             self.hub_metadata[hub_id] = msg.device_metadata
