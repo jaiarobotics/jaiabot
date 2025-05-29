@@ -51,7 +51,7 @@ class AtlasScientificOEMDODriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
-    jaiabot::protobuf::SalinityData last_salinity_reading_;
+    sensor::protobuf::AtlasScientificOEMEC last_salinity_reading_;
 };
 
 } // namespace apps
