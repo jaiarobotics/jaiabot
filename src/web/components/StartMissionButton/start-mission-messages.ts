@@ -1,10 +1,10 @@
 export enum DisabledCodes {
-    NONE = 0,
-    NO_COMMS = 1,
-    MISSION_STATE = 2,
-    NO_MISSION_ASSIGNED = 3,
-    DOWNLOAD_QUEUE = 4,
-    LOW_BATTERY = 5,
+    NONE = 1,
+    NO_COMMS = 2,
+    MISSION_STATE = 3,
+    NO_MISSION_ASSIGNED = 4,
+    DOWNLOAD_QUEUE = 5,
+    LOW_BATTERY = 6,
 }
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NONE, ""],
