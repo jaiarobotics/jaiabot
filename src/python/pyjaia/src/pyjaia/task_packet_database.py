@@ -6,10 +6,10 @@ from pathlib import Path
 import json
 import logging
 from pprint import pprint
+from os.path import getmtime
 
 
 l = logging.getLogger('task_packet_database')
-
 
 class TaskPacketDatabase:
     path: str
@@ -19,14 +19,15 @@ class TaskPacketDatabase:
 
     excluded_task_packet_ids: Set[str] = set()
     task_packets_version = 0
-    offloaded_task_packet_files_prev = -1
-    offloaded_task_packet_files_curr = 0
 
-    # Set the initial time for checking for task packet files
-    next_check_time = now_utime()
-
+    # last time the load functions were called
+    last_updated_utime = 0
     # Time between checking for task packet files (10 Seconds)
-    task_packet_check_interval = 10_000_000
+    update_interval = 10_000_000
+
+    # Latest mtime that we've already loaded
+    latest_taskpacket_mtime = 0
+    latest_excluded_taskpacket_mtime = 0
 
     def __init__(self, path: str="/var/log/jaiabot/bot_offload/"):
         self.path = path
@@ -35,12 +36,13 @@ class TaskPacketDatabase:
 
     def loop(self):
         # Check if the desired time interval has passed
-        if now_utime() > self.next_check_time:
+        if now_utime() < self.last_updated_utime + self.update_interval:
+            return
+        else:
+            self.last_updated_utime = now_utime()
             self.load_taskpacket_files()
             self.load_excluded_task_packet_ids()
             
-            # Reset the start time
-            self.next_check_time = now_utime() + self.task_packet_check_interval
          
 
     def add_task_packet(self, task_packet: Dict):
@@ -125,34 +127,43 @@ class TaskPacketDatabase:
 
 
     def load_taskpacket_files(self):
-        """Appends TaskPackets from *.taskpacket files in the bot_offload directory 
-           to the list of all TaskPackets. Removes duplicates between offloaded and live
-           TaskPackets and sorts the list by start time.
-        Returns: None
+        """Loads all modified taskpacket files from the offload directory.
         """
-        self.offloaded_task_packet_file_curr = len(glob.glob(self.path + '*.taskpacket'))
 
-        if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
-            self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
-        else:
-            return
+        latest_modified_mtime = 0
+        for taskpacket_filename in glob.glob(self.path + '*.taskpacket'):
 
-        for filePath in glob.glob(self.path + '*.taskpacket'):
-            filePath = Path(filePath)
+            taskpacket_mtime = getmtime(taskpacket_filename)
 
-            for line in open(filePath):
-                try:
-                    taskPacket: Dict = json.loads(line)
-                    self.add_task_packet(taskPacket)
-                except json.JSONDecodeError as e:
-                    l.warning(f"Error decoding JSON line: {line} because {e}")
+            if taskpacket_mtime > self.latest_taskpacket_mtime:
+                l.info(f'Loading modified taskpacket file: {taskpacket_filename}')
+                for line in open(taskpacket_filename):
+                    try:
+                        taskPacket: Dict = json.loads(line)
+                        self.add_task_packet(taskPacket)
+                    except json.JSONDecodeError as e:
+                        l.warning(f"Error decoding JSON line: {line} because {e}")
+
+                latest_modified_mtime = max(latest_modified_mtime, taskpacket_mtime)
+        
+        self.latest_taskpacket_mtime = latest_modified_mtime
 
 
     def load_excluded_task_packet_ids(self):
+        """Load the excluded task packet file, if it's been modified.
+        """
         file_path = self.path + 'excluded_task_packet_ids.json'
+        excluded_taskpacket_mtime = getmtime(file_path)
+
+        if excluded_taskpacket_mtime <= self.latest_excluded_taskpacket_mtime:
+            # File hasn't changed
+            return
+
         try:
             file = open(file_path, 'r')
             self.excluded_task_packet_ids = set(json.load(file))
+            self.latest_excluded_taskpacket_mtime = excluded_taskpacket_mtime
+            l.info(f"Loaded {len(self.excluded_task_packet_ids)} excluded task packet ids")
         except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
             l.info(e)
             self.excluded_task_packet_ids = set([])
