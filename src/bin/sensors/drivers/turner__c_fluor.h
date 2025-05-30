@@ -41,7 +41,6 @@ class TurnerCFluorDriver
 
   private:
     void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
-    void receive_cfg(const sensor::protobuf::Configuration& cfg);
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void send_cfg();
 
@@ -51,6 +50,7 @@ class TurnerCFluorDriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
+    jaiabot::config::FluorCoefficients fluorometer_coefficients_;
 };
 
 } // namespace apps

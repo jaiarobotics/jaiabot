@@ -5,3 +5,10 @@ mcu_serial {
     baud: $baud
 }
 
+fluorometer {
+    sample_rate: 10
+    report_timeout_seconds: 20
+    resend_cfg_timeout_seconds: 20
+    $fluorometer_coefficients
+}
+

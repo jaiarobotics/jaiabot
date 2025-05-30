@@ -43,15 +43,6 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
                 receive_data(sensor_data.c_fluor());
         });
 
-    interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
-        [this](const sensor::protobuf::SensorRequest& sensor_request) {
-            glog.is_warn() && glog << "Received sensor request" << std::endl;
-            if (sensor_request.has_cfg() && sensor_request.cfg().cfg_size() > 0) {
-                glog.is_warn() && glog << "Received sensor request with cfg" << std::endl;
-                receive_cfg(sensor_request.cfg());
-            }
-        });
-
     // Set sample rate config
     sample_rate_ = config.sample_rate();
 
@@ -59,44 +50,14 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     report_timeout_ = config.report_timeout_seconds();
     resend_cfg_timeout_ = config.resend_cfg_timeout_seconds();
 
-    // configure our sensor
+    // Fluorometer coefficients
+    if (config.has_fluorometer_coefficients())
+    {
+        fluorometer_coefficients_ = config.fluorometer_coefficients();
+    }
+
+    // Configure our sensor
     send_cfg();
-}
-
-void jaiabot::apps::TurnerCFluorDriver::receive_cfg(
-    const jaiabot::sensor::protobuf::Configuration& cfg)
-{
-    glog.is_warn() && glog << "Fluorometer config changed: " << cfg.ShortDebugString() << std::endl;
-
-    auto existing_fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
-
-    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
-    auto existing_fluoro_cfg_file = std::ifstream("/etc/jaiabot/fluorometer_config.pb.cfg");
-    
-    if (existing_fluoro_cfg_file.fail())
-    {
-        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/fluorometer_config.pb.cfg" << std::endl;
-    }
-    else
-    {
-        std::stringstream existing_fluoro_cfg_stringstream;
-        existing_fluoro_cfg_stringstream << existing_fluoro_cfg_file.rdbuf();
-
-        if (!google::protobuf::TextFormat::ParseFromString(existing_fluoro_cfg_stringstream.str(),
-                                                           &existing_fluoro_cfg))
-        {
-            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
-                                   << std::endl;
-        }
-    }
-
-    auto fluoro_cfg = jaiabot::sensor::protobuf::Configuration();
-    fluoro_cfg.CopyFrom(existing_fluoro_cfg);
-    fluoro_cfg.MergeFrom(cfg);
-
-    auto cfg_file = std::ofstream("/etc/jaiabot/fluorometer_config.pb.cfg");
-    cfg_file << fluoro_cfg.DebugString();
-    cfg_file.close();
 }
 
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
@@ -129,40 +90,27 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
-    
-    auto existing_calibration = jaiabot::protobuf::CalibrationCoefficients();
 
-    // Fluorometer calibration coefficients from /etc/jaiabot/calibration_coefficients.pb.cfg
-    auto existing_calibration_file = std::ifstream("/etc/jaiabot/calibration_coefficients.pb.cfg");
-    
-    if (existing_calibration_file.fail())
+    if (fluorometer_coefficients_.has_offset())
     {
-        glog.is_warn() && glog << "Couldn't open file: /etc/jaiabot/calibration_coefficients.pb.cfg" << std::endl;
-    }
-    else
-    { 
-        std::stringstream existing_calibration_stringstream;
-        existing_calibration_stringstream << existing_calibration_file.rdbuf();
-
-        if (!google::protobuf::TextFormat::ParseFromString(existing_calibration_stringstream.str(),
-                                                           &existing_calibration))
-        {
-            glog.is_warn() && glog << "Couldn't parse existing file: /etc/jaiabot/calibration_coefficients.pb.cfg"
-                                   << std::endl;
-        }
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("offset");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.offset()));
     }
 
-    auto* cal_offset = sensor_cfg.add_cfg();
-    cal_offset->set_key("fluorometer_offset");
-    cal_offset->set_value(existing_calibration.fluorometer().fluorometer_offset());
+    if (fluorometer_coefficients_.has_coefficient())
+    {
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("coefficient");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.coefficient()));
+    }
 
-    auto* cal_coefficient = sensor_cfg.add_cfg();
-    cal_coefficient->set_key("fluorometer_calibration_coefficient");
-    cal_coefficient->set_value(existing_calibration.fluorometer().fluorometer_calibration_coefficient());
-
-    auto* fluorometer_sn = sensor_cfg.add_cfg();
-    fluorometer_sn->set_key("fluorometer_serial_number");
-    fluorometer_sn->set_value(existing_calibration.fluorometer().fluorometer_serial_number());
+    if (fluorometer_coefficients_.has_serial_number())
+    {
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("serial_number");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.serial_number()));
+    }
 
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
