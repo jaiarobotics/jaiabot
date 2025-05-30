@@ -104,7 +104,7 @@ verbosities = \
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
-  'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG1' }},
+  'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE'  }, 'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG1' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -136,6 +136,10 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+try:
+    fluorometer_coefficients = 'fluorometer_coefficients { \n' + open('/etc/jaiabot/fluorometer_coefficients.pb.cfg').read() + '\n}\n'
+except FileNotFoundError:
+    fluorometer_coefficients = 'fluorometer_coefficients {}'
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
@@ -330,7 +334,8 @@ elif common.app == 'jaiabot_sensors':
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
                                      port='/dev/ttyUSB0',
-                                     baud=115200))
+                                     baud=115200,
+                                     fluorometer_coefficients=fluorometer_coefficients))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
