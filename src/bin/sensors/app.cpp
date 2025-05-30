@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <boost/crc.hpp>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/io/cobs/serial.h>
@@ -34,6 +36,7 @@
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/sensor/catalog.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 using goby::glog;
@@ -71,6 +74,7 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
         initialization_error_names;
     std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
         initialization_warning_names;
+    boost::crc_32_type crc32_calc_;
 };
 
 } // namespace apps
@@ -84,7 +88,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 jaiabot::apps::Sensors::Sensors()
-    : zeromq::MultiThreadApplication<config::Sensors>(1.0 / 20.0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::Sensors>(1.0 / 30.0 * si::hertz)
 {
     using MCUSerialThread =
         goby::middleware::io::SerialThreadCOBS<mcu_serial_in, mcu_serial_out,

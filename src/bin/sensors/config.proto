@@ -56,11 +56,19 @@ message AtlasOEMDOThreadConfig
     optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
 }
 
-message TurnorCFluorThreadConfig
+message FluorCoefficients
+{
+    optional double offset = 1;
+    optional double coefficient = 2;
+    optional int32 serial_number = 3;
+}
+
+message TurnerCFluorThreadConfig
 {
     optional int32 sample_rate = 1 [default = 10];
     optional int32 report_timeout_seconds = 2 [default = 20];
     optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+    optional FluorCoefficients fluorometer_coefficients = 4;
 }
 
 message Sensors
@@ -72,5 +80,5 @@ message Sensors
     optional BlueRoboticsBar30ThreadConfig bar30 = 20;
     optional AtlasOEMPHThreadConfig ph = 30;
     optional AtlasOEMDOThreadConfig dissolved_oxygen = 40;
-    optional TurnorCFluorThreadConfig fluorometer = 50;  
+    optional TurnerCFluorThreadConfig fluorometer = 50;  
 }

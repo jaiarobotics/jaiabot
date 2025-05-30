@@ -24,6 +24,7 @@
 
 #include "atlas_scientific__oem_do.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/utils/dissolved_oxygen_compensation.h"
 
 using goby::glog;
 
@@ -38,6 +39,11 @@ jaiabot::apps::AtlasScientificOEMDODriver::AtlasScientificOEMDODriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_do())
                 receive_data(sensor_data.oem_do());
+        });
+
+    interprocess().subscribe<jaiabot::groups::salinity>(
+        [this](const sensor::protobuf::AtlasScientificOEMEC& salinity_data) {
+            last_salinity_reading_ = salinity_data;
         });
 
     // Set sample rate config
@@ -58,9 +64,9 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
                              << "Received do_data: " << do_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::AtlasScientificOEMDO do_msg;
-    if (do_data.has_dissolved_oxygen())
+    if (do_data.has_do_raw())
     {
-        do_msg.set_dissolved_oxygen(do_data.dissolved_oxygen());
+        do_msg.set_do_raw(do_data.do_raw());
     }
     if (do_data.has_temperature())
     {
@@ -69,6 +75,28 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
     if (do_data.has_temperature_voltage())
     {
         do_msg.set_temperature_voltage(do_data.temperature_voltage());
+    }
+
+    if (last_salinity_reading_.has_salinity() && do_data.has_do_raw() &&
+        do_data.has_temperature())
+    {
+        glog.is_debug1() && glog << group("oem_do")
+                             << "Creating DO solubility/sat percent/normalized solubility"<< std::endl;
+
+        // DO Solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)
+        double do_solubility = calculate_dissolved_oxygen_solubility(
+            do_data.temperature(), last_salinity_reading_.salinity());
+        // Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg)
+        double do_saturation_percent =
+            calculate_do_saturation_percent(do_data.do_raw(), do_solubility);
+        // DO Solubility at 0 salinity (ppt), same temperature (C) and pressure (mmhg), scaled by observed saturation
+        double do_normalized_solubility =
+            calculate_dissolved_oxygen_solubility(do_data.temperature(), 0.0) *
+            (do_saturation_percent / 100.0);
+
+        do_msg.set_do_solubility(do_solubility);
+        do_msg.set_do_saturation_percent(do_saturation_percent);
+        do_msg.set_do_normalized_solubility(do_normalized_solubility);
     }
     interprocess().publish<jaiabot::groups::dissolved_oxygen>(do_msg);
 

@@ -15,11 +15,11 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 197 bytes / 1576 bits
+    Actual maximum size of message: 196 bytes / 1568 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1562
-        padding to full byte...................6
+        body................................1556
+        padding to full byte...................4
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -135,10 +135,10 @@ message BotStatus
 {
     /*
     Actual maximum size of message: 46 bytes / 368 bits
-            dccl.id head...........................8
-            user head..............................0
-            body.................................357
-            padding to full byte...................3
+        dccl.id head...........................8
+        user head..............................0
+        body.................................359
+        padding to full byte...................1
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
