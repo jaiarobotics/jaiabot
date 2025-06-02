@@ -29,7 +29,7 @@ export enum DialogActions {
 export function StopAllBotsDialog(props: DialogProps) {
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
-     * if at least one Bot cannot receive the command to adjust spacing
+     * if at least one Bot cannot receive the command
      *
      * @returns {string} The class name for the dialog div
      */
