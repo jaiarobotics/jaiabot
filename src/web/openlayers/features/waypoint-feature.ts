@@ -74,7 +74,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
             }),
             offsetY: -15,
         }),
-        zIndex: openLayersZIndexes.get(MapFeatureTypes.WAYPOINT),
+        zIndex: getWaypointZIndex(missionID),
     });
 }
 
@@ -125,6 +125,7 @@ function generateWaypointLineStyle(
             width: 4,
             color: OpenLayersColors.OUTLINE,
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const overlayStyle = new Style({
@@ -132,6 +133,7 @@ function generateWaypointLineStyle(
             width: 2,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const dx = endCoordinate[0] - startCoordinate[0];
@@ -174,4 +176,14 @@ function getWaypointColor(missionID: number) {
     }
 
     return OpenLayersColors.DEFAULT;
+}
+
+function getWaypointZIndex(missionID: number) {
+    const selectedNode = jaiaGlobal.getSelectedNode();
+
+    if (missionID === missions.getMissionIDInEditMode()) {
+        return openLayersZIndexes.get(MapFeatureTypes.BOT) + missions.getMissions().size + 1;
+    }
+
+    return openLayersZIndexes.get(MapFeatureTypes.BOT) + missionID;
 }
