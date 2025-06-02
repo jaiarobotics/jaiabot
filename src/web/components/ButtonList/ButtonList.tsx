@@ -46,22 +46,22 @@ export default function ButtonList(props: Props) {
      */
     const getSelectedClassName = (panelName: PanelNames) => {
         if (jaiaContext.visiblePanel === panelName) {
-            return "selected";
+            return " jaia-button selected";
         }
-        return "";
+        return "jaia-button";
     };
 
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
             <div className="button-list top">
                 <ActivateAllButton bots={jaiaContext.bots} />
-                <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
+                <Button className={getSelectedClassName(PanelNames.NONE)}></Button>
+                <Button className={getSelectedClassName(PanelNames.NONE)}></Button>
+                <Button className={getSelectedClassName(PanelNames.NONE)}></Button>
+                <Button className={getSelectedClassName(PanelNames.NONE)}></Button>
+                <Button className={getSelectedClassName(PanelNames.NONE)}></Button>
                 <Button
-                    className={`jaia-button ${getSelectedClassName(PanelNames.JAIA_ABOUT)}`}
+                    className={getSelectedClassName(PanelNames.JAIA_ABOUT)}
                     aria-label="jaia-about-panel"
                     onClick={() => handlePanelButtonClick(PanelNames.JAIA_ABOUT)}
                 >
@@ -75,7 +75,7 @@ export default function ButtonList(props: Props) {
         return (
             <div className="button-list side">
                 <Button
-                    className={`jaia-button ${getSelectedClassName(PanelNames.MISSIONS)}`}
+                    className={getSelectedClassName(PanelNames.MISSIONS)}
                     aria-label="missions-panel"
                     onClick={() => handlePanelButtonClick(PanelNames.MISSIONS)}
                 >
