@@ -11,7 +11,7 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 import { validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
-import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
+import { TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
 import { mdiDelete } from "@mdi/js";
@@ -19,10 +19,25 @@ import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/m
 
 import "./WaypointPanel.less";
 
+/**
+ * Displays information about the selected waypoint such as location and task selection
+ *
+ * @notes
+ * Waypoint location data exists in both number and string form. We utilize the number type
+ * when saving to the data model and string type when working with user input. We need to use
+ * strings when working with user input to allow negative signs and decimal points. As the
+ * user enters a coordinate, we will check if the value can be converted to a number.
+ * If it can, we will update the data model with the numerical form of the user input.
+ */
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Uses the selectedWaypoint data to retrieve the associated waypoint object
+     *
+     * @returns {Waypoint} Waypoint object with access to modifiers
+     */
     const getWaypoint = () => {
         const mission = jaiaContext.missions.get(jaiaContext.selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
@@ -37,16 +52,11 @@ export default function WaypointPanel() {
         };
     }, []);
 
-    const getTaskType = () => {
-        const taskType = getWaypoint().getTask()?.getType();
-
-        if (!taskType) {
-            return TaskType.NONE;
-        }
-
-        return taskType;
-    };
-
+    /**
+     * Gets the Bot ID assigned to the mission containing the waypoint
+     *
+     * @returns {string} Bot ID or empty string
+     */
     const formatBotID = () => {
         const botID = missionsManager.getBotID(jaiaContext.selectedWaypoint.missionID);
 
@@ -57,6 +67,12 @@ export default function WaypointPanel() {
         return botID;
     };
 
+    /**
+     * Converts a TaskType to a UI friendly string
+     *
+     * @param {TaskType} taskType Task name to be formatted
+     * @returns {string} Name of the task
+     */
     const formatMenuItemText = (taskType: TaskType) => {
         switch (taskType) {
             case TaskType.NONE:
@@ -74,15 +90,33 @@ export default function WaypointPanel() {
         }
     };
 
+    /**
+     * Dispatches action to delete a waypoint
+     *
+     * @returns {void}
+     */
     const handleDeleteWaypointClick = () => {
         jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
     };
 
+    /**
+     * Dispatches action to select a task. This will lead to the task
+     * parameters appearing.
+     *
+     * @returns {void}
+     */
     const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
         const selectedTaskType = evt.target.value;
         jaiaDispatch({ type: JaiaActions.SELECT_TASK, taskType: selectedTaskType });
     };
 
+    /**
+     * Updates the local copy of the coordinate on each key stroke. If the
+     * coordinate is a number, the data model and OpenLayers will be updated.
+     *
+     * @param {ChangeEvent} evt Contains the coord type + value
+     * @returns {void}
+     */
     const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
         let lat = latInput;
         let lon = lonInput;
@@ -154,7 +188,7 @@ export default function WaypointPanel() {
                 <div className="label">Task:</div>
                 <FormControl sx={{ minWidth: 120 }} size="small">
                     <Select
-                        value={getTaskType()}
+                        value={getWaypoint().getTask().getType()}
                         onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
                     >
                         <MenuItem value={TaskType.NONE}>

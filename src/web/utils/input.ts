@@ -12,6 +12,13 @@ export function formatNumericalInput(input: number) {
     return Number(input).toString();
 }
 
+/**
+ * Ensures latitude and longitude are within bounds
+ *
+ * @param {string} lat Latitude to be validated
+ * @param {string} lon Longitude to be validated
+ * @returns {string[]} Validated lat at index 0, validated lon at index 1
+ */
 export function validateCoordinate(lat: string, lon: string) {
     if (Number(lat) > MAX_LAT) {
         lat = MAX_LAT.toString();

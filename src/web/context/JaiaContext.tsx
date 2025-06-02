@@ -398,6 +398,13 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Makes the calls to move a waypoint to a user set location
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location New location of the waypoint
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, location);
