@@ -180,10 +180,14 @@ function getWaypointColor(missionID: number) {
 
 function getWaypointZIndex(missionID: number) {
     const selectedNode = jaiaGlobal.getSelectedNode();
+    let waypointZIndex = 0;
 
     if (missionID === missions.getMissionIDInEditMode()) {
-        return openLayersZIndexes.get(MapFeatureTypes.BOT) + missions.getMissions().size + 1;
+        waypointZIndex =
+            openLayersZIndexes.get(MapFeatureTypes.WAYPOINT) + missions.getMissions().size + 1;
+    } else {
+        waypointZIndex = openLayersZIndexes.get(MapFeatureTypes.WAYPOINT) + missionID;
     }
-
-    return openLayersZIndexes.get(MapFeatureTypes.BOT) + missionID;
+    console.log(`Waypoint of Mission ${missionID} has zIndex of ${waypointZIndex}`);
+    return waypointZIndex;
 }

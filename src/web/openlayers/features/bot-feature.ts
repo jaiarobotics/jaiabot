@@ -80,10 +80,14 @@ function getBotIconColor(bot: Bot) {
 
 function getBotIconZIndex(bot: Bot) {
     const selectedNode = jaiaGlobal.getSelectedNode();
+    let botZIndex = 0;
 
     if (selectedNode.type === NodeTypes.BOT && selectedNode.id === bot.getBotID()) {
-        return openLayersZIndexes.get(MapFeatureTypes.BOT) + bots.getBots().size + 1;
+        botZIndex = openLayersZIndexes.get(MapFeatureTypes.BOT) + bots.getBots().size + 1;
+    } else {
+        botZIndex = openLayersZIndexes.get(MapFeatureTypes.BOT) + bot.getBotID();
     }
 
-    return openLayersZIndexes.get(MapFeatureTypes.BOT) + bot.getBotID();
+    console.log(`Bot ${bot.getBotID()} has zIndex of ${botZIndex}`);
+    return botZIndex;
 }
