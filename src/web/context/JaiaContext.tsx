@@ -201,6 +201,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missions = missions.getMissions();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
