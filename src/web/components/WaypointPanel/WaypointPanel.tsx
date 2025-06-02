@@ -1,12 +1,17 @@
-import { useContext, useEffect } from "react";
+import { ChangeEvent, useContext, useEffect, useState } from "react";
 
 import TaskParameters from "../TaskParameters/TaskParameters";
+
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { TaskType } from "../../types/protobuf-types";
 
-import { UNASSIGNED_ID, LAT_LON_DECIMALS } from "../../utils/constants";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+
+import { UNASSIGNED_ID } from "../../utils/constants";
+import { validateCoordinate } from "../../utils/input";
+
+import { CoordinateTypes } from "../../types/jaia-system-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
 import { mdiDelete } from "@mdi/js";
@@ -16,18 +21,21 @@ import "./WaypointPanel.less";
 
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
-    const jaiaDispatchContext = useContext(JaiaDispatchContext);
-
-    useEffect(() => {
-        return () => {
-            jaiaDispatchContext({ type: JaiaActions.CLOSED_WAYPOINT_PANEL });
-        };
-    }, []);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const getWaypoint = () => {
         const mission = jaiaContext.missions.get(jaiaContext.selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
     };
+
+    const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
+    const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
+
+    useEffect(() => {
+        return () => {
+            jaiaDispatch({ type: JaiaActions.CLOSED_WAYPOINT_PANEL });
+        };
+    }, []);
 
     const getTaskType = () => {
         const taskType = getWaypoint().getTask()?.getType();
@@ -67,12 +75,39 @@ export default function WaypointPanel() {
     };
 
     const handleDeleteWaypointClick = () => {
-        jaiaDispatchContext({ type: JaiaActions.DELETE_WAYPOINT });
+        jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
     };
 
     const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
         const selectedTaskType = evt.target.value;
-        jaiaDispatchContext({ type: JaiaActions.SELECT_TASK, taskType: selectedTaskType });
+        jaiaDispatch({ type: JaiaActions.SELECT_TASK, taskType: selectedTaskType });
+    };
+
+    const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
+        let lat = latInput;
+        let lon = lonInput;
+
+        const value = evt.target.value;
+
+        if (evt.target.name === CoordinateTypes.LAT) {
+            setLatInput(value);
+            lat = value;
+        } else {
+            setLonInput(value);
+            lon = value;
+        }
+
+        if (isNaN(Number(value))) {
+            return;
+        }
+
+        const updatedLatLon = validateCoordinate(lat, lon);
+        setLatInput(updatedLatLon[0]);
+        setLonInput(updatedLatLon[1]);
+        jaiaDispatch({
+            type: JaiaActions.MOVE_WAYPOINT,
+            location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
+        });
     };
 
     return (
@@ -97,10 +132,22 @@ export default function WaypointPanel() {
                 <div className="line-break"></div>
 
                 <div className="label">Lat:</div>
-                <div>{getWaypoint().getLocation().lat.toFixed(LAT_LON_DECIMALS)}</div>
+                <input
+                    name={CoordinateTypes.LAT}
+                    value={latInput}
+                    className="jaia-input coordinate"
+                    autoComplete="off"
+                    onChange={(evt) => handleCoordinateChange(evt)}
+                />
 
                 <div className="label">Lon:</div>
-                <div>{getWaypoint().getLocation().lon.toFixed(LAT_LON_DECIMALS)}</div>
+                <input
+                    name={CoordinateTypes.LON}
+                    value={lonInput}
+                    className="jaia-input coordinate"
+                    autoComplete="off"
+                    onChange={(evt) => handleCoordinateChange(evt)}
+                />
 
                 <div className="line-break"></div>
 
