@@ -7,6 +7,8 @@ import json
 import logging
 from pprint import pprint
 from os.path import getmtime
+import sqlite3
+import random
 
 
 l = logging.getLogger('task_packet_database')
@@ -14,25 +16,43 @@ l = logging.getLogger('task_packet_database')
 class TaskPacketDatabase:
     path: str
 
-    # A map of task_packet_id to task_packet
-    all_task_packets: Dict[str, Dict] = {} 
-
-    excluded_task_packet_ids: Set[str] = set()
-    task_packets_version = 0
+    task_packets_version = random.sample(range(2**31), 1)[0]
 
     # last time the load functions were called
     last_updated_utime = 0
     # Time between checking for task packet files (10 Seconds)
     update_interval = 10_000_000
 
-    # Latest mtime that we've already loaded
     latest_taskpacket_mtime = 0
-    latest_excluded_taskpacket_mtime = 0
+
+
+    db: sqlite3.Connection
 
     def __init__(self, path: str="/var/log/jaiabot/bot_offload/"):
         self.path = path
+        self.db = self._open_db()
         self.loop()
     
+
+    def _open_db(self):
+        """Open or create the sqlite database that stores the task packets.
+
+        Returns:
+            sqlite3.Connection: The database connection.
+        """
+        db = sqlite3.connect(self.path + '/task_packet.db')
+
+        # Create tables
+        db.execute('create table if not exists task_packets (id text primary key on conflict replace, bot_id integer, utime integer, json_string text)')
+        db.execute('create table if not exists included (id text primary key, included integer)')
+        # Create indices
+        db.execute('create index if not exists task_packets$bot_id on task_packets(bot_id)')
+        db.execute('create index if not exists task_packets$utime on task_packets(utime)')
+        db.execute('create index if not exists task_packets$included on included(included)')
+        db.commit()
+
+        return db
+
 
     def loop(self):
         # Check if the desired time interval has passed
@@ -40,14 +60,25 @@ class TaskPacketDatabase:
             return
         else:
             self.last_updated_utime = now_utime()
-            self.load_taskpacket_files()
-            self.load_excluded_task_packet_ids()
-            
-         
+            self.update_from_taskpacket_files()
+
+
+    def _add_task_packet(self, task_packet: Dict):
+        id = get_task_packet_id(task_packet)
+        values = (
+            id,
+            task_packet["bot_id"],
+            task_packet["start_time"],
+            json.dumps(task_packet)
+        )
+        self.db.execute('insert or replace into task_packets (id, bot_id, utime, json_string) values (?, ?, ?, ?)', values)
+        self.db.execute('insert or ignore into included (id, included) values (?, ?)', (id, True))
+        self.task_packets_version += 1
+
 
     def add_task_packet(self, task_packet: Dict):
-        self.all_task_packets[get_task_packet_id(task_packet)] = task_packet
-        self.task_packets_version += 1
+        self._add_task_packet(task_packet)
+        self.db.commit()
 
 
     def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None):
@@ -62,21 +93,30 @@ class TaskPacketDatabase:
         Returns:
             list[dict]: A list of task packets that match the criteria.
         """
-        results = self.all_task_packets.values()
+
+        self.loop()
+
+        conditionals = []
+        parameters = []
 
         if bot_ids is not None:
-            results = filter(lambda tp: tp["bot_id"] in bot_ids, results)
+            conditionals.append(f'where bot_id in ({",".join(bot_ids)})')
+            parameters.extend(bot_ids)
 
         if start_utime is not None:
-            results = filter(lambda tp: int(tp["start_time"]) >= start_utime, results)
+            conditionals.append(f'where utime >= ?')
+            parameters.append(start_utime)
 
         if end_utime is not None:
-            results = filter(lambda tp: int(tp["start_time"]) <= end_utime, results)
+            conditionals.append(f'where utime <= ?')
+            parameters.append(end_utime)
 
         if included is not None:
-            results = filter(lambda tp: (get_task_packet_id(tp) in self.excluded_task_packet_ids) != included, results)
+            conditionals.append(f'where included = ?')
+            parameters.append(1 if included else 0)
 
-        return list(results)
+        results = self.db.execute(f'select json_string from task_packets natural join included {"and".join(conditionals)}', parameters)
+        return [json.loads(row[0]) for row in results]
 
 
     def get_task_packets(self, start_date: datetime, end_date: datetime):
@@ -88,32 +128,13 @@ class TaskPacketDatabase:
             list[dict]: Subset of TaskPacket dicts between specified dates
         """
 
-        if start_date is not None:
-            start_utime = utime(start_date)
-        else:
-            start_utime = -1
-
-        if end_date is not None:
-            end_utime = utime(end_date)
-        else:
-            end_utime = 9e99
+        start_utime = utime(start_date) if start_date else None
+        end_utime = utime(end_date) if end_date else None
 
         result = {
-            "included": [],
-            "excluded": []
+            "included": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=True),
+            "excluded": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=False)
         }
-
-        for task_packet in self.all_task_packets.values():
-            if not (start_utime <= int(task_packet['start_time']) <= end_utime):
-                # Outside requested time range
-                continue
-
-            task_packet_id = get_task_packet_id(task_packet)
-
-            if get_task_packet_id(task_packet) in self.excluded_task_packet_ids:
-                result["excluded"].append(task_packet)
-            else:
-                result["included"].append(task_packet)
 
         return result
     
@@ -126,7 +147,7 @@ class TaskPacketDatabase:
         return self.task_packets_version
 
 
-    def load_taskpacket_files(self):
+    def update_from_taskpacket_files(self):
         """Loads all modified taskpacket files from the offload directory.
         """
 
@@ -140,51 +161,18 @@ class TaskPacketDatabase:
                 for line in open(taskpacket_filename):
                     try:
                         taskPacket: Dict = json.loads(line)
-                        self.add_task_packet(taskPacket)
+                        self._add_task_packet(taskPacket)
                     except json.JSONDecodeError as e:
                         l.warning(f"Error decoding JSON line: {line} because {e}")
 
                 latest_modified_mtime = max(latest_modified_mtime, taskpacket_mtime)
         
+        self.db.commit()
         self.latest_taskpacket_mtime = latest_modified_mtime
-
-
-    def load_excluded_task_packet_ids(self):
-        """Load the excluded task packet file, if it's been modified.
-        """
-        file_path = self.path + 'excluded_task_packet_ids.json'
-        excluded_taskpacket_mtime = getmtime(file_path)
-
-        if excluded_taskpacket_mtime <= self.latest_excluded_taskpacket_mtime:
-            # File hasn't changed
-            return
-
-        try:
-            file = open(file_path, 'r')
-            self.excluded_task_packet_ids = set(json.load(file))
-            self.latest_excluded_taskpacket_mtime = excluded_taskpacket_mtime
-            l.info(f"Loaded {len(self.excluded_task_packet_ids)} excluded task packet ids")
-        except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
-            l.info(e)
-            self.excluded_task_packet_ids = set([])
-            self.save_excluded_task_packet_ids()
-
-
-    def save_excluded_task_packet_ids(self):
-        file_path = self.path + 'excluded_task_packet_ids.json'
-        with open(file_path, 'w') as file:
-            json.dump(list(self.excluded_task_packet_ids), file)
     
 
     def set_task_packet_included(self, task_packet_id: str, included: bool):
-        if included:
-            try:
-                self.excluded_task_packet_ids.remove(task_packet_id)
-            except KeyError:
-                l.warning(f'task_packet_id "{task_packet_id}" was not excluded, no need to remove it.')
-        else:
-            self.excluded_task_packet_ids.add(task_packet_id)
-
-        self.save_excluded_task_packet_ids()
+        self.db.execute(f'insert or replace into included (included) values (?) where id is ?', (included, task_packet_id))
+        self.db.commit()
         self.task_packets_version += 1
 
