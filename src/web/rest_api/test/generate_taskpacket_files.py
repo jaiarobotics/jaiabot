@@ -7,8 +7,8 @@ from datetime import datetime
 from math import cos, pi
 
 
-taskpacket_files = 200
-taskpackets_per_file = 10
+taskpacket_files = 1000
+taskpackets_per_file = 100
 bots = 5
 lat_range = [41.661484, 41.761484]
 lon_range = [-71.272681, -71.372681]

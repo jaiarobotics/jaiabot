@@ -115,8 +115,6 @@ class Interface:
                 data = self.sock.recv(10000)
                 self.process_portal_to_client_message(data)
 
-                self.task_packet_database.loop()
-
             except socket.timeout:
                 self.ping_portal()
 

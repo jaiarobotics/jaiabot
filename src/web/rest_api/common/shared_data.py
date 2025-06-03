@@ -54,9 +54,6 @@ class Data:
         Returns:
             List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
         """
-        # Update if necessary
-        self.task_packet_database.loop()
-
         # This function returns dictionary representations of the task packets
         task_packet_dicts = self.task_packet_database.query_task_packets(bot_ids=bot_ids, start_utime=start_time_microseconds, end_utime=end_time_microseconds)
 
