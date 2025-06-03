@@ -10,7 +10,7 @@ except:
     from smbus2 import SMBus
 class AtlasOEM:
 
-    def __init__(self, bus=0, address=0x64) -> None:
+    def __init__(self, bus=1, address=0x64) -> None:
         self._bus = SMBus(bus)
         self._address = address
 
