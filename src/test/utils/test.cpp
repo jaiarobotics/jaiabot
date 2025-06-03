@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE jaiabot_test_utils
 #include "jaiabot/utils/derived_salinity.h"
-#include "jaiabot/utils/dissovled_oxygen_compensation.h"
+#include "jaiabot/utils/dissolved_oxygen_compensation.h"
 #include "jaiabot/utils/ph_temperature_compensation.h"
 #include "jaiabot/utils/specific_conductivity.h"
 #include <boost/test/included/unit_test.hpp>

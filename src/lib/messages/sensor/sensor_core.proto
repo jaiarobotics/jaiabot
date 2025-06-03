@@ -8,12 +8,41 @@ import "jaiabot/messages/sensor/atlas_scientific__oem_do.proto";
 import "jaiabot/messages/sensor/atlas_scientific__oem_ph.proto";
 import "jaiabot/messages/sensor/turner__c_fluor.proto";
 import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
+import "jaiabot/messages/sensor/catalog.proto";
 
 package jaiabot.sensor.protobuf;
 
 enum MCUCommand
 {
     ENTER_BOOTLOADER_MODE = 1;
+}
+
+enum CompensationType
+{
+    SET_EC_TEMPERATURE_COMPENSATION = 1;
+    SET_DO_SALINITY_COMPENSATION = 2;
+    SET_DO_PRESSURE_COMPENSATION = 3;
+    SET_DO_TEMPERATURE_COMPENSATION = 4;
+    SET_PH_TEMPERATURE_COMPENSATION = 5;
+}
+
+enum CalibrationType
+{
+    START_EC_CALIBRATION = 1;
+    CALIBRATE_EC_DRY = 2;
+    CALIBRATE_EC_LOW = 3;
+    CALIBRATE_EC_HIGH = 4;
+    CLEAR_EC_CALIBRATION = 5;
+    START_DO_CALIBRATION = 6;
+    CALIBRATE_DO_LOW = 7;
+    CALIBRATE_DO_HIGH = 8;
+    CLEAR_DO_CALIBRATION = 9;   
+    START_PH_CALIBRATION = 10;
+    CALIBRATE_PH_LOW = 11;
+    CALIBRATE_PH_MID = 12;
+    CALIBRATE_PH_HIGH = 13;
+    CLEAR_PH_CALIBRATION = 14;
+    STOP_CALIBRATION = 15; // stop calibration and return to normal operation
 }
 
 message SensorRequest
@@ -36,6 +65,10 @@ message SensorRequest
     }
 
     optional MCUCommand mcu_command = 20;
+    optional CalibrationType calibration_type = 21;
+    optional double calibration_value = 22;
+    optional CompensationType compensation_type = 23;
+    optional double compensation_value = 24;
 }
 
 message SensorData
@@ -60,4 +93,10 @@ message SensorData
         // change name to VendorSensor format
         // EchoData echo_data = 17;
     }
+}
+
+message SensorThreadConfig
+{
+    optional Metadata metadata = 1;
+    optional int32 sample_rate = 2;
 }
