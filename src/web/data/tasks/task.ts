@@ -18,23 +18,18 @@ export default class Task {
 
     // Parameter Constraints //
     NO_CONSTRAINT = -1;
+    ZERO_LOWER_BOUND = 0;
 
     // Dive
-    MIN_DEPTH_CONSTRAINT = 0;
     MAX_DEPTH_CONSTRAINT = 50;
-    MIN_HOLD_TIME_CONSTRAINT = 0;
     MAX_HOLD_TIME_CONSTRAINT = 120;
 
-    // Drift
-    MIN_DRIFT_TIME_CONSTRAINT = 0;
-
     // Constant Heading
-    MIN_HEADING_CONSTRAINT = 0;
     MAX_HEADING_CONSTRAINT = 360;
-    MIN_CONSTANT_HEADING_TIME_CONSTRAINT = 0;
     MIN_SPEED_CONSTRAINT = 1;
     MAX_SPEED_CONSTRAINT = 3;
 
+    private isBottomDive: boolean;
     private isEnablePAM: boolean;
 
     constructor() {
@@ -86,51 +81,35 @@ export default class Task {
 
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
-                value = this.validateInput(
-                    value,
-                    this.MIN_DEPTH_CONSTRAINT,
-                    this.MAX_DEPTH_CONSTRAINT,
-                );
+                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.max_depth = value;
                 break;
             case TaskParameterKeys.DEPTH_INTERVAL:
-                value = this.validateInput(
-                    value,
-                    this.MIN_DEPTH_CONSTRAINT,
-                    this.MAX_DEPTH_CONSTRAINT,
-                );
+                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.depth_interval = value;
                 break;
             case TaskParameterKeys.HOLD_TIME:
                 value = this.validateInput(
                     value,
-                    this.MIN_HOLD_TIME_CONSTRAINT,
+                    this.ZERO_LOWER_BOUND,
                     this.MAX_HOLD_TIME_CONSTRAINT,
                 );
                 this.diveParameters.hold_time = value;
                 break;
             case TaskParameterKeys.DRIFT_TIME:
-                value = this.validateInput(
-                    value,
-                    this.MIN_DRIFT_TIME_CONSTRAINT,
-                    this.NO_CONSTRAINT,
-                );
+                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.NO_CONSTRAINT);
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
                 value = this.validateInput(
                     value,
-                    this.MIN_HEADING_CONSTRAINT,
+                    this.ZERO_LOWER_BOUND,
                     this.MAX_HEADING_CONSTRAINT,
                 );
                 this.constantHeadingParameters.constant_heading = value;
                 break;
             case TaskParameterKeys.CONSTANT_HEADING_TIME:
-                value = this.validateInput(
-                    value,
-                    this.MIN_CONSTANT_HEADING_TIME_CONSTRAINT,
-                    this.NO_CONSTRAINT,
-                );
+                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.NO_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_time = value;
                 break;
             case TaskParameterKeys.SPEED:
@@ -146,6 +125,15 @@ export default class Task {
         this.updateDefaultTaskParameters();
     }
 
+    /**
+     * Clamps a number between a provided min and max. If the bound is infinity,
+     * pass this.NO_CONSTRAINT.
+     *
+     * @param {number} value Number to be validated
+     * @param {number} min Lower bound
+     * @param {number} max Upper bound
+     * @returns {number} Clamped value
+     */
     private validateInput(value: number, min: number, max: number) {
         if (value > max && max !== this.NO_CONSTRAINT) {
             return max;
@@ -190,6 +178,33 @@ export default class Task {
         this.constantHeadingParameters = { ...constantHeadingParameters };
     }
 
+    getIsBottomDive() {
+        return this.isBottomDive;
+    }
+
+    /**
+     * Sets the isBottomDive property + configures the dive parameters accordingly.
+     * The setting of the dive parameters does not update the default parameters because
+     * when the toggle is switched off, we do not want to leave the operator with the
+     * max parameters.
+     *
+     * @param {Boolean} isBottomDive The new state of the toggle
+     * @returns {void}
+     */
+    setIsBottomDive(isBottomDive: boolean) {
+        if (isBottomDive) {
+            this.setDiveParameters({
+                max_depth: this.MAX_DEPTH_CONSTRAINT,
+                depth_interval: this.MAX_DEPTH_CONSTRAINT,
+                hold_time: 0,
+            });
+        } else {
+            this.setDiveParameters(jaiaGlobal.getDefaultTaskParameters().dive);
+        }
+
+        this.isBottomDive = isBottomDive;
+    }
+
     getIsEnablePAM() {
         return this.isEnablePAM;
     }
@@ -198,6 +213,12 @@ export default class Task {
         this.isEnablePAM = isEnablePAM;
     }
 
+    /**
+     * Formats the Task object into the MissionTask structure
+     * that is used on the Hub/Bot.
+     *
+     * @returns {MissionTask} Task data formated for the Hub/Bot
+     */
     packageTaskForHub() {
         const missionTask: MissionTask = {
             type: this.type,
