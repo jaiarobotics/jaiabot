@@ -9,3 +9,5 @@ export const INITAL_ZOOM_DURATION = 3000; // milliseconds
 export const INITIAL_ZOOM = 15; // OpenLayers zoom level
 export const MIN_BATTERY_PERCENT = 20;
 export const MERCATOR = "EPSG:3857";
+export const MIN_SPEED = 0.5; // meters per second
+export const MAX_SPEED = 3; // meters per second

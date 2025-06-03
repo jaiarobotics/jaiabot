@@ -15,7 +15,7 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
+import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
     NodeTypes,
@@ -47,6 +47,7 @@ export interface JaiaContextType {
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
+    missionSpeeds: Speeds;
 }
 
 export interface JaiaAction {
@@ -66,6 +67,8 @@ export interface JaiaAction {
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
+
+    missionSpeeds?: Speeds;
 }
 
 interface JaiaContextProviderProps {
@@ -132,6 +135,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
+
+        case JaiaActions.CHANGE_MISSION_SPEEDS:
+            return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
@@ -204,6 +210,8 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
+
+    mutableState.missionSpeeds = missions.getMissionSpeeds();
 
     return mutableState;
 }
@@ -337,6 +345,18 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
 
     missionLayer.updateFeatures();
 
+    return mutableState;
+}
+
+/**
+ * Makes a call update the mission speeds
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
+    missions.setMissionSpeeds(missionSpeeds);
+    mutableState.missionSpeeds = missionSpeeds;
     return mutableState;
 }
 
