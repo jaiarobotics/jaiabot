@@ -19,7 +19,7 @@ const botStatusMock1: PortalBotStatus = {
     battery_percent: 75,
 };
 
-// Status age Error
+// Status age error
 const botStatusMock2: PortalBotStatus = {
     bot_id: 2,
     mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
@@ -80,7 +80,7 @@ test("0 Bots ready to start a mission", async () => {
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
-    expect(screen.getByText("Alert"));
+    expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(
         screen.getByText(
             "Cannot send mission to Bot: 2 because it does not have comms with the Hub.",
@@ -113,7 +113,7 @@ test("1 Bot ready to start a mission", async () => {
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
-    expect(screen.getByText("Confirm"));
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Send mission to Bot: 1")).toBeInTheDocument();
     expect(
         screen.getByText(
@@ -149,7 +149,7 @@ test("2 Bots ready to start missions", async () => {
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
-    expect(screen.getByText("Confirm"));
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Send missions to Bots: 1, 6")).toBeInTheDocument();
     expect(
         screen.getByText(
@@ -191,7 +191,7 @@ test("All Bots ready to start missions", async () => {
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
-    expect(screen.getByText("Confirm"));
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Send missions to Bots: 1, 6")).toBeInTheDocument();
     expect(
         screen.queryByText(
