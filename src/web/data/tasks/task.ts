@@ -38,6 +38,8 @@ export default class Task {
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
+        this.isBottomDive = false;
+        this.isEnablePAM = false;
     }
 
     getType() {
