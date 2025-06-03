@@ -3,6 +3,7 @@ export enum DisabledCodes {
     NO_COMMS = 2,
     MISSION_STATE = 3,
 }
+
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NONE, ""],
     [DisabledCodes.NO_COMMS, "The Bot does not have comms with the Hub."],

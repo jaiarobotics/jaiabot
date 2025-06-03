@@ -37,7 +37,7 @@ test("Click activate button in disabled state due to mission state", async () =>
     expect(screen.getByText("Close")).toBeInTheDocument();
 });
 
-test("Click activate button in disabled state due no comms", async () => {
+test("Click activate button in disabled state due to no comms", async () => {
     render(<ActivateButton bot={bots.getBot(2)} />);
     const button = screen.getByRole("button", { name: "activate-individual-bot" });
     await userEvent.click(button);
