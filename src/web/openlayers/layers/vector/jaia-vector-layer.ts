@@ -11,9 +11,9 @@ export default class JaiaVectorLayer {
         this.vectorLayer = new VectorLayer({
             properties: {
                 title: title,
-                zIndex: zIndex,
             },
             source: new VectorSource({ wrapX: false }),
+            zIndex: zIndex,
         });
     }
 
