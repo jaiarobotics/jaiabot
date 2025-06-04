@@ -54,8 +54,8 @@ export default class Mission {
     }
 
     getWaypoint(waypointNum: number) {
-        if (waypointNum > 0 && waypointNum <= this.getWaypoints().length) {
-            return this.getWaypoints()[waypointNum - 1];
+        if (waypointNum > 0 && waypointNum <= this.waypoints.length) {
+            return this.waypoints[waypointNum - 1];
         }
         return undefined;
     }
@@ -63,25 +63,31 @@ export default class Mission {
     addWaypoint(location: GeographicCoordinate) {
         const waypoint = new Waypoint();
         waypoint.setLocation(location);
-        this.getWaypoints().push(waypoint);
+        this.waypoints.push(waypoint);
     }
 
     deleteWaypoint(waypointNum: number) {
-        let waypoints = this.getWaypoints();
-
         // Remove last waypoint in constant time
-        if (waypointNum === waypoints.length) {
-            waypoints.pop();
+        if (waypointNum === this.waypoints.length) {
+            this.waypoints.pop();
         }
         // Remove other waypoints in linear time
         else {
             this.setWaypoints(
-                waypoints.filter((waypoint, index) => {
+                this.waypoints.filter((waypoint, index) => {
                     if (index + 1 !== waypointNum) {
                         return waypoint;
                     }
                 }),
             );
+        }
+    }
+
+    moveWaypoint(waypointNum: number, location: GeographicCoordinate) {
+        const index = waypointNum - 1;
+        if (index >= 0 && index < this.waypoints.length) {
+            const waypoint = this.waypoints[index];
+            waypoint.setLocation(location);
         }
     }
 

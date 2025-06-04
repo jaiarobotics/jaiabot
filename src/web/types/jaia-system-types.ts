@@ -59,3 +59,8 @@ export enum ButtonListTypes {
     TOP = 1,
     SIDE = 2,
 }
+
+export enum CoordinateTypes {
+    LAT = "LAT",
+    LON = "LON",
+}

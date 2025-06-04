@@ -60,6 +60,7 @@ function DiveParameters(props: SubProps) {
                 name={TaskParameterKeys.MAX_DEPTH}
                 type="number"
                 value={formatNumericalInput(diveParameters.max_depth)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -70,6 +71,7 @@ function DiveParameters(props: SubProps) {
                 name={TaskParameterKeys.DEPTH_INTERVAL}
                 type="number"
                 value={formatNumericalInput(diveParameters.depth_interval)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -80,6 +82,7 @@ function DiveParameters(props: SubProps) {
                 name={TaskParameterKeys.HOLD_TIME}
                 type="number"
                 value={formatNumericalInput(diveParameters.hold_time)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -90,6 +93,7 @@ function DiveParameters(props: SubProps) {
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
                 value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -109,6 +113,7 @@ function DriftParameters(props: SubProps) {
                 name={TaskParameterKeys.DRIFT_TIME}
                 type="number"
                 value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -129,6 +134,7 @@ function ConstantHeading(props: SubProps) {
                 name={TaskParameterKeys.HEADING}
                 type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -139,6 +145,7 @@ function ConstantHeading(props: SubProps) {
                 name={TaskParameterKeys.CONSTANT_HEADING_TIME}
                 type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_time)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -149,6 +156,7 @@ function ConstantHeading(props: SubProps) {
                 name={TaskParameterKeys.SPEED}
                 type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_speed)}
+                className="jaia-input"
                 autoComplete="off"
                 onChange={(evt) => props.onChange(evt)}
             />
