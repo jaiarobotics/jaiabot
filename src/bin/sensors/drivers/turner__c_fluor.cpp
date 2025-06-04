@@ -25,7 +25,6 @@
 
 #include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/calibration_coefficients.pb.h"
 #include "jaiabot/messages/sensor/configuration.pb.h"
 #include "turner__c_fluor.h"
 
