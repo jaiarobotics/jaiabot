@@ -8,7 +8,9 @@ import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { microsecondsToSeconds } from "../../utils/conversions";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
@@ -43,6 +45,10 @@ export default function ActivateButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            return DisabledCodes.NO_COMMS;
+        }
+
         if (!isCommandAvailable(CommandType.ACTIVATE, props.bot.getMissionStatus().missionState)) {
             return DisabledCodes.MISSION_STATE;
         }
