@@ -20,13 +20,13 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <goby/time/system_clock.h>
 #include <fstream>
+#include <goby/time/system_clock.h>
 
-#include <google/protobuf/text_format.h>
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/sensor/configuration.pb.h"
 #include "turner__c_fluor.h"
+#include <google/protobuf/text_format.h>
 
 using goby::glog;
 
@@ -36,8 +36,9 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
-    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>( 
-        [this](const sensor::protobuf::SensorData& sensor_data) {
+    interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
+        [this](const sensor::protobuf::SensorData& sensor_data)
+        {
             if (sensor_data.has_c_fluor())
                 receive_data(sensor_data.c_fluor());
         });
@@ -116,7 +117,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
 void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    auto health_state = goby::middleware::protobuf::HEALTH__OK; 
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {

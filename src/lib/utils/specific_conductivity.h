@@ -61,24 +61,16 @@ double tuned_b(double measured_conductivity, double temperature_celsius)
 {
     // Normalize inputs
     // range: ~0.05 to 1.5
-    double ec = measured_conductivity / 100000.0;  
+    double ec = measured_conductivity / 100000.0;
     // range: 0 to 1
     double t = temperature_celsius / 50.0;
 
-    // Polynomial model: b = intercept + coef1*ec 
-    //                        + coef2*t + coef3*ec*t 
+    // Polynomial model: b = intercept + coef1*ec
+    //                        + coef2*t + coef3*ec*t
     //                        + coef4*ec^2 + coef5*t^2
-    double b =
-        0.67132
-        + 2.93970 * ec
-        - 0.90973 * t
-        - 11.85994 * ec * ec
-        + 13.66141 * ec * t
-        - 2.06555 * t * t
-        + 12.93730 * ec * ec * ec
-        - 26.03585 * ec * ec * t
-        + 14.13775 * ec * t * t
-        - 1.48252 * t * t * t;
+    double b = 0.67132 + 2.93970 * ec - 0.90973 * t - 11.85994 * ec * ec + 13.66141 * ec * t -
+               2.06555 * t * t + 12.93730 * ec * ec * ec - 26.03585 * ec * ec * t +
+               14.13775 * ec * t * t - 1.48252 * t * t * t;
     // Clamp - Limit to physical bounds
     return std::fmax(0.68, std::fmin(b, 0.88));
 }
@@ -98,7 +90,8 @@ double tuned_b(double measured_conductivity, double temperature_celsius)
  * @param temperature_celsius Temperature of the measurement in degrees Celsius
  * @return double Specific conductivity at 25 °C
  */
-double calculate_specific_conductivity(const double measured_conductivity, const double temperature_celsius)
+double calculate_specific_conductivity(const double measured_conductivity,
+                                       const double temperature_celsius)
 {
     if (measured_conductivity < 8000.0)
     {
