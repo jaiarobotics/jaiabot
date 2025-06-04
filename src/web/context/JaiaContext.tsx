@@ -148,6 +148,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_TASK_PARAMETER:
             return handleChangeTaskParameter(mutableState, action.taskParameterPair);
 
+        case JaiaActions.TOGGLE_BOTTOM_DIVE:
+            return handleToggleBottomDive(mutableState);
+
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
@@ -447,6 +450,24 @@ function handleChangeTaskParameter(
 ) {
     const task = getTask();
     task.setParameter(taskParameterPair);
+    return mutableState;
+}
+
+/**
+ * Makes call to update the dive parameters based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleToggleBottomDive(mutableState: JaiaContextType) {
+    const task = getTask();
+
+    if (task.getIsBottomDive()) {
+        task.setIsBottomDive(false);
+    } else {
+        task.setIsBottomDive(true);
+    }
+
     return mutableState;
 }
 

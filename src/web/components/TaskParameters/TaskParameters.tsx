@@ -1,4 +1,6 @@
 import React, { useContext } from "react";
+
+import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
@@ -19,12 +21,24 @@ interface SubProps {
     onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+interface DiveParameterProps {
+    task: Task;
+    handleBottomDiveClick: () => void;
+    onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
 /**
  * Renders input fields for the provided task
  */
 export default function TaskParameters(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Dispatches action to update the modified task parameter
+     *
+     * @param {React.ChangeEvent<HTMLInputElement>} evt Contains the name + value of the edited param
+     * @returns {void}
+     */
     const onParameterChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
         const key = evt.target.name;
         const value = evt.target.value;
@@ -35,9 +49,25 @@ export default function TaskParameters(props: Props) {
         });
     };
 
+    /**
+     * Dispatches action to update the bottom dive toggle and the
+     * dive parameters
+     *
+     * @return {void}
+     */
+    const handleBottomDiveClick = () => {
+        jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE });
+    };
+
     switch (props.task?.getType()) {
         case TaskType.DIVE:
-            return <DiveParameters task={props.task} onChange={onParameterChange} />;
+            return (
+                <DiveParameters
+                    task={props.task}
+                    onChange={onParameterChange}
+                    handleBottomDiveClick={handleBottomDiveClick}
+                />
+            );
         case TaskType.SURFACE_DRIFT:
             return <DriftParameters task={props.task} onChange={onParameterChange} />;
         case TaskType.CONSTANT_HEADING:
@@ -50,56 +80,81 @@ export default function TaskParameters(props: Props) {
 /**
  * Renders input fields for a dive task
  */
-function DiveParameters(props: SubProps) {
+function DiveParameters(props: DiveParameterProps) {
     const diveParameters = props.task.getDiveParameters();
 
-    return (
-        <div className="task-parameters">
-            <div>Max Depth</div>
-            <input
-                name={TaskParameterKeys.MAX_DEPTH}
-                type="number"
-                value={formatNumericalInput(diveParameters.max_depth)}
-                className="jaia-input"
-                autoComplete="off"
-                onChange={(evt) => props.onChange(evt)}
-            />
-            <div className="units">m</div>
+    if (props.task.getIsBottomDive()) {
+        return (
+            <div className="dive-parameters">
+                <BottomDiveToggle
+                    task={props.task}
+                    handleBottomDiveClick={props.handleBottomDiveClick}
+                />
+                <div className="task-parameters">
+                    <div>Drift Time</div>
+                    <input
+                        name={TaskParameterKeys.DRIFT_TIME}
+                        type="number"
+                        value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">s</div>
+                </div>
+            </div>
+        );
+    } else {
+        return (
+            <div className="dive-parameters">
+                <BottomDiveToggle
+                    task={props.task}
+                    handleBottomDiveClick={props.handleBottomDiveClick}
+                />
 
-            <div>Depth Interval</div>
-            <input
-                name={TaskParameterKeys.DEPTH_INTERVAL}
-                type="number"
-                value={formatNumericalInput(diveParameters.depth_interval)}
-                className="jaia-input"
-                autoComplete="off"
-                onChange={(evt) => props.onChange(evt)}
-            />
-            <div className="units">m</div>
+                <div className="task-parameters">
+                    <div>Max Depth</div>
+                    <input
+                        name={TaskParameterKeys.MAX_DEPTH}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.max_depth)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">m</div>
 
-            <div>Hold Time</div>
-            <input
-                name={TaskParameterKeys.HOLD_TIME}
-                type="number"
-                value={formatNumericalInput(diveParameters.hold_time)}
-                className="jaia-input"
-                autoComplete="off"
-                onChange={(evt) => props.onChange(evt)}
-            />
-            <div className="units">s</div>
+                    <div>Depth Interval</div>
+                    <input
+                        name={TaskParameterKeys.DEPTH_INTERVAL}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.depth_interval)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">m</div>
 
-            <div>Drift Time</div>
-            <input
-                name={TaskParameterKeys.DRIFT_TIME}
-                type="number"
-                value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
-                className="jaia-input"
-                autoComplete="off"
-                onChange={(evt) => props.onChange(evt)}
-            />
-            <div className="units">s</div>
-        </div>
-    );
+                    <div>Hold Time</div>
+                    <input
+                        name={TaskParameterKeys.HOLD_TIME}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.hold_time)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">s</div>
+
+                    <div>Drift Time</div>
+                    <input
+                        name={TaskParameterKeys.DRIFT_TIME}
+                        type="number"
+                        value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">s</div>
+                </div>
+            </div>
+        );
+    }
 }
 
 /**
@@ -170,6 +225,21 @@ function ConstantHeading(props: SubProps) {
                 ).toFixed(0)}
             </div>
             <div className="units">m</div>
+        </div>
+    );
+}
+
+/**
+ * Renders the bottom dive toggle and its labeL
+ */
+function BottomDiveToggle(props: DiveParameterProps) {
+    return (
+        <div className="bottom-dive-toggle-container">
+            <p>Bottom Dive</p>
+            <JaiaToggle
+                checked={() => props.task.getIsBottomDive()}
+                onClick={() => props.handleBottomDiveClick()}
+            />
         </div>
     );
 }
