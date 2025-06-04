@@ -44,6 +44,12 @@ const botStatusMock6: PortalBotStatus = {
     portalStatusAge: 40_000_000, // microseconds
 };
 
+// Mock Jaia API
+const originalModule = jest.requireActual("../../../utils/jaia-api");
+originalModule.jaiaAPI.hit = jest
+    .fn()
+    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+
 test("Click activate all button with two Bots in pre-deployment idle", async () => {
     // Set up data model
     bots.setBot(botStatusMock1);
@@ -54,11 +60,11 @@ test("Click activate all button with two Bots in pre-deployment idle", async () 
     const button = screen.getByRole("button", { name: "activate-all-bots" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
-    expect(screen.getByText("Send command to Bots: 1, 2")).toBeInTheDocument();
+    expect(screen.getByText("Activate Bots: 1, 2")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
 
     // Click activate button
-    const activateButton = screen.getByText("Activate");
+    const activateButton = screen.getByText("Activate Bots");
     await userEvent.click(activateButton);
     expect(screen.queryByText("Confirm")).toBeNull();
 
@@ -77,11 +83,11 @@ test("Click activate all button with two Bots in pre-deployment idle and one Bot
     const button = screen.getByRole("button", { name: "activate-all-bots" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
-    expect(screen.getByText("Send command to Bots: 1, 2")).toBeInTheDocument();
+    expect(screen.getByText("Activate Bots: 1, 2")).toBeInTheDocument();
     expect(
         screen.getByText("Cannot send command to Bot: 3 because it is activated."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Activate")).toBeInTheDocument();
+    expect(screen.getByText("Activate Bots")).toBeInTheDocument();
 
     // Click cancel button
     const cancelButton = screen.getByText("Cancel");
@@ -175,7 +181,7 @@ test("Click activate all button with one Bot ready and two out of comms range", 
     const button = screen.getByRole("button", { name: "activate-all-bots" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
-    expect(screen.getByText("Send command to Bot: 1")).toBeInTheDocument();
+    expect(screen.getByText("Activate Bot: 1")).toBeInTheDocument();
     expect(
         screen.getByText(
             "Cannot send command to Bots: 5, 6 because they do not have comms with the Hub.",
@@ -183,7 +189,7 @@ test("Click activate all button with one Bot ready and two out of comms range", 
     ).toBeInTheDocument();
 
     // Close dialog
-    const activateButton = screen.getByText("Activate");
+    const activateButton = screen.getByText("Activate Bot");
     await userEvent.click(activateButton);
     expect(screen.queryByText("Confirm")).toBeNull();
 
