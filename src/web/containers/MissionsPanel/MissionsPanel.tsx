@@ -4,7 +4,7 @@ import { useContext } from "react";
 // Jaia
 import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
-import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSlider";
+import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 

@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
@@ -17,17 +17,11 @@ enum SpeedTypes {
     STATION_KEEP = 3,
 }
 
+const theme = createTheme({ palette: { primary: amber } });
+
 export default function MissionSpeedSliders() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    const [theme, setTheme] = useState(
-        createTheme({
-            palette: {
-                primary: amber,
-            },
-        }),
-    );
 
     const handleSpeedChange = (speedType: SpeedTypes, speed: number) => {
         const updatedSpeeds = { ...jaiaContext.missionSpeeds };
@@ -44,12 +38,16 @@ export default function MissionSpeedSliders() {
         jaiaDispatch({ type: JaiaActions.CHANGE_MISSION_SPEEDS, missionSpeeds: updatedSpeeds });
     };
 
+    if (jaiaContext === null) {
+        return;
+    }
+
     return (
-        <section className="mission-speeds">
-            <div>Transit</div>
-            <ThemeProvider theme={theme}>
+        <ThemeProvider theme={theme}>
+            <div className="mission-speeds">
+                <div>Transit</div>
                 <Slider
-                    aria-label="Transit"
+                    aria-label="Transit Speed"
                     value={jaiaContext.missionSpeeds.transit}
                     step={0.5}
                     marks
@@ -59,13 +57,11 @@ export default function MissionSpeedSliders() {
                         handleSpeedChange(SpeedTypes.TRANSIT, Number(evt.target.value))
                     }
                 />
-            </ThemeProvider>
-            <div>{jaiaContext.missionSpeeds.transit}</div>
+                <div>{jaiaContext.missionSpeeds.transit}</div>
 
-            <div>Station Keep</div>
-            <ThemeProvider theme={theme}>
+                <div>Station Keep</div>
                 <Slider
-                    aria-label="Station Keep"
+                    aria-label="Station Keep Speed"
                     value={jaiaContext.missionSpeeds.stationkeep_outer}
                     step={0.5}
                     marks
@@ -75,8 +71,8 @@ export default function MissionSpeedSliders() {
                         handleSpeedChange(SpeedTypes.STATION_KEEP, Number(evt.target.value))
                     }
                 />
-            </ThemeProvider>
-            <div>{jaiaContext.missionSpeeds.stationkeep_outer}</div>
-        </section>
+                <div>{jaiaContext.missionSpeeds.stationkeep_outer}</div>
+            </div>
+        </ThemeProvider>
     );
 }
