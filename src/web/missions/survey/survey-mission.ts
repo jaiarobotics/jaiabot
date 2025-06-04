@@ -91,6 +91,7 @@ export function getSurveyMissionPlans(
     missionStartTask: MissionTask,
     missionEndTask: MissionTask,
     lanesPerRun: number,
+    numBots: number,
 ) {
     let missionPlans: CommandList = {};
     let millisecondsSinceEpoch = new Date().getTime();
@@ -98,12 +99,25 @@ export function getSurveyMissionPlans(
     let mpg = missionPlanningGrid;
     let laneKeys = Object.keys(mpg);
     let runIndex = 0;
+    let remainder = laneKeys.length % numBots;
+
+    console.log("laneKeys", laneKeys);
+    console.log("lanesPerRun", lanesPerRun);
+    console.log("remainder", remainder);
 
     // Loop through all mission runs, grouping them by lanesPerRun,
     // so each bot is assigned one run that may include multiple adjacent lanes
     // (e.g., if lanesPerRun = 2, bot 1 gets runs 1 & 2, bot 2 gets runs 3 & 4, etc.)
-    for (let i = 0; i < laneKeys.length; i += lanesPerRun) {
+    let i = 0;
+    while (i < laneKeys.length) {
         let botGoals: Goal[] = [];
+        lanesPerRun = Math.floor(laneKeys.length / numBots);
+
+        if (remainder > 0) {
+            console.log("remainder > 0");
+            lanesPerRun += 1;
+            remainder -= 1;
+        }
 
         // Rally Start
         botGoals.push({
@@ -162,6 +176,8 @@ export function getSurveyMissionPlans(
             },
         };
         runIndex++;
+        console.log("lanesPerRun 2: ", lanesPerRun);
+        i += lanesPerRun;
     }
 
     return missionPlans;

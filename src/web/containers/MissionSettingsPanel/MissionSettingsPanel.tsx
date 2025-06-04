@@ -38,6 +38,7 @@ export interface MissionParams {
     selectedBots: number[];
     useMaxLength: boolean;
     lanesPerRun: number;
+    numBots: number;
 }
 
 interface Props {
@@ -215,7 +216,7 @@ export class MissionSettingsPanel extends React.Component {
                         m
                     </div>
 
-                    <div className="mission-settings-input-label">Number of Runs:</div>
+                    <div className="mission-settings-input-label">Number of Lanes:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
@@ -225,13 +226,13 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div className="mission-settings-input-label">Number Lanes Per Run:</div>
+                    <div className="mission-settings-input-label">Number of Bots:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            value={this.props.missionParams.lanesPerRun}
-                            name="numLanesPerRun"
-                            onChange={this.changeLanesPerRunCount.bind(this)}
+                            value={this.props.missionParams.numBots}
+                            name="numBots"
+                            onChange={this.changeBotCount.bind(this)}
                         />
                     </div>
 
@@ -486,12 +487,12 @@ export class MissionSettingsPanel extends React.Component {
      * @param {Event} evt Contains the number of lanes per run value
      * @returns {void}
      */
-    changeLanesPerRunCount(evt: Event) {
+    changeBotCount(evt: Event) {
         const element = evt.target as HTMLInputElement;
         const value = this.validateNumInput(Number(element.value));
 
         let missionParams = { ...this.props.missionParams };
-        missionParams.lanesPerRun = value;
+        missionParams.numBots = value;
         this.props.setMissionParams(missionParams);
     }
 

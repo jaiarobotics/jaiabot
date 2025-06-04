@@ -334,6 +334,7 @@ export default class CommandControl extends React.Component {
                 selectedBots: [],
                 useMaxLength: true,
                 lanesPerRun: 1,
+                numBots: 1,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
@@ -1984,6 +1985,7 @@ export default class CommandControl extends React.Component {
                 missionStartTask,
                 missionEndTask,
                 this.state.missionParams.lanesPerRun,
+                this.state.missionParams.numBots,
             );
             const planningGridFeatures = featuresFromMissionPlanningGrid(
                 missionPlanningGrid,
@@ -3923,6 +3925,7 @@ export default class CommandControl extends React.Component {
                                 missionStartTask,
                                 missionEndTask,
                                 this.state.missionParams.lanesPerRun,
+                                this.state.missionParams.numBots,
                             );
 
                             let runList = this.getRunList();
