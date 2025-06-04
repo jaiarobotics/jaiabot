@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../types/protobuf-types";
+import { NO_CONSTRAINT } from "./constants";
 import { MAX_LAT, MIN_LAT, MAX_LON, MIN_LON } from "./constants";
 
 /**
@@ -13,6 +13,27 @@ export function formatNumericalInput(input: number) {
 }
 
 /**
+ * Clamps a number between a provided min and max. If the bound is infinity,
+ * pass this.NO_CONSTRAINT.
+ *
+ * @param {number} value Number to be validated
+ * @param {number} min Lower bound
+ * @param {number} max Upper bound
+ * @returns {number} Clamped value
+ */
+export function clampInput(value: number, min: number, max: number) {
+    if (value > max && max !== NO_CONSTRAINT) {
+        return max;
+    }
+
+    if (value < min && min !== NO_CONSTRAINT) {
+        return min;
+    }
+
+    return value;
+}
+
+/*
  * Ensures latitude and longitude are within bounds
  *
  * @param {string} lat Latitude to be validated
