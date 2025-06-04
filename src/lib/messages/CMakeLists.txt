@@ -49,7 +49,6 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   fleet_config.proto
   link.proto
   udp_driver.proto
-  calibration_coefficients.proto
   ${SENSOR_MESSAGES}
 )
 
