@@ -10,7 +10,8 @@ setup(name='pyjaiaprotobuf',
       packages=[
           'dccl', 
           'goby.middleware.protobuf', 
-          'jaiabot.messages'],
+          'jaiabot.messages',
+          'jaiabot.messages.sensor'],
       install_requires=[
           'wheel', 
           'protobuf==3.20.0', 

@@ -37,7 +37,12 @@ ln -sf /usr/lib/python3/dist-packages/proto/nanopb.proto ${PROTO_INCLUDE}/nanopb
 # Create output directory
 mkdir -p $PYTHON_OUT_DIR
 
-protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} ${PROTO_INCLUDE}/dccl/option_extensions.proto ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto ${PROTO_INCLUDE}/jaiabot/messages/*.proto ${PROTO_INCLUDE}/nanopb.proto
+protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} \
+    ${PROTO_INCLUDE}/dccl/option_extensions.proto \
+    ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto \
+    ${PROTO_INCLUDE}/jaiabot/messages/*.proto \
+    ${PROTO_INCLUDE}/jaiabot/messages/sensor/*.proto \
+    ${PROTO_INCLUDE}/nanopb.proto
 
 # Remove the temporary proto_include directory
 rm -rf ${PROTO_INCLUDE}
