@@ -46,7 +46,7 @@ export function ActivateAllDialog(props: DialogProps) {
     const generateMessage = () => {
         const message: string[] = [];
 
-        // Halve the length to only count keys
+        // Halve the length to only count the names
         const disabledCodesLength = Object.keys(DisabledCodes).length / 2;
 
         for (let i = 1; i <= disabledCodesLength; i++) {
