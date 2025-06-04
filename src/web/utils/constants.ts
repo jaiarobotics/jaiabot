@@ -1,4 +1,5 @@
 export const UNASSIGNED_ID = -1;
+export const NO_CONSTRAINT = -1;
 export const DEFAULT_HUB_ID = 1;
 export const DETAILS_DECIMALS = 2;
 export const LAT_LON_DECIMALS = 5;
@@ -8,6 +9,10 @@ export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const INITAL_ZOOM_DURATION = 3000; // milliseconds
 export const INITIAL_ZOOM = 15; // OpenLayers zoom level
 export const MIN_BATTERY_PERCENT = 20;
+export const MAX_LAT = 90;
+export const MIN_LAT = -90;
+export const MAX_LON = 180;
+export const MIN_LON = -180;
 export const MERCATOR = "EPSG:3857";
 export const MIN_SPEED = 0.5; // meters per second
 export const MAX_SPEED = 3; // meters per second
