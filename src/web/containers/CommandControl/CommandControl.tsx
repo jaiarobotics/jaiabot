@@ -333,7 +333,7 @@ export default class CommandControl extends React.Component {
                 spRallyFinishDist: 0,
                 selectedBots: [],
                 useMaxLength: true,
-                lanesPerRun: 1,
+                lanesPerRun: -1,
                 numBots: -1,
             },
             missionPlanningGrid: null,
