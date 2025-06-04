@@ -114,6 +114,10 @@ export class MissionSettingsPanel extends React.Component {
         if (this.props.missionParams.numRuns === -1) {
             this.props.missionParams.numRuns = Object.keys(this.props.botList).length;
         }
+
+        if (this.props.missionParams.numBots === -1) {
+            this.props.missionParams.numBots = Object.keys(this.props.botList).length;
+        }
     }
 
     componentDidUpdate() {

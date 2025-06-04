@@ -334,7 +334,7 @@ export default class CommandControl extends React.Component {
                 selectedBots: [],
                 useMaxLength: true,
                 lanesPerRun: 1,
-                numBots: 1,
+                numBots: -1,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
