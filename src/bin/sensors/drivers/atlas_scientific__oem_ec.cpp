@@ -23,9 +23,9 @@
 #include <goby/time/system_clock.h>
 
 #include "atlas_scientific__oem_ec.h"
-#include "jaiabot/utils/specific_conductivity.h"
-#include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 
@@ -37,7 +37,8 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
     glog.add_group("oem_ec", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
-        [this](const sensor::protobuf::SensorData& sensor_data) {
+        [this](const sensor::protobuf::SensorData& sensor_data)
+        {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
             if (sensor_data.has_oem_ph())
@@ -46,9 +47,8 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            last_pressure_adjusted_data_ = pa;
-        });
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
+        { last_pressure_adjusted_data_ = pa; });
 
     // Set sample rate config
     sample_rate_ = config.sample_rate();
@@ -96,7 +96,7 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
             last_pressure_adjusted_data_.pressure_adjusted() + ATMOSPHERIC_PRESSURE_DECIBARS);
         ec_msg.set_salinity(salinity);
     }
-    
+
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);
 
     last_report_time_ = goby::time::SteadyClock::now();

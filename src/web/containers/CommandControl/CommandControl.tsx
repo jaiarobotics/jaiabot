@@ -322,7 +322,7 @@ export default class CommandControl extends React.Component {
 
             missionParams: {
                 missionType: "lines",
-                numRuns: -1,
+                numLanes: -1,
                 numGoals: MAX_GOALS - 2,
                 pointSpacing: 30,
                 lineSpacing: 30,
@@ -333,7 +333,8 @@ export default class CommandControl extends React.Component {
                 spRallyFinishDist: 0,
                 selectedBots: [],
                 useMaxLength: true,
-                lanesPerRun: 1,
+                lanesPerRun: -1,
+                numBots: -1,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
@@ -1987,7 +1988,8 @@ export default class CommandControl extends React.Component {
                 missionBaseGoal,
                 missionStartTask,
                 missionEndTask,
-                Object.keys(this.state.podStatus.bots).length,
+                this.state.missionParams.lanesPerRun,
+                this.state.missionParams.numBots,
             );
 
             missionPlanningFeaturesList.push(...planningGridFeatures);
@@ -3923,7 +3925,8 @@ export default class CommandControl extends React.Component {
                                 missionBaseGoal,
                                 missionStartTask,
                                 missionEndTask,
-                                Object.keys(this.state.podStatus.bots).length,
+                                this.state.missionParams.lanesPerRun,
+                                this.state.missionParams.numBots,
                             );
 
                             let runList = this.getRunList();

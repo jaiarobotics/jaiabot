@@ -228,7 +228,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal) {
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
             if (sal.has_salinity())
             {
                 statechart::EvMeasurement ev;

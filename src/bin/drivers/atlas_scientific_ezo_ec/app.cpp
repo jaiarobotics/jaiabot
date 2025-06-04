@@ -161,15 +161,13 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
-            last_pressure_temperature_data_ = pt;
-        });
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+        { last_pressure_temperature_data_ = pt; });
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            last_pressure_adjusted_data_ = pa;
-        });
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
+        { last_pressure_adjusted_data_ = pa; });
 
     interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
         if (moos_msg.key() == "JAIABOT_MISSION_STATE")
