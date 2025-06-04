@@ -136,7 +136,7 @@ const POD_STATUS_POLL_INTERVAL = 500;
 const BOT_PATHS_POLL_INTERVAL = 2_000;
 const METADATA_POLL_INTERVAL = 10_000;
 const TASK_PACKET_POLL_INTERVAL = 5_000;
-const MAX_GOALS = 30;
+const MAX_GOALS = 80;
 const MICROSECONDS_FACTOR = 1_000_000;
 
 export enum PanelType {
@@ -322,7 +322,7 @@ export default class CommandControl extends React.Component {
 
             missionParams: {
                 missionType: "lines",
-                numRuns: -1,
+                numLanes: -1,
                 numGoals: MAX_GOALS - 2,
                 pointSpacing: 30,
                 lineSpacing: 30,
@@ -333,7 +333,8 @@ export default class CommandControl extends React.Component {
                 spRallyFinishDist: 0,
                 selectedBots: [],
                 useMaxLength: true,
-                lanesPerRun: 1,
+                lanesPerRun: -1,
+                numBots: -1,
             },
             missionPlanningGrid: null,
             missionPlanningLines: null,
@@ -1987,7 +1988,8 @@ export default class CommandControl extends React.Component {
                 missionBaseGoal,
                 missionStartTask,
                 missionEndTask,
-                Object.keys(this.state.podStatus.bots).length,
+                this.state.missionParams.lanesPerRun,
+                this.state.missionParams.numBots,
             );
 
             missionPlanningFeaturesList.push(...planningGridFeatures);
@@ -3901,7 +3903,8 @@ export default class CommandControl extends React.Component {
                                 missionBaseGoal,
                                 missionStartTask,
                                 missionEndTask,
-                                Object.keys(this.state.podStatus.bots).length,
+                                this.state.missionParams.lanesPerRun,
+                                this.state.missionParams.numBots,
                             );
 
                             let runList = this.getRunList();

@@ -42,9 +42,8 @@ jaiabot::apps::AtlasScientificOEMDODriver::AtlasScientificOEMDODriver(
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const sensor::protobuf::AtlasScientificOEMEC& salinity_data) {
-            last_salinity_reading_ = salinity_data;
-        });
+        [this](const sensor::protobuf::AtlasScientificOEMEC& salinity_data)
+        { last_salinity_reading_ = salinity_data; });
 
     // Set sample rate config
     sample_rate_ = config.sample_rate();
@@ -77,11 +76,11 @@ void jaiabot::apps::AtlasScientificOEMDODriver::receive_data(
         do_msg.set_temperature_voltage(do_data.temperature_voltage());
     }
 
-    if (last_salinity_reading_.has_salinity() && do_data.has_do_raw() &&
-        do_data.has_temperature())
+    if (last_salinity_reading_.has_salinity() && do_data.has_do_raw() && do_data.has_temperature())
     {
         glog.is_debug1() && glog << group("oem_do")
-                             << "Creating DO solubility/sat percent/normalized solubility"<< std::endl;
+                                 << "Creating DO solubility/sat percent/normalized solubility"
+                                 << std::endl;
 
         // DO Solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)
         double do_solubility = calculate_dissolved_oxygen_solubility(
