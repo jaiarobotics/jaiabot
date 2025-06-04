@@ -11,7 +11,7 @@ command_sub_cfg {
         buffer {
             ack_required: true
             blackout_time: 0
-            max_queue: 3
+            max_queue: 8
             newest_first: true
             ttl: 60
             value_base: 1000
