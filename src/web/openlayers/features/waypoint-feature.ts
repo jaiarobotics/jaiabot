@@ -14,7 +14,6 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
-import { openLayersZIndexes } from "../../style/openlayers/zindex";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
@@ -178,16 +177,22 @@ function getWaypointColor(missionID: number) {
     return OpenLayersColors.DEFAULT;
 }
 
+/**
+ * Supplies the zIndex for waypoints and lines based on edit mode
+ *
+ * @param {number} missionID Used to determine zIndex for waypoints
+ * @returns {number} zIndex to be applied to waypoint
+ */
 function getWaypointZIndex(missionID: number) {
     const selectedNode = jaiaGlobal.getSelectedNode();
     let waypointZIndex = 0;
 
     if (missionID === missions.getMissionIDInEditMode()) {
-        waypointZIndex =
-            openLayersZIndexes.get(MapFeatureTypes.WAYPOINT) + missions.getMissions().size + 1;
+        // Assume there are less than 1000 missions
+        waypointZIndex = 1000;
     } else {
-        waypointZIndex = openLayersZIndexes.get(MapFeatureTypes.WAYPOINT) + missionID;
+        waypointZIndex = missionID;
     }
-    console.log(`Waypoint of Mission ${missionID} has zIndex of ${waypointZIndex}`);
+
     return waypointZIndex;
 }

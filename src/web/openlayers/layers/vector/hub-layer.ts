@@ -2,10 +2,11 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { hubs } from "../../../data/hubs/hubs";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { generateHubFeature } from "../../features/hub-feature";
+import { openLayersZIndexes } from "./zindex";
 
 class HubLayer extends JaiaVectorLayer {
     constructor() {
-        super(LayerTitles.HUB_LAYER);
+        super(LayerTitles.HUB_LAYER, openLayersZIndexes.get(LayerTitles.HUB_LAYER));
     }
 
     override updateFeatures() {

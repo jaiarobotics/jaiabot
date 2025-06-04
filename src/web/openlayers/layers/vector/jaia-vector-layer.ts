@@ -7,10 +7,11 @@ import { LayerTitles } from "../../../types/openlayers-types";
 export default class JaiaVectorLayer {
     private vectorLayer: VectorLayer;
 
-    constructor(title: LayerTitles) {
+    constructor(title: LayerTitles, zIndex: number) {
         this.vectorLayer = new VectorLayer({
             properties: {
                 title: title,
+                zIndex: zIndex,
             },
             source: new VectorSource({ wrapX: false }),
         });
