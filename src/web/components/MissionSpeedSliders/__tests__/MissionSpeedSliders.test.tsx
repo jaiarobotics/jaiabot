@@ -5,6 +5,7 @@ import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
 
+// MUI ThemeProvider contains undefined values that add console output in the test environment
 beforeEach(() => jest.spyOn(console, "error").mockImplementation(jest.fn()));
 
 test("Move mission speed sliders in opposite directions", () => {
