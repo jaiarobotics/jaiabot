@@ -26,7 +26,7 @@ export interface MissionSettings {
 
 export interface MissionParams {
     missionType: "editing" | "polygon-grid" | "lines" | "exclusions";
-    numRuns: number;
+    numLanes: number;
     numGoals: number;
     pointSpacing: number;
     lineSpacing: number;
@@ -111,8 +111,8 @@ export class MissionSettingsPanel extends React.Component {
         this.onTaskTypeChange = props.onTaskTypeChange;
 
         //Initialize the number of runs to the number of bots
-        if (this.props.missionParams.numRuns === -1) {
-            this.props.missionParams.numRuns = Object.keys(this.props.botList).length;
+        if (this.props.missionParams.numLanes === -1) {
+            this.props.missionParams.numLanes = Object.keys(this.props.botList).length;
         }
 
         if (this.props.missionParams.numBots === -1) {
@@ -224,9 +224,9 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            value={this.props.missionParams.numRuns}
-                            name="numRuns"
-                            onChange={this.changeRunCount.bind(this)}
+                            value={this.props.missionParams.numLanes}
+                            name="numLanes"
+                            onChange={this.changeLanesCount.bind(this)}
                         />
                     </div>
 
@@ -476,12 +476,12 @@ export class MissionSettingsPanel extends React.Component {
      * @param {Event} evt Contains the number of runs value
      * @returns {void}
      */
-    changeRunCount(evt: Event) {
+    changeLanesCount(evt: Event) {
         const element = evt.target as HTMLInputElement;
         const value = this.validateNumInput(Number(element.value));
 
         let missionParams = { ...this.props.missionParams };
-        missionParams.numRuns = value;
+        missionParams.numLanes = value;
         this.props.setMissionParams(missionParams);
     }
 

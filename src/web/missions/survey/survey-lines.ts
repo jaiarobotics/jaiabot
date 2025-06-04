@@ -145,8 +145,8 @@ export class SurveyLines {
                     }
 
                     missionParams.orientation = rotationAngle;
-                    let numRuns = Number(missionParams.numRuns);
-                    missionParams.lanesPerRun = missionParams.numRuns / missionParams.numBots;
+                    let numLanes = Number(missionParams.numLanes);
+                    missionParams.lanesPerRun = missionParams.numLanes / missionParams.numBots;
                     let numGoalsPerLane = Math.floor(
                         missionParams.numGoals / missionParams.lanesPerRun,
                     );
@@ -185,11 +185,11 @@ export class SurveyLines {
                     ) {
                         let offsetLines: any[] = [];
                         let lineOffsetStart =
-                            -1 * (Number(missionParams.lineSpacing) * ((numRuns / 2) * 0.75));
+                            -1 * (Number(missionParams.lineSpacing) * ((numLanes / 2) * 0.75));
                         let nextLineOffset = 0;
                         let currentLineOffset = 0;
 
-                        for (let i = 0; i < numRuns; i++) {
+                        for (let i = 0; i < numLanes; i++) {
                             let ol = deepcopy(centerLine);
                             currentLineOffset = lineOffsetStart + nextLineOffset;
 
@@ -361,8 +361,8 @@ export class SurveyLines {
             this.commandControl.state.missionParams.lineSpacing = 1;
         }
 
-        if (this.commandControl.state.missionParams.numRuns === 0) {
-            this.commandControl.state.missionParams.numRuns = 1;
+        if (this.commandControl.state.missionParams.numLanes === 0) {
+            this.commandControl.state.missionParams.numLanes = 1;
         }
 
         if (this.commandControl.state.missionParams.lanesPerRun === 0) {
