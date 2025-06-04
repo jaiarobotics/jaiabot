@@ -34,10 +34,10 @@ namespace jaiabot
 namespace apps
 {
 class TurnerCFluorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>
+    : public goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
 {
   public:
-    TurnerCFluorDriver(const jaiabot::config::TurnorCFluorThreadConfig& config);
+    TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config);
 
   private:
     void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
@@ -50,6 +50,7 @@ class TurnerCFluorDriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
+    jaiabot::config::FluorCoefficients fluorometer_coefficients_;
 };
 
 } // namespace apps

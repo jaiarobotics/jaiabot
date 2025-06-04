@@ -44,7 +44,6 @@
 #include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
-#include "jaiabot/utils/derived_salinity.h"
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
@@ -498,9 +497,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& salinity_data)
         {
-            if (salinity_data.has_salinity_calculated())
+            if (salinity_data.has_salinity())
             {
-                latest_bot_status_.set_salinity(salinity_data.salinity_calculated());
+                latest_bot_status_.set_salinity(salinity_data.salinity());
             }
         });
 

@@ -1977,6 +1977,10 @@ export default class CommandControl extends React.Component {
             this.state;
 
         if (missionPlanningGrid) {
+            const planningGridFeatures = featuresFromMissionPlanningGrid(
+                missionPlanningGrid,
+                missionBaseGoal,
+            );
             this.missionPlans = getSurveyMissionPlans(
                 this.state.startRally?.get("location"),
                 this.state.endRally?.get("location"),
@@ -1987,10 +1991,7 @@ export default class CommandControl extends React.Component {
                 this.state.missionParams.lanesPerRun,
                 this.state.missionParams.numBots,
             );
-            const planningGridFeatures = featuresFromMissionPlanningGrid(
-                missionPlanningGrid,
-                missionBaseGoal,
-            );
+
             missionPlanningFeaturesList.push(...planningGridFeatures);
         }
 

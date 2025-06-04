@@ -26,6 +26,7 @@
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/atlas_scientific__oem_do.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
@@ -50,6 +51,7 @@ class AtlasScientificOEMDODriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
+    sensor::protobuf::AtlasScientificOEMEC last_salinity_reading_;
 };
 
 } // namespace apps

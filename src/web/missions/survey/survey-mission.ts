@@ -40,8 +40,6 @@ export function featuresFromMissionPlanningGrid(
     let mpgKeys = Object.keys(mpg);
 
     mpgKeys.forEach((key) => {
-        const bot_id = Number(key);
-
         let mpGridFeature = new OlFeature({
             geometry: new OlMultiPoint(mpg[key]),
             style: new OlStyle({

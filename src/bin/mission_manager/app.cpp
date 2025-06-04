@@ -230,10 +230,10 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& sal)
         {
-            if (sal.has_salinity_calculated())
+            if (sal.has_salinity())
             {
                 statechart::EvMeasurement ev;
-                ev.salinity = sal.salinity_calculated();
+                ev.salinity = sal.salinity();
                 machine_->process_event(ev);
             }
         });
