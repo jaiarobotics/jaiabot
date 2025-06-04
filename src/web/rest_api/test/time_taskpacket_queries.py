@@ -59,3 +59,6 @@ run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros 
 
 run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
             expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
+
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 50 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})

@@ -154,6 +154,8 @@ class TaskPacketDatabase:
                 query_string = query_string + " where " + " and ".join(conditionals)
             l.warning(f'{query_string=} {parameters=}')
 
+            query_string = query_string + ' order by utime desc limit 1000'
+
             results = self.db.execute(query_string, parameters)
             l.warning('done')
             return [json.loads(row[0]) for row in results]
