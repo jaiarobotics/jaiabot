@@ -4,6 +4,7 @@ import TaskParameters from "../TaskParameters/TaskParameters";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
@@ -162,6 +163,13 @@ export default function WaypointPanel() {
 
                 <div className="label">Bot:</div>
                 <div>{formatBotID()}</div>
+
+                <div className="line-break"></div>
+
+                <div className="tap-to-move-row">
+                    <div className="label">Tap to Move:</div>
+                    <JaiaToggle checked={() => true} onClick={() => console.log("")} />
+                </div>
 
                 <div className="line-break"></div>
 
