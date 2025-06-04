@@ -176,6 +176,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_EDIT_MISSION:
             return handleClickedEditMission(mutableState, action.missionID);
 
+        case JaiaActions.CLICKED_TAP_TO_MOVE:
+            return handleClickedTapToMove(mutableState);
+
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
 
@@ -423,7 +426,7 @@ function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicC
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
-    const task = getTask();
+    const task = getWaypoint().getTask();
 
     if (task) {
         task.setType(taskType);
@@ -445,7 +448,7 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
-    const task = getTask();
+    const task = getWaypoint().getTask();
     task.setParameter(taskParameterPair);
     return mutableState;
 }
@@ -468,10 +471,9 @@ function handleClosedDetails(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClosedWaypointPanel(mutableState: JaiaContextType) {
+    getWaypoint().setIsMovable(false);
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
-
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-
     return mutableState;
 }
 
@@ -639,6 +641,18 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
 }
 
 /**
+ * Handles a click to the tap to move toggle
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedTapToMove(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+    waypoint.setIsMovable(!waypoint.getIsMovable());
+    return mutableState;
+}
+
+/**
  * Updates visiblePanel property to display the panel associated with a button click
  * or closes the panel if it is already opened
  *
@@ -721,12 +735,12 @@ function syncOpenLayers() {
 }
 
 /**
- * Retrieves the Task object connected to the currently selected waypoint
+ * Retrieves the Waypoint object connected to the currently selected waypoint
  *
- * @returns {Task} Access to Task modifiers
+ * @returns {Waypoint} Access to Waypoint modifiers
  */
-function getTask() {
+function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missions.getMission(selectedWaypoint.missionID);
-    return mission.getWaypoint(selectedWaypoint.waypointNum).getTask();
+    return mission.getWaypoint(selectedWaypoint.waypointNum);
 }

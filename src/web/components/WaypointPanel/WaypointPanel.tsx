@@ -101,6 +101,15 @@ export default function WaypointPanel() {
     };
 
     /**
+     * Dispatches action to update the waypoints isMovable property
+     *
+     * @returns {void}
+     */
+    const handleTapToMoveClick = () => {
+        jaiaDispatch({ type: JaiaActions.CLICKED_TAP_TO_MOVE });
+    };
+
+    /**
      * Dispatches action to select a task. This will lead to the task
      * parameters appearing.
      *
@@ -168,7 +177,10 @@ export default function WaypointPanel() {
 
                 <div className="tap-to-move-row">
                     <div className="label">Tap to Move:</div>
-                    <JaiaToggle checked={() => true} onClick={() => console.log("")} />
+                    <JaiaToggle
+                        checked={() => getWaypoint().getIsMovable()}
+                        onClick={() => handleTapToMoveClick()}
+                    />
                 </div>
 
                 <div className="line-break"></div>
