@@ -4,12 +4,14 @@ import {
     MissionPlan,
     MissionStart,
     MovementType,
+    Speeds,
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 
 export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
+    private speeds: Speeds;
     private repeats: number;
     private movableWaypointNum: number;
 
@@ -35,6 +37,14 @@ export default class Mission {
 
     setWaypoints(waypoints: Waypoint[]) {
         this.waypoints = waypoints;
+    }
+
+    getSpeeds() {
+        return this.speeds;
+    }
+
+    setSpeeds(speeds: Speeds) {
+        this.speeds = { ...speeds };
     }
 
     getRepeats() {
@@ -99,10 +109,7 @@ export default class Mission {
             recovery: {
                 recover_at_final_goal: true,
             },
-            speeds: {
-                transit: 3,
-                stationkeep_outer: 2,
-            },
+            speeds: this.speeds,
             repeats: this.repeats,
         };
 

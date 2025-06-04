@@ -4,9 +4,9 @@ import { useContext } from "react";
 // Jaia
 import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
+import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { PanelNames } from "../../types/context-types";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
@@ -22,10 +22,6 @@ import "../../style/stylesheets/util.less";
 export default function MissionsPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    if (jaiaContext === null || jaiaContext.visiblePanel !== PanelNames.MISSIONS) {
-        return <div></div>;
-    }
 
     /**
      * Dispatches the action to create a new mission when an operator clicks the add mission button
@@ -60,6 +56,7 @@ export default function MissionsPanel() {
     return (
         <div className="jaia-panel missions-panel">
             <div className="jaia-panel-title">Mission Set</div>
+            <MissionSpeedSliders />
             <div className="jaia-button-row">
                 <Button
                     className="jaia-button"
