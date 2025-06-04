@@ -107,7 +107,7 @@ export function getSurveyMissionPlans(
         let botGoals: Goal[] = [];
         lanesPerRun = Math.floor(laneKeys.length / numBots);
 
-        if (remainder > 0) {
+        if (remainder !== 0) {
             lanesPerRun += 1;
             remainder -= 1;
         }
