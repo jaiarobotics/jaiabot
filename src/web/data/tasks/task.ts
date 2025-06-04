@@ -1,4 +1,6 @@
 import { jaiaGlobal } from "../jaia_global/jaia-global";
+import { clampInput } from "../../utils/input";
+import { NO_CONSTRAINT } from "../../utils/constants";
 import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import {
     ConstantHeadingParameters,
@@ -17,7 +19,6 @@ export default class Task {
     private constantHeadingParameters: ConstantHeadingParameters;
 
     // Parameter Constraints //
-    NO_CONSTRAINT = -1;
     ZERO_LOWER_BOUND = 0;
 
     // Dive
@@ -83,69 +84,36 @@ export default class Task {
 
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
-                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
+                value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.max_depth = value;
                 break;
             case TaskParameterKeys.DEPTH_INTERVAL:
-                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
+                value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.depth_interval = value;
                 break;
             case TaskParameterKeys.HOLD_TIME:
-                value = this.validateInput(
-                    value,
-                    this.ZERO_LOWER_BOUND,
-                    this.MAX_HOLD_TIME_CONSTRAINT,
-                );
+                value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HOLD_TIME_CONSTRAINT);
                 this.diveParameters.hold_time = value;
                 break;
             case TaskParameterKeys.DRIFT_TIME:
-                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.NO_CONSTRAINT);
+                value = clampInput(value, this.ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
-                value = this.validateInput(
-                    value,
-                    this.ZERO_LOWER_BOUND,
-                    this.MAX_HEADING_CONSTRAINT,
-                );
+                value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
             case TaskParameterKeys.CONSTANT_HEADING_TIME:
-                value = this.validateInput(value, this.ZERO_LOWER_BOUND, this.NO_CONSTRAINT);
+                value = clampInput(value, this.ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_time = value;
                 break;
             case TaskParameterKeys.SPEED:
-                value = this.validateInput(
-                    value,
-                    this.MIN_SPEED_CONSTRAINT,
-                    this.MAX_SPEED_CONSTRAINT,
-                );
+                value = clampInput(value, this.MIN_SPEED_CONSTRAINT, this.MAX_SPEED_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_speed = value;
                 break;
         }
 
         this.updateDefaultTaskParameters();
-    }
-
-    /**
-     * Clamps a number between a provided min and max. If the bound is infinity,
-     * pass this.NO_CONSTRAINT.
-     *
-     * @param {number} value Number to be validated
-     * @param {number} min Lower bound
-     * @param {number} max Upper bound
-     * @returns {number} Clamped value
-     */
-    private validateInput(value: number, min: number, max: number) {
-        if (value > max && max !== this.NO_CONSTRAINT) {
-            return max;
-        }
-
-        if (value < min && min !== this.NO_CONSTRAINT) {
-            return min;
-        }
-
-        return value;
     }
 
     private updateDefaultTaskParameters() {

@@ -103,58 +103,58 @@ function DiveParameters(props: DiveParameterProps) {
                 </div>
             </div>
         );
-    }
-
-    return (
-        <div className="dive-parameters">
-            <BottomDiveToggle
-                task={props.task}
-                handleBottomDiveClick={props.handleBottomDiveClick}
-            />
-
-            <div className="task-parameters">
-                <div>Max Depth</div>
-                <input
-                    name={TaskParameterKeys.MAX_DEPTH}
-                    type="number"
-                    value={formatNumericalInput(diveParameters.max_depth)}
-                    autoComplete="off"
-                    onChange={(evt) => props.onChange(evt)}
+    } else {
+        return (
+            <div className="dive-parameters">
+                <BottomDiveToggle
+                    task={props.task}
+                    handleBottomDiveClick={props.handleBottomDiveClick}
                 />
-                <div className="units">m</div>
 
-                <div>Depth Interval</div>
-                <input
-                    name={TaskParameterKeys.DEPTH_INTERVAL}
-                    type="number"
-                    value={formatNumericalInput(diveParameters.depth_interval)}
-                    autoComplete="off"
-                    onChange={(evt) => props.onChange(evt)}
-                />
-                <div className="units">m</div>
+                <div className="task-parameters">
+                    <div>Max Depth</div>
+                    <input
+                        name={TaskParameterKeys.MAX_DEPTH}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.max_depth)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">m</div>
 
-                <div>Hold Time</div>
-                <input
-                    name={TaskParameterKeys.HOLD_TIME}
-                    type="number"
-                    value={formatNumericalInput(diveParameters.hold_time)}
-                    autoComplete="off"
-                    onChange={(evt) => props.onChange(evt)}
-                />
-                <div className="units">s</div>
+                    <div>Depth Interval</div>
+                    <input
+                        name={TaskParameterKeys.DEPTH_INTERVAL}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.depth_interval)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">m</div>
 
-                <div>Drift Time</div>
-                <input
-                    name={TaskParameterKeys.DRIFT_TIME}
-                    type="number"
-                    value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
-                    autoComplete="off"
-                    onChange={(evt) => props.onChange(evt)}
-                />
-                <div className="units">s</div>
+                    <div>Hold Time</div>
+                    <input
+                        name={TaskParameterKeys.HOLD_TIME}
+                        type="number"
+                        value={formatNumericalInput(diveParameters.hold_time)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">s</div>
+
+                    <div>Drift Time</div>
+                    <input
+                        name={TaskParameterKeys.DRIFT_TIME}
+                        type="number"
+                        value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                        autoComplete="off"
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                    <div className="units">s</div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 }
 
 /**
