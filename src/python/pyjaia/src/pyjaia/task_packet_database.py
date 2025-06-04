@@ -65,9 +65,12 @@ class TaskPacketDatabase:
         """Loads all modified taskpacket files from the offload directory.  THREAD UNSAFE.
         """
 
-        for taskpacket_filename in glob.glob(self.path + '*.taskpacket'):
-            l.info(f'Loading modified taskpacket file: {taskpacket_filename}')
-            for line in open(taskpacket_filename):
+        processed_path = self.path + '/processed/'
+        os.makedirs(processed_path, exist_ok=True)
+
+        for taskpacket_fullpath in glob.glob(self.path + '*.taskpacket'):
+            l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
+            for line in open(taskpacket_fullpath):
                 try:
                     taskPacket: Dict = json.loads(line)
                     self._add_task_packet(taskPacket)
@@ -75,7 +78,8 @@ class TaskPacketDatabase:
                     l.warning(f"Error decoding JSON line: {line} because {e}")
 
             # Move file to prevent us from finding it again next time (speeds things up significantly)
-            shutil.move(taskpacket_filename, taskpacket_filename + '.processed')
+            taskpacket_filename = os.path.basename(taskpacket_fullpath)
+            shutil.move(taskpacket_fullpath, processed_path + taskpacket_filename)
         
         self.db.commit()
         self.task_packets_version += 1

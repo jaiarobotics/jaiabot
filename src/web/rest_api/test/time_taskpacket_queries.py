@@ -48,8 +48,14 @@ def run_request(req_json, expected_response_subset=dict()):
 now_micros = int(datetime.datetime.now().timestamp() * 1e6)
 DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
 
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
             expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
 
-run_request({"target": {"all": True}, "task_packets": {"start_time": 0, "end_time": now_micros}, "api_key": api_key},
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.2 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
+
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.5 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
+
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
             expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
