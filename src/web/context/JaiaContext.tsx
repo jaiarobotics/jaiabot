@@ -526,7 +526,7 @@ function handleClickedBotAccordion(
         case BotAccordionNames.COMMANDS:
             botAccordionStates.commands = !botAccordionStates.commands;
             break;
-        case BotAccordionNames.ADVANCEDCOMMANDS:
+        case BotAccordionNames.ADVANCED_COMMANDS:
             botAccordionStates.advancedCommands = !botAccordionStates.advancedCommands;
             break;
         case BotAccordionNames.HEALTH:

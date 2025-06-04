@@ -1,4 +1,4 @@
-import { DisabledCodes } from "../StartMissionButton/start-mission-messages";
+import { DisabledCodes } from "../StopButton/stop-messages";
 
 interface DialogProps {
     isVisible: boolean;
@@ -22,14 +22,14 @@ export enum DialogActions {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the start all missions button.
+ * Produces the dialog box that appears when clicking on the stop all Bots button.
  * This dialog will be a confirmation if at least one Bot can accept the command.
  * It will describe the reason(s) the other Bots cannot accept the command.
  */
-export function StartAllMissionsDialog(props: DialogProps) {
+export function StopAllBotsDialog(props: DialogProps) {
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
-     * if at least one Bot cannot receive the command to adjust spacing
+     * if at least one Bot cannot receive the command
      *
      * @returns {string} The class name for the dialog div
      */
@@ -46,7 +46,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
     const generateMessage = () => {
         const message: string[] = [];
 
-        // Halve the length to only count the names
+        // Halve the length to only count keys
         const disabledCodesLength = Object.keys(DisabledCodes).length / 2;
 
         for (let i = 1; i <= disabledCodesLength; i++) {
@@ -73,9 +73,9 @@ export function StartAllMissionsDialog(props: DialogProps) {
 
         // Message start
         if (disabledCode === DisabledCodes.NONE) {
-            subMessage += `Send mission${botIDs.length > 1 ? "s" : ""} to Bot${botIDs.length > 1 ? "s: " : ": "}`;
+            subMessage += `Stop Bot${botIDs.length > 1 ? "s: " : ": "}`;
         } else {
-            subMessage += `Cannot send mission${botIDs.length > 1 ? "s" : ""} to Bot${botIDs.length > 1 ? "s: " : ": "}`;
+            subMessage += `Cannot stop Bot${botIDs.length > 1 ? "s: " : ": "}`;
         }
 
         // Adding Bot IDs to message
@@ -93,16 +93,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
                 subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub." : "it does not have comms with the Hub."}`;
                 break;
             case DisabledCodes.MISSION_STATE:
-                subMessage += `because ${botIDs.length > 1 ? "they need to be activated to receive a mission." : "it needs to be activated to receive a mission."}`;
-                break;
-            case DisabledCodes.NO_MISSION_ASSIGNED:
-                subMessage += `because ${botIDs.length > 1 ? "they do not have an assigned mission." : "it does not have an assigned mission."}`;
-                break;
-            case DisabledCodes.DOWNLOAD_QUEUE:
-                subMessage += `because ${botIDs.length > 1 ? "they are in the download queue." : "it is in the download queue."}`;
-                break;
-            case DisabledCodes.LOW_BATTERY:
-                subMessage += `because ${botIDs.length > 1 ? "they have a crtically low battery." : "it has a critically low battery."}`;
+                subMessage += `because ${botIDs.length > 1 ? "they are not in a mission." : "it is not in a mission."}`;
                 break;
         }
 
@@ -152,7 +143,7 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Start Missions.
+ * For a confirmation dialog, the buttons will be Cancel and Stop Bots.
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
@@ -167,7 +158,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    {`${numReadyBots > 1 ? "Start Missions" : "Start Mission"}`}
+                    {`${numReadyBots > 1 ? "Stop Bots" : "Stop Bot"}`}
                 </button>
             </div>
         );
