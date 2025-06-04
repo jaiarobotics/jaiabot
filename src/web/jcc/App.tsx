@@ -3,14 +3,14 @@ import { useContext } from "react";
 // Jaia
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 import { PanelNames } from "../types/context-types";
-import { NodeTypes } from "../types/jaia-system-types";
+import { ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
 import Map from "../components/Map/Map";
 import NodeList from "../containers/NodeList/NodeList";
-import TopButtonList from "../components/TopButtonList/TopButtonList";
-import SideButtonList from "../components/SideButtonList/SideButtonList";
+import JaiaAbout from "../components/JaiaAbout/JaiaAbout";
 import HubDetails from "../containers/HubDetails/HubDetails";
 import BotDetails from "../containers/BotDetails/BotDetails";
+import ButtonList from "../components/ButtonList/ButtonList";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 
@@ -26,8 +26,8 @@ export default function App() {
             <JaiaContextProvider>
                 <Map />
                 <NodeList />
-                <TopButtonList />
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.TOP} />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <Details />
                 <Panel />
             </JaiaContextProvider>
@@ -70,6 +70,8 @@ function Panel() {
             return <MissionsPanel />;
         case PanelNames.WAYPOINT:
             return <WaypointPanel />;
+        case PanelNames.JAIA_ABOUT:
+            return <JaiaAbout />;
         default:
             return <div></div>;
     }
