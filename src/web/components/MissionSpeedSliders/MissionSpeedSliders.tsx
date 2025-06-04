@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext } from "react";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
@@ -19,10 +19,20 @@ enum SpeedTypes {
 
 const theme = createTheme({ palette: { primary: amber } });
 
+/**
+ * Allows operators to set the speeds of a mission set
+ */
 export default function MissionSpeedSliders() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Dispatches action to update the mission speeds
+     *
+     * @param {SpeedTypes} speedType Speed modified
+     * @param {number} speed Speed value chosen
+     * @returns {void}
+     */
     const handleSpeedChange = (speedType: SpeedTypes, speed: number) => {
         const updatedSpeeds = { ...jaiaContext.missionSpeeds };
 
