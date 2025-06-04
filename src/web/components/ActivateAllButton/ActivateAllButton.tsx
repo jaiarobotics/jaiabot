@@ -1,16 +1,18 @@
 import { useState } from "react";
 
 import { ActivateAllDialog, DialogActions } from "./ActivateAllDialog";
+import { DisabledCodes } from "../ActivateButton/activate-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { Command, CommandType } from "../../types/protobuf-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
-import { microsecondsToSeconds } from "../../utils/conversions";
+
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { Command, CommandType } from "../../types/protobuf-types";
+import { microsecondsToSeconds } from "../../utils/conversions";
+import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import "../../style/stylesheets/util.less";
 
@@ -18,43 +20,41 @@ interface Props {
     bots: Map<number, Bot>;
 }
 
+type DisabledCodeGroup = [DisabledCodes, number[]];
+
 /**
  * Produces the button to activate all Bots.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function ActivateAllButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
-    const [availableBotIDs, setAvailableBotIDs] = useState([]);
-    const [activatedBotIDs, setActivatedBotIDs] = useState([]);
-    const [noCommsBotIDs, setNoCommsBotIDs] = useState([]);
+    const [botReadyStates, setBotReadyStates] = useState(
+        new Map<DisabledCodes, number[]>(initBotReadyStates()),
+    );
 
     /**
      * Loops through the connected Bots and categorizes them based on their
-     * readiness for the activate command. This sets the foundation for creating the correct
+     * ability to be activated. This sets the foundation for creating the correct
      * alert/confirm message.
      *
      * @returns {void}
      */
-    const groupBotsByState = () => {
-        const tempAvailableBotIDs = [];
-        const tempActivatedBotIDs = [];
-        const tempNoCommsBotIDs = [];
+    const groupBotsByReadyState = () => {
+        const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (microsecondsToSeconds(bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
-                tempNoCommsBotIDs.push(bot.getBotID());
+            if (isCommsDropped(bot.getStatusAge())) {
+                updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 !isCommandAvailable(CommandType.ACTIVATE, bot.getMissionStatus().missionState)
             ) {
-                tempActivatedBotIDs.push(bot.getBotID());
+                updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else {
-                tempAvailableBotIDs.push(bot.getBotID());
+                updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
             }
         }
 
-        setAvailableBotIDs(tempAvailableBotIDs);
-        setActivatedBotIDs(tempActivatedBotIDs);
-        setNoCommsBotIDs(tempNoCommsBotIDs);
+        setBotReadyStates(updatedBotReadyStates);
     };
 
     /**
@@ -65,7 +65,7 @@ export default function ActivateAllButton(props: Props) {
      */
     const handleClick = () => {
         setIsDialogVisible(true);
-        groupBotsByState();
+        groupBotsByReadyState();
     };
 
     /**
@@ -78,7 +78,7 @@ export default function ActivateAllButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            for (const botID of availableBotIDs) {
+            for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const activateCommand: Command = {
                     bot_id: botID,
                     type: CommandType.ACTIVATE,
@@ -99,11 +99,34 @@ export default function ActivateAllButton(props: Props) {
             </Button>
             <ActivateAllDialog
                 isVisible={isDialogVisible}
-                availableBotIDs={availableBotIDs}
-                activatedBotIDs={activatedBotIDs}
-                noCommsBotIDs={noCommsBotIDs}
+                botReadyStates={botReadyStates}
+                numBots={props.bots.size}
                 onClose={onDialogClose}
             />
         </div>
     );
+}
+
+/**
+ * Maps each disabled code to an empty array to prevent undefined behavior
+ *
+ * @returns {Map<DisabledCodes, number[]>} Disabled codes mapped to an empty array for Bot IDs
+ */
+function initBotReadyStates() {
+    const botReadyStates: DisabledCodeGroup[] = [
+        [DisabledCodes.NONE, []],
+        [DisabledCodes.NO_COMMS, []],
+        [DisabledCodes.MISSION_STATE, []],
+    ];
+    return botReadyStates;
+}
+
+/**
+ * Checks the supplied status age against the no comms threshold
+ *
+ * @param {number} statusAge Bot's status age in microseconds
+ * @returns {boolean} True if the Bot does not have comms with the Hub
+ */
+function isCommsDropped(statusAge: number) {
+    return microsecondsToSeconds(statusAge) > NO_COMMS_STATUS_AGE;
 }
