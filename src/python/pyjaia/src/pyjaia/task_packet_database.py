@@ -197,7 +197,7 @@ class TaskPacketDatabase:
             included (bool): True if we should include this task packet in contours and interpolated drifts.
         """
         with self._lock:
-            self.db.execute(f'insert or replace into included (included) values (?) where id is ?', (included, task_packet_id))
+            self.db.execute(f'insert or replace into included (id, included) values (?, ?)', (task_packet_id, 1 if included else 0))
             self.db.commit()
             self.task_packets_version += 1
 
