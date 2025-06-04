@@ -13,7 +13,7 @@ export interface HubAccordionStates {
 export const enum BotAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
-    ADVANCEDCOMMANDS = "advancedCommands",
+    ADVANCED_COMMANDS = "advanced_commands",
     HEALTH = "health",
     DATA = "data",
     GPS = "gps",
@@ -50,4 +50,5 @@ export const enum PanelNames {
     NONE = "none",
     MISSIONS = "missions",
     WAYPOINT = "waypoint",
+    JAIA_ABOUT = "jaia_about",
 }
