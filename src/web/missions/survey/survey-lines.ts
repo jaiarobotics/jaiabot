@@ -146,7 +146,10 @@ export class SurveyLines {
 
                     missionParams.orientation = rotationAngle;
                     let numLanes = Number(missionParams.numLanes);
-                    missionParams.lanesPerRun = missionParams.numLanes / missionParams.numBots;
+                    missionParams.lanesPerRun = Math.floor(numLanes / missionParams.numBots);
+                    if (numLanes % missionParams.numBots !== 0) {
+                        missionParams.lanesPerRun += 1;
+                    }
                     let numGoalsPerLane = Math.floor(
                         missionParams.numGoals / missionParams.lanesPerRun,
                     );

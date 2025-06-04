@@ -99,10 +99,6 @@ export function getSurveyMissionPlans(
     let runIndex = 0;
     let remainder = laneKeys.length % numBots;
 
-    console.log("laneKeys", laneKeys);
-    console.log("lanesPerRun", lanesPerRun);
-    console.log("remainder", remainder);
-
     // Loop through all mission runs, grouping them by lanesPerRun,
     // so each bot is assigned one run that may include multiple adjacent lanes
     // (e.g., if lanesPerRun = 2, bot 1 gets runs 1 & 2, bot 2 gets runs 3 & 4, etc.)
@@ -112,7 +108,6 @@ export function getSurveyMissionPlans(
         lanesPerRun = Math.floor(laneKeys.length / numBots);
 
         if (remainder > 0) {
-            console.log("remainder > 0");
             lanesPerRun += 1;
             remainder -= 1;
         }
@@ -174,7 +169,6 @@ export function getSurveyMissionPlans(
             },
         };
         runIndex++;
-        console.log("lanesPerRun 2: ", lanesPerRun);
         i += lanesPerRun;
     }
 
