@@ -54,3 +54,8 @@ export enum SystemButtonTypes {
     REBOOT = 2,
     RESTART_SERVICES = 3,
 }
+
+export enum ButtonListTypes {
+    TOP = 1,
+    SIDE = 2,
+}
