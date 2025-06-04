@@ -139,6 +139,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.DELETE_WAYPOINT:
             return handleDeleteWaypoint(mutableState);
 
+        case JaiaActions.MOVE_WAYPOINT:
+            return handleMoveWaypoint(mutableState, action.location);
+
         case JaiaActions.SELECT_TASK:
             return handleSelectTask(mutableState, action.taskType);
 
@@ -201,6 +204,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missions = missions.getMissions();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
@@ -399,6 +403,22 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
 }
 
 /**
+ * Makes the calls to move a waypoint to a user set location
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location New location of the waypoint
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
+    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, location);
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+/**
  * Updates the task associated with a waypoint based on the operator's selection
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -547,7 +567,7 @@ function handleClickedBotAccordion(
         case BotAccordionNames.COMMANDS:
             botAccordionStates.commands = !botAccordionStates.commands;
             break;
-        case BotAccordionNames.ADVANCEDCOMMANDS:
+        case BotAccordionNames.ADVANCED_COMMANDS:
             botAccordionStates.advancedCommands = !botAccordionStates.advancedCommands;
             break;
         case BotAccordionNames.HEALTH:

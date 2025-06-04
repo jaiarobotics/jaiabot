@@ -1,24 +1,19 @@
+import { DisabledCodes } from "../ActivateButton/activate-messages";
+
 interface DialogProps {
     isVisible: boolean;
-    availableBotIDs: number[];
-    activatedBotIDs: number[];
-    noCommsBotIDs: number[];
+    botReadyStates: Map<DisabledCodes, number[]>;
+    numBots: number;
     onClose: (dialogAction: DialogActions) => void;
 }
 
 interface TitleProps {
-    availableBotIDs: number[];
+    botReadyStates: Map<DisabledCodes, number[]>;
 }
 
 interface ButtonRowProps {
-    availableBotIDs: number[];
+    botReadyStates: Map<DisabledCodes, number[]>;
     onClose: (dialogAction: DialogActions) => void;
-}
-
-enum TextTypes {
-    AVAILABLE = 0,
-    ACTIVATED = 1,
-    NO_COMMS = 2,
 }
 
 export enum DialogActions {
@@ -34,37 +29,42 @@ export enum DialogActions {
 export function ActivateAllDialog(props: DialogProps) {
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
-     * if no Bots are in a state to receive the command
+     * if at least one Bot cannot receive the command
      *
      * @returns {string} The class name for the dialog div
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.availableBotIDs.length === 0 ? "alert" : ""}`;
+        return `jaia-dialog ${props.botReadyStates.get(DisabledCodes.NONE).length !== props.numBots ? "alert" : ""}`;
     };
 
     /**
-     * Places each message to be displayed in the dialox box in an array.
+     * Places each sub message to be displayed in the dialox box in an array.
      * The messages depend on the state of the Bot and the requirments of the command.
      *
      * @returns {string[]} The messages to be displayed in the dialog box
      */
     const generateMessage = () => {
-        return [
-            generateSubMessage(props.availableBotIDs, TextTypes.AVAILABLE),
-            generateSubMessage(props.activatedBotIDs, TextTypes.ACTIVATED),
-            generateSubMessage(props.noCommsBotIDs, TextTypes.NO_COMMS),
-        ];
+        const message: string[] = [];
+
+        // Halve the length to only count the names
+        const disabledCodesLength = Object.keys(DisabledCodes).length / 2;
+
+        for (let i = 1; i <= disabledCodesLength; i++) {
+            message.push(generateSubMessage(i));
+        }
+
+        return message;
     };
 
     /**
      * Produces the messages that appear in the dialog box. These messages describe
      * which Bot(s) can accept the command and which Bot(s) cannot.
      *
-     * @param {number[]} botIDs Bots that fall into the condition of the textType
-     * @param {TextTypes} textType Describes the relationship of Bots to the command
      * @returns {string} Sub message to display to an operator in the dialog box
      */
-    const generateSubMessage = (botIDs: number[], textType: TextTypes) => {
+    const generateSubMessage = (disabledCode: DisabledCodes) => {
+        const botIDs = props.botReadyStates.get(disabledCode);
+
         if (botIDs.length === 0) {
             return "";
         }
@@ -72,8 +72,8 @@ export function ActivateAllDialog(props: DialogProps) {
         let subMessage = "";
 
         // Message start
-        if (textType === TextTypes.AVAILABLE) {
-            subMessage += `Send command to Bot${botIDs.length > 1 ? "s: " : ": "}`;
+        if (disabledCode === DisabledCodes.NONE) {
+            subMessage += `Activate Bot${botIDs.length > 1 ? "s: " : ": "}`;
         } else {
             subMessage += `Cannot send command to Bot${botIDs.length > 1 ? "s: " : ": "}`;
         }
@@ -88,13 +88,29 @@ export function ActivateAllDialog(props: DialogProps) {
         }
 
         // Message end
-        if (textType === TextTypes.ACTIVATED) {
-            subMessage += `because ${botIDs.length > 1 ? "they are activated." : "it is activated."}`;
-        } else if (textType === TextTypes.NO_COMMS) {
-            subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub." : "it does not have comms with the Hub."}`;
+        switch (disabledCode) {
+            case DisabledCodes.NO_COMMS:
+                subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub." : "it does not have comms with the Hub."}`;
+                break;
+            case DisabledCodes.MISSION_STATE:
+                subMessage += `because ${botIDs.length > 1 ? "they are activated." : "it is activated."}`;
+                break;
         }
 
         return subMessage;
+    };
+
+    /**
+     * Converts the message into an array of paragraph elements for React to render
+     *
+     * @returns {JSX.Element[]} Paragraph elements containing alert messages
+     */
+    const formatMessage = () => {
+        return generateMessage().map((subMessage, index) => {
+            if (subMessage !== "") {
+                return <p key={index}>{subMessage}</p>;
+            }
+        });
     };
 
     if (!props.isVisible) {
@@ -105,11 +121,9 @@ export function ActivateAllDialog(props: DialogProps) {
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}></div>
             <div className={getClassName()}>
-                <Title availableBotIDs={props.availableBotIDs} />
-                {generateMessage().map((subMessage, index) => {
-                    return <p key={index}>{subMessage}</p>;
-                })}
-                <ButtonRow availableBotIDs={props.availableBotIDs} onClose={props.onClose} />
+                <Title botReadyStates={props.botReadyStates} />
+                {formatMessage()}
+                <ButtonRow botReadyStates={props.botReadyStates} onClose={props.onClose} />
             </div>
         </div>
     );
@@ -120,7 +134,7 @@ export function ActivateAllDialog(props: DialogProps) {
  * being sent to at least one Bot the title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
-    if (props.availableBotIDs.length > 0) {
+    if (props.botReadyStates.get(DisabledCodes.NONE).length > 0) {
         return <h1>Confirm</h1>;
     }
 
@@ -129,11 +143,12 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Confirm.
- * For an alert, the button will be Activate.
+ * For a confirmation dialog, the buttons will be Cancel and Activate Bot(s).
+ * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
-    if (props.availableBotIDs.length > 0) {
+    const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
+    if (numReadyBots > 0) {
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
@@ -143,7 +158,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Activate
+                    {`${numReadyBots > 1 ? "Activate Bots" : "Activate Bot"}`}
                 </button>
             </div>
         );
