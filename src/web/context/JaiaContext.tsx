@@ -677,6 +677,11 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
+    const previousWaypoint = getWaypoint();
+    if (previousWaypoint) {
+        previousWaypoint.setIsMovable(false);
+    }
+
     jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
 
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -742,5 +747,8 @@ function syncOpenLayers() {
 function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missions.getMission(selectedWaypoint.missionID);
-    return mission.getWaypoint(selectedWaypoint.waypointNum);
+
+    if (mission) {
+        return mission.getWaypoint(selectedWaypoint.waypointNum);
+    }
 }

@@ -54,6 +54,52 @@ export default function WaypointPanel() {
     }, []);
 
     /**
+     * Compares the lat stored in state and context. If the value in context
+     * is different, the waypoint has moved via a mechanism outsie of the input box
+     * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} Most up to date latitude
+     */
+    const getLatInput = () => {
+        const waypoint = getWaypoint();
+
+        if (isNaN(Number(latInput))) {
+            return latInput;
+        }
+
+        if (waypoint.getLocation().lat !== Number(latInput)) {
+            const updatedLat = waypoint.getLocation().lat.toString();
+            setLatInput(updatedLat);
+            return updatedLat;
+        }
+
+        return latInput;
+    };
+
+    /**
+     * Compares the lon stored in state and context. If the value in context
+     * is different, the waypoint has moved via a mechanism outsie of the input box
+     * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} Most up to date longitude
+     */
+    const getLonInput = () => {
+        const waypoint = getWaypoint();
+
+        if (isNaN(Number(lonInput))) {
+            return lonInput;
+        }
+
+        if (waypoint.getLocation().lon !== Number(lonInput)) {
+            const updatedLon = waypoint.getLocation().lon.toString();
+            setLonInput(updatedLon);
+            return updatedLon;
+        }
+
+        return lonInput;
+    };
+
+    /**
      * Gets the Bot ID assigned to the mission containing the waypoint
      *
      * @returns {string} Bot ID or empty string
@@ -188,7 +234,7 @@ export default function WaypointPanel() {
                 <div className="label">Lat:</div>
                 <input
                     name={CoordinateTypes.LAT}
-                    value={latInput}
+                    value={getLatInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
                     onChange={(evt) => handleCoordinateChange(evt)}
@@ -197,7 +243,7 @@ export default function WaypointPanel() {
                 <div className="label">Lon:</div>
                 <input
                     name={CoordinateTypes.LON}
-                    value={lonInput}
+                    value={getLonInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
                     onChange={(evt) => handleCoordinateChange(evt)}
