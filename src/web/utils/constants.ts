@@ -14,3 +14,5 @@ export const MIN_LAT = -90;
 export const MAX_LON = 180;
 export const MIN_LON = -180;
 export const MERCATOR = "EPSG:3857";
+export const MIN_SPEED = 0.5; // meters per second
+export const MAX_SPEED = 3; // meters per second
