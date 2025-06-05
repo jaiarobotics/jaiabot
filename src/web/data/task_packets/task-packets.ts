@@ -19,6 +19,7 @@ import * as turf from "@turf/turf";
 import { Units } from "@turf/turf";
 import { getMapCoordinate } from "../../shared/Utilities";
 import { Geometry, LineString } from "ol/geom";
+import { persistVisibility } from "../../openlayers/map/layers/visible-layer-persistance";
 
 // Constants
 const POLL_INTERVAL = 5000;
@@ -30,16 +31,19 @@ export class TaskData {
     styleCache: { [key: number]: Style };
     diveSource: VectorSource<Feature<Geometry>>;
     driftSource: VectorSource<Feature<Geometry>>;
+    excludedPacketSource: VectorSource<Feature<Geometry>>;
     divePacketLayer: VectorLayer<VectorSource>;
     driftPacketLayer: VectorLayer<VectorSource>;
     driftMapLayer: VectorLayer<VectorSource>;
     contourLayer: VectorLayer<VectorSource>;
+    excludedLayer: VectorLayer<VectorSource>;
 
     constructor() {
         this.taskPackets = [];
         this.taskPacketsTimeline = {};
         this.diveSource = new VectorSource<Feature<Geometry>>();
         this.driftSource = new VectorSource<Feature<Geometry>>();
+        this.excludedPacketSource = new VectorSource<Feature<Geometry>>();
         this.styleCache = {};
         const clusterDistance = 30;
 
@@ -53,6 +57,7 @@ export class TaskData {
             style: this.createClusterIconStyle.bind(this),
             visible: false,
         });
+        persistVisibility(this.divePacketLayer);
 
         this.driftPacketLayer = new VectorLayer({
             properties: {
@@ -64,6 +69,19 @@ export class TaskData {
             style: this.createClusterIconStyle.bind(this),
             visible: false,
         });
+        persistVisibility(this.driftPacketLayer);
+
+        this.excludedLayer = new VectorLayer({
+            properties: {
+                title: "Excluded Packets",
+            },
+            zIndex: 43, // We want this to appear above the custom GeoTIFF layer(s)
+            opacity: 0.5,
+            source: this.createClusterSource(this.excludedPacketSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
+            visible: false,
+        });
+        persistVisibility(this.excludedLayer);
 
         this.driftMapLayer = new VectorLayer({
             properties: {
@@ -75,6 +93,7 @@ export class TaskData {
             visible: false,
             style: Styles.driftMapStyle,
         });
+        persistVisibility(this.driftMapLayer);
 
         this.contourLayer = new VectorLayer({
             properties: {
@@ -85,6 +104,7 @@ export class TaskData {
             source: null,
             visible: false,
         });
+        persistVisibility(this.contourLayer);
     }
 
     /**
@@ -98,8 +118,8 @@ export class TaskData {
     update(startDate?: string, endDate?: string) {
         return jaiaAPI
             .getTaskPackets(startDate, endDate)
-            .then((taskPackets) => {
-                this.updateTaskPacketsLayers(taskPackets);
+            .then((response) => {
+                this.updateTaskPacketsLayers(response.result.included, response.result.excluded);
 
                 this._updateInterpolatedDrifts(startDate, endDate);
                 this._updateContourPlot(startDate, endDate);
@@ -292,21 +312,23 @@ export class TaskData {
      * @param {TaskPacket[]} taskPackets provides updated array of TaskPackets
      * @returns {void}
      */
-    updateTaskPacketsLayers(taskPackets: TaskPacket[]) {
+    updateTaskPacketsLayers(includedTaskPackets: TaskPacket[], excludedTaskPackets: TaskPacket[]) {
         const divePacketLayer = this.divePacketLayer;
         const driftPacketLayer = this.driftPacketLayer;
 
         const divePacketFeatures = [];
         const driftPacketFeatures = [];
 
-        for (const taskPacket of taskPackets) {
+        for (const taskPacket of includedTaskPackets) {
             if (taskPacket?.dive) {
                 // Dive packets include both dive and drift data
                 const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer);
                 const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer);
 
                 if (diveFeature) {
-                    divePacketFeatures.push(diveFeature);
+                    divePacketFeatures.push(
+                        getDivePacketFeature(this.map, taskPacket, divePacketLayer),
+                    );
                 }
 
                 if (driftFeature) {
@@ -327,7 +349,28 @@ export class TaskData {
         this.diveSource.addFeatures(divePacketFeatures);
         this.driftSource.addFeatures(driftPacketFeatures);
 
-        this.setTaskPackets(taskPackets);
+        // Excluded layer
+        this.excludedPacketSource.clear();
+        for (const taskPacket of excludedTaskPackets) {
+            if (taskPacket.dive) {
+                const diveFeature = getDivePacketFeature(this.map, taskPacket, this.excludedLayer);
+                if (diveFeature) {
+                    this.excludedPacketSource.addFeature(diveFeature);
+                }
+            }
+            if (taskPacket.drift) {
+                const driftFeature = getDriftPacketFeature(
+                    this.map,
+                    taskPacket,
+                    this.excludedLayer,
+                );
+                if (driftFeature) {
+                    this.excludedPacketSource.addFeature(driftFeature);
+                }
+            }
+        }
+
+        this.setTaskPackets(includedTaskPackets);
     }
 
     /**
@@ -375,6 +418,10 @@ export class TaskData {
 
     getDriftLayer() {
         return this.driftPacketLayer;
+    }
+
+    getExcludedLayer() {
+        return this.excludedLayer;
     }
 
     createClusterSource(source: VectorSource<Feature<Geometry>>, distance: number) {

@@ -9,7 +9,7 @@ import RunInfoPanel from "../RunInfoPanel/RunInfoPanel";
 import ContactInfoPanel from "../ContactInfoPanel/ContactInfoPanel";
 import JaiaAbout from "../JaiaAbout/JaiaAbout";
 import { layers } from "../../openlayers/map/layers/layers";
-import { jaiaAPI, BotPaths } from "../../utils/jaia-api";
+import { jaiaAPI, BotPaths, TaskPackets } from "../../utils/jaia-api";
 import { Missions } from "../../missions/missions";
 import { TaskData, taskData } from "../../data/task_packets/task-packets";
 import { HubOrBot } from "../../types/hub-or-bot";
@@ -244,7 +244,7 @@ interface State {
     rcDives: { [botId: number]: { [taskParams: string]: string } };
 
     taskPacketType: string;
-    taskPacketData: { [key: string]: { [key: string]: string } };
+    selectedTaskPacket: TaskPacket;
     selectedTaskPacketFeature: OlFeature;
     taskPacketIntervalId: NodeJS.Timeout;
     taskPacketsTimeline: { [key: string]: string | boolean };
@@ -289,7 +289,7 @@ export default class CommandControl extends React.Component {
     oldPodStatus?: PodStatus;
     missionPlans?: CommandList = null;
     taskPackets: TaskPacket[];
-    taskPacketsCount: number;
+    taskPacketsVersion: number;
     enabledEditStates: string[];
     enabledDownloadStates: string[];
     interactions: Interactions;
@@ -417,7 +417,7 @@ export default class CommandControl extends React.Component {
             rcDives: {},
 
             taskPacketType: "",
-            taskPacketData: {},
+            selectedTaskPacket: null,
             selectedTaskPacketFeature: null,
             taskPacketIntervalId: null,
             taskPacketsTimeline: {
@@ -491,7 +491,7 @@ export default class CommandControl extends React.Component {
         this.podStatusPollId = null;
         this.metadataPollId = null;
         this.taskPackets = [];
-        this.taskPacketsCount = 0;
+        this.taskPacketsVersion = 0;
         this.enabledEditStates = [
             "PRE_DEPLOYMENT",
             "RECOVERY",
@@ -1084,11 +1084,11 @@ export default class CommandControl extends React.Component {
     pollTaskPackets() {
         this.setTaskPacketDates();
         this.api
-            .getTaskPacketsCount()
-            .then((count) => {
+            .getTaskPacketsVersion()
+            .then((version) => {
                 // TaskPackets to be displayed is different than current display
-                if (this.getTaskPacketsCount() !== count) {
-                    this.setTaskPacketsCount(count);
+                if (this.getTaskPacketsVersion() !== version) {
+                    this.setTaskPacketsVersion(version);
 
                     let end = "";
 
@@ -2262,24 +2262,13 @@ export default class CommandControl extends React.Component {
                 }
 
                 const diveFeature = feature.get("features")[0];
-                const startTime = new Date(diveFeature.get("startTime") / 1000);
-                const endTime = new Date(diveFeature.get("endTime") / 1000);
-                const taskPacketData = {
-                    // Snake case used for string parsing in task packet panel
-                    bot_id: { value: diveFeature.get("botId"), units: "" },
-                    depth_achieved: { value: diveFeature.get("depthAchieved"), units: "m" },
-                    dive_rate: { value: diveFeature.get("diveRate"), units: "m/s" },
-                    bottom_dive: { value: diveFeature.get("bottomDive") ? "Yes" : "No", units: "" },
-                    start_time: { value: startTime.toLocaleString(), units: "" },
-                    end_time: { value: endTime.toLocaleString(), units: "" },
-                };
-
+                const selectedTaskPacket = diveFeature.get("task_packet") as TaskPacket;
                 this.setTaskPacketInterval(diveFeature, "dive");
 
                 this.setState(
                     {
                         taskPacketType: diveFeature.get("type"),
-                        taskPacketData: taskPacketData,
+                        selectedTaskPacket: selectedTaskPacket,
                     },
                     () => this.setVisiblePanel(PanelType.TASK_PACKET),
                 );
@@ -2297,25 +2286,14 @@ export default class CommandControl extends React.Component {
                 }
 
                 const driftFeature = feature.get("features")[0];
-                const startTime = new Date(driftFeature.get("startTime") / 1000);
-                const endTime = new Date(driftFeature.get("endTime") / 1000);
-                const taskPacketData = {
-                    // Snake case used for string parsing in task packet panel
-                    bot_id: { value: driftFeature.get("botId"), units: "" },
-                    duration: { value: driftFeature.get("duration"), units: "s" },
-                    speed: { value: driftFeature.get("speed"), units: "m/s" },
-                    drift_direction: { value: driftFeature.get("driftDirection"), units: "deg" },
-                    sig_wave_height_beta: { value: driftFeature.get("sigWaveHeight"), units: "m" },
-                    start_time: { value: startTime.toLocaleString(), units: "" },
-                    end_time: { value: endTime.toLocaleString(), units: "" },
-                };
+                const selectedTaskPacket = driftFeature.get("task_packet") as TaskPacket;
 
-                this.setTaskPacketInterval(driftFeature, "drfit");
+                this.setTaskPacketInterval(driftFeature, "drift");
 
                 this.setState(
                     {
                         taskPacketType: driftFeature.get("type"),
-                        taskPacketData: taskPacketData,
+                        selectedTaskPacket: selectedTaskPacket,
                     },
                     () => this.setVisiblePanel(PanelType.TASK_PACKET),
                 );
@@ -2640,23 +2618,15 @@ export default class CommandControl extends React.Component {
     }
 
     setTaskPacketInterval(selectedFeature: OlFeature, type: string) {
-        const taskPacketFeatures =
-            type === "dive"
-                ? taskData.divePacketLayer.getSource().getFeatures()
-                : taskData.driftPacketLayer.getSource().getFeatures();
         const styleFunction = type === "dive" ? divePacketIconStyle : driftPacketIconStyle;
-        for (const taskPacketFeature of taskPacketFeatures) {
-            if (taskPacketFeature.get("features")[0].get("id") === selectedFeature.get("id")) {
-                selectedFeature.set("selected", true);
-                selectedFeature.setStyle(styleFunction(selectedFeature, "black"));
-                selectedFeature.set("animated", !selectedFeature.get("animated"));
-                // Start interval that sets the style
-                const taskPacketIntervalId = setInterval(() => {
-                    this.updateTaskPacketLayer();
-                }, 1000);
-                this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId });
-            }
-        }
+        selectedFeature.set("selected", true);
+        selectedFeature.setStyle(styleFunction(selectedFeature, "black"));
+        selectedFeature.set("animated", !selectedFeature.get("animated"));
+        // Start interval that sets the style
+        const taskPacketIntervalId = setInterval(() => {
+            this.updateTaskPacketLayer();
+        }, 1000);
+        this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId });
     }
 
     setClusterModeStatus(isOn: boolean) {
@@ -2793,12 +2763,12 @@ export default class CommandControl extends React.Component {
         this.taskPackets = taskPackets;
     }
 
-    getTaskPacketsCount() {
-        return this.taskPacketsCount;
+    getTaskPacketsVersion() {
+        return this.taskPacketsVersion;
     }
 
-    setTaskPacketsCount(count: number) {
-        this.taskPacketsCount = count;
+    setTaskPacketsVersion(count: number) {
+        this.taskPacketsVersion = count;
     }
 
     /**
@@ -4272,8 +4242,9 @@ export default class CommandControl extends React.Component {
                 visiblePanelElement = (
                     <TaskPacketPanel
                         type={this.state.taskPacketType}
-                        taskPacketData={this.state.taskPacketData}
+                        selectedTaskPacket={this.state.selectedTaskPacket}
                         setVisiblePanel={this.setVisiblePanel.bind(this)}
+                        pollTaskPackets={this.pollTaskPackets.bind(this)}
                     />
                 );
                 break;
