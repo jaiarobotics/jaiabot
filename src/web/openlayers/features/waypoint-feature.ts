@@ -73,7 +73,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
             }),
             offsetY: -15,
         }),
-        zIndex: getWaypointZIndex(missionID),
+        zIndex: getWaypointZIndex(missionID, waypointNum),
     });
 }
 
@@ -180,16 +180,20 @@ function getWaypointColor(missionID: number) {
 /**
  * Supplies the zIndex for waypoints and lines based on edit mode
  *
- * @param {number} missionID Used to determine zIndex for waypoints
- * @returns {number} zIndex to be applied to waypoint
+ * @param {number} missionID Used to determine zIndex for waypoints and lines
+ * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
+ * @returns {number} zIndex to be applied to waypoint and lines
  */
-function getWaypointZIndex(missionID: number) {
-    const selectedNode = jaiaGlobal.getSelectedNode();
+function getWaypointZIndex(missionID: number, waypointNum?: number) {
     let waypointZIndex = 0;
 
     if (missionID === missions.getMissionIDInEditMode()) {
         // Assume there are less than 1000 missions
         waypointZIndex = 1000;
+        if (waypointNum && waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum) {
+            // Assume there are less than 100 waypoints
+            waypointZIndex = waypointZIndex + 100;
+        }
     } else {
         waypointZIndex = missionID;
     }
