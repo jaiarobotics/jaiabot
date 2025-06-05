@@ -5,13 +5,14 @@ import { useContext } from "react";
 import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { SCROLL_DELAY } from "../../utils/constants";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
 import Icon from "@mdi/react";
-import { mdiAutoFix, mdiContentSave, mdiDelete, mdiFolderOpen, mdiPlus } from "@mdi/js";
+import { mdiAutoFix, mdiContentSave, mdiFolderOpen, mdiPlus } from "@mdi/js";
 
 import "./MissionsPanel.less";
 import "../../style/stylesheets/util.less";
@@ -20,7 +21,6 @@ import "../../style/stylesheets/util.less";
  * Renders a panel for operators to manage missions
  */
 export default function MissionsPanel() {
-    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
@@ -30,6 +30,7 @@ export default function MissionsPanel() {
      */
     const handleAddMissionClick = () => {
         jaiaDispatch({ type: JaiaActions.ADD_MISSION });
+        scrollMissionsList();
     };
 
     /**
@@ -91,4 +92,19 @@ export default function MissionsPanel() {
             <MissionsList />
         </div>
     );
+}
+
+/**
+ * Scrolls the newest mission into view
+ *
+ * @returns {void}
+ */
+function scrollMissionsList() {
+    setTimeout(() => {
+        const missionsList = document.getElementById("missions-list");
+        const scrollAmount = missionsList.scrollHeight;
+        missionsList.scrollTo({
+            top: scrollAmount,
+        });
+    }, SCROLL_DELAY);
 }

@@ -1,5 +1,5 @@
 // React
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
@@ -9,6 +9,7 @@ import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteM
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
+import { addDropdownListener } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
@@ -40,6 +41,10 @@ export default function MissionsList() {
     if (!jaiaContext) {
         return <div></div>;
     }
+
+    useEffect(() => {
+        addDropdownListener("mission-accordion", "missions-list");
+    });
 
     /**
      * Triggered when the expand/collapse state is changed on the Accordion component
@@ -99,7 +104,7 @@ export default function MissionsList() {
     };
 
     return (
-        <div className="missions-list" data-testid="missions-list">
+        <div id="missions-list" data-testid="missions-list">
             {Array.from(jaiaContext.missions.values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
