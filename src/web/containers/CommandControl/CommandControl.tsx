@@ -2618,23 +2618,15 @@ export default class CommandControl extends React.Component {
     }
 
     setTaskPacketInterval(selectedFeature: OlFeature, type: string) {
-        const taskPacketFeatures =
-            type === "dive"
-                ? taskData.divePacketLayer.getSource().getFeatures()
-                : taskData.driftPacketLayer.getSource().getFeatures();
         const styleFunction = type === "dive" ? divePacketIconStyle : driftPacketIconStyle;
-        for (const taskPacketFeature of taskPacketFeatures) {
-            if (taskPacketFeature.get("features")[0].get("id") === selectedFeature.get("id")) {
-                selectedFeature.set("selected", true);
-                selectedFeature.setStyle(styleFunction(selectedFeature, "black"));
-                selectedFeature.set("animated", !selectedFeature.get("animated"));
-                // Start interval that sets the style
-                const taskPacketIntervalId = setInterval(() => {
-                    this.updateTaskPacketLayer();
-                }, 1000);
-                this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId });
-            }
-        }
+        selectedFeature.set("selected", true);
+        selectedFeature.setStyle(styleFunction(selectedFeature, "black"));
+        selectedFeature.set("animated", !selectedFeature.get("animated"));
+        // Start interval that sets the style
+        const taskPacketIntervalId = setInterval(() => {
+            this.updateTaskPacketLayer();
+        }, 1000);
+        this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId });
     }
 
     setClusterModeStatus(isOn: boolean) {
