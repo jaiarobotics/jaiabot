@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect } from "react";
 
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
@@ -34,6 +34,7 @@ import {
 } from "./bot-details";
 
 import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { addDropdownListener } from "../../utils/style";
 import {
     formatLatitude,
     formatLongitude,
@@ -62,6 +63,10 @@ const accordionTheme = createTheme({
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
+
+    useEffect(() => {
+        addDropdownListener("accordion-container", "bot-details-accordions-container");
+    });
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
@@ -127,7 +132,7 @@ export default function BotDetails() {
                         />
                     </div>
                 </div>
-                <div className="accordions-container">
+                <div className="accordions-container" id="bot-details-accordions-container">
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.botAccordionStates.quickLook}

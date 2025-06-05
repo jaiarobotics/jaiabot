@@ -8,6 +8,7 @@ export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const INITAL_ZOOM_DURATION = 3000; // milliseconds
 export const INITIAL_ZOOM = 15; // OpenLayers zoom level
+export const SCROLL_DELAY = 30; // milliseconds
 export const MIN_BATTERY_PERCENT = 20;
 export const MAX_LAT = 90;
 export const MIN_LAT = -90;
