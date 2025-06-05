@@ -186,16 +186,23 @@ function getWaypointColor(missionID: number) {
  */
 function getWaypointZIndex(missionID: number, waypointNum?: number) {
     let waypointZIndex = 0;
-
+    // Provide proper mission stacking
     if (missionID === missions.getMissionIDInEditMode()) {
         // Assume there are less than 1000 missions
         waypointZIndex = 1000;
-        if (waypointNum && waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum) {
+    } else {
+        waypointZIndex = missionID;
+    }
+    // Provide proper waypoint stacking
+    if (waypointNum) {
+        waypointZIndex = waypointZIndex + waypointNum;
+        if (
+            waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
+            missionID === missions.getMissionIDInEditMode()
+        ) {
             // Assume there are less than 100 waypoints
             waypointZIndex = waypointZIndex + 100;
         }
-    } else {
-        waypointZIndex = missionID;
     }
 
     return waypointZIndex;
