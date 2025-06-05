@@ -1,6 +1,7 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { missions } from "../../../data/missions/missions";
 import { LayerTitles } from "../../../types/openlayers-types";
+import { layersZIndexes } from "./zindex";
 import {
     generateWaypointFeature,
     generateWaypointLineFeature,
@@ -8,7 +9,7 @@ import {
 
 class MissionLayer extends JaiaVectorLayer {
     constructor() {
-        super(LayerTitles.MISSION_LAYER);
+        super(LayerTitles.MISSION_LAYER, layersZIndexes.get(LayerTitles.MISSION_LAYER));
     }
 
     /**
