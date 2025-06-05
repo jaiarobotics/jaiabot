@@ -80,9 +80,9 @@ class TaskPacketDatabase:
             # Move file to prevent us from finding it again next time (speeds things up significantly)
             taskpacket_filename = os.path.basename(taskpacket_fullpath)
             shutil.move(taskpacket_fullpath, processed_path + taskpacket_filename)
+            self.task_packets_version += 1
         
         self.db.commit()
-        self.task_packets_version += 1
     
 
     def _add_task_packet(self, task_packet: Dict):
