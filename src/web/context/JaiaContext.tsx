@@ -15,8 +15,9 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
+import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
+import { compareWaypoints } from "../utils/comparisons";
 import {
     NodeTypes,
     SelectedNode,
@@ -47,6 +48,7 @@ export interface JaiaContextType {
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
+    missionSpeeds: Speeds;
 }
 
 export interface JaiaAction {
@@ -66,6 +68,8 @@ export interface JaiaAction {
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
+
+    missionSpeeds?: Speeds;
 }
 
 interface JaiaContextProviderProps {
@@ -133,6 +137,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
 
+        case JaiaActions.CHANGE_MISSION_SPEEDS:
+            return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
+
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -147,6 +154,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CHANGE_TASK_PARAMETER:
             return handleChangeTaskParameter(mutableState, action.taskParameterPair);
+
+        case JaiaActions.TOGGLE_BOTTOM_DIVE:
+            return handleToggleBottomDive(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -211,6 +221,8 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
+
+    mutableState.missionSpeeds = missions.getMissionSpeeds();
 
     return mutableState;
 }
@@ -348,6 +360,18 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
 }
 
 /**
+ * Makes a call update the mission speeds
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
+    missions.setMissionSpeeds(missionSpeeds);
+    mutableState.missionSpeeds = missionSpeeds;
+    return mutableState;
+}
+
+/**
  * Makes call to add waypoint if mission is in edit mode
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -454,6 +478,24 @@ function handleChangeTaskParameter(
 }
 
 /**
+ * Makes call to update the dive parameters based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleToggleBottomDive(mutableState: JaiaContextType) {
+    const task = getWaypoint().getTask();
+
+    if (task.getIsBottomDive()) {
+        task.setIsBottomDive(false);
+    } else {
+        task.setIsBottomDive(true);
+    }
+
+    return mutableState;
+}
+
+/**
  * Closes the Bot or Hub details panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -471,7 +513,13 @@ function handleClosedDetails(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClosedWaypointPanel(mutableState: JaiaContextType) {
-    getWaypoint().setIsMovable(false);
+    const waypoint = getWaypoint();
+
+    // When waypoint is not deleted, disable movable property
+    if (waypoint) {
+        waypoint.setIsMovable(false);
+    }
+
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     return mutableState;
@@ -548,7 +596,7 @@ function handleClickedBotAccordion(
         case BotAccordionNames.COMMANDS:
             botAccordionStates.commands = !botAccordionStates.commands;
             break;
-        case BotAccordionNames.ADVANCEDCOMMANDS:
+        case BotAccordionNames.ADVANCED_COMMANDS:
             botAccordionStates.advancedCommands = !botAccordionStates.advancedCommands;
             break;
         case BotAccordionNames.HEALTH:
@@ -678,7 +726,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  */
 function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
     const previousWaypoint = getWaypoint();
-    if (previousWaypoint) {
+    if (previousWaypoint && !compareWaypoints(jaiaGlobal.getSelectedWaypoint(), clickedWaypoint)) {
         previousWaypoint.setIsMovable(false);
     }
 

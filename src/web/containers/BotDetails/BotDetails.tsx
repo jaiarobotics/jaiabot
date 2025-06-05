@@ -252,7 +252,7 @@ export default function BotDetails() {
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
                                     onChange={() => {
-                                        handleAccordionClick(BotAccordionNames.ADVANCEDCOMMANDS);
+                                        handleAccordionClick(BotAccordionNames.ADVANCED_COMMANDS);
                                     }}
                                     className="accordion-container"
                                 >

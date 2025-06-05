@@ -53,16 +53,12 @@ export default function Map() {
             }
         }
 
-        if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
-            const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-            const waypoint = mission.getWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
-
-            if (waypoint.getIsMovable()) {
-                handleMoveWaypointClick(event.coordinate);
-            }
-        } else {
-            handleAddWaypointClick(event.coordinate);
+        if (isWaypointMovable()) {
+            handleMoveWaypointClick(event.coordinate);
+            return;
         }
+
+        handleAddWaypointClick(event.coordinate);
     };
 
     /**
@@ -133,6 +129,23 @@ export default function Map() {
             type: JaiaActions.ADD_WAYPOINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
+    };
+
+    /**
+     * Checks to see if the selected waypoint is movable
+     *
+     * @returns {boolean} True if the waypoint is movable, false if not
+     */
+    const isWaypointMovable = () => {
+        if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
+            const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+            const waypoint = mission.getWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
+
+            if (waypoint.getIsMovable()) {
+                return true;
+            }
+        }
+        return false;
     };
 
     return <div id="map" data-testid="map"></div>;

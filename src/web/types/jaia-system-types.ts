@@ -55,6 +55,11 @@ export enum SystemButtonTypes {
     RESTART_SERVICES = 3,
 }
 
+export enum ButtonListTypes {
+    TOP = 1,
+    SIDE = 2,
+}
+
 export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",

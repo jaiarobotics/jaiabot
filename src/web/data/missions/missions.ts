@@ -1,15 +1,18 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { Speeds } from "../../types/protobuf-types";
 
 class Missions {
     private missions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;
+    private missionSpeeds: Speeds;
 
     constructor() {
         this.missions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
+        this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
     }
 
     getMissions() {
@@ -38,6 +41,18 @@ class Missions {
 
     setMissionIDInEditMode(missionIDInEditMode: number) {
         this.missionIDInEditMode = missionIDInEditMode;
+    }
+
+    getMissionSpeeds() {
+        return this.missionSpeeds;
+    }
+
+    setMissionSpeeds(missionSpeeds: Speeds) {
+        this.missionSpeeds = { ...missionSpeeds };
+
+        for (const [missionID, mission] of this.missions.entries()) {
+            mission.setSpeeds(this.missionSpeeds);
+        }
     }
 
     addMission(mission: Mission) {
