@@ -1,5 +1,6 @@
-import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 import Task from "../tasks/task";
+
+import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
