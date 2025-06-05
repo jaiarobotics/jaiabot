@@ -15,7 +15,7 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, TaskType } from "../types/protobuf-types";
+import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
     NodeTypes,
@@ -47,6 +47,7 @@ export interface JaiaContextType {
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
+    missionSpeeds: Speeds;
 }
 
 export interface JaiaAction {
@@ -66,6 +67,8 @@ export interface JaiaAction {
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
+
+    missionSpeeds?: Speeds;
 }
 
 interface JaiaContextProviderProps {
@@ -133,17 +136,26 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.AUTO_ASSIGN_MISSIONS:
             return handleAutoAssignMissions(mutableState);
 
+        case JaiaActions.CHANGE_MISSION_SPEEDS:
+            return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
+
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
         case JaiaActions.DELETE_WAYPOINT:
             return handleDeleteWaypoint(mutableState);
 
+        case JaiaActions.MOVE_WAYPOINT:
+            return handleMoveWaypoint(mutableState, action.location);
+
         case JaiaActions.SELECT_TASK:
             return handleSelectTask(mutableState, action.taskType);
 
         case JaiaActions.CHANGE_TASK_PARAMETER:
             return handleChangeTaskParameter(mutableState, action.taskParameterPair);
+
+        case JaiaActions.TOGGLE_BOTTOM_DIVE:
+            return handleToggleBottomDive(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -198,12 +210,15 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missions = missions.getMissions();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
+
+    mutableState.missionSpeeds = missions.getMissionSpeeds();
 
     return mutableState;
 }
@@ -341,6 +356,18 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
 }
 
 /**
+ * Makes a call update the mission speeds
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
+    missions.setMissionSpeeds(missionSpeeds);
+    mutableState.missionSpeeds = missionSpeeds;
+    return mutableState;
+}
+
+/**
  * Makes call to add waypoint if mission is in edit mode
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -396,6 +423,22 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
 }
 
 /**
+ * Makes the calls to move a waypoint to a user set location
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location New location of the waypoint
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
+    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, location);
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
+}
+
+/**
  * Updates the task associated with a waypoint based on the operator's selection
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -427,6 +470,24 @@ function handleChangeTaskParameter(
 ) {
     const task = getTask();
     task.setParameter(taskParameterPair);
+    return mutableState;
+}
+
+/**
+ * Makes call to update the dive parameters based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleToggleBottomDive(mutableState: JaiaContextType) {
+    const task = getTask();
+
+    if (task.getIsBottomDive()) {
+        task.setIsBottomDive(false);
+    } else {
+        task.setIsBottomDive(true);
+    }
+
     return mutableState;
 }
 
