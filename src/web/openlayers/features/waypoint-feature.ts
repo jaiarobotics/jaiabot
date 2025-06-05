@@ -14,7 +14,6 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
-import { openLayersZIndexes } from "../../style/openlayers/zindex";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
@@ -74,7 +73,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
             }),
             offsetY: -15,
         }),
-        zIndex: openLayersZIndexes.get(MapFeatureTypes.WAYPOINT),
+        zIndex: getWaypointZIndex(missionID, waypointNum),
     });
 }
 
@@ -125,6 +124,7 @@ function generateWaypointLineStyle(
             width: 4,
             color: OpenLayersColors.OUTLINE,
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const overlayStyle = new Style({
@@ -132,6 +132,7 @@ function generateWaypointLineStyle(
             width: 2,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const dx = endCoordinate[0] - startCoordinate[0];
@@ -174,4 +175,35 @@ function getWaypointColor(missionID: number) {
     }
 
     return OpenLayersColors.DEFAULT;
+}
+
+/**
+ * Supplies the zIndex for waypoints and lines based on edit mode
+ *
+ * @param {number} missionID Used to determine zIndex for waypoints and lines
+ * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
+ * @returns {number} zIndex to be applied to waypoint and lines
+ */
+function getWaypointZIndex(missionID: number, waypointNum?: number) {
+    let waypointZIndex = 0;
+    // Provide proper mission stacking
+    if (missionID === missions.getMissionIDInEditMode()) {
+        // Assume there are less than 1000 missions
+        waypointZIndex = 1000;
+    } else {
+        waypointZIndex = missionID;
+    }
+    // Provide proper waypoint stacking
+    if (waypointNum) {
+        waypointZIndex = waypointZIndex + waypointNum;
+        if (
+            waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
+            missionID === missions.getMissionIDInEditMode()
+        ) {
+            // Assume there are less than 100 waypoints
+            waypointZIndex = waypointZIndex + 100;
+        }
+    }
+
+    return waypointZIndex;
 }
