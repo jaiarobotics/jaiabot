@@ -35,19 +35,17 @@ import {
 
 import "./HubDetails.less";
 
+const accordionTheme = createTheme({
+    transitions: {
+        create: () => "none",
+    },
+});
+
 export default function HubDetails() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
     const IPPrefix = getIPPrefix(location.hostname);
-
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
 
     useEffect(() => {
         addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);

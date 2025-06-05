@@ -42,8 +42,6 @@ import {
 } from "../../shared/Utilities";
 
 // MDI and MUI
-import { mdiDelete, mdiSkipNext } from "@mdi/js";
-import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
@@ -55,17 +53,15 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
 
+const accordionTheme = createTheme({
+    transitions: {
+        create: () => "none",
+    },
+});
+
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
-
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
