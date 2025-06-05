@@ -145,7 +145,7 @@ def getSimplices(bottomDives: List[BottomDive]):
     except Exception as e:
         logging.warning(f'While doing Delaunay triangulation: {e}')
         logging.warning('Do you have co-linear mesh points?')
-        return None
+        return []
 
 
 def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
