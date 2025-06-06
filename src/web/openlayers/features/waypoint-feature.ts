@@ -150,6 +150,7 @@ function generateWaypointLineStyle(
             rotation: -rotation,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];

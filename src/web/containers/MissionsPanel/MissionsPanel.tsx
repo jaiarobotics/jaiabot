@@ -7,7 +7,7 @@ import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMiss
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { SCROLL_DELAY } from "../../utils/constants";
+import { scrollMissionsList } from "../../utils/style";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
@@ -92,19 +92,4 @@ export default function MissionsPanel() {
             <MissionsList />
         </div>
     );
-}
-
-/**
- * Scrolls the newest mission into view
- *
- * @returns {void}
- */
-function scrollMissionsList() {
-    setTimeout(() => {
-        const missionsList = document.getElementById("missions-list");
-        const scrollAmount = missionsList.scrollHeight;
-        missionsList.scrollTo({
-            top: scrollAmount,
-        });
-    }, SCROLL_DELAY);
 }

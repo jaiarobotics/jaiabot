@@ -9,7 +9,7 @@ import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteM
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { addDropdownListener } from "../../../utils/style";
+import { addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
@@ -88,6 +88,7 @@ export default function MissionsList() {
             type: JaiaActions.DUPLICATE_MISSION,
             missionID: missionID,
         });
+        scrollMissionsList();
     };
 
     /**

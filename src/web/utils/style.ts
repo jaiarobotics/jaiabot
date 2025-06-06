@@ -91,3 +91,18 @@ function adjustDropdownPosition(dropdown: HTMLElement, parentID: string) {
         });
     }
 }
+
+/**
+ * Scrolls the newest mission into view
+ *
+ * @returns {void}
+ */
+export function scrollMissionsList() {
+    setTimeout(() => {
+        const missionsList = document.getElementById("missions-list");
+        if (missionsList) {
+            const scrollAmount = missionsList.scrollHeight;
+            missionsList.scrollTo({ top: scrollAmount });
+        }
+    }, SCROLL_DELAY);
+}
