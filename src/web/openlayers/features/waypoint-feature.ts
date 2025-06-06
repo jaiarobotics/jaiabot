@@ -11,12 +11,16 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
+import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
+import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
+import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
+import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -55,9 +59,11 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+
     return new Style({
         image: new Icon({
-            src: waypointIcon,
+            src: getWaypointSrc(taskType),
             anchor: [0.5, 1],
             color: getWaypointColor(missionID),
         }),
@@ -153,6 +159,27 @@ function generateWaypointLineStyle(
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];
+}
+
+/**
+ * Provides the SVG to match the waypoint task
+ *
+ * @param {TaskType} taskType Determines the waypoint SVG
+ * @returns {string} SVG import
+ */
+function getWaypointSrc(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.DIVE:
+            return waypointDiveIcon;
+        case TaskType.SURFACE_DRIFT:
+            return waypointDriftIcon;
+        case TaskType.CONSTANT_HEADING:
+            return waypointConstantHeadingIcon;
+        case TaskType.STATION_KEEP:
+            return waypointStationKeepIcon;
+        default:
+            return waypointIcon;
+    }
 }
 
 /**
