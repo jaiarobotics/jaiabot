@@ -38,10 +38,6 @@ export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    if (!jaiaContext) {
-        return <div></div>;
-    }
-
     useEffect(() => {
         addDropdownListener("mission-accordion", "missions-list");
     });
