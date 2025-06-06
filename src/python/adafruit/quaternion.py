@@ -4,6 +4,8 @@ from orientation import Orientation
 from math import *
 
 
+DEG = pi / 180
+
 
 @dataclass
 class Quaternion:
@@ -35,8 +37,6 @@ class Quaternion:
 
 
     def to_euler_angles(self) -> Orientation:
-        DEG = pi / 180
-
         # roll (x-axis rotation)
         sinr_cosp = 2 * (self.w * self.x + self.y * self.z)
         cosr_cosp = 1 - 2 * (self.x * self.x + self.y * self.y)
@@ -56,11 +56,22 @@ class Quaternion:
             yaw += (2 * pi)
 
         return Orientation(yaw / DEG, pitch / DEG, roll / DEG)
+    
+
+    def to_euler_angles_alt(q) -> Orientation:
+        roll = atan2(2*(q.w*q.x + q.y*q.z), 1 - 2*(q.x*q.x + q.y*q.y))
+        pitch = -pi/2 + 2 * atan2(sqrt(1 + 2*(q.w*q.y - q.x*q.z)), sqrt(1 - 2 * (q.w*q.y - q.x*q.z)))
+        yaw = atan2(2 * (q.w*q.z + q.x*q.y), 1 - 2 * (q.y*q.y + q.z*q.z))
+        return Orientation(heading=-yaw / DEG, pitch=-pitch / DEG, roll=roll / DEG)
 
 
     def unit_inverse(self):
         # Assume unit quaternion!
         return Quaternion(self.w, -self.x, -self.y, -self.z)
+    
+
+    def magnitude(self) -> float:
+        return sqrt(self.w*self.w + self.x*self.x + self.y*self.y + self.z*self.z)
 
 
     def apply(self, vector: Vector3):
@@ -70,7 +81,12 @@ class Quaternion:
 
 
 if __name__ == '__main__':
-    q = Quaternion(0.39, 0.45, -0.52, -0.58)
-    print(q.to_euler_angles())
+    print(Quaternion(0.55, 0.01, -0.01, -0.8).to_euler_angles())
+    print(Quaternion(0.55, 0.01, -0.01, -0.8).to_euler_angles_alt())
 
+    print(Quaternion(0.53, -0.17, -0.19, -0.8).to_euler_angles())
+    print(Quaternion(0.53, -0.17, -0.19, -0.8).to_euler_angles_alt())
+
+    print(Quaternion(0.39, 0.45, -0.52, -0.58).to_euler_angles())
+    print(Quaternion(0.39, 0.45, -0.52, -0.58).to_euler_angles_alt())
 
