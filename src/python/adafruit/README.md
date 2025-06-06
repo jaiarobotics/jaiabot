@@ -44,10 +44,16 @@ The `linear_acceleration` vector points in the direction of the acceleration.  T
 
 ### Quaternion
 
-The `quaternion` vector behaves as in the following chart.
+The `quaternion` vector is given in the original `Hamilton` formulation, where $ij=k$.  The `quaternion` behaves as in the following chart.
 
 | Orientation | Pitch ($\degree$) | Roll ($\degree$) | `quaternion` (wxyz) |
 | ----------- | -------- | -- | --------------- |
 | <img src="bot_standard.png" width="400pt"> | 0 | 0 | `(0.55, 0.01, -0.01, -0.8)` |
 | <img src="bot_pitch_positive.png" width="400pt"> | +32 | 0 | `(0.53, -0.17, -0.19, -0.8)` |
 | <img src="bot_roll.png" width="400pt"> | 0 | +87 | `(0.39, 0.45, -0.52, -0.58)` |
+
+Because of the way the IMU is mounted, when converting the quaternion to Euler angles, we must multiply the `heading` and `pitch` by -1.  This is because the `+y` axis is pointed toward port, and the `+z` axis is pointed upward. 
+
+For example, this must be taken into consideration when applying formulae like in the following article:
+
+[Quaternion to Euler angles (in_3-2-1_sequence) conversion (Wikipedia)](https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_(in_3-2-1_sequence)_conversion)
