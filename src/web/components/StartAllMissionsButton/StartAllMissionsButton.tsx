@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { StartAllMissionsDialog, DialogActions } from "./StartAllMissionsDialog";
 import { DisabledCodes } from "../StartMissionButton/start-mission-messages";
@@ -29,6 +31,7 @@ type DisabledCodeGroup = [DisabledCodes, number[]];
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StartAllMissionsButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
@@ -83,19 +86,21 @@ export default function StartAllMissionsButton(props: Props) {
      * @param {DialogActions} dialogAction The operators action on the dialog box
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
+                const missionID = missionsManager.getMissionID(botID);
                 const startMissionCommand: Command = {
                     bot_id: botID,
                     type: CommandType.MISSION_PLAN,
-                    plan: props.missions
-                        .get(missionsManager.getMissionID(botID))
-                        .packageMissionForHub(),
+                    plan: props.missions.get(missionID).packageMissionForHub(),
                 };
-                sendBotCommand(startMissionCommand);
+                const res = await sendBotCommand(startMissionCommand);
+                if (res.status === "ok") {
+                    jaiaDispatch({ type: JaiaActions.SEND_MISSION, missionID: missionID });
+                }
             }
         }
     };

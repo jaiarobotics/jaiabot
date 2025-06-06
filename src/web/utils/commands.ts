@@ -56,7 +56,7 @@ export function isCommandAvailable(commandType: CommandType, missionState: Missi
  * @returns {void}
  */
 export function sendBotCommand(command: Command) {
-    jaiaAPI.postCommand(command);
+    return jaiaAPI.postCommand(command);
 }
 
 /**
@@ -66,5 +66,5 @@ export function sendBotCommand(command: Command) {
  * @returns {void}
  */
 export function sendHubCommand(command: CommandForHub) {
-    jaiaAPI.postCommandForHub(command);
+    return jaiaAPI.postCommandForHub(command);
 }

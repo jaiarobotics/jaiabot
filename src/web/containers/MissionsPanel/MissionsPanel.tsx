@@ -19,7 +19,6 @@ import "./MissionsPanel.less";
  * Renders a panel for operators to manage missions
  */
 export default function MissionsPanel() {
-    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
