@@ -8,10 +8,7 @@ The IMU is mounted in the JaiaBot as follows:
 * positive y-axis pointing to the left (port) direction
 * positive z-axis pointing up
 
-| Axes | Bot |
-| - | - |
-| <img src="xy.svg" width="150pt"> | <img src="bot_roll.png" width="400pt"> |
-| <img src="xz.svg" width="150pt"> | <img src="bot_standard.png" width="400pt"> |
+<img src="bot_xyz.svg" width="400pt">
 
 Orientation of the chip within the JaiaBot:
 
