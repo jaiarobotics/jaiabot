@@ -185,7 +185,7 @@ class TaskPacketDatabase:
             int: The version of the set of TaskPackets
         """
         with self._lock:
-            l.warning('getting task packet version')
+            l.info('getting task packet version')
             return self.task_packets_version
 
 
