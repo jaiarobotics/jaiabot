@@ -12,8 +12,6 @@ import Bot from "../../data/bots/bot";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
-import "../../style/stylesheets/util.less";
-
 interface Props {
     bot: Bot;
 }

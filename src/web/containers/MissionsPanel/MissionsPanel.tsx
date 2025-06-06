@@ -14,7 +14,6 @@ import Icon from "@mdi/react";
 import { mdiAutoFix, mdiContentSave, mdiDelete, mdiFolderOpen, mdiPlus } from "@mdi/js";
 
 import "./MissionsPanel.less";
-import "../../style/stylesheets/util.less";
 
 /**
  * Renders a panel for operators to manage missions

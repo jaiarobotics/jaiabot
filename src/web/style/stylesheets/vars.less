@@ -1,23 +1,22 @@
-@import "../../node_modules/reset-css/reset.css";
-@import "./accordion.less";
-@import "./button.less";
-@import "./button-list.less";
-@import "./details.less";
-@import "./dialog.less";
-@import "./panel.less";
-@import "./input.less";
-
-// Sizes
+// Panels
 @panel-max-height: 80vh;
+@panel-top: 66px;
+@panel-right: 66px;
+
+// Buttons
+@jaia-button-height: 48px;
+@jaia-button-width: 48px;
+@jaia-button-background-color: #fff;
+@jaia-button-border-radius: 12px;
+@jaia-button-padding: 6px;
+@jaia-button-box-shadow: #333 1px 1px 6px;
 
 // Colors
 @cc-background-color: white;
+@overlay-background: rgba(0, 0, 0, 0.7);
 @cc-text-color: black;
 @cc-text-color-light: white;
 @cc-accordian-color: #767d7d;
-@cc-accordian-text-color: white;
-@cc-details-text-color: white;
-@cc-maplayers-text-color: white;
 @selected-color: rgba(108, 214, 237, 0.7);
 @disabled-color: #4c4c47;
 
@@ -31,16 +30,6 @@
 
 @rc-active-color: mediumpurple;
 @waypoint-color: gold;
-
-@overlay-background: rgba(0, 0, 0, 0.7);
-
-// Z-Index
-@map: 0;
-@column-right: 10;
-@engineering-panel: 11;
-@mission-settings: 11;
-@goal-settings: 11;
-@map-layers: 11;
 
 // Fonts
 @global-font-family:
@@ -56,7 +45,3 @@
     Helvetica,
     Arial,
     sans-serif;
-
-body {
-    font-family: @global-font-family;
-}
