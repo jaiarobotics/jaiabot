@@ -51,4 +51,5 @@ export const enum PanelNames {
     MISSIONS = "missions",
     WAYPOINT = "waypoint",
     JAIA_ABOUT = "jaia_about",
+    HELP = "help",
 }
