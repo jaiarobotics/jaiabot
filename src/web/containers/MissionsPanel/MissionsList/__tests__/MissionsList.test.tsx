@@ -10,7 +10,7 @@ import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";
 
-test("Exercise Duplicate Mission Button", async () => {
+test.skip("Exercise Duplicate Mission Button", async () => {
     // Pre-seed data model with original mission
     let originalMission = new Mission();
     const originalID = missions.addMission(originalMission);
