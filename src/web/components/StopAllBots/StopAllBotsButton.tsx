@@ -14,8 +14,6 @@ import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
-import "../../style/stylesheets/util.less";
-
 interface Props {
     bots: Map<number, Bot>;
 }
