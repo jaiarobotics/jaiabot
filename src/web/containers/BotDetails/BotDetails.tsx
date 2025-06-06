@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect } from "react";
 
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
@@ -34,6 +34,7 @@ import {
 } from "./bot-details";
 
 import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { addDropdownListener } from "../../utils/style";
 import {
     formatLatitude,
     formatLongitude,
@@ -42,8 +43,6 @@ import {
 } from "../../shared/Utilities";
 
 // MDI and MUI
-import { mdiDelete, mdiSkipNext } from "@mdi/js";
-import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
@@ -55,17 +54,19 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
 
+const accordionTheme = createTheme({
+    transitions: {
+        create: () => "none",
+    },
+});
+
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
+    useEffect(() => {
+        addDropdownListener("accordion-container", "bot-details-accordions-container");
+    });
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
@@ -131,7 +132,7 @@ export default function BotDetails() {
                         />
                     </div>
                 </div>
-                <div className="accordions-container">
+                <div className="accordions-container" id="bot-details-accordions-container">
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.botAccordionStates.quickLook}
