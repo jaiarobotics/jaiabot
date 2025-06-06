@@ -1,5 +1,7 @@
 import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+
 import Bot from "./bot";
 
 /**
@@ -115,11 +117,12 @@ class Bots {
         }
 
         if (botStatus.active_goal) {
-            missionStatus.activeGoal = botStatus.active_goal;
+            missionStatus.targetWaypoint = botStatus.active_goal;
+            missionLayer.updateFeatures();
         }
 
         if (botStatus.distance_to_active_goal) {
-            missionStatus.distanceToActiveGoal = botStatus.distance_to_active_goal;
+            missionStatus.distanceToTargetWaypoint = botStatus.distance_to_active_goal;
         }
 
         if (botStatus.repeat_index) {

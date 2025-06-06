@@ -5,6 +5,7 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import { bots } from "../../data/bots/bots";
 import { missions } from "../../data/missions/missions";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -59,7 +60,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
         image: new Icon({
             src: waypointIcon,
             anchor: [0.5, 1],
-            color: getWaypointColor(missionID),
+            color: getWaypointColor(missionID, waypointNum),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -159,9 +160,18 @@ function generateWaypointLineStyle(
  * Supplies the color for a waypoint based on edit and selection states
  *
  * @param {number} missionID Used to determine color of the line segment
+ * @param {number} waypointNum Makes color change for target waypoint
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
-function getWaypointColor(missionID: number) {
+function getWaypointColor(missionID: number, waypointNum?: number) {
+    if (waypointNum) {
+        const botID = missionsManager.getBotID(missionID);
+        const targetWaypoint = bots.getBot(botID).getMissionStatus().targetWaypoint;
+        if (targetWaypoint && targetWaypoint === waypointNum) {
+            return OpenLayersColors.TARGET;
+        }
+    }
+
     if (missionID === missions.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;
     }
