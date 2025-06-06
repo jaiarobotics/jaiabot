@@ -11,12 +11,13 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
+import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -154,6 +155,48 @@ function generateWaypointLineStyle(
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];
+}
+
+/**
+ * Creates the flag positioned above the first waypoint of each mission
+ *
+ * @param {GeographicCoordinate} location Used to position the flag
+ * @param {number} missionID Used to style the flag
+ * @returns {Feature} Flag located above first waypoint of a mission
+ */
+export function generateMissionFlagFeature(location: GeographicCoordinate, missionID: number) {
+    const coordinate: Coordinate = [location.lon, location.lat];
+    const feature = new Feature({
+        geometry: new Point(fromLonLat(coordinate, view.getProjection())),
+    });
+    feature.setStyle(generateMissionFlagStyle(missionID));
+    return feature;
+}
+
+/**
+ * Styles the flag above the first waypoint of a mission
+ *
+ * @param {number} missionID Used to distinguish missions + get task type
+ * @returns {Style} Style to be applied to the mission flag feature
+ */
+function generateMissionFlagStyle(missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(1).getTask().getType();
+
+    return new Style({
+        image: new Icon({
+            src: missionFlagIcon,
+            color: getWaypointColor(missionID),
+            anchor: taskType === TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
+        }),
+        text: new Text({
+            text: `M${missionID}`,
+            font: "12pt sans-serif",
+            fill: new Fill({ color: "black" }),
+            offsetY: taskType === TaskType.NONE ? -61.2175 : -76.75,
+            offsetX: 20,
+        }),
+        zIndex: getWaypointZIndex(missionID),
+    });
 }
 
 /**
