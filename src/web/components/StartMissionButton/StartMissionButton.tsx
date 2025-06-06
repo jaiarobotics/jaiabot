@@ -17,8 +17,6 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 
-import "../../style/stylesheets/util.less";
-
 interface Props {
     bot: Bot;
     mission: Mission;

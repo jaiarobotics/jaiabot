@@ -14,8 +14,6 @@ import { Command, CommandType } from "../../types/protobuf-types";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
-import "../../style/stylesheets/util.less";
-
 interface Props {
     bots: Map<number, Bot>;
 }
