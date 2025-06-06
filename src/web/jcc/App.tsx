@@ -11,6 +11,7 @@ import JaiaAbout from "../components/JaiaAbout/JaiaAbout";
 import HubDetails from "../containers/HubDetails/HubDetails";
 import BotDetails from "../containers/BotDetails/BotDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
+import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 
@@ -70,6 +71,8 @@ function Panel() {
             return <MissionsPanel />;
         case PanelNames.WAYPOINT:
             return <WaypointPanel />;
+        case PanelNames.HELP:
+            return <HelpWindow />;
         case PanelNames.JAIA_ABOUT:
             return <JaiaAbout />;
         default:
