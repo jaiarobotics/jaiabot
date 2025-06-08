@@ -154,24 +154,35 @@ echo "## Generating Hub SSH keys                          ##"
 echo "######################################################"
 
 for HUB_ID_QUOTED in ${HUB_IDS}
-do    
+do
+    CLOUDHUB_ID=30
     HUB_ID=$(eval echo ${HUB_ID_QUOTED})
     KEYNAME="hub${HUB_ID}_fleet${FLEET_ID}"
     PRIVKEY="/tmp/${KEYNAME}"
     PUBKEY="${PRIVKEY}.pub"
     rm -f $PRIVKEY $PUBKEY
 
-    run_wt_msg_box "Fleet Configuration" "Hub ${HUB_ID} SSH Private Key: Insert Hub ${HUB_ID} Yubikey to a USB port to generate SSH key and press OK when ready"
 
-    num_yubikeys=$(ykman list -s | wc -l)
-    while [[ "$num_yubikeys" != "1" ]]; do
-        run_wt_msg_box "Fleet Configuration" "ERROR: Exactly one Yubikey needs to be inserted. Please check Yubikey for Hub ${HUB_ID} is correctly installed and no other Yubikeys are connected."
+    if [[ "${HUB_ID}" = "${CLOUDHUB_ID}" ]]; then
+        # Only generate a file based key pair for cloudhub
+        ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME"
+        PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
+        PUBKEY_CONTENTS="\"$(cat ${PUBKEY})\""
+    else
+        # Otherwise require a yubikey
+        run_wt_msg_box "Fleet Configuration" "Hub ${HUB_ID} SSH Private Key: Insert Hub ${HUB_ID} Yubikey to a USB port to generate SSH key and press OK when ready"
+
         num_yubikeys=$(ykman list -s | wc -l)
-    done
-    echo "Generated key using Yubikey $(ykman list -s)"
-    ssh-keygen -t ed25519-sk -O no-touch-required -f $PRIVKEY -N "" -C hub${HUB_ID}_fleet${FLEET_ID}    
-    PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
-    PUBKEY_CONTENTS="\"no-touch-required $(cat ${PUBKEY})\""
+        while [[ "$num_yubikeys" != "1" ]]; do
+            run_wt_msg_box "Fleet Configuration" "ERROR: Exactly one Yubikey needs to be inserted. Please check Yubikey for Hub ${HUB_ID} is correctly installed and no other Yubikeys are connected."
+            num_yubikeys=$(ykman list -s | wc -l)
+        done
+        echo "Generated key using Yubikey $(ykman list -s)"
+        ssh-keygen -t ed25519-sk -O no-touch-required -f $PRIVKEY -N "" -C hub${HUB_ID}_fleet${FLEET_ID}
+        PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
+        PUBKEY_CONTENTS="\"no-touch-required $(cat ${PUBKEY})\""
+    fi
+
     echo "  hub { id: ${HUB_ID} private_key: ${PRIVKEY_CONTENTS} public_key: ${PUBKEY_CONTENTS} }" >> $out
     rm $PRIVKEY $PUBKEY
 done
