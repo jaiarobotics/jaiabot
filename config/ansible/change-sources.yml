@@ -53,8 +53,8 @@
       ansible.builtin.copy:
         dest: "/etc/apt/sources.list.d/jaiabot.list"
         content: |
-          deb http://packages.jaia.tech/ubuntu/{{ repo }}/{{ internal_version }}/ {{ ansible_distribution_release }}/
-          deb http://packages.jaia.tech/ubuntu/gobysoft/{{ repo }}/{{ internal_version }}/ {{ ansible_distribution_release }}/
+          deb http://packages.jaia.tech/ubuntu/{{ repo }}/{{ version }}/ {{ ansible_distribution_release }}/
+          deb http://packages.jaia.tech/ubuntu/gobysoft/{{ repo }}/{{ version }}/ {{ ansible_distribution_release }}/
       when: mode == "online" or mode == "online_with_hub_cache"
         
     - name: Set /etc/hosts for hub entry
