@@ -21,6 +21,7 @@ import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
+import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -156,9 +157,51 @@ function generateWaypointLineStyle(
             rotation: -rotation,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];
+}
+
+/** Creates the flag positioned above the first waypoint of each mission
+ *
+ * @param {GeographicCoordinate} location Used to position the flag
+ * @param {number} missionID Used to style the flag
+ * @returns {Feature} Flag located above first waypoint of a mission
+ */
+export function generateMissionFlagFeature(location: GeographicCoordinate, missionID: number) {
+    const coordinate: Coordinate = [location.lon, location.lat];
+    const feature = new Feature({
+        geometry: new Point(fromLonLat(coordinate, view.getProjection())),
+    });
+    feature.setStyle(generateMissionFlagStyle(missionID));
+    return feature;
+}
+
+/**
+ * Styles the flag above the first waypoint of a mission
+ *
+ * @param {number} missionID Used to distinguish missions + get task type
+ * @returns {Style} Style to be applied to the mission flag feature
+ */
+function generateMissionFlagStyle(missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(1).getTask().getType();
+
+    return new Style({
+        image: new Icon({
+            src: missionFlagIcon,
+            color: getWaypointColor(missionID),
+            anchor: taskType === TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
+        }),
+        text: new Text({
+            text: `M${missionID}`,
+            font: "12pt sans-serif",
+            fill: new Fill({ color: "black" }),
+            offsetY: taskType === TaskType.NONE ? -61.2175 : -76.75,
+            offsetX: 20,
+        }),
+        zIndex: getWaypointZIndex(missionID),
+    });
 }
 
 /**
