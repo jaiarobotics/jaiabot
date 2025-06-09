@@ -11,6 +11,7 @@ status_sub_cfg {
         buffer {
             ack_required: false
             blackout_time: 1
+            broadcast: true
             max_queue: 1 
             newest_first: true 
             ttl: 60
