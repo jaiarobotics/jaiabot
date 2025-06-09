@@ -29,8 +29,8 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   set(hex_output ${outdir}/${hex_name})
 
   add_custom_command(OUTPUT ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
-    DEPENDS ${project_INC_DIR}/jaiabot
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${project_INC_DIR}/jaiabot ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot)
+    DEPENDS ${project_INC_DIR}/nanopb
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${project_INC_DIR}/nanopb ${ARDUINO_SOURCE_DIR}/${sketchname}/nanopb)
   
   # command to run arduino-cli to produce compiled hex
   add_custom_command(OUTPUT ${hex_output} ${hex_output_with_bootloader}

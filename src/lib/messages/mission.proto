@@ -371,8 +371,8 @@ message MissionPlan
     optional Speeds speeds = 5 [(jaia.field).rest_api.presence = GUARANTEED];
     optional BottomDepthSafetyParams bottom_depth_safety_params = 6
         [(jaia.field).rest_api.presence = GUARANTEED];
-    optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 2 }];
-    optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 3 }];
+    optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 7 }];
+    optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 8 }];
 
     message TrailParam
     {

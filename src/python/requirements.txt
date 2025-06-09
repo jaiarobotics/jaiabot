@@ -12,3 +12,4 @@ turfpy==0.0.7
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
+./jaia_serial

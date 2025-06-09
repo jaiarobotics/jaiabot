@@ -1,0 +1,14 @@
+$app_block
+$interprocess_block
+mcu_serial {
+    port: "$port"
+    baud: $baud
+}
+
+fluorometer {
+    sample_rate: 10
+    report_timeout_seconds: 20
+    resend_cfg_timeout_seconds: 20
+    $fluorometer_coefficients
+}
+
