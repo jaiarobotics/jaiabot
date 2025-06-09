@@ -136,6 +136,7 @@ export class Layers {
             taskData.getContourLayer(),
             taskData.getDriftLayer(),
             taskData.getDriftMapLayer(),
+            taskData.getExcludedLayer(),
         ],
     });
 
