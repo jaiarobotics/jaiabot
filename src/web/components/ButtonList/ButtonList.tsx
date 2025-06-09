@@ -11,7 +11,7 @@ import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiViewList } from "@mdi/js";
+import { mdiHelp, mdiViewList } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 
@@ -62,6 +62,13 @@ export default function ButtonList(props: Props) {
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
+                <Button
+                    className={getSelectedClassName(PanelNames.HELP)}
+                    aria-label="help-window"
+                    onClick={() => handlePanelButtonClick(PanelNames.HELP)}
+                >
+                    <Icon path={mdiHelp} />
+                </Button>
                 <Button
                     className={getSelectedClassName(PanelNames.JAIA_ABOUT)}
                     aria-label="jaia-about-panel"

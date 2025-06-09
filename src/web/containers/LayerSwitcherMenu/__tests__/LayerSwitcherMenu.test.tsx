@@ -8,6 +8,9 @@ import { layers } from "../../../openlayers/layers/layers";
 
 const MISSION_LAYERS = [LayerTitles.BOT_LAYER, LayerTitles.HUB_LAYER, LayerTitles.MISSION_LAYER];
 
+// MUI ThemeProvider contains undefined values that add console output in the test environment
+beforeEach(() => jest.spyOn(console, "error").mockImplementation(jest.fn()));
+
 test("Display base maps", async () => {
     render(
         <JaiaContextProvider>

@@ -5,14 +5,13 @@ import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/Jaia
 
 // Utilities
 import {
-    addDropdownListener,
     convertMicrosecondsToSeconds,
     formatLatitude,
     formatLongitude,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
-import { NodeTypes } from "../../types/jaia-system-types";
 import { HubAccordionNames } from "../../types/context-types";
 
 // Styles
@@ -35,22 +34,20 @@ import {
 
 import "./HubDetails.less";
 
+const accordionTheme = createTheme({
+    transitions: {
+        create: () => "none",
+    },
+});
+
 export default function HubDetails() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
     const IPPrefix = getIPPrefix(location.hostname);
 
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
-
     useEffect(() => {
-        addDropdownListener("accordionContainer", "hubDetailsAccordionContainer", 30);
+        addDropdownListener("accordion-container", "hub-details-accordions-container");
     }, []);
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
@@ -173,7 +170,7 @@ export default function HubDetails() {
                 </div>
             </div>
 
-            <div className="accordions-container">
+            <div className="accordions-container" id="hub-details-accordions-container">
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion
                         expanded={jaiaContext.hubAccordionStates.quickLook}

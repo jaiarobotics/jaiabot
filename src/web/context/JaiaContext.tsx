@@ -735,6 +735,8 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = PanelNames.WAYPOINT;
 
+    missionLayer.updateFeatures();
+
     return mutableState;
 }
 

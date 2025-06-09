@@ -1,14 +1,16 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { missions } from "../../../data/missions/missions";
 import { LayerTitles } from "../../../types/openlayers-types";
+import { layersZIndexes } from "./zindex";
 import {
     generateWaypointFeature,
     generateWaypointLineFeature,
+    generateMissionFlagFeature,
 } from "../../features/waypoint-feature";
 
 class MissionLayer extends JaiaVectorLayer {
     constructor() {
-        super(LayerTitles.MISSION_LAYER);
+        super(LayerTitles.MISSION_LAYER, layersZIndexes.get(LayerTitles.MISSION_LAYER));
     }
 
     /**
@@ -23,8 +25,12 @@ class MissionLayer extends JaiaVectorLayer {
         const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
 
-        if (waypointNum > 1) {
-            // Add connecting line
+        // Add mission flag
+        if (waypointNum === 1) {
+            source.addFeature(generateMissionFlagFeature(waypoint.getLocation(), missionID));
+        }
+        // Add connecting line
+        else {
             const previousWaypoint = mission.getWaypoint(waypointNum - 1);
             source.addFeature(
                 generateWaypointLineFeature(
@@ -34,6 +40,7 @@ class MissionLayer extends JaiaVectorLayer {
                 ),
             );
         }
+
         // Add waypoint
         source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, missionID));
     }
