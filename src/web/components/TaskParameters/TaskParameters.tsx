@@ -96,6 +96,7 @@ function DiveParameters(props: DiveParameterProps) {
                         name={TaskParameterKeys.DRIFT_TIME}
                         type="number"
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                        className="jaia-input"
                         autoComplete="off"
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -117,6 +118,7 @@ function DiveParameters(props: DiveParameterProps) {
                         name={TaskParameterKeys.MAX_DEPTH}
                         type="number"
                         value={formatNumericalInput(diveParameters.max_depth)}
+                        className="jaia-input"
                         autoComplete="off"
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -127,6 +129,7 @@ function DiveParameters(props: DiveParameterProps) {
                         name={TaskParameterKeys.DEPTH_INTERVAL}
                         type="number"
                         value={formatNumericalInput(diveParameters.depth_interval)}
+                        className="jaia-input"
                         autoComplete="off"
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -137,6 +140,7 @@ function DiveParameters(props: DiveParameterProps) {
                         name={TaskParameterKeys.HOLD_TIME}
                         type="number"
                         value={formatNumericalInput(diveParameters.hold_time)}
+                        className="jaia-input"
                         autoComplete="off"
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -147,6 +151,7 @@ function DiveParameters(props: DiveParameterProps) {
                         name={TaskParameterKeys.DRIFT_TIME}
                         type="number"
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                        className="jaia-input"
                         autoComplete="off"
                         onChange={(evt) => props.onChange(evt)}
                     />
