@@ -9,7 +9,6 @@ import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
@@ -64,8 +63,10 @@ export default function ActivateButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = () => {
-        if (!isControllingClient() && getDisabledCode() === DisabledCodes.NONE) {
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
             setIsTakeControlVisible(true);
         } else {
             setIsDialogVisible(true);

@@ -75,6 +75,13 @@ export function sendHubCommand(command: CommandForHub) {
  *
  * @returns {boolean} True if the client is in control, otherwise false
  */
-export function isControllingClient() {
-    return jaiaGlobal.getClientIDs().controllingClientID === jaiaGlobal.getClientIDs().clientID;
+export async function isControllingClient() {
+    const status = await jaiaAPI.getStatus();
+    const controllingID = status.controllingClientId;
+
+    if (controllingID === jaiaAPI.getClientId()) {
+        return true;
+    }
+
+    return false;
 }
