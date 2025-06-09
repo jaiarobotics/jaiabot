@@ -11,13 +11,17 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
-import { openLayersZIndexes } from "../../style/openlayers/zindex";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
+import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
+import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
+import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
+import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
+import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -42,7 +46,8 @@ export function generateWaypointFeature(
     });
 
     feature.set("type", MapFeatureTypes.WAYPOINT);
-    feature.set("id", waypointNum);
+    feature.set("waypointNum", waypointNum);
+    feature.set("missionID", missionID);
     feature.setStyle(generateWaypointStyle(waypointNum, missionID));
     return feature;
 }
@@ -55,9 +60,11 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+
     return new Style({
         image: new Icon({
-            src: waypointIcon,
+            src: getWaypointSrc(taskType),
             anchor: [0.5, 1],
             color: getWaypointColor(missionID),
         }),
@@ -73,7 +80,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
             }),
             offsetY: -15,
         }),
-        zIndex: openLayersZIndexes.get(MapFeatureTypes.WAYPOINT),
+        zIndex: getWaypointZIndex(missionID, waypointNum),
     });
 }
 
@@ -124,6 +131,7 @@ function generateWaypointLineStyle(
             width: 4,
             color: OpenLayersColors.OUTLINE,
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const overlayStyle = new Style({
@@ -131,6 +139,7 @@ function generateWaypointLineStyle(
             width: 2,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     const dx = endCoordinate[0] - startCoordinate[0];
@@ -148,9 +157,72 @@ function generateWaypointLineStyle(
             rotation: -rotation,
             color: getWaypointColor(missionID),
         }),
+        zIndex: getWaypointZIndex(missionID),
     });
 
     return [underlayStyle, overlayStyle, midpointStyle];
+}
+
+/** Creates the flag positioned above the first waypoint of each mission
+ *
+ * @param {GeographicCoordinate} location Used to position the flag
+ * @param {number} missionID Used to style the flag
+ * @returns {Feature} Flag located above first waypoint of a mission
+ */
+export function generateMissionFlagFeature(location: GeographicCoordinate, missionID: number) {
+    const coordinate: Coordinate = [location.lon, location.lat];
+    const feature = new Feature({
+        geometry: new Point(fromLonLat(coordinate, view.getProjection())),
+    });
+    feature.setStyle(generateMissionFlagStyle(missionID));
+    return feature;
+}
+
+/**
+ * Styles the flag above the first waypoint of a mission
+ *
+ * @param {number} missionID Used to distinguish missions + get task type
+ * @returns {Style} Style to be applied to the mission flag feature
+ */
+function generateMissionFlagStyle(missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(1).getTask().getType();
+
+    return new Style({
+        image: new Icon({
+            src: missionFlagIcon,
+            color: getWaypointColor(missionID),
+            anchor: taskType === TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
+        }),
+        text: new Text({
+            text: `M${missionID}`,
+            font: "12pt sans-serif",
+            fill: new Fill({ color: "black" }),
+            offsetY: taskType === TaskType.NONE ? -61.2175 : -76.75,
+            offsetX: 20,
+        }),
+        zIndex: getWaypointZIndex(missionID),
+    });
+}
+
+/**
+ * Provides the SVG to match the waypoint task
+ *
+ * @param {TaskType} taskType Determines the waypoint SVG
+ * @returns {string} SVG import
+ */
+function getWaypointSrc(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.DIVE:
+            return waypointDiveIcon;
+        case TaskType.SURFACE_DRIFT:
+            return waypointDriftIcon;
+        case TaskType.CONSTANT_HEADING:
+            return waypointConstantHeadingIcon;
+        case TaskType.STATION_KEEP:
+            return waypointStationKeepIcon;
+        default:
+            return waypointIcon;
+    }
 }
 
 /**
@@ -173,4 +245,35 @@ function getWaypointColor(missionID: number) {
     }
 
     return OpenLayersColors.DEFAULT;
+}
+
+/**
+ * Supplies the zIndex for waypoints and lines based on edit mode
+ *
+ * @param {number} missionID Used to determine zIndex for waypoints and lines
+ * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
+ * @returns {number} zIndex to be applied to waypoint and lines
+ */
+function getWaypointZIndex(missionID: number, waypointNum?: number) {
+    let waypointZIndex = 0;
+    // Provide proper mission stacking
+    if (missionID === missions.getMissionIDInEditMode()) {
+        // Assume there are less than 1000 missions
+        waypointZIndex = 1000;
+    } else {
+        waypointZIndex = missionID;
+    }
+    // Provide proper waypoint stacking
+    if (waypointNum) {
+        waypointZIndex = waypointZIndex + waypointNum;
+        if (
+            waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
+            missionID === missions.getMissionIDInEditMode()
+        ) {
+            // Assume there are less than 100 waypoints
+            waypointZIndex = waypointZIndex + 100;
+        }
+    }
+
+    return waypointZIndex;
 }

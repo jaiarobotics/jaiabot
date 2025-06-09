@@ -2,13 +2,14 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
-import SideButtonList from "../../../components/SideButtonList/SideButtonList";
-import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
+import ButtonList from "../../../components/ButtonList/ButtonList";
+import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import { missions } from "../../../data/missions/missions";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { ButtonListTypes } from "../../../types/jaia-system-types";
 
 const botStatusMock1: PortalBotStatus = {
     bot_id: 1,
@@ -32,7 +33,7 @@ test.skip("Adding two missions to Missions panel", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -68,7 +69,7 @@ test.skip("Delete all missions", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -94,7 +95,7 @@ test.skip("Auto assign two Bots to two missions", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -126,7 +127,7 @@ test.skip("Opening and closing a mission accordion", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -151,7 +152,7 @@ test.skip("Clicking delete mission button inside mission accordion", async () =>
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -174,7 +175,7 @@ test.skip("Assigning and unassigning a Bot to a mission", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -214,7 +215,7 @@ test.skip("Auto-assigning, deleting, auto-assigning", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );
@@ -256,7 +257,7 @@ test.skip("Exercise Mission Edit Toggles", async () => {
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <SideButtonList />
+                <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <MissionsPanel />
             </JaiaContextProvider>,
         );

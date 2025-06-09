@@ -6,7 +6,7 @@ import { Feature } from "ol";
 import { Geometry } from "ol/geom";
 
 import Map from "../Map";
-import { JaiaContextProvider } from "../../../context/Jaia/JaiaContext";
+import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";
@@ -95,19 +95,19 @@ test("Click on map twice with mission in edit mode", () => {
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    expect(missionLayerFeatures.length).toBe(1);
-    expect(missionLayerFeatures[0].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[0].get("id")).toBe(1);
+    expect(missionLayerFeatures.length).toBe(2);
+    expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
+    expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
     });
 
     missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    // 2 waypoints and a line segment [waypoint, line, waypoint]
-    expect(missionLayerFeatures.length).toBe(3);
-    expect(missionLayerFeatures[2].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[2].get("id")).toBe(2);
+    // 1 flag, 2 waypoints, and a line segment [flag, waypoint, line, waypoint]
+    expect(missionLayerFeatures.length).toBe(4);
+    expect(missionLayerFeatures[3].get("type")).toBe(MapFeatureTypes.WAYPOINT);
+    expect(missionLayerFeatures[3].get("waypointNum")).toBe(2);
 
     // Reset states
     missions.deleteAllMissions();
@@ -134,9 +134,9 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    expect(missionLayerFeatures.length).toBe(1);
-    expect(missionLayerFeatures[0].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[0].get("id")).toBe(1);
+    expect(missionLayerFeatures.length).toBe(2);
+    expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
+    expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
 
     expect(missions.getMissionIDInEditMode()).toBe(1);
 

@@ -1,16 +1,25 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect } from "react";
 
 // Jaia Imports
+import HealthRow from "../../components/HealthRow/HealthRow";
+import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import {
     JaiaContext,
     JaiaContextType,
     JaiaDispatchContext,
     JaiaAction,
-} from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { NodeTypes } from "../../types/jaia-system-types";
-import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
+} from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+
+import StopButton from "../../components/StopButton/StopButton";
+import SystemButton from "../../components/SystemButton/SystemButton";
+import ActivateButton from "../../components/ActivateButton/ActivateButton";
+import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
+import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
+
+import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
+import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -23,27 +32,17 @@ import {
     getDistToWaypoint,
     isBotLogging,
 } from "./bot-details";
-import { MissionStatus } from "../../types/jaia-system-types";
+
+import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { addDropdownListener } from "../../utils/style";
 import {
     formatLatitude,
     formatLongitude,
     formatAttitudeAngle,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
 
 // MDI and MUI
-import {
-    mdiPlay,
-    mdiStop,
-    mdiPower,
-    mdiDelete,
-    mdiRestart,
-    mdiSkipNext,
-    mdiRestartAlert,
-    mdiCheckboxMarkedCirclePlusOutline,
-} from "@mdi/js";
-import { Icon } from "@mdi/react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
@@ -55,21 +54,19 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
 
+const accordionTheme = createTheme({
+    transitions: {
+        create: () => "none",
+    },
+});
+
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
-
-    if (jaiaContext === null || jaiaContext.visibleDetails !== NodeTypes.BOT) {
-        return <div></div>;
-    }
+    useEffect(() => {
+        addDropdownListener("accordion-container", "bot-details-accordions-container");
+    });
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
@@ -127,18 +124,15 @@ export default function BotDetails() {
                     </div>
                     <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
-                        <Button className="jaia-button">
-                            <Icon path={mdiStop} title="Stop Mission" />
-                        </Button>
-                        <Button className="jaia-button">
-                            <Icon path={mdiPlay} title="Run Mission" />
-                        </Button>
-                        <Button className="jaia-button">
-                            <Icon path={mdiDelete} title="Clear Mission" />
-                        </Button>
+                        <StopButton bot={bot} />
+                        <StartMissionButton bot={bot} mission={mission} />
+                        <DeleteMissionButton
+                            deleteAll={false}
+                            missionID={mission?.getMissionID()}
+                        />
                     </div>
                 </div>
-                <div className="accordions-container">
+                <div className="accordions-container" id="bot-details-accordions-container">
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.botAccordionStates.quickLook}
@@ -246,12 +240,7 @@ export default function BotDetails() {
                             </AccordionSummary>
                             <AccordionDetails>
                                 <div className="accordion-details-buttons bot-commands">
-                                    <Button className="jaia-button">
-                                        <Icon
-                                            path={mdiCheckboxMarkedCirclePlusOutline}
-                                            title="System Check"
-                                        />
-                                    </Button>
+                                    <ActivateButton bot={bot} />
                                     <Button className="jaia-button">
                                         <img
                                             src={rcModeIcon}
@@ -259,14 +248,12 @@ export default function BotDetails() {
                                             title="RC Mode"
                                         ></img>
                                     </Button>
-                                    <Button className="jaia-button">
-                                        <Icon path={mdiSkipNext} title="Next Task" />
-                                    </Button>
+                                    <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
                                     expanded={jaiaContext.botAccordionStates.advancedCommands}
                                     onChange={() => {
-                                        handleAccordionClick(BotAccordionNames.ADVANCEDCOMMANDS);
+                                        handleAccordionClick(BotAccordionNames.ADVANCED_COMMANDS);
                                     }}
                                     className="accordion-container"
                                 >
@@ -278,15 +265,12 @@ export default function BotDetails() {
                                     </AccordionSummary>
 
                                     <AccordionDetails className="accordion-details-buttons advanced-commands">
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiPower} title="Shutdown" />
-                                        </Button>
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiRestartAlert} title="Reboot" />
-                                        </Button>
-                                        <Button className="jaia-button">
-                                            <Icon path={mdiRestart} title="Restart Services" />
-                                        </Button>
+                                        <SystemButton bot={bot} type={SystemButtonTypes.SHUTDOWN} />
+                                        <SystemButton bot={bot} type={SystemButtonTypes.REBOOT} />
+                                        <SystemButton
+                                            bot={bot}
+                                            type={SystemButtonTypes.RESTART_SERVICES}
+                                        />
                                     </AccordionDetails>
                                 </Accordion>
                             </AccordionDetails>
@@ -307,7 +291,9 @@ export default function BotDetails() {
                             >
                                 <Typography>Health</Typography>
                             </AccordionSummary>
-                            <AccordionDetails></AccordionDetails>
+                            <AccordionDetails>
+                                <HealthRow />
+                            </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
 

@@ -107,10 +107,12 @@ export default class Bot {
         this.wifiLinkQuality = wifiLinkQuality;
     }
 
+    // microseconds
     getStatusAge() {
         return this.statusAge;
     }
 
+    // microseconds
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
     }

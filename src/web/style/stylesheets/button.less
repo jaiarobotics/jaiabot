@@ -1,9 +1,4 @@
-@jaia-button-height: 48px;
-@jaia-button-width: 48px;
-@jaia-button-background-color: #fff;
-@jaia-button-border-radius: 12px;
-@jaia-button-padding: 6px;
-@jaia-button-box-shadow: #333 1px 1px 6px;
+@import "./vars.less";
 
 .jaia-button-row {
     display: flex;
@@ -39,4 +34,8 @@
 
 .jaia-button.disabled {
     background-color: @disabled-color !important;
+}
+
+.jaia-button.stop {
+    background-color: @error-color !important;
 }

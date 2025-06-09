@@ -2,30 +2,25 @@
 import { useContext } from "react";
 
 // Jaia
-import MissionSpeedSettings from "../MissionControllerPanel/MissionSpeedSettings/MissionSpeedSettings";
 import MissionsList from "./MissionsList/MissionsList";
-import { JaiaContext, JaiaDispatchContext } from "../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../context/Jaia/jaia-actions";
-import { PanelNames } from "../../types/context-types";
+import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
+import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+import { scrollMissionsList } from "../../utils/style";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
 import Icon from "@mdi/react";
-import { mdiAutoFix, mdiContentSave, mdiDelete, mdiFolderOpen, mdiPlus } from "@mdi/js";
+import { mdiAutoFix, mdiContentSave, mdiFolderOpen, mdiPlus } from "@mdi/js";
 
 import "./MissionsPanel.less";
-import "../../style/stylesheets/util.less";
 
 /**
  * Renders a panel for operators to manage missions
  */
 export default function MissionsPanel() {
-    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    if (jaiaContext === null || jaiaContext.visiblePanel !== PanelNames.MISSIONS) {
-        return <div></div>;
-    }
 
     /**
      * Dispatches the action to create a new mission when an operator clicks the add mission button
@@ -34,15 +29,7 @@ export default function MissionsPanel() {
      */
     const handleAddMissionClick = () => {
         jaiaDispatch({ type: JaiaActions.ADD_MISSION });
-    };
-
-    /**
-     * Dispatches the actions to clear all missions when an operator clicks the delete all missions button
-     *
-     * @returns {void}
-     */
-    const handleDeleteAllMissionsClick = () => {
-        jaiaDispatch({ type: JaiaActions.DELETE_ALL_MISSIONS });
+        scrollMissionsList();
     };
 
     /**
@@ -69,7 +56,7 @@ export default function MissionsPanel() {
     return (
         <div className="jaia-panel missions-panel">
             <div className="jaia-panel-title">Mission Set</div>
-            <MissionSpeedSettings />
+            <MissionSpeedSliders />
             <div className="jaia-button-row">
                 <Button
                     className="jaia-button"
@@ -78,13 +65,7 @@ export default function MissionsPanel() {
                 >
                     <Icon path={mdiPlus} title="Add mission" />
                 </Button>
-                <Button
-                    className="jaia-button"
-                    aria-label="delete-all-missions"
-                    onClick={() => handleDeleteAllMissionsClick()}
-                >
-                    <Icon path={mdiDelete} title="Delete all missions" />
-                </Button>
+                <DeleteMissionButton deleteAll={true} />
                 <Button
                     className="jaia-button"
                     aria-label="load-missions"

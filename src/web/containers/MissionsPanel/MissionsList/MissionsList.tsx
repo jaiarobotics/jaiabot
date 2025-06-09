@@ -1,19 +1,21 @@
 // React
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 
 // Jaia
-import { JaiaContext, JaiaDispatchContext } from "../../../context/Jaia/JaiaContext";
-import { JaiaActions } from "../../../context/Jaia/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
+import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteMissionButton";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
+import { addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Icon from "@mdi/react";
-import { mdiContentDuplicate, mdiDelete } from "@mdi/js";
+import { mdiContentDuplicate } from "@mdi/js";
 import {
     Accordion,
     AccordionDetails,
@@ -36,9 +38,9 @@ export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    if (!jaiaContext) {
-        return <div></div>;
-    }
+    useEffect(() => {
+        addDropdownListener("mission-accordion", "missions-list");
+    });
 
     /**
      * Triggered when the expand/collapse state is changed on the Accordion component
@@ -77,19 +79,12 @@ export default function MissionsList() {
      * @notes
      * To be implemented in a separate ticket
      */
-    const handleDuplicateMissionClick = (missionID: number) => {};
-
-    /**
-     * Triggered when the operator clicks the delete mission button
-     *
-     * @param {number} missionID ID of the mission to be deleted
-     * @returns {void}
-     */
-    const handleDeleteMissionClick = (missionID: number) => {
+    const handleDuplicateMissionClick = (missionID: number) => {
         jaiaDispatch({
-            type: JaiaActions.DELETE_MISSION,
+            type: JaiaActions.DUPLICATE_MISSION,
             missionID: missionID,
         });
+        scrollMissionsList();
     };
 
     /**
@@ -106,7 +101,7 @@ export default function MissionsList() {
     };
 
     return (
-        <div className="missions-list" data-testid="missions-list">
+        <div id="missions-list" data-testid="missions-list">
             {Array.from(jaiaContext.missions.values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
@@ -128,19 +123,17 @@ export default function MissionsList() {
                                 <Button
                                     className="jaia-button"
                                     aria-label="duplicate-mission"
+                                    data-testid={`duplicate-mission-${mission.getMissionID()}`}
                                     onClick={() =>
                                         handleDuplicateMissionClick(mission.getMissionID())
                                     }
                                 >
-                                    <Icon path={mdiContentDuplicate} />
+                                    <Icon path={mdiContentDuplicate} title="Duplicate Mission" />
                                 </Button>
-                                <Button
-                                    className="jaia-button"
-                                    aria-label="delete-mission"
-                                    onClick={() => handleDeleteMissionClick(mission.getMissionID())}
-                                >
-                                    <Icon path={mdiDelete} />
-                                </Button>
+                                <DeleteMissionButton
+                                    deleteAll={false}
+                                    missionID={mission.getMissionID()}
+                                />
                                 <JaiaToggle
                                     checked={() =>
                                         jaiaContext.missionIDInEditMode === mission.getMissionID()

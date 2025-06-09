@@ -13,13 +13,13 @@ import { view } from "../views/view";
 import { MapIconColors } from "../../utils/style";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { degreesToRadians } from "../../utils/conversions";
 import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Util
 import { angleToXY } from "../../utils/style";
 
 // Style
-import { openLayersZIndexes } from "../../style/openlayers/zindex";
 import botIcon from "../../style/icons/bot.svg";
 
 export function generateBotFeature(botID: number) {
@@ -44,7 +44,7 @@ export function generateBotFeature(botID: number) {
 }
 
 function generateBotStyle(bot: Bot) {
-    const heading = bot.getBotSensors().getIMU().getHeading() ?? 0;
+    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
 
     return new Style({
         image: new Icon({
@@ -79,10 +79,14 @@ function getBotIconColor(bot: Bot) {
 
 function getBotIconZIndex(bot: Bot) {
     const selectedNode = jaiaGlobal.getSelectedNode();
+    let botZIndex = 0;
 
     if (selectedNode.type === NodeTypes.BOT && selectedNode.id === bot.getBotID()) {
-        return openLayersZIndexes.get(MapFeatureTypes.BOT) + bots.getBots().size + 1;
+        // Assume there are less than 1000 bots
+        botZIndex = 1000;
+    } else {
+        botZIndex = bot.getBotID();
     }
 
-    return openLayersZIndexes.get(MapFeatureTypes.BOT) + bot.getBotID();
+    return botZIndex;
 }
