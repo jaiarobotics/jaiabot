@@ -1,4 +1,5 @@
 import {
+    ClientIDs,
     NodeTypes,
     SelectedNode,
     SelectedWaypoint,
@@ -26,11 +27,13 @@ class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
     private defaultTaskParameters: TaskParameters;
+    private clientIDs: ClientIDs;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
         this.defaultTaskParameters = defaultTaskParameters;
+        this.clientIDs = { clientID: "", controllingClientID: "" };
     }
 
     getSelectedNode() {
@@ -62,6 +65,14 @@ class JaiaGlobal {
 
     setDefaultTaskParameters(defaultTaskParameters: TaskParameters) {
         this.defaultTaskParameters = defaultTaskParameters;
+    }
+
+    getClientIDs() {
+        return this.clientIDs;
+    }
+
+    setClientIDs(clientIDs: ClientIDs) {
+        this.clientIDs = clientIDs;
     }
 }
 

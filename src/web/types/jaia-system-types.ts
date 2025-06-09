@@ -55,6 +55,11 @@ export enum SystemButtonTypes {
     RESTART_SERVICES = 3,
 }
 
+export interface ClientIDs {
+    clientID: string;
+    controllingClientID: string;
+}
+
 export enum ButtonListTypes {
     TOP = 1,
     SIDE = 2,

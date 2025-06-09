@@ -1,5 +1,6 @@
 import { jaiaAPI } from "./jaia-api";
 import { Command, CommandForHub, CommandType, MissionState } from "../types/protobuf-types";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -67,4 +68,13 @@ export function sendBotCommand(command: Command) {
  */
 export function sendHubCommand(command: CommandForHub) {
     jaiaAPI.postCommandForHub(command);
+}
+
+/**
+ * Checks whether the client is in control
+ *
+ * @returns {boolean} True if the client is in control, otherwise false
+ */
+export function isControllingClient() {
+    return jaiaGlobal.getClientIDs().controllingClientID === jaiaGlobal.getClientIDs().clientID;
 }
