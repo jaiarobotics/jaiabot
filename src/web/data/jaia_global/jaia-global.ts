@@ -5,7 +5,6 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { jaiaAPI } from "../../utils/jaia-api";
 
 const defaultTaskParameters: TaskParameters = {
     dive: {
