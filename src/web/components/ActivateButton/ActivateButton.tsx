@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { ActivateDialog, DialogActions } from "./ActivateDialog";
+import { ActivateDialog } from "./ActivateDialog";
 import { DisabledCodes } from "./activate-messages";
 
 import { Icon } from "@mdi/react";
@@ -8,8 +8,9 @@ import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
