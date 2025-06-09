@@ -14,14 +14,13 @@ The Bot class is the only thing exported.
 
 ### bots.ts
 
-Class `Bots` provides setters and getters that access a private Map of Bot class objects
-A singleton of the class is provided for clients to access bot data.
+Class `Bots` provides setters and getters that access data in a private Map of Bot class objects
 
-Includes a public `getBots` function that provides a TODO (reference or copy) of the private `bots` Map.
+A singleton object of the class is provided for clients to access bot data.
 
-bots returned by calling getBots are refernces to the private data
+The singleton ncludes a public accessor `getBots` function that provides a reference of the private `bots` Map.
 
-**NOTES:** bots creates a new Map whenever a bot is added, therefore client software should call `getBots()` whenever a render is initiated or a new bot is added. This is because you can not sort an existing Map and bots are added using the `PortalBotStatus` data structure which includes a pre-assigned ID and is not changed. We may want to consider using an array instead of a map because arrays can be sorted in place using `.sort`. It is not clear where the botID is created and not known if we could modify it in `bots.ts` when a new bot is added. Finally, for consistency sake we may want to consider using the `Bot` class instead of `PortalBotStatus` for the parameters of `setBot` and `updateBot`
+**NOTES:** bots creates a new Map whenever a bot is added, therefore client software should call `getBots()` each processing cycle and not rely on local copies of the bots reference. For this reason all React Components should access the data by using JaiaContext, which will be updated as needed for each rendering.
 
 **TODO:** Currently `setBots()` is a private method that is only called private function `sortBots()`. Both of these are creating a new Map. Look into modifying so a new Map is only created once.
 

@@ -18,10 +18,6 @@ class Hubs {
         return this.hubs;
     }
 
-    private setHubs(hubs: Map<number, Hub>) {
-        this.hubs = new Map([...hubs]);
-    }
-
     getHub(hubID: number) {
         return this.hubs.get(hubID);
     }
@@ -52,7 +48,7 @@ class Hubs {
         const sortedHubs = new Map(
             [...this.hubs.entries()].sort((a, b) => a[1].getHubID() - b[1].getHubID()),
         );
-        this.setHubs(sortedHubs);
+        this.hubs = sortedHubs;
     }
 
     private updateHub(hubStatus: PortalHubStatus) {

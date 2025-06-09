@@ -19,10 +19,6 @@ class Bots {
         return this.bots;
     }
 
-    private setBots(bots: Map<number, Bot>) {
-        this.bots = new Map([...bots]);
-    }
-
     getBot(botID: number) {
         return this.bots.get(botID);
     }
@@ -53,7 +49,7 @@ class Bots {
         const sortedBots = new Map(
             [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
         );
-        this.setBots(sortedBots);
+        this.bots = sortedBots;
     }
 
     private updateBot(botStatus: PortalBotStatus) {
