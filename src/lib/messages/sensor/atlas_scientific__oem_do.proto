@@ -10,10 +10,16 @@ message AtlasScientificOEMDO
         unit_system: "si"
     };
 
-    // notional - add units and additional fields as needed
-    optional double dissolved_oxygen = 1;
-    optional double temperature = 2;
-    optional double temperature_voltage = 3;
+    // Measured dissolved oxygen (mg/L)
+    optional double do_raw = 1;
+    // DO Solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)
+    optional double do_solubility = 2;
+    // Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg)
+    optional double do_saturation_percent = 3;
+    // DO Solubility at 0 salinity (ppt), same temperature (C) and pressure (mmhg), scaled by observed saturation
+    optional double do_normalized_solubility = 4;
+    optional double temperature = 5;
+    optional double temperature_voltage = 6;
 }
 
 

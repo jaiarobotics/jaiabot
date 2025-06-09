@@ -20,21 +20,25 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <fstream>
 #include <goby/time/system_clock.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/sensor/configuration.pb.h"
 #include "turner__c_fluor.h"
+#include <google/protobuf/text_format.h>
 
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
-    const jaiabot::config::TurnorCFluorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::TurnorCFluorThreadConfig>(config)
+    const jaiabot::config::TurnerCFluorThreadConfig& config)
+    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
-        [this](const sensor::protobuf::SensorData& sensor_data) {
+        [this](const sensor::protobuf::SensorData& sensor_data)
+        {
             if (sensor_data.has_c_fluor())
                 receive_data(sensor_data.c_fluor());
         });
@@ -46,7 +50,13 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     report_timeout_ = config.report_timeout_seconds();
     resend_cfg_timeout_ = config.resend_cfg_timeout_seconds();
 
-    // configure our sensor
+    // Fluorometer coefficients
+    if (config.has_fluorometer_coefficients())
+    {
+        fluorometer_coefficients_ = config.fluorometer_coefficients();
+    }
+
+    // Configure our sensor
     send_cfg();
 }
 
@@ -80,6 +90,28 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
+
+    if (fluorometer_coefficients_.has_offset())
+    {
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("offset");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.offset()));
+    }
+
+    if (fluorometer_coefficients_.has_coefficient())
+    {
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("coefficient");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.coefficient()));
+    }
+
+    if (fluorometer_coefficients_.has_serial_number())
+    {
+        auto* cal_offset = sensor_cfg.add_cfg();
+        cal_offset->set_key("serial_number");
+        cal_offset->set_value(std::to_string(fluorometer_coefficients_.serial_number()));
+    }
+
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
@@ -92,7 +124,7 @@ void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::Threa
         glog.is_warn() && glog << "Timeout on turner c fluorometer report" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNOR_C_FLUOR_DATA);
+            ->add_warning(protobuf::WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA);
 
         // Send configuration request at a configured rate
         if (last_resend_cfg_time_ + std::chrono::seconds(resend_cfg_timeout_) <

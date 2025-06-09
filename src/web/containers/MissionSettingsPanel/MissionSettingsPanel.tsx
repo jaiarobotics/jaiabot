@@ -26,7 +26,7 @@ export interface MissionSettings {
 
 export interface MissionParams {
     missionType: "editing" | "polygon-grid" | "lines" | "exclusions";
-    numRuns: number;
+    numLanes: number;
     numGoals: number;
     pointSpacing: number;
     lineSpacing: number;
@@ -37,6 +37,8 @@ export interface MissionParams {
     spRallyFinishDist: number;
     selectedBots: number[];
     useMaxLength: boolean;
+    lanesPerRun: number;
+    numBots: number;
 }
 
 interface Props {
@@ -109,7 +111,13 @@ export class MissionSettingsPanel extends React.Component {
         this.onTaskTypeChange = props.onTaskTypeChange;
 
         //Initialize the number of runs to the number of bots
-        this.props.missionParams.numRuns = Object.keys(this.props.botList).length;
+        if (this.props.missionParams.numLanes === -1) {
+            this.props.missionParams.numLanes = Object.keys(this.props.botList).length;
+        }
+
+        if (this.props.missionParams.numBots === -1) {
+            this.props.missionParams.numBots = Object.keys(this.props.botList).length;
+        }
     }
 
     componentDidUpdate() {
@@ -212,13 +220,23 @@ export class MissionSettingsPanel extends React.Component {
                         m
                     </div>
 
-                    <div className="mission-settings-input-label">Number of Runs:</div>
+                    <div className="mission-settings-input-label">Number of Lanes:</div>
                     <div className="mission-settings-input-row">
                         <input
                             className="mission-settings-num-input"
-                            value={this.props.missionParams.numRuns}
-                            name="numRuns"
-                            onChange={this.changeRunCount.bind(this)}
+                            value={this.props.missionParams.numLanes}
+                            name="numLanes"
+                            onChange={this.changeLanesCount.bind(this)}
+                        />
+                    </div>
+
+                    <div className="mission-settings-input-label">Number of Bots:</div>
+                    <div className="mission-settings-input-row">
+                        <input
+                            className="mission-settings-num-input"
+                            value={this.props.missionParams.numBots}
+                            name="numBots"
+                            onChange={this.changeBotCount.bind(this)}
                         />
                     </div>
 
@@ -278,9 +296,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div
-                        className={`mission-settings-task-container ${this.isMissionDrawn() ? "mission-settings-show" : "mission-settings-hide"}`}
-                    >
+                    <div className={`mission-settings-task-container mission-settings-show`}>
                         <div className="mission-settings-tasks-title">Start Rally Task:</div>
                         <TaskSettingsPanel
                             title="Start Task"
@@ -295,9 +311,7 @@ export class MissionSettingsPanel extends React.Component {
                         />
                     </div>
 
-                    <div
-                        className={`mission-settings-task-container ${this.isMissionDrawn() ? "mission-settings-show" : "mission-settings-hide"}`}
-                    >
+                    <div className={`mission-settings-task-container mission-settings-show`}>
                         <div className="mission-settings-tasks-title">End Survey Task:</div>
                         <TaskSettingsPanel
                             title="End Task"
@@ -462,12 +476,27 @@ export class MissionSettingsPanel extends React.Component {
      * @param {Event} evt Contains the number of runs value
      * @returns {void}
      */
-    changeRunCount(evt: Event) {
+    changeLanesCount(evt: Event) {
         const element = evt.target as HTMLInputElement;
         const value = this.validateNumInput(Number(element.value));
 
         let missionParams = { ...this.props.missionParams };
-        missionParams.numRuns = value;
+        missionParams.numLanes = value;
+        this.props.setMissionParams(missionParams);
+    }
+
+    /**
+     * Updates the number of lanes per run value based on input changes
+     *
+     * @param {Event} evt Contains the number of lanes per run value
+     * @returns {void}
+     */
+    changeBotCount(evt: Event) {
+        const element = evt.target as HTMLInputElement;
+        const value = this.validateNumInput(Number(element.value));
+
+        let missionParams = { ...this.props.missionParams };
+        missionParams.numBots = value;
         this.props.setMissionParams(missionParams);
     }
 

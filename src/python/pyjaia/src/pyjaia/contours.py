@@ -145,7 +145,7 @@ def getSimplices(bottomDives: List[BottomDive]):
     except Exception as e:
         logging.warning(f'While doing Delaunay triangulation: {e}')
         logging.warning('Do you have co-linear mesh points?')
-        return None
+        return []
 
 
 def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
@@ -255,11 +255,11 @@ def getColorMapPolygons(bottomDives: List[BottomDive], contourValues: List[float
 
         colorParameter = (depth1 - minContourValue) / (maxContourValue - minContourValue)
 
-        polygons.append(polygon(pts, {'value': depth1, 'fill': colorCode(deepColorMap, colorParameter), 'stroke-width': 0}))
+        polygons.append(polygon(pts, {'type': 'depth-contour', 'value': depth1, 'fill': colorCode(deepColorMap, colorParameter), 'stroke-width': 0}))
 
         # Contour line
         if depth0 == relevantContourValues[contourIndex - 1]:
-            lines.append(linestring([pts[-2], pts[-1]], {'value': depth0, 'stroke': 'black'}))
+            lines.append(linestring([pts[-2], pts[-1]], {'type': 'depth-contour', 'value': depth0, 'stroke': 'black'}))
 
     return polygons + lines
 
