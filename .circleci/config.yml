@@ -193,7 +193,7 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "1.y"
+        - "2.y"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
