@@ -15,9 +15,17 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
+import {
+    Command,
+    CommandType,
+    GeographicCoordinate,
+    MovementType,
+    Speeds,
+    TaskType,
+} from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import {
+    BotModes,
     NodeTypes,
     SelectedNode,
     SelectedWaypoint,
@@ -68,6 +76,7 @@ export interface JaiaAction {
     panelName?: PanelNames;
     isMissionAccordionExpanded?: boolean;
 
+    command?: Command;
     missionSpeeds?: Speeds;
 }
 
@@ -156,6 +165,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
+
+        case JaiaActions.SENT_COMMAND:
+            return handleSentMissionCommand(mutableState, action.botID, action.command);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -488,6 +500,37 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
         task.setIsBottomDive(true);
     }
 
+    return mutableState;
+}
+
+/**
+ * Sets the mode of the Bot based on the command sent
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} botID Bot receiving the command
+ * @param {Command} command Command sent to Bot
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSentMissionCommand(mutableState: JaiaContextType, botID: number, command: Command) {
+    const bot = bots.getBot(botID);
+    const movement = command.plan.movement;
+
+    switch (command.type) {
+        case CommandType.MISSION_PLAN:
+            if (movement === MovementType.TRANSIT) {
+                bot.setMode(BotModes.MISSION);
+            } else if (movement === MovementType.REMOTE_CONTROL) {
+                bot.setMode(BotModes.REMOTE_CONTROL);
+            }
+            break;
+        case CommandType.REMOTE_CONTROL_TASK:
+            bot.setMode(BotModes.REMOTE_CONTROL);
+            break;
+        default:
+            bot.setMode(BotModes.MISSION);
+    }
+
+    mutableState.bots = bots.getBots();
     return mutableState;
 }
 
