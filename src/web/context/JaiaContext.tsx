@@ -513,10 +513,10 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  */
 function handleSentMissionCommand(mutableState: JaiaContextType, botID: number, command: Command) {
     const bot = bots.getBot(botID);
-    const movement = command.plan.movement;
 
     switch (command.type) {
         case CommandType.MISSION_PLAN:
+            const movement = command.plan.movement;
             if (movement === MovementType.TRANSIT) {
                 bot.setMode(BotModes.MISSION);
             } else if (movement === MovementType.REMOTE_CONTROL) {
