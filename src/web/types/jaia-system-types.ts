@@ -64,3 +64,9 @@ export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",
 }
+
+export const enum BotModes {
+    NONE = 1,
+    MISSION = 2,
+    REMOTE_CONTROL = 3,
+}

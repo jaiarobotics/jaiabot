@@ -1,3 +1,4 @@
+import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import {
     BotType,
@@ -22,6 +23,8 @@ export default class Bot {
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private statusAge: number;
+
+    private mode: BotModes;
 
     constructor() {
         // Init base sensors
@@ -123,6 +126,14 @@ export default class Bot {
 
     addTaskPacket(taskPacket: TaskPacket) {
         this.taskPackets.push(taskPacket);
+    }
+
+    getMode() {
+        return this.mode;
+    }
+
+    setMode(mode: BotModes) {
+        this.mode = mode;
     }
 
     private initializeSensors() {
