@@ -63,17 +63,19 @@ export default function RemoteControlButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const enterRCCommand = getEnterRCCommand(props.bot);
-            sendBotCommand(enterRCCommand);
-            jaiaDispatch({
-                type: JaiaActions.SENT_COMMAND,
-                botID: props.bot.getBotID(),
-                command: enterRCCommand,
-            });
+            const response = await sendBotCommand(enterRCCommand);
+            if (response && response.status === "ok") {
+                jaiaDispatch({
+                    type: JaiaActions.SENT_COMMAND,
+                    botID: props.bot.getBotID(),
+                    command: enterRCCommand,
+                });
+            }
         }
     };
 

@@ -85,7 +85,7 @@ export default function StartMissionButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
@@ -94,12 +94,14 @@ export default function StartMissionButton(props: Props) {
                 type: CommandType.MISSION_PLAN,
                 plan: props.mission.packageMissionForHub(),
             };
-            sendBotCommand(startMissionCommand);
-            jaiaDispatch({
-                type: JaiaActions.SENT_COMMAND,
-                botID: props.bot.getBotID(),
-                command: startMissionCommand,
-            });
+            const response = await sendBotCommand(startMissionCommand);
+            if (response && response.status === "ok") {
+                jaiaDispatch({
+                    type: JaiaActions.SENT_COMMAND,
+                    botID: props.bot.getBotID(),
+                    command: startMissionCommand,
+                });
+            }
         }
     };
 
