@@ -22,8 +22,6 @@ The singleton ncludes a public accessor `getBots` function that provides a refer
 
 **NOTES:** bots creates a new Map whenever a bot is added, therefore client software should call `getBots()` each processing cycle and not rely on local copies of the bots reference. For this reason all React Components should access the data by using JaiaContext, which will be updated as needed for each rendering.
 
-**TODO:** Currently `setBots()` is a private method that is only called private function `sortBots()`. Both of these are creating a new Map. Look into modifying so a new Map is only created once.
-
 ### hub.ts & hubs.ts
 
 Identical structure to `bot.ts` and `bots.ts`. All the same notes apply.
