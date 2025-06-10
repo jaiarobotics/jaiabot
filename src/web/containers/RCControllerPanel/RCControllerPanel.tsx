@@ -486,6 +486,17 @@ export default class RCControllerPanel extends React.Component {
             rudderBinNumber: 0,
         });
     }
+    async handleButtonDown(buttonName: string) {
+        if (buttonName === "A") {
+            await this.handleOverdriveCheck();
+        } else if (buttonName === "X") {
+            this.setState({ controlType: ControlTypes.MANUAL_DUAL });
+        } else if (buttonName === "Y") {
+            this.setState({ controlType: ControlTypes.MANUAL_SINGLE });
+        } else if (buttonName === "B") {
+            this.setState({ controlType: ControlTypes.DIVE });
+        }
+    }
 
     render() {
         const theme = createTheme({
@@ -567,7 +578,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="black"
+                    stickColor="purple"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}
@@ -742,8 +753,6 @@ export default class RCControllerPanel extends React.Component {
                 {rightController}
 
                 <Gamepad
-                    // Not using gamepad deadzone so we can handle it in our
-                    // handleGamepadAxisChange
                     deadZone={0}
                     onConnect={() => {
                         console.log("connected");
@@ -753,14 +762,12 @@ export default class RCControllerPanel extends React.Component {
                         this.clearRemoteControlValues();
                     }}
                     onAxisChange={(axisName: string, value: number) => {
-                        // Need to check for interval because onConnect is
-                        // only called at the start and does not get called again
-                        // if we are switching between bots
                         if (!this.props.weHaveInterval()) {
                             this.props.createInterval();
                         }
                         this.handleGamepadAxisChange(axisName, value);
                     }}
+                    onButtonDown={this.handleButtonDown.bind(this)} // ✅ ADD THIS LINE
                 >
                     <React.Fragment />
                 </Gamepad>
