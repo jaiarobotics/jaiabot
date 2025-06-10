@@ -3,7 +3,7 @@ import { useContext } from "react";
 // Jaia
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 import { PanelNames } from "../types/context-types";
-import { ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
+import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
 import Map from "../components/Map/Map";
 import NodeList from "../containers/NodeList/NodeList";
@@ -31,6 +31,7 @@ export default function App() {
                 <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <Details />
                 <Panel />
+                <RemoteControlPanel />
             </JaiaContextProvider>
         </div>
     );
@@ -78,4 +79,21 @@ function Panel() {
         default:
             return <div></div>;
     }
+}
+
+function RemoteControlPanel() {
+    const jaiaContext = useContext(JaiaContext);
+
+    if (jaiaContext === null) {
+        return;
+    }
+
+    if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
+        const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
+        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+            // Render RC panel
+        }
+    }
+
+    return <div></div>;
 }
