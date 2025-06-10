@@ -53,7 +53,7 @@ export function isCommandAvailable(commandType: CommandType, missionState: Missi
  * Passes a command message for a Bot to the jaiaAPI so it can reach the Hub for distribution
  *
  * @param {Command} command Command message to be sent to Bot
- * @returns {void}
+ * @returns {Promise} Response from sending command
  */
 export function sendBotCommand(command: Command) {
     return jaiaAPI.postCommand(command);
@@ -63,7 +63,7 @@ export function sendBotCommand(command: Command) {
  * Passes a command message for a Hub to the jaiaAPI so it can reach the Hub
  *
  * @param {Command} command Command message to be sent to Hub
- * @returns {void}
+ * @returns {Promise} Response from sending command
  */
 export function sendHubCommand(command: CommandForHub) {
     return jaiaAPI.postCommandForHub(command);
