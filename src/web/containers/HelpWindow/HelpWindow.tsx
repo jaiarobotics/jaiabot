@@ -126,17 +126,17 @@ const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiAlphaACircleOutline,
         name: "Enable Overdrive",
-        description: "To enable the Overdrive function, press A on the controller",
+        description: "To enable the Overdrive function, press A on the controller.",
     },
     {
         iconPath: mdiCancel,
         name: "Cancel Overdrive",
-        description: "To cancel Overdrive when given the option, press LB on the controller",
+        description: "To cancel Overdrive when given the option, press LB on the controller.",
     },
     {
         iconPath: mdiToggleSwitchOutline,
         name: "Confrim and Activate Overdrive",
-        description: "To enable Overdrive when given the option, press RB on the controller ",
+        description: "To enable Overdrive when given the option, press RB on the controller.",
     },
     {
         iconPath: mdiToggleSwitchOffOutline,
@@ -152,29 +152,29 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiGamepad,
         name: "Travesing through the Dive Options",
         description:
-            "To traverse through the Dive options, use the up & down buttons on the D-Pad ",
+            "To traverse through the Dive options, use the up & down buttons on the D-Pad.",
     },
     {
         iconPath: mdiGamepadRight,
         name: "Play Button on Dive Function",
         description:
-            "To press the play button on Dive, hit the right on the D-Pad, and press B on the controller to begin the dive. To deselect, press left on the D-Pad",
+            "To press the play button on Dive, hit the right on the D-Pad, and press B on the controller to begin the dive. To deselect, press left on the D-Pad.",
     },
     {
         iconPath: mdiArrowLeftRightBoldOutline,
         name: "To Increase/Decrease the Meters or Seconds for Dive Options",
         description:
-            "To increase the options on the controller, press RT on the controller. To decrease the options on the controller, press LT on the controller",
+            "To increase the options on the controller, press RT on the controller. To decrease the options on the controller, press LT on the controller.",
     },
     {
         iconPath: mdiAlphaXCircleOutline,
         name: "Activate Manual Dual on Controller",
-        description: "To enable the Manual Dual function, press X on the controller",
+        description: "To enable the Manual Dual function, press X on the controller.",
     },
     {
         iconPath: mdiAlphaYCircleOutline,
         name: "Activate Manual Single on Controller",
-        description: "To enable the Manual Single function, press Y on the controller ",
+        description: "To enable the Manual Single function, press Y on the controller.",
     },
 ];
 interface Props {
