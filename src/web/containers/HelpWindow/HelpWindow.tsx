@@ -1,3 +1,4 @@
+// Kanz made most recent changes to HelpWindow
 import React from "react";
 import "./HelpWindow.less";
 import Icon from "@mdi/react";
