@@ -43,24 +43,21 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
     echo "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
 fi
 
-<<<<<<< Updated upstream
-=======
+
 # --- System Requirements Check ---
 MIN_CPUS=4
-MIN_RAM_KB=$((3 * 1024 * 1024))     # 4 GiB in KB
-MIN_DISK_KB=$((10 * 1024 * 1024))   # 10 GiB in KB
+MIN_RAM_KB=3145728    # 3-4 GiB in KB
+MIN_DISK_KB=10485760  # 10 GiB in KB
 
-AVAILABLE_CPUS=$(nproc)
-AVAILABLE_RAM_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
 AVAILABLE_DISK_KB=$(df --output=avail / | tail -1)
 
 echo "Detected system: $AVAILABLE_CPUS CPU(s), $((AVAILABLE_RAM_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
 
-if [ "$AVAILABLE_CPUS" -lt "$MIN_CPUS" ]; then
+if [ "$NPROC" -lt "$MIN_CPUS" ]; then
     echo "Warning: Your system has less than the required $MIN_CPUS CPUs to build the software."
 fi
 
-if [ "$AVAILABLE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
+if [ "$MEMORY_KB" -lt "$MIN_RAM_KB" ]; then
     echo "Warning: Your system has less than the required 4 GiB of RAM."
 fi
 
@@ -73,8 +70,6 @@ if [ "$JAIA_BUILD_NPROC" -le 0 ]; then
     echo "Error: JAIA_BUILD_NPROC resolved to 0. Your system does not meet the minimum requirements to build this software."
     exit 1
 fi
-
->>>>>>> Stashed changes
 
 script_dir=$(dirname $0)
 
