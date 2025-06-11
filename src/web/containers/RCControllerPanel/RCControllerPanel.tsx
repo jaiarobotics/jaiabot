@@ -500,18 +500,19 @@ export default class RCControllerPanel extends React.Component {
         // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
 
-        // If alert is open, allow only LB or RB
         if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
 
-        //Different button commands
         if (buttonName === "A") {
             await this.handleOverdriveCheck();
         } else if (buttonName === "X") {
             this.setState({ controlType: ControlTypes.MANUAL_DUAL });
+            this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT]);
         } else if (buttonName === "Y") {
             this.setState({ controlType: ControlTypes.MANUAL_SINGLE });
+            this.setJoyStickStatus([JoySticks.SOLE]);
         } else if (buttonName === "B") {
             this.setState({ controlType: ControlTypes.DIVE });
+            this.setJoyStickStatus([]);
         }
     }
 
