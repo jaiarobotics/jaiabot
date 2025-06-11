@@ -32,7 +32,7 @@ export default function App() {
                 <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <Details />
                 <Panel />
-                <RemoteControlPanel />
+                <RemoteControl />
             </JaiaContextProvider>
         </div>
     );
@@ -79,5 +79,19 @@ function Panel() {
             return <JaiaAbout />;
         default:
             return <div></div>;
+    }
+}
+
+function RemoteControl() {
+    const jaiaContext = useContext(JaiaContext);
+
+    if (jaiaContext === null) {
+        return <div></div>;
+    }
+    if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
+        const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
+        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+            return <RemoteControlPanel />;
+        }
     }
 }
