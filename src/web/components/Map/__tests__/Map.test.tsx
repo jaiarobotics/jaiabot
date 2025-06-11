@@ -23,6 +23,7 @@ import { UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
 import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
+import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 const mapModule = jest.requireActual("../../../openlayers/maps/map");
 
@@ -88,7 +89,8 @@ test("Select and deselect Bot and Hub icons on map", () => {
 
 test("Click on map twice with mission in edit mode", () => {
     const mission = new Mission();
-    missions.addMission(mission);
+    const missionID = missions.addMission(mission);
+    missionsManager.assign(1, missionID);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
@@ -111,6 +113,7 @@ test("Click on map twice with mission in edit mode", () => {
 
     // Reset states
     missions.deleteAllMissions();
+    missionsManager.clear();
     missionLayer.getVectorLayer().getSource().clear();
 });
 
