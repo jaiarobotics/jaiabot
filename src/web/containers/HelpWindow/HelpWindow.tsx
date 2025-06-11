@@ -23,6 +23,9 @@ import {
     mdiAlphaXCircleOutline,
     mdiAlphaYCircleOutline,
     mdiToggleSwitchOffOutline,
+    mdiGamepadRight,
+    mdiGamepad,
+    mdiArrowLeftRightBoldOutline,
 } from "@mdi/js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-common-types";
@@ -144,6 +147,24 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiAlphaBCircleOutline,
         name: "Activate Dive on Controller ",
         description: "To enable the Dive function, press B on the controller ",
+    },
+    {
+        iconPath: mdiGamepad,
+        name: "Travesing through the Dive Options",
+        description:
+            "To traverse through the Dive options, use the up & down buttons on the D-Pad ",
+    },
+    {
+        iconPath: mdiGamepadRight,
+        name: "Play Button on Dive Function",
+        description:
+            "To press the play button on Dive, hit the right on the D-Pad, and press B on the controller to begin the dive. To deselect, press left on the D-Pad",
+    },
+    {
+        iconPath: mdiArrowLeftRightBoldOutline,
+        name: "To Increase/Decrease the Meters or Seconds for Dive Options",
+        description:
+            "To increase the options on the controller, press RT on the controller. To decrease the options on the controller, press LT on the controller",
     },
     {
         iconPath: mdiAlphaXCircleOutline,
