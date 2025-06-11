@@ -42,6 +42,7 @@ interface State {
     throttleBinNumber: number;
     rudderBinNumber: number;
     botId: number;
+    selectedDiveParamIndex: number; //this is recent change (remove comment)
     isMaximized: boolean;
     overdriveEnabled: boolean;
     isAlertOpen: boolean;
@@ -97,6 +98,7 @@ export default class RCControllerPanel extends React.Component {
             // bot id is saved to determine when the user
             // clicks on a new bot details window
             botId: 0,
+            selectedDiveParamIndex: 0, //change (Remove comment)
             isMaximized: true,
             isAlertOpen: false,
             overdriveEnabled: false,
@@ -496,9 +498,24 @@ export default class RCControllerPanel extends React.Component {
         });
     }
 
+    adjustDiveParameter(paramKey: string, delta: number) {
+        if (!this.props.rcDiveParameters) return;
+
+        const currentValue = Number(this.props.rcDiveParameters[paramKey]);
+        let newValue = currentValue + delta;
+        if (newValue < 0) newValue = 0; // prevent negative values
+
+        // Update rcDiveParameters via the existing handler or directly
+        const newDiveParams = { ...this.props.rcDiveParameters, [paramKey]: String(newValue) };
+        this.props.setRCDiveParameters(newDiveParams);
+    }
+
     async handleButtonDown(buttonName: string) {
         // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
+
+        // List of parameter keys to navigate easily
+        const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
         if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
 
@@ -513,6 +530,23 @@ export default class RCControllerPanel extends React.Component {
         } else if (buttonName === "B") {
             this.setState({ controlType: ControlTypes.DIVE });
             this.setJoyStickStatus([]);
+        }
+        // New dive param navigation & adjustment (only when in DIVE mode)
+        if (this.state.controlType === ControlTypes.DIVE) {
+            const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
+            let currentIndex = this.state.selectedDiveParamIndex;
+
+            if (buttonName === "DPadUp") {
+                currentIndex = (currentIndex - 1 + diveParamKeys.length) % diveParamKeys.length;
+                this.setState({ selectedDiveParamIndex: currentIndex });
+            } else if (buttonName === "DPadDown") {
+                currentIndex = (currentIndex + 1) % diveParamKeys.length;
+                this.setState({ selectedDiveParamIndex: currentIndex });
+            } else if (buttonName === "LT") {
+                this.adjustDiveParameter(diveParamKeys[currentIndex], -1);
+            } else if (buttonName === "RT") {
+                this.adjustDiveParameter(diveParamKeys[currentIndex], +1);
+            }
         }
     }
 
@@ -652,7 +686,7 @@ export default class RCControllerPanel extends React.Component {
                 />
             </div>
         );
-
+        // K and K work here remove this comment later
         driveControlPad = (
             <div className="rc-labels-container">
                 <div className="rc-labels-left">
