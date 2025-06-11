@@ -10,6 +10,7 @@ import "./RemoteControlPanel.less";
 interface AnalogStickProps {
     analogStickType: AnalogStickTypes;
     handleAnalogStickMove: (event: IJoystickUpdateEvent, analogStickType: AnalogStickTypes) => void;
+    onAnalogStickStop: () => void;
 }
 
 interface RCSelectMenuProps {
@@ -151,6 +152,13 @@ export default function RemoteControlPanel() {
         setControlType(event.target.value as ControlTypes);
     };
 
+    const onAnalogStickStop = () => {
+        setThrottleDirection("");
+        setThrottleMagnitude(0);
+        setRudderDirection("");
+        setRudderMagnitude(0);
+    };
+
     const SelectMenu = (
         <RCSelectMenu
             controlType={controlType}
@@ -169,6 +177,7 @@ export default function RemoteControlPanel() {
                     <AnalogStick
                         analogStickType={AnalogStickTypes.SINGLE}
                         handleAnalogStickMove={handleAnalogStickMove}
+                        onAnalogStickStop={onAnalogStickStop}
                     />
                     {SelectMenu}
                 </div>
@@ -179,11 +188,13 @@ export default function RemoteControlPanel() {
                     <AnalogStick
                         analogStickType={AnalogStickTypes.LEFT}
                         handleAnalogStickMove={handleAnalogStickMove}
+                        onAnalogStickStop={onAnalogStickStop}
                     />
                     {SelectMenu}
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
                         handleAnalogStickMove={handleAnalogStickMove}
+                        onAnalogStickStop={onAnalogStickStop}
                     />
                 </div>
             );
@@ -227,6 +238,7 @@ function AnalogStick(props: AnalogStickProps) {
                 move={(event: IJoystickUpdateEvent) =>
                     props.handleAnalogStickMove(event, props.analogStickType)
                 }
+                stop={() => props.onAnalogStickStop()}
             />
         </div>
     );
