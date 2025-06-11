@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Joystick, JoystickShape } from "react-joystick-component";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
+import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
+
 import "./RemoteControlPanel.less";
 
 interface AnalogStickProps {
@@ -10,15 +12,53 @@ interface AnalogStickProps {
     handleAnalogStickMove: (event: IJoystickUpdateEvent, analogStickType: AnalogStickTypes) => void;
 }
 
-export enum AnalogStickTypes {
+interface RCSelectMenuProps {
+    controlType: ControlTypes;
+    handleMenuSelection: (event: SelectChangeEvent) => void;
+    throttleDirection: string;
+    throttleMagnitude: number;
+    rudderDirection: string;
+    rudderMagnitude: number;
+}
+
+enum AnalogStickTypes {
     SINGLE = 1,
     LEFT = 2,
     RIGHT = 3,
 }
 
+// Use string values for MUI compatibility
+enum ControlTypes {
+    SINGLE = "SINGLE",
+    DUAL = "DUAL",
+    DIVE = "DIVE",
+}
+
 const DEAD_ZONE_PERCENT = 10;
 
+const theme = createTheme({
+    components: {
+        MuiOutlinedInput: {
+            styleOverrides: {
+                root: {
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "white",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "white",
+                    },
+                },
+                notchedOutline: {
+                    borderColor: "white",
+                    padding: "0px",
+                },
+            },
+        },
+    },
+});
+
 export default function RemoteControlPanel() {
+    const [controlType, setControlType] = useState(ControlTypes.DUAL);
     const [throttleDirection, setThrottleDirection] = useState("");
     const [rudderDirection, setRudderDirection] = useState("");
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
@@ -107,13 +147,49 @@ export default function RemoteControlPanel() {
         }
     };
 
-    return (
-        <div className="remote-control-panel">
-            {/* <AnalogStick analogStickType={AnalogStickTypes.LEFT} handleAnalogStickMove={handleAnalogStickMove} /> */}
-            {/* <AnalogStick analogStickType={AnalogStickTypes.RIGHT} handleAnalogStickMove={handleAnalogStickMove} /> */}
-            {/* <AnalogStick analogStickType={AnalogStickTypes.SINGLE} handleAnalogStickMove={handleAnalogStickMove} /> */}
-        </div>
+    const handleMenuSelection = (event: SelectChangeEvent) => {
+        setControlType(event.target.value as ControlTypes);
+    };
+
+    const SelectMenu = (
+        <RCSelectMenu
+            controlType={controlType}
+            handleMenuSelection={handleMenuSelection}
+            throttleDirection={throttleDirection}
+            throttleMagnitude={throttleMagnitude}
+            rudderDirection={rudderDirection}
+            rudderMagnitude={rudderMagnitude}
+        />
     );
+
+    switch (controlType) {
+        case ControlTypes.SINGLE:
+            return (
+                <div className="remote-control-panel">
+                    <AnalogStick
+                        analogStickType={AnalogStickTypes.SINGLE}
+                        handleAnalogStickMove={handleAnalogStickMove}
+                    />
+                    {SelectMenu}
+                </div>
+            );
+        case ControlTypes.DUAL:
+            return (
+                <div className="remote-control-panel">
+                    <AnalogStick
+                        analogStickType={AnalogStickTypes.LEFT}
+                        handleAnalogStickMove={handleAnalogStickMove}
+                    />
+                    {SelectMenu}
+                    <AnalogStick
+                        analogStickType={AnalogStickTypes.RIGHT}
+                        handleAnalogStickMove={handleAnalogStickMove}
+                    />
+                </div>
+            );
+        case ControlTypes.DIVE:
+            return <div className="remote-control-panel">{SelectMenu}</div>;
+    }
 }
 
 function AnalogStick(props: AnalogStickProps) {
@@ -140,7 +216,7 @@ function AnalogStick(props: AnalogStickProps) {
     };
 
     return (
-        <div>
+        <div className="analog-stick">
             <div>{getTitle()}</div>
             <Joystick
                 baseColor="white"
@@ -153,5 +229,37 @@ function AnalogStick(props: AnalogStickProps) {
                 }
             />
         </div>
+    );
+}
+
+function RCSelectMenu(props: RCSelectMenuProps) {
+    return (
+        <ThemeProvider theme={theme}>
+            <div className="rc-dashboard">
+                <div className="rc-select-menu">
+                    <div className="label">Control:</div>
+                    <Select
+                        value={props.controlType.toString()}
+                        onChange={(event: SelectChangeEvent) => props.handleMenuSelection(event)}
+                    >
+                        <MenuItem value={ControlTypes.SINGLE}>Single</MenuItem>
+                        <MenuItem value={ControlTypes.DUAL}>Dual</MenuItem>
+                        <MenuItem value={ControlTypes.DIVE}>Dive</MenuItem>
+                    </Select>
+                </div>
+                <div className="rc-output">
+                    <div>Throttle Direction:</div>
+                    <div>{props.throttleDirection}</div>
+                    <div>Throttle:</div>
+                    <div>{props.throttleMagnitude}</div>
+                </div>
+                <div className="rc-output">
+                    <div>Rudder Direction:</div>
+                    <div>{props.rudderDirection}</div>
+                    <div>Rudder:</div>
+                    <div>{props.rudderMagnitude}</div>
+                </div>
+            </div>
+        </ThemeProvider>
     );
 }
