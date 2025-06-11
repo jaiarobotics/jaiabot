@@ -51,7 +51,7 @@ MIN_DISK_KB=10485760  # 10 GiB in KB
 
 AVAILABLE_DISK_KB=$(df --output=avail / | tail -1)
 
-echo "Detected system: $AVAILABLE_CPUS CPU(s), $((AVAILABLE_RAM_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
+echo "Detected system: $NPROC CPU(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
 
 if [ "$NPROC" -lt "$MIN_CPUS" ]; then
     echo "Warning: Your system has less than the required $MIN_CPUS CPUs to build the software."
