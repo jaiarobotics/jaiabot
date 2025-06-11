@@ -4,4 +4,5 @@ export enum OpenLayersColors {
     OUTLINE = "black",
     SELECT = "turquoise",
     TEXT = "black",
+    TARGET = "chartreuse",
 }

@@ -140,6 +140,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_MISSION_SPEEDS:
             return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
+        case JaiaActions.SEND_MISSION:
+            return handleSendMission(mutableState, action.missionID);
+
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -368,6 +371,23 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
 function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
     missions.setMissionSpeeds(missionSpeeds);
     mutableState.missionSpeeds = missionSpeeds;
+    return mutableState;
+}
+
+/**
+ * Turns off edit mode upon starting a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Checks sent mission against missionID in edit mode
+ * @returns {void}
+ */
+function handleSendMission(mutableState: JaiaContextType, missionID: number) {
+    if (missions.getMissionIDInEditMode() === missionID) {
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+        mutableState.missionIDInEditMode = UNASSIGNED_ID;
+    }
+
+    missionLayer.updateFeatures();
     return mutableState;
 }
 
