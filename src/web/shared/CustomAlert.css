@@ -50,3 +50,7 @@ div.button {
     min-width: 100pt;
     text-align: center;
 }
+
+input.selected-param {
+    border: 6px solid #00aaff !important;
+}

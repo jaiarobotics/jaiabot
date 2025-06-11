@@ -509,13 +509,12 @@ export default class RCControllerPanel extends React.Component {
         const newDiveParams = { ...this.props.rcDiveParameters, [paramKey]: String(newValue) };
         this.props.setRCDiveParameters(newDiveParams);
     }
+    // List of parameter keys to navigate easily
+    diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
     async handleButtonDown(buttonName: string) {
         // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
-
-        // List of parameter keys to navigate easily
-        const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
         if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
 
@@ -630,7 +629,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="black"
+                    stickColor="red"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}
@@ -726,11 +725,15 @@ export default class RCControllerPanel extends React.Component {
                             <div>Max Depth:</div>
                             <input
                                 id="maxDepth"
-                                className="rc-input"
+                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "maxDepth" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.maxDepth}
-                                onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
-                                    this.handleTaskParamInputChange(evt)
+                                onChange={(evt) => this.handleTaskParamInputChange(evt)}
+                                onFocus={() =>
+                                    this.setState({
+                                        selectedDiveParamIndex:
+                                            this.diveParamKeys.indexOf("maxDepth"),
+                                    })
                                 }
                                 autoComplete="off"
                             />
@@ -739,11 +742,15 @@ export default class RCControllerPanel extends React.Component {
                             <div>Depth Interval:</div>
                             <input
                                 id="depthInterval"
-                                className="rc-input"
+                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "depthInterval" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.depthInterval}
-                                onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
-                                    this.handleTaskParamInputChange(evt)
+                                onChange={(evt) => this.handleTaskParamInputChange(evt)}
+                                onFocus={() =>
+                                    this.setState({
+                                        selectedDiveParamIndex:
+                                            this.diveParamKeys.indexOf("depthInterval"),
+                                    })
                                 }
                                 autoComplete="off"
                             />
@@ -752,11 +759,15 @@ export default class RCControllerPanel extends React.Component {
                             <div>Hold Time:</div>
                             <input
                                 id="holdTime"
-                                className="rc-input"
+                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "holdTime" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.holdTime}
-                                onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
-                                    this.handleTaskParamInputChange(evt)
+                                onChange={(evt) => this.handleTaskParamInputChange(evt)}
+                                onFocus={() =>
+                                    this.setState({
+                                        selectedDiveParamIndex:
+                                            this.diveParamKeys.indexOf("holdTime"),
+                                    })
                                 }
                                 autoComplete="off"
                             />
@@ -765,11 +776,15 @@ export default class RCControllerPanel extends React.Component {
                             <div>Drift Time:</div>
                             <input
                                 id="driftTime"
-                                className="rc-input"
+                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "driftTime" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.driftTime}
-                                onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
-                                    this.handleTaskParamInputChange(evt)
+                                onChange={(evt) => this.handleTaskParamInputChange(evt)}
+                                onFocus={() =>
+                                    this.setState({
+                                        selectedDiveParamIndex:
+                                            this.diveParamKeys.indexOf("driftTime"),
+                                    })
                                 }
                                 autoComplete="off"
                             />
