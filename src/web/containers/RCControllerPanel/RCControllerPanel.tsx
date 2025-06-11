@@ -138,7 +138,7 @@ export default class RCControllerPanel extends React.Component {
             if (
                 !(await CustomAlert.confirmAsync(
                     "You are about to enable Overdrive.  \nUse Overdrive with caution as it can make the bots difficult to control",
-                    "Enable Overdrive",
+                    "Enable Overdrive\nPress RB",
                 ))
             ) {
                 return;
@@ -486,7 +486,12 @@ export default class RCControllerPanel extends React.Component {
             rudderBinNumber: 0,
         });
     }
+
     async handleButtonDown(buttonName: string) {
+        // Send input to alert first if it's open
+        window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
+
+        // If no alert is showing, handle buttons normally
         if (buttonName === "A") {
             await this.handleOverdriveCheck();
         } else if (buttonName === "X") {
@@ -578,7 +583,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="purple"
+                    stickColor="yellow"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}

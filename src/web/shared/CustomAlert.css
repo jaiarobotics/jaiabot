@@ -47,4 +47,6 @@ div.button {
     padding: 20pt;
     margin: 0pt 20pt 0pt 20pt;
     user-select: none;
+    min-width: 100pt; /* Adjust as needed to fit "Press LB" */
+    text-align: center; /* Center text */
 }
