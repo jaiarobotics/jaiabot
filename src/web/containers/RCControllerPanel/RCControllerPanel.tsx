@@ -43,6 +43,7 @@ interface State {
     botId: number;
     isMaximized: boolean;
     overdriveEnabled: boolean;
+    isAlertOpen: boolean;
 }
 
 enum JoySticks {
@@ -96,6 +97,7 @@ export default class RCControllerPanel extends React.Component {
             // clicks on a new bot details window
             botId: 0,
             isMaximized: true,
+            isAlertOpen: false,
             overdriveEnabled: false,
         };
     }
@@ -134,19 +136,25 @@ export default class RCControllerPanel extends React.Component {
      * @returns {void}
      */
     async handleOverdriveCheck() {
-        if (!this.state.overdriveEnabled) {
-            if (
-                !(await CustomAlert.confirmAsync(
-                    "You are about to enable Overdrive.  \nUse Overdrive with caution as it can make the bots difficult to control",
-                    "Enable Overdrive\nPress RB",
-                ))
-            ) {
-                return;
-            }
-        }
+        if (this.state.overdriveEnabled) {
+            // If already on, just turn off
+            this.setState({ overdriveEnabled: false });
+        } else {
+            // Otherwise, confirm enabling
+            this.setState({ isAlertOpen: true });
 
-        this.setState({ overdriveEnabled: !this.state.overdriveEnabled });
-        return;
+            const confirmed = await CustomAlert.confirmAsync(
+                "You are about to enable Overdrive.\nUse Overdrive with caution as it can make the bots difficult to control",
+                "Enable Overdrive",
+                "Overdrive Warning",
+            );
+
+            this.setState({ isAlertOpen: false });
+
+            if (!confirmed) return;
+
+            this.setState({ overdriveEnabled: true });
+        }
     }
 
     /**
@@ -488,10 +496,13 @@ export default class RCControllerPanel extends React.Component {
     }
 
     async handleButtonDown(buttonName: string) {
-        // Send input to alert first if it's open
+        // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
 
-        // If no alert is showing, handle buttons normally
+        // If alert is open, allow only LB or RB
+        if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
+
+        //Different button commands
         if (buttonName === "A") {
             await this.handleOverdriveCheck();
         } else if (buttonName === "X") {
@@ -583,7 +594,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="yellow"
+                    stickColor="black"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}

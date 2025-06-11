@@ -52,7 +52,7 @@ export class CustomAlert extends React.Component {
                     >
                         {buttonInput.title}
                         <br />
-                        <small style={{ color: "#666" }}>{buttonInput.subtitle}</small>
+                        <small style={{ color: "black" }}>{buttonInput.subtitle}</small>
                     </div>
                 );
             });
