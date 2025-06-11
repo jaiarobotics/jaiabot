@@ -6,7 +6,7 @@ import { DisabledCodes } from "./remote-control-messages";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
-import { Command, CommandType, MovementType } from "../../types/protobuf-types";
+import { Command, CommandType, MissionStart, MovementType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import rcModeIcon from "../../style/icons/controller.svg";
@@ -114,6 +114,7 @@ function getEnterRCCommand(bot: Bot) {
         bot_id: bot.getBotID(),
         type: CommandType.MISSION_PLAN,
         plan: {
+            start: MissionStart.START_IMMEDIATELY,
             movement: MovementType.REMOTE_CONTROL,
             recovery: {
                 recover_at_final_goal: false,

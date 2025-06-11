@@ -14,6 +14,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
 // Style
 import "./App.less";
@@ -79,21 +80,4 @@ function Panel() {
         default:
             return <div></div>;
     }
-}
-
-function RemoteControlPanel() {
-    const jaiaContext = useContext(JaiaContext);
-
-    if (jaiaContext === null) {
-        return;
-    }
-
-    if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
-        const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
-        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
-            // Render RC panel
-        }
-    }
-
-    return <div></div>;
 }
