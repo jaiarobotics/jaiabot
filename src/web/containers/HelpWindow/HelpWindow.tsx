@@ -15,11 +15,17 @@ import {
     mdiWrench,
     mdiSquareEditOutline,
     mdiRuler,
+    mdiCancel,
+    mdiToggleSwitchOutline,
+    mdiAlphaACircleOutline,
+    mdiAlphaBCircleOutline,
+    mdiAlphaXCircleOutline,
+    mdiAlphaYCircleOutline,
+    mdiToggleSwitchOffOutline,
 } from "@mdi/js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-common-types";
 const rallyIcon = require("../../shared/rally.svg") as string;
-
 interface ButtonDescriptor {
     imgSrc?: string;
     iconPath?: string;
@@ -28,10 +34,8 @@ interface ButtonDescriptor {
     name: string;
     description: string;
 }
-
 function getButtonRow(descriptor: ButtonDescriptor) {
     var buttonContents;
-
     if (descriptor.imgSrc) {
         buttonContents = <img src={descriptor.imgSrc}></img>;
     } else if (descriptor.iconPath) {
@@ -41,7 +45,6 @@ function getButtonRow(descriptor: ButtonDescriptor) {
             <FontAwesomeIcon icon={descriptor.fontAwesomeIconDefinition} title={descriptor.name} />
         );
     }
-
     return (
         <tr>
             <td className="button-image">
@@ -54,7 +57,6 @@ function getButtonRow(descriptor: ButtonDescriptor) {
         </tr>
     );
 }
-
 const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiCheckboxMarkedCirclePlusOutline,
@@ -69,7 +71,7 @@ const buttons: ButtonDescriptor[] = [
     },
     {
         iconPath: mdiStop,
-        iconStyle: { backgroundColor: "#cc0505" },
+        iconStyle: { backgroundColor: "#CC0505" },
         name: "Stop All Missions",
         description: "Order all bots to stop their currently running missions.",
     },
@@ -117,12 +119,45 @@ const buttons: ButtonDescriptor[] = [
         description:
             "Click two or more points to measure the total distance along a set of line segments.",
     },
+    {
+        iconPath: mdiAlphaACircleOutline,
+        name: "Enable Overdrive",
+        description: "To enable the Overdrive function, press A on the controller",
+    },
+    {
+        iconPath: mdiCancel,
+        name: "Cancel Overdrive",
+        description: "To cancel Overdrive when given the option, press LB on the controller",
+    },
+    {
+        iconPath: mdiToggleSwitchOutline,
+        name: "Confrim and Activate Overdrive",
+        description: "To enable Overdrive when given the option, press RB on the controller ",
+    },
+    {
+        iconPath: mdiToggleSwitchOffOutline,
+        name: "Disable Overdrive",
+        description: "To disable Overdrive after use, press the A button on the controller.",
+    },
+    {
+        iconPath: mdiAlphaBCircleOutline,
+        name: "Activate Dive on Controller ",
+        description: "To enable the Dive function, press B on the controller ",
+    },
+    {
+        iconPath: mdiAlphaXCircleOutline,
+        name: "Activate Manual Dual on Controller",
+        description: "To enable the Manual Dual function, press X on the controller",
+    },
+    {
+        iconPath: mdiAlphaYCircleOutline,
+        name: "Activate Manual Single on Controller",
+        description: "To enable the Manual Single function, press Y on the controller ",
+    },
 ];
-
 interface Props {
     onClose?: () => void;
 }
-
 /**
  * A window showing help information for the Jaia Command & Control user
  *

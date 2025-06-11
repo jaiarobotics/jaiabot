@@ -145,8 +145,8 @@ export default class RCControllerPanel extends React.Component {
 
             const confirmed = await CustomAlert.confirmAsync(
                 "You are about to enable Overdrive.\nUse Overdrive with caution as it can make the bots difficult to control",
-                "Enable Overdrive",
-                "Overdrive Warning",
+                "Enable Overdrive\nPress RB",
+                "Confirm",
             );
 
             this.setState({ isAlertOpen: false });
