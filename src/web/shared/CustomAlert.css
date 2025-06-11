@@ -52,5 +52,9 @@ div.button {
 }
 
 input.selected-param {
-    border: 6px solid #00aaff !important;
+    border: 6px solid blue !important;
+}
+
+.selected-play-button {
+    border: 6px solid red !important;
 }

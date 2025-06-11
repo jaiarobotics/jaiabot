@@ -42,7 +42,8 @@ interface State {
     throttleBinNumber: number;
     rudderBinNumber: number;
     botId: number;
-    selectedDiveParamIndex: number; //this is recent change (remove comment)
+    selectedDiveParamIndex: number;
+    isPlayButtonSelected: boolean;
     isMaximized: boolean;
     overdriveEnabled: boolean;
     isAlertOpen: boolean;
@@ -101,6 +102,7 @@ export default class RCControllerPanel extends React.Component {
             selectedDiveParamIndex: 0, //change (Remove comment)
             isMaximized: true,
             isAlertOpen: false,
+            isPlayButtonSelected: false,
             overdriveEnabled: false,
         };
     }
@@ -534,6 +536,7 @@ export default class RCControllerPanel extends React.Component {
         if (this.state.controlType === ControlTypes.DIVE) {
             const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
             let currentIndex = this.state.selectedDiveParamIndex;
+            const isPlayButtonSelected = this.state.isPlayButtonSelected;
 
             if (buttonName === "DPadUp") {
                 currentIndex = (currentIndex - 1 + diveParamKeys.length) % diveParamKeys.length;
@@ -541,10 +544,25 @@ export default class RCControllerPanel extends React.Component {
             } else if (buttonName === "DPadDown") {
                 currentIndex = (currentIndex + 1) % diveParamKeys.length;
                 this.setState({ selectedDiveParamIndex: currentIndex });
-            } else if (buttonName === "LT") {
+            } else if (buttonName === "DPadRight") {
+                // Always go to Play when pressing Right
+                this.setState({ isPlayButtonSelected: true });
+            } else if (buttonName === "DPadLeft") {
+                if (isPlayButtonSelected) {
+                    // Move back from Play to last input
+                    this.setState({ isPlayButtonSelected: false });
+                }
+                // else: if already on an input, you could optionally move left among inputs,
+                // but typically Up/Down suffice for linear list.
+            } else if (buttonName === "LT" && !isPlayButtonSelected) {
+                // Decrease value of currently selected input
                 this.adjustDiveParameter(diveParamKeys[currentIndex], -1);
-            } else if (buttonName === "RT") {
+            } else if (buttonName === "RT" && !isPlayButtonSelected) {
+                // Increase value of currently selected input
                 this.adjustDiveParameter(diveParamKeys[currentIndex], +1);
+            } else if (buttonName === "B" && isPlayButtonSelected) {
+                // Activate the Dive (Play) when Play is selected
+                this.handleDiveButtonClick();
             }
         }
     }
@@ -629,7 +647,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="red"
+                    stickColor="black"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}
@@ -793,7 +811,7 @@ export default class RCControllerPanel extends React.Component {
                     </div>
                     <div className="rc-labels-right">
                         <Button
-                            className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? "inactive" : ""}`}
+                            className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? "inactive" : ""} ${this.state.isPlayButtonSelected ? "selected-play-button" : ""}`}
                             disabled={this.isDiveButtonDisabled()}
                             onClick={() => this.handleDiveButtonClick()}
                         >
