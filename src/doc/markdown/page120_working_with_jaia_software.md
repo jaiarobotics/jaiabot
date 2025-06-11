@@ -1,45 +1,128 @@
 # Working With Jaia Software
 
 ### Table of Contents:
-- [Launching The Simulator](#launching-the-simulator)
+- [Launching The Simulator on Macbooks](#launching-the-sumulator-on-macbooks)
+- [Launching The Simulator on Windows](#launching-the-simulator-on-windows)
+- [Troublshooting the Simulator](#Troubleshooting)
+- [Creating an SSH Key (Macbooks)](#sshkey)
 - [Modifying Code](#modifying-code)
 - [Deploying Code](#deploying-code)
 
 <br>
-<a id="launching-the-simulator"></a>
+<a id="launching-the-simulator-on-macbooks"></a>
 
-# Launching the Simulator
-Note: The Jaia simulator works with __Ubuntu 20.04 (branch: 1.y), 22.04 (branch: 1.y), 24.04 (branch: 2.y)__
-1. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
+# Launching the Simulator on Macbooks
+Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+1. Open Multipass and Launch Ubuntu 24.04 LTS 
+2. Navigate to ‘All Instances’ and stop "personal-shell-name". 
+3. Click on <personal-shell-name> in ‘Name’ column. Switch from ‘Shells’ to ‘Details’ at the top. 
+4. Click ‘Configure’ under ‘Resources’. Change CPUs to 4+, Memory to 4+, Disk to 10+. 
+5. Navigate back to ‘All Instances’ and start <personal-shell-name>. 
+6. 'Open shell' option in Multipass may not work on Mac. If so, launch Multipass shell in Mac Terminal.  
+```
+multipass shell <personal-shell-name>
+```
+7. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
 ```
 (install git if needed)
 sudo apt install git
 git clone https://github.com/jaiarobotics/jaiabot
 ```
-2. Run the setup scripts
+8. Open Jaiabot Directory
+```
+cd jaiabot
+```
+9. Check branch, switch to correct branch (2.y)
+```
+git branch
+git checkout 2.y #if you're in 1.y
+```
+10. Run the setup scripts
 ```
 cd /path/to/jaiabot/scripts
 ./setup-tools-build.sh
 ./setup-tools-runtime.sh
 ```
-3. Run the build script
+11. Run the build script
 ```
 cd /path/to/jaiabot
 ./build.sh
 ```
-4. Launch the JCC web interface
+12. Launch the JCC web interface
 ```
 cd /path/to/jaiabot/src/web
 ./run.sh
+# Should look like: WARNING:root:🏓 Pinging server localhost:40000
 ```
-5. Launch the simulator in a separate terminal
+13. Launch the simulator in a separate terminal (Toolbar > Shell > New > Window)
 ```
+multipass shell <personal-shell-name>
 cd /path/to/jaiabot/config/launch/simulation
 # Set the simulation to run 4 bots at a time warp of 5
 ./generate_all_launch.sh 4 5
 ./all.launch
+# Should look like: [all] XX:XX:XX: All processes running
 ```
-6. Troubleshooting the simulator
+14. Once that's running, open a tab in your preferred browser 
+15. Open Multipass and find your Private IP address associated with Ubuntu environment 
+    * for example: XXX.XXX.XX.X
+16. Enter that IP address into your search bar with :40001 appended to the end 
+    * for example: XXX.XXX.XX.X:40001
+Simulator should be up and running!
+
+<br>
+<a id="launching-the-simulator-on-windows"></a>
+
+# Launching the Simulator on Windows
+
+1. Launch Ubuntu 24.04 
+2. Clone the Jaiabot Repo
+```
+# install git if needed
+sudo apt install git
+git clone https://github.com/jaiarobotics/jaiabot​
+```
+3. Open Jaiabot Directory 
+```
+cd jaiabot
+```
+4. Check branch, switch to correct branch (2.y)
+```
+git branch
+git checkout 2.y #if you're in 1.y
+```
+5. Run the setup scripts
+```
+cd /path/to/jaiabot/scripts
+./setup-tools-build.sh
+./setup-tools-runtime.sh
+```
+6. Run the build script
+```
+cd /path/to/jaiabot
+./build.sh
+```
+7. Launch the JCC web interface
+```
+cd /path/to/jaiabot/src/web
+./run.sh
+# Should look like: WARNING:root:🏓 Pinging server localhost:40000
+```
+8. Launch the simulator in a separate terminal (Toolbar > Shell > New > Window)
+```
+multipass shell <personal-shell-name>
+cd /path/to/jaiabot/config/launch/simulation
+# Set the simulation to run 4 bots at a time warp of 5
+./generate_all_launch.sh 4 5
+./all.launch
+# Should look like: [all] XX:XX:XX: All processes running
+```
+9. Simulator should pop up on broswer -- It is running successfully!
+
+<br>
+<a id="Troubleshooting"></a>
+
+# Troubleshooting the Simulator
 * Kill all processes
 ```
 # Kill all processes, then relaunch the simulator
@@ -57,6 +140,72 @@ rm -rf build
 # Re-create the build directory
 ./build.sh
 ```
+* Verify python version is some variation of Python3
+* Purge multipass in terminal if there's no space on disk or memory
+
+<br>
+<a id="sshkey"></a>
+
+# Creating an SSH Key (Mackbook Users)
+
+1. Make sure Multipass is running 
+2. Open one terminal and run Multipass 
+```
+Multipass Shell "personal-shell-name"
+```
+3. Enter your home directory and ssh key
+```
+cd ~/.ssh
+ls
+# should see an authorized_keys file
+```
+4. Enter the authorized_key files 
+```
+nano authroized_keys
+```
+5. Switch to your local computer on another terminal window. Generate SSH key. 
+```
+cd .ssh
+ssh-keygen
+# may have to hit enter multiple times to bypass passwords
+ls
+# should see a key that is of the form id_edXXXXX and id_edXXXXX.pub
+cat id_edXXXXX.pub 
+# this should generate a key
+```
+6. Copy and paste the output from the previous step into the nano file in the other terminal window. 
+    
+    * CTRL+o, enter, CTRL+x 
+    * This saves and closes the nano tab
+
+7. Switch back to other terminal (local computer terminal). Set up config file
+```
+nano config
+```
+8. Inside the config file enter this text. Then save and exit:
+```
+IdentityFile ~/.ssh/id_edXXXXX
+
+Host jaia
+HostName "IP address from multipass instance" 
+IdentityFile ~/.ssh/id_edXXXXX
+User ubuntu
+```
+9. Entering the environment
+```
+ssh ubuntu@XXX.XXX.XX.X # your private IP address
+```
+10. If prompted, enter Yes (Y)
+11. Logout of the environment 
+```
+Exit
+```
+12. Open your IDE (We reccomend VSCode) and download "Remote-SSH" Extension
+13. (Shift, Command+P) -- This opens the search bar. Search "ssh." Select "Remote-SSH: Add New SSH Host..." and hit Enter
+14. Type "ssh ubuntu@XXX.XXX.XX.X" in search bar. Hit Enter.
+15. Select /ssh/config. Hit enter. 
+16. There should be a popup in the bottom right corner. Hit "Connect".
+17. Your SSH should be set up! 
 
 <br>
 <a id="modifying-code"></a>
