@@ -13,7 +13,7 @@ me@mycomputer$ ./deploy_camera_driver.sh <Pi Zero's IP address or hostname>
 This script performs the following tasks:
 
 * Copies the driver and its required modules to the Pi Zero
-* Creates the python vitual environment (venv) for the camera driver
+* Creates the python virtual environment (venv) for the camera driver
 * Installs, enables, and starts the camera driver as a systemd service on the Pi Zero
 
 ## Testing the camera
