@@ -584,6 +584,7 @@ export default class RCControllerPanel extends React.Component {
             }
         }
     }
+
     triggerRumble(duration = 500, strongMagnitude = 1.0, weakMagnitude = 1.0) {
         const gamepads = (navigator as Navigator).getGamepads
             ? (navigator as Navigator).getGamepads()
@@ -775,7 +776,7 @@ export default class RCControllerPanel extends React.Component {
                             <div>Max Depth:</div>
                             <input
                                 id="maxDepth"
-                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "maxDepth" ? "selected-param" : ""}`}
+                                className={`rc-input ${!this.state.isPlayButtonSelected && this.diveParamKeys[this.state.selectedDiveParamIndex] === "maxDepth" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.maxDepth}
                                 onChange={(evt) => this.handleTaskParamInputChange(evt)}
@@ -792,7 +793,7 @@ export default class RCControllerPanel extends React.Component {
                             <div>Depth Interval:</div>
                             <input
                                 id="depthInterval"
-                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "depthInterval" ? "selected-param" : ""}`}
+                                className={`rc-input ${!this.state.isPlayButtonSelected && this.diveParamKeys[this.state.selectedDiveParamIndex] === "depthInterval" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.depthInterval}
                                 onChange={(evt) => this.handleTaskParamInputChange(evt)}
@@ -809,7 +810,7 @@ export default class RCControllerPanel extends React.Component {
                             <div>Hold Time:</div>
                             <input
                                 id="holdTime"
-                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "holdTime" ? "selected-param" : ""}`}
+                                className={`rc-input ${!this.state.isPlayButtonSelected && this.diveParamKeys[this.state.selectedDiveParamIndex] === "holdTime" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.holdTime}
                                 onChange={(evt) => this.handleTaskParamInputChange(evt)}
@@ -826,7 +827,7 @@ export default class RCControllerPanel extends React.Component {
                             <div>Drift Time:</div>
                             <input
                                 id="driftTime"
-                                className={`rc-input ${this.diveParamKeys[this.state.selectedDiveParamIndex] === "driftTime" ? "selected-param" : ""}`}
+                                className={`rc-input ${!this.state.isPlayButtonSelected && this.diveParamKeys[this.state.selectedDiveParamIndex] === "driftTime" ? "selected-param" : ""}`}
                                 type="text"
                                 value={this.props.rcDiveParameters?.driftTime}
                                 onChange={(evt) => this.handleTaskParamInputChange(evt)}
