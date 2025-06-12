@@ -581,6 +581,12 @@ export default class RCControllerPanel extends React.Component {
                 this.handleDiveButtonClick();
                 // Trigger rumble
                 this.triggerRumble(500, 1.0, 1.0);
+
+                // Clear all highlights after play button is selected
+                this.setState({
+                    isPlayButtonSelected: false,
+                    selectedDiveParamIndex: -1, // or default index if you prefer
+                });
             }
         }
     }
