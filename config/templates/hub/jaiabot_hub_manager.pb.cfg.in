@@ -8,10 +8,10 @@ status_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
         # buffer configuration for BotStatus messages
+        broadcast: true
         buffer {
             ack_required: false
             blackout_time: 1
-            broadcast: true
             max_queue: 1 
             newest_first: true 
             ttl: 60
