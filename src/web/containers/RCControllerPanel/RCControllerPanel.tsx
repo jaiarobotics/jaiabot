@@ -1,4 +1,5 @@
 // Kaitlyn and KAnz worked on recent changes to this code
+//Finished changes to controller must have leaders test just in case
 import React, { ReactElement } from "react";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Button from "@mui/material/Button";
@@ -145,6 +146,8 @@ export default class RCControllerPanel extends React.Component {
             // If already on, just turn off
             this.setState({ overdriveEnabled: false });
         } else {
+            // Reset control input to stop movement while alert is up
+            this.clearRemoteControlValues();
             // Otherwise, confirm enabling
             this.setState({ isAlertOpen: true });
 
