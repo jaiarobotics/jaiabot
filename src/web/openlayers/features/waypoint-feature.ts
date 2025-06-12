@@ -5,6 +5,7 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import { bots } from "../../data/bots/bots";
 import { missions } from "../../data/missions/missions";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -17,6 +18,10 @@ import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import waypointIcon from "../../style/icons/waypoint.svg";
 import waypointArrowIcon from "../../style/icons/waypoint-arrow.svg";
+import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
+import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
+import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
+import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
@@ -56,11 +61,13 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
+    const taskType = missions.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+
     return new Style({
         image: new Icon({
-            src: waypointIcon,
+            src: getWaypointSrc(taskType),
             anchor: [0.5, 1],
-            color: getWaypointColor(missionID),
+            color: getWaypointColor(missionID, waypointNum),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -157,8 +164,7 @@ function generateWaypointLineStyle(
     return [underlayStyle, overlayStyle, midpointStyle];
 }
 
-/**
- * Creates the flag positioned above the first waypoint of each mission
+/** Creates the flag positioned above the first waypoint of each mission
  *
  * @param {GeographicCoordinate} location Used to position the flag
  * @param {number} missionID Used to style the flag
@@ -200,12 +206,42 @@ function generateMissionFlagStyle(missionID: number) {
 }
 
 /**
+ * Provides the SVG to match the waypoint task
+ *
+ * @param {TaskType} taskType Determines the waypoint SVG
+ * @returns {string} SVG import
+ */
+function getWaypointSrc(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.DIVE:
+            return waypointDiveIcon;
+        case TaskType.SURFACE_DRIFT:
+            return waypointDriftIcon;
+        case TaskType.CONSTANT_HEADING:
+            return waypointConstantHeadingIcon;
+        case TaskType.STATION_KEEP:
+            return waypointStationKeepIcon;
+        default:
+            return waypointIcon;
+    }
+}
+
+/**
  * Supplies the color for a waypoint based on edit and selection states
  *
  * @param {number} missionID Used to determine color of the line segment
+ * @param {number} waypointNum Makes color change for target waypoint
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
-function getWaypointColor(missionID: number) {
+function getWaypointColor(missionID: number, waypointNum?: number) {
+    if (waypointNum) {
+        const botID = missionsManager.getBotID(missionID);
+        const targetWaypoint = bots.getBot(botID).getMissionStatus().targetWaypoint;
+        if (targetWaypoint && targetWaypoint === waypointNum) {
+            return OpenLayersColors.TARGET;
+        }
+    }
+
     if (missionID === missions.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;
     }

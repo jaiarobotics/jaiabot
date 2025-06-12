@@ -13,13 +13,11 @@ export default class Mission {
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
-    private movableWaypointNum: number;
 
     constructor() {
         // missionID assigned by missions singleton
         this.waypoints = [];
         this.repeats = 1;
-        this.movableWaypointNum = 0;
     }
 
     getMissionID() {
@@ -53,14 +51,6 @@ export default class Mission {
 
     setRepeats(repeats: number) {
         this.repeats = repeats;
-    }
-
-    getMovableWaypointNum() {
-        return this.movableWaypointNum;
-    }
-
-    setMovableWaypointNum(waypointNum: number) {
-        this.movableWaypointNum = waypointNum;
     }
 
     getWaypoint(waypointNum: number) {

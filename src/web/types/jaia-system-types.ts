@@ -23,8 +23,8 @@ export interface SelectedWaypoint {
 
 export interface MissionStatus {
     missionState?: MissionState;
-    activeGoal?: number;
-    distanceToActiveGoal?: number;
+    targetWaypoint?: number;
+    distanceToTargetWaypoint?: number;
     repeatIndex?: number;
 }
 

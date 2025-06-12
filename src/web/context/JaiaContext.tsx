@@ -24,6 +24,7 @@ import {
     TaskType,
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
+import { compareWaypoints } from "../utils/comparisons";
 import {
     BotModes,
     NodeTypes,
@@ -148,6 +149,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_MISSION_SPEEDS:
             return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
+        case JaiaActions.SEND_MISSION:
+            return handleSendMission(mutableState, action.missionID);
+
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -196,6 +200,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_EDIT_MISSION:
             return handleClickedEditMission(mutableState, action.missionID);
+
+        case JaiaActions.CLICKED_TAP_TO_MOVE:
+            return handleClickedTapToMove(mutableState);
 
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
@@ -380,6 +387,23 @@ function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds:
 }
 
 /**
+ * Turns off edit mode upon starting a mission
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} missionID Checks sent mission against missionID in edit mode
+ * @returns {void}
+ */
+function handleSendMission(mutableState: JaiaContextType, missionID: number) {
+    if (missions.getMissionIDInEditMode() === missionID) {
+        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+        mutableState.missionIDInEditMode = UNASSIGNED_ID;
+    }
+
+    missionLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
  * Makes call to add waypoint if mission is in edit mode
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -458,7 +482,7 @@ function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicC
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
-    const task = getTask();
+    const task = getWaypoint().getTask();
 
     if (task) {
         task.setType(taskType);
@@ -480,7 +504,7 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
-    const task = getTask();
+    const task = getWaypoint().getTask();
     task.setParameter(taskParameterPair);
     return mutableState;
 }
@@ -492,7 +516,7 @@ function handleChangeTaskParameter(
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleToggleBottomDive(mutableState: JaiaContextType) {
-    const task = getTask();
+    const task = getWaypoint().getTask();
 
     if (task.getIsBottomDive()) {
         task.setIsBottomDive(false);
@@ -552,10 +576,15 @@ function handleClosedDetails(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClosedWaypointPanel(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+
+    // When waypoint is not deleted, disable movable property
+    if (waypoint) {
+        waypoint.setIsMovable(false);
+    }
+
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
-
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-
     return mutableState;
 }
 
@@ -723,6 +752,18 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
 }
 
 /**
+ * Handles a click to the tap to move toggle
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedTapToMove(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+    waypoint.setIsMovable(!waypoint.getIsMovable());
+    return mutableState;
+}
+
+/**
  * Updates visiblePanel property to display the panel associated with a button click
  * or closes the panel if it is already opened
  *
@@ -747,6 +788,11 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
+    const previousWaypoint = getWaypoint();
+    if (previousWaypoint && !compareWaypoints(jaiaGlobal.getSelectedWaypoint(), clickedWaypoint)) {
+        previousWaypoint.setIsMovable(false);
+    }
+
     jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
 
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -807,12 +853,15 @@ function syncOpenLayers() {
 }
 
 /**
- * Retrieves the Task object connected to the currently selected waypoint
+ * Retrieves the Waypoint object connected to the currently selected waypoint
  *
- * @returns {Task} Access to Task modifiers
+ * @returns {Waypoint} Access to Waypoint modifiers
  */
-function getTask() {
+function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missions.getMission(selectedWaypoint.missionID);
-    return mission.getWaypoint(selectedWaypoint.waypointNum).getTask();
+
+    if (mission) {
+        return mission.getWaypoint(selectedWaypoint.waypointNum);
+    }
 }

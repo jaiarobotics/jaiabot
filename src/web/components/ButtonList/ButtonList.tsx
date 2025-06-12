@@ -61,6 +61,7 @@ export default function ButtonList(props: Props) {
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
+                <Button className="jaia-button"></Button>
                 <Button
                     className={getSelectedClassName(PanelNames.HELP)}
                     aria-label="help-window"
