@@ -7,7 +7,6 @@ let presentAlert: PresentAlertFunction;
 
 export interface CustomAlertButton {
     title: string;
-    subtitle?: string;
     action?: () => void;
 }
 
@@ -53,7 +52,6 @@ export class CustomAlert extends React.Component {
                     >
                         {buttonInput.title}
                         <br />
-                        <small style={{ color: "black" }}>{buttonInput.subtitle}</small>
                     </div>
                 );
             });
@@ -136,8 +134,7 @@ export class CustomAlert extends React.Component {
                 text: text,
                 buttons: [
                     {
-                        title: "Cancel", //change here
-                        subtitle: "Press LB",
+                        title: "Cancel",
                         action: () => {
                             cleanup();
                             resolve(false);

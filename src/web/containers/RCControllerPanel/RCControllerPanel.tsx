@@ -150,13 +150,18 @@ export default class RCControllerPanel extends React.Component {
 
             const confirmed = await CustomAlert.confirmAsync(
                 "You are about to enable Overdrive.\nUse Overdrive with caution as it can make the bots difficult to control",
-                "Enable Overdrive\nPress RB",
+                "Enable Overdrive",
                 "Confirm",
             );
 
             this.setState({ isAlertOpen: false });
 
-            if (!confirmed) return;
+            if (!confirmed) {
+                return;
+            } else {
+                //If confirmed enable rubble on controller
+                this.triggerRumble(500, 1.0, 1.0);
+            }
 
             this.setState({ overdriveEnabled: true });
         }
@@ -521,6 +526,7 @@ export default class RCControllerPanel extends React.Component {
         if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
 
         if (buttonName === "A") {
+            if (this.state.controlType === ControlTypes.DIVE) return; // ignore A in DIVE mode
             await this.handleOverdriveCheck();
         } else if (buttonName === "X") {
             this.setState({ controlType: ControlTypes.MANUAL_DUAL });
