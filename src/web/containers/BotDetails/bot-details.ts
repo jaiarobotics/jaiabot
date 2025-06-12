@@ -129,11 +129,11 @@ export function isBotLogging(missionState: MissionState) {
  * @returns {string} distance to active waypoint or N/A
  */
 export function getDistToWaypoint(missionStatus: MissionStatus) {
-    if (!missionStatus.activeGoal) {
+    if (!missionStatus.targetWaypoint) {
         return "N/A";
     }
-    if (missionStatus.distanceToActiveGoal) {
-        return missionStatus.distanceToActiveGoal + " m";
+    if (missionStatus.distanceToTargetWaypoint) {
+        return missionStatus.distanceToTargetWaypoint + " m";
     }
     return "Distance To Goal > 1000";
 }

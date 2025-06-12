@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { StartMissionDialog, DialogActions } from "./StartMissionDialog";
 import { DisabledCodes } from "./start-mission-messages";
@@ -27,6 +29,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StartMissionButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -82,7 +85,7 @@ export default function StartMissionButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
@@ -91,7 +94,13 @@ export default function StartMissionButton(props: Props) {
                 type: CommandType.MISSION_PLAN,
                 plan: props.mission.packageMissionForHub(),
             };
-            sendBotCommand(startMissionCommand);
+            const res = await sendBotCommand(startMissionCommand);
+            if (res.status === "ok") {
+                jaiaDispatch({
+                    type: JaiaActions.SEND_MISSION,
+                    missionID: props.mission.getMissionID(),
+                });
+            }
         }
     };
 
