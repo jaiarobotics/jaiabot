@@ -638,9 +638,9 @@ export default class RCControllerPanel extends React.Component {
                             <OutlinedInput
                                 notched
                                 sx={{
-                                    "&.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
-                                        borderColor: "red",
-                                    },
+                                    //"&.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+                                    //borderColor: "red",
+                                    //},
                                     "&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
                                         {
                                             borderColor: "blue",
@@ -844,7 +844,7 @@ export default class RCControllerPanel extends React.Component {
                     </div>
                     <div className="rc-labels-right">
                         <Button
-                            className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? "inactive" : ""} ${this.state.isPlayButtonSelected ? "selected-play-button" : ""}`}
+                            className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? "inactive" : ""} ${this.state.isPlayButtonSelected ? "button-jcc active" : ""}`}
                             disabled={this.isDiveButtonDisabled()}
                             onClick={() => this.handleDiveButtonClick()}
                         >
