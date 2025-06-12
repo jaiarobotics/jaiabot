@@ -12,7 +12,7 @@
 <a id="launching-the-simulator-on-macbooks"></a>
 
 # Launching the Simulator on Macbooks
-Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+Note: The Jaia simulator works with __Ubuntu 20.04 (branch: 1.y), 22.04 (branch: 1.y), 24.04 (branch: 2.y)
 1. Open Multipass and Launch Ubuntu 24.04 LTS 
 2. Navigate to ‘All Instances’ and stop "personal-shell-name". 
 3. Click on <personal-shell-name> in ‘Name’ column. Switch from ‘Shells’ to ‘Details’ at the top. 
@@ -32,9 +32,9 @@ git clone https://github.com/jaiarobotics/jaiabot
 ```
 cd jaiabot
 ```
-9. Check branch, switch to correct branch (2.y)
+9. Verify branch, switch to correct branch (2.y)
 ```
-git branch
+git status
 git checkout 2.y #if you're in 1.y
 ```
 10. Run the setup scripts
@@ -140,7 +140,7 @@ rm -rf build
 # Re-create the build directory
 ./build.sh
 ```
-* Verify python version is some variation of Python3
+* Verify you are using Python 3.12
 * Purge multipass in terminal if there's no space on disk or memory
 
 <br>
