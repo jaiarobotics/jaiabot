@@ -12,7 +12,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
+import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
@@ -23,6 +23,7 @@ import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -234,12 +235,8 @@ function getWaypointSrc(taskType: TaskType) {
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
 function getWaypointColor(missionID: number, waypointNum?: number) {
-    if (waypointNum) {
-        const botID = missionsManager.getBotID(missionID);
-        const targetWaypoint = bots.getBot(botID).getMissionStatus().targetWaypoint;
-        if (targetWaypoint && targetWaypoint === waypointNum) {
-            return OpenLayersColors.TARGET;
-        }
+    if (waypointNum && shouldColorTargetWaypoint(missionID, waypointNum)) {
+        return OpenLayersColors.TARGET;
     }
 
     if (missionID === missions.getMissionIDInEditMode()) {
@@ -286,4 +283,37 @@ function getWaypointZIndex(missionID: number, waypointNum?: number) {
     }
 
     return waypointZIndex;
+}
+
+/**
+ * Checks the bot and mission conditions to determine if the waypoint needs
+ * the TARGET color applied
+ *
+ * @param {number} missionID Identifies the mission containing the waypoint
+ * @param waypointNum Identifies the waypoint to be rendered
+ * @returns {boolean} True if the target waypoint needs the TARGET color
+ */
+function shouldColorTargetWaypoint(missionID: number, waypointNum: number) {
+    if (missions.getMissionIDInEditMode() === missionID) {
+        return false;
+    }
+
+    const botID = missionsManager.getBotID(missionID);
+    if (botID === UNASSIGNED_ID) {
+        return false;
+    }
+
+    const bot = bots.getBot(botID);
+    if (
+        bot.getMissionStatus().missionState !== MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+    ) {
+        return false;
+    }
+
+    const targetWaypoint = bot.getMissionStatus().targetWaypoint;
+    if (targetWaypoint && targetWaypoint === waypointNum) {
+        return true;
+    }
+
+    return false;
 }
