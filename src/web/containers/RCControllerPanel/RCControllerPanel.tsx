@@ -304,6 +304,9 @@ export default class RCControllerPanel extends React.Component {
         // this percentage (Added when using tablet controller)
         let deadzonePercent = 10;
 
+        //block joystick if alert is up
+        if (this.state.isAlertOpen) return;
+
         if (event.y > 0) {
             throttleDirection = "FORWARD";
         } else if (event.y < 0) {
@@ -355,6 +358,9 @@ export default class RCControllerPanel extends React.Component {
         // The is used to only detect changes if the value is above
         // this percentage (Added when using xbox controller)
         let deadzonePercent = 15;
+
+        //block joystick movement if alert message is up
+        if (this.state.isAlertOpen) return;
 
         // Rudder Handler
         if (
@@ -516,6 +522,7 @@ export default class RCControllerPanel extends React.Component {
         const newDiveParams = { ...this.props.rcDiveParameters, [paramKey]: String(newValue) };
         this.props.setRCDiveParameters(newDiveParams);
     }
+
     // List of parameter keys to navigate easily
     diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
@@ -669,7 +676,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="blue"
+                    stickColor="black"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}
