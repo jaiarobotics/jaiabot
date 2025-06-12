@@ -82,6 +82,9 @@ function Panel() {
     }
 }
 
+/**
+ * Controls the rendering of the RemoteControlPanel
+ */
 function RemoteControl() {
     const jaiaContext = useContext(JaiaContext);
 

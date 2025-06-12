@@ -57,6 +57,7 @@ const rudderPercentages = new Map<number, number>([
 const DEAD_ZONE_PERCENT = 10;
 const RC_COMMAND_TIMEOUT = 500; // milliseconds
 
+// Style MUI select menu
 const theme = createTheme({
     components: {
         MuiOutlinedInput: {
@@ -78,6 +79,9 @@ const theme = createTheme({
     },
 });
 
+/**
+ * Creates panel with analog sticks to manually control a Bot
+ */
 export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const [controlType, setControlType] = useState(ControlTypes.DUAL);
     const [throttleDirection, setThrottleDirection] = useState("");
@@ -85,6 +89,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
     const [rudderMagnitude, setRudderMagnitude] = useState(0);
 
+    // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
         const rcCommandInterval = setInterval(() => {
             sendEngineeringCommand(packageCommand());
@@ -95,6 +100,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         };
     }, [throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
 
+    /**
+     * Updates throttle and rudder values when the analog stick moves
+     *
+     * @param {IJoystickUpdateEvent} event Contains the direction + magnitude of the movement
+     * @param {AnalogStickTypes} analogStickType Which analog stick moved
+     * @returns {void}
+     */
     const handleAnalogStickMove = (
         event: IJoystickUpdateEvent,
         analogStickType: AnalogStickTypes,
@@ -118,6 +130,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         }
     };
 
+    /**
+     * Updates the throttle and rudder directions in state
+     *
+     * @param {IJoystickUpdateEvent} event Contains the direction of the movement
+     * @param {AnalogStickTypes} analogStickType Which analog stick moved
+     * @returns {void}
+     */
     const setAnalogStickDirection = (
         event: IJoystickUpdateEvent,
         analogStickType: AnalogStickTypes,
@@ -146,6 +165,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         }
     };
 
+    /**
+     * Updates throttle and rudder magnitudes in state
+     *
+     * @param {number} position Where the user moved the analog stick
+     * @param {AnalogStickTypes} analogStickType Which analog stick moved
+     * @returns {void}
+     */
     const setAnalogStickMagnitude = (position: number, analogStickType: AnalogStickTypes) => {
         const absPosition = Math.abs(position) * 100;
         const isNegative = position < 0;
@@ -178,10 +204,21 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         }
     };
 
+    /**
+     * Updates state with the selected analog stick layout (single vs dual)
+     *
+     * @param {SelectChangeEvent} event Contains the selected menu item
+     * @returns {void}
+     */
     const handleMenuSelection = (event: SelectChangeEvent) => {
         setControlType(event.target.value as ControlTypes);
     };
 
+    /**
+     * Resets the throttle and rudder when the analog stick is released
+     *
+     * @returns {void}
+     */
     const onAnalogStickStop = () => {
         setThrottleDirection("");
         setThrottleMagnitude(0);
@@ -189,6 +226,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         setRudderMagnitude(0);
     };
 
+    /**
+     * Adds the throttle and rudder data to the Engineering command message
+     *
+     * @returns {Engineering} Throttle and rudder values to send to Bot
+     */
     const packageCommand = () => {
         let throttle = throttlePercentages.get(throttleMagnitude);
         let rudder = rudderPercentages.get(rudderMagnitude);
@@ -256,7 +298,15 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     }
 }
 
+/**
+ * Designed to control the throttle and rudder of a Bot
+ */
 function AnalogStick(props: AnalogStickProps) {
+    /**
+     * Describes what the analog stick controls
+     *
+     * @returns {string} Name of analog stick
+     */
     const getTitle = () => {
         switch (props.analogStickType) {
             case AnalogStickTypes.SINGLE:
@@ -268,6 +318,11 @@ function AnalogStick(props: AnalogStickProps) {
         }
     };
 
+    /**
+     * Controls where the analog stick can move
+     *
+     * @returns {JoystickShape} What directions the analog stick moves
+     */
     const getControlPlaneShape = () => {
         switch (props.analogStickType) {
             case AnalogStickTypes.LEFT:
@@ -297,6 +352,9 @@ function AnalogStick(props: AnalogStickProps) {
     );
 }
 
+/**
+ * Allows the operator to switch between single and dual analog sticks
+ */
 function RCSelectMenu(props: RCSelectMenuProps) {
     return (
         <ThemeProvider theme={theme}>
