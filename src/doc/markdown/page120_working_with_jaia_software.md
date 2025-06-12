@@ -86,9 +86,9 @@ git clone https://github.com/jaiarobotics/jaiabot​
 ```
 cd jaiabot
 ```
-4. Check branch, switch to correct branch (2.y)
+4. Verify branch, switch to correct branch (2.y)
 ```
-git branch
+git status
 git checkout 2.y #if you're in 1.y
 ```
 5. Run the setup scripts
