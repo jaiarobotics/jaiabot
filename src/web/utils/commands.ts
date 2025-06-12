@@ -1,5 +1,11 @@
 import { jaiaAPI } from "./jaia-api";
-import { Command, CommandForHub, CommandType, MissionState } from "../types/protobuf-types";
+import {
+    Command,
+    CommandForHub,
+    CommandType,
+    Engineering,
+    MissionState,
+} from "../types/protobuf-types";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -67,4 +73,8 @@ export function sendBotCommand(command: Command) {
  */
 export function sendHubCommand(command: CommandForHub) {
     return jaiaAPI.postCommandForHub(command);
+}
+
+export function sendEngineeringCommand(command: Engineering) {
+    return jaiaAPI.postEngineering(command);
 }

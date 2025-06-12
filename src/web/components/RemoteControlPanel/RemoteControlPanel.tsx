@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Joystick, JoystickShape } from "react-joystick-component";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
+import { Engineering } from "../../types/protobuf-types";
+import { sendEngineeringCommand } from "../../utils/commands";
+
 import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
 
 import "./RemoteControlPanel.less";
+
+interface RemoteControlPanelProps {
+    botID: number;
+}
 
 interface AnalogStickProps {
     analogStickType: AnalogStickTypes;
@@ -35,7 +42,20 @@ enum ControlTypes {
     DIVE = "DIVE",
 }
 
+const throttlePercentages = new Map<number, number>([
+    [1, 37.5],
+    [2, 40],
+    [3, 60],
+]);
+
+const rudderPercentages = new Map<number, number>([
+    [1, 40],
+    [2, 70],
+    [3, 100],
+]);
+
 const DEAD_ZONE_PERCENT = 10;
+const RC_COMMAND_TIMEOUT = 500; // milliseconds
 
 const theme = createTheme({
     components: {
@@ -58,12 +78,22 @@ const theme = createTheme({
     },
 });
 
-export default function RemoteControlPanel() {
+export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const [controlType, setControlType] = useState(ControlTypes.DUAL);
     const [throttleDirection, setThrottleDirection] = useState("");
     const [rudderDirection, setRudderDirection] = useState("");
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
     const [rudderMagnitude, setRudderMagnitude] = useState(0);
+
+    useEffect(() => {
+        const rcCommandInterval = setInterval(() => {
+            sendEngineeringCommand(packageCommand());
+        }, RC_COMMAND_TIMEOUT);
+
+        return () => {
+            clearInterval(rcCommandInterval);
+        };
+    }, [throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
 
     const handleAnalogStickMove = (
         event: IJoystickUpdateEvent,
@@ -157,6 +187,29 @@ export default function RemoteControlPanel() {
         setThrottleMagnitude(0);
         setRudderDirection("");
         setRudderMagnitude(0);
+    };
+
+    const packageCommand = () => {
+        let throttle = throttlePercentages.get(throttleMagnitude);
+        let rudder = rudderPercentages.get(rudderMagnitude);
+
+        if (throttleDirection === "BACKWARD") {
+            throttle = throttle * -1;
+        }
+
+        if (rudderDirection === "LEFT") {
+            rudder = rudder * -1;
+        }
+
+        const command: Engineering = {
+            bot_id: props.botID,
+            pid_control: {
+                throttle: throttle,
+                rudder: rudder,
+            },
+        };
+
+        return command;
     };
 
     const SelectMenu = (

@@ -91,7 +91,7 @@ function RemoteControl() {
     if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
         const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
         if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
-            return <RemoteControlPanel />;
+            return <RemoteControlPanel botID={selectedBot.getBotID()} />;
         }
     }
 }
