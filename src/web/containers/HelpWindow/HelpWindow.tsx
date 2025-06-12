@@ -146,7 +146,7 @@ const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiAlphaBCircleOutline,
         name: "Activate Dive on Controller ",
-        description: "To enable the Dive function, press B on the controller ",
+        description: "To enable the Dive function, press B on the controller.",
     },
     {
         iconPath: mdiGamepad,

@@ -563,6 +563,22 @@ export default class RCControllerPanel extends React.Component {
             } else if (buttonName === "B" && isPlayButtonSelected) {
                 // Activate the Dive (Play) when Play is selected
                 this.handleDiveButtonClick();
+                // Trigger rumble
+                this.triggerRumble(500, 1.0, 1.0);
+            }
+        }
+    }
+    triggerRumble(duration = 500, strongMagnitude = 1.0, weakMagnitude = 1.0) {
+        const gamepads = (navigator as Navigator).getGamepads
+            ? (navigator as Navigator).getGamepads()
+            : [];
+        for (const gp of gamepads) {
+            if (gp && gp.vibrationActuator) {
+                gp.vibrationActuator.playEffect("dual-rumble", {
+                    duration,
+                    strongMagnitude,
+                    weakMagnitude,
+                });
             }
         }
     }
@@ -647,7 +663,7 @@ export default class RCControllerPanel extends React.Component {
                 <div className="controller-title">Throttle</div>
                 <Joystick
                     baseColor="white"
-                    stickColor="black"
+                    stickColor="blue"
                     controlPlaneShape={JoystickShape.AxisY}
                     size={100}
                     throttle={100}
