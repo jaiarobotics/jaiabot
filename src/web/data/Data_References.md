@@ -18,9 +18,9 @@ Class `Bots` provides setters and getters that access data in a private Map of B
 
 A singleton object of the class is provided for clients to access bot data.
 
-The singleton ncludes a public accessor `getBots` function that provides a reference of the private `bots` Map.
+The singleton includes a public accessor `getBots` function that provides a reference of the private `bots` Map.
 
-**NOTES:** bots creates a new Map whenever a bot is added, therefore client software should call `getBots()` each processing cycle and not rely on local copies of the bots reference. For this reason all React Components should access the data by using JaiaContext, which will be updated as needed for each rendering.
+**NOTES:** bots creates a new Map whenever a bot is added, therefore client software should call `getBots()` each processing cycle and not rely on local copies of the bots reference. For this reason all React Components should access the data by using JaiaContext, which will be updated as needed for each rendering. Although references to individual bots will not change when the Map is recreated it is always a good idea to use getBot() when accessing bot data.
 
 ### hub.ts & hubs.ts
 
@@ -39,19 +39,17 @@ A singleton of the class is provided for clients to access mission data.
 
 missions returned by `getMissions()` are references to the priviate data.
 
-**NOTES:** Unlike bots and hubs, missions are not sorted when new ones are added, therefore a new map is only created when the singleton is constructed. This is because the missionID of the new mission is set by `addMission()`, overwriting whatever ID was passed in the `mission` parameter. Because the Map is never replaced there is not need to call `getMissions()` when a mission is added.
-
-**TODO:** Assess the difference in how missions and bots are stored and determine if we should make changes to either to make them more similar.
+**NOTES:** Unlike bots and hubs, missions are not sorted when new ones are added, therefore a new map is only created when the singleton is constructed. This is because the missionID of the new mission is set by `addMission()`, overwriting whatever ID was passed in the `mission` parameter. Because the Map is never replaced there is no need to call `getMissions()` when a mission is added.
 
 **TODO:** If we leave this module the way it is now, we should eliminate the calls to `missions.getMissions()` where not needed. For example in `JaiaContext.tsx` `handleAddMission` & `handleDeleteMission`
 
 ## Jaia Global
 
-In addition to the bots, hubs and missions our data model includes other state related data that needs to be shared with `OpenLayers`
+In addition to the bots, hubs and missions our data model includes other state related data that needs to be shared with `OpenLayers` This data is used to save the state of the JCC application.
 
 ### jaia-global.ts
 
-Currently jaia-global is only storing `selectedNode` and provides a setter and a getter for this data
+jaia-global contains the Selected Node, Selected Waypoint and the current Default Task Parameters. Additional data related to the state of the application may be added.
 
 ## General comments
 
@@ -59,7 +57,7 @@ All of our data stores are using Maps to store objects of the various classes. T
 
 # Context
 
-While the Data Model described above is our primary source of data it can all be accessed and updated using React Context and React Reducers. This is the preferred way to use the global data in React components. However some modules, particularly things related to OpenLayers are not React components and need to access the data store directly.
+While the Data Model described above is our primary source of data it can all be accessed and updated using copies of the references stored as React Context and React Reducers. React components should use the data in the Context so they get re-rendered when the Context changes. However some modules, particularly things related to OpenLayers are not React components and need to access the data store directly.
 
 ## JaiaContext.tsx
 
@@ -67,7 +65,7 @@ While the Data Model described above is our primary source of data it can all be
 
 ### JaiaContextType
 
-This defines all the data comprsing the global context for our React Apps. It includes all of the data in the Data Model described above as well as data controling the state of various React Components.
+This defines all the data comprsing the global context for the JCC React application. It includes all of the data in the Data Model described above as well as data controling the state of various React Components. (Application State data needed by OpenLayers is included in jaia-global, see above)
 
 **NOTES** For bots, hubs and missions the Context data items are direct references to the Data Model obtained through `bots.getBots()`, `hubs.getHubs()`, & `missions.getMissions()`. This means that one must be mindful of how to use these references are updated (see above).
 
@@ -81,4 +79,4 @@ All of our React components should access the Data Model via the Context and use
 ```
 
 React components should never call the getters directly in the Data Model they should always go through `JaiaContext`
-As long as the data is handled correctly in `JaiaContext.tsx` the React Components will always have the latest data in the Data Model.
+As long as the data is handled correctly in `JaiaContext.tsx` the React Components will always have the latest data in the Data Model. React will re-render a componenet if it is displaying data from `JaiaContext` whenever the data changes.
