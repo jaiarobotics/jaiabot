@@ -1,4 +1,12 @@
 #!/bin/bash
+# --- System Requirements Check ---
+MIN_CPUS=4
+MIN_RAM_KB=3145728    # 3-4 GiB in KB
+MIN_DISK_KB=10485760  # 10 GiB in KB
+MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+MEMORY_PER_PROCESS_KB="2000000"
+AVAILABLE_DISK_KB=$(df --output=avail / | tail -1)
+MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
 
 if [ -z "${JAIABOT_CMAKE_FLAGS}" ]; then
     JAIABOT_CMAKE_FLAGS=
@@ -12,21 +20,7 @@ fi
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
     echo "[INFO] JAIA_BUILD_NPROC not set, calculating automatically..."
 
-    MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
-    MEMORY_PER_PROCESS_KB="2000000"
-
-    echo "[DEBUG] MemAvailable: ${MEMORY_KB} KB"
-    echo "[DEBUG] Memory per process: ${MEMORY_PER_PROCESS_KB} KB"
-
-    if [ -z "${MEMORY_KB}" ]; then
-        echo "[WARN] Unable to read memory info, defaulting to 1 process."
-        MEMORY_NPROC=1
-    else
-        MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
-    fi
-
     NPROC=$(nproc)
-    echo "[DEBUG] Detected CPU cores: ${NPROC}"
 
     if [ "${MEMORY_NPROC}" -gt "${NPROC}" ]; then
         JAIA_BUILD_NPROC=${NPROC}
@@ -34,22 +28,8 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
         JAIA_BUILD_NPROC=${MEMORY_NPROC}
     fi
 
-    # Prevent 0 or negative value
-    if [ "${JAIA_BUILD_NPROC}" -le 0 ]; then
-        echo "[WARN] Calculated JAIA_BUILD_NPROC=${JAIA_BUILD_NPROC}, defaulting to 1"
-        JAIA_BUILD_NPROC=1
-    fi
-
     echo "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
 fi
-
-
-# --- System Requirements Check ---
-MIN_CPUS=4
-MIN_RAM_KB=3145728    # 3-4 GiB in KB
-MIN_DISK_KB=10485760  # 10 GiB in KB
-
-AVAILABLE_DISK_KB=$(df --output=avail / | tail -1)
 
 echo "Detected system: $NPROC CPU(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
 
