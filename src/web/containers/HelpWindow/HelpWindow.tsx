@@ -176,6 +176,11 @@ const buttons: ButtonDescriptor[] = [
         name: "Activate Manual Single on Controller",
         description: "To enable the Manual Single function, press Y on the controller.",
     },
+    {
+        iconPath: mdiStop,
+        name: "Stop All Missions on Controller",
+        description: "To stop all missions, press down on the right stick on the controller.",
+    },
 ];
 interface Props {
     onClose?: () => void;

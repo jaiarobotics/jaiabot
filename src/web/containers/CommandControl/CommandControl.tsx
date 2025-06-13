@@ -195,8 +195,8 @@ interface State {
     missionStartTask: MissionTask;
     missionEndTask: MissionTask;
 
-    runList: MissionInterface;
-    runListVersion: number;
+    : MissionInterface;
+    runListVersion:runList number;
     flagClickedInfo: {
         runNum: number;
         botId: number;

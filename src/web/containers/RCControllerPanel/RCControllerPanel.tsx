@@ -8,7 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import { Icon } from "@mdi/react";
 import { error, success } from "../../notifications/notifications";
-import { mdiPlay } from "@mdi/js";
+import { mdiPlay, mdiStop } from "@mdi/js";
 import { JaiaAPI } from "../../utils/jaia-api";
 import { Engineering } from "../../shared/JAIAProtobuf";
 import { PortalBotStatus } from "../../shared/PortalStatus";
@@ -45,6 +45,7 @@ interface State {
     botId: number;
     selectedDiveParamIndex: number;
     isPlayButtonSelected: boolean;
+    isStopButtonSelected: boolean;
     isMaximized: boolean;
     overdriveEnabled: boolean;
     isAlertOpen: boolean;
@@ -106,6 +107,7 @@ export default class RCControllerPanel extends React.Component {
             isMaximized: true,
             isAlertOpen: false,
             isPlayButtonSelected: false,
+            isStopButtonSelected: false,
             overdriveEnabled: false,
         };
     }
@@ -549,6 +551,10 @@ export default class RCControllerPanel extends React.Component {
         } else if (buttonName === "B") {
             this.setState({ controlType: ControlTypes.DIVE });
             this.setJoyStickStatus([]);
+        } else if (buttonName === "RS") {
+            // Bind RS to stop all
+            this.sendStopAll();
+            this.triggerRumble(500, 1.0, 1.0);
         }
         // New dive param navigation & adjustment (only when in DIVE mode)
         if (this.state.controlType === ControlTypes.DIVE) {
@@ -625,6 +631,27 @@ export default class RCControllerPanel extends React.Component {
                 });
             }
         }
+    }
+
+    /**
+     * Sends a stop command to halt all bot missions and clears remote control values.
+     *
+     * @returns {void}
+     */
+    sendStopAll() {
+        // Example stop command, adjust as needed for your API
+        const stopCommand = {
+            bot_id: this.props.bot?.bot_id,
+            type: CommandType.STOP, // Use the correct enum value, e.g., STOP
+        };
+        this.api.postCommand(stopCommand).then((response) => {
+            if (response.message) {
+                error("Unable to send stop command");
+            } else {
+                success("All missions stopped");
+            }
+        });
+        this.clearRemoteControlValues();
     }
 
     render() {
@@ -912,7 +939,7 @@ export default class RCControllerPanel extends React.Component {
                         }
                         this.handleGamepadAxisChange(axisName, value);
                     }}
-                    onButtonDown={this.handleButtonDown.bind(this)} // ✅ ADD THIS LINE
+                    onButtonDown={this.handleButtonDown.bind(this)}
                     onButtonChange={this.handleButtonChange}
                 >
                     <React.Fragment />
