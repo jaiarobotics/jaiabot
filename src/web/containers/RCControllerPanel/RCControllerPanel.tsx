@@ -68,6 +68,8 @@ export default class RCControllerPanel extends React.Component {
     api: JaiaAPI;
     props: Props;
     state: State;
+    ltIntervalId: NodeJS.Timeout | null = null;
+    rtIntervalId: NodeJS.Timeout | null = null;
 
     /**
      * Constructor for the RCControllerPanel.
@@ -568,14 +570,6 @@ export default class RCControllerPanel extends React.Component {
                     // Move back from Play to last input
                     this.setState({ isPlayButtonSelected: false });
                 }
-                // else: if already on an input, you could optionally move left among inputs,
-                // but typically Up/Down suffice for linear list.
-            } else if (buttonName === "LT" && !isPlayButtonSelected) {
-                // Decrease value of currently selected input
-                this.adjustDiveParameter(diveParamKeys[currentIndex], -1);
-            } else if (buttonName === "RT" && !isPlayButtonSelected) {
-                // Increase value of currently selected input
-                this.adjustDiveParameter(diveParamKeys[currentIndex], +1);
             } else if (buttonName === "B" && isPlayButtonSelected) {
                 // Activate the Dive (Play) when Play is selected
                 this.handleDiveButtonClick();
@@ -590,6 +584,33 @@ export default class RCControllerPanel extends React.Component {
             }
         }
     }
+
+    handleButtonChange = (buttonName: string, pressed: boolean) => {
+        const { isPlayButtonSelected, selectedDiveParamIndex } = this.state;
+        const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
+
+        if (buttonName === "LT" && !isPlayButtonSelected) {
+            if (pressed && !this.ltIntervalId) {
+                this.ltIntervalId = setInterval(() => {
+                    this.adjustDiveParameter(diveParamKeys[selectedDiveParamIndex], -1);
+                }, 150);
+            } else if (!pressed && this.ltIntervalId) {
+                clearInterval(this.ltIntervalId);
+                this.ltIntervalId = null;
+            }
+        }
+
+        if (buttonName === "RT" && !isPlayButtonSelected) {
+            if (pressed && !this.rtIntervalId) {
+                this.rtIntervalId = setInterval(() => {
+                    this.adjustDiveParameter(diveParamKeys[selectedDiveParamIndex], +1);
+                }, 150);
+            } else if (!pressed && this.rtIntervalId) {
+                clearInterval(this.rtIntervalId);
+                this.rtIntervalId = null;
+            }
+        }
+    };
 
     triggerRumble(duration = 500, strongMagnitude = 1.0, weakMagnitude = 1.0) {
         const gamepads = (navigator as Navigator).getGamepads
@@ -892,6 +913,7 @@ export default class RCControllerPanel extends React.Component {
                         this.handleGamepadAxisChange(axisName, value);
                     }}
                     onButtonDown={this.handleButtonDown.bind(this)} // ✅ ADD THIS LINE
+                    onButtonChange={this.handleButtonChange}
                 >
                     <React.Fragment />
                 </Gamepad>
