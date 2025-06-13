@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useContext } from "react";
+
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+
 import { Button } from "@mui/material";
+import { MapModes } from "../../types/openlayers-types";
+
 import rallyIcon from "../../style/icons/rally-point.svg";
 
 /**
@@ -7,16 +13,21 @@ import rallyIcon from "../../style/icons/rally-point.svg";
  * add a rally point
  */
 export default function RallyButton() {
-    const [isSelected, setIsSelected] = useState(false);
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    const getClassName = () => {
+        return `jaia-button ${jaiaContext.mapMode === MapModes.RALLY ? "selected" : ""}`;
+    };
 
     const handleRallyButtonClick = () => {
-        setIsSelected(!isSelected);
+        jaiaDispatch({ type: JaiaActions.CLICKED_MAP_MODE_BUTTON, mapMode: MapModes.RALLY });
     };
 
     return (
         <div>
             <Button
-                className={`jaia-button ${isSelected ? "selected" : ""}`}
+                className={getClassName()}
                 aria-label={"add-rally-point"}
                 onClick={() => handleRallyButtonClick()}
             >

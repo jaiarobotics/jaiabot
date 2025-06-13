@@ -78,6 +78,7 @@ export default function StartAllMissionsButton(props: Props) {
     const handleClick = () => {
         setIsDialogVisible(true);
         groupBotsByReadyState();
+        jaiaDispatch({ type: JaiaActions.CLICKED_COMMAND_BUTTON });
     };
 
     /**

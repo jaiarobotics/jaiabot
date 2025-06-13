@@ -18,6 +18,7 @@ import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
+import { MapModes } from "../types/openlayers-types";
 import {
     NodeTypes,
     SelectedNode,
@@ -49,6 +50,7 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
+    mapMode: MapModes;
 }
 
 export interface JaiaAction {
@@ -67,6 +69,7 @@ export interface JaiaAction {
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelName?: PanelNames;
+    mapMode?: MapModes;
     isMissionAccordionExpanded?: boolean;
 
     missionSpeeds?: Speeds;
@@ -195,6 +198,12 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_PANEL_BUTTON:
             return handleClickedPanelButton(mutableState, action.panelName);
 
+        case JaiaActions.CLICKED_COMMAND_BUTTON:
+            return handleClickedCommandButton(mutableState);
+
+        case JaiaActions.CLICKED_MAP_MODE_BUTTON:
+            return handleClickedMapModeButton(mutableState, action.mapMode);
+
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
 
@@ -224,8 +233,8 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
-
     mutableState.missionSpeeds = missions.getMissionSpeeds();
+    mutableState.mapMode = MapModes.NONE;
 
     return mutableState;
 }
@@ -733,7 +742,36 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
         mutableState.visiblePanel = PanelNames.NONE;
     } else {
         mutableState.visiblePanel = panelName;
+        mutableState.mapMode = MapModes.NONE;
     }
+    return mutableState;
+}
+
+/**
+ * Handles a click to a command button. Used to reset map modes.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedCommandButton(mutableState: JaiaContextType) {
+    mutableState.mapMode = MapModes.NONE;
+    return mutableState;
+}
+
+/**
+ * Handles a click to buttons that modify the mode of the map.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
+    if (mutableState.mapMode === mapMode) {
+        mutableState.mapMode = MapModes.NONE;
+    } else {
+        mutableState.mapMode = mapMode;
+        mutableState.visiblePanel = PanelNames.NONE;
+    }
+
     return mutableState;
 }
 

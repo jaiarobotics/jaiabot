@@ -14,3 +14,9 @@ export enum MapFeatureTypes {
     WAYPOINT = "WAYPOINT",
     WAYPOINT_LINE = "WAYPOINT_LINE",
 }
+
+export enum MapModes {
+    NONE = "NONE",
+    RALLY = "RALLY",
+    MEASURE = "MEASURE",
+}
