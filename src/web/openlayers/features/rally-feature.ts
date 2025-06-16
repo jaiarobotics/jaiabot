@@ -14,9 +14,10 @@ import rallyIcon from "../../style/icons/rally-point.svg";
  * Creates a rally point to be placed on the map
  *
  * @param {GeographicCoordinate} location Lat/lon of the rally point
+ * @param {number} rallyNum Distinguishes rally points
  * @returns {Feature} Waypoint icon to display on map
  */
-export function generateRallyFeature(location: GeographicCoordinate) {
+export function generateRallyFeature(location: GeographicCoordinate, rallyNum: number) {
     if (!location) {
         return new Feature();
     }
@@ -26,23 +27,25 @@ export function generateRallyFeature(location: GeographicCoordinate) {
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
 
-    feature.setStyle(generateRallyStyle());
+    feature.set("id", rallyNum);
+    feature.setStyle(generateRallyStyle(rallyNum));
     return feature;
 }
 
 /**
  * Creates the style to be applied to a rally point on the map
  *
+ * @param {number} rallyNum Distinguishes rally points
  * @returns {Style} Style to be applied to a rally feature
  */
-function generateRallyStyle() {
+function generateRallyStyle(rallyNum: number) {
     return new Style({
         image: new Icon({
             src: rallyIcon,
             scale: 0.35,
         }),
         text: new Text({
-            text: "1",
+            text: rallyNum.toString(),
             font: "12pt sans-serif",
             fill: new Fill({
                 color: "black",
