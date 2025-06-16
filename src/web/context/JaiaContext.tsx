@@ -164,6 +164,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
 
+        case JaiaActions.ADD_RALLY_POINT:
+            return handleAddRallyPoint(mutableState, action.location);
+
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
@@ -525,6 +528,18 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
 }
 
 /**
+ * Makes call to update the rally point layer
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {GeographicCoordinate} location Where to add the rally point
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
+    console.log("Add rally point");
+    return mutableState;
+}
+
+/**
  * Closes the Bot or Hub details panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -754,6 +769,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedCommandButton(mutableState: JaiaContextType) {
+    jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = MapModes.NONE;
     return mutableState;
 }
@@ -765,13 +781,14 @@ function handleClickedCommandButton(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
-    if (mutableState.mapMode === mapMode) {
-        mutableState.mapMode = MapModes.NONE;
+    if (jaiaGlobal.getMapMode() === mapMode) {
+        jaiaGlobal.setMapMode(MapModes.NONE);
     } else {
-        mutableState.mapMode = mapMode;
+        jaiaGlobal.setMapMode(mapMode);
         mutableState.visiblePanel = PanelNames.NONE;
     }
 
+    mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
 }
 
