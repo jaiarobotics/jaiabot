@@ -42,6 +42,17 @@ The `gravity` vector represents the negative force of gravity, away from the gro
 
 The `linear_acceleration` vector points in the direction of the acceleration.  This vector is also reported in units of $m/{s^2}$.
 
+The following table gives some example output.
+
+| Acceleration Direction | `linear_acceleration` (xyz) |
+| ----------- | --------------- |
+| Forward | `(2.4, -0.03, 0.07)` |
+| Port | `(0.04, 2.8, -0.05)` |
+| Up | `(-0.07, 0.06, 2.9)` |
+| Backward | `(-2.4, 0.04, -0.04)` |
+| Starboard | `(0.05, -2.2, 0.07)` |
+| Down | `(0.04, 0.05, -2.1)` |
+
 ### Quaternion
 
 The `quaternion` vector is given in the original `Hamilton` formulation, where $ij=k$.  The `quaternion` behaves as in the following chart.
