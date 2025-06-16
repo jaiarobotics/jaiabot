@@ -13,6 +13,7 @@ import Mission from "../data/missions/mission";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
+import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
 
 import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
@@ -535,7 +536,9 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    console.log("Add rally point");
+    rallyLayer.addRallyPoint(location);
+    jaiaGlobal.setMapMode(MapModes.NONE);
+    mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
 }
 
