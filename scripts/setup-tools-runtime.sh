@@ -9,5 +9,11 @@ sudo install -d -m 0755 -o $USER /etc/jaiabot
 echo "Creating /var/log/jaiabot directory"
 sudo install -d -m 0755 -o $USER /var/log/jaiabot
 echo "Creating /var/log"
-echo "updating PATH"
-echo "export PATH=$(dirname "$(pwd)")/build/amd64/bin:$(dirname "$(pwd)")/build/arm64/bin:$HOME/.local/bin:\$PATH" >> ~/.bashrc
+
+echo "updating PATH in ~/.bashrc if not already present"
+if ! grep -q 'jaiabot/build/amd64/bin' "$HOME/.bashrc"; then
+    echo "export PATH=$(dirname "$(pwd)")/build/amd64/bin:$(dirname "$(pwd)")/build/arm64/bin:\$HOME/.local/bin:\$PATH" >> "$HOME/.bashrc"
+    echo "PATH entry added to ~/.bashrc"
+else
+    echo "PATH entry already present in ~/.bashrc"
+fi
