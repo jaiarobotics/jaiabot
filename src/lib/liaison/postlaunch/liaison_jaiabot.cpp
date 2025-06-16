@@ -56,7 +56,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         auto bot_box = std::make_unique<Wt::WContainerWidget>();
 
-        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion");
+        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion!");
         bot_node_status_text_ = bot_node_status_box->addNew<WText>();
         auto bot_low_control_box = bot_box->addNew<WGroupBox>("Control Command");
         bot_low_control_text_ = bot_low_control_box->addNew<WText>();
