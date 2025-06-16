@@ -24,7 +24,7 @@ The Euler Angles are reported as `pitch`, `roll`, and `heading`.  The convention
 | -- | -- |
 | `heading` | Reported as degrees east from _magnetic north_.  In other words, magnetic east is $+90\degree$.
 | `pitch` | Reported in degrees.  Positive pitch is when the bot's nose is raised above the tail, and negative pitch is when the nose is below the tail.
-| `roll` | Reported in degrees.  Positive roll is to starboard, and negative roll is to port.  In other words, when the starboard elevator is below the port elevator, a positive roll is reported.
+| `roll` | Reported in degrees.  Positive roll is to starboard, and negative roll is to port.  In other words, when the starboard wing is below the port wing, a positive roll is reported.
 
 ### Gravity
 
