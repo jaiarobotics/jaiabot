@@ -30,7 +30,7 @@ import "jaiabot/messages/high_control.proto";
 
 package jaiabot.config;
 
-message MissionRepeater
+message JaiabotProduction
 {
     option (dccl.msg) = {
         unit_system: "si"

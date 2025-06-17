@@ -77,25 +77,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
 
 } //ApplicationBase JaiabotProduction
 
-void jaiabot::apps::JaiabotProduction::intervehicle_subscribe(
-    const jaiabot::protobuf::HubInfo& hub_info)
-{
-
-
-}
-
-jaiabot::apps::JaiabotProduction::~JaiabotProduction()
-{
-
-
-}
-
-void jaiabot::apps::JaiabotProduction::loop()
-{
-
-
-
-}
 
 /*
 constexpr int thermistor_ohms_neutral = 10000;
