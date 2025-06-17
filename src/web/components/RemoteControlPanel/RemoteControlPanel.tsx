@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 
-import { Joystick, JoystickShape } from "react-joystick-component";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
+import { AnalogStick, AnalogStickTypes } from "./AnalogStick";
 import { Engineering } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
@@ -14,12 +14,6 @@ interface RemoteControlPanelProps {
     botID: number;
 }
 
-interface AnalogStickProps {
-    analogStickType: AnalogStickTypes;
-    handleAnalogStickMove: (event: IJoystickUpdateEvent, analogStickType: AnalogStickTypes) => void;
-    onAnalogStickStop: () => void;
-}
-
 interface RCSelectMenuProps {
     controlType: ControlTypes;
     handleMenuSelection: (event: SelectChangeEvent) => void;
@@ -27,12 +21,6 @@ interface RCSelectMenuProps {
     throttleMagnitude: number;
     rudderDirection: string;
     rudderMagnitude: number;
-}
-
-enum AnalogStickTypes {
-    SINGLE = 1,
-    LEFT = 2,
-    RIGHT = 3,
 }
 
 // Use string values for MUI compatibility
@@ -60,7 +48,6 @@ const rudderPercentages = new Map<number, number>([
     [3, 100],
 ]);
 
-const DEAD_ZONE_PERCENT = 10;
 const RC_COMMAND_TIMEOUT = 500; // milliseconds
 
 // Style MUI select menu
@@ -302,60 +289,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DIVE:
             return <div className="remote-control-panel">{SelectMenu}</div>;
     }
-}
-
-/**
- * Designed to control the throttle and rudder of a Bot
- */
-function AnalogStick(props: AnalogStickProps) {
-    /**
-     * Describes what the analog stick controls
-     *
-     * @returns {string} Name of analog stick
-     */
-    const getTitle = () => {
-        switch (props.analogStickType) {
-            case AnalogStickTypes.SINGLE:
-                return "";
-            case AnalogStickTypes.LEFT:
-                return "Throttle";
-            case AnalogStickTypes.RIGHT:
-                return "Rudder";
-        }
-    };
-
-    /**
-     * Controls where the analog stick can move
-     *
-     * @returns {JoystickShape} What directions the analog stick moves
-     */
-    const getControlPlaneShape = () => {
-        switch (props.analogStickType) {
-            case AnalogStickTypes.LEFT:
-                return JoystickShape.AxisY;
-            case AnalogStickTypes.RIGHT:
-                return JoystickShape.AxisX;
-            default:
-                return JoystickShape.Circle;
-        }
-    };
-
-    return (
-        <div className="analog-stick">
-            <div>{getTitle()}</div>
-            <Joystick
-                baseColor="white"
-                stickColor="black"
-                controlPlaneShape={getControlPlaneShape()}
-                size={100}
-                throttle={100}
-                move={(event: IJoystickUpdateEvent) =>
-                    props.handleAnalogStickMove(event, props.analogStickType)
-                }
-                stop={() => props.onAnalogStickStop()}
-            />
-        </div>
-    );
 }
 
 /**
