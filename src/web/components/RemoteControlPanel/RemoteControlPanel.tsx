@@ -2,32 +2,17 @@ import { useState, useEffect } from "react";
 
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
-import { AnalogStick, AnalogStickTypes } from "./AnalogStick";
+import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
+import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Engineering } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
-import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
+import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
 
 interface RemoteControlPanelProps {
     botID: number;
-}
-
-interface RCSelectMenuProps {
-    controlType: ControlTypes;
-    handleMenuSelection: (event: SelectChangeEvent) => void;
-    throttleDirection: string;
-    throttleMagnitude: number;
-    rudderDirection: string;
-    rudderMagnitude: number;
-}
-
-// Use string values for MUI compatibility
-enum ControlTypes {
-    SINGLE = "SINGLE",
-    DUAL = "DUAL",
-    DIVE = "DIVE",
 }
 
 enum RCZones {
@@ -49,28 +34,6 @@ const rudderPercentages = new Map<number, number>([
 ]);
 
 const RC_COMMAND_TIMEOUT = 500; // milliseconds
-
-// Style MUI select menu
-const theme = createTheme({
-    components: {
-        MuiOutlinedInput: {
-            styleOverrides: {
-                root: {
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "white",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "white",
-                    },
-                },
-                notchedOutline: {
-                    borderColor: "white",
-                    padding: "0px",
-                },
-            },
-        },
-    },
-});
 
 /**
  * Creates panel with analog sticks to manually control a Bot
@@ -247,8 +210,8 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
-    const SelectMenu = (
-        <RCSelectMenu
+    const RCSelectMenu = (
+        <SelectMenu
             controlType={controlType}
             handleMenuSelection={handleMenuSelection}
             throttleDirection={throttleDirection}
@@ -267,7 +230,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         handleAnalogStickMove={handleAnalogStickMove}
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {SelectMenu}
+                    {RCSelectMenu}
                 </div>
             );
         case ControlTypes.DUAL:
@@ -278,7 +241,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         handleAnalogStickMove={handleAnalogStickMove}
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {SelectMenu}
+                    {RCSelectMenu}
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
                         handleAnalogStickMove={handleAnalogStickMove}
@@ -287,41 +250,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 </div>
             );
         case ControlTypes.DIVE:
-            return <div className="remote-control-panel">{SelectMenu}</div>;
+            return <div className="remote-control-panel">{RCSelectMenu}</div>;
     }
-}
-
-/**
- * Allows the operator to switch between single and dual analog sticks
- */
-function RCSelectMenu(props: RCSelectMenuProps) {
-    return (
-        <ThemeProvider theme={theme}>
-            <div className="rc-dashboard">
-                <div className="rc-select-menu">
-                    <div className="label">Control:</div>
-                    <Select
-                        value={props.controlType.toString()}
-                        onChange={(event: SelectChangeEvent) => props.handleMenuSelection(event)}
-                    >
-                        <MenuItem value={ControlTypes.SINGLE}>Single</MenuItem>
-                        <MenuItem value={ControlTypes.DUAL}>Dual</MenuItem>
-                        <MenuItem value={ControlTypes.DIVE}>Dive</MenuItem>
-                    </Select>
-                </div>
-                <div className="rc-output">
-                    <div>Throttle Direction:</div>
-                    <div>{props.throttleDirection}</div>
-                    <div>Throttle:</div>
-                    <div>{props.throttleMagnitude}</div>
-                </div>
-                <div className="rc-output">
-                    <div>Rudder Direction:</div>
-                    <div>{props.rudderDirection}</div>
-                    <div>Rudder:</div>
-                    <div>{props.rudderMagnitude}</div>
-                </div>
-            </div>
-        </ThemeProvider>
-    );
 }
