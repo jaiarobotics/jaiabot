@@ -31,7 +31,6 @@
 #include "config.pb.h"
 
 
-
 //imu data, pressure, motor status, production
 
 //test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
@@ -41,6 +40,7 @@
 //get temperature data - temp data between 10-30; reset imu service pauses imu data for 2 secs
 using goby::glog;
 namespace si = boost::units::si;
+using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotProduction>;
 
 namespace jaiabot
 {
