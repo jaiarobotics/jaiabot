@@ -205,6 +205,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
+    
+    // imu test
+    //Wt::WText* imu_test_status_;
+    //Wt::WText* imu_debug_log_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
