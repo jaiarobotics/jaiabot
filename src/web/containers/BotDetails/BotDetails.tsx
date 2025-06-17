@@ -15,6 +15,7 @@ import StopButton from "../../components/StopButton/StopButton";
 import SystemButton from "../../components/SystemButton/SystemButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
 import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
+import DataOffloadButton from "../../components/DataOffloadButton/DataOffloadButton";
 import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
 
 import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
@@ -248,6 +249,7 @@ export default function BotDetails() {
                                             title="RC Mode"
                                         ></img>
                                     </Button>
+                                    <DataOffloadButton bot={bot} />
                                     <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
