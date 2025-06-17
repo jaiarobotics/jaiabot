@@ -42,8 +42,8 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/modem_message_extensions.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
@@ -494,9 +494,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& salinityData) {
-            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
-            latest_bot_status_.set_salinity(salinityData.salinity());
+        [this](const jaiabot::protobuf::SalinityData& salinity_data) {
+            if (salinity_data.has_salinity())
+            {
+                latest_bot_status_.set_salinity(salinity_data.salinity());
+            }
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(

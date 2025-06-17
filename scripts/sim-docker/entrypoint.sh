@@ -11,4 +11,3 @@ python3 jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jai
 cd /usr/share/jaiabot/config/launch/simulation
 ./generate_all_launch.sh $JAIA_SIM_BOTS $JAIA_SIM_WARP
 ./all.launch 
-

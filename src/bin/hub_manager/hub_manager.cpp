@@ -162,8 +162,7 @@ jaiabot::apps::HubManager::HubManager()
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
 
-    auto add_expected_bot_id = [this](int id)
-    {
+    auto add_expected_bot_id = [this](int id) {
         managed_bot_ids_.insert(id);
         latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(id);
     };
@@ -312,8 +311,9 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
-        { handle_hardware_status(hardware_status); });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            handle_hardware_status(hardware_status);
+        });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
@@ -390,8 +390,9 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::BotStatus& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header)
-            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+                       const goby::middleware::intervehicle::protobuf::Header& header) {
+                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
+                };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
@@ -409,8 +410,9 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::TaskPacket& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header)
-            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+                       const goby::middleware::intervehicle::protobuf::Header& header) {
+                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
+                };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
                 cfg().task_packet_sub_cfg();
@@ -424,16 +426,18 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
             glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
             intervehicle().subscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
-                [this](const jaiabot::protobuf::TaskPacket& task_packet)
-                { handle_task_packet(task_packet); },
+                [this](const jaiabot::protobuf::TaskPacket& task_packet) {
+                    handle_task_packet(task_packet);
+                },
                 subscriber);
         }
 
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::Engineering& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header)
-            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
+                       const goby::middleware::intervehicle::protobuf::Header& header) {
+                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
+                };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
                 cfg().engineering_status_sub_cfg();
@@ -449,8 +453,7 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
             intervehicle()
                 .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                    [this](const jaiabot::protobuf::Engineering& input_engineering_status)
-                    {
+                    [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
                         glog.is_debug1() && glog << "Received input_engineering_status: "
                                                  << input_engineering_status.ShortDebugString()
                                                  << std::endl;
@@ -964,8 +967,7 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]()
-    {
+    auto offload_func = [this, offload_command]() {
         // reset data offload global variables
         offload_complete_ = false;
         offload_success_ = false;

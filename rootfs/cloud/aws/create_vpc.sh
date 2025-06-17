@@ -237,7 +237,7 @@ USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
 
 # Find the newest AMI matching the tags
-AMI_ID=$(run " " aws ec2 describe-images --filters "Name=tag:jaiabot-rootfs-gen_repository,Values=${REPO}" "Name=tag:jaiabot-rootfs-gen_repository_version,Values=${REPO_VERSION}" --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId')
+AMI_ID=$(run "." aws ec2 describe-images --filters "Name=tag:jaiabot-rootfs-gen_repository,Values=${REPO}" "Name=tag:jaiabot-rootfs-gen_repository_version,Values=${REPO_VERSION}" --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId')
 
 if [ "$AMI_ID" == "None" ]; then
     echo ">>>>>> No matching AMI found for repo: ${REPO} and version: ${REPO_VERSION}. Available AMIs include: "

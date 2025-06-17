@@ -1,0 +1,42 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message CameraCommand
+{
+    // A unique id for this CameraCommand, used by CameraResponse to ack or respond
+    required int32 id = 1;
+
+    enum CameraCommandType
+    {
+        // Start taking images at a fixed rate
+        START_IMAGES = 0;
+        // Stop taking images
+        STOP_IMAGES = 1;
+        // Start taking video
+        START_VIDEO = 2;
+        // Stop taking video
+        STOP_VIDEO = 3;
+        // Return driver/camera metadata in the CameraResponse
+        GET_METADATA = 4;
+    }
+
+    required CameraCommandType type = 2;
+
+    // Image capture interval, in seconds
+    optional double image_capture_interval = 3;
+}
+
+message CameraResponse
+{
+    // The unique id of the corresponding CameraCommand
+    required int32 id = 1;
+
+    message Metadata {
+        // Version of this camera driver
+        optional int32 driver_version = 1;
+    }
+
+    // Metadata object, if that was requested
+    optional Metadata metadata = 2;
+}
