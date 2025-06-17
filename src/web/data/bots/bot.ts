@@ -23,7 +23,6 @@ export default class Bot {
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private statusAge: number;
-
     private mode: BotModes;
 
     constructor() {

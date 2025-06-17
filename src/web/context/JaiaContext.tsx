@@ -554,7 +554,6 @@ function handleSentMissionCommand(mutableState: JaiaContextType, botID: number, 
             bot.setMode(BotModes.MISSION);
     }
 
-    mutableState.bots = bots.getBots();
     return mutableState;
 }
 
