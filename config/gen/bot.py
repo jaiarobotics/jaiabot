@@ -114,7 +114,8 @@ verbosities = \
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
-  'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_production':                           { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE'}, 'simulation': {'tty': 'WARN', 'log': 'DEBUG1'}}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -378,6 +379,11 @@ elif common.app == 'log_file':
     print(log_file_dir)
 elif common.app == 'jaiabot_mission_repeater':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_repeater.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index))
+elif common.app == 'jaiabot_production':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_production.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index))
