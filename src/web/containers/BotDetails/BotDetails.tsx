@@ -169,7 +169,7 @@ export default function BotDetails() {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Battery Percentage</td>
+                                            <td>Battery</td>
                                             <td>
                                                 {bot.getBatteryPercent()?.toFixed(DETAILS_DECIMALS)}{" "}
                                                 %
@@ -185,19 +185,19 @@ export default function BotDetails() {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Active Goal</td>
+                                            <td>Target Waypoint</td>
                                             <td style={{ whiteSpace: "pre-line" }}>
-                                                {missionStatus.activeGoal ?? "N/A"}
+                                                {missionStatus.targetWaypoint ?? "N/A"}
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Distance to Goal</td>
+                                            <td>Waypoint Distance</td>
                                             <td style={{ whiteSpace: "pre-line" }}>
                                                 {getDistToWaypoint(missionStatus)}
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Distance from Hub</td>
+                                            <td>Hub Distance</td>
                                             <td>
                                                 {getDistanceToHub(
                                                     bot.getBotSensors().getGPS(),

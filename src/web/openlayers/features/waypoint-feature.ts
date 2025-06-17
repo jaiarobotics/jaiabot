@@ -5,13 +5,14 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import { bots } from "../../data/bots/bots";
 import { missions } from "../../data/missions/missions";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
+import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
@@ -22,6 +23,7 @@ import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color
@@ -66,7 +68,7 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
         image: new Icon({
             src: getWaypointSrc(taskType),
             anchor: [0.5, 1],
-            color: getWaypointColor(missionID),
+            color: getWaypointColor(missionID, waypointNum),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -229,9 +231,14 @@ function getWaypointSrc(taskType: TaskType) {
  * Supplies the color for a waypoint based on edit and selection states
  *
  * @param {number} missionID Used to determine color of the line segment
+ * @param {number} waypointNum Makes color change for target waypoint
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
-function getWaypointColor(missionID: number) {
+function getWaypointColor(missionID: number, waypointNum?: number) {
+    if (waypointNum && shouldColorTargetWaypoint(missionID, waypointNum)) {
+        return OpenLayersColors.TARGET;
+    }
+
     if (missionID === missions.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;
     }
@@ -276,4 +283,37 @@ function getWaypointZIndex(missionID: number, waypointNum?: number) {
     }
 
     return waypointZIndex;
+}
+
+/**
+ * Checks the bot and mission conditions to determine if the waypoint needs
+ * the TARGET color applied
+ *
+ * @param {number} missionID Identifies the mission containing the waypoint
+ * @param waypointNum Identifies the waypoint to be rendered
+ * @returns {boolean} True if the target waypoint needs the TARGET color
+ */
+function shouldColorTargetWaypoint(missionID: number, waypointNum: number) {
+    if (missions.getMissionIDInEditMode() === missionID) {
+        return false;
+    }
+
+    const botID = missionsManager.getBotID(missionID);
+    if (botID === UNASSIGNED_ID) {
+        return false;
+    }
+
+    const bot = bots.getBot(botID);
+    if (
+        bot.getMissionStatus().missionState !== MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+    ) {
+        return false;
+    }
+
+    const targetWaypoint = bot.getMissionStatus().targetWaypoint;
+    if (targetWaypoint && targetWaypoint === waypointNum) {
+        return true;
+    }
+
+    return false;
 }
