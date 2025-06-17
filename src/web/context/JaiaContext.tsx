@@ -10,6 +10,7 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
 
+import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -540,7 +541,7 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
     rallyLayer.addRallyPoint(location);
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(Cursors.DEFAULT);
+    setMapCursor(map, Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -766,7 +767,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
 
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(Cursors.DEFAULT);
+    setMapCursor(map, Cursors.DEFAULT);
 
     return mutableState;
 }
@@ -780,7 +781,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
 function handleClickedCommandButton(mutableState: JaiaContextType) {
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(Cursors.DEFAULT);
+    setMapCursor(map, Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -793,13 +794,13 @@ function handleClickedCommandButton(mutableState: JaiaContextType) {
 function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
     if (jaiaGlobal.getMapMode() === mapMode) {
         jaiaGlobal.setMapMode(MapModes.NONE);
-        setMapCursor(Cursors.DEFAULT);
+        setMapCursor(map, Cursors.DEFAULT);
     } else {
         jaiaGlobal.setMapMode(mapMode);
         mutableState.visiblePanel = PanelNames.NONE;
 
         if (mapMode === MapModes.RALLY) {
-            setMapCursor(Cursors.CROSSHAIR);
+            setMapCursor(map, Cursors.CROSSHAIR);
         }
     }
 
