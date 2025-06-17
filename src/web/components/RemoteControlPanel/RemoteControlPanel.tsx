@@ -42,6 +42,12 @@ enum ControlTypes {
     DIVE = "DIVE",
 }
 
+enum RCZones {
+    DEAD = 10,
+    LOW = 50,
+    HIGH = 95,
+}
+
 const throttlePercentages = new Map<number, number>([
     [1, 37.5],
     [2, 40],
@@ -149,10 +155,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 } else if (event.y < 0) {
                     setThrottleDirection("BACKWARD");
                 }
-                // Rudder (with deadzone)
-                if (event.x * 100 > DEAD_ZONE_PERCENT) {
+                // Rudder
+                if (event.x > 0) {
                     setRudderDirection("RIGHT");
-                } else if (event.x * 100 < DEAD_ZONE_PERCENT * -1) {
+                } else if (event.x < 0) {
                     setRudderDirection("LEFT");
                 }
                 break;
@@ -177,15 +183,15 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         const isNegative = position < 0;
         let magnitude = 0;
 
-        if (absPosition > DEAD_ZONE_PERCENT && position < 50) {
+        if (absPosition > RCZones.DEAD && position < RCZones.LOW) {
             magnitude = 1;
         }
 
-        if (absPosition >= 50 && position <= 95) {
+        if (absPosition >= RCZones.LOW && position <= RCZones.HIGH) {
             magnitude = 2;
         }
 
-        if (absPosition > 95) {
+        if (absPosition > RCZones.HIGH) {
             magnitude = 3;
         }
 
