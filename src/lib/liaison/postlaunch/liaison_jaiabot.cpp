@@ -56,7 +56,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         auto bot_box = std::make_unique<Wt::WContainerWidget>();
 
-        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion!");
+        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion");
         bot_node_status_text_ = bot_node_status_box->addNew<WText>();
         auto bot_low_control_box = bot_box->addNew<WGroupBox>("Control Command");
         bot_low_control_text_ = bot_low_control_box->addNew<WText>();
@@ -71,6 +71,17 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         bot_panel->setCentralWidget(std::move(bot_box));
     }
+
+    //Production panel code HERE (remove this comment later)
+    auto production_panel = this->addNew<Wt::WPanel>();
+    production_panel->setTitle("Production");
+    production_panel->setCollapsible(true);
+
+    auto production_box = std::make_unique<Wt::WContainerWidget>();
+
+    
+    production_panel->setCentralWidget(std::move(production_box));
+
 
     const auto update_freq = cfg_.control_freq();
     timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));
