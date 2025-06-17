@@ -63,12 +63,6 @@ run_request({"target": {"all": True}, "status": True, "api_key": api_key},
 run_request({"target": {"all": True}, "metadata": True, "api_key": api_key},
             expected_response_subset={"request": {"metadata": True, "target": {"all": True}}, "metadata": {}})
 
-now_micros = int(datetime.datetime.now().timestamp() * 1e6)
-DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
-
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
-
 run_request({"target": {"all": True}, "command": {"type": "STOP"}, "api_key": api_key},
             expected_response_subset={"request": {"command": {"type": "STOP"}, "target": {"all": True}}, "command_result": { "command_sent": True}})
 
@@ -86,3 +80,10 @@ run_request({"target": {"all": True}, "command_for_hub": {"type": "SET_HUB_LOCAT
 
 run_request({"target": {"bots": [1]}, "metadata": True, "api_key": api_key},
             expected_response_subset={"error": {"code": "API_ERROR__INVALID_TARGET"}})
+
+# Test and time the task packet endpoint
+now_micros = int(datetime.datetime.now().timestamp() * 1e6)
+DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
+
+run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 28 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
