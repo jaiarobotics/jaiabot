@@ -1,8 +1,8 @@
 # Working With Jaia Software
 
 ### Table of Contents:
-- [Launching The Simulator on Macbooks](#launching-the-sumulator-on-macbooks)
 - [Launching The Simulator on Windows](#launching-the-simulator-on-windows)
+- [Launching The Simulator on Macbooks](#launching-the-sumulator-on-macbooks)
 - [Troublshooting the Simulator](#Troubleshooting)
     - [Trouble Shooting with Mac](#mac-troubleshooting)
 - [Creating an SSH Key (Macbooks)](#sshkey)
@@ -10,11 +10,52 @@
 - [Deploying Code](#deploying-code)
 
 <br>
+
+Note: The Jaia simulator works with __Ubuntu__ 24.04 (branch: 2.y)
+<a id="launching-the-simulator-on-windows"></a>
+
+# Launching the Simulator on Windows
+1. Launch Ubuntu 24.04 ([WSL](https://learn.microsoft.com/en-us/windows/wsl/install)). 
+2. Clone the Jaiabot Repo.
+```
+# install git if needed
+sudo apt install git
+git clone https://github.com/jaiarobotics/jaiabot​
+```
+3. Run the setup scripts ([troubleshooting using cd command](#cd-troublshooting)).
+```
+cd jaiabot/scripts
+./setup-tools-build.sh
+./setup-tools-runtime.sh
+```
+4. Run the build script.
+```
+cd .. # back to jaiabot
+./build.sh
+```
+5. Launch the JCC web interface.
+```
+cd src/web
+./run.sh
+# Should look like: WARNING:root:🏓 Pinging server localhost:40000
+```
+6. Launch the simulator in a separate terminal.
+```
+cd jaiabot/config/launch/simulation
+# Set the simulation to run 4 bots at a time warp of 5
+./generate_all_launch.sh 4 5
+./all.launch
+# Should look like: [all] XX:XX:XX: All processes running
+```
+7. Simulator should pop up on broswer -- It is running successfully!
+
+If you are testing new code or switching to a new branch, repeat steps starting from step 4. If you are just launching the simulator again, repeat steps starting from step 5. 
+
+<br>
 <a id="launching-the-simulator-on-macbooks"></a>
 
 # Launching the Simulator on Macbooks
 
-Note: The Jaia simulator works with __Ubuntu 24.04 (branch: 2.y)
 1. Open Multipass and Launch Ubuntu 24.04 LTS. 
 
     * Download [Multipass](https://canonical.com/multipass/install) if it is not already installed. 
@@ -70,47 +111,6 @@ cd jaiabot/config/launch/simulation
 If you are testing new code or switching to a new branch, repeat steps starting from step 9. If you are just launching the simulator again, repeat steps starting from step 10. 
 
 If you want to modify code, you need to create an SSH key. ([Creating an SSH Key](#sshkey))
-
-<br>
-<a id="launching-the-simulator-on-windows"></a>
-
-# Launching the Simulator on Windows
-1. Launch Ubuntu 24.04. 
-2. Clone the Jaiabot Repo.
-```
-# install git if needed
-sudo apt install git
-git clone https://github.com/jaiarobotics/jaiabot​
-```
-3. Run the setup scripts ([troubleshooting using cd command](#cd-troublshooting)).
-```
-cd jaiabot/scripts
-./setup-tools-build.sh
-./setup-tools-runtime.sh
-```
-4. Run the build script.
-```
-cd .. # back to jaiabot
-./build.sh
-```
-5. Launch the JCC web interface.
-```
-cd src/web
-./run.sh
-# Should look like: WARNING:root:🏓 Pinging server localhost:40000
-```
-6. Launch the simulator in a separate terminal.
-```
-cd jaiabot/config/launch/simulation
-# Set the simulation to run 4 bots at a time warp of 5
-./generate_all_launch.sh 4 5
-./all.launch
-# Should look like: [all] XX:XX:XX: All processes running
-```
-7. Simulator should pop up on broswer -- It is running successfully!
-
-If you are testing new code or switching to a new branch, repeat steps starting from step 4. If you are just launching the simulator again, repeat steps starting from step 5. 
-
 
 <br>
 <a id="Troubleshooting"></a>
