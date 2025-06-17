@@ -194,6 +194,7 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "bug/bookworm-image-compress"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -584,8 +585,8 @@ jobs:
             cd rootfs/rpicam-zero
             ./build.sh
             
-            mkdir /tmp/images
-            cp images/jaiabot__rpicam-zero-bookworm.img /tmp/images/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
+            mkdir /tmp/arm64
+            cp images/jaiabot__rpicam-zero-bookworm.img /tmp/arm64/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
       - run: *run-compress-image-raspi
       - store_artifacts: *store-raspi
             
