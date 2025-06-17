@@ -22,12 +22,15 @@ enum RCZones {
 }
 
 const throttlePercentages = new Map<number, number>([
+    [-1, -10],
+    [0, 0],
     [1, 37.5],
     [2, 40],
     [3, 60],
 ]);
 
 const rudderPercentages = new Map<number, number>([
+    [0, 0],
     [1, 40],
     [2, 70],
     [3, 100],
@@ -147,7 +150,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
 
         if (isNegative && analogStickType === AnalogStickTypes.LEFT) {
             // Only one speed in reverse
-            magnitude = -1;
+            magnitude = 1;
         }
 
         switch (analogStickType) {
