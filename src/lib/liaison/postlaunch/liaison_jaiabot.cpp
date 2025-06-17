@@ -76,10 +76,20 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     auto production_panel = this->addNew<Wt::WPanel>();
     production_panel->setTitle("Production");
     production_panel->setCollapsible(true);
+    production_panel->setCollapsed(cfg_.minimize_production_panel());
 
     auto production_box = std::make_unique<Wt::WContainerWidget>();
 
-    
+    //imu test!!
+    auto production_imu_test_box = production_box->addNew<WGroupBox>("Test IMU Sensor");
+    //imu_test_status_ = production_box->addNew<Wt::WText>();
+
+    //Test Pressure!!
+    auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressor Sensor");
+
+    //Test Motor Harness
+    auto production_motor_harness_test = production_box->addNew<WGroupBox>("Test Motor Harness");
+
     production_panel->setCentralWidget(std::move(production_box));
 
 

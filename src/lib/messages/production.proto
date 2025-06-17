@@ -1,0 +1,45 @@
+// this is still a working progress
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/imu.proto";  // This must define IMUReport
+
+package jaiabot.protobuf;
+
+enum ProductionCommand 
+{ 
+  TEST_IMU_SENSOR = 1;
+  // Keep others for later, but don’t use them yet
+  // TEST_PRESSURE_SENSOR = 2;
+  // TEST_MOTOR_HARNESS = 3;
+}
+
+message ProductionRequest 
+{ 
+  option (dccl.msg) = { unit_system: "si" }; 
+
+  required uint64 time = 1 [ 
+    (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } } 
+  ]; 
+
+  oneof request 
+  { 
+    ProductionCommand production_command = 11; 
+  } 
+}
+
+message ProductionResponse 
+{ 
+  option (dccl.msg) = { unit_system: "si" }; 
+
+  required uint64 time = 1 [ 
+    (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } } 
+  ]; 
+
+  oneof data 
+  { 
+    IMUData imu_report = 11; 
+    // PressureReport pressure_report = 12;
+    // MotorHarness motor_harness_report = 13;
+  } 
+}
