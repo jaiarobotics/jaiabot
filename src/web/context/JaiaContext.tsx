@@ -20,6 +20,7 @@ import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
+import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import {
     NodeTypes,
@@ -540,7 +541,7 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
     rallyLayer.addRallyPoint(location);
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor("default");
+    setMapCursor(Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -766,7 +767,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
 
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor("default");
+    setMapCursor(Cursors.DEFAULT);
 
     return mutableState;
 }
@@ -780,7 +781,7 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
 function handleClickedCommandButton(mutableState: JaiaContextType) {
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor("default");
+    setMapCursor(Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -793,13 +794,13 @@ function handleClickedCommandButton(mutableState: JaiaContextType) {
 function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
     if (jaiaGlobal.getMapMode() === mapMode) {
         jaiaGlobal.setMapMode(MapModes.NONE);
-        setMapCursor("default");
+        setMapCursor(Cursors.DEFAULT);
     } else {
         jaiaGlobal.setMapMode(mapMode);
         mutableState.visiblePanel = PanelNames.NONE;
 
         if (mapMode === MapModes.RALLY) {
-            setMapCursor("crosshair");
+            setMapCursor(Cursors.CROSSHAIR);
         }
     }
 
@@ -882,9 +883,9 @@ function syncOpenLayers() {
 /**
  * Sets the cursor type for the map
  *
- * @param {string} cursor Type of cursor to display on map
+ * @param {Cursor} cursor Type of cursor to display on map
  */
-function setMapCursor(cursor: string) {
+function setMapCursor(cursor: Cursors) {
     map.getTargetElement().style.cursor = cursor;
 }
 
