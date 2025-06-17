@@ -1,0 +1,23 @@
+load_protobuf {
+    name: "jaiabot.protobuf.IMUCalibration" 
+    publish_to {
+        group: "jaiabot::imu"
+    }
+} 
+
+load_protobuf {
+    name: "jaiabot.protobuf.PressureAdjustedData" 
+    publish_to {
+        group: "jaiabot::pressure_adjusted"
+    }
+} 
+
+load_protobuf {
+    name: "jaiabot.protobuf.Motor" 
+    publish_to {
+        group: "jaiabot::motor_status" 
+    }
+} 
+
+
+

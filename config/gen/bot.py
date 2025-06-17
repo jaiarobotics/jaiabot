@@ -85,6 +85,8 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
+liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_load.pb.cfg.in')
+
 # Milliseconds
 bot_status_period=1000
 
@@ -231,7 +233,7 @@ elif common.app == 'goby_logger':
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
                                      goby_logger_group_regex=logger.group_regex))
-elif common.app == 'goby_liaison':
+elif common.app == 'goby_liaison' or common.app == "goby_liaison_jaiabot":
     liaison_port=30000
     if is_simulation():
         liaison_port=30100+bot_index
@@ -241,7 +243,7 @@ elif common.app == 'goby_liaison':
                                      http_port=liaison_port,
                                      http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
-                                     load_protobufs=''))
+                                     load_protobufs=liaison_load_block))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
