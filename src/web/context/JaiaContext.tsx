@@ -10,6 +10,7 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
 
+import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -539,6 +540,7 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
     rallyLayer.addRallyPoint(location);
     jaiaGlobal.setMapMode(MapModes.NONE);
     mutableState.mapMode = jaiaGlobal.getMapMode();
+    setMapCursor("default");
     return mutableState;
 }
 
@@ -760,8 +762,12 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
         mutableState.visiblePanel = PanelNames.NONE;
     } else {
         mutableState.visiblePanel = panelName;
-        mutableState.mapMode = MapModes.NONE;
     }
+
+    jaiaGlobal.setMapMode(MapModes.NONE);
+    mutableState.mapMode = jaiaGlobal.getMapMode();
+    setMapCursor("default");
+
     return mutableState;
 }
 
@@ -773,7 +779,8 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  */
 function handleClickedCommandButton(mutableState: JaiaContextType) {
     jaiaGlobal.setMapMode(MapModes.NONE);
-    mutableState.mapMode = MapModes.NONE;
+    mutableState.mapMode = jaiaGlobal.getMapMode();
+    setMapCursor("default");
     return mutableState;
 }
 
@@ -786,9 +793,14 @@ function handleClickedCommandButton(mutableState: JaiaContextType) {
 function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
     if (jaiaGlobal.getMapMode() === mapMode) {
         jaiaGlobal.setMapMode(MapModes.NONE);
+        setMapCursor("default");
     } else {
         jaiaGlobal.setMapMode(mapMode);
         mutableState.visiblePanel = PanelNames.NONE;
+
+        if (mapMode === MapModes.RALLY) {
+            setMapCursor("crosshair");
+        }
     }
 
     mutableState.mapMode = jaiaGlobal.getMapMode();
@@ -865,6 +877,15 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+}
+
+/**
+ * Sets the cursor type for the map
+ *
+ * @param {string} cursor Type of cursor to display on map
+ */
+function setMapCursor(cursor: string) {
+    map.getTargetElement().style.cursor = cursor;
 }
 
 /**
