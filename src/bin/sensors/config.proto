@@ -1,0 +1,84 @@
+// Copyright 2024:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/serial_config.proto";
+
+package jaiabot.config;
+
+message AtlasOEMECThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message BlueRoboticsBar30ThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message AtlasOEMPHThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message AtlasOEMDOThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+}
+
+message FluorCoefficients
+{
+    optional double offset = 1;
+    optional double coefficient = 2;
+    optional int32 serial_number = 3;
+}
+
+message TurnerCFluorThreadConfig
+{
+    optional int32 sample_rate = 1 [default = 10];
+    optional int32 report_timeout_seconds = 2 [default = 20];
+    optional int32 resend_cfg_timeout_seconds = 3 [default = 20];
+    optional FluorCoefficients fluorometer_coefficients = 4;
+}
+
+message Sensors
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional goby.middleware.protobuf.SerialConfig mcu_serial = 3;
+    optional AtlasOEMECThreadConfig ec = 10;
+    optional BlueRoboticsBar30ThreadConfig bar30 = 20;
+    optional AtlasOEMPHThreadConfig ph = 30;
+    optional AtlasOEMDOThreadConfig dissolved_oxygen = 40;
+    optional TurnerCFluorThreadConfig fluorometer = 50;  
+}

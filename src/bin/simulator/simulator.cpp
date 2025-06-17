@@ -48,7 +48,7 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
@@ -424,13 +424,12 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         // omit in sim
         std::string time = "";
-        std::string conductivity = "0.0";
+        std::string conductivity = "45000.0";
         std::string dissolved_solids = "0.0";
-        std::string specific_gravity = "0.0";
 
-        // date_string, conductivity, dissolved solids, salinity, specific gravity
+        // date_string, conductivity, dissolved solids, salinity
         ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << conductivity << "," << dissolved_solids << "," << salinity << "," << specific_gravity;
+           << conductivity << "," << dissolved_solids << "," << salinity;
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(ss.str());

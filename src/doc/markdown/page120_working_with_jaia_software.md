@@ -9,7 +9,7 @@
 <a id="launching-the-simulator"></a>
 
 # Launching the Simulator
-Note: The Jaia simulator works with __Ubuntu 20.04 and 22.04__
+Note: The Jaia simulator works with __Ubuntu 20.04 (branch: 1.y), 22.04 (branch: 1.y), 24.04 (branch: 2.y)__
 1. Clone the jaiabot repo (https://github.com/jaiarobotics/jaiabot)
 ```
 (install git if needed)
