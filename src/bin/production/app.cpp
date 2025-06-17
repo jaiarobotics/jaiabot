@@ -21,31 +21,26 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <goby/middleware/marshalling/protobuf.h>
+#include <cstdlib>
 #include <google/protobuf/text_format.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
 #include <goby/middleware/application/interface.h>
 #include <goby/middleware/application/tool.h>
-#include "jaiabot/messages/motor.pb.h"
 #include <fstream>
 #include "config.pb.h"
-#include "jaiabot/health/health.h"
-#include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/motor.pb.h"
-#include "jaiabot/comms/comms.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/groups.h"
-#include "jaiabot/intervehicle.h"
-#include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h"
+
+
 
 //imu data, pressure, motor status, production
 
-//test imuSensor, pressureSensor, motorHarness
-//get temperature data
+//test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
+// imu data stops sending for 2 secs
+//pressureSensor - pressure service is restarted and the pressure reading < 0.2
+//motorHarness - run motor for 2secs and confirm rpm >= 3600
+//get temperature data - temp data between 10-30; reset imu service pauses imu data for 2 secs
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotEngineering>;
 
 namespace jaiabot
 {
@@ -65,34 +60,6 @@ class JaiabotProduction: public ApplicationBase
     private:
         void loop() override;
     
-        // timeout in seconds
-        int course_over_ground_timeout_{0};
-        double previous_course_over_ground_{0};
-
-        // IMU Detection vars
-        bool imu_issue_detected_{false};
-        int imu_issue_crs_hdg_incr_{0};
-        double bot_desired_speed_{0};
-        double bot_desired_heading_{0};
-        goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
-        std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
-        goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
-        int pitch_angle_check_incr_{0};
-        goby::time::MicroTime last_pitch_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
-        bool is_bot_horizontal_{false};
-
-        // Milliseconds
-        int bot_status_period_ms_{1000};
-        bool rf_disabled_{false};
-        int rf_disabled_timeout_mins_{10};
-        goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
-
-        enum class DataType
-        {
-            PRESSURE,
-            TEMPERATURE,
-            SPEED
-        }
 };
 } //namespace apps
 } //namespace jaiabot
@@ -105,6 +72,7 @@ int main(int argc, char* argv[])
 
 jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
 {
+    glog.is_debug1() && glog << "Production App" << std::endl;
 
 
 } //ApplicationBase JaiabotProduction
@@ -114,115 +82,6 @@ void jaiabot::apps::JaiabotProduction::intervehicle_subscribe(
 {
 
 
-
-}
-
-jaiabot::apps::Health::Health()
-    : ApplicationBase(1.0 * boost::units::si::hertz),
-      next_check_time_(goby::time::SteadyClock::now() +
-                       goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                           cfg().auto_restart_init_grace_period_with_units())),
-      process_to_not_responding_error_(create_process_to_not_responding_error_map())
-{
-    using MotorRPMUDPThread = goby::middleware::io::UDPPointToPointThread<jaiabot::groups::motor_udp_in, jaiabot::groups::motor_udp_out>;
-
-    //might be important for testing the IMU sensor
-    interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
-            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
-                                     << std::endl;
-
-            switch (imu_issue.solution())
-            {
-                case protobuf::IMUIssue::STOP_BOT: break;
-                case protobuf::IMUIssue::RESTART_IMU_PY:
-                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
-                        restart_imu_py();
-                    }
-                    else
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
-                    }
-                    break;
-                case protobuf::IMUIssue::REBOOT_BOT: break;
-                case protobuf::IMUIssue::USE_COG: break;
-                case protobuf::IMUIssue::USE_CORRECTION: break;
-                case protobuf::IMUIssue::REPORT_IMU: break;
-                case protobuf::IMUIssue::RESTART_BOT: break;
-                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
-                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
-                        reboot_bno085_imu();
-                    }
-                    else
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
-                    }
-                    break;
-                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
-                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
-                                                 << std::endl;
-                        reboot_bno085_imu();
-                        restart_imu_py();
-                    }
-                    else
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
-                    }
-
-                    break;
-                default:
-                    //TODO Handle Default Case
-                    break;
-            }
-        });
-    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
-    {
-        launch_thread<LinuxHardwareThread>(cfg().linux_hw());
-        launch_thread<NTPStatusThread>(cfg().ntp());
-
-        if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
-        {
-            launch_thread<MotorRPMUDPThread>(cfg().udp_config());
-            launch_thread<MotorStatusThread>(cfg().motor());
-        }
-    }
-
-    //might need this for a test case if app is not working
-    for (auto error : failed_services_)
-        last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
-
-    for (const auto& proc : vehicle_health.process())
-    {
-        if (proc.main().has_error() &&
-            proc.main().error() == goby::middleware::protobuf::ERROR__PROCESS_DIED)
-        {
-            auto it =
-                process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
-            if (it != process_to_not_responding_error_.end())
-            {
-                glog.is_warn() && glog << "App: " << proc.main().name()
-                                       << " is not reponding, Error Message: " << it->second
-                                       << std::endl;
-                last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                    ->add_error(it->second);
-            }
-            else
-            {
-                glog.is_warn() &&
-                    glog << "App: " << proc.main().name()
-                         << " is not responding but has not been mapped to an ERROR enumeration"
-                         << std::endl;
-                last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                    ->add_error(protobuf::ERROR__NOT_RESPONDING__UNKNOWN_APP);
-            }
-        }
-    }
 }
 
 jaiabot::apps::JaiabotProduction::~JaiabotProduction()
@@ -238,7 +97,7 @@ void jaiabot::apps::JaiabotProduction::loop()
 
 }
 
-//these code blocks might be important for the motor harness
+/*
 constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
@@ -308,38 +167,4 @@ void jaiabot::apps::MotorStatusThread::issue_status_summary()
                              << std::endl;
     interprocess().publish<jaiabot::groups::motor_status>(status_);
 }
-
-void jaiabot::apps::MotorStatusThread::send_rpm_query()
-{
-    glog.is_debug2() && glog << group(thread_name()) << "Sending RPM Query: " << std::endl;
-    // send an empty packet to provide the python driver with a return address
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    io_data->set_data("hello\n");
-    interthread().publish<jaiabot::groups::motor_udp_out>(io_data);
-}
-
-void jaiabot::apps::MotorStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
-{
-    auto health_state = goby::middleware::protobuf::HEALTH__OK;
-
-    if (last_motor_rpm_report_time_ + std::chrono::seconds(cfg().motor_rpm_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on RPM listener" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_RPM_LISTENER);
-    }
-
-    if (last_motor_thermistor_report_time_ + std::chrono::seconds(cfg().motor_thermistor_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on thermistor data" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ARDUINO_MOTOR_TEMP);
-    }
-
-    health.set_state(health_state);
-}
-
+*/
