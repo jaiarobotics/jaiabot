@@ -10,7 +10,6 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
 
-import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -20,7 +19,7 @@ import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
-import { Cursors } from "../utils/style";
+import { Cursors, setMapCursor } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import {
     NodeTypes,
@@ -878,15 +877,6 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
-}
-
-/**
- * Sets the cursor type for the map
- *
- * @param {Cursor} cursor Type of cursor to display on map
- */
-function setMapCursor(cursor: Cursors) {
-    map.getTargetElement().style.cursor = cursor;
 }
 
 /**

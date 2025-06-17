@@ -1,4 +1,5 @@
 import { SCROLL_DELAY } from "./constants";
+import { map } from "../openlayers/maps/map";
 
 interface XYCoordinate {
     x: number;
@@ -110,4 +111,13 @@ export function scrollMissionsList() {
             missionsList.scrollTo({ top: scrollAmount });
         }
     }, SCROLL_DELAY);
+}
+
+/**
+ * Sets the cursor type for the map
+ *
+ * @param {Cursor} cursor Type of cursor to display on map
+ */
+export function setMapCursor(cursor: Cursors) {
+    map.getTargetElement().style.cursor = cursor;
 }
