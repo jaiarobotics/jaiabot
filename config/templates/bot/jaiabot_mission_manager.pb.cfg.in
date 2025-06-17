@@ -11,7 +11,7 @@ command_sub_cfg {
         buffer {
             ack_required: true
             blackout_time: 0
-            max_queue: 3
+            max_queue: 8
             newest_first: true
             ttl: 60
             value_base: 1000
@@ -124,3 +124,14 @@ resolve_no_forward_progress {
 }
 
 subnet_mask: $subnet_mask
+
+start_camera_command {
+    id: 1
+    type: START_IMAGES
+    image_capture_interval: 2 # seconds
+}
+
+stop_camera_command {
+    id: 2
+    type: STOP_IMAGES
+}

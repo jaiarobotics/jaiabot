@@ -38,7 +38,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/moos.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;

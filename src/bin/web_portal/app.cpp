@@ -32,7 +32,6 @@
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/portal.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
 
 #include <vector>
 
@@ -218,8 +217,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to ContactUpdate
     interprocess().subscribe<jaiabot::groups::contact_update>(
-        [this](const jaiabot::protobuf::ContactUpdate contact_update)
-        {
+        [this](const jaiabot::protobuf::ContactUpdate contact_update) {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
 

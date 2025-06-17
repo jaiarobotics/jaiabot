@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message SalinityData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double conductivity_raw = 1;
+    optional double conductivity = 2;
+    optional double total_dissolved_solids = 3;
+    optional double salinity_raw = 4;
+    optional double salinity = 5;
+}
