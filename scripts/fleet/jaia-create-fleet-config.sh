@@ -100,6 +100,14 @@ function run_wt_yesno() {
     fi
 }
 
+function run_wt_msg_box() {
+    local title=$1
+    local text=$2
+    calc_wt_size
+    (set -x; whiptail --title "$title" --msgbox "$text" $WT_HEIGHT $WT_WIDTH > /dev/tty)
+}
+
+
 
 script_dir=$(realpath `dirname $0`)
 USING_PRESEED=false
@@ -146,28 +154,35 @@ echo "## Generating Hub SSH keys                          ##"
 echo "######################################################"
 
 for HUB_ID_QUOTED in ${HUB_IDS}
-do    
+do
+    CLOUDHUB_ID=30
     HUB_ID=$(eval echo ${HUB_ID_QUOTED})
     KEYNAME="hub${HUB_ID}_fleet${FLEET_ID}"
     PRIVKEY="/tmp/${KEYNAME}"
     PUBKEY="${PRIVKEY}.pub"
     rm -f $PRIVKEY $PUBKEY
 
-    run_wt_inputbox "Fleet Configuration" "Hub ${HUB_ID} SSH Private Key: If creating a fleet configuration for upgrading an existing fleet, enter the path to the existing Hub ${HUB_ID} SSH **PRIVATE** key file (hub${HUB_ID}_fleet{FLEET_ID}). If creating a new fleet, leave blank to generate a new key."
-    HUB_PRIVKEY_PATH=$WT_TEXT
 
-    if [ -z "${HUB_PRIVKEY_PATH}" ]; then    
+    if [[ "${HUB_ID}" = "${CLOUDHUB_ID}" ]]; then
+        # Only generate a file based key pair for cloudhub
         ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME"
-    elif [ -e "${HUB_PRIVKEY_PATH}" ]; then
-        cp ${HUB_PRIVKEY_PATH} ${PRIVKEY}
-        ssh-keygen -c -f ${PRIVKEY} -C "$KEYNAME"
-        ssh-keygen -f ${PRIVKEY} -y > ${PUBKEY}
+        PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
+        PUBKEY_CONTENTS="\"$(cat ${PUBKEY})\""
     else
-        echo "Hub key does not exist: ${HUB_PRIVKEY_PATH}"
-        exit 1
+        # Otherwise require a yubikey
+        run_wt_msg_box "Fleet Configuration" "Hub ${HUB_ID} SSH Private Key: Insert Hub ${HUB_ID} Yubikey to a USB port to generate SSH key and press OK when ready"
+
+        num_yubikeys=$(ykman list -s | wc -l)
+        while [[ "$num_yubikeys" != "1" ]]; do
+            run_wt_msg_box "Fleet Configuration" "ERROR: Exactly one Yubikey needs to be inserted. Please check Yubikey for Hub ${HUB_ID} is correctly installed and no other Yubikeys are connected."
+            num_yubikeys=$(ykman list -s | wc -l)
+        done
+        echo "Generated key using Yubikey $(ykman list -s)"
+        ssh-keygen -t ed25519-sk -O no-touch-required -f $PRIVKEY -N "" -C hub${HUB_ID}_fleet${FLEET_ID}
+        PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
+        PUBKEY_CONTENTS="\"no-touch-required $(cat ${PUBKEY})\""
     fi
-    PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})    
-    PUBKEY_CONTENTS="\"$(cat ${PUBKEY})\""
+
     echo "  hub { id: ${HUB_ID} private_key: ${PRIVKEY_CONTENTS} public_key: ${PUBKEY_CONTENTS} }" >> $out
     rm $PRIVKEY $PUBKEY
 done
