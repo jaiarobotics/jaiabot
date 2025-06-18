@@ -206,10 +206,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
-    
-    // imu test
-    //Wt::WText* imu_test_status_;
-    //Wt::WText* imu_debug_log_;
+    Wt::WText* production_imu_data_status_text_;
+
+    bool imu_data_received_ = false;
+    int imu_data_count_ = 0;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -263,6 +263,30 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<groups::low_control>(
             [this](const jaiabot::protobuf::LowControl& low_control)
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
+
+          interprocess().subscribe<groups::imu>(
+    [this](const jaiabot::protobuf::IMUData& imu)
+    {
+        // 👇 Print the full IMU message (all fields)
+        //std::cout << "[IMU SUB] Received IMUData:\n" << imu.DebugString() << std::endl;
+
+        tab_->imu_data_count_++;
+
+        tab_->post_to_wt([=]() {
+            std::stringstream ss;
+            //ss << "IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
+            ss << "[IMU SUB] Received IMUData:\n" << imu.DebugString() << std::endl;
+            tab_->production_imu_data_status_text_->setText(ss.str());
+        });
+
+        tab_->post_to_wt([=]() {
+            tab_->post_imu(imu);
+        });
+    });
+
+
+
+            
 
     } // namespace jaiabot
     ~CommsThread() {}

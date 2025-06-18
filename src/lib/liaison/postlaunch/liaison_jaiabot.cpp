@@ -82,7 +82,8 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     //imu test!!
     auto production_imu_test_box = production_box->addNew<WGroupBox>("Test IMU Sensor");
-    //imu_data_status_text = production_box->addNew<Wt::WText>();
+    production_imu_data_status_text_ = production_box->addNew<Wt::WText>();
+    production_imu_data_status_text_->setText("IMU Test: 🤔 Waiting to receive data...");
 
     //Test Pressure!!
     auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressure Sensor");
