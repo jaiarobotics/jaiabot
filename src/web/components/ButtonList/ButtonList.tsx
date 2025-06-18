@@ -4,6 +4,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 
 import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
 import StopAllBotsButton from "../StopAllBots/StopAllBotsButton";
+import DataOffloadAllButton from "../DataOfffloadAllButton/DataOffloadAllButton";
 import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
 
 import { PanelNames } from "../../types/context-types";
@@ -59,7 +60,7 @@ export default function ButtonList(props: Props) {
                 <ActivateAllButton bots={jaiaContext.bots} />
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
-                <Button className="jaia-button"></Button>
+                <DataOffloadAllButton bots={jaiaContext.bots} />
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
                 <Button

@@ -469,9 +469,10 @@ void jaiabot::apps::HubManager::loop()
     {
         start_dataoffload(bots_pending_data_offload_.front());
         bots_pending_data_offload_.pop_front();
-        for (int bot_id : bots_pending_data_offload_)
-        { latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id); }
     }
+
+    for (int bot_id : bots_pending_data_offload_)
+    { latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id); }
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
