@@ -41,6 +41,7 @@
 using goby::glog;
 namespace si = boost::units::si;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotProduction>;
+using namespace std;
 
 namespace jaiabot
 {
@@ -55,10 +56,24 @@ class JaiabotProduction: public ApplicationBase
 {
     public:
         JaiabotProduction();
-        ~JaiabotProduction();
 
     private:
+        
+        bool imu_test_passed_ = false;
+        bool pressure_test_passed_ = false;
+        bool motor_test_passed_ = false;
+
+        double latest_pressure_ = 0.0;
+        double latest_rpm_ = 0.0;
+        double latest_temperature_ = 0.0;
+
+        bool imu_reset_pending_ = false;
+        goby::time::SystemClock::time_point imu_reset_start_time_;
+    
         void loop() override;
+        void imu_sensor();
+        void pressure_sensor();
+        void motor_harness();
     
 };
 } //namespace apps
@@ -72,80 +87,63 @@ int main(int argc, char* argv[])
 
 jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
 {
-    glog.is_debug1() && glog << "Production App" << std::endl;
+    //glog.is_debug1() && glog << "Production App" << std::endl;
+
+    //test imuSensor - test is to confirm we are receiving imu data; when reset imu service is started
+    // imu data stops sending for 2 secs
+    interprocess().subscribe<jaiabot::groups::imu>(
+    [this](const protobuf::ImuData& msg)
+    {
+        // Process IMU data here
+    });
+
+    //pressureSensor - pressure service is restarted and the pressure reading < 0.2
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+    [this](const protobuf::PressureTemperatureData& msg)
+    {
+        latest_pressure_ = msg.pressure();
+        if (latest_pressure_ < 0.2) pressure_test_passed_ = true;
+    });
+
+
+    //motorHarness - run motor for 2secs and confirm rpm >= 3600
+    //get temperature data - temp data between 10-30; reset imu service pauses imu data for 2 secs
+    interprocess().subscribe<jaiabot::groups::motor_status>(
+    [this](const protobuf::Motor& msg)
+    {
+        latest_rpm_ = msg.rpm();
+        if (latest_rpm_ >= 3600) motor_test_passed_ = true;
+    });
 
 
 } //ApplicationBase JaiabotProduction
 
 
-/*
-constexpr int thermistor_ohms_neutral = 10000;
-constexpr int thermistor_voltage = 5;
-
-jaiabot::apps::MotorStatusThread::MotorStatusThread(
-    const jaiabot::config::MotorStatusConfig& cfg)
-    : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
+//Response: PASS or FAIL If it FAILs then give a message why: did not pass test ... 
+void jaiabot::apps::JaiabotProduction::imu_sensor()
 {
-    status_.set_motor_harness_type(cfg.motor_harness_type());
+    //check if data is paused after reset or validate the data
 
-    interthread().subscribe<jaiabot::groups::motor_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-        jaiabot::protobuf::Motor motor;
-        if (!motor.ParseFromString(data.data()))
-        {
-            glog.is_warn() && glog << "Couldn't deserialize Motor message from UDP packet"
-                                   << std::endl;
-            return;
-        }
-        glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
-                                 << std::endl;
-
-        rpm_value_ = motor.rpm();        
-        last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
-    });
-
-    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
-            if (arduino_response.has_thermistor_voltage())
-            {
-                float voltage = arduino_response.thermistor_voltage();
-                float resistance = thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
-                float temperature =
-                    goby::util::linear_interpolate(resistance, resistance_to_temperature_);
-                float temperature_celsius = (temperature - 32) / 1.8;
-
-                status_.mutable_thermistor()->set_temperature(temperature_celsius);
-                status_.mutable_thermistor()->set_resistance(resistance);
-                status_.mutable_thermistor()->set_voltage(voltage);
-
-                last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
-            }
-
-            if (arduino_response.has_motor())
-            {
-                if (arduino_response.motor() > 1500)
-                {
-                    // motor is spinning in forward direction
-                    status_.set_rpm(std::abs(rpm_value_));
-                }
-                else if (arduino_response.motor() < 1500)
-                {
-                    // motor is spinning in reverse direction
-                    status_.set_rpm(-std::abs(rpm_value_));
-                }
-                else
-                {
-                    // motor is off
-                    status_.set_rpm(0);
-                }
-            }
-        });
 }
 
-void jaiabot::apps::MotorStatusThread::issue_status_summary()
+//Response: PASS or FAIL If it FAILs then give a message why: did not pass test
+void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    send_rpm_query();
-    glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
-                             << std::endl;
-    interprocess().publish<jaiabot::groups::motor_status>(status_);
+    
 }
-*/
+
+//Response: PASS or FAIL If it FAILs then give a message why: did not pass test
+void jaiabot::apps::JaiabotProduction::motor_harness()
+{
+    
+}
+
+//debug function
+void jaiabot::apps::JaiabotProduction::loop()
+{
+    if (imu_test_passed_ && pressure_test_passed_ && motor_test_passed_)
+    {
+        glog.is_debug1() && glog << "All tests passed!!!" << std::endl;
+    }
+}
+
