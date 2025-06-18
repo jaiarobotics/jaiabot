@@ -23,6 +23,7 @@
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/production.pb.h"
 
 namespace jaiabot
 {

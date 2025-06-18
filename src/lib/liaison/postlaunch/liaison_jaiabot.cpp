@@ -82,10 +82,10 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     //imu test!!
     auto production_imu_test_box = production_box->addNew<WGroupBox>("Test IMU Sensor");
-    //imu_test_status_ = production_box->addNew<Wt::WText>();
+    //imu_data_status_text = production_box->addNew<Wt::WText>();
 
     //Test Pressure!!
-    auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressor Sensor");
+    auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressure Sensor");
 
     //Test Motor Harness
     auto production_motor_harness_test = production_box->addNew<WGroupBox>("Test Motor Harness");
