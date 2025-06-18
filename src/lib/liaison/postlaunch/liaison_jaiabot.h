@@ -267,15 +267,13 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
           interprocess().subscribe<groups::imu>(
     [this](const jaiabot::protobuf::IMUData& imu)
     {
-        // 👇 Print the full IMU message (all fields)
-        //std::cout << "[IMU SUB] Received IMUData:\n" << imu.DebugString() << std::endl;
 
         tab_->imu_data_count_++;
 
         tab_->post_to_wt([=]() {
             std::stringstream ss;
             //ss << "IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
-            ss << "[IMU SUB] Received IMUData:\n" << imu.DebugString() << std::endl;
+            ss << "Written Received IMUData:  " << imu.DebugString() << "  IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
             tab_->production_imu_data_status_text_->setText(ss.str());
         });
 
@@ -283,11 +281,7 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             tab_->post_imu(imu);
         });
     });
-
-
-
             
-
     } // namespace jaiabot
     ~CommsThread() {}
 
