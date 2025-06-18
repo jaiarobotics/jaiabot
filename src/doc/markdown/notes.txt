@@ -1,0 +1,29 @@
+1. Troubleshooting vs Trouble Shooting
+
+Operating System Setup
+-------------------
+Windows
+* Install Ubuntu 24.04 using WSL
+
+Mac
+* Multipass
+
+Linux
+* The jaiabot project supports Ubunut 24.04
+
+
+Code Installation
+----------------------------
+(Same for all three OS)
+
+Simulator Launch
+------------------
+Windows/Linux
+Mac
+Sub section for troubleshooting
+
+
+
+Modifying Code
+-------------
+Include note about SSH keys and Macs 
