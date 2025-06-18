@@ -272,7 +272,6 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
 
         tab_->post_to_wt([=]() {
             std::stringstream ss;
-            //ss << "IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
             ss << "Written Received IMUData:  " << imu.DebugString() << "  IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
             tab_->production_imu_data_status_text_->setText(ss.str());
         });

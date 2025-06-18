@@ -81,7 +81,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     auto production_box = std::make_unique<Wt::WContainerWidget>();
 
     //imu test!!
-    auto production_imu_test_box = production_box->addNew<WGroupBox>("Test IMU Sensor");
+    auto production_imu_test_box = production_box->addNew<WGroupBox>("Test IMU Sensor!");
     production_imu_data_status_text_ = production_imu_test_box->addNew<Wt::WText>();
     //production_imu_data_status_text_->setText("IMU Test: 🤔 Waiting to receive data...");
 
