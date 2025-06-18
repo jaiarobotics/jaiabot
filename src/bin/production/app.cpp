@@ -59,7 +59,7 @@ class JaiabotProduction: public ApplicationBase
 
     private:
         
-        bool imu_test_passed_ = false;
+        /*bool imu_test_passed_ = false;
         bool pressure_test_passed_ = false;
         bool motor_test_passed_ = false;
 
@@ -73,7 +73,7 @@ class JaiabotProduction: public ApplicationBase
         void loop() override;
         void imu_sensor();
         void pressure_sensor();
-        void motor_harness();
+        void motor_harness();*/
     
 };
 } //namespace apps
@@ -87,11 +87,11 @@ int main(int argc, char* argv[])
 
 jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
 {
-    //glog.is_debug1() && glog << "Production App" << std::endl;
+    glog.is_debug1() && glog << "Production App" << std::endl;
 
     //test imuSensor - test is to confirm we are receiving imu data; when reset imu service is started
     // imu data stops sending for 2 secs
-    interprocess().subscribe<jaiabot::groups::imu>(
+    /*interprocess().subscribe<jaiabot::groups::imu>(
     [this](const protobuf::ImuData& msg)
     {
         // Process IMU data here
@@ -115,11 +115,11 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         if (latest_rpm_ >= 3600) motor_test_passed_ = true;
     });
 
-
+*/
 } //ApplicationBase JaiabotProduction
 
 
-//Response: PASS or FAIL If it FAILs then give a message why: did not pass test ... 
+/*Response: PASS or FAIL If it FAILs then give a message why: did not pass test ... 
 void jaiabot::apps::JaiabotProduction::imu_sensor()
 {
     //check if data is paused after reset or validate the data
@@ -147,3 +147,4 @@ void jaiabot::apps::JaiabotProduction::loop()
     }
 }
 
+*/
