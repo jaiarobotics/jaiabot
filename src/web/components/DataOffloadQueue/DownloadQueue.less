@@ -1,16 +1,37 @@
+@import "../../style/stylesheets/vars.less";
+
 .data-offload-queue {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 
-    background-color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    background-color: #ffffff;
 
     height: 300px;
-    width: 300px;
+    width: 240px;
+
+    padding: 9px;
 }
 
 .queue-item {
     display: flex;
+    justify-content: space-evenly;
+    align-items: center;
     gap: 15px;
+
+    background-color: @cc-accordian-color;
+    color: @cc-text-color-light;
+
+    border: 1px solid @cc-accordian-color;
+    border-radius: 3px;
+
+    font-size: 1.05rem;
+    font-weight: 600;
+
+    padding: 6px;
 }

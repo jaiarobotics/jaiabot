@@ -1,3 +1,4 @@
+import CircularProgress from "@mui/joy/CircularProgress";
 import { useContext } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
@@ -65,7 +66,7 @@ function QueueItem(props: Props) {
     return (
         <div className="queue-item">
             <div>Bot {props.botID}</div>
-            <div>{props.offloadPercentage}%</div>
+            <CircularProgress determinate value={props.offloadPercentage} color="danger" />
         </div>
     );
 }
