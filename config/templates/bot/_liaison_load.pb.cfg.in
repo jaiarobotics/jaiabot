@@ -20,7 +20,7 @@ load_protobuf {
 } 
 
 load_protobuf {
-    name: "jaiabot.protobuf.ProductionCommand" 
+    name: "jaiabot.protobuf.ProductionRequest" 
     publish_to {
         group: "jaiabot::production" 
     }
