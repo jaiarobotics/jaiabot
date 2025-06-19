@@ -7,7 +7,7 @@ import { FrameState } from "ol/Map";
 import { map } from "../../../../openlayers/maps/map";
 
 const type = "click";
-const originalEvent: UIEvent = new UIEvent("select");
+const originalEvent: PointerEvent = new PointerEvent("select");
 const dragging = false;
 const projection: Projection = new Projection({
     code: "EPSG:3857",
@@ -56,7 +56,7 @@ const frameState: FrameState = {
     renderTargets: {},
 };
 
-export const mapBrowserEventMock = new MapBrowserEvent<UIEvent>(
+export const mapBrowserEventMock = new MapBrowserEvent<PointerEvent>(
     type,
     map,
     originalEvent,
