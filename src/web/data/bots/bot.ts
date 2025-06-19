@@ -6,7 +6,7 @@ import {
     HealthState,
     Warning,
 } from "../../types/protobuf-types";
-import TaskPacket from "../task_packets/task-packets-new";
+import TaskPacket from "../task_packets/task-packets";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
