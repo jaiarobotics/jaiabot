@@ -1,4 +1,4 @@
-import { LayerTitles } from "../../../types/openlayers-types";
+import { LayerTitles } from "../../types/openlayers-types";
 
 export const layersZIndexes = new Map<LayerTitles, number>();
 
