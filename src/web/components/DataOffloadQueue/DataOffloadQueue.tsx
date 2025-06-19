@@ -2,7 +2,7 @@ import CircularProgress from "@mui/joy/CircularProgress";
 import { useContext } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
-import "./DownloadQueue.less";
+import "./DataOffloadQueue.less";
 
 interface Props {
     botID: number;
@@ -52,7 +52,12 @@ export default function DataOffloadQueue() {
         );
     }
 
-    return <div className="data-offload-queue"></div>;
+    return (
+        <div className="data-offload-queue">
+            <QueueItem botID={12} offloadPercentage={30} />
+            <QueueItem botID={3} offloadPercentage={10} />
+        </div>
+    );
 }
 
 /**

@@ -14,6 +14,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 
 // Style
 import "./App.less";
@@ -75,6 +76,8 @@ function Panel() {
             return <HelpWindow />;
         case PanelNames.JAIA_ABOUT:
             return <JaiaAbout />;
+        case PanelNames.DATA_OFFLOAD:
+            return <DataOffloadPanel />;
         default:
             return <div></div>;
     }
