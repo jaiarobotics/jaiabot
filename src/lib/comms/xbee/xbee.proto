@@ -8,8 +8,8 @@ message XBeePacket
 {
     option (dccl.msg) = {
         id: 32764       // not really used, will be removed from message
-        max_bytes: 258  // will be 256 when we remove the ID 2 bytes == default
-                        // max packet size (ATNP)
+        max_bytes: 250  // will be 248 when we remove the ID 2 bytes == default
+                        // max packet size (ATNP), where 248 = 256 - 8 bytes (if encryption enabled, supposedly, according to 2025-01-23 with Brenton Mock at Digi
         codec_version: 4
     };
 
@@ -35,5 +35,5 @@ message XBeePacket
         [(dccl.field) = { min: 0, max: 30, codec: "dccl.presence" }];
 
     optional bytes data = 10
-        [(dccl.field) = { codec: "dccl.var_bytes" max_length: 250 }];
+        [(dccl.field) = { codec: "dccl.var_bytes" max_length: 242 }];
 };

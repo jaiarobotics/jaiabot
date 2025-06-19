@@ -23,10 +23,7 @@
     fi
     
     # Cache wheels for later use by apt update/upgrade
-    mkdir -p /var/log/tmp
-    export TMPDIR=/var/log/tmp
     # ignore /etc/pip.conf, which will not allow us to connect to pypi
     export PIP_CONFIG_FILE=/dev/null
     pip3 wheel wheel -w /var/www/html/updates
     pip3 wheel -r <(sed '/pyjaia/d' /tmp/requirements.txt) -w /var/www/html/updates
-    rm -rf /var/log/tmp

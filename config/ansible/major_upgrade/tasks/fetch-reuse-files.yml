@@ -1,0 +1,6 @@
+- name: Fetch files to reuse on new image
+  shell: |
+    mkdir -p {{ upgrade_reuse_dir }}
+    for file in /etc/wireguard/*; do
+      rsync -aPR $file {{ upgrade_reuse_dir }}
+    done

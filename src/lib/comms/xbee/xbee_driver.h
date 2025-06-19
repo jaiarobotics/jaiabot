@@ -119,8 +119,11 @@ class XBeeDriver : public goby::acomms::ModemDriverBase
     bool have_active_hub_{false};
     int active_hub_id_{-1};
 
-    // maps hub_id to Peer struct
-    std::map<int, xbee::protobuf::Peer> hub_peers_;
+    // 1
+    int hub_xbee_base_modem_id_{-1};
+
+    // 1 + number of modems in link*link
+    int hub_xbee_modem_id_{-1};
 };
 } // namespace comms
 } // namespace jaiabot

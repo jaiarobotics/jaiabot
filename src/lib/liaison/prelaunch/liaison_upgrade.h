@@ -1,8 +1,8 @@
 #ifndef LIAISON_UPGRADE_H
 #define LIAISON_UPGRADE_H
 
-#include <Wt/Http/Response>
-#include <Wt/WFileResource>
+#include <Wt/Http/Response.h>
+#include <Wt/WFileResource.h>
 
 #include <chrono>
 #include <future>
@@ -21,8 +21,7 @@ namespace jaiabot
 class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 {
   public:
-    LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
-                   Wt::WContainerWidget* parent = 0);
+    LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg);
 
   private:
     class LogFileResource : public Wt::WResource
@@ -34,8 +33,8 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 
         void handleRequest(const Wt::Http::Request& request, Wt::Http::Response& response) override
         {
-            suggestFileName("jaiabot_upgrade_ansible_log_ " + goby::time::file_str() + ".json");
-            response.addHeader("Content-Type", "text/plain");
+            suggestFileName("jaiabot_upgrade_ansible_log_" + goby::time::file_str() + ".json");
+            response.addHeader("Content-Type", "application/json");
             response.out() << last_log_;
         }
 
@@ -43,25 +42,48 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         std::string last_log_;
     };
 
+    class AutoScrollWidget : public Wt::WContainerWidget
+    {
+      public:
+        AutoScrollWidget()
+        {
+            this->setOverflow(Wt::Overflow::Auto,
+                              Wt::Orientation::Horizontal | Wt::Orientation::Vertical);
+            this->setHeight(300);
+        }
+
+        void addText(Wt::WString line)
+        {
+            this->addNew<Wt::WText>(line + "<br/>");
+
+            // JavaScript to scroll to the bottom
+            std::string jsCode = "var obj = document.getElementById('" + this->id() +
+                                 "'); obj.scrollTop = obj.scrollHeight;";
+            Wt::WApplication::instance()->doJavaScript(jsCode);
+        }
+    };
+
     struct AnsiblePlaybookConfig
     {
         AnsiblePlaybookConfig(const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook,
-                              LiaisonUpgrade* parent, std::size_t playbook_index);
+                              Wt::WContainerWidget* parent, LiaisonUpgrade* upgrade,
+                              std::size_t playbook_index);
         AnsiblePlaybookConfig() = delete;
         AnsiblePlaybookConfig(const AnsiblePlaybookConfig&) = delete;
         AnsiblePlaybookConfig(AnsiblePlaybookConfig&&) = default;
 
         std::string file;
-        Wt::WGroupBox* group_box;
-        Wt::WContainerWidget* group_div;
-        Wt::WContainerWidget* iv_group_div;
-        Wt::WContainerWidget* run_button_div;
-        Wt::WPushButton* run_button;
-        Wt::WContainerWidget* log_button_div;
-        Wt::WPushButton* log_button;
-        Wt::WContainerWidget* result_div;
-        Wt::WText* result_text;
-        Wt::WTable* result_table;
+        std::string stdout_file;
+        std::string json_file;
+
+        Wt::WPushButton* run_button{0};
+        Wt::WPushButton* log_button{0};
+        Wt::WPushButton* stdout_button{0};
+        Wt::WText* result_text{0};
+        Wt::WTable* result_table{0};
+        Wt::WGroupBox* stdout_group{0};
+        AutoScrollWidget* stdout_div{0};
+
         std::vector<std::string>::const_iterator run_text_it;
         // name -> value
         std::map<std::string, std::string> input_var;
@@ -73,19 +95,23 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         {
             ProcessData(const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
                         const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
-                        const std::string& input_vars);
+                        const std::string& input_vars, const std::string& ansible_stdout_file,
+                        const std::string& ansible_json_file);
             ~ProcessData();
 
             boost::asio::io_service io;
-            std::future<std::string> stdout;
             std::future<std::string> stderr;
             boost::process::child process;
             std::thread io_thread;
+            std::ifstream stdout;
         };
         std::unique_ptr<ProcessData> pdata;
         std::string last_log;
         std::shared_ptr<LogFileResource> log_resource;
         const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook;
+
+        void show_stdout();
+        void hide_stdout();
     };
     friend struct AnsiblePlaybookConfig;
 
@@ -106,12 +132,21 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
                        std::size_t playbook_index);
 
     void process_ansible_json_result(nlohmann::json j, AnsiblePlaybookConfig& playbook);
+    void toggle_stdout(std::size_t playbook_index);
 
     void loop();
     void focus() override { timer_.start(); }
     void unfocus() override { timer_.stop(); }
 
   private:
+    struct SectionWidgets
+    {
+        Wt::WPanel* panel;
+        Wt::WContainerWidget* div;
+    };
+
+    std::map<std::string, SectionWidgets> sections;
+
     const protobuf::UpgradeConfig& cfg_;
     std::vector<AnsiblePlaybookConfig> playbooks_;
     Wt::WTimer timer_;

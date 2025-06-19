@@ -28,7 +28,7 @@ export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) 
         return false;
     };
 
-    feature.set("onclick", function (evt: OlMapBrowserEvent<UIEvent>) {
+    feature.set("onclick", function (evt: OlMapBrowserEvent<PointerEvent>) {
         const overlayOffsetPixels = [50, 0];
 
         const clickCoordinate = evt.coordinate;

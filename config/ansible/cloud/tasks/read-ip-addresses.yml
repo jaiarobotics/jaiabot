@@ -29,3 +29,11 @@
     wlan_ipv4_addresses: "{{ wlan_ipv4_addresses | combine({item.item.node_type: {item.item.node_id: item.stdout}}, recursive=True) }}"
   loop: "{{ _wlan_ipv4_addresses.results }}"
   tags: read
+
+- name: Look up VFleet network
+  shell: /usr/bin/jaia-ip.py net --net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ipv6
+  register: vfleet_ipv6_network_raw
+
+- name: Set vfleet_ipv6_network directly
+  ansible.builtin.set_fact:
+    vfleet_ipv6_network: "{{ vfleet_ipv6_network_raw.stdout }}"

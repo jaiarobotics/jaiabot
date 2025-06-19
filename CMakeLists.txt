@@ -3,8 +3,8 @@ project(jaiabot CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-# require C++14
-set(CMAKE_CXX_STANDARD 14)
+# require minimum C++ version
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # determine version of jaiabot
@@ -36,6 +36,7 @@ protobuf_include_dirs("${GOBY_INCLUDE_DIR}")
 
 # create variables for various directories
 get_filename_component(project_SRC_DIR src ABSOLUTE)
+get_filename_component(project_ROOTFS_DIR rootfs ABSOLUTE)
 get_filename_component(project_BUILD_DIR ${CMAKE_BINARY_DIR} ABSOLUTE)
 get_filename_component(project_SCRIPTS_DIR scripts ABSOLUTE)
 
@@ -107,11 +108,11 @@ foreach(I ${INCLUDE_FILES})
 endforeach()
 foreach(I ${PROTO_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
-  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 foreach(I ${NANOPB_OPTIONS_FILES})
-  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 
@@ -154,6 +155,11 @@ macro(project_install_lib target_lib)
   set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
 endmacro()
 
+
+# Install these init files so that they are accessible to CloudHub for VirtualFleet generation
+file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
+file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2 DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
+
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
   )
@@ -182,7 +188,6 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
 set(scripts_to_install
-  jaiabot-checkloadavg.py
   # data offload
   data-offload/jaiahub-dataoffload.sh
   data-offload/jaiabot-predataoffload.sh
@@ -190,12 +195,24 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
   # Utilities
   jaia-ip.py
   jaia-doc.py
-)
+  jaia-vpn-gen.sh
+  # System scripts
+  system/jaiabot-checkloadavg.py
+  system/jaia_update_ufw_rules.sh
+  system/jaia_update_network.sh
+  # Fleet config
+  fleet/jaia-create-fleet-config.sh
+  fleet/jaia-generate-first-boot.py
+  fleet/jaia-fleet-config-update-iso.sh
+  # First boot (also used by VirtualFleet creation)
+  init/jaia-create-ansible-inventory.sh
+  )
 
 # Iterate over each script to install and copy
 foreach(script ${scripts_to_install})
@@ -213,10 +230,16 @@ endif()
 # add the code
 add_subdirectory(src)
 
+add_custom_target(jaiabot_core)
+foreach(app_target ${PROJECT_APP_LIST})
+  add_dependencies(jaiabot_core ${app_target})
+endforeach()
 
 if(export_goby_interfaces)
-  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
+  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (2.y)?
+  set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")

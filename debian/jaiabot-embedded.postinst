@@ -22,6 +22,8 @@ elif [ "$JAIA_TYPE" = "hub" ]; then
     db_get jaiabot-embedded/hub_id
     BOT_OR_HUB_INDEX=$RET
     BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 10))
+    JAIA_BOT_TYPE="none"
+    db_set jaiabot-embedded/bot_type "none"
 fi
 
 db_get jaiabot-embedded/fleet_id
@@ -38,20 +40,41 @@ if [[ "$NEW_HOST_NAME" != "$OLD_HOST_NAME" ]]; then
     echo "<<<<< Setting hostname complete!"
 fi
 
-
-echo ">>>>> Updating eth0 configuration ... "
-ETH0_IFACE=eth0
-sed -i "s/\( *address\).*/\1 10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/"  /etc/network/interfaces.d/${ETH0_IFACE}
-sed -i "s/\( *gateway\).*/\1 10.23.${FLEET_INDEX}.1/"  /etc/network/interfaces.d/${ETH0_IFACE}
-echo "<<<<< Updating eth0 configuration complete (IP address changes won't take effect until reboot)!"
-
 echo ">>>>> Updating wifi configuration ... "
-WIFI_IFACE=wlan0
-sed -i "s/\( *wpa-essid\).*/\1 JAIA-HUB-WIFI-${FLEET_INDEX}/"  /etc/network/interfaces.d/${WIFI_IFACE}
-sed -i "s/\( *address\).*/\1 10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/"  /etc/network/interfaces.d/${WIFI_IFACE}
-sed -i "s/\( *gateway\).*/\1 10.23.${FLEET_INDEX}.1/"  /etc/network/interfaces.d/${WIFI_IFACE}
-echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
 
+FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
+NETENV_FILE=/etc/jaiabot/network.env
+FLEET_ADDRESS="10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/24"
+FLEET_GATEWAY="10.23.${FLEET_INDEX}.1"
+
+# In place upgrades from 1.y -> 2.y won't have /etc/jaiabot/network.env, so we need to create it
+if [ ! -f "${NETENV_FILE}" ]; then
+    # if possible, read existing wifi password
+    OLD_WLAN_NETWORK_FILE="/etc/network/interfaces.d/wlan0"
+    if [ -f "${OLD_WLAN_NETWORK_FILE}" ]; then
+        FLEET_PASSWORD=$(sed -n 's/ *wpa-psk *.\(.*\)/\1/p')
+    fi
+    cat <<EOF > ${NETENV_FILE}
+jaia_network_fleet_ssid="${FLEET_WLAN_SSID}"
+jaia_network_fleet_password="${FLEET_PASSWORD}"
+jaia_network_fleet_address="${FLEET_ADDRESS}"
+jaia_network_fleet_gateway="${FLEET_GATEWAY}"
+jaia_network_wifi_iface=wlan0
+jaia_network_eth_iface=eth0
+jaia_network_service_ssid="JaiaService"
+jaia_network_service_password="jaia_service"
+jaia_network_eth_enabled=false
+EOF
+else
+    sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
+    sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
+    sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
+fi
+
+/usr/bin/jaia_update_network.sh
+
+
+echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
 echo ">>>>> Updating hub0 address ... "
 sed -i "s/.*hub0/10.23.${FLEET_INDEX}.10 hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
@@ -100,6 +123,13 @@ JAIA_TEMPERATURE_SENSOR_TYPE=$RET
 db_get jaiabot-embedded/pressure_sensor_type
 JAIA_PRESSURE_SENSOR_TYPE=$RET
 
+db_get jaiabot-embedded/rf_encryption_password
+JAIA_RF_ENCRYPTION_PASSWORD=$RET
+
+db_get jaiabot-embedded/comms_links
+JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
+
+
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
                                          --jaiabot_bin_dir=/usr/bin \
@@ -122,7 +152,9 @@ JAIA_PRESSURE_SENSOR_TYPE=$RET
                                          --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
                                          --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
                                          --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
-                                         --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE}
+                                         --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
+                                         --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
+                                         --comms_links ${JAIA_COMMS_LINKS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 

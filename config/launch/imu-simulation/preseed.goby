@@ -1,2 +1,0 @@
-export jaia_mode=simulation
-source $(dirname $BASH_SOURCE)/../../preseed.goby

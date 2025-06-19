@@ -10,7 +10,14 @@ jaiabot::apps::SshTool::SshTool()
     std::vector<std::string> args{"ssh"};
 
     std::string host_ip = tool::parse_host_ip_from_code(app_cfg().host());
-    std::string user_and_host = app_cfg().user() + "@" + host_ip;
+
+    std::string user = app_cfg().user();
+
+    // special case default user "ubuntu" for these servers
+    if (!app_cfg().has_user() && (host_ip == "vpn.jaia.tech" || host_ip == "packages.jaia.tech"))
+        user = "ubuntu";
+
+    std::string user_and_host = user + "@" + host_ip;
     args.push_back(user_and_host);
 
     for (const auto& cli_extra : app_cfg().app().tool_cfg().extra_cli_param())

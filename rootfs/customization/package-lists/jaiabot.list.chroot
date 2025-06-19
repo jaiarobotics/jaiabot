@@ -13,5 +13,4 @@ gpsd
 wireguard
 ntp
 ntpstat
-python3-systemd
 ansible

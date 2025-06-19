@@ -1,5 +1,6 @@
 #include "xbee.h"
 #include "goby/util/debug_logger.h"
+#include "jaiabot/comms/comms.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
@@ -12,27 +13,26 @@ using namespace boost::algorithm;
 using namespace std;
 using namespace boost::asio;
 using namespace boost::endian;
-using jaiabot::comms::byte;
 using jaiabot::comms::NodeId;
 using jaiabot::comms::SerialNumber;
 using xbee::protobuf::XBeePacket;
 
 // Frame types
 
-constexpr byte frame_type_at_command_response = 0x88;
-constexpr byte frame_type_extended_transmit_status = 0x8b;
-constexpr byte frame_type_receive_packet = 0x90;
-constexpr byte frame_type_explicit_rx_indicator = 0x91;
+constexpr jaiabot::comms::byte frame_type_at_command_response = 0x88;
+constexpr jaiabot::comms::byte frame_type_extended_transmit_status = 0x8b;
+constexpr jaiabot::comms::byte frame_type_receive_packet = 0x90;
+constexpr jaiabot::comms::byte frame_type_explicit_rx_indicator = 0x91;
 
 // Utilities
 
 // XBee frame checksum calculator
 //   https://www.digi.com/resources/documentation/Digidocs/90002173/#tasks/t_calculate_checksum.htm?TocPath=Operate%2520in%2520API%2520mode%257C_____4
 
-byte checksum(const string& data)
+jaiabot::comms::byte checksum(const string& data)
 {
-    byte sum = 0;
-    for (byte c : data) { sum += c; }
+    jaiabot::comms::byte sum = 0;
+    for (jaiabot::comms::byte c : data) { sum += c; }
     return 0xff - sum;
 }
 
@@ -42,7 +42,7 @@ string hexadecimal(const string& raw)
 {
     stringstream o;
     o << std::hex << "{ ";
-    for (byte c : raw) { o << int(c) << "  "; }
+    for (jaiabot::comms::byte c : raw) { o << int(c) << "  "; }
     o << " }";
     return o.str();
 }
@@ -80,7 +80,7 @@ void jaiabot::comms::XBeeDevice::startup(
     const uint16_t network_id, const std::string& xbee_info_location, const bool& use_encryption,
     const std::string& encryption_password, const std::string& mesh_unicast_retries,
     const std::string& unicast_mac_retries, const std::string& network_delay_slots,
-    const std::string& broadcast_multi_transmits)
+    const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -92,6 +92,9 @@ void jaiabot::comms::XBeeDevice::startup(
     my_xbee_info_location_ = xbee_info_location;
     glog_group = "xbee id" + my_node_id;
     glog.add_group(glog_group, goby::util::Colors::yellow);
+
+    fleet_id_ = fleet;
+    subnet_mask_ = subnet_mask;
 
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
@@ -141,6 +144,33 @@ void jaiabot::comms::XBeeDevice::startup(
         glog.is_verbose() && glog << group(glog_group) << "Network ID: " << setw(4) << network_id
                                   << endl;
         cmd << "ATID=" << setw(4) << network_id << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    SerialNumber user_serial = get_serial_number(my_node_id);
+    {
+        /*
+          Set User serial number high word (not documented - provided by XBee engineer Brenton Mock on Jan 23, 2025
+        */
+        stringstream cmd;
+        std::uint32_t serial_high = (user_serial >> 32) & 0xFFFFFFFF;
+        glog.is_verbose() && glog << group(glog_group) << "SerialNumber (High word): " << std::hex
+                                  << serial_high << endl;
+        cmd << "ATUH=" << std::hex << serial_high << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+          Set User serial number low word (not documented - provided by XBee engineer Brenton Mock on Jan 23, 2025
+        */
+        stringstream cmd;
+        std::uint32_t serial_low = user_serial & 0xFFFFFFFF;
+        glog.is_verbose() && glog << group(glog_group) << "SerialNumber (Low word): " << std::hex
+                                  << serial_low << endl;
+        cmd << "ATUL=" << std::hex << serial_low << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -505,11 +535,11 @@ void jaiabot::comms::XBeeDevice::write(const string& raw)
 string jaiabot::comms::XBeeDevice::read_until(const string& delimiter)
 {
     string data;
-    glog.is_debug2() && glog << group(glog_group) << "read_until: " << delimiter
-                             << " (hex: " << hexadecimal(delimiter) << ")" << endl;
-    boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
-    glog.is_debug2() && glog << group(glog_group) << "read_until completed with: " << delimiter
+    glog.is_debug2() && glog << group(glog_group) << "read_until: " << hexadecimal(delimiter)
                              << endl;
+    boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
+    glog.is_debug2() && glog << group(glog_group)
+                             << "read_until completed with: " << hexadecimal(delimiter) << endl;
     return data;
 }
 
@@ -551,30 +581,24 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
     write("+++");
 
     this->async_read_with_timeout(
-            buffer, delimiter, timeout_seconds, [this](const std::string& result) {
-                      
-                glog.is_debug1() && glog << group(glog_group) << "Result: " << result 
-                                       << "\nResult is empty: " << result.empty()
+        buffer, delimiter, timeout_seconds, [this](const std::string& result) {
+            glog.is_debug1() && glog << group(glog_group) << "Result: " << result
+                                     << "\nResult is empty: " << result.empty() << std::endl;
+
+            if (result.find("OK") != std::string::npos)
+            {
+                return;
+            }
+            else
+            {
+                // Log an error and retry
+                glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result
+                                       << "| ERROR Result Hex: " << convertToHex(result)
                                        << std::endl;
 
-                if (result.find("OK") != std::string::npos)
-                {
-                    // Stop io context to exit and continue
-                    io->stop();
-                    
-                    return;
-                }
-                else
-                {
-                    // Log an error and retry
-                    glog.is_warn() && glog << group(glog_group) << "ERROR Result: " << result 
-                                    << "| ERROR Result Hex: " << convertToHex(result)
-                                    << std::endl;
-                    
-                    enter_command_mode();
-                } 
-                
-            });
+                enter_command_mode();
+            }
+        });
 }
 
 /**
@@ -596,6 +620,8 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     std::string& buffer, const std::string& delimiter, int timeout_seconds,
     std::function<void(const std::string&)> handler)
 {
+    io->reset();
+
     // Clear the buffer before starting the read operation
     buffer.clear();
 
@@ -631,7 +657,7 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
                 handler("read_error");
             }
         });
-    
+
     // Wait for either the read operation to complete or the timeout to occur
     io->run();
 }
@@ -642,12 +668,11 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
  * @param std::string String to convert into hex
  * @return std::string Hex string
  */
-std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str) 
+std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str)
 {
     std::ostringstream hexStream;
-    for (unsigned char c : str) {
-        hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " ";
-    }
+    for (unsigned char c : str)
+    { hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " "; }
     return hexStream.str();
 }
 
@@ -671,18 +696,9 @@ void jaiabot::comms::XBeeDevice::exit_command_mode()
     read_until("OK\r");
 }
 
-vector<NodeId> jaiabot::comms::XBeeDevice::get_peers()
-{
-    vector<NodeId> peers;
-
-    for (auto peer : node_id_to_serial_number_map) { peers.push_back(peer.first); }
-
-    return peers;
-}
-
 string jaiabot::comms::XBeeDevice::read_frame()
 {
-    byte start_delimiter;
+    jaiabot::comms::byte start_delimiter;
     read(&start_delimiter, 1);
     if (start_delimiter != 0x7e)
     {
@@ -698,18 +714,18 @@ string jaiabot::comms::XBeeDevice::read_frame()
     glog.is_debug1() && glog << group(glog_group) << "Waiting for frame of size " << response_size
                              << " bytes." << endl;
 
-    auto response_buffer = new byte[response_size];
+    auto response_buffer = new jaiabot::comms::byte[response_size];
     read(response_buffer, response_size);
 
     auto response_string = string((const char*)response_buffer, response_size);
     glog.is_debug1() && glog << group(glog_group) << "Read frame: " << hexadecimal(response_string)
                              << endl;
 
-    byte cs = checksum(response_string);
+    jaiabot::comms::byte cs = checksum(response_string);
 
     delete[] response_buffer;
 
-    byte cs_correct;
+    jaiabot::comms::byte cs_correct;
     read(&cs_correct, 1);
 
     if (cs != cs_correct)
@@ -735,14 +751,13 @@ void jaiabot::comms::XBeeDevice::do_work()
 
     if (received_rssi_ && received_er_ && received_gd_ && received_bc_ && received_tr_)
     {
-        glog.is_verbose() && glog << group(glog_group) << "Current RSSI: " << current_rssi_
-                                  << ", Average RSSI: " << average_rssi_
-                                  << ", Min RSSI: " << min_rssi_ << ", Max RSSI: " << max_rssi_
-                                  << ", bytes_transmitted: " << bytes_transmitted_ << " bytes"
-                                  << ", received_error_count: " << received_error_count_
-                                  << ", received_good_count: " << received_good_count_
-                                  << ", transmission_failure_count: " << transmission_failure_count_
-                                  << endl;
+        glog.is_verbose() &&
+            glog << group(glog_group) << "Current RSSI: " << current_rssi_
+                 << ", Average RSSI: " << average_rssi_ << ", Min RSSI: " << min_rssi_
+                 << ", Max RSSI: " << max_rssi_ << ", bytes_transmitted: " << bytes_transmitted_
+                 << " bytes" << ", received_error_count: " << received_error_count_
+                 << ", received_good_count: " << received_good_count_
+                 << ", transmission_failure_count: " << transmission_failure_count_ << endl;
         received_rssi_ = false;
         received_er_ = false;
         received_gd_ = false;
@@ -763,7 +778,7 @@ void jaiabot::comms::XBeeDevice::process_frame()
     if (response_string.length() == 0)
         return;
 
-    byte frame_type = ((byte*)response_string.c_str())[0];
+    jaiabot::comms::byte frame_type = ((byte*)response_string.c_str())[0];
 
     switch (frame_type)
     {
@@ -785,11 +800,11 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
 {
     struct Response
     {
-        byte frame_type;
-        byte frame_id;
+        jaiabot::comms::byte frame_type;
+        jaiabot::comms::byte frame_id;
         char at_command[2];
-        byte command_status;
-        byte command_data_start;
+        jaiabot::comms::byte command_status;
+        jaiabot::comms::byte command_data_start;
     };
 
     Response* response = (Response*)response_string.c_str();
@@ -819,8 +834,7 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
         std::ofstream xbeeFile;
         xbeeFile.open(my_xbee_info_location_);
         xbeeFile << "  node_id: '" << my_node_id << "'\n";
-        xbeeFile << "  serial_number: "
-                 << "'0x00" << std::hex << my_serial_number << "'\n";
+        xbeeFile << "  serial_number: " << "'0x00" << std::hex << my_serial_number << "'\n";
         xbeeFile.close();
     }
 
@@ -908,12 +922,12 @@ void jaiabot::comms::XBeeDevice::process_frame_extended_transmit_status(
 {
     struct TransmitStatus
     {
-        byte frame_type;
-        byte frame_id;
+        jaiabot::comms::byte frame_type;
+        jaiabot::comms::byte frame_id;
         uint16_t reserved;
-        byte transmit_retry_count;
-        byte delivery_status;
-        byte discovery_status;
+        jaiabot::comms::byte transmit_retry_count;
+        jaiabot::comms::byte delivery_status;
+        jaiabot::comms::byte discovery_status;
     };
 
     auto response = (const TransmitStatus*)response_string.c_str();
@@ -932,11 +946,11 @@ void jaiabot::comms::XBeeDevice::process_frame_receive_packet(const string& resp
 {
     struct ReceivePacket
     {
-        byte frame_type;
-        byte src[8];
-        byte reserved[2];
-        byte options;
-        byte received_data_start;
+        jaiabot::comms::byte frame_type;
+        jaiabot::comms::byte src[8];
+        jaiabot::comms::byte reserved[2];
+        jaiabot::comms::byte options;
+        jaiabot::comms::byte received_data_start;
     };
 
     glog.is_debug1() && glog << group(glog_group) << "Packet frame" << endl;
@@ -957,24 +971,24 @@ void jaiabot::comms::XBeeDevice::process_frame_explicit_rx_indicator(const strin
     glog.is_debug1() && glog << group(glog_group) << "Packet frame explicit_rx_indicator" << endl;
     struct Rx_Indicator
     {
-        byte frame_type;
-        byte src[8];
-        byte reserved[2];
-        byte src_endpoint;
-        byte dst_endpoint;
-        byte cluster_id[2];
-        byte profile_id[2];
-        byte options;
-        byte dest_address[8];
-        byte payload_size[2];
-        byte iterations[2];
-        byte success[2];
-        byte retries[2];
-        byte result;
-        byte RR;
-        byte maxRSSI;
-        byte minRSSI;
-        byte avgRSSI;
+        jaiabot::comms::byte frame_type;
+        jaiabot::comms::byte src[8];
+        jaiabot::comms::byte reserved[2];
+        jaiabot::comms::byte src_endpoint;
+        jaiabot::comms::byte dst_endpoint;
+        jaiabot::comms::byte cluster_id[2];
+        jaiabot::comms::byte profile_id[2];
+        jaiabot::comms::byte options;
+        jaiabot::comms::byte dest_address[8];
+        jaiabot::comms::byte payload_size[2];
+        jaiabot::comms::byte iterations[2];
+        jaiabot::comms::byte success[2];
+        jaiabot::comms::byte retries[2];
+        jaiabot::comms::byte result;
+        jaiabot::comms::byte RR;
+        jaiabot::comms::byte maxRSSI;
+        jaiabot::comms::byte minRSSI;
+        jaiabot::comms::byte avgRSSI;
     };
 
     auto response = (const Rx_Indicator*)response_string.c_str();
@@ -1009,7 +1023,8 @@ vector<string> jaiabot::comms::XBeeDevice::get_packets()
 }
 
 string jaiabot::comms::XBeeDevice::api_transmit_request(const SerialNumber& dest,
-                                                        const byte frame_id, const byte* ptr,
+                                                        const jaiabot::comms::byte frame_id,
+                                                        const jaiabot::comms::byte* ptr,
                                                         const size_t length)
 {
     auto data_string = string((const char*)ptr, length);
@@ -1045,9 +1060,8 @@ string jaiabot::comms::XBeeDevice::api_transmit_request(const SerialNumber& dest
 // This function is used to send a test between two links
 // This currently does not work as intended
 // Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
-string jaiabot::comms::XBeeDevice::api_explicit_transmit_request(const SerialNumber& dest,
-                                                                 const SerialNumber& com_dest,
-                                                                 const byte frame_id)
+string jaiabot::comms::XBeeDevice::api_explicit_transmit_request(
+    const SerialNumber& dest, const SerialNumber& com_dest, const jaiabot::comms::byte frame_id)
 {
     auto dest_big_endian = native_to_big(dest);
     auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
@@ -1086,22 +1100,36 @@ string jaiabot::comms::XBeeDevice::api_explicit_transmit_request(const SerialNum
 
 SerialNumber jaiabot::comms::XBeeDevice::get_serial_number(const NodeId& node_id)
 {
-    try
+    auto it = node_id_to_serial_number_map.find(node_id);
+    if (it != node_id_to_serial_number_map.end())
     {
-        auto serial_number = node_id_to_serial_number_map.at(node_id);
-        return serial_number;
+        return it->second;
     }
-    catch (exception& error)
+    else
     {
-        // Unknown serial_number at this time
-        return 0;
+        int node_id_int = std::atoi(node_id.c_str());
+        if (node_id_int != jaiabot::comms::hub_base_modem_id)
+        {
+            // add bot
+            add_peer(node_id, jaiabot::comms::NodeType::BOT,
+                     jaiabot::comms::bot_id_from_modem_id(node_id_int, subnet_mask_));
+            return get_serial_number(node_id);
+        }
+        else
+        {
+            // no hub ID?
+            glog.is_warn() && glog << group(glog_group)
+                                   << "No active hub configured; hub SerialNumber unavailable."
+                                   << std::endl;
+            return 0;
+        }
     }
 }
 
 void jaiabot::comms::XBeeDevice::send_packet(const SerialNumber& dest, const std::string& data)
 {
-    write(
-        frame_data(api_transmit_request(dest, frame_id, (const byte*)data.c_str(), data.length())));
+    write(frame_data(api_transmit_request(dest, frame_id, (const jaiabot::comms::byte*)data.c_str(),
+                                          data.length())));
     frame_id++;
 }
 
@@ -1146,11 +1174,13 @@ void jaiabot::comms::XBeeDevice::send_packet(const NodeId& dest, const string& d
     send_packet(dest_ser, data);
 }
 
-void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number)
+void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id,
+                                          int fleet_id /*= fleet_id_*/)
 {
+    const SerialNumber serial_number = serial_from_node_data(type, fleet_id, bot_or_hub_id);
+
     glog.is_verbose() && glog << group(glog_group) << "serial_number= " << std::hex << serial_number
                               << std::dec << " node_id= " << node_id << endl;
 
     node_id_to_serial_number_map[node_id] = serial_number;
-    serial_number_to_node_id_map[serial_number] = node_id;
 }

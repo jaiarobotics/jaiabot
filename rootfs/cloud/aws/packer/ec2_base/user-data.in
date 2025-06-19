@@ -1,0 +1,19 @@
+#cloud-config
+
+users:
+  - name: jaia
+    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys: ["FILL IN"]
+
+bootcmd:
+  - cp /etc/resolv.conf.ipv4 /etc/resolv.conf
+
+write_files:
+  - path: /etc/network/interfaces
+    content: |
+      auto lo
+      iface lo inet loopback
+      auto eth0
+      iface eth0 inet dhcp

@@ -19,15 +19,13 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
 
     # Install the pyjaia directory into the intermediate build products directory
         # Rsync the requirements.txt and pyjaia directory
-        rsync -a requirements.txt pyjaia pyjaiaprotobuf Adafruit_CircuitPython_BNO08x ${TARGET_DIR}
+        rsync -a requirements.txt pyjaia pyjaiaprotobuf Adafruit_CircuitPython_BNO08x jaia_serial ${TARGET_DIR}
         # Build the messages to the intermediate build product directory
         ./pyjaiaprotobuf/build_messages.sh ${JAIA_DIR} ${TARGET_DIR}/pyjaiaprotobuf
 
     # Create the venv
     pushd ${TARGET_DIR} > /dev/null
-        python3 -m venv venv
-        ./venv/bin/pip install -qU pip
+        python3 -m venv venv --system-site-packages
         ./venv/bin/pip install -qU wheel
-        ./venv/bin/pip install -qU setuptools
-        ./venv/bin/pip install -qr requirements.txt
+        ./venv/bin/pip install -r requirements.txt
     popd > /dev/null

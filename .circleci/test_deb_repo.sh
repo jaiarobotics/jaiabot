@@ -37,7 +37,7 @@ test "" "1.4.0" "release" "1.y"
 test "" "2.3.0" "release" "2.y"
 test "" "12.6.0" "release" "12.y"
 
-test "foobar" "" "test" "1.y"
+test "foobar" "" "test" "2.y"
 
 
 echo "All tests passed"

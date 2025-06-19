@@ -66,7 +66,8 @@ jaiabot::apps::admin::ssh::RemoveTool::RemoveTool()
 
     // Run 'jaia ssh' with command to remove key from tmp_authorized_keys
     goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
-    subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
+    if (app_cfg().has_user())
+        subtool_cfg.add_extra_cli_param("--user=" + app_cfg().user());
     subtool_cfg.add_extra_cli_param(app_cfg().host());
     subtool_cfg.add_extra_cli_param("sudo sed -i '" + sed_pattern + "' " + authorized_keys_files);
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,

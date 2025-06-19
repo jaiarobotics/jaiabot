@@ -57,39 +57,30 @@ int main(int argc, char* argv[])
     driver_hub.reset(new jaiabot::comms::XBeeDriver);
     driver_bot.reset(new jaiabot::comms::XBeeDriver);
 
-    using boost::placeholders::_1;
     goby::acomms::connect(&driver_hub->signal_raw_incoming,
-                          boost::bind(&handle_raw_incoming, 1, _1));
+                          boost::bind(&handle_raw_incoming, 1, boost::placeholders::_1));
     goby::acomms::connect(&driver_bot->signal_raw_incoming,
-                          boost::bind(&handle_raw_incoming, 2, _1));
+                          boost::bind(&handle_raw_incoming, 2, boost::placeholders::_1));
     goby::acomms::connect(&driver_hub->signal_raw_outgoing,
-                          boost::bind(&handle_raw_outgoing, 1, _1));
+                          boost::bind(&handle_raw_outgoing, 1, boost::placeholders::_1));
     goby::acomms::connect(&driver_bot->signal_raw_outgoing,
-                          boost::bind(&handle_raw_outgoing, 2, _1));
+                          boost::bind(&handle_raw_outgoing, 2, boost::placeholders::_1));
 
     goby::acomms::protobuf::DriverConfig cfg_hub, cfg_bot;
 
+    constexpr int fleet = 5;
     cfg_hub.set_modem_id(1);
     cfg_hub.set_serial_port("/tmp/xbeehub0"); // MUST update for actual hardware
     cfg_hub.set_serial_baud(9600);
     auto& xbee_hub = *cfg_hub.MutableExtension(xbee::protobuf::config);
+    xbee_hub.set_fleet_id(fleet);
     xbee_hub.set_hub_id(4); // some arbitrary hub id
-
-    {
-        auto& peer_hub = *xbee_hub.add_peers();
-        peer_hub.set_hub_id(xbee_hub.hub_id());
-        peer_hub.set_serial_number(0x13A200421F31C3); // MUST update for actual hardware
-    }
-    {
-        auto& peer_bot = *xbee_hub.add_peers();
-        peer_bot.set_bot_id(0);
-        peer_bot.set_serial_number(0x13A200421F6BC2); // MUST update for actual hardware
-    }
 
     cfg_bot.set_modem_id(2);
     cfg_bot.set_serial_port("/tmp/xbeebot0"); // MUST update for actual hardware
     cfg_bot.set_serial_baud(9600);
     auto& xbee_bot = *cfg_bot.MutableExtension(xbee::protobuf::config);
+    xbee_bot.set_fleet_id(fleet);
     xbee_bot = xbee_hub;
     xbee_bot.clear_hub_id();
 
