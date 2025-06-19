@@ -6,7 +6,6 @@ import {
     HealthState,
     Warning,
 } from "../../types/protobuf-types";
-import TaskPacket from "../task_packets/task-packets";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
@@ -17,7 +16,6 @@ export default class Bot {
     private warnings: Warning[];
     private missionStatus: MissionStatus;
     private botSensors: BotSensors;
-    private taskPackets: TaskPacket[];
     private location: GeographicCoordinate;
     private batteryPercent: number;
     private wifiLinkQuality: number;
@@ -115,14 +113,6 @@ export default class Bot {
     // microseconds
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
-    }
-
-    getTaskPackets() {
-        return this.taskPackets;
-    }
-
-    addTaskPacket(taskPacket: TaskPacket) {
-        this.taskPackets.push(taskPacket);
     }
 
     private initializeSensors() {
