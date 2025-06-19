@@ -1,20 +1,21 @@
 # Working With Jaia Software
 
 ### Table of Contents:
-- [Operating System Setup](#operating-system-setup)
+- [Setting Up the Operating System](#setting-up-the-operating-system)
     - [Windows](#windows)
     - [Mac](#mac)
     - [Linux](#linux)
-- [Code Installation](#code-installation)
-- [Simulator Launch](#simulator-launch)
+- [Preparing the Workspace](#preparing-the-workspace)
+- [Launching the Simulator](#launching-the-simulator)
     - [Troubleshooting the Simulator](#troubleshooting-the-simulator)
-- [Modifying Code](#modifying-code)
-    - [Creating an SSH Key (MacBook)](#creating-an-ssh-key-macbooks)
-- [Deploying Code](#deploying-code)
+- [Modifying the Code](#modifying-code)
+    - [Creating an SSH Key Pair (MacBooks)](#creating-an-ssh-key-macbooks)
+- [Deploying the Code](#deploying-code)
+    - [Debugging Deployment Issues](#debugging)
 
 If you experience any errors, please visit the troubleshooting section. If that does not resolve the problem, create an issue on GitHub.
 
-# Operating System Setup
+# Setting Up the Operating System
 
 ## Windows
 
@@ -22,7 +23,7 @@ Install Ubuntu 24.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/i
 
 ## Mac
 
- 1. Open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 24.04 LTS. 
+ 1. Install and open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 24.04 LTS. 
  2. Navigate to ‘All Instances’ and stop `username-hostname`. 
 3. Click on `username-hostname` in ‘Name’ column. Switch from ‘Shells’ to ‘Details’ at the top. 
 4. Click ‘Configure’ under ‘Resources’. Multipass's default settings will not support the simulator. Change CPUs to 4+, Memory to 4+, Disk to 10+ (at a minimum). 
@@ -37,27 +38,27 @@ multipass shell username-hostname
 The JaiaBot project supports Ubuntu 24.04. 
 
 
-# Code Installation 
+# Preparing the Workspace
 
-1. Clone the Jaiabot Repo.
-```
-# install git if needed
+1. Clone the JaiaBot repository. Install git if needed. 
+``` 
 sudo apt install git
-git clone https://github.com/jaiarobotics/jaiabot​
+git clone https://github.com/jaiarobotics/jaiabot
 ```
+
 2. Run the setup scripts.
 ```
 cd jaiabot/scripts
 ./setup-tools-build.sh
 ./setup-tools-runtime.sh
 ```
-3. Run the build script.
+3. Move back to the JaiaBot repository. Run the build script.
 ```
-cd .. # back to jaiabot
+cd .. 
 ./build.sh
 ```
 
-# Simulator Launch
+# Launching the Simulator
 
 ## Windows/Linux
 
@@ -65,60 +66,66 @@ cd .. # back to jaiabot
 ```
 cd src/web
 ./run.sh
-# Should look like: WARNING:root:🏓 Pinging server localhost:40000
 ```
+Should look like: WARNING:root:🏓 Pinging server localhost:40000
+
 2. Launch the simulator in a separate terminal.
 ```
 cd jaiabot/config/launch/simulation
-# Set the simulation to run 4 bots at a time warp of 5
+```
+3. Set the simulation to run 4 bots at a time warp of 5. 
+```
 ./generate_all_launch.sh 4 5
 ./all.launch
-# Should look like: [all] XX:XX:XX: All processes running
 ```
-3. Simulator should pop up on browser -- it is running successfully!
+Should look like: [all] XX:XX:XX: All processes running.
+
+4. Simulator should pop up on browser -- it is running successfully!
 
 ## Mac
 1. Launch the JCC web interface.
 ```
 cd src/web
 ./run.sh
-# Should look like: WARNING:root:🏓 Pinging server localhost:40000
 ```
+Should look like: WARNING:root:🏓 Pinging server localhost:40000 
+
 2. Launch the simulator in a separate terminal (Toolbar > Shell > New  Window). You will have to open your Multipass shell again. 
 ```
 multipass shell username-hostname
 cd jaiabot/config/launch/simulation
-# Set the simulation to run 4 bots at a time warp of 5
+```
+3. Set the simulation to run 4 bots at a time warp of 5. 
+```
 ./generate_all_launch.sh 4 5
 ./all.launch
-# Should look like: [all] XX:XX:XX: All processes running
 ```
+Should look like: [all] XX:XX:XX: All processes running.
+
 3. Once that's running, open a tab in your preferred browser (we test in Chrome). 
 4. Open Multipass and find your Private IP address associated with the Ubuntu environment. 
     * for example: XXX.XXX.XX.X
 5. Enter that IP address into your search bar with :40001 appended to the end. 
     * for example: XXX.XXX.XX.X:40001 
 
-If you want to modify code, you need to create an SSH key. ([Creating an SSH Key](#sshkey))
+If you want to modify code, you need to [create an SSH key](#sshkey).
 
 ## Troubleshooting the Simulator
-* Kill all processes, then relaunch the simulator
+* To kill all processes, `cd` into `jaiabot/scripts`, run the kill command, and relaunch the simulator. 
 ```
-# cd into jaiabot/scripts
 ./kill-jaiabot-processes.sh
 ```
 
-* Refresh the build directory
+* To refresh the build directory, `cd` into `jaiabot` and remove the build directory.
 
 ```
-# Remove the build directory
-# cd into jaiabot
 rm -rf build
-
-# Re-create the build directory
+``` 
+Then recreate the build directory.
+```
 ./build.sh
 ```
-* Verify you are using Python 3.12
+* Verify you are using Python 3.12. 
 
 <a id="cd-troublshooting"></a>
 
@@ -132,7 +139,7 @@ rm -rf build
 
 ### Troubleshooting with MacBooks
 
-* Purge Multipass in terminal if there's no space on disk or memory
+* Purge Multipass in terminal if there's no space on disk or memory.
 
 <br>
 <a id="sshkey"></a>
@@ -166,8 +173,9 @@ multipass shell username-hostname
 ```
 cd ~/.ssh
 ls
-# should see an authorized_keys file
 ```
+You should see an authorized_keys file. 
+
 4. Enter the authorized_key files.
 ```
 nano authroized_keys
@@ -176,17 +184,21 @@ nano authroized_keys
 ```
 cd .ssh
 ssh-keygen
-# may have to hit enter multiple times to bypass passwords
-ls
-# should see a key that is of the form id_edXXXXX and id_edXXXXX.pub
-cat id_edXXXXX.pub 
-# this should generate a key
 ```
+You may have to hit enter multiple times to bypass passwords.
+```
+ls
+```
+You should see a key that is of the form id_edXXXXX and id_edXXXXX.pub. The following command should generate a key. 
+```
+cat id_edXXXXX.pub 
+```
+
 6. Copy and paste the output from the previous step into the nano file in the other terminal window. 
     
-    * CTRL+o, enter, CTRL+x -- saves and closes the nano tab
+    * CTRL+o, enter, CTRL+x -- saves and closes the nano tab. 
 
-7. Switch back to other terminal (local computer terminal). Set up config file.
+7. Switch back to the other terminal (local computer terminal). Set up a config file.
 ```
 nano config
 ```
@@ -199,9 +211,9 @@ HostName <IP address from multipass instance>
 IdentityFile ~/.ssh/id_edXXXXX
 User ubuntu
 ```
-9. Enter the environment. 
+9. Enter the environment with your private IP address (XXX.XXX.XX.X).  
 ```
-ssh ubuntu@XXX.XXX.XX.X # your private IP address
+ssh ubuntu@XXX.XXX.XX.X 
 ```
 10. If prompted, enter Yes (Y).
 11. Logout of the environment.
@@ -224,19 +236,27 @@ Exit
 cd ~/jaiabot/scripts
 ./docker-build-build-system.sh
 ```
-4. Stop the jaiabot services for the system you are deploying to.
+4. Stop the jaiabot services for the system you are deploying to. Note: X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10. 
 ```
-ssh -i /path/to/key jaia@10.23.X.Y (X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10)
+ssh -i /path/to/key jaia@10.23.X.Y
 sudo systemctl stop jaiabot
 ```
 5. Deploy.
 ```
 cd ~/jaiabot/scripts
-# BOT
-jaiabot_arduino_type=usb jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y (X indicates fleet number and Y indicates bot number plus 100)
-# HUB
-jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y (X indicates fleet number and Y indicates hub number plus 10)
 ```
+BOT
+```
+jaiabot_arduino_type=usb jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+```
+Note: X indicates fleet number and Y indicates bot number plus 100. 
+
+HUB
+```
+jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+```
+Note: X indicates fleet number and Y indicates hub number plus 10. 
+
 6. Start jaiabot services.
 ```
 ssh -i /path/to/key jaia@10.23.X.Y (X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10)
