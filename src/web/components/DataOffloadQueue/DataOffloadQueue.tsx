@@ -52,12 +52,7 @@ export default function DataOffloadQueue() {
         );
     }
 
-    return (
-        <div className="data-offload-queue">
-            <QueueItem botID={12} offloadPercentage={30} />
-            <QueueItem botID={3} offloadPercentage={10} />
-        </div>
-    );
+    return <div className="data-offload-queue"></div>;
 }
 
 /**
