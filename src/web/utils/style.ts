@@ -1,5 +1,4 @@
 import { SCROLL_DELAY } from "./constants";
-import { Map } from "ol";
 
 interface XYCoordinate {
     x: number;
@@ -111,16 +110,4 @@ export function scrollMissionsList() {
             missionsList.scrollTo({ top: scrollAmount });
         }
     }, SCROLL_DELAY);
-}
-
-/**
- * Sets the cursor type for the map
- *
- * @param {Cursor} cursor Type of cursor to display on map
- */
-export function setMapCursor(map: Map, cursor: Cursors) {
-    const mapElement = map.getTargetElement();
-    if (mapElement) {
-        mapElement.style.cursor = cursor;
-    }
 }

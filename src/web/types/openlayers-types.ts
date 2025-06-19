@@ -17,7 +17,7 @@ export enum MapFeatureTypes {
 }
 
 export enum MapModes {
-    NONE = "NONE",
+    DEFAULT = "DEFAULT",
     RALLY = "RALLY",
     MEASURE = "MEASURE",
 }

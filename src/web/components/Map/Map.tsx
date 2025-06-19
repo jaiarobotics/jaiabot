@@ -53,13 +53,13 @@ export default function Map() {
             }
         }
 
-        if (isWaypointMovable()) {
-            handleMoveWaypointClick(event.coordinate);
+        if (jaiaGlobal.getMapMode() === MapModes.RALLY) {
+            handleAddRallyPoint(event.coordinate);
             return;
         }
 
-        if (jaiaGlobal.getMapMode() === MapModes.RALLY) {
-            handleAddRallyPoint(event.coordinate);
+        if (isWaypointMovable()) {
+            handleMoveWaypointClick(event.coordinate);
             return;
         }
 

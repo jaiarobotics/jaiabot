@@ -20,7 +20,6 @@ import { JaiaActions } from "./jaia-actions";
 import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
-import { Cursors, setMapCursor } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import {
     NodeTypes,
@@ -240,7 +239,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
     mutableState.missionSpeeds = missions.getMissionSpeeds();
-    mutableState.mapMode = MapModes.NONE;
+    mutableState.mapMode = MapModes.DEFAULT;
 
     return mutableState;
 }
@@ -539,9 +538,8 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
-    jaiaGlobal.setMapMode(MapModes.NONE);
+    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(map, Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -765,9 +763,8 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
         mutableState.visiblePanel = panelName;
     }
 
-    jaiaGlobal.setMapMode(MapModes.NONE);
+    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(map, Cursors.DEFAULT);
 
     return mutableState;
 }
@@ -779,9 +776,8 @@ function handleClickedPanelButton(mutableState: JaiaContextType, panelName: Pane
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedCommandButton(mutableState: JaiaContextType) {
-    jaiaGlobal.setMapMode(MapModes.NONE);
+    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
-    setMapCursor(map, Cursors.DEFAULT);
     return mutableState;
 }
 
@@ -793,15 +789,10 @@ function handleClickedCommandButton(mutableState: JaiaContextType) {
  */
 function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
     if (jaiaGlobal.getMapMode() === mapMode) {
-        jaiaGlobal.setMapMode(MapModes.NONE);
-        setMapCursor(map, Cursors.DEFAULT);
+        jaiaGlobal.setMapMode(MapModes.DEFAULT);
     } else {
         jaiaGlobal.setMapMode(mapMode);
         mutableState.visiblePanel = PanelNames.NONE;
-
-        if (mapMode === MapModes.RALLY) {
-            setMapCursor(map, Cursors.CROSSHAIR);
-        }
     }
 
     mutableState.mapMode = jaiaGlobal.getMapMode();
