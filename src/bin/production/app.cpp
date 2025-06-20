@@ -1,9 +1,7 @@
 // Copyright 2022:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
-//   Ed Sanville <edsanville@gmail.com>
-//
+//   Kanz Giwa
 // This file is part of the JaiaBot Project Binaries
 // ("The Jaia Binaries").
 //
@@ -50,10 +48,6 @@ namespace jaiabot
 {
 namespace apps
 {
-namespace groups
-{
-
-}
 
 class JaiabotProduction: public ApplicationBase
 {
@@ -90,6 +84,9 @@ class JaiabotProduction: public ApplicationBase
             return duration_cast<duration<double>>(goby::time::SystemClock::now() - timestamp).count();
         }
 };
+
+} //namespace apps
+} //namespace jaiabot
 
 int main(int argc, char* argv[])
 {
@@ -238,6 +235,3 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     }
     motor_test_running_ = false;
 }
-
-} //namespace apps
-} //namespace jaiabot
