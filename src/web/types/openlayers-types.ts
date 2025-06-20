@@ -5,6 +5,7 @@ export enum LayerTitles {
     BOT_LAYER = "bot-layer",
     HUB_LAYER = "hub-layer",
     MISSION_LAYER = "mission-layer",
+    DIVE_LAYER = "dive-layer",
 }
 
 export enum MapFeatureTypes {

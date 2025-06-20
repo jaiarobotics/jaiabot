@@ -1,51 +1,15 @@
-import { DivePacket, DriftPacket, TaskType } from "../../types/protobuf-types";
+import { TaskPacket } from "../../types/protobuf-types";
 
-export default class TaskPacket {
-    private startTime: number;
-    private endTime: number;
-    private taskType: TaskType;
-    private divePacket: DivePacket;
-    private driftPacket: DriftPacket;
+class TaskPackets {
+    private taskPackets: TaskPacket[];
 
-    constructor() {}
-
-    getStartTime() {
-        return this.startTime;
+    getTaskPackets() {
+        return this.taskPackets;
     }
 
-    setStartTime(startTime: number) {
-        this.startTime = startTime;
-    }
-
-    getEndTime() {
-        return this.endTime;
-    }
-
-    setEndTime(endTime: number) {
-        this.endTime = endTime;
-    }
-
-    getTaskType() {
-        return this.taskType;
-    }
-
-    setTaskType(taskType: TaskType) {
-        this.taskType = taskType;
-    }
-
-    getDivePacket() {
-        return this.divePacket;
-    }
-
-    setDivePacket(divePacket: DivePacket) {
-        this.divePacket = divePacket;
-    }
-
-    getDriftPacket() {
-        return this.driftPacket;
-    }
-
-    setDriftPacket(driftPacket: DriftPacket) {
-        this.driftPacket = driftPacket;
+    setTaskPackets(taskPackets: TaskPacket[]) {
+        this.taskPackets = taskPackets;
     }
 }
+
+export const taskPackets = new TaskPackets();
