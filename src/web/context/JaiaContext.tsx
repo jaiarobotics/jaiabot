@@ -21,7 +21,7 @@ import { compareWaypoints } from "../utils/comparisons";
 import {
     NodeTypes,
     SelectedNode,
-    SelectedTask,
+    SelectedTaskMarker,
     SelectedWaypoint,
     TaskParameterPair,
 } from "../types/jaia-system-types";
@@ -42,6 +42,7 @@ export interface JaiaContextType {
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
+    selectedTaskMarker: SelectedTaskMarker;
     visibleDetails: NodeTypes;
     visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
@@ -59,7 +60,7 @@ export interface JaiaAction {
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
-    clickedTask?: SelectedTask;
+    clickedTask?: SelectedTaskMarker;
 
     location?: GeographicCoordinate;
     taskType?: TaskType;
@@ -223,6 +224,7 @@ function handleInit(mutableState: JaiaContextType) {
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
@@ -765,8 +767,12 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
     return mutableState;
 }
 
-function handleClickedTaskMarker(mutableState: JaiaContextType, clickedTask: SelectedTask) {
-    console.log(clickedTask);
+function handleClickedTaskMarker(
+    mutableState: JaiaContextType,
+    clickedTaskMarker: SelectedTaskMarker,
+) {
+    jaiaGlobal.setSelectedTaskMarker(clickedTaskMarker);
+    mutableState.selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
     return mutableState;
 }
 
