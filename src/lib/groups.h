@@ -127,6 +127,8 @@ constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 // production tests 
 constexpr goby::middleware::Group production_request{"jaiabot::production_request"};
 constexpr goby::middleware::Group production_response{"jaiabot::production_response"};
+constexpr goby::middleware::Group motor{"jaiabot::motor"}; //for motor test
+
 
 } // namespace groups
 } // namespace jaiabot

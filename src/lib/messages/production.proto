@@ -1,8 +1,9 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
-import "jaiabot/messages/imu.proto";  // Defines IMUReport
-import "jaiabot/messages/pressure_temperature.proto"; // Needed for PressureReport
+import "jaiabot/messages/imu.proto";  
+import "jaiabot/messages/pressure_temperature.proto"; 
+import "jaiabot/messages/motor.proto";
 
 package jaiabot.protobuf;
 
@@ -10,8 +11,7 @@ enum ProductionCommand
 { 
   TEST_IMU_SENSOR = 1;
   TEST_PRESSURE_SENSOR = 2;
-  // Keep others for later
-  // TEST_MOTOR_HARNESS = 3;
+  TEST_MOTOR_HARNESS = 3;
 }
 
 message ProductionRequest 
@@ -40,6 +40,6 @@ message ProductionResponse
   { 
     IMUData imu_report = 11; 
     PressureAdjustedData pressure_report = 12; 
-    // MotorHarness motor_harness_report = 13;
+    Motor motor_harness_report = 13;
   } 
 }
