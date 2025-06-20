@@ -80,25 +80,54 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     auto production_box = std::make_unique<Wt::WContainerWidget>();
 
-    //imu test!!
-    auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
-    auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Below the button
+    // IMU test UI box
+auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
+auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
+auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Status text below button
 
+// fix button logic once publishing is done in app
 imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::WMouseEvent) {
-    imu_test_button->hide(); // Make the button disappear
-    imu_status_text->setText("⏳ Waiting to receive IMU data...");
+    imu_test_button->hide();
+
+    this->production_imu_data_status_text_ = imu_status_text;
+    imu_status_text->setText("⏳ Waiting for IMU test result...");
+
+    jaiabot::protobuf::ProductionRequest req;
+    req.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+
 });
 
-
-
     //Test Pressure!!
-    auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressure Sensor");
-    //production_pressure_reading_text_ = production_pressure_test_box->addNew<Wt::WText>();
+    auto production_pressure_test_box = production_box->addNew<WGroupBox>("Pressure Sensor");
+auto pressure_test_button = production_pressure_test_box->addNew<Wt::WPushButton>("▶ Run Test");
+auto pressure_status_text = production_pressure_test_box->addNew<Wt::WText>();
+
+pressure_test_button->clicked().connect([this, pressure_test_button, pressure_status_text](Wt::WMouseEvent) {
+    pressure_test_button->hide();
+
+    this->production_pressure_data_status_text_ = pressure_status_text;
+    pressure_status_text->setText("⏳ Waiting for Pressure test result...");
+
+    jaiabot::protobuf::ProductionRequest req;
+    req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
+    req.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
+});
 
     //Test Motor Harness
-    auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Test Motor Harness");
-    //production_motor_test_text_ = production_motor_harness_test_box->addNew<Wt::WText>();
+    auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
+auto motor_test_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test");
+auto motor_status_text = production_motor_harness_test_box->addNew<Wt::WText>();
+
+motor_test_button->clicked().connect([this, motor_test_button, motor_status_text](Wt::WMouseEvent) {
+    motor_test_button->hide();
+
+    this->production_motor_data_status_text_ = motor_status_text;
+    motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
+
+    jaiabot::protobuf::ProductionRequest req;
+    req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
+    req.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
+});
 
     production_panel->setCentralWidget(std::move(production_box));
 

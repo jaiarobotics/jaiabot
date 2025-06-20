@@ -23,7 +23,6 @@
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/production.pb.h"
 
 namespace jaiabot
@@ -84,7 +83,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Wt::WSlider* stbd_elevator_slider{0};
             Wt::WText* fins_text{0};
             Wt::WText* ack_text{0};
-            Wt::WText* production_imu_data_status_text_{nullptr};
 
             protobuf::LowControlAck latest_ack;
 
@@ -209,11 +207,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
     Wt::WText* production_imu_data_status_text_;
-    Wt::WText* production_pressure_reading_text_;
-    Wt::WText* production_motor_test_text_;
-
-    bool imu_data_received_ = false;
-    int imu_data_count_ = 0;
+    Wt::WText* production_pressure_data_status_text_;
+    Wt::WText* production_motor_data_status_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -267,6 +262,20 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<groups::low_control>(
             [this](const jaiabot::protobuf::LowControl& low_control)
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
+
+            //imu(working progress finish once publishing is written in app)
+            interprocess().subscribe<jaiabot::groups::production>(
+    [this](const jaiabot::protobuf::ProductionResponse& msg)
+    {
+        tab_->post_to_wt([=]() {
+            if (tab_->production_imu_data_status_text_)
+            {
+                tab_->production_imu_data_status_text_->setText(
+                    msg.passed() ? "✅ IMU Test Passed" : "❌ IMU Test Failed");
+            }
+        });
+    });
+
 
         
     } // namespace jaiabot

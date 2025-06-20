@@ -42,4 +42,5 @@ message ProductionResponse
     PressureAdjustedData pressure_report = 12; 
     Motor motor_harness_report = 13;
   } 
+  optional bool passed = 2 [default = false];
 }
