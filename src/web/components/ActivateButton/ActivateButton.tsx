@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { ActivateDialog, DialogActions } from "./ActivateDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { ActivateDialog } from "./ActivateDialog";
 import { DisabledCodes } from "./activate-messages";
 
 import { Icon } from "@mdi/react";
@@ -8,10 +9,11 @@ import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 interface Props {
     bot: Bot;
@@ -23,6 +25,7 @@ interface Props {
  */
 export default function ActivateButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -56,6 +59,21 @@ export default function ActivateButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -76,12 +94,27 @@ export default function ActivateButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"activate-individual-bot"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => onButtonClick()}
             >
                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check" />
             </Button>
@@ -90,6 +123,7 @@ export default function ActivateButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
