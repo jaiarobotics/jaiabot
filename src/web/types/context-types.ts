@@ -52,6 +52,7 @@ export const enum PanelNames {
     WAYPOINT = "waypoint",
     JAIA_ABOUT = "jaia_about",
     HELP = "help",
+    TASK_PACKET = "task_packet",
 }
 
 export enum DialogActions {

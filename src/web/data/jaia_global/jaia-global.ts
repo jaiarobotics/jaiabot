@@ -5,6 +5,7 @@ import {
     SelectedWaypoint,
     TaskParameters,
 } from "../../types/jaia-system-types";
+import { MapFeatureTypes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 const defaultTaskParameters: TaskParameters = {
@@ -32,7 +33,11 @@ class JaiaGlobal {
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
-        this.selectedTaskMarker = { botID: UNASSIGNED_ID, startTime: 0 };
+        this.selectedTaskMarker = {
+            botID: UNASSIGNED_ID,
+            startTime: 0,
+            type: MapFeatureTypes.NONE,
+        };
         this.defaultTaskParameters = defaultTaskParameters;
     }
 

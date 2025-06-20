@@ -3,6 +3,10 @@ import { TaskPacket } from "../../types/protobuf-types";
 class TaskPackets {
     private taskPackets: TaskPacket[];
 
+    constructor() {
+        this.taskPackets = [];
+    }
+
     getTaskPackets() {
         return this.taskPackets;
     }

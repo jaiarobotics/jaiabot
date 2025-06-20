@@ -49,7 +49,7 @@ export default function Map() {
                     handleWaypointClick(feature);
                     return;
                 case MapFeatureTypes.DIVE:
-                    handleTaskMarkerClick(feature);
+                    handleTaskMarkerClick(feature, MapFeatureTypes.DIVE);
                 default:
                     return;
             }
@@ -97,12 +97,13 @@ export default function Map() {
         });
     };
 
-    const handleTaskMarkerClick = (feature: Feature<Geometry>) => {
+    const handleTaskMarkerClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_TASK_MARKER,
             clickedTask: {
                 botID: feature.get("botID"),
                 startTime: feature.get("startTime"),
+                type: type,
             },
         });
     };

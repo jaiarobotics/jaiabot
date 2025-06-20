@@ -14,6 +14,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 
 // Style
 import "./App.less";
@@ -75,6 +76,13 @@ function Panel() {
             return <HelpWindow />;
         case PanelNames.JAIA_ABOUT:
             return <JaiaAbout />;
+        case PanelNames.TASK_PACKET:
+            return (
+                <TaskPacketPanel
+                    selectedTaskMarker={jaiaContext.selectedTaskMarker}
+                    taskPackets={jaiaContext.taskPackets}
+                />
+            );
         default:
             return <div></div>;
     }
