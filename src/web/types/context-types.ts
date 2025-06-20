@@ -53,3 +53,8 @@ export const enum PanelNames {
     JAIA_ABOUT = "jaia_about",
     HELP = "help",
 }
+
+export enum DialogActions {
+    NONE = 1,
+    CONFIRMED = 2,
+}
