@@ -1,6 +1,7 @@
 import {
     NodeTypes,
     SelectedNode,
+    SelectedTask,
     SelectedWaypoint,
     TaskParameters,
 } from "../../types/jaia-system-types";
@@ -25,11 +26,13 @@ const defaultTaskParameters: TaskParameters = {
 class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
+    private selectedTask: SelectedTask;
     private defaultTaskParameters: TaskParameters;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
+        this.selectedTask = { botID: UNASSIGNED_ID, startTime: 0 };
         this.defaultTaskParameters = defaultTaskParameters;
     }
 
@@ -54,6 +57,14 @@ class JaiaGlobal {
 
     setSelectedWaypoint(clickedWaypoint: SelectedWaypoint) {
         this.selectedWaypoint = clickedWaypoint;
+    }
+
+    getSelectedTask() {
+        return this.selectedTask;
+    }
+
+    setSelectedTask(clickedTask: SelectedTask) {
+        this.selectedTask = clickedTask;
     }
 
     getDefaultTaskParameters() {

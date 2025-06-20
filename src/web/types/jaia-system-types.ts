@@ -21,6 +21,11 @@ export interface SelectedWaypoint {
     missionID: number;
 }
 
+export interface SelectedTask {
+    botID: number;
+    startTime: number;
+}
+
 export interface MissionStatus {
     missionState?: MissionState;
     targetWaypoint?: number;

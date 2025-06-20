@@ -14,4 +14,5 @@ export enum MapFeatureTypes {
     HUB = "HUB",
     WAYPOINT = "WAYPOINT",
     WAYPOINT_LINE = "WAYPOINT_LINE",
+    DIVE = "DIVE",
 }

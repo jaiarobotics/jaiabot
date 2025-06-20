@@ -21,6 +21,7 @@ import { compareWaypoints } from "../utils/comparisons";
 import {
     NodeTypes,
     SelectedNode,
+    SelectedTask,
     SelectedWaypoint,
     TaskParameterPair,
 } from "../types/jaia-system-types";
@@ -58,6 +59,7 @@ export interface JaiaAction {
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
+    clickedTask?: SelectedTask;
 
     location?: GeographicCoordinate;
     taskType?: TaskType;
@@ -197,6 +199,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
+
+        case JaiaActions.CLICKED_TASK_MARKER:
+            return handleClickedTaskMarker(mutableState, action.clickedTask);
 
         default:
             return state;
@@ -757,6 +762,11 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
 
     missionLayer.updateFeatures();
 
+    return mutableState;
+}
+
+function handleClickedTaskMarker(mutableState: JaiaContextType, clickedTask: SelectedTask) {
+    console.log(clickedTask);
     return mutableState;
 }
 

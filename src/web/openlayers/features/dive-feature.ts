@@ -2,10 +2,11 @@ import { Point } from "ol/geom";
 import { Feature } from "ol";
 import { fromLonLat } from "ol/proj";
 import { Coordinate } from "ol/coordinate";
+import { Fill, Icon, Stroke, Style, Text } from "ol/style";
 
 import { view } from "../views/view";
 import { DivePacket, TaskPacket } from "../../types/protobuf-types";
-import { Fill, Icon, Stroke, Style, Text } from "ol/style";
+import { MapFeatureTypes } from "../../types/openlayers-types";
 
 import diveMarker from "../../style/icons/dive-marker.svg";
 
@@ -16,6 +17,7 @@ export function generateDiveFeature(taskPacket: TaskPacket) {
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
     feature.setStyle(generateDiveStyle(divePacket));
+    feature.set("type", MapFeatureTypes.DIVE);
     feature.set("botID", taskPacket.bot_id);
     feature.set("startTime", taskPacket.start_time);
     return feature;
