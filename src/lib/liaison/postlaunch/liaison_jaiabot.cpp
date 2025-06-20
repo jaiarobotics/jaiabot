@@ -82,10 +82,15 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     //imu test!!
     auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
-    // Run Test Button
     auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-    imu_test_button->clicked().connect([this, imu_test_button](Wt::WMouseEvent) {
+auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Below the button
+
+imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::WMouseEvent) {
+    imu_test_button->hide(); // Make the button disappear
+    imu_status_text->setText("⏳ Waiting to receive IMU data...");
 });
+
+
 
     //Test Pressure!!
     auto production_pressure_test_box = production_box->addNew<WGroupBox>("Test Pressure Sensor");
