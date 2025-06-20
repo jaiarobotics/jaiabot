@@ -13,8 +13,10 @@ class DiveLayer extends JaiaVectorLayer {
         let source = this.getVectorLayer().getSource();
         source.clear();
         for (let taskPacket of taskPackets.getTaskPackets()) {
-            const diveFeature = generateDiveFeature(taskPacket);
-            source.addFeature(diveFeature);
+            if (taskPacket.dive) {
+                const diveFeature = generateDiveFeature(taskPacket);
+                source.addFeature(diveFeature);
+            }
         }
     }
 }
