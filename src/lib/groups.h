@@ -124,7 +124,7 @@ constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 
-// production test messages
+// production tests 
 constexpr goby::middleware::Group production_request{"jaiabot::production_request"};
 constexpr goby::middleware::Group production_response{"jaiabot::production_response"};
 

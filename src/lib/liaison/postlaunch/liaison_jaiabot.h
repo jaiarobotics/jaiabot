@@ -207,6 +207,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
     Wt::WText* production_imu_data_status_text_;
+    Wt::WText* production_pressure_reading_text_;
 
     bool imu_data_received_ = false;
     int imu_data_count_ = 0;
@@ -264,6 +265,7 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             [this](const jaiabot::protobuf::LowControl& low_control)
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
 
+        //Test for IMU (add more to this comment later!!!)
           interprocess().subscribe<groups::imu>(
     [this](const jaiabot::protobuf::IMUData& imu)
     {
@@ -272,7 +274,10 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
 
         tab_->post_to_wt([=]() {
             std::stringstream ss;
-            ss << "Written Received IMUData:  " << imu.DebugString() << "  IMU Test: ✅ " << tab_->imu_data_count_ << " messages received";
+            //take out first part later, just for testing. I want the success message and count nothing else in finished product.
+            ss << "Written Received IMUData:  " << imu.DebugString();
+            ss << "IMU Sensor Test: Success! ✅";
+            ss << tab_->imu_data_count_ << " messages received";
             tab_->production_imu_data_status_text_->setText(ss.str());
         });
 
@@ -280,6 +285,25 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             tab_->post_imu(imu);
         });
     });
+
+    // Test for Pressure Sensor
+interprocess().subscribe<groups::pressure_temperature>(
+    [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+    {
+        tab_->post_to_wt([=]() {
+            std::stringstream ss;
+            if(pt.pressure_raw() < 0.2){
+                ss << "Pressure Sensor Test: Success! ✅, ";
+                ss << "Pressure reading: " << std::fixed << std::setprecision(1);
+                ss << pt.pressure_raw();
+            }else{
+                ss << "Pressure Sensor Test: Fail! ❌";
+            }
+
+            tab_->production_pressure_reading_text_->setText(Wt::WString(ss.str()));
+        });
+    });
+
             
     } // namespace jaiabot
     ~CommsThread() {}
