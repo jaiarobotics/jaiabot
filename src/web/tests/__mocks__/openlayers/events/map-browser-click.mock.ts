@@ -1,3 +1,4 @@
+// src/test-utils/mocks/mapBrowserEventMock.ts
 import VectorLayer from "ol/layer/Vector";
 import { MapBrowserEvent } from "ol";
 import { Projection } from "ol/proj";
@@ -6,9 +7,6 @@ import { FrameState } from "ol/Map";
 
 import { map } from "../../../../openlayers/maps/map";
 
-const type = "click";
-const originalEvent: PointerEvent = new PointerEvent("select");
-const dragging = false;
 const projection: Projection = new Projection({
     code: "EPSG:3857",
     units: "m",
@@ -19,6 +17,7 @@ const projection: Projection = new Projection({
     worldExtent: [-180, -85, 180, 85],
     getPointResolution: undefined,
 });
+
 const viewState: State = {
     center: [-7934069.465145998, 5110583.896260285],
     nextCenter: null,
@@ -29,6 +28,7 @@ const viewState: State = {
     rotation: 0,
     zoom: 23.16163546175011,
 };
+
 const frameState: FrameState = {
     pixelRatio: 0,
     time: 0,
@@ -56,13 +56,26 @@ const frameState: FrameState = {
     renderTargets: {},
 };
 
-export const mapBrowserEventMock = new MapBrowserEvent<PointerEvent>(
-    type,
-    map,
-    originalEvent,
-    dragging,
-    frameState,
-    undefined,
-);
-mapBrowserEventMock.pixel = [602, 147];
-mapBrowserEventMock.coordinate = [-5752956.496855505, 1956787.9241005126];
+export function createMapBrowserEventMock(): MapBrowserEvent<PointerEvent> {
+    const originalEvent = new PointerEvent("click", {
+        clientX: 602,
+        clientY: 147,
+        bubbles: true,
+        pointerId: 1,
+        pointerType: "mouse",
+    });
+
+    const event = new MapBrowserEvent<PointerEvent>(
+        "click",
+        map,
+        originalEvent,
+        false,
+        frameState,
+        undefined,
+    );
+
+    (event as any).pixel = [602, 147];
+    (event as any).coordinate = [-5752956.496855505, 1956787.9241005126];
+
+    return event;
+}

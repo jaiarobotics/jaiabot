@@ -32,7 +32,7 @@ export default function Map() {
     /**
      * Distributes map clicks to appropriate handlers
      *
-     * @param {MapBrowserEvent<UIEvent>} event Contains data assoicated with map click
+     * @param {MapBrowserEvent<PointerEvent>} event Contains data assoicated with map click
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
