@@ -20,12 +20,8 @@ class Bots {
         return this.bots;
     }
 
-    private setBots(bots: Map<number, Bot>) {
-        this.bots = new Map([...bots]);
-    }
-
     getBot(botID: number) {
-        return this.getBots().get(botID);
+        return this.bots.get(botID);
     }
 
     setBot(botStatus: PortalBotStatus) {
@@ -44,7 +40,7 @@ class Bots {
     }
 
     private isNewBot(botID: number) {
-        if (this.getBots().get(botID) === undefined) {
+        if (this.bots.get(botID) === undefined) {
             return true;
         }
         return false;
@@ -54,11 +50,11 @@ class Bots {
         const sortedBots = new Map(
             [...this.bots.entries()].sort((a, b) => a[1].getBotID() - b[1].getBotID()),
         );
-        this.setBots(sortedBots);
+        this.bots = sortedBots;
     }
 
     private updateBot(botStatus: PortalBotStatus) {
-        let bot = this.getBots().get(botStatus.bot_id);
+        let bot = this.bots.get(botStatus.bot_id);
 
         if (bot === undefined) {
             return;
