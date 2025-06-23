@@ -20,6 +20,9 @@
 
     padding: 12px;
 
+    max-height: calc(@panel-max-height - 52px);
+    overflow: auto;
+
     background-color: @cc-background-color;
     font-size: 1.1rem;
 }
@@ -66,4 +69,16 @@
 
 .waypoint-panel .task-parameters-container {
     grid-column: 2 / 3;
+}
+
+.waypoint-panel-container .button-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0 0 0;
+}
+
+.waypoint-panel-container .button-row button {
+    all: unset;
+    padding: 9px;
+    color: @cc-text-color-light;
 }

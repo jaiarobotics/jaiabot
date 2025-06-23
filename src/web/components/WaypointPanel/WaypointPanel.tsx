@@ -279,6 +279,10 @@ export default function WaypointPanel() {
                     <TaskParameters task={getWaypoint().getTask()} />
                 </div>
             </div>
+            <div className="button-row">
+                <button>Close</button>
+                <button>Done</button>
+            </div>
         </div>
     );
 }
