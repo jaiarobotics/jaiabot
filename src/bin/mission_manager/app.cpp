@@ -1191,7 +1191,7 @@ void jaiabot::apps::MissionManager::check_forward_progress()
 
     if (is_ivp_control && should_be_making_forward_progress && !making_forward_progress)
     {
-        // we're not making forward progress when we should be, check the timeout
+        // tail is overheating, check if the timeout has expired before taking action
         if (now > fwd_progress_data_.no_forward_progress_timeout)
         {
             glog.is_debug2() && glog << "No forward progress detected!" << std::endl;
@@ -1204,5 +1204,36 @@ void jaiabot::apps::MissionManager::check_forward_progress()
         // otherwise bump forward the timeout
         glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
         fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
+    }
+}
+
+// To determine bot tail overheating:
+//    If the bot's tail (specifically, the bot's thermocouple) is above 100 degrees Celsius
+void jaiabot::apps::MissionManager::check_bot_tail_overheating()
+{
+    const auto& thermocouple_temperature = tail_overheating_data_.thermocouple_curr_temp; 
+
+    bool tail_overheated = thermocouple_temperature > 100; 
+
+    auto now = goby::time::SteadyClock::now();
+
+    auto trigger_seconds = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+        cfg().resolve_bot_tail_overheating().trigger_timeout_with_units());
+
+    if (tail_overheated)
+    {
+        // we're not making forward progress when we should be, check the timeout
+        if (now > tail_overheating_data_.bot_tail_overheating_timeout)
+        {
+            glog.is_debug2() && glog << "Tail still overheating." << std::endl;
+            machine_->process_event(statechart::EvBotTailOverheating());
+            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE__BOT_TAIL_OVERHEATING);
+        }
+    }
+    else
+    {
+        // otherwise bump forward the timeout
+        glog.is_debug2() && glog << "Tail overheating timeout reset" << std::endl;
+        tail_overheating_data_.bot_tail_overheating_timeout = now + trigger_seconds;
     }
 }

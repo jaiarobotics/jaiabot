@@ -148,6 +148,8 @@ STATECHART_EVENT(EvPause)
 STATECHART_EVENT(EvResume)
 STATECHART_EVENT(EvNoForwardProgress)
 STATECHART_EVENT(EvForwardProgressResolved)
+STATECHART_EVENT(EvBotTailOverheating)
+STATECHART_EVENT(EvBotTailOverheatingResolved)
 
 #undef STATECHART_EVENT
 
@@ -197,6 +199,7 @@ struct IMURestart;
 struct ReacquireGPS;
 struct Manual;
 struct ResolveNoForwardProgress;
+struct ResolveBotTailOverheating;
 } // namespace pause
 struct Underway;
 namespace underway
@@ -1018,6 +1021,28 @@ struct ResolveNoForwardProgress
     goby::time::SteadyClock::time_point resume_timeout_;
 };
 
+struct ResolveBotTailOverheating
+    : boost::statechart::state<ResolveBotTailOverheating, Pause>,
+      Notify<ResolveBotTailOverheating, protobuf::IN_MISSION__PAUSE__RESOLVE_BOT_TAIL_OVERHEATING,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<ResolveBotTailOverheating, Pause>;
+    ResolveBotTailOverheating(typename StateBase::my_context c);
+    ~ResolveBotTailOverheating();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvBotTailOverheatingResolved,
+                                      boost::statechart::deep_history<underway::Abort // default
+                                                                      >>,
+        boost::statechart::in_state_reaction<EvLoop, ResolveBotTailOverheating,
+                                             &ResolveBotTailOverheating::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point resume_timeout_;
+};
+
 } // namespace pause
 
 struct Underway : boost::statechart::state<Underway, InMission, underway::Movement,
@@ -1038,6 +1063,7 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
         boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
+        boost::statechart::transition<EvBotTailOverheating, pause::ResolveBotTailOverheating>>; 
 };
 
 namespace underway

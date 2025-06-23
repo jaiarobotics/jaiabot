@@ -123,6 +123,11 @@ resolve_no_forward_progress {
     trigger_timeout: 15 # seconds - time after desired speed > speed_threshold but pitch > pitch_threshold that triggers EvNoForwardProgress 
 }
 
+resolve_bot_tail_overheating {
+    resume_timeout: 100 # seconds - time after going into ResolveBotTailOverheating to resume attempting to move
+    cooled_temperature: 100 # degrees Celsius - acceptable temperature for bot to resume action
+}
+
 subnet_mask: $subnet_mask
 
 start_camera_command {

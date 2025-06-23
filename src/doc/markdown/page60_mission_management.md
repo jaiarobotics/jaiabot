@@ -56,6 +56,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 		* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 		* Manual: Operator has commanded the bot to pause its mission.
         * ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
+		* ResolveBotTailOverheating: Bot is waiting (on the surface) for its tail to cool. 
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
 	+ DataOffload: Hub is downloading data from Bot.
@@ -117,6 +118,8 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
 - EvNoForwardProgress: Triggered when bot is in IvP control, desired speed is larger than a threshold (e.g., 0), and the pitch is greater than a threshold (e.g., 30 deg), indicating the bot is not making forward (horizontal) progress.
 - EvForwardProgressResolved: Triggered when the difficulty making forward progress is resolved (currently triggered after a timeout).
+- EvBotTailOverheating: Triggered when bot tail thermocouple is over 100 degrees Celsius. 
+- EvBotTailOverheatingResolved: Triggered when bot tail temperature has been reduced to under 100 degrees Celsius. 
 
 #### Internal events
 
