@@ -45,10 +45,6 @@ class IMUReading:
             imu_data.euler_angles.heading = self.orientation.heading
             imu_data.euler_angles.pitch = self.orientation.pitch
             imu_data.euler_angles.roll = self.orientation.roll
-            # check if the bot rolled over
-            imu_data.bot_rolled_over = int(abs(self.orientation.roll) > 90)
-        else:
-            imu_data.bot_rolled_over = False
 
         imu_data.linear_acceleration.x = self.linear_acceleration.x
         imu_data.linear_acceleration.y = self.linear_acceleration.y

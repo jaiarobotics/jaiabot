@@ -72,6 +72,7 @@ message IMUData
 
     optional IMUCalibrationState calibration_state = 5;
 
+    // Deprecated
     optional bool bot_rolled_over = 6 [default = false];
 
     optional double significant_wave_height = 7 [(dccl.field) = {units {
