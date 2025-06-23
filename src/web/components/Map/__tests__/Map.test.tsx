@@ -22,7 +22,7 @@ import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
-import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
+import { createMapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 const mapModule = jest.requireActual("../../../openlayers/maps/map");
@@ -59,13 +59,15 @@ test("Select and deselect Bot and Hub icons on map", () => {
     // Bot
     bots.setBot(botStatusMock1);
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.BOT);
     expect(jaiaGlobal.getSelectedNode().id).toBe(1);
 
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.NONE);
     expect(jaiaGlobal.getSelectedNode().id).toBe(-1);
@@ -74,12 +76,14 @@ test("Select and deselect Bot and Hub icons on map", () => {
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(hubFeatureMock);
     hubs.setHub(hubStatusMock1);
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.HUB);
     expect(jaiaGlobal.getSelectedNode().id).toBe(1);
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.NONE);
     expect(jaiaGlobal.getSelectedNode().id).toBe(-1);
@@ -93,7 +97,8 @@ test("Click on map twice with mission in edit mode", () => {
     missionsManager.assign(1, missionID);
 
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
@@ -102,7 +107,8 @@ test("Click on map twice with mission in edit mode", () => {
     expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
 
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
 
     missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
@@ -121,7 +127,8 @@ test("Click on map with no mission in edit mode and no Bot selected", () => {
     expect(missions.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
 
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
 
     expect(missionLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
@@ -133,7 +140,8 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.BOT, id: 1 });
 
     act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+        const mockEvent = createMapBrowserEventMock();
+        map.dispatchEvent(mockEvent);
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();

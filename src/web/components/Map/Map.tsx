@@ -24,7 +24,7 @@ export default function Map() {
 
     useEffect(() => {
         map.setTarget("map");
-        map.on("click", (event: MapBrowserEvent<UIEvent>) => {
+        map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
     }, []);
@@ -32,10 +32,10 @@ export default function Map() {
     /**
      * Distributes map clicks to appropriate handlers
      *
-     * @param {MapBrowserEvent<UIEvent>} event Contains data assoicated with map click
+     * @param {MapBrowserEvent<PointerEvent>} event Contains data assoicated with map click
      * @returns {void}
      */
-    const handleMapClick = (event: MapBrowserEvent<UIEvent>) => {
+    const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
         if (feature && feature.get("type")) {
             switch (feature.get("type")) {
