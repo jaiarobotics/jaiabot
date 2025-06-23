@@ -54,3 +54,8 @@ export const enum PanelNames {
     HELP = "help",
     DATA_OFFLOAD = "data_offload",
 }
+
+export enum DialogActions {
+    NONE = 1,
+    CONFIRMED = 2,
+}

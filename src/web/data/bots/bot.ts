@@ -135,5 +135,3 @@ export default class Bot {
         }
     }
 }
-
-module.exports = Bot;
