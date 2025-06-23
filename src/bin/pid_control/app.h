@@ -76,6 +76,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float rudder_ = 0.0;
     bool _rudder_is_using_pid_ = false;
     bool is_heading_constant_ = false;
+    bool bot_rolled_over_ = false;
     void toggleRudderPid(const bool enabled, const bool is_heading_constant = false);
     Pid* heading_pid_;
     Pid* heading_constant_pid_;

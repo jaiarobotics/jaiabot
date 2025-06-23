@@ -97,9 +97,6 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // LED
     bool led_switch_on = true;
 
-    // Bot rolled over
-    bool bot_rolled_over_{false};
-
     // Version Table
     std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
     bool is_driver_connected_{false};
@@ -301,13 +298,6 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                    << std::endl;
         } // Catch all
     });
-
-    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
-        if (imu_data.has_bot_rolled_over())
-        {
-            bot_rolled_over_ = imu_data.bot_rolled_over();
-        }
-    });
 }
 
 /**
@@ -408,11 +398,6 @@ int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lowe
                                                              int upper)
 {
     double microseconds = 0.0;
-
-    if (bot_rolled_over_)
-    {
-        input = input * -1;
-    }
 
     if (input > 0)
     {

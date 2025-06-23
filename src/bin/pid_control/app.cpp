@@ -256,6 +256,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                          << endl;
             }
         });
+
+    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
+        if (imu_data.has_bot_rolled_over())
+        {
+            bot_rolled_over_ = imu_data.bot_rolled_over();
+        }
+    });
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -438,6 +445,12 @@ void jaiabot::apps::BotPidControl::publish_low_control()
         lastCommandReceived_ = 0;
 
         all_stop();
+    }
+
+    // Adjust rudder orientation based on IMU up
+    if (bot_rolled_over_)
+    {
+        rudder_ = rudder_ * -1;
     }
 
     // Publish the LowControl
