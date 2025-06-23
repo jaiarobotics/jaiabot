@@ -2,10 +2,10 @@ import { useContext } from "react";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { MapModes } from "../../types/openlayers-types";
+import { ButtonNames, ButtonTypes } from "../../types/context-types";
 
 import { Button } from "@mui/material";
-import { MapModes } from "../../types/openlayers-types";
-
 import rallyIcon from "../../style/icons/rally-point.svg";
 
 /**
@@ -32,7 +32,11 @@ export default function RallyButton() {
      * @returns {void}
      */
     const handleRallyButtonClick = () => {
-        jaiaDispatch({ type: JaiaActions.CLICKED_MAP_MODE_BUTTON, mapMode: MapModes.RALLY });
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_BUTTON,
+            buttonType: ButtonTypes.MAP_MODE,
+            buttonName: ButtonNames.ADD_RALLY,
+        });
     };
 
     return (

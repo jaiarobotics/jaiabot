@@ -15,6 +15,7 @@ import Mission from "../../data/missions/mission";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { Command, CommandType } from "../../types/protobuf-types";
+import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
@@ -78,7 +79,11 @@ export default function StartAllMissionsButton(props: Props) {
     const handleClick = () => {
         setIsDialogVisible(true);
         groupBotsByReadyState();
-        jaiaDispatch({ type: JaiaActions.CLICKED_COMMAND_BUTTON });
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_BUTTON,
+            buttonType: ButtonTypes.COMMAND,
+            buttonName: ButtonNames.START_ALL_MISSIONS,
+        });
     };
 
     /**

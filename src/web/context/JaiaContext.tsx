@@ -34,7 +34,8 @@ import {
     HubAccordionNames,
     BotAccordionNames,
     MapLayerAccordionNames,
-    PanelNames,
+    ButtonNames,
+    ButtonTypes,
 } from "../types/context-types";
 
 export interface JaiaContextType {
@@ -45,7 +46,7 @@ export interface JaiaContextType {
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
     visibleDetails: NodeTypes;
-    visiblePanel: PanelNames;
+    visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
@@ -70,8 +71,8 @@ export interface JaiaAction {
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
-    panelName?: PanelNames;
-    mapMode?: MapModes;
+    buttonType?: ButtonTypes;
+    buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
 
     missionSpeeds?: Speeds;
@@ -200,14 +201,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_TAP_TO_MOVE:
             return handleClickedTapToMove(mutableState);
 
-        case JaiaActions.CLICKED_PANEL_BUTTON:
-            return handleClickedPanelButton(mutableState, action.panelName);
-
-        case JaiaActions.CLICKED_COMMAND_BUTTON:
-            return handleClickedCommandButton(mutableState);
-
-        case JaiaActions.CLICKED_MAP_MODE_BUTTON:
-            return handleClickedMapModeButton(mutableState, action.mapMode);
+        case JaiaActions.CLICKED_BUTTON:
+            return handleClickedButton(mutableState, action.buttonType, action.buttonName);
 
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
@@ -233,7 +228,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visibleDetails = NodeTypes.NONE;
-    mutableState.visiblePanel = PanelNames.NONE;
+    mutableState.visiblePanel = ButtonNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
@@ -453,7 +448,7 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
 
     mutableState.missions = missions.getMissions();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    mutableState.visiblePanel = PanelNames.NONE;
+    mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
 
@@ -749,53 +744,33 @@ function handleClickedTapToMove(mutableState: JaiaContextType) {
 }
 
 /**
- * Updates visiblePanel property to display the panel associated with a button click
- * or closes the panel if it is already opened
+ * Sets the map mode and visible panel based on the button clicked and the state
+ * of the application
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {PanelNames} panelName Name of panel associated with button
+ * @param {ButtonNames} name Name of panel associated with button
  * @returns {JaiaContextType} Updated mutable state object
  */
-function handleClickedPanelButton(mutableState: JaiaContextType, panelName: PanelNames) {
-    if (mutableState.visiblePanel === panelName) {
-        mutableState.visiblePanel = PanelNames.NONE;
-    } else {
-        mutableState.visiblePanel = panelName;
+function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, name: ButtonNames) {
+    let mapMode = MapModes.DEFAULT;
+    let visiblePanel = ButtonNames.NONE;
+
+    switch (type) {
+        case ButtonTypes.MAP_MODE:
+            if (name === ButtonNames.ADD_RALLY && jaiaGlobal.getMapMode() !== MapModes.RALLY) {
+                mapMode = MapModes.RALLY;
+            }
+            break;
+        case ButtonTypes.PANEL:
+            if (mutableState.visiblePanel !== name) {
+                visiblePanel = name;
+            }
+            break;
     }
 
-    jaiaGlobal.setMapMode(MapModes.DEFAULT);
-    mutableState.mapMode = jaiaGlobal.getMapMode();
-
-    return mutableState;
-}
-
-/**
- * Handles a click to a command button. Used to reset map modes.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleClickedCommandButton(mutableState: JaiaContextType) {
-    jaiaGlobal.setMapMode(MapModes.DEFAULT);
-    mutableState.mapMode = jaiaGlobal.getMapMode();
-    return mutableState;
-}
-
-/**
- * Handles a click to buttons that modify the mode of the map.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleClickedMapModeButton(mutableState: JaiaContextType, mapMode: MapModes) {
-    if (jaiaGlobal.getMapMode() === mapMode) {
-        jaiaGlobal.setMapMode(MapModes.DEFAULT);
-    } else {
-        jaiaGlobal.setMapMode(mapMode);
-        mutableState.visiblePanel = PanelNames.NONE;
-    }
-
-    mutableState.mapMode = jaiaGlobal.getMapMode();
+    jaiaGlobal.setMapMode(mapMode);
+    mutableState.mapMode = mapMode;
+    mutableState.visiblePanel = visiblePanel;
     return mutableState;
 }
 
@@ -815,7 +790,7 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
     jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
 
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    mutableState.visiblePanel = PanelNames.WAYPOINT;
+    mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
 
     missionLayer.updateFeatures();
 
