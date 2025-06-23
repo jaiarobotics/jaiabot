@@ -855,6 +855,10 @@ function syncOpenLayers() {
  * Sets the cursor that appears when hovering over the map
  *
  * @returns {void}
+ *
+ * @notes
+ * This logic does not occur in jaiaGlobal.setMapMode to avoid
+ * circular reference
  */
 function setOpenLayersCursor(cursor: Cursors) {
     if (map.getTargetElement()) {
