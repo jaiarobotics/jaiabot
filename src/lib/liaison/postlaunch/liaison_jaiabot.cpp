@@ -94,8 +94,11 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::
 
     jaiabot::protobuf::ProductionRequest req;
     req.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+    req.set_time(goby::time::SystemClock::now().time_since_epoch().count()); // Optional but useful
 
+    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // 🔥 THIS LINE
 });
+
 
     //Test Pressure!!
     auto production_pressure_test_box = production_box->addNew<WGroupBox>("Pressure Sensor");
@@ -111,7 +114,10 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_st
     jaiabot::protobuf::ProductionRequest req;
     req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
     req.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
+
+    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // ✅ Add this line
 });
+
 
     //Test Motor Harness
     auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
@@ -127,7 +133,10 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_status_text
     jaiabot::protobuf::ProductionRequest req;
     req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
     req.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
+
+    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // ✅ Add this line
 });
+
 
     production_panel->setCentralWidget(std::move(production_box));
 

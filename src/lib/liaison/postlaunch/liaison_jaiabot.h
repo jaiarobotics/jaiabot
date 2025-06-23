@@ -263,15 +263,24 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             [this](const jaiabot::protobuf::LowControl& low_control)
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
 
-            //imu(working progress finish once publishing is written in app)
-            interprocess().subscribe<jaiabot::groups::production>(
+        interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionResponse& msg)
     {
         tab_->post_to_wt([=]() {
-            if (tab_->production_imu_data_status_text_)
+            if (msg.has_imu_report() && tab_->production_imu_data_status_text_)
             {
                 tab_->production_imu_data_status_text_->setText(
                     msg.passed() ? "✅ IMU Test Passed" : "❌ IMU Test Failed");
+            }
+            else if (msg.has_pressure_report() && tab_->production_pressure_data_status_text_)
+            {
+                tab_->production_pressure_data_status_text_->setText(
+                    msg.passed() ? "✅ Pressure Test Passed" : "❌ Pressure Test Failed");
+            }
+            else if (msg.has_motor_harness_report() && tab_->production_motor_data_status_text_)
+            {
+                tab_->production_motor_data_status_text_->setText(
+                    msg.passed() ? "✅ Motor Harness Test Passed" : "❌ Motor Harness Test Failed");
             }
         });
     });

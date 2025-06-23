@@ -60,7 +60,7 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_test_passed_ = false;
         bool motor_test_passed_ = false;
 
-        double latest_pressure_ = 0.0;
+        double latest_pressure_ = 2;
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
 
@@ -76,6 +76,7 @@ class JaiabotProduction: public ApplicationBase
         void imu_sensor();
         void pressure_sensor();
         void motor_harness();
+        void loop() override;
 
         // Helper function calculates how many seconds have passed since a specific time point
         double seconds_since(const goby::time::SystemClock::time_point& timestamp)
@@ -90,6 +91,13 @@ class JaiabotProduction: public ApplicationBase
 
 int main(int argc, char* argv[])
 {
+
+    // 🧪 Test output
+    std::cout << "✅ std::cout works!!" << std::endl;
+    std::cerr << "❌ std::cerr works!" << std::endl;
+    std::cout << "glog type: " << typeid(glog).name() << std::endl;
+    glog.is_debug1() && glog << "🔥 glog debug1 is working!" << std::endl;
+
     return goby::run<jaiabot::apps::JaiabotProduction>(
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
@@ -102,7 +110,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         {
             last_imu_msg_time_ = goby::time::SystemClock::now();
             imu_data_received_ = true;
-            // Check if heading is present and reasonable
+
             if (msg.has_euler_angles() && msg.euler_angles().has_heading())
             {
                 double heading = msg.euler_angles().heading();
@@ -113,11 +121,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
             }
         });
 
+
     // Subscribe to pressure sensor data
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& msg)
         {
             latest_pressure_ = msg.pressure_raw();
+            std::cout << "📟 Raw pressure: " << latest_pressure_ << std::endl;
             if (latest_pressure_ < 0.2)
             {
                 pressure_test_passed_ = true;
@@ -148,6 +158,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         [this](const jaiabot::protobuf::ProductionRequest& msg)
         {
             // Handle production messages here if needed
+            std::cout << "IMU Test FAIL: did not receive any IMU data" << std::endl;
             glog.is_debug1() && glog << "Received production request" << std::endl;
         });
 }
@@ -157,6 +168,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     // Test 1: IMU data received, and after reset, data pauses for 2 seconds
     if (!imu_data_received_)
     {
+        std::cout << "IMU Test FAIL: did not receive any IMU data" << std::endl;
         glog.is_debug1() && glog << "IMU Test FAIL: did not receive any IMU data" << std::endl;
         return;
     }
@@ -168,6 +180,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
         imu_reset_pending_ = true;
         imu_data_paused_ = false;
         imu_reset_start_time_ = goby::time::SystemClock::now();
+        std::cout << "IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
         glog.is_debug1() && glog << "IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
     }
     else
@@ -195,10 +208,13 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     // Test 2: Pressure reading < 0.2 after restart
     if (pressure_test_passed_)
     {
+        std::cout << "Pressure Test PASS" << std::endl;
         glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
     }
     else
     {
+        //std::cout << "📟 Raw pressure: " << latest_pressure_ << std::endl;
+        //std::cout << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
         glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
 }
@@ -234,4 +250,14 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
     }
     motor_test_running_ = false;
+}
+
+void jaiabot::apps::JaiabotProduction::loop()
+{
+    glog.is_debug1() && glog << "🌀 loop() tick running..." << std::endl;
+
+    // Run your tests here periodically if you want
+    imu_sensor();
+    pressure_sensor();
+    motor_harness();
 }
