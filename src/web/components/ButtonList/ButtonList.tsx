@@ -5,8 +5,9 @@ import { JaiaActions } from "../../context/jaia-actions";
 import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
 import StopAllBotsButton from "../StopAllBots/StopAllBotsButton";
 import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
+import RallyButton from "../RallyButton/RallyButton";
 
-import { PanelNames } from "../../types/context-types";
+import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
@@ -33,21 +34,26 @@ export default function ButtonList(props: Props) {
     /**
      * Dispatches action to open/close panel associated with button
      *
-     * @param {PanelNames} panelName Name of panel associated with button
+     * @param {ButtonTypes} buttonType Type of button clicked
+     * @param {ButtonNames} buttonName Name of button clicked
      * @returns {void}
      */
-    const handlePanelButtonClick = (panelName: PanelNames) => {
-        jaiaDisaptch({ type: JaiaActions.CLICKED_PANEL_BUTTON, panelName: panelName });
+    const handleButtonClick = (buttonType: ButtonTypes, buttonName: ButtonNames) => {
+        jaiaDisaptch({
+            type: JaiaActions.CLICKED_BUTTON,
+            buttonType: buttonType,
+            buttonName: buttonName,
+        });
     };
 
     /**
      * Provides the class name to style the button based on its selection state
      *
-     * @param {PanelNames} panelName Name of panel associated with button
+     * @param {ButtonNames} buttonName Name of button clicked
      * @returns {void}
      */
-    const getSelectedClassName = (panelName: PanelNames) => {
-        if (jaiaContext.visiblePanel === panelName) {
+    const getSelectedClassName = (buttonName: ButtonNames) => {
+        if (jaiaContext.visiblePanel === buttonName) {
             return " jaia-button selected";
         }
         return "jaia-button";
@@ -59,20 +65,21 @@ export default function ButtonList(props: Props) {
                 <ActivateAllButton bots={jaiaContext.bots} />
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
-                <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
+                <RallyButton />
                 <Button className="jaia-button"></Button>
                 <Button
-                    className={getSelectedClassName(PanelNames.HELP)}
+                    className={getSelectedClassName(ButtonNames.HELP_PANEL)}
                     aria-label="help-window"
-                    onClick={() => handlePanelButtonClick(PanelNames.HELP)}
+                    onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.HELP_PANEL)}
                 >
                     <Icon path={mdiHelp} />
                 </Button>
                 <Button
-                    className={getSelectedClassName(PanelNames.JAIA_ABOUT)}
+                    className={getSelectedClassName(ButtonNames.JAIA_ABOUT_PANEL)}
                     aria-label="jaia-about-panel"
-                    onClick={() => handlePanelButtonClick(PanelNames.JAIA_ABOUT)}
+                    onClick={() =>
+                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.JAIA_ABOUT_PANEL)
+                    }
                 >
                     <img src={JaiaLogo} title="About" />
                 </Button>
@@ -84,9 +91,9 @@ export default function ButtonList(props: Props) {
         return (
             <div className="button-list side">
                 <Button
-                    className={getSelectedClassName(PanelNames.MISSIONS)}
+                    className={getSelectedClassName(ButtonNames.MISSIONS_PANEL)}
                     aria-label="missions-panel"
-                    onClick={() => handlePanelButtonClick(PanelNames.MISSIONS)}
+                    onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.MISSIONS_PANEL)}
                 >
                     <Icon path={mdiViewList} title="Missions Panel" />
                 </Button>

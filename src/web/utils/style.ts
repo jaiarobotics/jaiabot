@@ -10,6 +10,11 @@ export enum MapIconColors {
     DEFAULT = "white",
 }
 
+export enum Cursors {
+    DEFAULT = "default",
+    CROSSHAIR = "crosshair",
+}
+
 export function angleToXY(angle: number): XYCoordinate {
     return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) };
 }
