@@ -218,6 +218,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
                 if (attitude.has_roll())
                 {
                     actual_roll_ = attitude.roll();
+                    bot_rolled_over_ = abs(actual_roll_) > 90;
                 }
 
                 if (attitude.has_pitch())
@@ -256,10 +257,6 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                          << endl;
             }
         });
-
-    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
-        bot_rolled_over_ = abs(imu_data.euler_angles().roll()) > 90;
-    });
 }
 
 void jaiabot::apps::BotPidControl::loop()
