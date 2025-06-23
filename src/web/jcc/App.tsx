@@ -2,7 +2,7 @@ import { useContext } from "react";
 
 // Jaia
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
-import { PanelNames } from "../types/context-types";
+import { ButtonNames } from "../types/context-types";
 import { ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
 import Map from "../components/Map/Map";
@@ -67,13 +67,13 @@ function Panel() {
     }
 
     switch (jaiaContext.visiblePanel) {
-        case PanelNames.MISSIONS:
+        case ButtonNames.MISSIONS_PANEL:
             return <MissionsPanel />;
-        case PanelNames.WAYPOINT:
+        case ButtonNames.WAYPOINT_PANEL:
             return <WaypointPanel />;
-        case PanelNames.HELP:
+        case ButtonNames.HELP_PANEL:
             return <HelpWindow />;
-        case PanelNames.JAIA_ABOUT:
+        case ButtonNames.JAIA_ABOUT_PANEL:
             return <JaiaAbout />;
         default:
             return <div></div>;
