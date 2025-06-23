@@ -215,8 +215,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
 /**
  * Puts Context in sync with the data model from the start and initializes UI properties.
- * Without this call, the data model properties would not have the expected
- * getters and setters all of the time.
+ * Without this call, the references to the objects in the data model could be obsolete.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -287,9 +286,6 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
     missions.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
 
-    mutableState.missions = missions.getMissions();
-    mutableState.bots = bots.getBots();
-
     missionLayer.updateFeatures();
 
     return mutableState;
@@ -328,7 +324,6 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
     missions.deleteAllMissions();
     missionsManager.clear();
 
-    mutableState.missions = missions.getMissions();
     mutableState.missionAccordionStates = {};
 
     missionLayer.updateFeatures();
@@ -347,9 +342,6 @@ function handleDeleteAllMissions(mutableState: JaiaContextType) {
 function handleAssignMission(mutableState: JaiaContextType, botID: number, missionID: number) {
     missionsManager.assign(botID, missionID);
 
-    mutableState.bots = bots.getBots();
-    mutableState.missions = missions.getMissions();
-
     missionLayer.updateFeatures();
 
     return mutableState;
@@ -363,9 +355,6 @@ function handleAssignMission(mutableState: JaiaContextType, botID: number, missi
  */
 function handleAutoAssignMissions(mutableState: JaiaContextType) {
     missionsManager.autoAssign();
-
-    mutableState.bots = bots.getBots();
-    mutableState.missions = missions.getMissions();
 
     missionLayer.updateFeatures();
 
@@ -429,8 +418,6 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
         mission.addWaypoint(location);
     }
 
-    mutableState.missions = missions.getMissions();
-
     missionLayer.updateFeatures();
 
     return mutableState;
@@ -447,7 +434,6 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
 
-    mutableState.missions = missions.getMissions();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.NONE;
 

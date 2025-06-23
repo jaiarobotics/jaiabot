@@ -62,3 +62,8 @@ export const enum ButtonNames {
     START_ALL_MISSIONS = "start_all_missions",
     WAYPOINT_PANEL = "waypoint_panel",
 }
+
+export enum DialogActions {
+    NONE = 1,
+    CONFIRMED = 2,
+}
