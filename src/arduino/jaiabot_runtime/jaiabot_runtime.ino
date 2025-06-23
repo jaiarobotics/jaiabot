@@ -153,7 +153,7 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
 
   if (thermocouple_is_present) {
     // Get the thermocouple temperature
-    //ack.thermocouple_temperature_C = thermocouple.readCelsius();
+    ack.thermocouple_temperature_C = thermocouple.readCelsius();
     ack.has_thermocouple_temperature_C = true;
   }
   else {

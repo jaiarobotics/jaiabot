@@ -317,6 +317,8 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__VEHICLE__NO_FORWARD_PROGRESS = 705
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__VEHICLE_BOT_TAIL_OVERHEATING = 706
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     WARNING__MISSION__DATA_OFFLOAD_FAILED = 720
         [(jaia.ev).rest_api.presence = GUARANTEED];
