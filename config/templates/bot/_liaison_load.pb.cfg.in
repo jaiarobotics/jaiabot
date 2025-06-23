@@ -6,9 +6,9 @@ load_protobuf {
 } 
 
 load_protobuf {
-    name: "jaiabot.protobuf.PressureAdjustedData" 
+    name: "jaiabot.protobuf.PressureTemperatureData" 
     publish_to {
-        group: "jaiabot::pressure_adjusted"
+         group: "pressure_temperature"
     }
 } 
 

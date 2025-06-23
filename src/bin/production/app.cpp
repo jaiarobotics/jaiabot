@@ -126,9 +126,10 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
             latest_pressure_ = pressure_msg.pressure_raw();
             if (latest_pressure_ < 0.2)
             {
-                pressure_test_passed_ = true;
+                pressure_test_passed_ = true; 
                 interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_msg);
             }
+
         });
 
     // Subscribe to motor status
@@ -151,16 +152,16 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
             }
         });
 
-    // Subscribe to production messages
-    interprocess().subscribe<jaiabot::groups::production>(
-        [this](const jaiabot::protobuf::ProductionRequest& production_msg)
-        {
-            // Handle production messages here if needed
-            glog.is_debug1() && glog << "Received production request" << std::endl;
-            
-            interprocess().publish<jaiabot::groups::production_request>(production_msg);
+   interprocess().subscribe<jaiabot::groups::production>(
+    [this](const jaiabot::protobuf::ProductionRequest& production_msg)
+    {
+        glog.is_debug1() && glog << "🟢 Received ProductionRequest, time = "
+                                 << production_msg.time()
+                                 << std::endl;
 
-        });
+        interprocess().publish<jaiabot::groups::production_request>(production_msg);
+    });
+
 }
 
 void jaiabot::apps::JaiabotProduction::imu_sensor()
@@ -168,7 +169,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     // Test 1: IMU data received, and after reset, data pauses for 2 seconds
     if (!imu_data_received_)
     {
-        glog.is_debug1() && glog << "IMU Test FAIL: did not receive any IMU data" << std::endl;
+        //glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
         return;
     }
 
@@ -179,7 +180,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
         imu_reset_pending_ = true;
         imu_data_paused_ = false;
         imu_reset_start_time_ = goby::time::SystemClock::now();
-        glog.is_debug1() && glog << "IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
+        //glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
     }
     else
     {
@@ -190,11 +191,11 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
             if (since_last_imu >= 2.0)
             {
                 imu_data_paused_ = true;
-                glog.is_debug1() && glog << "IMU Test PASS" << std::endl;
+                //glog.is_debug1() && glog << "🎉 IMU Test PASS" << std::endl;
             }
             else
             {
-                glog.is_debug1() && glog << "IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
+                //glog.is_debug1() && glog << "😵 IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
             }
             imu_reset_pending_ = false;
         }
@@ -222,7 +223,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_test_running_ = true;
         motor_test_passed_ = false;
         motor_test_start_time_ = goby::time::SystemClock::now();
-        glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
+        //glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         return;
     }
     double elapsed = seconds_since(motor_test_start_time_);
@@ -242,7 +243,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             reason += "rpm < 3600; ";
         if (latest_temperature_ < 10 || latest_temperature_ > 30)
             reason += "temperature not in [10,30]; ";
-        glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
+        //glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
     }
     motor_test_running_ = false;
 }
