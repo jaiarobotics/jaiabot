@@ -128,12 +128,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (cfg().has_heading_pid_gains())
     {
         auto& gains = cfg().heading_pid_gains();
-        heading_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, gains.kp(), gains.ki(),
+        heading_pid_ = new Pid(&actual_heading_, &rudder_, &processed_target_heading_, gains.kp(), gains.ki(),
                                gains.kd());
     }
     else
     {
-        heading_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, 0.7, 0.005, 0.2);
+        heading_pid_ = new Pid(&actual_heading_, &rudder_, &processed_target_heading_, 0.7, 0.005, 0.2);
     }
     heading_pid_->set_limits(-100.0, 100.0);
     heading_pid_->set_auto();
@@ -141,13 +141,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (cfg().has_heading_constant_pid_gains())
     {
         auto& gains = cfg().heading_constant_pid_gains();
-        heading_constant_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, gains.kp(),
+        heading_constant_pid_ = new Pid(&actual_heading_, &rudder_, &processed_target_heading_, gains.kp(),
                                         gains.ki(), gains.kd());
     }
     else
     {
         heading_constant_pid_ =
-            new Pid(&actual_heading_, &rudder_, &target_heading_, 0.7, 0.005, 0.2);
+            new Pid(&actual_heading_, &rudder_, &processed_target_heading_, 0.7, 0.005, 0.2);
     }
     heading_constant_pid_->set_limits(-100.0, 100.0);
     heading_constant_pid_->set_auto();
@@ -353,6 +353,10 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     // Heading PID
     if (_rudder_is_using_pid_)
     {
+        // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
+        float heading_multiplier = 1.0;
+        float level_threshold = 75;
+
         // Make sure track is within 180 degrees of the course
         if (actual_heading_ > target_heading_ + 180.0)
         {
@@ -362,6 +366,20 @@ void jaiabot::apps::BotPidControl::publish_low_control()
         {
             actual_heading_ += 360.0;
         }
+
+        // Apply a step function to the rudder:
+        //  * 100% of rudder when we are within level_threshold degrees of level
+        //  * Desired rudder times dot product of difference in verticality otherwise
+        float level_deviation = 90 - abs(90.0 - abs(actual_roll_))
+        if (level_deviation > level_threshold)
+        {
+            heading_multiplier = 1.0;
+        }
+        else
+        {
+            heading_multiplier = cos(abs(level_deviation - level_threshold) * M_PI / (2 * (90 - level_threshold)));
+        }
+        processed_target_heading_ = target_heading_ * heading_multiplier;
 
         if (!is_heading_constant_)
         {
@@ -381,9 +399,14 @@ void jaiabot::apps::BotPidControl::publish_low_control()
         }
 
         glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading_
+                                 << ", processed_target_heading = " << processed_target_heading_
                                  << ", actual_heading = " << actual_heading_
                                  << ", rudder = " << rudder_
                                  << ", is_heading_constant = " << is_heading_constant_ << std::endl;
+    }
+    else 
+    {
+        processed_target_heading_ = target_heading_
     }
 
     // Roll/Pitch PID
