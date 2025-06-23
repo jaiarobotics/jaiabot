@@ -11,13 +11,19 @@ import { DivePacket, TaskPacket } from "../../types/protobuf-types";
 
 import diveMarker from "../../style/icons/dive-marker.svg";
 
-enum MarkerColors {
+enum TaskPacketColors {
     LIGHT = "white",
     DARK = "black",
 }
 
-let markerColor = MarkerColors.LIGHT;
+let taskPacketColor = TaskPacketColors.LIGHT;
 
+/**
+ * Creates a dive icon to be placed on the map
+ *
+ * @param {TaskPacket} taskPacket Contains the data to build the feature
+ * @returns {Feature} Dive icon to display on map
+ */
 export function generateDiveFeature(taskPacket: TaskPacket) {
     const divePacket = taskPacket.dive;
     const coordinate: Coordinate = [divePacket.start_location.lon, divePacket.start_location.lat];
@@ -32,6 +38,12 @@ export function generateDiveFeature(taskPacket: TaskPacket) {
     return feature;
 }
 
+/**
+ * Creates the style to be applied to a dive icon on the map
+ *
+ * @param {TaskPacket} taskPacket Contains color and text data
+ * @returns {Style} Style to be applied to a dive feature
+ */
 function generateDiveStyle(taskPacket: TaskPacket) {
     return new Style({
         image: new Icon({
@@ -51,6 +63,12 @@ function generateDiveStyle(taskPacket: TaskPacket) {
     });
 }
 
+/**
+ * Includes the depth achieved if the dive strikes the bottom
+ *
+ * @param {DivePacket} divePacket Contains depth acheived data
+ * @returns {string} Depth acheived with units or empty string
+ */
 function getDiveText(divePacket: DivePacket) {
     if (divePacket.bottom_dive && divePacket.depth_achieved) {
         return `${divePacket.depth_achieved.toFixed(1)}m`;
@@ -58,20 +76,26 @@ function getDiveText(divePacket: DivePacket) {
     return "";
 }
 
+/**
+ * Supplies the color for a task packet icon based on its selection state
+ *
+ * @param {TaskPacket} taskPacket Used to identify selected task packet
+ * @returns {TaskPacketColors} Color of the task packet icon
+ */
 function getColor(taskPacket: TaskPacket) {
-    const selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
+    const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
 
     if (
-        selectedTaskMarker.botID === taskPacket.bot_id &&
-        selectedTaskMarker.startTime === taskPacket.start_time
+        selectedTaskPacket.botID === taskPacket.bot_id &&
+        selectedTaskPacket.startTime === taskPacket.start_time
     ) {
-        if (markerColor === MarkerColors.LIGHT) {
-            markerColor = MarkerColors.DARK;
+        if (taskPacketColor === TaskPacketColors.LIGHT) {
+            taskPacketColor = TaskPacketColors.DARK;
         } else {
-            markerColor = MarkerColors.LIGHT;
+            taskPacketColor = TaskPacketColors.LIGHT;
         }
-        return markerColor;
+        return taskPacketColor;
     }
 
-    return MarkerColors.LIGHT;
+    return TaskPacketColors.LIGHT;
 }

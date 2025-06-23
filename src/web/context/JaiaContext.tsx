@@ -23,7 +23,7 @@ import { MapFeatureTypes } from "../types/openlayers-types";
 import {
     NodeTypes,
     SelectedNode,
-    SelectedTaskMarker,
+    SelectedTaskPacket,
     SelectedWaypoint,
     TaskParameterPair,
 } from "../types/jaia-system-types";
@@ -46,7 +46,7 @@ export interface JaiaContextType {
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
-    selectedTaskMarker: SelectedTaskMarker;
+    selectedTaskPacket: SelectedTaskPacket;
     visibleDetails: NodeTypes;
     visiblePanel: PanelNames;
     hubAccordionStates: HubAccordionStates;
@@ -64,7 +64,7 @@ export interface JaiaAction {
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
-    clickedTask?: SelectedTaskMarker;
+    clickedTaskPacket?: SelectedTaskPacket;
 
     location?: GeographicCoordinate;
     taskType?: TaskType;
@@ -208,8 +208,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
 
-        case JaiaActions.CLICKED_TASK_MARKER:
-            return handleClickedTaskMarker(mutableState, action.clickedTask);
+        case JaiaActions.CLICKED_TASK_PACKET:
+            return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
 
         default:
             return state;
@@ -232,7 +232,7 @@ function handleInit(mutableState: JaiaContextType) {
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    mutableState.selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = PanelNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
@@ -543,7 +543,7 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 }
 
 /**
- * Handles cleanup when a waypoint panel closes
+ * Handles cleanup when the waypoint panel closes
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -561,13 +561,19 @@ function handleClosedWaypointPanel(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Handles cleanup when the task packet panel closes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 function handleClosedTaskPacketPanel(mutableState: JaiaContextType) {
-    jaiaGlobal.setSelectedTaskMarker({
+    jaiaGlobal.setSelectedTaskPacket({
         botID: UNASSIGNED_ID,
         startTime: 0,
         type: MapFeatureTypes.NONE,
     });
-    mutableState.selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     diveLayer.updateFeatures();
     return mutableState;
 }
@@ -788,21 +794,28 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
     return mutableState;
 }
 
-function handleClickedTaskMarker(
+/**
+ * Opens panel for the selected task packet
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {SelectedTaskPacekt} clickedTaskPacket Identifies which task packet was clicked by operator
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedTaskPacket(
     mutableState: JaiaContextType,
-    clickedTaskMarker: SelectedTaskMarker,
+    clickedTaskPacket: SelectedTaskPacket,
 ) {
-    const selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
+    const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
 
     if (
-        selectedTaskMarker.botID === clickedTaskMarker.botID &&
-        selectedTaskMarker.startTime === clickedTaskMarker.startTime
+        selectedTaskPacket.botID === clickedTaskPacket.botID &&
+        selectedTaskPacket.startTime === clickedTaskPacket.startTime
     ) {
         return mutableState;
     }
 
-    jaiaGlobal.setSelectedTaskMarker(clickedTaskMarker);
-    mutableState.selectedTaskMarker = jaiaGlobal.getSelectedTaskMarker();
+    jaiaGlobal.setSelectedTaskPacket(clickedTaskPacket);
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = PanelNames.TASK_PACKET;
     return mutableState;
 }

@@ -1,3 +1,4 @@
+import { MapFeatureTypes } from "./openlayers-types";
 import {
     ConstantHeadingParameters,
     DiveParameters,
@@ -21,9 +22,10 @@ export interface SelectedWaypoint {
     missionID: number;
 }
 
-export interface SelectedTaskMarker {
+export interface SelectedTaskPacket {
     botID: number;
     startTime: number;
+    type: MapFeatureTypes;
 }
 
 export interface MissionStatus {

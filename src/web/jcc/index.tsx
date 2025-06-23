@@ -98,6 +98,11 @@ function updateOpenLayers() {
     }
 }
 
+/**
+ * Makes calls to update the task layers with the latest task packet data
+ *
+ * @returns {void}
+ */
 function updateTaskLayers() {
     diveLayer.updateFeatures();
 }

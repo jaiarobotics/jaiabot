@@ -2,29 +2,42 @@ import { useContext, useEffect, useMemo } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPacket } from "../../types/protobuf-types";
-import { SelectedTaskMarker } from "../../types/jaia-system-types";
+import { SelectedTaskPacket } from "../../types/jaia-system-types";
 
 import "./TaskPacketPanel.less";
 
 interface Props {
-    selectedTaskMarker: SelectedTaskMarker;
+    selectedTaskPacket: SelectedTaskPacket;
     taskPackets: TaskPacket[];
 }
 
+/**
+ * Displays task packet data to the operator in a tabular format
+ */
 export default function TaskPacketPanel(props: Props) {
+    /**
+     * Retrieves the data associated with the selected task packet
+     *
+     * @returns {TaskPacket}
+     */
     const getTaskPacket = () => {
         for (const taskPacket of props.taskPackets) {
             if (
-                taskPacket.start_time === props.selectedTaskMarker.startTime &&
-                taskPacket.bot_id === props.selectedTaskMarker.botID
+                taskPacket.start_time === props.selectedTaskPacket.startTime &&
+                taskPacket.bot_id === props.selectedTaskPacket.botID
             ) {
                 return taskPacket;
             }
         }
     };
 
-    // Milliseconds
-    const formatTime = (timestamp: number) => {
+    /**
+     * Coverts the timestamp to a human readable date string
+     *
+     * @param {number} timestamp Timestamp in miliseconds
+     * @returns {string} Date in the format: hh::mm MM/DD/YYYY
+     */
+    const formatDate = (timestamp: number) => {
         const date = new Date(timestamp / 1_000);
         return `${date.getHours()}:${date.getMinutes()} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
     };
@@ -32,8 +45,8 @@ export default function TaskPacketPanel(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const taskPacket = useMemo(() => getTaskPacket(), []);
-    const startTime = useMemo(() => formatTime(taskPacket.start_time), []);
-    const endTime = useMemo(() => formatTime(taskPacket.end_time), []);
+    const startTime = useMemo(() => formatDate(taskPacket.start_time), []);
+    const endTime = useMemo(() => formatDate(taskPacket.end_time), []);
 
     useEffect(() => {
         return () => {

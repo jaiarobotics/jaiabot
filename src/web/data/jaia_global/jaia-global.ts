@@ -1,7 +1,7 @@
 import {
     NodeTypes,
     SelectedNode,
-    SelectedTaskMarker,
+    SelectedTaskPacket,
     SelectedWaypoint,
     TaskParameters,
 } from "../../types/jaia-system-types";
@@ -27,13 +27,13 @@ const defaultTaskParameters: TaskParameters = {
 class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
-    private selectedTaskMarker: SelectedTaskMarker;
+    private selectedTaskPacket: SelectedTaskPacket;
     private defaultTaskParameters: TaskParameters;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
-        this.selectedTaskMarker = {
+        this.selectedTaskPacket = {
             botID: UNASSIGNED_ID,
             startTime: 0,
             type: MapFeatureTypes.NONE,
@@ -64,12 +64,12 @@ class JaiaGlobal {
         this.selectedWaypoint = clickedWaypoint;
     }
 
-    getSelectedTaskMarker() {
-        return this.selectedTaskMarker;
+    getSelectedTaskPacket() {
+        return this.selectedTaskPacket;
     }
 
-    setSelectedTaskMarker(clickedTaskMarker: SelectedTaskMarker) {
-        this.selectedTaskMarker = clickedTaskMarker;
+    setSelectedTaskPacket(clickedTaskPacket: SelectedTaskPacket) {
+        this.selectedTaskPacket = clickedTaskPacket;
     }
 
     getDefaultTaskParameters() {

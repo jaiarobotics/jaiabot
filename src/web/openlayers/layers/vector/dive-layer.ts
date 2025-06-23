@@ -9,6 +9,11 @@ class DiveLayer extends JaiaVectorLayer {
         super(LayerTitles.DIVE_LAYER, layersZIndexes.get(LayerTitles.DIVE_LAYER));
     }
 
+    /**
+     * Updates the dive layer with the lastest dive packet data
+     *
+     * @returns {void}
+     */
     override updateFeatures() {
         let source = this.getVectorLayer().getSource();
         source.clear();

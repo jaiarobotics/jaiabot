@@ -79,7 +79,7 @@ function Panel() {
         case PanelNames.TASK_PACKET:
             return (
                 <TaskPacketPanel
-                    selectedTaskMarker={jaiaContext.selectedTaskMarker}
+                    selectedTaskPacket={jaiaContext.selectedTaskPacket}
                     taskPackets={jaiaContext.taskPackets}
                 />
             );
