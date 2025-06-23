@@ -185,6 +185,16 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+    // subscribe for motor thermistor temperature (for tail overheating detection)
+    interprocess().subscribe<jaiabot::groups::motor_status>(
+        [this](const jaiabot::protobuf::MotorStatus& motor_status)
+        {
+            if (motor_status.has_thermistor() && motor_status.thermistor().has_temperature())
+            {
+                tail_overheating_data_.thermocouple_curr_temp = motor_status.thermistor().temperature();
+            }
+        });
+
     // subscribe for reports from the pHelmIvP behaviors
     interprocess().subscribe<jaiabot::groups::mission_ivp_behavior_report>(
         [this](const protobuf::IvPBehaviorReport& report)
@@ -1222,7 +1232,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
 
     if (tail_overheated)
     {
-        // we're not making forward progress when we should be, check the timeout
+        // the bot tail temperature is currently above 100 degrees Celsius, check the timeout
         if (now > tail_overheating_data_.bot_tail_overheating_timeout)
         {
             glog.is_debug2() && glog << "Tail still overheating." << std::endl;

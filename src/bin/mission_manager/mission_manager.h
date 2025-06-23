@@ -104,6 +104,15 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     };
 
     ForwardProgressData fwd_progress_data_;
+
+    struct BotTailTemperatureData
+    {
+        double thermocouple_curr_temp{0.0};
+        goby::time::SteadyClock::time_point bot_tail_overheating_timeout;
+    };
+
+    BotTailTemperatureData tail_overheating_data_;
+
 };
 
 } // namespace apps
