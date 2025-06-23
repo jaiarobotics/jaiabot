@@ -107,7 +107,7 @@ export default function Map() {
     const handleTaskPacketClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_TASK_PACKET,
-            clickedTask: {
+            clickedTaskPacket: {
                 botID: feature.get("botID"),
                 startTime: feature.get("startTime"),
                 type: type,
