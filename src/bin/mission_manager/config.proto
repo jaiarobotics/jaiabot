@@ -247,4 +247,14 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
+
+    message ResolveBotTailOverheating
+    {
+        optional int32 resume_timeout = 1
+            [default = 100, (dccl.field).units = { base_dimensions: "T" }];
+        optional double cooled_temperature = 2
+            [default = 100.0, (dccl.field).units = { base_dimensions: "Θ" }];
+    }
+
+    optional ResolveBotTailOverheating resolve_bot_tail_overheating = 92; 
 }

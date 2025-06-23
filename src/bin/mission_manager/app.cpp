@@ -1222,6 +1222,7 @@ void jaiabot::apps::MissionManager::check_forward_progress()
 void jaiabot::apps::MissionManager::check_bot_tail_overheating()
 {
     const auto& thermocouple_temperature = tail_overheating_data_.thermocouple_curr_temp; 
+    const auto& cooled_temperature_threshold = cfg().resolve_bot_tail_overheating().cooled_temperature();
 
     bool tail_overheated = thermocouple_temperature > 100; 
 
