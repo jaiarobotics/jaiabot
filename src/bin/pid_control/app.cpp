@@ -258,7 +258,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 
     interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
-        bot_rolled_over_ = int(abs(self.orientation.roll) > 90
+        bot_rolled_over_ = abs(imu_data.euler_angles().roll()) > 90;
     });
 }
 
