@@ -343,7 +343,7 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-
+    optional double thermocouple_temperature_C = 60;
 }
 
 message DriftPacket

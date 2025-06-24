@@ -93,6 +93,10 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                     status_.set_rpm(0);
                 }
             }
+
+            if (arduino_response.has_thermocouple_temperature_C()) {
+                status_.set_thermocouple_temperature_c(arduino_response.thermocouple_temperature_C());
+            }
         });
 }
 

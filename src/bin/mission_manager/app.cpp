@@ -187,11 +187,11 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for motor thermistor temperature (for tail overheating detection)
     interprocess().subscribe<jaiabot::groups::motor_status>(
-        [this](const jaiabot::protobuf::MotorStatus& motor_status)
+        [this](const jaiabot::protobuf::BotStatus& bot_status)
         {
-            if (motor_status.has_thermistor() && motor_status.thermistor().has_temperature())
+            if (bot_status.has_thermocouple_temperature_c())
             {
-                tail_overheating_data_.thermocouple_curr_temp = motor_status.thermistor().temperature();
+                tail_overheating_data_.thermocouple_curr_temp = bot_status.thermocouple_temperature_c();
             }
         });
 
@@ -1229,7 +1229,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
     auto now = goby::time::SteadyClock::now();
 
     auto trigger_seconds = goby::time::convert_duration<goby::time::SteadyClock::duration>(
-        cfg().resolve_bot_tail_overheating().trigger_timeout_with_units());
+        cfg().resolve_bot_tail_overheating().resume_timeout_with_units());
 
     if (tail_overheated)
     {
@@ -1238,7 +1238,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
         {
             glog.is_debug2() && glog << "Tail still overheating." << std::endl;
             machine_->process_event(statechart::EvBotTailOverheating());
-            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE__BOT_TAIL_OVERHEATING);
+            machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE_BOT_TAIL_OVERHEATING);
         }
     }
     else
