@@ -108,24 +108,21 @@ class Missions {
 
         const newMission = Object.assign(new Mission(), JSON.parse(jsonMission));
 
-        // Rehydrate waypoints, including Task and GeographicCoordinate
+        // Transform waypoint data to waypoint class objects
         newMission.waypoints = newMission.waypoints.map((wp: any) => {
             const waypoint = Object.assign(new Waypoint(), wp);
 
-            // Rehydrate Task
+            // Transform task data to objects
             if (wp.task) {
                 const task = Object.assign(new Task(), wp.task);
                 waypoint.setTask(task);
             }
 
-            // Rehydrate location (GeographicCoordinate is just a plain object)
+            // Transform location data to objects
             waypoint.setLocation(wp.location);
             return waypoint;
         });
 
-        const wp1 = newMission.getWaypoint(1);
-        console.log("Waypoint 1:", wp1);
-        console.log("Location on wp1:", wp1?.getLocation());
         this.addMission(newMission);
     }
 }
