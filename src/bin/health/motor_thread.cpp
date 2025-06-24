@@ -96,6 +96,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
 
             if (arduino_response.has_thermocouple_temperature_c()) {
                 bot_status_.set_thermocouple_temperature_c(arduino_response.thermocouple_temperature_c());
+                interprocess().publish<jaiabot::groups::motor_status>(bot_status_);
             }
         });
 }
