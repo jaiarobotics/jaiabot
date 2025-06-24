@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
 
-jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si::hertz) // checks every 0.2 sec
+jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si::hertz)
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -176,30 +176,58 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             }
         });
 
-   interprocess().subscribe<jaiabot::groups::production>(
-    [this](const jaiabot::protobuf::ProductionRequest& production_msg)
-    {
-        glog.is_debug1() && glog << "🟢 Received ProductionRequest, time = "
-                                 << production_msg.time()
-                                 << std::endl;
+    interprocess().subscribe<jaiabot::groups::production>(
+        [this](const jaiabot::protobuf::ProductionRequest& production_msg)
+        {
+            glog.is_debug1() && glog << "🟢 Received ProductionRequest, time = "
+                                     << production_msg.time()
+                                     << std::endl;
 
-    if (production_msg.production_command() == jaiabot::protobuf::TEST_PRESSURE_SENSOR)
-{
-    pressure_restart_pending_ = true;
-    pressure_test_passed_ = false;
-    pressure_data_received_ = false;
+            switch (production_msg.production_command())
+            {
+                case jaiabot::protobuf::TEST_IMU_SENSOR:
+                {
+                    imu_reset_pending_ = true;
+                    imu_test_passed_ = false;
+                    imu_data_received_ = false;
+                    imu_data_paused_ = false;
+                    imu_reset_start_time_ = goby::time::SystemClock::now();
 
-    // Convert from microseconds to seconds
-    pressure_restart_duration_sec_ = production_msg.time();
+                    glog.is_debug1() && glog << "🔁 IMU reset triggered for IMU test!" << std::endl;
+                    break;
+                }
+                case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
+                {
+                    pressure_restart_pending_ = true;
+                    pressure_test_passed_ = false;
+                    pressure_data_received_ = false;
+                    pressure_restart_time_ = goby::time::SystemClock::now();
 
-    pressure_restart_time_ = goby::time::SystemClock::now();
-    glog.is_debug1() && glog << "🔁 Pressure sensor restart triggered! Will wait "
-                             << pressure_restart_duration_sec_ << " seconds" << std::endl;
-}
+                    glog.is_debug1() && glog << "🔁 Pressure sensor restart triggered!" << std::endl;
+                    break;
+                }
+                case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+                {
+                    motor_test_running_ = true;
+                    motor_test_passed_ = false;
+                    motor_test_start_time_ = goby::time::SystemClock::now();
 
-        interprocess().publish<jaiabot::groups::production_request>(production_msg);
-    });
+                    // Also reset IMU for this test
+                    imu_reset_pending_ = true;
+                    imu_test_passed_ = false;
+                    imu_data_received_ = false;
+                    imu_data_paused_ = false;
+                    imu_reset_start_time_ = goby::time::SystemClock::now();
 
+                    glog.is_debug1() && glog << "🔁 Motor harness test triggered (and IMU reset)!" << std::endl;
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            interprocess().publish<jaiabot::groups::production_request>(production_msg);
+        });
 
 }
 
