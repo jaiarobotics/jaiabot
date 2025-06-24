@@ -14,6 +14,7 @@ export enum MapFeatureTypes {
     HUB = "HUB",
     WAYPOINT = "WAYPOINT",
     WAYPOINT_LINE = "WAYPOINT_LINE",
+    RALLY_POINT = "RALLY_POINT",
 }
 
 export enum MapModes {

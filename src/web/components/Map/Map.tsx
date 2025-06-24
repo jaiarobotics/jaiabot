@@ -48,6 +48,8 @@ export default function Map() {
                 case MapFeatureTypes.WAYPOINT:
                     handleWaypointClick(feature);
                     return;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
                 default:
                     return;
             }
@@ -97,6 +99,19 @@ export default function Map() {
                 waypointNum: feature.get("waypointNum"),
                 missionID: feature.get("missionID"),
             },
+        });
+    };
+
+    /**
+     * Dispatches action to open the rally panel
+     *
+     * @param {Feature<Geometry>} feature Clicked rally point
+     * @returns {void}
+     */
+    const handleRallyPointClick = (feature: Feature<Geometry>) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_RALLY_POINT,
+            rallyID: feature.get("id"),
         });
     };
 

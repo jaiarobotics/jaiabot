@@ -61,6 +61,7 @@ export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
+    rallyID?: number;
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
@@ -207,6 +208,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
+
+        case JaiaActions.CLICKED_RALLY_POINT:
+            return handleClickedRallyPoint(mutableState, action.rallyID);
 
         default:
             return state;
@@ -520,6 +524,7 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
+    setOpenLayersCursor(Cursors.DEFAULT);
     jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
@@ -785,6 +790,18 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
 
     missionLayer.updateFeatures();
 
+    return mutableState;
+}
+
+/**
+ * Opens panel for the selected rally point
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {SelectedWaypoint} rallyID Identifies which rally point was clicked by operator
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedRallyPoint(mutableState: JaiaContextType, rallyID: number) {
+    mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
 }
 
