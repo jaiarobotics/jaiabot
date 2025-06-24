@@ -95,7 +95,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
             }
 
             if (arduino_response.has_thermocouple_temperature_c()) {
-                groups::bot_status_.set_thermocouple_temperature_c(arduino_response.thermocouple_temperature_c());
+                bot_status_.set_thermocouple_temperature_c(arduino_response.thermocouple_temperature_c());
             }
         });
 }
@@ -105,7 +105,7 @@ void jaiabot::apps::MotorStatusThread::issue_status_summary()
     send_rpm_query();
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::motor_status>(status_);
+    interprocess().publish<jaiabot::groups::motor_status>(bot_status_);
 }
 
 void jaiabot::apps::MotorStatusThread::send_rpm_query()
