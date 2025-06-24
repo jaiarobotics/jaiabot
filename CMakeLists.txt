@@ -253,3 +253,6 @@ export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-config.c
 ## Configure Dockerfiles
 # Read common-version.env into CMake variables
 include(ConfigureDockerfiles)
+check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x019d7360ca440871")
+
+set(PROJECT_INTERVEHICLE_API_VERSION 16)
