@@ -14,7 +14,7 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 import { validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
-import { ButtonNames, PanelActions } from "../../types/context-types";
+import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
@@ -51,6 +51,9 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
+    const [isDisabled, setIsDisabled] = useState(
+        jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID,
+    );
 
     useEffect(() => {
         originalWaypoint = cloneDeep(getWaypoint());
@@ -232,7 +235,7 @@ export default function WaypointPanel() {
                 <div className="waypoint-input-container">
                     <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
                     <Button
-                        className="jaia-button delete-waypoint"
+                        className={`jaia-button delete-waypoint ${isDisabled ? "hide" : ""}`}
                         onClick={() => handleDeleteWaypointClick()}
                     >
                         <Icon path={mdiDelete} title="Delete Waypoint" />
@@ -244,12 +247,13 @@ export default function WaypointPanel() {
                 <div className="label">Bot:</div>
                 <div>{formatBotID()}</div>
 
-                <div className="line-break"></div>
+                <div className={`line-break ${isDisabled ? "hide" : ""}`}></div>
 
-                <div className="tap-to-move-row">
+                <div className={`tap-to-move-row ${isDisabled ? "hide" : ""}`}>
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
                         checked={() => getWaypoint().getIsMovable()}
+                        disabled={() => isDisabled}
                         onClick={() => handleTapToMoveClick()}
                     />
                 </div>
@@ -262,6 +266,7 @@ export default function WaypointPanel() {
                     value={getLatInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
+                    disabled={isDisabled}
                     onChange={(evt) => handleCoordinateChange(evt)}
                 />
 
@@ -271,6 +276,7 @@ export default function WaypointPanel() {
                     value={getLonInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
+                    disabled={isDisabled}
                     onChange={(evt) => handleCoordinateChange(evt)}
                 />
 
@@ -281,6 +287,7 @@ export default function WaypointPanel() {
                     <Select
                         value={getWaypoint().getTask().getType()}
                         onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
+                        disabled={isDisabled}
                     >
                         <MenuItem value={TaskType.NONE}>
                             {formatMenuItemText(TaskType.NONE)}
@@ -301,7 +308,7 @@ export default function WaypointPanel() {
                 </FormControl>
 
                 <div className="task-parameters-container">
-                    <TaskParameters task={getWaypoint().getTask()} />
+                    <TaskParameters task={getWaypoint().getTask()} isDisabled={isDisabled} />
                 </div>
             </div>
             <div className="button-row">

@@ -48,6 +48,10 @@
     background-color: #d1d5db;
 }
 
+.waypoint-panel .line-break.hide {
+    display: none;
+}
+
 .tap-to-move-row {
     grid-column: 1 / 3;
     display: flex;
@@ -59,12 +63,20 @@
     width: max-content;
 }
 
+.tap-to-move-row.hide {
+    display: none;
+}
+
 .jaia-input.coordinate {
     width: 90px;
 }
 
 .jaia-button.delete-waypoint {
     justify-self: center;
+}
+
+.jaia-button.delete-waypoint.hide {
+    display: none;
 }
 
 .waypoint-panel .task-parameters-container {
