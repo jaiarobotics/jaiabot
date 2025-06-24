@@ -1,6 +1,8 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { Speeds } from "../../types/protobuf-types";
+import { Speeds, GeographicCoordinate } from "../../types/protobuf-types";
+import Waypoint from "../waypoints/waypoint";
+import Task from "../tasks/task";
 
 class Missions {
     private missions: Map<number, Mission>;
@@ -82,6 +84,55 @@ class Missions {
         this.missions.clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
+    }
+
+    /**
+     * Saves a mission to local storage
+     *
+     * @param saveName Name to use when storing mission in local storage
+     * @param missionID Mission ID of mission to be saved
+     */
+    saveMission(saveName: string, missionID: number) {
+        const mission = this.getMission(missionID);
+        localStorage.setItem(saveName, JSON.stringify(mission));
+    }
+
+    /**
+     * Adds a mission to the missions singleton from local storage
+     *
+     * @param saveName Name of save mission to load from local storage
+     */
+    loadMission(saveName: string) {
+        const jsonMission = localStorage.getItem(saveName);
+        if (!jsonMission) throw new Error("No mission found in storage");
+
+        const newMission = Object.assign(new Mission(), JSON.parse(jsonMission));
+
+        // Rehydrate waypoints, including Task and GeographicCoordinate
+        newMission.waypoints = newMission.waypoints.map((wp: any) => {
+            const waypoint = Object.assign(new Waypoint(), wp);
+
+            // Rehydrate Task
+            if (wp.task) {
+                const task = Object.assign(new Task(), wp.task);
+                waypoint.setTask(task);
+            }
+
+            // Rehydrate location (GeographicCoordinate is just a plain object)
+            if (wp.location) {
+                waypoint.setLocation({
+                    lat: wp.location.lat ?? 0,
+                    lon: wp.location.lon ?? 0,
+                });
+            }
+
+            return waypoint;
+        });
+
+        const wp1 = newMission.getWaypoint(1);
+        console.log("Waypoint 1:", wp1);
+        console.log("Location on wp1:", wp1?.getLocation());
+        this.addMission(newMission);
     }
 }
 

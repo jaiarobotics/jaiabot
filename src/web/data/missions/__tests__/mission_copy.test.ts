@@ -3,7 +3,7 @@ import { locationA, locationB, locationC, locationD } from "../../tests/__mocks_
 import { missions } from "../missions";
 import Task from "../../tasks/task";
 import { TaskType } from "../../../types/protobuf-types";
-import { TaskParameterKeys, TaskParameterPair } from "../../../types/jaia-system-types";
+import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import cloneDeep from "lodash/cloneDeep";
 
 test("Clone a mission and test values", () => {

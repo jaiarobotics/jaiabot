@@ -1,3 +1,4 @@
+import Mission from "../mission";
 import { missions } from "../missions";
 import {
     missionA,
@@ -7,6 +8,10 @@ import {
     missionE,
     missionF,
 } from "../../tests/__mocks__/mission-mock";
+import { locationA, locationB, locationC, locationD } from "../../tests/__mocks__/waypoint-mock";
+import Task from "../../tasks/task";
+import { TaskType } from "../../../types/protobuf-types";
+import { TaskParameterKeys } from "../../../types/jaia-system-types";
 
 describe("Operator adding and deleting single missions", () => {
     // Running various additions and deletions in single test because jest runs multiple tests in parallel
@@ -88,5 +93,40 @@ describe("Operator adding and deleting multiple missions at once", () => {
 
         // Reset missions singleton to clean state
         missions.deleteAllMissions();
+    });
+});
+
+describe("Exercise functions to save and load missions from  localStorage", () => {
+    test("Save and retrieve a mission", () => {
+        // Create test mission
+        let originalMission = new Mission();
+        originalMission.addWaypoint(locationA);
+        let waypoint1 = originalMission.getWaypoint(1);
+        let task1 = new Task();
+        task1.setType(TaskType.DIVE);
+        task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
+        waypoint1.setTask(task1);
+        originalMission.addWaypoint(locationB);
+
+        const originalID: number = missions.addMission(originalMission);
+        expect(originalID).toEqual(1);
+        expect(missions.getMissions().size).toEqual(1);
+
+        // Save the mission to localStorage
+        missions.saveMission("SavedMission", originalID);
+
+        // Retrieve mission from localStorage
+        missions.loadMission("SavedMission");
+
+        // Verify the retrieved mission is a new copy of the original
+        expect(missions.getMissions().size).toEqual(2);
+        const newMission = missions.getMission(2);
+        // Verify it is a new reference
+        expect(newMission).not.toEqual(originalMission);
+        expect(newMission.getMissionID()).toEqual(2);
+        expect(newMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
+        expect(newMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
+        expect(newMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
+        expect(newMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
     });
 });
