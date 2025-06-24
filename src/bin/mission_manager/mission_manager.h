@@ -54,6 +54,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     void check_forward_progress();
     void publish_mission_report(protobuf::MissionState state);
+    void check_bot_tail_overheating();
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
