@@ -123,13 +123,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt)
         {
-            glog.is_debug1() && glog << "📡 Pressure Msg Received:\n"
-                                 << "   PressureRaw: " << pt.pressure_raw() << "\n"
-                                 << "   Temperature: "
-                                 << (pt.has_temperature() ? std::to_string(pt.temperature()) : "❌ Not Set")
-                                 << "\n"
-                                 << "   Sensor Type: " << pt.sensor_type()
-                                 << std::endl;
+            latest_pressure_ = pt.pressure_raw();
+            if (latest_pressure_ < 0.2)
+            {
+                pressure_test_passed_ = true;
+                interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
+            }
+
         });
 
     // Subscribe to motor status
@@ -207,13 +207,13 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     // Test 2: Pressure reading < 0.2 after restart
     if (pressure_test_passed_)
     {
-        //glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
-        //glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
+        glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
+        glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
     }
     else
     {
-        //glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
-        //glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
+        glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
+        glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
 }
     
