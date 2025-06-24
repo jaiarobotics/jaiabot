@@ -63,6 +63,7 @@ class JaiabotProduction: public ApplicationBase
         double latest_pressure_ = 100.0;
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
+        double pressure_restart_duration_sec_ = 0.0;
 
         bool imu_reset_pending_ = false;
         goby::time::SystemClock::time_point imu_reset_start_time_;
@@ -123,22 +124,37 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 
 
     // Subscribe to pressure sensor data
-        interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
-        {
-            pressure_data_received_ = true;
-            latest_pressure_ = pt.pressure_raw();
-            if (pressure_restart_pending_)
-{
-    if (latest_pressure_ < 0.2)
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+    [this](const jaiabot::protobuf::PressureTemperatureData& pt)
     {
-        pressure_test_passed_ = true;
-        pressure_restart_pending_ = false;
+        // If restart is pending, check if enough time has passed before resuming
+        if (pressure_restart_pending_)
+        {
+            double elapsed = seconds_since(pressure_restart_time_);
+            if (elapsed < pressure_restart_duration_sec_)
+            {
+                glog.is_debug1() && glog << "⏸️ Pressure data ignored (restart in progress)... "
+                                         << elapsed << "s elapsed of "
+                                         << pressure_restart_duration_sec_ << "s" << std::endl;
+                return; // Ignore this message
+            }
+            else
+            {
+                glog.is_debug1() && glog << "▶️ Pressure restart window complete. Accepting data now." << std::endl;
+                pressure_restart_pending_ = false; // Done waiting
+            }
+        }
 
-    }
-}
+        pressure_data_received_ = true;
+        latest_pressure_ = pt.pressure_raw();
 
- });
+        if (latest_pressure_ < 0.2)
+        {
+            pressure_test_passed_ = true;
+            interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
+        }
+    });
+
 
     // Subscribe to motor status
     interprocess().subscribe<jaiabot::groups::motor_status>(
@@ -167,15 +183,19 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                                  << production_msg.time()
                                  << std::endl;
 
-        if (production_msg.production_command() == jaiabot::protobuf::TEST_PRESSURE_SENSOR)
-        {
-            pressure_restart_pending_ = true;
-            pressure_test_passed_ = false;
-            pressure_data_received_ = false;
-            pressure_restart_time_ = goby::time::SystemClock::now();
+    if (production_msg.production_command() == jaiabot::protobuf::TEST_PRESSURE_SENSOR)
+{
+    pressure_restart_pending_ = true;
+    pressure_test_passed_ = false;
+    pressure_data_received_ = false;
 
-            glog.is_debug1() && glog << "🔁 Pressure sensor restart triggered!" << std::endl;
-        }
+    // Convert from microseconds to seconds
+    pressure_restart_duration_sec_ = production_msg.time();
+
+    pressure_restart_time_ = goby::time::SystemClock::now();
+    glog.is_debug1() && glog << "🔁 Pressure sensor restart triggered! Will wait "
+                             << pressure_restart_duration_sec_ << " seconds" << std::endl;
+}
 
         interprocess().publish<jaiabot::groups::production_request>(production_msg);
     });
@@ -225,7 +245,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     // Test 2: Pressure reading < 0.2 after restart
     if(!pressure_data_received_){
-        //glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl; //(commented for testing reasons will uncomment later )
+        glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl; //(commented for testing reasons will uncomment later )
     } else if (pressure_test_passed_ && pressure_data_received_){
         glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
         glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
@@ -272,6 +292,16 @@ void jaiabot::apps::JaiabotProduction::loop()
 {
     // Calls test functions on every loop tick (e.g., every 0.2 seconds)
     imu_sensor();
+    // Delay pressure test until restart wait is over
+if (pressure_restart_pending_)
+{
+    double elapsed = seconds_since(pressure_restart_time_);
+    if (elapsed < pressure_restart_duration_sec_)
+    {
+        return; // Still waiting, skip the test
+    }
+}
+
     pressure_sensor();
     motor_harness();
 }
