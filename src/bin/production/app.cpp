@@ -60,7 +60,7 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_test_passed_ = false;
         bool motor_test_passed_ = false;
 
-        double latest_pressure_ = 100;
+        double latest_pressure_ = 100.0;
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
 
@@ -68,6 +68,7 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point imu_reset_start_time_;
         goby::time::SystemClock::time_point last_imu_msg_time_;
         bool imu_data_received_ = false;
+        bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
 
         bool motor_test_running_ = false;
@@ -123,6 +124,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt)
         {
+            pressure_data_received_ = true;
             latest_pressure_ = pt.pressure_raw();
             if (latest_pressure_ < 0.2)
             {
@@ -205,13 +207,12 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     // Test 2: Pressure reading < 0.2 after restart
-    if (pressure_test_passed_)
-    {
+    if(!pressure_data_received_){
+        glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl;
+    } else if (pressure_test_passed_ && pressure_data_received_){
         glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
         glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
-    }
-    else
-    {
+    }else if(!pressure_test_passed_ && pressure_data_received_){
         glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
         glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
