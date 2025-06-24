@@ -119,13 +119,7 @@ class Missions {
             }
 
             // Rehydrate location (GeographicCoordinate is just a plain object)
-            if (wp.location) {
-                waypoint.setLocation({
-                    lat: wp.location.lat ?? 0,
-                    lon: wp.location.lon ?? 0,
-                });
-            }
-
+            waypoint.setLocation(wp.location);
             return waypoint;
         });
 
