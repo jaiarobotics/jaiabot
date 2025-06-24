@@ -135,21 +135,10 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         pressure_test_passed_ = true;
         pressure_restart_pending_ = false;
 
-        double elapsed = seconds_since(pressure_restart_time_);
-        glog.is_debug1() && glog << "✅ Pressure test PASSED after restart in "
-                                 << elapsed << "s. Value: " << latest_pressure_ << std::endl;
-
-        interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
-    }
-    else
-    {
-        glog.is_debug1() && glog << "🧪 Waiting for pressure < 0.2 after restart... "
-                                 << "Current: " << latest_pressure_ << std::endl;
     }
 }
 
-
-        });
+ });
 
     // Subscribe to motor status
     interprocess().subscribe<jaiabot::groups::motor_status>(
