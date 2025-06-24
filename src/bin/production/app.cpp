@@ -128,11 +128,26 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             pressure_data_received_ = true;
             latest_pressure_ = pt.pressure_raw();
-            if (latest_pressure_ < 0.2)
-            {
-                pressure_test_passed_ = true;
-                interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
-            }
+            if (pressure_restart_pending_)
+{
+    if (latest_pressure_ < 0.2)
+    {
+        pressure_test_passed_ = true;
+        pressure_restart_pending_ = false;
+
+        double elapsed = seconds_since(pressure_restart_time_);
+        glog.is_debug1() && glog << "✅ Pressure test PASSED after restart in "
+                                 << elapsed << "s. Value: " << latest_pressure_ << std::endl;
+
+        interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
+    }
+    else
+    {
+        glog.is_debug1() && glog << "🧪 Waiting for pressure < 0.2 after restart... "
+                                 << "Current: " << latest_pressure_ << std::endl;
+    }
+}
+
 
         });
 
@@ -163,8 +178,19 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                                  << production_msg.time()
                                  << std::endl;
 
+        if (production_msg.production_command() == jaiabot::protobuf::TEST_PRESSURE_SENSOR)
+        {
+            pressure_restart_pending_ = true;
+            pressure_test_passed_ = false;
+            pressure_data_received_ = false;
+            pressure_restart_time_ = goby::time::SystemClock::now();
+
+            glog.is_debug1() && glog << "🔁 Pressure sensor restart triggered!" << std::endl;
+        }
+
         interprocess().publish<jaiabot::groups::production_request>(production_msg);
     });
+
 
 }
 
