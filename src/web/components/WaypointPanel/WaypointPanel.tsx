@@ -14,7 +14,7 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 import { validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
-import { PanelActions } from "../../types/context-types";
+import { ButtonNames, PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
@@ -54,12 +54,6 @@ export default function WaypointPanel() {
 
     useEffect(() => {
         originalWaypoint = cloneDeep(getWaypoint());
-        return () => {
-            jaiaDispatch({
-                type: JaiaActions.CLOSED_WAYPOINT_PANEL,
-                panelAction: PanelActions.DONE,
-            });
-        };
     }, []);
 
     /**
@@ -209,11 +203,25 @@ export default function WaypointPanel() {
         });
     };
 
-    const handleCancelClick = () => {
+    /**
+     * Dispatches action to close the waypoint panel. If the operator
+     * selects cancel, a copy of the waypoint made on the inital render
+     * of the is passed to the reducer.
+     *
+     * @param {PanelActions} panelAction How the panel closed
+     * @returns {void}
+     */
+    const handleClosePanelClick = (panelAction: PanelActions) => {
+        let waypoint: Waypoint;
+
+        if (panelAction === PanelActions.CANCEL) {
+            waypoint = originalWaypoint;
+        }
+
         jaiaDispatch({
             type: JaiaActions.CLOSED_WAYPOINT_PANEL,
-            panelAction: PanelActions.CANCEL,
-            waypoint: originalWaypoint,
+            panelAction: panelAction,
+            waypoint: waypoint,
         });
     };
 
@@ -297,8 +305,8 @@ export default function WaypointPanel() {
                 </div>
             </div>
             <div className="button-row">
-                <button onClick={() => handleCancelClick()}>Close</button>
-                <button>Done</button>
+                <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
+                <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
             </div>
         </div>
     );

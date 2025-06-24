@@ -564,16 +564,9 @@ function handleClosedWaypointPanel(
             .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
             .getWaypoints();
         waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;
+        missionLayer.updateFeatures();
     }
-
-    // When waypoint is not deleted, disable movable property
-    const waypoint = getWaypoint();
-    if (waypoint) {
-        waypoint.setIsMovable(false);
-    }
-
-    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    resetSelectedWaypoint(mutableState);
     mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
@@ -777,6 +770,7 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
             if (mutableState.visiblePanel !== name) {
                 visiblePanel = name;
             }
+            resetSelectedWaypoint(mutableState);
             break;
     }
 
@@ -887,4 +881,21 @@ function getWaypoint() {
     if (mission) {
         return mission.getWaypoint(selectedWaypoint.waypointNum);
     }
+}
+
+/**
+ * Sets the selected waypoint to its default settings
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {void}
+ */
+function resetSelectedWaypoint(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+
+    if (waypoint) {
+        waypoint.setIsMovable(false);
+    }
+
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }
