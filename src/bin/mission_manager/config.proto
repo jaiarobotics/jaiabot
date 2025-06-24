@@ -253,7 +253,7 @@ message MissionManager
         optional int32 resume_timeout = 1
             [default = 100, (dccl.field).units = { base_dimensions: "T" }];
         optional double cooled_temperature = 2
-            [default = 100.0, (dccl.field).units = { base_dimensions: "Θ" }];
+            [default = 100.0, (dccl.field).units = { base_dimensions: "temperature" }];
     }
 
     optional ResolveBotTailOverheating resolve_bot_tail_overheating = 92; 
