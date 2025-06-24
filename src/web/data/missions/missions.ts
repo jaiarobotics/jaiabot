@@ -9,6 +9,7 @@ class Missions {
     private nextMissionID: number;
     private missionIDInEditMode: number;
     private missionSpeeds: Speeds;
+    private saveName: string;
 
     constructor() {
         this.missions = new Map<number, Mission>();
@@ -94,6 +95,8 @@ class Missions {
      */
     saveMission(saveName: string, missionID: number) {
         const mission = this.getMission(missionID);
+        // Save saveName for later correlation
+        mission.setSaveName(saveName);
         localStorage.setItem(saveName, JSON.stringify(mission));
     }
 
@@ -123,8 +126,24 @@ class Missions {
             return waypoint;
         });
 
+        // Save to the missions singleton
         this.addMission(newMission);
     }
+
+    /**
+     * Saves all the current missions as a mission set to local storage
+     *
+     * @param saveName : string name to use for storing the mission set
+     */
+    saveAllMissions(saveName: string) {}
+
+    /**
+     * Replaces all current missions with those from a save set
+     *
+     * @param saveName : string Name of saved set to retrieve
+     *
+     */
+    loadAllMissions(saveName: string) {}
 }
 
 export const missions = new Missions();

@@ -13,6 +13,7 @@ export default class Mission {
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
+    private saveName: string;
 
     constructor() {
         // missionID assigned by missions singleton
@@ -29,6 +30,13 @@ export default class Mission {
         this.missionID = missionID;
     }
 
+    setSaveName(saveName: string) {
+        this.saveName = saveName;
+    }
+
+    getSaveName() {
+        return this.saveName;
+    }
     getWaypoints() {
         return this.waypoints;
     }

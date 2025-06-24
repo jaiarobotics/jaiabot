@@ -114,6 +114,7 @@ describe("Exercise functions to save and load missions from  localStorage", () =
 
         // Save the mission to localStorage
         missions.saveMission("SavedMission", originalID);
+        expect(originalMission.getSaveName()).toEqual("SavedMission");
 
         // Retrieve mission from localStorage
         missions.loadMission("SavedMission");
@@ -123,6 +124,7 @@ describe("Exercise functions to save and load missions from  localStorage", () =
         const newMission = missions.getMission(2);
         // Verify it is a new reference
         expect(newMission).not.toEqual(originalMission);
+        expect(newMission.getSaveName()).toEqual("SavedMission");
         expect(newMission.getMissionID()).toEqual(2);
         expect(newMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
         expect(newMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
