@@ -60,7 +60,7 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_test_passed_ = false;
         bool motor_test_passed_ = false;
 
-        double latest_pressure_ = 2;
+        double latest_pressure_ = 100;
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
 
@@ -120,16 +120,16 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
 
 
     // Subscribe to pressure sensor data
-    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pressure_msg)
+        interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
         {
-            latest_pressure_ = pressure_msg.pressure_raw();
-            if (latest_pressure_ < 0.2)
-            {
-                pressure_test_passed_ = true; 
-                interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_msg);
-            }
-
+            glog.is_debug1() && glog << "📡 Pressure Msg Received:\n"
+                                 << "   PressureRaw: " << pt.pressure_raw() << "\n"
+                                 << "   Temperature: "
+                                 << (pt.has_temperature() ? std::to_string(pt.temperature()) : "❌ Not Set")
+                                 << "\n"
+                                 << "   Sensor Type: " << pt.sensor_type()
+                                 << std::endl;
         });
 
     // Subscribe to motor status
@@ -207,13 +207,16 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     // Test 2: Pressure reading < 0.2 after restart
     if (pressure_test_passed_)
     {
-        glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
+        //glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
+        //glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
     }
     else
     {
-        glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
+        //glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
+        //glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
 }
+    
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
@@ -234,7 +237,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     }
     if (motor_test_passed_)
     {
-        glog.is_debug1() && glog << "Motor Harness Test PASS" << std::endl;
+        //glog.is_debug1() && glog << "Motor Harness Test PASS" << std::endl;
     }
     else
     {

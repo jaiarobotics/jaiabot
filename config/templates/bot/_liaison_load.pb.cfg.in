@@ -1,5 +1,5 @@
 load_protobuf {
-    name: "jaiabot.protobuf.IMUCalibration" 
+    name: "jaiabot.protobuf.IMUData" 
     publish_to {
         group: "jaiabot::imu"
     }
@@ -8,7 +8,7 @@ load_protobuf {
 load_protobuf {
     name: "jaiabot.protobuf.PressureTemperatureData" 
     publish_to {
-         group: "pressure_temperature"
+         group: "jaiabot::pressure_temperature"
     }
 } 
 
