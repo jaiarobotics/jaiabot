@@ -1,4 +1,5 @@
 import { ChangeEvent, useContext, useEffect, useState } from "react";
+import cloneDeep from "lodash/cloneDeep";
 
 import TaskParameters from "../TaskParameters/TaskParameters";
 
@@ -6,12 +7,14 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
+import Waypoint from "../../data/waypoints/waypoint";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
+import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
@@ -19,6 +22,8 @@ import { mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
+
+let originalWaypoint: Waypoint;
 
 /**
  * Displays information about the selected waypoint such as location and task selection
@@ -48,8 +53,12 @@ export default function WaypointPanel() {
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
 
     useEffect(() => {
+        originalWaypoint = cloneDeep(getWaypoint());
         return () => {
-            jaiaDispatch({ type: JaiaActions.CLOSED_WAYPOINT_PANEL });
+            jaiaDispatch({
+                type: JaiaActions.CLOSED_WAYPOINT_PANEL,
+                panelAction: PanelActions.DONE,
+            });
         };
     }, []);
 
@@ -200,6 +209,14 @@ export default function WaypointPanel() {
         });
     };
 
+    const handleCancelClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.CLOSED_WAYPOINT_PANEL,
+            panelAction: PanelActions.CANCEL,
+            waypoint: originalWaypoint,
+        });
+    };
+
     return (
         <div className="waypoint-panel-container">
             <div className="waypoint-panel">
@@ -280,7 +297,7 @@ export default function WaypointPanel() {
                 </div>
             </div>
             <div className="button-row">
-                <button>Close</button>
+                <button onClick={() => handleCancelClick()}>Close</button>
                 <button>Done</button>
             </div>
         </div>
