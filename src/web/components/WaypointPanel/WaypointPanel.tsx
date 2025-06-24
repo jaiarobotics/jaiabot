@@ -51,9 +51,7 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
-    const [isDisabled, setIsDisabled] = useState(
-        jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID,
-    );
+    const isDisabled = jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID;
 
     useEffect(() => {
         originalWaypoint = cloneDeep(getWaypoint());
@@ -149,7 +147,21 @@ export default function WaypointPanel() {
      * @returns {void}
      */
     const handleDeleteWaypointClick = () => {
-        jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
+        if (!isDisabled) {
+            jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
+        }
+    };
+
+    /**
+     * Dispatches action to toggle edit mode
+     *
+     * @returns {void}
+     */
+    const handleEditModeClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_EDIT_MISSION,
+            missionID: jaiaContext.selectedWaypoint.missionID,
+        });
     };
 
     /**
@@ -235,7 +247,7 @@ export default function WaypointPanel() {
                 <div className="waypoint-input-container">
                     <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
                     <Button
-                        className={`jaia-button delete-waypoint ${isDisabled ? "hide" : ""}`}
+                        className={`jaia-button delete-waypoint ${isDisabled ? "disabled" : ""}`}
                         onClick={() => handleDeleteWaypointClick()}
                     >
                         <Icon path={mdiDelete} title="Delete Waypoint" />
@@ -247,9 +259,20 @@ export default function WaypointPanel() {
                 <div className="label">Bot:</div>
                 <div>{formatBotID()}</div>
 
-                <div className={`line-break ${isDisabled ? "hide" : ""}`}></div>
+                <div className="line-break"></div>
+                <div className="toggle-row">
+                    <div className="label">Edit Mission:</div>
+                    <JaiaToggle
+                        checked={() =>
+                            jaiaContext.missionIDInEditMode ===
+                            jaiaContext.selectedWaypoint.waypointNum
+                        }
+                        onClick={() => handleEditModeClick()}
+                    />
+                </div>
 
-                <div className={`tap-to-move-row ${isDisabled ? "hide" : ""}`}>
+                <div className="line-break"></div>
+                <div className="toggle-row">
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
                         checked={() => getWaypoint().getIsMovable()}
