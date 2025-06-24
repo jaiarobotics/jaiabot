@@ -494,7 +494,7 @@ jaiabot::apps::MissionManager::~MissionManager()
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
                    const goby::middleware::intervehicle::protobuf::AckData& ack)
         {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+            glog is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
                                      << "\nfor subscription:\n\t" << sub.ShortDebugString()
                                      << std::endl;
         };
@@ -996,18 +996,18 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
 {
     // Index -> Command
     std::map<uint8_t, protobuf::Command> inner_map;
-    glog.is_debug1() && glog << "Received command fragment: "
+    glog is_debug1() && glog << "Received command fragment: "
                              << input_command_fragment.ShortDebugString() << std::endl;
 
     // Time is used as the unique identifier
     if (track_command_fragments.count(input_command_fragment.time()))
     {
-        glog.is_debug1() && glog << "Found fragment time: " << std::endl;
+        glog is_debug1() && glog << "Found fragment time: " << std::endl;
         if (track_command_fragments.at(input_command_fragment.time())
                 .count(input_command_fragment.plan().fragment_index()))
         {
             // All set, already have the data
-            glog.is_debug1() && glog << "Already have fragment index: " << std::endl;
+            glog is_debug1() && glog << "Already have fragment index: " << std::endl;
         }
         else
         {
@@ -1016,12 +1016,12 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                                    [input_command_fragment.plan().fragment_index()] =
                                        input_command_fragment;
 
-            glog.is_debug1() && glog << "Add fragment index: " << std::endl;
+            glog is_debug1() && glog << "Add fragment index: " << std::endl;
         }
     }
     else
     {
-        glog.is_debug1() && glog << "New fragment time, clear map and add fragment: " << std::endl;
+        glog is_debug1() && glog << "New fragment time, clear map and add fragment: " << std::endl;
         //Let's only track one multi-message
         track_command_fragments.clear();
         inner_map.insert(
@@ -1029,7 +1029,7 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
         track_command_fragments.insert(std::make_pair(input_command_fragment.time(), inner_map));
     }
 
-    glog.is_debug1() && glog << "track_command_fragments.at(input_command_fragment.time()).size(): "
+    glog is_debug1() && glog << "track_command_fragments.at(input_command_fragment.time()).size(): "
                              << track_command_fragments.at(input_command_fragment.time()).size()
                              << ", Expected Fragments: "
                              << input_command_fragment.plan().expected_fragments() << std::endl;
@@ -1099,7 +1099,7 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     }
                     *goal->mutable_location() = fragment.second.plan().goal(goal_index).location();
                 }
-                glog.is_debug2() && glog << "fragment: " << fragment.second.DebugString()
+                glog is_debug2() && glog << "fragment: " << fragment.second.DebugString()
                                          << std::endl;
             }
             return true;
@@ -1212,7 +1212,7 @@ void jaiabot::apps::MissionManager::check_forward_progress()
     else
     {
         // otherwise bump forward the timeout
-        glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
+        glog is_debug2() && glog << "Forward progress timeout reset" << std::endl;
         fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
     }
 }
@@ -1236,7 +1236,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
         // the bot tail temperature is currently above 100 degrees Celsius, check the timeout
         if (now > tail_overheating_data_.bot_tail_overheating_timeout)
         {
-            glog.is_debug2() && glog << "Tail still overheating." << std::endl;
+            glog is_debug2() && glog << "Tail still overheating." << std::endl;
             machine_->process_event(statechart::EvBotTailOverheating());
             machine_->insert_warning(jaiabot::protobuf::WARNING__VEHICLE_BOT_TAIL_OVERHEATING);
         }
@@ -1244,7 +1244,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
     else
     {
         // otherwise bump forward the timeout
-        glog.is_debug2() && glog << "Tail overheating timeout reset" << std::endl;
+        glog is_debug2() && glog << "Tail overheating timeout reset" << std::endl;
         tail_overheating_data_.bot_tail_overheating_timeout = now + trigger_seconds;
     }
 }

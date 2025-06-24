@@ -343,7 +343,14 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double thermocouple_temperature_C = 60;
+    optional double thermocouple_temperature_C = 60 [
+        (dccl.field) = {
+            min: -50
+            max: 200
+            precision: 2
+            units { derived_dimensions: "temperature" system: "celsius" }
+        }
+    ];
 }
 
 message DriftPacket
