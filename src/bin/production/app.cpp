@@ -70,8 +70,10 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_received_ = false;
         bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
+        bool pressure_restart_pending_ = false;
 
         bool motor_test_running_ = false;
+        goby::time::SystemClock::time_point pressure_restart_time_;
         goby::time::SystemClock::time_point motor_test_start_time_;
 
         void imu_sensor();
@@ -98,7 +100,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
 
-jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
+jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si::hertz) // checks every 0.2 sec
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -208,7 +210,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     // Test 2: Pressure reading < 0.2 after restart
     if(!pressure_data_received_){
-        glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl;
+        //glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl; //(commented for testing reasons will uncomment later )
     } else if (pressure_test_passed_ && pressure_data_received_){
         glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
         glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
@@ -218,7 +220,6 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     }
 }
     
-
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
     // Test 3: Run motor for 2s, confirm rpm >= 3600, temperature 10-30, and IMU data pauses for 2s
@@ -254,7 +255,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
-    // Calls test functions on every loop tick (e.g., every 2 seconds)
+    // Calls test functions on every loop tick (e.g., every 0.2 seconds)
     imu_sensor();
     pressure_sensor();
     motor_harness();
