@@ -42,3 +42,14 @@ message PressureAdjustedData
         units: { derived_dimensions: "length" }
     }];
 }
+
+message PressureIssue
+{
+    enum SolutionType
+    {
+        REPORT_PRESSURE = 0;
+        RESTART_PRESSURE_PY = 1;
+    }
+
+    required SolutionType solution = 1;
+}
