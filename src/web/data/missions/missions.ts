@@ -34,6 +34,14 @@ class Missions {
         this.nextMissionID = nextMissionID;
     }
 
+    setSaveName(saveName: string) {
+        this.saveName = saveName;
+    }
+
+    getSaveName() {
+        return this.saveName;
+    }
+
     getMission(missionNum: number) {
         return this.missions.get(missionNum);
     }
@@ -135,7 +143,14 @@ class Missions {
      *
      * @param saveName : string name to use for storing the mission set
      */
-    saveAllMissions(saveName: string) {}
+    saveAllMissions(saveName: string) {
+        // Apply the saveName to the mission set and all the missions
+        missions.setSaveName(saveName);
+        missions.missions.forEach((mission) => {
+            mission.setSaveName(saveName);
+        });
+        localStorage.setItem(saveName, JSON.stringify(missions));
+    }
 
     /**
      * Replaces all current missions with those from a save set

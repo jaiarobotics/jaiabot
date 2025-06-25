@@ -96,7 +96,11 @@ describe("Operator adding and deleting multiple missions at once", () => {
     });
 });
 
-describe("Exercise functions to save and load missions from  localStorage", () => {
+describe("Exercise functions to save and load missions from localStorage", () => {
+    beforeEach(() => {
+        missions.deleteAllMissions();
+        localStorage.clear();
+    });
     test("Save and retrieve a mission", () => {
         // Create test mission
         let originalMission = new Mission();
@@ -130,5 +134,36 @@ describe("Exercise functions to save and load missions from  localStorage", () =
         expect(newMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
         expect(newMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
         expect(newMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
+    });
+
+    test("Save and retrieve a mission set from localStorage", () => {
+        // Create test mission set
+        let mission1 = new Mission();
+        mission1.addWaypoint(locationA);
+        let waypoint1 = mission1.getWaypoint(1);
+        let task1 = new Task();
+        task1.setType(TaskType.DIVE);
+        task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
+        waypoint1.setTask(task1);
+        mission1.addWaypoint(locationB);
+
+        let mission2 = new Mission();
+        mission2.addWaypoint(locationC);
+        let waypoint2 = mission2.getWaypoint(1);
+        let task2 = new Task();
+        task2.setType(TaskType.STATION_KEEP);
+        task2.setParameter({ key: TaskParameterKeys.HOLD_TIME, value: 4 });
+        waypoint2.setTask(task2);
+        mission2.addWaypoint(locationD);
+
+        const mission1Id: number = missions.addMission(mission1);
+        expect(mission1Id).toEqual(1);
+        expect(missions.getMissions().size).toEqual(1);
+
+        const mission2Id: number = missions.addMission(mission2);
+        expect(mission2Id).toEqual(2);
+        expect(missions.getMissions().size).toEqual(2);
+
+        missions.saveAllMissions("Test-Mission-Set");
     });
 });

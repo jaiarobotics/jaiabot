@@ -37,6 +37,7 @@ export default class Mission {
     getSaveName() {
         return this.saveName;
     }
+
     getWaypoints() {
         return this.waypoints;
     }
