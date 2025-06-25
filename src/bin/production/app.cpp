@@ -28,6 +28,9 @@
 #include <fstream>
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+//#include "system_thread.h"
+#include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
@@ -72,8 +75,8 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_paused_ = false;
 
         void restart_pressure_sensor_py() { system("systemct1 restart jaiabot_pressure_sensor_py"); }
-        //void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-        //void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
+        void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+        void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
 
         bool motor_test_running_ = false;
         goby::time::SystemClock::time_point motor_test_start_time_;
@@ -106,9 +109,39 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUData& imu_msg)
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue)
         {
-            last_imu_msg_time_ = goby::time::SystemClock::now();
+            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (imu_issue.solution())
+            {
+                case protobuf::IMUIssue::STOP_BOT: break;
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    // Remove simulation check, always restart for now
+                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                    restart_imu_py();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
+                    reboot_bno085_imu();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
+                                             << std::endl;
+                    reboot_bno085_imu();
+                    restart_imu_py();
+                    break;
+                default:
+                    //TODO Handle Default Case
+                    break;
+            }
+            /*last_imu_msg_time_ = goby::time::SystemClock::now();
             imu_data_received_ = true;
 
             if (imu_msg.has_euler_angles() && imu_msg.euler_angles().has_heading())
@@ -120,19 +153,16 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
                     interprocess().publish<jaiabot::groups::imu>(imu_msg);
 
                 }
-            }
+            }*/
         });
 
 
     // Subscribe to pressure sensor data
-        interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureIssue& pressure_msg)
         {
             glog.is_debug2() && glog << "Received Pressure Issue " << pressure_msg.ShortDebugString()
                                      << std::endl;
-
-            //pressure_data_received_ = true;
-            //latest_pressure_ = pressure_msg.pressure_raw();
 
             switch (pressure_msg.solution())
             {
@@ -158,7 +188,37 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
     interprocess().subscribe<jaiabot::groups::motor_status>(
         [this](const jaiabot::protobuf::Motor& motor_msg)
         {
-            latest_rpm_ = motor_msg.rpm();
+            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (imu_issue.solution())
+            {
+                case protobuf::IMUIssue::STOP_BOT: break;
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    // Remove simulation check, always restart for now
+                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                    restart_imu_py();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU" << std::endl;
+                    reboot_bno085_imu();
+                    break;
+                case protobuf::IMUIssue::REBOOT_BNO085_IMU_AND_RESTART_IMU_PY:
+                    glog.is_debug2() && glog << "IMU ERROR: REBOOT IMU and RESTART IMU PY. "
+                                             << std::endl;
+                    reboot_bno085_imu();
+                    restart_imu_py();
+                    break;
+                default:
+                    //TODO Handle Default Case
+                    break;
+            }
+            /*latest_rpm_ = motor_msg.rpm();
             if (motor_msg.has_thermistor() && motor_msg.thermistor().has_temperature())
             {
                 latest_temperature_ = motor_msg.thermistor().temperature();
@@ -171,7 +231,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
                     motor_test_passed_ = true;
                     interprocess().publish<jaiabot::groups::motor_status>(motor_msg);
                 }
-            }
+            }*/
         });
 
    interprocess().subscribe<jaiabot::groups::production>(
