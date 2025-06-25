@@ -514,10 +514,9 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
 
     bool is_overheating_bot_tail = goby::time::SteadyClock::now() <= overheat_bot_tail_end_;
     bot_tail_overheated_ = true;
-    if (is_overheating_bot_tail)
+    if (!is_overheating_bot_tail)
     {
         bot_tail_overheated_ = false;
-        normalized_thrust = 0;
     }
 }
 
