@@ -9,48 +9,49 @@ parser = argparse.ArgumentParser(description='Read RPM from motor and publish it
 parser.add_argument('-p', '--port', dest='port', default=20005, help='Port to access motor readings')
 args = parser.parse_args()
 
-import RPi.GPIO as GPIO
 import time
+from gpiozero import Button
+from threading import Event
 
 # RPM Calculation Overview:
-# The motor has 4 quadrants to complete one revolution.
-# One quadrant is equal to this pattern: High -> Low -> High.
-# In one revolution there is 12 state changes.
-# We calculate the RPM at 5Hz.
-
+# 2 falling edges = 1 full revolution.
+# RPM is calculated every 0.2 seconds based on edge count.
 RPM_PIN = 27
-REVOLUTION_CONSTANT = 4.0
+REVOLUTION_CONSTANT = 2.0
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', args.port))
 buffer_size = 1024
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(RPM_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+pin = Button(27, pull_up=True)
+
+falling_event = Event()
+def on_falling():
+    falling_event.set()
+
+pin.when_released = on_falling
 
 rpm = 0
 
 def calculate_rpm():
-    try:
-        global rpm
-        state_change_count = 0
-        start_interval = time.time()
+    global rpm
+    state_change_count = 0
+    start_interval = time.time()
 
-        while True:
-            now = time.time()
+    while True:
+        now = time.time()
+        # blocks here until falling_event.set() is called
+        falling_event.wait()
+        # reset the flag for the next event
+        falling_event.clear()
 
-            GPIO.wait_for_edge(RPM_PIN, GPIO.FALLING)
-            state_change_count += 2
+        state_change_count += 1
 
-            # 0.2 second elapsed | Revolutions per second
-            if (now - start_interval >= 0.2):
-                rps = (state_change_count / REVOLUTION_CONSTANT) / 0.2
-                rpm = rps * 60
-                start_interval = now
-                state_change_count = 0
-
-    finally:
-        GPIO.cleanup()
+        if (now - start_interval >= 0.2):
+            rps = (state_change_count / REVOLUTION_CONSTANT) / 0.2
+            rpm = rps * 60
+            start_interval = now
+            state_change_count = 0
 
 def query_rpm():
     while True:
