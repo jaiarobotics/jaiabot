@@ -234,7 +234,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                         overheat_bot_tail_end_ =
                             goby::time::SteadyClock::now() +
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                                command.stop_forward_progress().duration_with_units());
+                                command.overheat_bot_tail().duration_with_units());
                         break;
 
                     case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
