@@ -12,6 +12,12 @@
         fail_msg: "Invalid bot_id: must be defined and an integer"
   tasks:
     - include_tasks: tasks/read-debconf.yml
+
+    - name: Remove known_hosts entry for the bot if it exists
+      shell: |
+        ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        sudo -u jaia ssh-keygen -R $ip
+
     - name: Fetch inventory from new bot
       shell: |
         ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
