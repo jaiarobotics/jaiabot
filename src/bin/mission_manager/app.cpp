@@ -1218,13 +1218,13 @@ void jaiabot::apps::MissionManager::check_forward_progress()
 }
 
 // To determine bot tail overheating:
-//    If the bot's tail (specifically, the bot's thermocouple) is above 100 degrees Celsius
+//    If the bot's tail (specifically, the bot's thermocouple) is above the overheating temperature threshold degrees Celsius
 void jaiabot::apps::MissionManager::check_bot_tail_overheating()
 {
     const auto& thermocouple_temperature = tail_overheating_data_.thermocouple_curr_temp; 
     const auto& cooled_temperature_threshold = cfg().resolve_bot_tail_overheating().cooled_temperature();
 
-    bool tail_overheated = thermocouple_temperature > 100; 
+    bool tail_overheated = thermocouple_temperature > cooled_temperature_threshold; 
 
     auto now = goby::time::SteadyClock::now();
 
@@ -1233,7 +1233,7 @@ void jaiabot::apps::MissionManager::check_bot_tail_overheating()
 
     if (tail_overheated)
     {
-        // the bot tail temperature is currently above 100 degrees Celsius, check the timeout
+        // the bot tail temperature is currently above the temperature threshold degrees Celsius, check the timeout
         if (now > tail_overheating_data_.bot_tail_overheating_timeout)
         {
             glog.is_debug2() && glog << "Tail still overheating." << std::endl;
