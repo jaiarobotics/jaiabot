@@ -25,6 +25,7 @@ import { MapModes } from "../types/openlayers-types";
 import {
     NodeTypes,
     SelectedNode,
+    SelectedRallyPoint,
     SelectedWaypoint,
     TaskParameterPair,
 } from "../types/jaia-system-types";
@@ -46,7 +47,7 @@ export interface JaiaContextType {
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
-    selectedRallyID: number;
+    selectedRallyPoint: SelectedRallyPoint;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
@@ -175,6 +176,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.DELETE_RALLY_POINT:
             return handleDeleteRallyPoint(mutableState);
+
+        case JaiaActions.SEND_RALLY_MISSION:
+            return handleSendRallyMission(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -544,9 +548,25 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteRallyPoint(mutableState: JaiaContextType) {
-    rallyLayer.deleteRallyPoint(mutableState.selectedRallyID);
-    mutableState.selectedRallyID = UNASSIGNED_ID;
+    rallyLayer.deleteRallyPoint(mutableState.selectedRallyPoint.id);
+    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     mutableState.visiblePanel = ButtonNames.NONE;
+    return mutableState;
+}
+
+/**
+ * Performs cleanup after Bots being transit to rally point
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSendRallyMission(mutableState: JaiaContextType) {
+    missionsManager.unassignAll();
+    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+    mutableState.visiblePanel = ButtonNames.NONE;
+
+    syncOpenLayers();
+
     return mutableState;
 }
 
@@ -588,6 +608,7 @@ function handleClosedWaypointPanel(mutableState: JaiaContextType) {
  */
 function handleClosedRallyPanel(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
+    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     return mutableState;
 }
 
@@ -791,6 +812,10 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
                 visiblePanel = name;
             }
             break;
+        case ButtonTypes.COMMAND:
+            if (name === ButtonNames.GO_TO_RALLY) {
+                visiblePanel = ButtonNames.RALLY_PANEL;
+            }
     }
 
     jaiaGlobal.setMapMode(mapMode);
@@ -828,12 +853,16 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
  * Opens panel for the selected rally point
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {SelectedWaypoint} rallyID Identifies which rally point was clicked by operator
+ * @param {number} rallyID Identifies which rally point was clicked by operator
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedRallyPoint(mutableState: JaiaContextType, rallyID: number) {
-    mutableState.selectedRallyID = rallyID;
+    mutableState.selectedRallyPoint = {
+        id: rallyID,
+        location: rallyLayer.getRallyLocation(rallyID),
+    };
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
+
     return mutableState;
 }
 

@@ -2,6 +2,7 @@ import {
     ConstantHeadingParameters,
     DiveParameters,
     DriftParameters,
+    GeographicCoordinate,
     MissionState,
 } from "./protobuf-types";
 
@@ -19,6 +20,11 @@ export interface SelectedNode {
 export interface SelectedWaypoint {
     waypointNum: number;
     missionID: number;
+}
+
+export interface SelectedRallyPoint {
+    id: number;
+    location?: GeographicCoordinate;
 }
 
 export interface MissionStatus {

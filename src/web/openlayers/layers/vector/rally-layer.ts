@@ -62,6 +62,22 @@ class RallyLayer extends JaiaVectorLayer {
         }
         return nextRallyID;
     }
+
+    /**
+     * Provides the location of a rally point
+     *
+     * @param {number} rallyID Indicates which location to provide
+     * @returns {GeographicCoordinate} Location of the rally point
+     */
+    getRallyLocation(rallyID: number) {
+        const rallyFeatures = this.getVectorLayer().getSource().getFeatures();
+
+        for (let feature of rallyFeatures) {
+            if (feature.get("id") === rallyID) {
+                return feature.get("location");
+            }
+        }
+    }
 }
 
 export const rallyLayer = new RallyLayer();

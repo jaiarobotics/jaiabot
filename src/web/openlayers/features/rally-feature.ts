@@ -30,6 +30,7 @@ export function generateRallyFeature(location: GeographicCoordinate, rallyNum: n
 
     feature.set("type", MapFeatureTypes.RALLY_POINT);
     feature.set("id", rallyNum);
+    feature.set("location", location);
     feature.setStyle(generateRallyStyle(rallyNum));
     return feature;
 }
