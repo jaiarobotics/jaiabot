@@ -370,7 +370,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
         // Apply a step function to the rudder:
         //  * 100% of rudder when we are within level_threshold degrees of level
         //  * Desired rudder times dot product of difference in verticality otherwise
-        float level_deviation = 90 - abs(90.0 - abs(actual_roll_))
+        float level_deviation = 90 - abs(90.0 - abs(actual_roll_));
         if (level_deviation > level_threshold)
         {
             heading_multiplier = 1.0;
@@ -406,7 +406,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     }
     else 
     {
-        processed_target_heading_ = target_heading_
+        processed_target_heading_ = target_heading_;
     }
 
     // Roll/Pitch PID

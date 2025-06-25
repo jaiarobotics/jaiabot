@@ -73,6 +73,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     // Course targeting
     float target_heading_ = 0.0;
     float actual_heading_ = -1e10;
+    float processed_target_heading_ = 0.0;
     float rudder_ = 0.0;
     bool _rudder_is_using_pid_ = false;
     bool is_heading_constant_ = false;
