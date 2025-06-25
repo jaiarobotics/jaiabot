@@ -11,3 +11,10 @@ load_protobuf {
         group: "jaiabot::camera"
     }
 }
+
+load_protobuf {
+    name: "jaiabot.protobuf.SimulatorCommand" 
+    publish_to {
+        group: "jaiabot::simulator_command"
+    }
+}
