@@ -18,3 +18,12 @@ load_protobuf {
         group: "jaiabot::simulator_command"
     }
 }
+
+load_protobuf {
+    name: "jaiabot.protobuf.Motor" 
+    publish_to {
+        group: "jaiabot::motor_status"
+    }
+}
+
+

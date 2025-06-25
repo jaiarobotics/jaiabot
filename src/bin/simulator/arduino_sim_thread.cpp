@@ -42,10 +42,13 @@ void jaiabot::apps::ArduinoSimThread::loop()
 {
     auto now = goby::time::SteadyClock::now();
 
-    // publish arduino status
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
     arduino_response.set_version(1);
+
+    // Simulate overheat: set thermistor_voltage to a value that will be interpreted as >100°C
+    // Adjust this value as needed to match your resistance-to-temperature curve
+    arduino_response.set_thermistor_voltage(4.0);
 
     // publish gps sky data
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)
