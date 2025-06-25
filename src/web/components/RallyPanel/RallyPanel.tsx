@@ -1,6 +1,11 @@
+import { useContext } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiDelete, mdiPlay } from "@mdi/js";
+
 import "./RallyPanel.less";
 
 /**
@@ -9,6 +14,17 @@ import "./RallyPanel.less";
  * 2) Delete a rally point
  */
 export default function RallyPanel() {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    /**
+     * Dispatches action to close rally panel
+     *
+     * @returns {void}
+     */
+    const handleClosePanelClick = () => {
+        jaiaDispatch({ type: JaiaActions.CLOSED_RALLY_PANEL });
+    };
+
     return (
         <div className="jaia-panel">
             <div className="jaia-panel-title">Rally 1</div>
@@ -21,7 +37,7 @@ export default function RallyPanel() {
                 </Button>
             </div>
             <div className="close-button-container">
-                <button>Close</button>
+                <button onClick={() => handleClosePanelClick()}>Close</button>
             </div>
         </div>
     );

@@ -178,6 +178,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLOSED_WAYPOINT_PANEL:
             return handleClosedWaypointPanel(mutableState);
 
+        case JaiaActions.CLOSED_RALLY_PANEL:
+            return handleClosedRallyPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
             return handleClickedNode(mutableState, action.clickedNode);
 
@@ -557,6 +560,17 @@ function handleClosedWaypointPanel(mutableState: JaiaContextType) {
 
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    return mutableState;
+}
+
+/**
+ * Closes the rally panel
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClosedRallyPanel(mutableState: JaiaContextType) {
+    mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
 
