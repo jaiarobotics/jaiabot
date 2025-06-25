@@ -513,10 +513,10 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
             (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
 
     bool is_overheating_bot_tail = goby::time::SteadyClock::now() <= overheat_bot_tail_end_;
-    bot_tail_overheated_ = true;
-    if (!is_overheating_bot_tail)
+    bot_tail_overheated_ = false;
+    if (is_overheating_bot_tail)
     {
-        bot_tail_overheated_ = false;
+        bot_tail_overheated_ = true;
     }
 }
 
