@@ -111,8 +111,10 @@ class SimulatorTranslation : public goby::moos::Translator
 
     goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point overheat_bot_tail_end_{std::chrono::seconds(0)};
 
     bool making_forward_progress_{false};
+    bool bot_tail_overheated_{false};
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -223,6 +225,13 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
 
                     case jaiabot::protobuf::SimulatorCommand::kStopForwardProgress:
                         stop_forward_progress_end_ =
+                            goby::time::SteadyClock::now() +
+                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                command.stop_forward_progress().duration_with_units());
+                        break;
+
+                    case jaiabot::protobuf::SimulatorCommand::kOverheatBotTail:
+                        overheat_bot_tail_end_ =
                             goby::time::SteadyClock::now() +
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
                                 command.stop_forward_progress().duration_with_units());
@@ -502,6 +511,14 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
         "DESIRED_ELEVATOR",
         elevator_normalization *
             (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
+
+    bool is_overheating_bot_tail = goby::time::SteadyClock::now() <= overheat_bot_tail_end_;
+    bot_tail_overheated_ = true;
+    if (is_overheating_bot_tail)
+    {
+        bot_tail_overheated_ = false;
+        normalized_thrust = 0;
+    }
 }
 
 /**
