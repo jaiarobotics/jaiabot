@@ -1,4 +1,3 @@
-
 // Forked from:
 // Copyright (C) 2018-2019 Woods Hole Oceanographic Institution
 //
@@ -16,6 +15,7 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 
 #include "config.pb.h"
 
