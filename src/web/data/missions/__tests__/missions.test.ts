@@ -152,7 +152,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         let waypoint2 = mission2.getWaypoint(1);
         let task2 = new Task();
         task2.setType(TaskType.STATION_KEEP);
-        task2.setParameter({ key: TaskParameterKeys.HOLD_TIME, value: 4 });
         waypoint2.setTask(task2);
         mission2.addWaypoint(locationD);
 
@@ -164,6 +163,38 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(mission2Id).toEqual(2);
         expect(missions.getMissions().size).toEqual(2);
 
+        // Save the mission set to localStorage
         missions.saveAllMissions("Test-Mission-Set");
+
+        // Retrieve the mission set from localStorage
+        missions.loadAllMissions("Test-Mission-Set");
+
+        // Verfiy we got what we expected
+        expect(missions.getMissions().size).toEqual(2);
+        expect(missions.getNextMissionID()).toEqual(3);
+        expect(missions.getSaveName()).toEqual("Test-Mission-Set");
+
+        // Verify the 1st mission
+        let retrievedMission1 = missions.getMission(1);
+        expect(retrievedMission1.getMissionID()).toEqual(1);
+        expect(retrievedMission1.getSaveName()).toEqual("Test-Mission-Set");
+        expect(retrievedMission1.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
+        expect(retrievedMission1.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
+        expect(retrievedMission1.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
+        expect(retrievedMission1.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(
+            13,
+        );
+        expect(retrievedMission1.getWaypoint(2).getLocation().lat).toEqual(locationB.lat);
+        expect(retrievedMission1.getWaypoint(2).getLocation().lon).toEqual(locationB.lon);
+        expect(retrievedMission1.getWaypoint(3)).toBeUndefined();
+
+        let retrievedMission2 = missions.getMission(2);
+        expect(retrievedMission2.getMissionID()).toEqual(2);
+        expect(retrievedMission2.getSaveName()).toEqual("Test-Mission-Set");
+        expect(retrievedMission2.getWaypoint(1).getLocation().lat).toEqual(locationC.lat);
+        expect(retrievedMission2.getWaypoint(1).getLocation().lon).toEqual(locationC.lon);
+        expect(retrievedMission2.getWaypoint(1).getTask().getType()).toEqual(TaskType.STATION_KEEP);
+        expect(retrievedMission2.getWaypoint(2).getLocation().lat).toEqual(locationD.lat);
+        expect(retrievedMission2.getWaypoint(2).getLocation().lon).toEqual(locationD.lon);
     });
 });

@@ -1,8 +1,6 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds, GeographicCoordinate } from "../../types/protobuf-types";
-import Waypoint from "../waypoints/waypoint";
-import Task from "../tasks/task";
 
 class Missions {
     private missions: Map<number, Mission>;
@@ -117,23 +115,7 @@ class Missions {
         const jsonMission = localStorage.getItem(saveName);
         if (!jsonMission) throw new Error("No mission found in storage");
 
-        const newMission = Object.assign(new Mission(), JSON.parse(jsonMission));
-
-        // Transform waypoint data to waypoint class objects
-        newMission.waypoints = newMission.waypoints.map((wp: any) => {
-            const waypoint = Object.assign(new Waypoint(), wp);
-
-            // Transform task data to objects
-            if (wp.task) {
-                const task = Object.assign(new Task(), wp.task);
-                waypoint.setTask(task);
-            }
-
-            // Transform location data to objects
-            waypoint.setLocation(wp.location);
-            return waypoint;
-        });
-
+        const newMission = Mission.fromJSON(JSON.parse(jsonMission));
         // Save to the missions singleton
         this.addMission(newMission);
     }
@@ -149,7 +131,18 @@ class Missions {
         missions.missions.forEach((mission) => {
             mission.setSaveName(saveName);
         });
-        localStorage.setItem(saveName, JSON.stringify(missions));
+        // Convert missions Map to an array before using stringify
+        const missionsArray = Array.from(missions.missions.entries());
+        localStorage.setItem(
+            saveName,
+            JSON.stringify({
+                missions: missionsArray,
+                nextMissionID: missions.nextMissionID,
+                missionIDInEditMode: missions.missionIDInEditMode,
+                missionSpeeds: missions.missionSpeeds,
+                saveName: missions.saveName,
+            }),
+        );
     }
 
     /**
@@ -158,7 +151,28 @@ class Missions {
      * @param saveName : string Name of saved set to retrieve
      *
      */
-    loadAllMissions(saveName: string) {}
+    loadAllMissions(saveName: string) {
+        const json = localStorage.getItem(saveName);
+        if (!json) throw new Error("No saved missions found");
+
+        const data = JSON.parse(json);
+
+        // Clear current missions map
+        this.deleteAllMissions();
+
+        // Rebuild missions Map from saved entries
+        if (data.missions && Array.isArray(data.missions)) {
+            data.missions.forEach(([id, missionObj]: [number, any]) => {
+                // Use your Mission.fromJSON to rehydrate each mission
+                const mission = Mission.fromJSON(missionObj);
+                this.addMission(mission);
+            });
+        }
+
+        // Restore other fields
+        this.missionSpeeds = data.missionSpeeds;
+        this.saveName = data.saveName;
+    }
 }
 
 export const missions = new Missions();

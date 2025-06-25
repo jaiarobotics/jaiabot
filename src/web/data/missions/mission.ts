@@ -7,6 +7,7 @@ import {
     Speeds,
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
+import Task from "../tasks/task";
 
 export default class Mission {
     private missionID: number;
@@ -123,5 +124,23 @@ export default class Mission {
         }
 
         return goals;
+    }
+    /**
+     * Creates a mission object from serialize mission data
+     *
+     * @param obj Serialized Mission Data to transform to mission object
+     * @returns mission Resulting mission object
+     */
+    static fromJSON(obj: any): Mission {
+        const mission = Object.assign(new Mission(), obj);
+        mission.waypoints = mission.waypoints.map((wp: any) => {
+            const waypoint = Object.assign(new Waypoint(), wp);
+            if (wp.task) {
+                waypoint.setTask(Object.assign(new Task(), wp.task));
+            }
+            waypoint.setLocation(wp.location);
+            return waypoint;
+        });
+        return mission;
     }
 }
