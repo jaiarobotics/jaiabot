@@ -10,11 +10,11 @@ import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
 class RallyLayer extends JaiaVectorLayer {
-    private rallyNums: number[];
+    private rallyIDs: number[];
 
     constructor() {
         super(LayerTitles.RALLY_LAYER, layersZIndexes.get(LayerTitles.RALLY_LAYER));
-        this.rallyNums = [];
+        this.rallyIDs = [];
     }
 
     /**
@@ -24,9 +24,9 @@ class RallyLayer extends JaiaVectorLayer {
      * @returns {void}
      */
     addRallyPoint(location: GeographicCoordinate) {
-        const rallyNum = this.getNextRallyNum();
-        this.getVectorLayer().getSource().addFeature(generateRallyFeature(location, rallyNum));
-        this.rallyNums[rallyNum - 1] = rallyNum;
+        const rallyID = this.getNextRallyID();
+        this.getVectorLayer().getSource().addFeature(generateRallyFeature(location, rallyID));
+        this.rallyIDs[rallyID - 1] = rallyID;
     }
 
     /**
@@ -35,10 +35,15 @@ class RallyLayer extends JaiaVectorLayer {
      * @param {Feature} rallyPoint Feature to be removed
      * @returns {void}
      */
-    deleteRallyPoint(rallyPoint: Feature) {
-        const rallyNum = rallyPoint.get("id");
-        this.getVectorLayer().getSource().removeFeature(rallyPoint);
-        this.rallyNums[rallyNum - 1] = UNASSIGNED_ID;
+    deleteRallyPoint(rallyID: number) {
+        const rallyFeatures = this.getVectorLayer().getSource().getFeatures();
+
+        for (let feature of rallyFeatures) {
+            if (feature.get("id") === rallyID) {
+                this.getVectorLayer().getSource().removeFeature(feature);
+                this.rallyIDs[rallyID - 1] = UNASSIGNED_ID;
+            }
+        }
     }
 
     /**
@@ -47,14 +52,15 @@ class RallyLayer extends JaiaVectorLayer {
      *
      * @returns {number} The number displayed on the rally icon
      */
-    getNextRallyNum() {
-        let nextRallyNum = this.rallyNums.length + 1;
-        for (let i = 0; i < this.rallyNums.length; i++) {
-            if (this.rallyNums[i] === UNASSIGNED_ID) {
-                nextRallyNum = i + 1;
+    getNextRallyID() {
+        let nextRallyID = this.rallyIDs.length + 1;
+        for (let i = 0; i < this.rallyIDs.length; i++) {
+            if (this.rallyIDs[i] === UNASSIGNED_ID) {
+                nextRallyID = i + 1;
+                break;
             }
         }
-        return nextRallyNum;
+        return nextRallyID;
     }
 }
 

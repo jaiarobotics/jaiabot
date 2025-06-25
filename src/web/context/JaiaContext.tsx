@@ -46,6 +46,7 @@ export interface JaiaContextType {
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
+    selectedRallyID: number;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
@@ -171,6 +172,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
+
+        case JaiaActions.DELETE_RALLY_POINT:
+            return handleDeleteRallyPoint(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -534,6 +538,19 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
 }
 
 /**
+ * Makes call to delete a rally point from the rally layer
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleDeleteRallyPoint(mutableState: JaiaContextType) {
+    rallyLayer.deleteRallyPoint(mutableState.selectedRallyID);
+    mutableState.selectedRallyID = UNASSIGNED_ID;
+    mutableState.visiblePanel = ButtonNames.NONE;
+    return mutableState;
+}
+
+/**
  * Closes the Bot or Hub details panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -815,6 +832,7 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedRallyPoint(mutableState: JaiaContextType, rallyID: number) {
+    mutableState.selectedRallyID = rallyID;
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
 }

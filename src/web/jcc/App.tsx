@@ -77,7 +77,7 @@ function Panel() {
         case ButtonNames.JAIA_ABOUT_PANEL:
             return <JaiaAbout />;
         case ButtonNames.RALLY_PANEL:
-            return <RallyPanel />;
+            return <RallyPanel rallyID={jaiaContext.selectedRallyID} />;
         default:
             return <div></div>;
     }

@@ -8,12 +8,16 @@ import { mdiDelete, mdiPlay } from "@mdi/js";
 
 import "./RallyPanel.less";
 
+interface Props {
+    rallyID: number;
+}
+
 /**
  * Renders a panel with two buttons providing the following functionality:
  * 1) Send Bots to a rally point
  * 2) Delete a rally point
  */
-export default function RallyPanel() {
+export default function RallyPanel(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
@@ -25,14 +29,23 @@ export default function RallyPanel() {
         jaiaDispatch({ type: JaiaActions.CLOSED_RALLY_PANEL });
     };
 
+    /**
+     * Dispatches action to delete rally point
+     *
+     * @returns {void}
+     */
+    const handleDeleteRallyPoint = () => {
+        jaiaDispatch({ type: JaiaActions.DELETE_RALLY_POINT });
+    };
+
     return (
         <div className="jaia-panel">
-            <div className="jaia-panel-title">Rally 1</div>
+            <div className="jaia-panel-title">Rally {props.rallyID}</div>
             <div className="rally-buttons-container">
                 <Button className="jaia-button">
                     <Icon path={mdiPlay} />
                 </Button>
-                <Button className="jaia-button">
+                <Button className="jaia-button" onClick={() => handleDeleteRallyPoint()}>
                     <Icon path={mdiDelete} />
                 </Button>
             </div>
