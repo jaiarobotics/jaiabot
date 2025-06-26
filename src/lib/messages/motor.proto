@@ -21,8 +21,22 @@ message Motor
                 units { derived_dimensions: "temperature" system: "celsius" }
             }
         ];
-        optional float resistance = 2;
-        optional float voltage = 3;
+        optional float resistance = 2 [
+            (dccl.field) = {
+                min: 0
+                max: 100000
+                precision: 1
+                units { system: "si" }
+            }
+        ];
+        optional float voltage = 3 [
+            (dccl.field) = {
+                min: 0
+                max: 5
+                precision: 3
+                units { system: "si" }
+            }
+        ];
     }
 
     optional double rpm = 1;
