@@ -124,7 +124,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 }
             }
         });
-
+        // ??? double subscribe why
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue){
             switch(imu_issue.solution()){
@@ -180,12 +180,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
    interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
     {
-        /*
-        glog.is_debug1() && glog << "🟢 Received ProductionRequest, time = "
-                                 << production_msg.time()
-                                 << std::endl;
-        */
-
         jaiabot::protobuf::ProductionResponse response;
 
         // Set raw timestamp
@@ -216,7 +210,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 motor_harness();
                 break;
             default:
-                glog.is_debug1() && glog << "❓ Unknown production command" << std::endl;
+                glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
                 break;
         }
 
@@ -236,7 +230,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     }
     else
     {
-        glog.is_debug1() && glog << "IMU Test: we are receiving IMU data" << std::endl;
+        glog.is_debug1() && glog << "✅ IMU Test Pass: we are receiving IMU data" << std::endl;
     }
 
     // 2. When reset is started, check for 2s pause in IMU data
