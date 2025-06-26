@@ -29,6 +29,10 @@
 #include <fstream>
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
@@ -149,7 +153,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
             }
         });
 
-   interprocess().subscribe<jaiabot::groups::production_response>(
+   interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
     {
         /*
@@ -157,6 +161,24 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                                  << production_msg.time()
                                  << std::endl;
         */
+
+        jaiabot::protobuf::ProductionResponse response;
+
+        // Set raw timestamp
+        const auto now = std::chrono::system_clock::now();
+        const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+            now.time_since_epoch()).count();
+        response.set_time(timestamp_us);
+
+        // Set readable_time string
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+        std::tm* local_tm = std::localtime(&now_time);
+        std::ostringstream time_stream;
+        time_stream << std::put_time(local_tm, "%Y-%m-%d %H:%M:%S");
+        response.set_readable_time(time_stream.str());  // 👈 magic line
+
+        // Set production command in response (optional, if you've added it to the proto)
+        response.set_production_command(production_msg.production_command());
 
         switch (production_msg.production_command())
         {
@@ -173,6 +195,9 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 glog.is_debug1() && glog << "❓ Unknown production command" << std::endl;
                 break;
         }
+
+        // When done production app responds
+        interprocess().publish<jaiabot::groups::production>(response);  // 👈 Publishes where Scope listens
     });
 }
 
