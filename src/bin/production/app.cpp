@@ -201,6 +201,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
     });
 }
 
+//when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor()
 {
     // Test 1: IMU data received, and after reset, data pauses for 2 seconds
@@ -213,6 +214,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     }
 }
 
+//pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     // Test 2: Pressure reading < 0.2 after restart
@@ -227,7 +229,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     }
 }
     
-
+//the reset imu service pauses imu data for 2s
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
     // Test 3: Run motor for 2s, confirm rpm >= 3600, temperature 10-30, and IMU data pauses for 2s
