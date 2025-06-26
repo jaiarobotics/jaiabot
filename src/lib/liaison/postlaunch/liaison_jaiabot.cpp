@@ -91,12 +91,6 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::
 
     this->production_imu_data_status_text_ = imu_status_text;
     imu_status_text->setText("⏳ Waiting for IMU test result...");
-
-    jaiabot::protobuf::ProductionRequest req;
-    req.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
-    req.set_time(goby::time::SystemClock::now().time_since_epoch().count()); // Optional but useful
-
-    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // 🔥 THIS LINE
 });
 
 
@@ -110,12 +104,6 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_st
 
     this->production_pressure_data_status_text_ = pressure_status_text;
     pressure_status_text->setText("⏳ Waiting for Pressure test result...");
-
-    jaiabot::protobuf::ProductionRequest req;
-    req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
-    req.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
-
-    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // ✅ Add this line
 });
 
 
@@ -129,12 +117,6 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_status_text
 
     this->production_motor_data_status_text_ = motor_status_text;
     motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
-
-    jaiabot::protobuf::ProductionRequest req;
-    req.set_time(goby::time::SystemClock::now().time_since_epoch().count());
-    req.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
-
-    goby_thread()->interprocess().publish<jaiabot::groups::production>(req); // ✅ Add this line
 });
 
 
