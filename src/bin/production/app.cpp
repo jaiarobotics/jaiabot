@@ -112,8 +112,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 if (heading >= 0 && heading <= 360)
                 {
                     imu_test_passed_ = true;
-                    interprocess().publish<jaiabot::groups::imu>(imu_msg);
-
                 }
             }
         });
@@ -128,7 +126,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
             if (latest_pressure_ < 0.2)
             {
                 pressure_test_passed_ = true;
-                interprocess().publish<jaiabot::groups::pressure_temperature>(pt);
             }
 
         });
@@ -148,17 +145,18 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                     latest_temperature_ >= 10 && latest_temperature_ <= 30)
                 {
                     motor_test_passed_ = true;
-                    interprocess().publish<jaiabot::groups::motor_status>(motor_msg);
                 }
             }
         });
 
-   interprocess().subscribe<jaiabot::groups::production>(
+   interprocess().subscribe<jaiabot::groups::production_response>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
     {
+        /*
         glog.is_debug1() && glog << "🟢 Received ProductionRequest, time = "
                                  << production_msg.time()
                                  << std::endl;
+        */
 
         switch (production_msg.production_command())
         {
@@ -175,7 +173,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 glog.is_debug1() && glog << "❓ Unknown production command" << std::endl;
                 break;
         }
-        //interprocess().publish<jaiabot::groups::production_response>(production_msg); //make sure this works later
     });
 }
 
@@ -186,22 +183,22 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
         return;
+    }else if(imu_data_received_){
+        glog.is_debug1() && glog << "📡 IMU Test Pass: you are receiving IMU data" << std::endl;
     }
-
-    
 }
 
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     // Test 2: Pressure reading < 0.2 after restart
     if(!pressure_data_received_){
-        glog.is_debug1() && glog << "Pressure Test FAIL: did not receive any pressure data" << std::endl;
+        glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
     } else if (pressure_test_passed_ && pressure_data_received_){
-        glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
-        glog.is_debug1() && glog << "Pressure Test PASS" << std::endl;
+        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ <<std::endl;
+        glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
     }else if(!pressure_test_passed_ && pressure_data_received_){
-        glog.is_debug1() && glog << "Pressure is: " << latest_pressure_ <<std::endl;
-        glog.is_debug1() && glog << "Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
+        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ <<std::endl;
+        glog.is_debug1() && glog << "❌ Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
 }
     

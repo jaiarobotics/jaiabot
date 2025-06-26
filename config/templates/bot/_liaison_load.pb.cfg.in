@@ -22,7 +22,7 @@ load_protobuf {
 load_protobuf {
     name: "jaiabot.protobuf.ProductionRequest" 
     publish_to {
-        group: "jaiabot::production" 
+        group: "jaiabot::production_response" 
     }
 } 
 
