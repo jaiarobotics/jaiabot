@@ -318,7 +318,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     }else if (rpm_ok && temp_ok){
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
         motor_test_passed_ = true;
-    }else if(!rpm_ok && !temp_ok){
+    }else if(!rpm_ok || !temp_ok){
         std::string reason;
         if (!rpm_ok)
             reason += "rpm < 3600; ";
