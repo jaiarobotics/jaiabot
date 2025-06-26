@@ -164,10 +164,10 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(missions.getMissions().size).toEqual(2);
 
         // Save the mission set to localStorage
-        missions.saveAllMissions("Test-Mission-Set");
+        missions.saveMissionSet("Test-Mission-Set");
 
         // Retrieve the mission set from localStorage
-        missions.loadAllMissions("Test-Mission-Set");
+        missions.loadMissionSet("Test-Mission-Set");
 
         // Verfiy we got what we expected
         expect(missions.getMissions().size).toEqual(2);
@@ -196,5 +196,57 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(retrievedMission2.getWaypoint(1).getTask().getType()).toEqual(TaskType.STATION_KEEP);
         expect(retrievedMission2.getWaypoint(2).getLocation().lat).toEqual(locationD.lat);
         expect(retrievedMission2.getWaypoint(2).getLocation().lon).toEqual(locationD.lon);
+    });
+
+    test("Save Multiple Missions Sets, list them and delete them", () => {
+        // Verify there are no saved missions sets
+        expect(missions.listSavedMissionSets().length).toEqual(0);
+
+        // Create a mission set and save it to localStorage
+        missions.addMission(missionA);
+        missions.addMission(missionB);
+        expect(missions.getMissions().size).toEqual(2);
+        missions.saveMissionSet("Test-mission-Set-A");
+        // Verify we got what we expected
+        expect(missions.listSavedMissionSets().length).toEqual(1);
+        expect(missions.listSavedMissionSets()[0]).toEqual("Test-mission-Set-A");
+        expect(missions.getSaveName()).toEqual("Test-mission-Set-A");
+        expect(missions.getMission(1).getSaveName()).toEqual("Test-mission-Set-A");
+
+        // Create another mission set and save it
+        missions.deleteAllMissions();
+        missions.addMission(missionC);
+        expect(missions.getMissions().size).toEqual(1);
+        missions.saveMissionSet("Test-mission-Set-B");
+        // Verify we got what we expected
+        expect(missions.listSavedMissionSets().length).toEqual(2);
+        expect(missions.listSavedMissionSets()[0]).toEqual("Test-mission-Set-A");
+        expect(missions.listSavedMissionSets()[1]).toEqual("Test-mission-Set-B");
+
+        // Retrieve first set from localStorage and check local misssions data
+        expect(missions.loadMissionSet("Test-mission-Set-A")).toEqual(true);
+        expect(missions.getMissions().size).toEqual(2);
+        expect(missions.getMission(1).getSaveName()).toEqual("Test-mission-Set-A");
+
+        // Delete the first set from localStorage
+        expect(missions.deleteMissionSet("Test-mission-Set-A")).toEqual(true);
+        expect(missions.listSavedMissionSets().length).toEqual(1);
+        expect(missions.listSavedMissionSets()[0]).toEqual("Test-mission-Set-B");
+
+        // Save another mission set and verify saved list is sorted
+        missions.deleteAllMissions();
+        missions.addMission(missionC);
+        expect(missions.getMissions().size).toEqual(1);
+        missions.saveMissionSet("Test-mission-Set-A");
+        // Verify we got what we expected
+        expect(missions.listSavedMissionSets().length).toEqual(2);
+        expect(missions.listSavedMissionSets()[0]).toEqual("Test-mission-Set-A");
+        expect(missions.listSavedMissionSets()[1]).toEqual("Test-mission-Set-B");
+
+        // Try to delete a mission set that is not saved
+        expect(missions.deleteMissionSet("Test-mission-Set-C")).toEqual(false);
+
+        // Try to retrieve a mission set that is not saved
+        expect(missions.loadMissionSet("Test-mission-Set-C")).toEqual(false);
     });
 });

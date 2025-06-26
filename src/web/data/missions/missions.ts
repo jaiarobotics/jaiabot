@@ -125,7 +125,7 @@ class Missions {
      *
      * @param saveName : string name to use for storing the mission set
      */
-    saveAllMissions(saveName: string) {
+    saveMissionSet(saveName: string) {
         // Apply the saveName to the mission set and all the missions
         missions.setSaveName(saveName);
         missions.missions.forEach((mission) => {
@@ -133,37 +133,40 @@ class Missions {
         });
         // Convert missions Map to an array before using stringify
         const missionsArray = Array.from(missions.missions.entries());
-        localStorage.setItem(
-            saveName,
-            JSON.stringify({
-                missions: missionsArray,
-                nextMissionID: missions.nextMissionID,
-                missionIDInEditMode: missions.missionIDInEditMode,
-                missionSpeeds: missions.missionSpeeds,
-                saveName: missions.saveName,
-            }),
-        );
+        // Read the current missionSets (or start fresh)
+        const existing = JSON.parse(localStorage.getItem("missionSets") || "{}");
+
+        // Save this mission set
+        existing[saveName] = {
+            missions: missionsArray,
+            nextMissionID: this.nextMissionID,
+            missionIDInEditMode: this.missionIDInEditMode,
+            missionSpeeds: this.missionSpeeds,
+            saveName: this.saveName,
+        };
+
+        localStorage.setItem("missionSets", JSON.stringify(existing));
     }
 
     /**
      * Replaces all current missions with those from a save set
      *
      * @param saveName : string Name of saved set to retrieve
-     *
+     * @returns boolean : False if the mission set was not found
      */
-    loadAllMissions(saveName: string) {
-        const json = localStorage.getItem(saveName);
-        if (!json) throw new Error("No saved missions found");
+    loadMissionSet(saveName: string) {
+        // Get all saved mission sets
+        const allSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
+        const data = allSets[saveName];
 
-        const data = JSON.parse(json);
+        if (!data) return false;
 
-        // Clear current missions map
+        // Clear current missions map and reset state
         this.deleteAllMissions();
 
         // Rebuild missions Map from saved entries
-        if (data.missions && Array.isArray(data.missions)) {
+        if (Array.isArray(data.missions)) {
             data.missions.forEach(([id, missionObj]: [number, any]) => {
-                // Use your Mission.fromJSON to rehydrate each mission
                 const mission = Mission.fromJSON(missionObj);
                 this.addMission(mission);
             });
@@ -172,6 +175,34 @@ class Missions {
         // Restore other fields
         this.missionSpeeds = data.missionSpeeds;
         this.saveName = data.saveName;
+        return true;
+    }
+
+    /**
+     * Returns an array of all saved mission set names in localStorage, sorted alphabetically.
+     */
+    listSavedMissionSets(): string[] {
+        const all = JSON.parse(localStorage.getItem("missionSets") || "{}");
+        return Object.keys(all).sort((a, b) => a.localeCompare(b));
+    }
+
+    /**
+     * Deletes a saved mission set from localStorage by name.
+     *
+     * @param saveName : string name of the mission set to delete
+     * @returns boolean : False if the mission set was not found
+     */
+    deleteMissionSet(saveName: string) {
+        const all = JSON.parse(localStorage.getItem("missionSets") || "{}");
+
+        if (!(saveName in all)) {
+            return false;
+        }
+
+        delete all[saveName];
+
+        localStorage.setItem("missionSets", JSON.stringify(all));
+        return true;
     }
 }
 
