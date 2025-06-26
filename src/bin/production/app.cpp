@@ -1,3 +1,16 @@
+// Copyright 2022:
+//   JaiaRobotics LLC
+// File authors:
+//   Kanz Giwa
+//   Kaitlyn Habib
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
 // The Jaia Binaries are distributed in the hope that they will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -60,11 +73,11 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_paused_ = false;
 
         bool motor_test_running_ = false;
-        goby::time::SystemClock::time_point motor_test_start_time_;
-
         void imu_sensor();
         void pressure_sensor();
         void motor_harness();
+
+        goby::time::SystemClock::time_point motor_test_start_time_;
 
         // Helper function calculates how many seconds have passed since a specific time point
         double seconds_since(const goby::time::SystemClock::time_point& timestamp)
@@ -147,9 +160,23 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                                  << production_msg.time()
                                  << std::endl;
 
-        //interprocess().publish<jaiabot::groups::production_request>(production_msg);
+        switch (production_msg.production_command())
+        {
+            case jaiabot::protobuf::TEST_IMU_SENSOR:
+                imu_sensor();
+                break;
+            case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
+                pressure_sensor();
+                break;
+            case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+                motor_harness();
+                break;
+            default:
+                glog.is_debug1() && glog << "❓ Unknown production command" << std::endl;
+                break;
+        }
+        //interprocess().publish<jaiabot::groups::production_response>(production_msg); //make sure this works later
     });
-
 }
 
 void jaiabot::apps::JaiabotProduction::imu_sensor()
