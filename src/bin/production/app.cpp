@@ -129,8 +129,15 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         [this](const jaiabot::protobuf::IMUIssue& imu_issue){
             switch(imu_issue.solution()){
                 case protobuf::IMUIssue::RESTART_IMU_PY:
-                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
-                    restart_imu_py();
+                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                        restart_imu_py();
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
+                    }
                     break;
                 default:
                     break;

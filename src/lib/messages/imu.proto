@@ -202,4 +202,7 @@ message IMUIssue
         precision: 1
         units { derived_dimensions: "velocity" system: "si" }
     }];
+
+    optional bool is_in_sim = 23 [default = false];
+    optional bool test_hardware_in_sim = 24 [default = false];
 }
