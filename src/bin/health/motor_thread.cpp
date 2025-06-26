@@ -72,11 +72,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 status_.mutable_thermistor()->set_resistance(resistance);
                 status_.mutable_thermistor()->set_voltage(voltage);
 
-                *bot_status_.mutable_thermistor() = status_.thermistor();
-
                 last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
-
-                interprocess().publish<jaiabot::groups::motor_status>(bot_status_);
             }
 
             if (arduino_response.has_motor())
@@ -97,10 +93,6 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                     status_.set_rpm(0);
                 }
             }
-
-            if (arduino_response.has_thermocouple_temperature_c()) {
-                bot_status_.set_thermocouple_temperature_c(arduino_response.thermocouple_temperature_c());
-            }
         });
 }
 
@@ -109,7 +101,7 @@ void jaiabot::apps::MotorStatusThread::issue_status_summary()
     send_rpm_query();
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::motor_status>(bot_status_);
+    interprocess().publish<jaiabot::groups::motor_status>(status_);
 }
 
 void jaiabot::apps::MotorStatusThread::send_rpm_query()

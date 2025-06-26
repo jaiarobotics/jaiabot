@@ -183,15 +183,17 @@ jaiabot::apps::MissionManager::MissionManager()
 
                 fwd_progress_data_.latest_desired_speed = desired_setpoints.speed_with_units();
             }
-        });
+        });   
 
     // subscribe for motor thermistor temperature (for tail overheating detection)
     interprocess().subscribe<jaiabot::groups::motor_status>(
-        [this](const jaiabot::protobuf::BotStatus& bot_status)
+        [this](const jaiabot::protobuf::Motor& motor)
         {
-            if (bot_status.has_thermistor() && bot_status.thermistor().has_temperature())
+            glog.is_debug1() && glog << "MotorStatus: " << motor.ShortDebugString()
+                                     << std::endl;
+            if (motor.has_thermistor() && motor.thermistor().has_temperature())
             {
-                tail_overheating_data_.thermistor_curr_temp = bot_status.thermistor().temperature();
+                tail_overheating_data_.thermistor_curr_temp = motor.thermistor().temperature();
             }
         });
 
@@ -654,6 +656,7 @@ void jaiabot::apps::MissionManager::loop()
     }
 
     check_forward_progress();
+    check_bot_tail_overheating();
 
     machine_->process_event(statechart::EvLoop());
 }
@@ -1220,11 +1223,15 @@ void jaiabot::apps::MissionManager::check_forward_progress()
 // To determine bot tail overheating:
 //    If the bot's tail (specifically, the bot's thermocouple) is above the overheating temperature threshold degrees Celsius
 void jaiabot::apps::MissionManager::check_bot_tail_overheating()
-{
+{    
     const auto& thermistor_temperature = tail_overheating_data_.thermistor_curr_temp; 
     const auto& cooled_temperature_threshold = cfg().resolve_bot_tail_overheating().cooled_temperature();
 
     bool tail_overheated = thermistor_temperature > cooled_temperature_threshold;
+
+    glog.is_debug2() && glog << "Current thermistor temperature: " << thermistor_temperature
+                             << ", cooled temperature threshold: " << cooled_temperature_threshold
+                             << std::endl;
 
     auto now = goby::time::SteadyClock::now();
 
