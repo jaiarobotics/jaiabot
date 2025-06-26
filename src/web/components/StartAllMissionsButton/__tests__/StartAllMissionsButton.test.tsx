@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import StartAllMissionsButton from "../StartAllMissionsButton";
+import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";
@@ -76,7 +77,11 @@ originalModule.jaiaAPI.hit = jest
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
 
 test("0 Bots ready to start a mission", async () => {
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(
+        <JaiaContextProvider>
+            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+        </JaiaContextProvider>,
+    );
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -109,7 +114,12 @@ test("0 Bots ready to start a mission", async () => {
 test("1 Bot ready to start a mission", async () => {
     bots.setBot(botStatusMock1);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(
+        <JaiaContextProvider>
+            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+        </JaiaContextProvider>,
+    );
+
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -145,7 +155,12 @@ test("2 Bots ready to start missions", async () => {
     bots.setBot(botStatusMock6);
     missionsManager.assign(6, missionID3);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(
+        <JaiaContextProvider>
+            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+        </JaiaContextProvider>,
+    );
+
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -187,7 +202,12 @@ test("All Bots ready to start missions", async () => {
     missionsManager.assign(1, missionID1);
     missionsManager.assign(6, missionID3);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(
+        <JaiaContextProvider>
+            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+        </JaiaContextProvider>,
+    );
+
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 

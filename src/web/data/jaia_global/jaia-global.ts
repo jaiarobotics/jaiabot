@@ -4,6 +4,7 @@ import {
     SelectedWaypoint,
     TaskParameters,
 } from "../../types/jaia-system-types";
+import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 const defaultTaskParameters: TaskParameters = {
@@ -25,11 +26,13 @@ const defaultTaskParameters: TaskParameters = {
 class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
+    private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
         this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
+        this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
     }
 
@@ -54,6 +57,14 @@ class JaiaGlobal {
 
     setSelectedWaypoint(clickedWaypoint: SelectedWaypoint) {
         this.selectedWaypoint = clickedWaypoint;
+    }
+
+    getMapMode() {
+        return this.mapMode;
+    }
+
+    setMapMode(mapMode: MapModes) {
+        this.mapMode = mapMode;
     }
 
     getDefaultTaskParameters() {
