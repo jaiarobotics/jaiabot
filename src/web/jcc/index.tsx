@@ -10,6 +10,7 @@ import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
+import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { DATA_MODEL_POLL_TIME, INITAL_ZOOM_DURATION, INITIAL_ZOOM } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
@@ -70,6 +71,7 @@ function updateOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+    hubCommsLayer.updateFeatures();
 
     if (isFirstBot && bots.getBots().size > 0) {
         zoomToFirstBot();
