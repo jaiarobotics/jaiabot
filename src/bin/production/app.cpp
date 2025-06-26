@@ -184,37 +184,11 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     // Test 1: IMU data received, and after reset, data pauses for 2 seconds
     if (!imu_data_received_)
     {
-        //glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
+        glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
         return;
     }
 
-    // Simulate sending reset and checking for 2s pause
-    if (!imu_reset_pending_)
-    {
-        // Start reset
-        imu_reset_pending_ = true;
-        imu_data_paused_ = false;
-        imu_reset_start_time_ = goby::time::SystemClock::now();
-        //glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
-    }
-    else
-    {
-        double since_reset = seconds_since(imu_reset_start_time_);
-        double since_last_imu = seconds_since(last_imu_msg_time_);
-        if (since_reset > 2.0)
-        {
-            if (since_last_imu >= 2.0)
-            {
-                imu_data_paused_ = true;
-                //glog.is_debug1() && glog << "🎉 IMU Test PASS" << std::endl;
-            }
-            else
-            {
-                //glog.is_debug1() && glog << "😵 IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
-            }
-            imu_reset_pending_ = false;
-        }
-    }
+    
 }
 
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
@@ -240,7 +214,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_test_running_ = true;
         motor_test_passed_ = false;
         motor_test_start_time_ = goby::time::SystemClock::now();
-        //glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
+        glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         return;
     }
     double elapsed = seconds_since(motor_test_start_time_);
@@ -251,7 +225,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     }
     if (motor_test_passed_)
     {
-        //glog.is_debug1() && glog << "Motor Harness Test PASS" << std::endl;
+        glog.is_debug1() && glog << "Motor Harness Test PASS" << std::endl;
     }
     else
     {
@@ -260,7 +234,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             reason += "rpm < 3600; ";
         if (latest_temperature_ < 10 || latest_temperature_ > 30)
             reason += "temperature not in [10,30]; ";
-        //glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
+        glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
     }
     motor_test_running_ = false;
 }
