@@ -108,7 +108,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     struct BotTailTemperatureData
     {
-        double thermocouple_curr_temp{0.0};
+        double thermistor_curr_temp{0.0};
         goby::time::SteadyClock::time_point bot_tail_overheating_timeout;
     };
 

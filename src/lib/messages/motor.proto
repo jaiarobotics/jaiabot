@@ -13,9 +13,14 @@ enum MotorHarnessType
 message Motor
 {
     message Thermistor {
-        optional float temperature = 1 [(dccl.field) = {
-            units { derived_dimensions: "temperature" system: "celsius" }
-        }];
+        optional float temperature = 1 [
+            (dccl.field) = {
+                min: -50
+                max: 200
+                precision: 2
+                units { derived_dimensions: "temperature" system: "celsius" }
+            }
+        ];
         optional float resistance = 2;
         optional float voltage = 3;
     }

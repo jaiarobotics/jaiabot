@@ -9,6 +9,7 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/motor.proto";
 
 package jaiabot.protobuf;
 
@@ -351,6 +352,8 @@ message BotStatus
             units { derived_dimensions: "temperature" system: "celsius" }
         }
     ];
+
+    optional jaiabot.protobuf.Motor.Thermistor thermistor = 61; 
 }
 
 message DriftPacket

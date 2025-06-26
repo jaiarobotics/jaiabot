@@ -72,6 +72,8 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 status_.mutable_thermistor()->set_resistance(resistance);
                 status_.mutable_thermistor()->set_voltage(voltage);
 
+                *bot_status_.mutable_thermistor() = status_.thermistor();
+
                 last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
             }
 

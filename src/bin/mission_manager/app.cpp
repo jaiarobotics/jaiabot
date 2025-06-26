@@ -189,9 +189,9 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::motor_status>(
         [this](const jaiabot::protobuf::BotStatus& bot_status)
         {
-            if (bot_status.has_thermocouple_temperature_c())
+            if (bot_status.has_thermistor() && bot_status.thermistor().has_temperature())
             {
-                tail_overheating_data_.thermocouple_curr_temp = bot_status.thermocouple_temperature_c();
+                tail_overheating_data_.thermistor_curr_temp = bot_status.thermistor().temperature();
             }
         });
 
@@ -1221,7 +1221,7 @@ void jaiabot::apps::MissionManager::check_forward_progress()
 //    If the bot's tail (specifically, the bot's thermocouple) is above the overheating temperature threshold degrees Celsius
 void jaiabot::apps::MissionManager::check_bot_tail_overheating()
 {
-    const auto& thermocouple_temperature = tail_overheating_data_.thermocouple_curr_temp; 
+    const auto& thermocouple_temperature = tail_overheating_data_.thermistor_curr_temp; 
     const auto& cooled_temperature_threshold = cfg().resolve_bot_tail_overheating().cooled_temperature();
 
     bool tail_overheated = thermocouple_temperature > cooled_temperature_threshold; 
