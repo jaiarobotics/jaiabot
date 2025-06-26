@@ -77,6 +77,7 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_paused_ = false;
 
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+        void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
 
         goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
@@ -124,7 +125,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 }
             }
         });
-        // ??? double subscribe why
+        // double subscribe 
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue){
             switch(imu_issue.solution()){
@@ -273,6 +274,14 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
         return;
     }
+
+    // Restart the pressure service before checking the value
+    if (!pressure_test_passed_)
+    {
+        glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
+        restart_pressure_py();
+    }
+
     if (pressure_test_passed_)
     {
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
@@ -307,7 +316,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     bool rpm_ok = latest_rpm_ >= 3600;
     bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
 
-    // Optionally: check for IMU pause here if you want to enforce the IMU reset/pause as part of this test
+    // Optionally: check for IMU pause here if we want to enforce the IMU reset/pause as part of this test
 
     if (rpm_ok && temp_ok)
     {
