@@ -31,8 +31,9 @@ message ProductionRequest
 message ProductionResponse 
 { 
   option (dccl.msg) = { unit_system: "si" }; 
+  optional ProductionCommand production_command = 1;
 
-  required uint64 time = 1 [ 
+  required uint64 time = 2 [ 
     (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } } 
   ]; 
 
@@ -42,7 +43,6 @@ message ProductionResponse
     PressureAdjustedData pressure_report = 12; 
     Motor motor_harness_report = 13;
   } 
-  optional bool passed = 2 [default = false];
-  optional string readable_time = 4;
-  optional ProductionCommand production_command = 5;
+  optional string readable_time = 3;
+  optional bool passed = 4 [default = false];
 }
