@@ -76,6 +76,11 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
 
+        void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+
+        goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
+
+
         bool motor_test_running_ = false;
         void imu_sensor();
         void pressure_sensor();
@@ -117,6 +122,18 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 {
                     imu_test_passed_ = true;
                 }
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue){
+            switch(imu_issue.solution()){
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                    restart_imu_py();
+                    break;
+                default:
+                    break;
             }
         });
 
@@ -175,9 +192,9 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         std::tm* local_tm = std::localtime(&now_time);
         std::ostringstream time_stream;
         time_stream << std::put_time(local_tm, "%Y-%m-%d %H:%M:%S");
-        response.set_readable_time(time_stream.str());  // 👈 magic line
+        response.set_readable_time(time_stream.str()); 
 
-        // Set production command in response (optional, if you've added it to the proto)
+        // Set production command in response
         response.set_production_command(production_msg.production_command());
 
         switch (production_msg.production_command())
@@ -197,39 +214,76 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         }
 
         // When done production app responds
-        interprocess().publish<jaiabot::groups::production>(response);  // 👈 Publishes where Scope listens
+        interprocess().publish<jaiabot::groups::production>(response);  // Publishes where Scope listens
     });
 }
 
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor()
 {
-    // Test 1: IMU data received, and after reset, data pauses for 2 seconds
+    // 1. Confirm we are receiving IMU data
     if (!imu_data_received_)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
         return;
-    }else if(imu_data_received_){
-        glog.is_debug1() && glog << "📡 IMU Test Pass: you are receiving IMU data" << std::endl;
+    }
+    else
+    {
+        glog.is_debug1() && glog << "IMU Test: we are receiving IMU data" << std::endl;
+    }
+
+    // 2. When reset is started, check for 2s pause in IMU data
+    if (!imu_reset_pending_)
+    {
+        // Start reset
+        imu_reset_pending_ = true;
+        imu_data_paused_ = false;
+        imu_reset_start_time_ = goby::time::SystemClock::now();
+        glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
+        //trigger the actual IMU reset service
+        restart_imu_py();
+    }
+    else
+    {
+        double since_reset = seconds_since(imu_reset_start_time_);
+        double since_last_imu = seconds_since(last_imu_msg_time_);
+        if (since_reset > 2.0)
+        {
+            if (since_last_imu >= 2.0)
+            {
+                imu_data_paused_ = true;
+                glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data paused for 2 seconds after reset" << std::endl;
+            }
+            else
+            {
+                glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
+            }
+            imu_reset_pending_ = false;
+        }
     }
 }
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    // Test 2: Pressure reading < 0.2 after restart
-    if(!pressure_data_received_){
+    // Test 2: Pressure service is restarted and pressure reading < 0.2
+    if (!pressure_data_received_)
+    {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
-    } else if (pressure_test_passed_ && pressure_data_received_){
-        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ <<std::endl;
+        return;
+    }
+    if (pressure_test_passed_)
+    {
+        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
-    }else if(!pressure_test_passed_ && pressure_data_received_){
-        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ <<std::endl;
+    }
+    else
+    {
+        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
     }
 }
-    
-//the reset imu service pauses imu data for 2s
+
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
     // Test 3: Run motor for 2s, confirm rpm >= 3600, temperature 10-30, and IMU data pauses for 2s
@@ -239,6 +293,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_test_passed_ = false;
         motor_test_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
+        //restart_imu_py(); If we want to reset IMU at start of motor test
         return;
     }
     double elapsed = seconds_since(motor_test_start_time_);
@@ -247,18 +302,26 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         // Still running test
         return;
     }
-    if (motor_test_passed_)
+
+    bool rpm_ok = latest_rpm_ >= 3600;
+    bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
+
+    // Optionally: check for IMU pause here if you want to enforce the IMU reset/pause as part of this test
+
+    if (rpm_ok && temp_ok)
     {
-        glog.is_debug1() && glog << "Motor Harness Test PASS" << std::endl;
+        glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
+        motor_test_passed_ = true;
     }
     else
     {
         std::string reason;
-        if (latest_rpm_ < 3600)
+        if (!rpm_ok)
             reason += "rpm < 3600; ";
-        if (latest_temperature_ < 10 || latest_temperature_ > 30)
+        if (!temp_ok)
             reason += "temperature not in [10,30]; ";
-        glog.is_debug1() && glog << "Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
+        glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
+        motor_test_passed_ = false;
     }
     motor_test_running_ = false;
 }
