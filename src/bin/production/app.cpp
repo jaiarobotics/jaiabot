@@ -276,7 +276,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     }
 
     // Restart the pressure service before checking the value
-    if (!pressure_test_passed_)
+    if (pressure_data_received_)
     {
         glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
         restart_pressure_py();
