@@ -18,7 +18,7 @@ class VirtualSerialDevice:
         else:
             self._callback = self._echo
         self._running = True
-        self._listener = Thread(target=self._listen, daemon=False)
+        self._reader = Thread(target=self._read, daemon=False)
 
     def __enter__(self):
         self.open()
@@ -28,14 +28,17 @@ class VirtualSerialDevice:
 
     def open(self):
         self._create_vserial()
-        self._listener.start()
+        self._reader.start()
         print(f"Attached to virtual serial device at {self.__port}")
 
     def close(self):
         self._running = False
-        self._listener.join(timeout=1)
+        self._reader.join(timeout=1)
         self._cleanup_vserial()
         print(f"Detached virtual serial device at {self.__port}")
+
+    def send(self, data):
+        os.write(self.__master_fd, data)
 
     @property
     def port(self):
@@ -57,7 +60,7 @@ class VirtualSerialDevice:
     def _echo(self, data):
         print(data)
 
-    def _listen(self):
+    def _read(self):
         while self._running:
             try:
                 data = os.read(self.__master_fd, 1024)
