@@ -268,31 +268,27 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    // Test 2: Pressure service is restarted and pressure reading < 0.2
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
         return;
     }
 
-    // Restart the pressure service before checking the value
-    if (pressure_data_received_)
-    {
-        glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
-        restart_pressure_py();
-    }
+    glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
+    restart_pressure_py();
 
-    if (pressure_test_passed_)
+    glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
+
+    if (latest_pressure_ < 0.2)
     {
-        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
     }
     else
     {
-        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
-        glog.is_debug1() && glog << "❌ Pressure Test FAIL: did not pass test, pressure reading >= 0.2" << std::endl;
+        glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2" << std::endl;
     }
 }
+
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
