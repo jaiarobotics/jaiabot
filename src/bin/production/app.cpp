@@ -82,11 +82,22 @@ class JaiabotProduction: public ApplicationBase
 
         goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
+        jaiabot::protobuf::ProductionResponse response;
+        bool test_imu_ = false;
+        /*might need later
+        bool test_pressure_ = false;
+        bool test_motor_ = false;
+        */
+
+        //void loop() override;
 
         bool motor_test_running_ = false;
-        void imu_sensor();
+        void imu_sensor_data_timeCheck();
+        void imu_sensor_reset_check();
         void pressure_sensor();
         void motor_harness();
+
+        double since_last_imu = seconds_since(last_imu_msg_time_);
 
         goby::time::SystemClock::time_point motor_test_start_time_;
 
@@ -118,7 +129,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
             last_imu_msg_time_ = goby::time::SystemClock::now();
             imu_data_received_ = true;
             
-
+            /*might need later
             if (imu_msg.has_euler_angles() && imu_msg.euler_angles().has_heading())
             {
                 // imu_heading_
@@ -126,8 +137,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 /*if (heading >= 0 && heading <= 360)
                 {
                     imu_test_passed_ = true;
-                }*/
-            }
+                }
+            }*/
         });
 
     // Subscribe to pressure sensor data
@@ -179,14 +190,15 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-                //test_imu_ = true
-                
+                test_imu_ = true;
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
+                //test_pressure_ = true;
                 pressure_sensor();
                 response.set_test_result(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+                //test_motor = true;
                 motor_harness();
                 response.set_test_result(motor_test_passed_);
                 break;
@@ -201,28 +213,33 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
 }
 
 //when reset imu service is started, imu data stops sending for 2 seconds
-void jaiabot::apps::JaiabotProduction::imu_sensor()
+void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
-    //jaiabot::protobuf::ProductionResponse response;
-
-    // Change to checking the time of the last received imu heading data < 1 second
-
+    jaiabot::protobuf::ProductionResponse response;
+    //double since_last_imu = seconds_since(last_imu_msg_time_);
     // 1. Confirm we are receiving IMU data
-    if (!imu_data_received_)
+    if (since_last_imu > 1.0)
     {
-        glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
+        glog.is_debug1() && glog << "🛑 IMU Test FAIL: received IMU data in over a second" << std::endl;
         imu_test_passed_ = false;
         return;
     }
     else
     {
-        glog.is_debug1() && glog << "✅ IMU Test Pass: we are receiving IMU data" << std::endl;
+        glog.is_debug1() && glog << "✅ IMU Test Pass: received IMU data in less than a second" << std::endl;
+        if(imu_test_passed_ == true)
+        {
+            reboot_bno085_imu();
+        }
+        interprocess().publish<jaiabot::groups::production>(response);
     }
+}
 
-    // Trigger reboot of imu
-    // reboot_bno085_imu();
+//possibility of two seperate functions
+void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
+{
+    jaiabot::protobuf::ProductionResponse response;
 
-    // 2. When reset is started, check for 2s pause in IMU data
     if (!imu_reset_pending_)
     {
         // Start reset
@@ -236,23 +253,24 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     else
     {
         double since_reset = seconds_since(imu_reset_start_time_);
-        double since_last_imu = seconds_since(last_imu_msg_time_);
-        if (since_reset > 2.0)
+        if (since_reset > cfg().imu_reboot_time())
         {
-            if (since_last_imu >= 2.0)
+            if (since_last_imu >= cfg().imu_reboot_time())
             {
                 imu_data_paused_ = true;
                 glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data paused for 2 seconds after reset" << std::endl;
             }
             else
             {
-                glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
                 imu_test_passed_ = false;
+                glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
             }
+
             imu_reset_pending_ = false;
             //response.set_passed(imu_test_passed_);
-            //interprocess().publish<jaiabot::groups::production>(response);
-            //test_imu_ = false;
+            interprocess().publish<jaiabot::groups::production>(response);
+            test_imu_ = false;
+
         }
     }
 }
@@ -323,7 +341,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 // Add loop back
 
 /*
-void loop {
+void jaiabot::apps::Jaiabot::loop()
+ {
     if (test_imu_)
     {
         imu_sensor();
