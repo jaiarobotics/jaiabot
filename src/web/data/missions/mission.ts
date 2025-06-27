@@ -127,7 +127,7 @@ export default class Mission {
     }
 
     /**
-     * Creates a mission object from serialize mission data
+     * Creates a mission object from serialized mission data
      *
      * @param {any} serializedMission Serialized Mission Data to transform to mission object
      * @returns {Mission} mission Resulting mission object
