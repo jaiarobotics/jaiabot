@@ -129,26 +129,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 }*/
             }
         });
-        // double subscribe 
-    /*interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUIssue& imu_issue){
-            switch(imu_issue.solution()){
-                case protobuf::IMUIssue::RESTART_IMU_PY:
-                    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
-                        restart_imu_py();
-                    }
-                    else
-                    {
-                        glog.is_debug2() && glog << "IMU ERROR: IGNORING IN SIM" << std::endl;
-                    }
-                    break;
-                default:
-                    break;
-            }
-        });*/
-
 
     // Subscribe to pressure sensor data
         interprocess().subscribe<jaiabot::groups::pressure_temperature>(
@@ -192,13 +172,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
             now.time_since_epoch()).count();
         response.set_time(timestamp_us);
-
-        // Set readable_time string
-        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-        std::tm* local_tm = std::localtime(&now_time);
-        std::ostringstream time_stream;
-        time_stream << std::put_time(local_tm, "%Y-%m-%d %H:%M:%S");
-        response.set_readable_time(time_stream.str()); 
 
         // Set production command in response
         response.set_production_command(production_msg.production_command());
