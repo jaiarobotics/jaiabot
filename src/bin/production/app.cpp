@@ -206,6 +206,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 pressure_sensor();
+                response.set_passed(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 motor_harness();
