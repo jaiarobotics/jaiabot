@@ -93,7 +93,6 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::
     imu_status_text->setText("⏳ Waiting for IMU test result...");
 });
 
-
     //Test Pressure!!
     auto production_pressure_test_box = production_box->addNew<WGroupBox>("Pressure Sensor");
 auto pressure_test_button = production_pressure_test_box->addNew<Wt::WPushButton>("▶ Run Test");
@@ -105,7 +104,6 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_st
     this->production_pressure_data_status_text_ = pressure_status_text;
     pressure_status_text->setText("⏳ Waiting for Pressure test result...");
 });
-
 
     //Test Motor Harness
     auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
@@ -119,9 +117,7 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_status_text
     motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
 });
 
-
     production_panel->setCentralWidget(std::move(production_box));
-
 
     const auto update_freq = cfg_.control_freq();
     timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));

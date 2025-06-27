@@ -203,6 +203,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 imu_sensor();
+                response.set_passed(imu_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 pressure_sensor();
@@ -210,6 +211,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 motor_harness();
+                response.set_passed(motor_test_passed_);
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -228,6 +230,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     if (!imu_data_received_)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: did not receive any IMU data" << std::endl;
+        imu_test_passed_ = false;
         return;
     }
     else
@@ -260,6 +263,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
             else
             {
                 glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
+                imu_test_passed_ = false;
             }
             imu_reset_pending_ = false;
         }
@@ -272,6 +276,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
+        pressure_test_passed_ = false;
         return;
     }
 
@@ -287,6 +292,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     else
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2" << std::endl;
+        pressure_test_passed_ = false;
     }
 }
 
