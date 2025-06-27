@@ -11,6 +11,7 @@
     - name: Set fact for fleet configuration
       set_fact:
         iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+        local_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
 
     - name: Check if the iso fleet config file exists 
       stat:
@@ -34,7 +35,11 @@
       
     - name: Create new_hub.sh file using fleet configuration
       shell: |
-        jaia admin fleet generate --bootdir={{ staging_dir }} {{ iso_fleet_cfg }} {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }} --action new_hub_script
+        # update the local fleet configuration
+        cp {{ iso_fleet_cfg }} {{ local_fleet_cfg }}
+
+        # generate script for updating all nodes
+        jaia admin fleet generate --bootdir={{ staging_dir }} {{ local_fleet_cfg }} {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }} --action new_hub_script
 
     - name: Fetch new_hub.sh script to control computer (may or may not be the hub)
       fetch:
@@ -42,7 +47,7 @@
         dest: "{{ control_staging_dir }}/new_hub.sh"
         flat: true
         
-- name: Jaiabot major upgrade - Upgrade all
+- name: Pair new hub - Update all bots and hub
   hosts: all
   become: yes
   gather_facts: yes
@@ -63,6 +68,4 @@
     - name: Run the script
       shell: |      
         {{ staging_dir }}/new_hub.sh
-    
-    - name: Reboot all to allow new inventory to take effect
-      shell: "nohup /bin/bash -c 'sleep 5 && systemctl reboot &' > /dev/null"
+
