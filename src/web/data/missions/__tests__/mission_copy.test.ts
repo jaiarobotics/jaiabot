@@ -20,7 +20,7 @@ test("Clone a mission and test values", () => {
     // Clone the mission and add it to the missions data
     let cloneMission = cloneDeep(originalMission);
     const cloneID: number = missionSet.addMission(cloneMission);
-    expect(missionSet.getMissionSet().size).toEqual(2);
+    expect(missionSet.getMissions().size).toEqual(2);
     expect(cloneID).not.toEqual(originalID);
     expect(missionSet.getMissionIDInEditMode()).toEqual(cloneID);
 

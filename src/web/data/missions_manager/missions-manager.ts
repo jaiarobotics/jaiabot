@@ -64,7 +64,7 @@ class MissionsManager {
      * @returns {void}
      */
     autoAssign() {
-        for (let [missionID, mission] of missionSet.getMissionSet()) {
+        for (let [missionID, mission] of missionSet.getMissions()) {
             if (this.getBotID(mission.getMissionID()) === UNASSIGNED_ID) {
                 if (this.getNextAvailableBotID() !== UNASSIGNED_ID) {
                     this.assign(this.getNextAvailableBotID(), mission.getMissionID());

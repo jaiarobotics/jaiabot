@@ -100,7 +100,7 @@ test("Click Delete Mission confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete Mission")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
-    expect(missionSet.getMissionSet().size).toBe(0);
+    expect(missionSet.getMissions().size).toBe(0);
 });
 
 test("Click Delete All Missions confirmation button", async () => {
@@ -117,5 +117,5 @@ test("Click Delete All Missions confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete All Missions")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
-    expect(missionSet.getMissionSet().size).toBe(0);
+    expect(missionSet.getMissions().size).toBe(0);
 });

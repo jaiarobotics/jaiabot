@@ -16,11 +16,11 @@ class MissionSet {
         this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
     }
 
-    getMissionSet() {
+    getMissions() {
         return this.missions;
     }
 
-    setMissionSet(missions: Map<number, Mission>) {
+    setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
     }
 
@@ -73,7 +73,7 @@ class MissionSet {
         return missionID;
     }
 
-    addMissionSet(missions: Mission[]) {
+    addMissions(missions: Mission[]) {
         for (let mission of missions) {
             this.addMission(mission);
         }

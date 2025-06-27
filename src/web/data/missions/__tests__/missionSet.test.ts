@@ -18,40 +18,40 @@ describe("Operator adding and deleting single missions", () => {
     test("Operator adding and deleting single missions", () => {
         // Add first mission
         missionSet.addMission(missionA);
-        expect(missionSet.getMissionSet().size).toBe(1);
+        expect(missionSet.getMissions().size).toBe(1);
         expect(missionSet.getMission(1).getMissionID()).toBe(missionA.getMissionID());
 
         // Add second mission
         missionSet.addMission(missionB);
-        expect(missionSet.getMissionSet().size).toBe(2);
+        expect(missionSet.getMissions().size).toBe(2);
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
 
         // Add third mission
         missionSet.addMission(missionC);
-        expect(missionSet.getMissionSet().size).toBe(3);
+        expect(missionSet.getMissions().size).toBe(3);
         expect(missionSet.getMission(3).getMissionID()).toBe(missionC.getMissionID());
 
         // Add fourth mission
         missionSet.addMission(missionD);
-        expect(missionSet.getMissionSet().size).toBe(4);
+        expect(missionSet.getMissions().size).toBe(4);
         expect(missionSet.getMission(4).getMissionID()).toBe(missionD.getMissionID());
 
         // Delete first mission
         missionSet.deleteMission(1);
-        expect(missionSet.getMissionSet().size).toBe(3);
+        expect(missionSet.getMissions().size).toBe(3);
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
         expect(missionSet.getMission(3).getMissionID()).toBe(missionC.getMissionID());
         expect(missionSet.getMission(4).getMissionID()).toBe(missionD.getMissionID());
 
         // Delete middle mission
         missionSet.deleteMission(3);
-        expect(missionSet.getMissionSet().size).toBe(2);
+        expect(missionSet.getMissions().size).toBe(2);
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
         expect(missionSet.getMission(4).getMissionID()).toBe(missionD.getMissionID());
 
         // Delete last mission
         missionSet.deleteMission(4);
-        expect(missionSet.getMissionSet().size).toBe(1);
+        expect(missionSet.getMissions().size).toBe(1);
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
 
         // Reset missions singleton to clean state
@@ -66,9 +66,9 @@ describe("Operator adding and deleting multiple missions at once", () => {
     // Running various additions and deletions in single test because jest runs multiple tests in parallel
     test("Operator adding and deleting multiple missions at once", () => {
         // Add four missions
-        expect(missionSet.getMissionSet().size).toBe(0);
-        missionSet.addMissionSet(missionSet1);
-        expect(missionSet.getMissionSet().size).toBe(4);
+        expect(missionSet.getMissions().size).toBe(0);
+        missionSet.addMissions(missionSet1);
+        expect(missionSet.getMissions().size).toBe(4);
         expect(missionSet.getMission(1).getMissionID()).toBe(missionA.getMissionID());
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
         expect(missionSet.getMission(3).getMissionID()).toBe(missionC.getMissionID());
@@ -76,14 +76,14 @@ describe("Operator adding and deleting multiple missions at once", () => {
 
         // Delete all missions
         missionSet.deleteAllMissions();
-        expect(missionSet.getMissionSet().size).toBe(0);
+        expect(missionSet.getMissions().size).toBe(0);
 
         // Append mission set to existing missions
-        expect(missionSet.getMissionSet().size).toBe(0);
-        missionSet.addMissionSet(missionSet1);
-        expect(missionSet.getMissionSet().size).toBe(4);
-        missionSet.addMissionSet(missionSet2);
-        expect(missionSet.getMissionSet().size).toBe(6);
+        expect(missionSet.getMissions().size).toBe(0);
+        missionSet.addMissions(missionSet1);
+        expect(missionSet.getMissions().size).toBe(4);
+        missionSet.addMissions(missionSet2);
+        expect(missionSet.getMissions().size).toBe(6);
         expect(missionSet.getMission(1).getMissionID()).toBe(missionA.getMissionID());
         expect(missionSet.getMission(2).getMissionID()).toBe(missionB.getMissionID());
         expect(missionSet.getMission(3).getMissionID()).toBe(missionC.getMissionID());
@@ -114,7 +114,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         const originalID: number = missionSet.addMission(originalMission);
         expect(originalID).toEqual(1);
-        expect(missionSet.getMissionSet().size).toEqual(1);
+        expect(missionSet.getMissions().size).toEqual(1);
 
         // Save the mission to localStorage
         missionSet.saveMission("SavedMission", originalID);
@@ -124,7 +124,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         missionSet.loadMission("SavedMission");
 
         // Verify the retrieved mission is a new copy of the original
-        expect(missionSet.getMissionSet().size).toEqual(2);
+        expect(missionSet.getMissions().size).toEqual(2);
         const newMission = missionSet.getMission(2);
         // Verify it is a new reference
         expect(newMission).not.toEqual(originalMission);
@@ -157,11 +157,11 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         const mission1Id: number = missionSet.addMission(mission1);
         expect(mission1Id).toEqual(1);
-        expect(missionSet.getMissionSet().size).toEqual(1);
+        expect(missionSet.getMissions().size).toEqual(1);
 
         const mission2Id: number = missionSet.addMission(mission2);
         expect(mission2Id).toEqual(2);
-        expect(missionSet.getMissionSet().size).toEqual(2);
+        expect(missionSet.getMissions().size).toEqual(2);
 
         // Save the mission set to localStorage
         missionSet.saveMissionSet("Test-Mission-Set");
@@ -170,7 +170,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         missionSet.loadMissionSet("Test-Mission-Set");
 
         // Verfiy we got what we expected
-        expect(missionSet.getMissionSet().size).toEqual(2);
+        expect(missionSet.getMissions().size).toEqual(2);
         expect(missionSet.getNextMissionID()).toEqual(3);
         expect(missionSet.getName()).toEqual("Test-Mission-Set");
 
@@ -205,7 +205,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Create a mission set and save it to localStorage
         missionSet.addMission(missionA);
         missionSet.addMission(missionB);
-        expect(missionSet.getMissionSet().size).toEqual(2);
+        expect(missionSet.getMissions().size).toEqual(2);
         missionSet.saveMissionSet("Test-mission-Set-A");
         // Verify we got what we expected
         expect(missionSet.listSavedMissionSets().length).toEqual(1);
@@ -216,7 +216,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Create another mission set and save it
         missionSet.deleteAllMissions();
         missionSet.addMission(missionC);
-        expect(missionSet.getMissionSet().size).toEqual(1);
+        expect(missionSet.getMissions().size).toEqual(1);
         missionSet.saveMissionSet("Test-mission-Set-B");
         // Verify we got what we expected
         expect(missionSet.listSavedMissionSets().length).toEqual(2);
@@ -225,7 +225,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         // Retrieve first set from localStorage and check local misssions data
         expect(missionSet.loadMissionSet("Test-mission-Set-A")).toEqual(true);
-        expect(missionSet.getMissionSet().size).toEqual(2);
+        expect(missionSet.getMissions().size).toEqual(2);
         expect(missionSet.getMission(1).getName()).toEqual("Test-mission-Set-A");
 
         // Delete the first set from localStorage
@@ -236,7 +236,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Save another mission set and verify saved list is sorted
         missionSet.deleteAllMissions();
         missionSet.addMission(missionC);
-        expect(missionSet.getMissionSet().size).toEqual(1);
+        expect(missionSet.getMissions().size).toEqual(1);
         missionSet.saveMissionSet("Test-mission-Set-A");
         // Verify we got what we expected
         expect(missionSet.listSavedMissionSets().length).toEqual(2);

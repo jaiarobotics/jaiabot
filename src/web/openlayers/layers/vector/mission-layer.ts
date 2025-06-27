@@ -53,7 +53,7 @@ class MissionLayer extends JaiaVectorLayer {
     updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
-        for (let [missionID, mission] of missionSet.getMissionSet()) {
+        for (let [missionID, mission] of missionSet.getMissions()) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {
                 this.addWaypoint(missionID, index + 1);
             }

@@ -40,7 +40,7 @@ export default function WaypointPanel() {
      * @returns {Waypoint} Waypoint object with access to modifiers
      */
     const getWaypoint = () => {
-        const mission = jaiaContext.missions.get(jaiaContext.selectedWaypoint.missionID);
+        const mission = jaiaContext.missionSet.get(jaiaContext.selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
     };
 

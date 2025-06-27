@@ -102,7 +102,7 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
-            {Array.from(jaiaContext.missions.values()).map((mission) => {
+            {Array.from(jaiaContext.missionSet.values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
                         <Accordion
