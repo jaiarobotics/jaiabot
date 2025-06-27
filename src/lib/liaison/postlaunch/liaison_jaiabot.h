@@ -272,17 +272,17 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                 tab_->production_pressure_data_status_text_)
             {
                 tab_->production_pressure_data_status_text_->setText(
-                    msg.passed() ? "✅ Test Passed" : "❌ Test Failed");
+                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
             }else if (msg.production_command() == jaiabot::protobuf::TEST_IMU_SENSOR &&
                 tab_->production_imu_data_status_text_)
             {
                 tab_->production_imu_data_status_text_->setText(
-                    msg.passed() ? "✅ Test Passed" : "❌ Test Failed");
+                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
             }else if (msg.production_command() == jaiabot::protobuf::TEST_MOTOR_HARNESS &&
                 tab_->production_motor_data_status_text_)
             {
                 tab_->production_motor_data_status_text_->setText(
-                    msg.passed() ? "✅ Test Passed" : "❌ Test Failed");
+                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
             }
         });
     });

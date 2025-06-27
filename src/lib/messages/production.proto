@@ -44,5 +44,5 @@ message ProductionResponse
     Motor motor_harness_report = 13;
   } 
   optional string readable_time = 3;
-  optional bool passed = 4 [default = false];
+  optional bool test_result = 4 [default = false];
 }

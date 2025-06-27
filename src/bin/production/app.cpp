@@ -211,11 +211,11 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 pressure_sensor();
-                response.set_passed(pressure_test_passed_);
+                response.set_test_result(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 motor_harness();
-                response.set_passed(motor_test_passed_);
+                response.set_test_result(motor_test_passed_);
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -277,8 +277,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
                 imu_test_passed_ = false;
             }
             imu_reset_pending_ = false;
-            response.set_passed(imu_test_passed_);
-            interprocess().publish<jaiabot::groups::production>(response);
+            //response.set_passed(imu_test_passed_);
+            //interprocess().publish<jaiabot::groups::production>(response);
             //test_imu_ = false;
         }
     }
