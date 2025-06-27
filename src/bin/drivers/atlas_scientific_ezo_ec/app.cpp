@@ -201,7 +201,15 @@ void jaiabot::apps::AtlasSalinityPublisher::health(goby::middleware::protobuf::T
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     //Check to see if the atlas_salinity is responding
-    if (!cfg().atlas_salinity_report_in_simulation())
+    if (cfg().atlas_salinity_report_in_simulation())
+    {
+        if (helm_ivp_in_mission_)
+        {
+            glog.is_debug1() && glog << "Simulation Sensor Check" << std::endl;
+            check_last_report(health, health_state);
+        }
+    }
+    else
     {
         check_last_report(health, health_state);
     }
