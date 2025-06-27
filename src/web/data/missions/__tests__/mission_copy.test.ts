@@ -1,6 +1,6 @@
 import Mission from "../mission";
 import { locationA, locationB, locationC, locationD } from "../../tests/__mocks__/waypoint-mock";
-import { missions } from "../missions";
+import { missionSet } from "../missionSet";
 import Task from "../../tasks/task";
 import { TaskType } from "../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 test("Clone a mission and test values", () => {
     let originalMission = new Mission();
-    const originalID: number = missions.addMission(originalMission);
+    const originalID: number = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
     let waypoint1 = originalMission.getWaypoint(1);
@@ -19,10 +19,10 @@ test("Clone a mission and test values", () => {
 
     // Clone the mission and add it to the missions data
     let cloneMission = cloneDeep(originalMission);
-    const cloneID: number = missions.addMission(cloneMission);
-    expect(missions.getMissions().size).toEqual(2);
+    const cloneID: number = missionSet.addMission(cloneMission);
+    expect(missionSet.getMissionSet().size).toEqual(2);
     expect(cloneID).not.toEqual(originalID);
-    expect(missions.getMissionIDInEditMode()).toEqual(cloneID);
+    expect(missionSet.getMissionIDInEditMode()).toEqual(cloneID);
 
     expect(cloneMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
     expect(cloneMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);

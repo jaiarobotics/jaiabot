@@ -1,5 +1,5 @@
 import { bots } from "../bots/bots";
-import { missions } from "../missions/missions";
+import { missionSet } from "../missions/missionSet";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
@@ -64,7 +64,7 @@ class MissionsManager {
      * @returns {void}
      */
     autoAssign() {
-        for (let [missionID, mission] of missions.getMissions()) {
+        for (let [missionID, mission] of missionSet.getMissionSet()) {
             if (this.getBotID(mission.getMissionID()) === UNASSIGNED_ID) {
                 if (this.getNextAvailableBotID() !== UNASSIGNED_ID) {
                     this.assign(this.getNextAvailableBotID(), mission.getMissionID());

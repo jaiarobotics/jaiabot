@@ -6,7 +6,7 @@ import { DisabledCodes, messages } from "../start-mission-messages";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/missions/missionSet";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 import { MissionState } from "../../../types/protobuf-types";
@@ -51,11 +51,11 @@ bots.setBot(mockBotStatus5);
 
 const mockMission1: Mission = new Mission();
 mockMission1.addWaypoint({ lat: 38.9072, lon: 77.0369 });
-const missionID1 = missions.addMission(mockMission1);
+const missionID1 = missionSet.addMission(mockMission1);
 
 const mockMission2: Mission = new Mission();
 mockMission2.addWaypoint({ lat: 38.9072, lon: 77.0369 });
-const missionID2 = missions.addMission(mockMission2);
+const missionID2 = missionSet.addMission(mockMission2);
 
 missionsManager.assign(4, missionID1);
 missionsManager.assign(5, missionID2);

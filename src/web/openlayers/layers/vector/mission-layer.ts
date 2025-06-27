@@ -1,5 +1,5 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/missions/missionSet";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "./zindex";
 import {
@@ -21,7 +21,7 @@ class MissionLayer extends JaiaVectorLayer {
      * @returns {void}
      */
     addWaypoint(missionID: number, waypointNum: number) {
-        const mission = missions.getMission(missionID);
+        const mission = missionSet.getMission(missionID);
         const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
 
@@ -53,7 +53,7 @@ class MissionLayer extends JaiaVectorLayer {
     updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
-        for (let [missionID, mission] of missions.getMissions()) {
+        for (let [missionID, mission] of missionSet.getMissionSet()) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {
                 this.addWaypoint(missionID, index + 1);
             }

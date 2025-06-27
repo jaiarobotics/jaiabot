@@ -5,7 +5,7 @@ import StartAllMissionsButton from "../StartAllMissionsButton";
 
 import Mission from "../../../data/missions/mission";
 import { bots } from "../../../data/bots/bots";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/missions/missionSet";
 
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";
@@ -62,9 +62,9 @@ bots.setBot(botStatusMock3);
 bots.setBot(botStatusMock4);
 bots.setBot(botStatusMock5);
 
-const missionID1 = missions.addMission(new Mission());
-const missionID2 = missions.addMission(new Mission());
-const missionID3 = missions.addMission(new Mission());
+const missionID1 = missionSet.addMission(new Mission());
+const missionID2 = missionSet.addMission(new Mission());
+const missionID3 = missionSet.addMission(new Mission());
 
 missionsManager.assign(1, missionID1);
 missionsManager.assign(5, missionID2);
@@ -76,7 +76,7 @@ originalModule.jaiaAPI.hit = jest
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
 
 test("0 Bots ready to start a mission", async () => {
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(<StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissionSet()} />);
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -109,7 +109,7 @@ test("0 Bots ready to start a mission", async () => {
 test("1 Bot ready to start a mission", async () => {
     bots.setBot(botStatusMock1);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(<StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissionSet()} />);
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -145,7 +145,7 @@ test("2 Bots ready to start missions", async () => {
     bots.setBot(botStatusMock6);
     missionsManager.assign(6, missionID3);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(<StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissionSet()} />);
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 
@@ -187,7 +187,7 @@ test("All Bots ready to start missions", async () => {
     missionsManager.assign(1, missionID1);
     missionsManager.assign(6, missionID3);
 
-    render(<StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />);
+    render(<StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissionSet()} />);
     const button = screen.getByRole("button", { name: "start-all-missions" });
     await userEvent.click(button);
 

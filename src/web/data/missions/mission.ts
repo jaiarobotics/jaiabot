@@ -14,7 +14,7 @@ export default class Mission {
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
-    private saveName: string;
+    private name: string;
 
     constructor() {
         // missionID assigned by missions singleton
@@ -31,12 +31,12 @@ export default class Mission {
         this.missionID = missionID;
     }
 
-    setSaveName(saveName: string) {
-        this.saveName = saveName;
+    setName(name: string) {
+        this.name = name;
     }
 
-    getSaveName() {
-        return this.saveName;
+    getName() {
+        return this.name;
     }
 
     getWaypoints() {
@@ -125,20 +125,21 @@ export default class Mission {
 
         return goals;
     }
+
     /**
      * Creates a mission object from serialize mission data
      *
-     * @param obj Serialized Mission Data to transform to mission object
-     * @returns mission Resulting mission object
+     * @param {any} serializedMission Serialized Mission Data to transform to mission object
+     * @returns {Mission} mission Resulting mission object
      */
-    static fromJSON(obj: any): Mission {
-        const mission = Object.assign(new Mission(), obj);
-        mission.waypoints = mission.waypoints.map((wp: any) => {
-            const waypoint = Object.assign(new Waypoint(), wp);
-            if (wp.task) {
-                waypoint.setTask(Object.assign(new Task(), wp.task));
+    static fromJSON(serializedMission: any): Mission {
+        const mission = Object.assign(new Mission(), serializedMission);
+        mission.waypoints = mission.waypoints.map((serializedWaypoint: any) => {
+            const waypoint = Object.assign(new Waypoint(), serializedWaypoint);
+            if (serializedWaypoint.task) {
+                waypoint.setTask(Object.assign(new Task(), serializedWaypoint.task));
             }
-            waypoint.setLocation(wp.location);
+            waypoint.setLocation(serializedWaypoint.location);
             return waypoint;
         });
         return mission;
