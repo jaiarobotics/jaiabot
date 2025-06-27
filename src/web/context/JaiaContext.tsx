@@ -37,7 +37,7 @@ import {
 export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
-    missionSet: Map<number, Mission>;
+    missions: Map<number, Mission>;
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -213,7 +213,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
-    mutableState.missionSet = missionSet.getMissions();
+    mutableState.missions = missionSet.getMissions();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();

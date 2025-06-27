@@ -58,7 +58,7 @@ export default function ButtonList(props: Props) {
             <div className="button-list top">
                 <ActivateAllButton bots={jaiaContext.bots} />
                 <StopAllBotsButton bots={jaiaContext.bots} />
-                <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missionSet} />
+                <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
