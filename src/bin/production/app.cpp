@@ -78,6 +78,7 @@ class JaiabotProduction: public ApplicationBase
 
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
         void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
+        void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
 
         goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
@@ -113,20 +114,23 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUData& imu_msg)
         {
+
             last_imu_msg_time_ = goby::time::SystemClock::now();
             imu_data_received_ = true;
+            
 
             if (imu_msg.has_euler_angles() && imu_msg.euler_angles().has_heading())
             {
+                // imu_heading_
                 double heading = imu_msg.euler_angles().heading();
-                if (heading >= 0 && heading <= 360)
+                /*if (heading >= 0 && heading <= 360)
                 {
                     imu_test_passed_ = true;
-                }
+                }*/
             }
         });
         // double subscribe 
-    interprocess().subscribe<jaiabot::groups::imu>(
+    /*interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue){
             switch(imu_issue.solution()){
                 case protobuf::IMUIssue::RESTART_IMU_PY:
@@ -143,7 +147,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
                 default:
                     break;
             }
-        });
+        });*/
 
 
     // Subscribe to pressure sensor data
@@ -202,8 +206,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-                imu_sensor();
-                response.set_passed(imu_test_passed_);
+                //test_imu_ = true
+                
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 pressure_sensor();
@@ -226,6 +230,10 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor()
 {
+    //jaiabot::protobuf::ProductionResponse response;
+
+    // Change to checking the time of the last received imu heading data < 1 second
+
     // 1. Confirm we are receiving IMU data
     if (!imu_data_received_)
     {
@@ -237,6 +245,9 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
     {
         glog.is_debug1() && glog << "✅ IMU Test Pass: we are receiving IMU data" << std::endl;
     }
+
+    // Trigger reboot of imu
+    // reboot_bno085_imu();
 
     // 2. When reset is started, check for 2s pause in IMU data
     if (!imu_reset_pending_)
@@ -266,6 +277,9 @@ void jaiabot::apps::JaiabotProduction::imu_sensor()
                 imu_test_passed_ = false;
             }
             imu_reset_pending_ = false;
+            response.set_passed(imu_test_passed_);
+            interprocess().publish<jaiabot::groups::production>(response);
+            //test_imu_ = false;
         }
     }
 }
@@ -332,3 +346,17 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     }
     motor_test_running_ = false;
 }
+
+// Add loop back
+
+/*
+void loop {
+    if (test_imu_)
+    {
+        imu_sensor();
+    }
+
+}
+
+
+*/
