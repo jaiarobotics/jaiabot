@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-import pty
-import tty
 import vserial
 import parsers
 
@@ -20,7 +17,7 @@ class SimXBee():
         self._data_in = None
         self._data_out = None
 
-        self._command_parser = parsers.CommandParser()
+        self._command_parser = parsers.ATCommandParser()
 
     def start(self):
         self.vsd.open()
@@ -39,14 +36,17 @@ class SimXBee():
     def _parse(self):
         if self.mode == 'transparent':
             self._data_in = self._command_parser.parse(self._buffer)
-            
+            if self._data_in is not None:
+                self._buffer = bytearray()
     def _process(self):
         if self._data_in == 'OK':
             self._data_out = b'OK'
-
+        else:
+            self._data_out = self._data_in
     def _send(self):
         if self._data_out is not None:
             self.vsd.send(self._data_out)
+            print(self._data_out)
 
 def main():
     sxb = SimXBee()
