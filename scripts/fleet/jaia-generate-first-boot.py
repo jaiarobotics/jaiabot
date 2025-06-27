@@ -85,8 +85,9 @@ def main():
     parser.add_argument('--bootdir', type=str, help="Path to boot directory (optional, if omitted the path to a mounted LABEL=boot partition will be used if found)")
     parser.add_argument('--binary', type=str, help="Name of binary")
     parser.add_argument('--debug',  help="Output debugging information", action="store_true")
-    parser.add_argument('--hub-ssh-keys-only',  help="Only output the hub SSH keys (skip all other actions)", action="store_true")
+    parser.add_argument('--hub-ssh-keys-only',  help="Only output the hub SSH keys (skip all other actions). Same as --action=hub_ssh_keys.", action="store_true")
     parser.add_argument('--mode', default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
+    parser.add_argument('--action', action='append', choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script"], help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
     parser.add_argument('type', choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     parser.add_argument('id', type=int, help="ID of bot or hub") 
     args = parser.parse_args()
@@ -103,7 +104,14 @@ def main():
     gateway_ip_result = subprocess.run(f'jaia-ip.py --node gateway --net wlan --fleet_id {fleet_cfg_json["fleet"]} addr --ipv4', shell=True, capture_output=True, text=True)
     fleet_cfg_json['this']['gateway_ip'] = gateway_ip_result.stdout.strip()
 
-    
+    actions=args.action
+    if args.hub_ssh_keys_only:
+        actions=['hub_ssh_keys']
+    elif actions is None:
+        actions=['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg']
+
+    print(f"Running actions: {actions}")
+        
     # special case types
     type=args.type
     if args.type == 'rpicam':
@@ -136,14 +144,25 @@ def main():
             if override['type'] == type.upper() and override['id'] == args.id:
                 merge_overrides(fleet_cfg_json, override)
 
-    if not args.hub_ssh_keys_only:
+    if 'first_boot' in actions:
         # generate first-boot.preseed.yml
         template_file=bootdir + '/jaiabot/init/first-boot.preseed.yml.j2'
         rendered_output = render_template(template_file, fleet_cfg_json)
         preseed_yml=bootdir + '/jaiabot/init/first-boot.preseed.yml'    
         with open(preseed_yml, "w") as f:
             f.write(rendered_output)
-
+        print(f'Wrote cloud-init file: {preseed_yml}')
+            
+    if 'new_hub_script' in actions:
+        # generate new_hub.sh
+        template_file=bootdir + '/new_hub.sh.j2'
+        rendered_output = render_template(template_file, fleet_cfg_json)
+        new_hub_script=bootdir + '/new_hub.sh'    
+        with open(new_hub_script, "w") as f:
+            f.write(rendered_output)
+        print(f'Write new hub script: {new_hub_script}')
+            
+    if 'vpn_key' in actions:
         # generate vpn key pair
         if 'vpnTmp' in fleet_cfg_json['ssh']:
             vpn_key_priv = bootdir + '/jaiabot/init/id_vpn_tmp'
@@ -157,31 +176,29 @@ def main():
             print("WARNING: No vpn_tmp key provided")
 
     if type == 'hub':
-        key_found=False
-        if 'hub' in fleet_cfg_json['ssh']:
-            for hub_key in fleet_cfg_json['ssh']['hub']:
-                if args.id == hub_key['id']:
-                    hub_key_priv = bootdir + f'/jaiabot/init/hub{args.id}_fleet{fleet_cfg_json["fleet"]}'
-                    hub_key_pub = hub_key_priv + '.pub'
-                    with open(hub_key_priv, "w") as f:
-                        f.write(hub_key['privateKey'])
-                    with open(hub_key_pub, "w") as f:
-                        f.write(hub_key['publicKey'] + '\n')
-                    print(f"Wrote SSH key pair: {hub_key_priv} and {hub_key_pub}")
-                    key_found=True
-        if not key_found:
-            print(f"WARNING: No hub key provided for hub {args.id}")
+        if 'hub_ssh_keys' in actions:
+            key_found=False
+            if 'hub' in fleet_cfg_json['ssh']:
+                for hub_key in fleet_cfg_json['ssh']['hub']:
+                    if args.id == hub_key['id']:
+                        hub_key_priv = bootdir + f'/jaiabot/init/hub{args.id}_fleet{fleet_cfg_json["fleet"]}'
+                        hub_key_pub = hub_key_priv + '.pub'
+                        with open(hub_key_priv, "w") as f:
+                            f.write(hub_key['privateKey'])
+                        with open(hub_key_pub, "w") as f:
+                            f.write(hub_key['publicKey'] + '\n')
+                        print(f"Wrote SSH key pair: {hub_key_priv} and {hub_key_pub}")
+                        key_found=True
+            if not key_found:
+                print(f"WARNING: No hub key provided for hub {args.id}")
 
-        if not args.hub_ssh_keys_only:
+        if 'store_fleet_cfg' in actions:
             # Also put a copy of fleet config on hubs for future upgrades
             with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
                 dst.write(src.read())
 
     if args.debug:
         print(f"Rendered FleetConfig as JSON: {json.dumps(fleet_cfg_json, indent=2)}")
-
-    if not args.hub_ssh_keys_only:
-        print(f'Wrote cloud-init file: {preseed_yml}')
         
 if __name__ == "__main__":
     main()
