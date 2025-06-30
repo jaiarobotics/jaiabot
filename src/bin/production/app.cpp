@@ -89,7 +89,7 @@ class JaiabotProduction: public ApplicationBase
         bool test_motor_ = false;
         */
 
-        //void loop() override;
+        void loop() override;
 
         bool motor_test_running_ = false;
         void imu_sensor_data_timeCheck();
@@ -97,7 +97,7 @@ class JaiabotProduction: public ApplicationBase
         void pressure_sensor();
         void motor_harness();
 
-        double since_last_imu = seconds_since(last_imu_msg_time_);
+        //double since_last_imu = seconds_since(last_imu_msg_time_);
 
         goby::time::SystemClock::time_point motor_test_start_time_;
 
@@ -176,8 +176,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
    interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
     {
-        jaiabot::protobuf::ProductionResponse response;
-
         // Set raw timestamp
         const auto now = std::chrono::system_clock::now();
         const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -190,7 +188,9 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-                test_imu_ = true;
+                //test_imu_ = true; fix this later
+                imu_sensor_data_timeCheck();
+                //response.set_test_result(test_imu_);
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 //test_pressure_ = true;
@@ -215,31 +215,42 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
-    jaiabot::protobuf::ProductionResponse response;
-    //double since_last_imu = seconds_since(last_imu_msg_time_);
-    // 1. Confirm we are receiving IMU data
+    response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+    double since_last_imu = seconds_since(last_imu_msg_time_);
+
     if (since_last_imu > 1.0)
     {
-        glog.is_debug1() && glog << "🛑 IMU Test FAIL: received IMU data in over a second" << std::endl;
+        glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
+                                 << since_last_imu << "s)" << std::endl;
+
         imu_test_passed_ = false;
-        return;
+        response.set_test_result(false);
     }
     else
     {
-        glog.is_debug1() && glog << "✅ IMU Test Pass: received IMU data in less than a second" << std::endl;
-        if(imu_test_passed_ == true)
-        {
-            reboot_bno085_imu();
-        }
-        interprocess().publish<jaiabot::groups::production>(response);
+        glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
+                                 << since_last_imu << "s" << std::endl;
+
+        imu_test_passed_ = true;
+        response.set_test_result(true);
+
+        // Optional: reboot the IMU hardware on pass (confirm if needed)
+        reboot_bno085_imu();
     }
+
+    // Add a fresh timestamp to the response
+    const auto now = std::chrono::system_clock::now();
+    const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        now.time_since_epoch()).count();
+    response.set_time(timestamp_us);
+
+    interprocess().publish<jaiabot::groups::production>(response);
 }
 
+/*idea comment this out below 
 //possibility of two seperate functions
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
-    jaiabot::protobuf::ProductionResponse response;
-
     if (!imu_reset_pending_)
     {
         // Start reset
@@ -253,6 +264,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     else
     {
         double since_reset = seconds_since(imu_reset_start_time_);
+        double since_last_imu = seconds_since(last_imu_msg_time_);
         if (since_reset > cfg().imu_reboot_time())
         {
             if (since_last_imu >= cfg().imu_reboot_time())
@@ -273,7 +285,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 
         }
     }
-}
+}*/
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
@@ -338,17 +350,33 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     motor_test_running_ = false;
 }
 
-// Add loop back
-
-/*
-void jaiabot::apps::Jaiabot::loop()
- {
+// Add loop back for imu 
+void jaiabot::apps::JaiabotProduction::loop()
+{
+    /*
     if (test_imu_)
     {
-        imu_sensor();
+        imu_sensor_data_timeCheck();
+        test_imu_ = false; // Only run once per request
+    }
+    // If you're using this for the reset test as well:
+    if (imu_reset_pending_)
+    {
+        imu_sensor_reset_check();
+    }
+      */  
+    
+    /*
+    if (test_pressure)
+    {
+        test_pressure = false;
     }
 
+    if(test_motor)
+    {
+        test_motor = false;
+    }*/
+
+    // You could also add other timed checks here (e.g. monitor temps, motor status, etc.)
 }
 
-
-*/
