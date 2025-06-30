@@ -79,8 +79,8 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     production_panel->setCollapsed(cfg_.minimize_production_panel());
 
     auto production_box = std::make_unique<Wt::WContainerWidget>();
-
-    // IMU test UI box
+    
+// IMU test UI box
 auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
 auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
 auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Status text below button
@@ -94,10 +94,15 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::
     // Send production request for IMU test
     this->post_to_comms([=] {
         jaiabot::protobuf::ProductionRequest request;
+        request.set_time(goby::time::SystemClock::now<goby::time::MicroTime>().value());
+
+        // Set the oneof request field correctly
         request.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+
         goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
     });
 });
+
 
     //Test Pressure!!
     auto production_pressure_test_box = production_box->addNew<WGroupBox>("Pressure Sensor");
