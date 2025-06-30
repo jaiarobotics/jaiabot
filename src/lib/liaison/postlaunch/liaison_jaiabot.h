@@ -264,30 +264,22 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
 
             //this works with boolean which will change when we do string possible idk yet
-            /*
+            
       interprocess().subscribe<jaiabot::groups::production>(
-    [this](const jaiabot::protobuf::ProductionResponse& msg)
+    [this](const jaiabot::protobuf::ProductionResponse& response)
     {
         tab_->post_to_wt([=]() {
-            if (msg.production_command() == jaiabot::protobuf::TEST_PRESSURE_SENSOR &&
-                tab_->production_pressure_data_status_text_)
+            switch (response.production_command())
             {
-                tab_->production_pressure_data_status_text_->setText(
-                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
-            }else if (msg.production_command() == jaiabot::protobuf::TEST_IMU_SENSOR &&
-                tab_->production_imu_data_status_text_)
-            {
-                tab_->production_imu_data_status_text_->setText(
-                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
-            }else if (msg.production_command() == jaiabot::protobuf::TEST_MOTOR_HARNESS &&
-                tab_->production_motor_data_status_text_)
-            {
-                tab_->production_motor_data_status_text_->setText(
-                    msg.test_result() ? "✅ Test Passed" : "❌ Test Failed");
+                case jaiabot::protobuf::TEST_IMU_SENSOR:
+                    if (tab_->production_imu_data_status_text_)
+                        tab_->production_imu_data_status_text_->setText(response.imu_data_status());
+                    break;
+                default:
+                    break;
             }
         });
     });
-    */
         
     } // namespace jaiabot
     ~CommsThread() {}

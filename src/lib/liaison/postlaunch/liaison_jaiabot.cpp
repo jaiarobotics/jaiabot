@@ -88,9 +88,15 @@ auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Status t
 // fix button logic once publishing is done in app
 imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::WMouseEvent) {
     imu_test_button->hide();
-
     this->production_imu_data_status_text_ = imu_status_text;
     imu_status_text->setText("⏳ Waiting for IMU test result...");
+
+    // Send production request for IMU test
+    this->post_to_comms([=] {
+        jaiabot::protobuf::ProductionRequest request;
+        request.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+    });
 });
 
     //Test Pressure!!
