@@ -26,6 +26,7 @@ class ATStringCommandExt(Enum):
         return self.__desc
 
 class SimXBee():
+    # Default XBee Configuration
     DEFAULT_SETTINGS = {
         '_network_id': '7FFF',
         '_preamble_id': '0',
@@ -36,11 +37,12 @@ class SimXBee():
         '_aes_encryption_key': None,
         '_encryption_enable': '0',
         '_mesh_unicast_retries': '1',
-        '_unicat_mac_retries': 'A',
+        '_unicast_mac_retries': 'A',
         '_network_delay_slots': '3',
         '_broadcast_multitransmits': '3'
     }
 
+    # XBee Return Options
     OK = b'OK\r'
     ERROR = b'ERROR\r'
     INVALID_COMMAND = b'INVALID_COMMAND\r'
@@ -51,10 +53,16 @@ class SimXBee():
     CMD_SENT_INSECURELY = b'CMD_SEND_INSECURELY\r'
     UNKNOWN = b'UNKNOWN\r'
 
+    # XBee Operating Modes
+    modes = {
+        'AT mode': '0', # transparent
+        'API mode': '1',
+        'Escaped API mode': '2'
+    }
+
     def __init__(self, name='pxbee'):
         self.name = name
         self.port = '/tmp/' + name
-        self.mode = 'transparent'
 
         self.vsd = vserial.VirtualSerialDevice(
             port=self.port,
@@ -65,6 +73,7 @@ class SimXBee():
         self._data_out = None
 
         self._command_parser = ATCommandParser()
+        self._api_parser = APIParser()
         self._reset_all()
 
         self.at_handlers = {
@@ -87,12 +96,17 @@ class SimXBee():
         }
 
     def start(self):
+        """Starts Virtual Serial Device."""
         self.vsd.open()
 
     def close(self):
+        """Closes Virtual Serial Device."""
         self.vsd.close()
 
+    # === Main loop functions ==========================================================
+
     def _read(self, data):
+        """Callback function for reading data in on a separate thread."""
         self._data_in = None
         self._data_out = None
         self._buffer.extend(data)
@@ -101,12 +115,19 @@ class SimXBee():
         self._send()
 
     def _parse(self):
-        if self.mode == 'transparent':
-            self._data_in = self._command_parser.parse(self._buffer)
-            if self._data_in is not None:
-                self._buffer = bytearray()
+        """Parses data based on current mode."""
+        self._data_in = self._command_parser.parse(self._buffer)
+        if self._data_in is not None:
+            self._buffer = bytearray()
+        elif self._api_enable == self.modes['API mode']:
+            self._data_in = self._api_parser.parse(self._buffer)
+        elif self._api_enable == self.modes['Escaped API mode']:
+            print('ESCAPED API MODE NOT SUPPORTED')
+        else:
+            print(f'MODE NOT SUPPORTED: {self._api_enable}')
 
     def _process(self):
+        """Processes parsed data."""
         if self._data_in is not None:
             if self._data_in == 'OK':
                 self._data_out = self.OK
@@ -130,20 +151,25 @@ class SimXBee():
                     self._data_out = b'NYI\r'
 
     def _send(self):
+        """Sends data to host device."""
         if self._data_out is not None:
             self.vsd.send(self._data_out)
             print(self._data_out)
 
+    # === Configuration functions ======================================================
+
     def _set_all(self, settings):
+        """Sets all configuration settings based on a dictionary."""
         for k, v in settings.items():
-            setattr(self, k, v)
+            if k in self.DEFAULT_SETTINGS.keys():
+                setattr(self, k, v)
 
     def _reset_all(self):
+        """Sets all configuration settings based on the default dictionary."""
         self._set_all(self.DEFAULT_SETTINGS)
 
-    # Hayes AT Command Handlers
-    #
-    #
+    # === Hayes AT Command Handlers ====================================================
+    # These functions change configuration details.
 
     def _handle_reset(self, value=None):
         """Reset Defaults
@@ -418,6 +444,22 @@ class ATCommandParser:
             return (at_cmd, at_param)
         else:
             return ('AT', None)
+        
+class APIParser:
+    def __init__(self):
+        self._delimiter = b'\x7E'
+
+    def parse(self, buffer):
+        packets = buffer.split(self._delimiter)
+        for p in packets:
+            if len(p) > 0:
+                length = p[:2]
+                cs = p[-1:]
+                message = p[2:-1]
+                print(f'Len: {length} Msg: {message} Chk: {cs}')
+                messagesum = (0xFF - (sum(message) & 0xFF)).to_bytes(1, byteorder='big')
+                print(messagesum)
+
 
 def main():
     sxb = SimXBee(name='xbeebot0')
