@@ -30,7 +30,15 @@ class SimXBee():
         '_network_id': '7FFF',
         '_preamble_id': '0',
         '_user_serial': '000000000000FFFF',
-        '_node_identifier': 'pxbee'
+        '_node_identifier': 'pxbee',
+        '_api_enable': '0',
+        '_api_options': '0',
+        '_aes_encryption_key': None,
+        '_encryption_enable': '0',
+        '_mesh_unicast_retries': '1',
+        '_unicat_mac_retries': 'A',
+        '_network_delay_slots': '3',
+        '_broadcast_multitransmits': '3'
     }
 
     OK = b'OK\r'
@@ -64,17 +72,17 @@ class SimXBee():
             ATStringCommand.RE: self._handle_reset,
             ATStringCommand.HP: self._handle_preamble_id,
             ATStringCommand.NI: self._handle_node_identifier,
-            ATStringCommand.AP: self._handle_nyi,
-            ATStringCommand.AO: self._handle_nyi,
-            ATStringCommand.KY: self._handle_nyi,
-            ATStringCommand.EE: self._handle_nyi,
-            ATStringCommand.RR: self._handle_nyi,
+            ATStringCommand.AP: self._handle_api_enable,
+            ATStringCommand.AO: self._handle_api_options,
+            ATStringCommand.KY: self._handle_aes_encryption_key,
+            ATStringCommand.EE: self._handle_encryption_enable,
+            ATStringCommand.RR: self._handle_unicast_mac_retries,
             ATStringCommand.CN: self._handle_nyi,
             ATStringCommand.SH: self._handle_nyi,
             ATStringCommand.SL: self._handle_nyi,
-            ATStringCommandExt.MR: self._handle_nyi,
-            ATStringCommandExt.NN: self._handle_nyi,
-            ATStringCommandExt.MT: self._handle_nyi,
+            ATStringCommandExt.MR: self._handle_mesh_unicast_retries,
+            ATStringCommandExt.NN: self._handle_network_delay_slots,
+            ATStringCommandExt.MT: self._handle_broadcast_multitransmits,
             ATStringCommandExt.UH: self._handle_user_serial_high,
             ATStringCommandExt.UL: self._handle_user_serial_low
         }
@@ -235,6 +243,140 @@ class SimXBee():
         else:
             return self._node_identifier
         
+    def _handle_api_enable(self, value=None):
+        """API Enable
+
+        Set or read the API mode setting. The device can format the RF packets it receives into API frames and
+        send them out the serial port. When you enable API, you must format the serial data as API frames because 
+        Transparent operating mode is disabled.
+        Enables API Mode. The device ignores this command when using SPI. API mode 1 is always used.
+        Parameter range - 0 - 2, Default = 0
+        """
+        if value is not None:
+            if 0 <= int(value) <= 2:
+                self._api_enable = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._api_enable
+        
+    def _handle_api_options(self, value=None):
+        """API Options
+
+        The API data frame output format for RF packets received.
+        Use AO to enable different API output frames.
+        Parameter range - 0 - 2, Default = 0
+        """
+        if value is not None:
+            if 0 <= int(value) <= 2:
+                self._api_options = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._api_options
+        
+    def _handle_aes_encryption_key(self, value=None):
+        """AES Encryption Key
+
+        Sets the 256-bit network security key value that the device uses for encryption and decryption.
+        This command is write-only. If you attempt to read KY, the device returns an OK status.
+        Set this command parameter the same on all devices in a network.
+        Parameter range - 256-bit value (64 Hexadecimal digits), Default = 0
+        """
+        if value is not None:
+            self._aes_encryption_key = value
+            return self.OK
+        else:
+            return self.OK
+
+    def _handle_encryption_enable(self, value=None):
+        """Encryption Enable
+
+        Enable or disable 256-bit Advanced Encryption Standard (AES) encryption.
+        Set this command parameter the same on all devices in a network.
+        1 = encryption enabled
+        Parameter range - 0 - 1, Default = 0
+        """
+        if value is not None:
+            if 0 <= int(value) <= 1:
+                self._encryption_enable = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._encryption_enable
+        
+    def _handle_mesh_unicast_retries(self, value=None):
+        """Mesh Unicast Retries
+
+        Set or read the maximum number of network packet delivery attempts. If MR is non-zero, the packets
+        a device sends request a network acknowledgment, and can be resent up to MR+1 times if the device
+        does not receive an acknowledgment.
+        Changing this value dramatically changes how long a route request takes.
+        Digi recommends that you set this value to 1 if you have DigiMesh enabled.
+        Parameter range - 0 - 7 mesh unicast retries, Default = 1
+        """
+        if value is not None:
+            if 0 <= int(value) <= 7:
+                self._mesh_unicast_retries = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._mesh_unicast_retries
+        
+    def _handle_unicast_mac_retries(self, value=None):
+        """Unicast Mac Retries
+
+        Set or read the maximum number of MAC level packet delivery attempts for unicasts. If RR is nonzero,
+        the sent unicast packets request an acknowledgment from the recipient. Unicast packets can be
+        retransmitted up to RR times if the transmitting device does not receive a successful
+        acknowledgment.
+        Parameter range - 0 - 0xF, Default = 0xA (10 retries)
+        """
+        if value is not None:
+            if 0 <= int(value) <= 0xF:
+                self._mesh_unicast_mac_retries = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._mesh_unicast_mac_retries
+        
+    def _handle_network_delay_slots(self, value=None):
+        """Network Delay slots
+
+        Set or read the maximum random number of network delay slots before rebroadcasting a network
+        packet.
+        Parameter range - 1 - 0x5 network delay slots, Default = 3
+        """
+        if value is not None:
+            if 1 <= int(value) <= 0x5:
+                self._network_delay_slots = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._network_delay_slots
+        
+    def _handle_broadcast_multitransmits(self, value=None):
+        """Broadcast Multi Transmits
+
+        Set or read the number of additional MAC-level broadcast transmissions. All broadcast packets are
+        transmitted MT+1 times to ensure they are received.
+        Parameter range - 0 - 5, Default = 3
+        """
+        if value is not None:
+            if 0 <= int(value) <= 5:
+                self._broadcast_multitransmits = value
+                return self.OK
+            else:
+                return self.ERROR
+        else:
+            return self._broadcast_multitransmits
+
     def _handle_nyi(self, value=None):
         print('NOT YET IMPLEMENTED')
         return b'NYI'
@@ -248,7 +390,7 @@ class ATCommandParser:
     def parse(self, buffer):
         if not self.command_mode and buffer.endswith(b'+++'):
             self.command_mode = True
-            return "OK"
+            return 'OK'
         elif self.command_mode and buffer.endswith(self._delimiter):
             at_out = self.extract_at_cmd(buffer)
             return at_out
@@ -267,13 +409,16 @@ class ATCommandParser:
         at_param = None
         if len(at_cmd_raw) > 0:
             at_cmd = at_cmd_raw[:2].decode('UTF-8')
+            if at_cmd == 'CN':
+                self.command_mode = False
+                return 'OK'
             if len(at_cmd_raw) > 2:
                 at_param = at_cmd_raw[2:].decode('UTF-8').strip('=').strip(' ')
                 command = ATCommand(at_cmd, at_param)
                 print(command)
             return (at_cmd, at_param)
         else:
-            return('AT', None)
+            return ('AT', None)
 
 def main():
     sxb = SimXBee(name='xbeebot0')
