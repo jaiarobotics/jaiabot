@@ -216,8 +216,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_response("No IMU data has been received yet.");
         response.set_test_result("FAIL");
+        response.set_response("No IMU data has been received yet.");
         return;
     }
     else if (since_last_imu > 1.0)
@@ -225,16 +225,16 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
 
-        response.set_response("No IMU data in over 1 second");
         response.set_test_result("FAIL");
+        response.set_response("No IMU data in over 1 second");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
 
-        response.set_response("IMU data received in a second or less");
         response.set_test_result("PASS");
+        response.set_response("IMU data received in a second or less");
 
         // Optional: reboot the IMU hardware on pass (confirm if needed)
         reboot_bno085_imu();
@@ -293,8 +293,8 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
-        response.set_response("No pressure data received");
         response.set_test_result("FAIL");
+        response.set_response("No pressure data received");
         return;
     }
 
@@ -306,14 +306,14 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     if (latest_pressure_ < 0.2)
     {
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
-        response.set_response("The pressure reading is less than 0.2");
         response.set_test_result("PASS");
+        response.set_response("The pressure reading is less than 0.2");
     }
     else
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2" << std::endl;
-        response.set_response("The Pressure reading is >= 0.2");
         response.set_test_result("FAIL");
+        response.set_response("The Pressure reading is >= 0.2");
     }
 }
 
