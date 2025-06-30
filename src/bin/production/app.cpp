@@ -190,12 +190,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 //test_imu_ = true; fix this later
                 imu_sensor_data_timeCheck();
-                //response.set_test_result(test_imu_);
+                response.set_test_result(imu_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 //test_pressure_ = true;
+                response.clear_imu_data_status();  // Clear IMU status
                 pressure_sensor();
-                //response.set_test_result(pressure_test_passed_);
+                response.set_test_result(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 //test_motor = true;
@@ -219,7 +220,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_test_result("No IMU data has been received yet."); //might change the name of this later from set_test_result to maybe set_received_imu_data_test or something like that
+        response.set_imu_data_status("No IMU data has been received yet.");
+        imu_test_passed_ = false; //will change and take this out later this is for a test
         interprocess().publish<jaiabot::groups::production>(response);
         return;
     }
@@ -229,7 +231,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
                                  << since_last_imu << "s)" << std::endl;
 
         imu_test_passed_ = false;
-        response.set_test_result("No IMU data in over 1 second");
+        response.set_imu_data_status("No IMU data in over 1 second");
     }
     else
     {
@@ -237,7 +239,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
                                  << since_last_imu << "s" << std::endl;
 
         imu_test_passed_ = true;
-        response.set_test_result("IMU data received in a second or less");
+        response.set_imu_data_status("IMU data received in a second or less");
 
         // Optional: reboot the IMU hardware on pass (confirm if needed)
         reboot_bno085_imu();
