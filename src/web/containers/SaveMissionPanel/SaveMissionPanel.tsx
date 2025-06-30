@@ -42,8 +42,8 @@ export default function SaveMissionPanel() {
     let savedMissionNamess = ["one", "two", "three"];
 
     const missionNameRows = savedMissionNamess.map((name) => {
-        var rowClasses = "LoadMissionPanel row hoverable";
-        if (name == "missionSet.getName()") {
+        var rowClasses = "row hoverable";
+        if (name == missionSet.getName()) {
             rowClasses += " selected";
         }
         let row = (
@@ -57,24 +57,24 @@ export default function SaveMissionPanel() {
 
     // Buttons
     let buttonRow = (
-        <div className="LoadMissionPanel HorizontalFlexbox">
-            <Button className="button-jcc">
+        <div className="jaia-button-row">
+            <Button className="jaia-button">
                 <Icon path={mdiDelete}></Icon>
             </Button>
-            <Button className="button-jcc">
+            <Button className="jaia-button">
                 <Icon path={mdiFolderDownload}></Icon>
             </Button>
             <div className="flexSpacer"></div>
-            <Button className="button-jcc">Cancel</Button>
-            <Button className="button-jcc">Save</Button>
+            <button>Cancel</button>
+            <button>Save</button>
         </div>
     );
 
     return (
-        <div className="LoadMissionPanel centered rounded shadowed">
-            <div className="LoadMissionPanel title">Save Mission As</div>
+        <div className="load-mission-panel">
+            <div className="title">Save Mission As</div>
             {nameInput}
-            <div className="LoadMissionPanel missionList">{missionNameRows}</div>
+            <div className="missionList">{missionNameRows}</div>
             {buttonRow}
         </div>
     );
