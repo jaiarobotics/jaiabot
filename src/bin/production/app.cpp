@@ -84,10 +84,10 @@ class JaiabotProduction: public ApplicationBase
 
         jaiabot::protobuf::ProductionResponse response;
         bool test_imu_ = false;
-        /*might need later
+        //might need later
         bool test_pressure_ = false;
         bool test_motor_ = false;
-        */
+        
 
         void loop() override;
 
@@ -361,22 +361,22 @@ void jaiabot::apps::JaiabotProduction::loop()
 {
     
     
-    /*
-    if (test_imu)
+    //loop functionality is to start the function call if test_"imu/pressure/motor" is false
+    if (test_imu_)
     {
-        test_imu = false;
+        imu_sensor_data_timeCheck();
+        //imu_sensor_reset_check();
     }
 
-    if (test_pressure)
+    if (test_pressure_)
     {
-        test_pressure = false;
+        pressure_sensor();
     }
 
-    if(test_motor)
+    if(test_motor_)
     {
-        test_motor = false;
-    }*/
+        motor_harness();
+    }
 
-    // You could also add other timed checks here (e.g. monitor temps, motor status, etc.)
 }
 
