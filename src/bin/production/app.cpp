@@ -189,19 +189,15 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 //test_imu_ = true; fix this later
-                imu_sensor_data_timeCheck();
-                response.set_test_result(imu_test_passed_);
+                imu_sensor_data_timeCheck(); 
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 //test_pressure_ = true;
-                response.clear_imu_data_status();  // Clear IMU status
                 pressure_sensor();
-                response.set_test_result(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 //test_motor = true;
                 motor_harness();
-                //response.set_test_result(motor_test_passed_);
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -220,9 +216,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_imu_data_status("No IMU data has been received yet.");
-        imu_test_passed_ = false; //will change and take this out later this is for a test
-        interprocess().publish<jaiabot::groups::production>(response);
+        response.set_response("No IMU data has been received yet.");
+        response.set_test_result("FAIL");
         return;
     }
     else if (since_last_imu > 1.0)
@@ -230,16 +225,16 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
 
-        imu_test_passed_ = false;
-        response.set_imu_data_status("No IMU data in over 1 second");
+        response.set_response("No IMU data in over 1 second");
+        response.set_test_result("FAIL");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
 
-        imu_test_passed_ = true;
-        response.set_imu_data_status("IMU data received in a second or less");
+        response.set_response("IMU data received in a second or less");
+        response.set_test_result("PASS");
 
         // Optional: reboot the IMU hardware on pass (confirm if needed)
         reboot_bno085_imu();
@@ -250,8 +245,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
         now.time_since_epoch()).count();
     response.set_time(timestamp_us);
-
-    interprocess().publish<jaiabot::groups::production>(response);
 }
 
 /*idea comment this out below 
@@ -300,7 +293,8 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
-        pressure_test_passed_ = false;
+        response.set_response("No pressure data received");
+        response.set_test_result("FAIL");
         return;
     }
 
@@ -312,11 +306,14 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     if (latest_pressure_ < 0.2)
     {
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
+        response.set_response("The pressure reading is less than 0.2");
+        response.set_test_result("PASS");
     }
     else
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2" << std::endl;
-        pressure_test_passed_ = false;
+        response.set_response("The Pressure reading is >= 0.2");
+        response.set_test_result("FAIL");
     }
 }
 

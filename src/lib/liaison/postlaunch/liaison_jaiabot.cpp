@@ -79,7 +79,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     production_panel->setCollapsed(cfg_.minimize_production_panel());
 
     auto production_box = std::make_unique<Wt::WContainerWidget>();
-    
+
 // IMU test UI box
 auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
 auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
@@ -114,6 +114,17 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_st
 
     this->production_pressure_data_status_text_ = pressure_status_text;
     pressure_status_text->setText("⏳ Waiting for Pressure test result...");
+
+    // Send production request for Pressure test
+    this->post_to_comms([=] {
+        jaiabot::protobuf::ProductionRequest request;
+        request.set_time(goby::time::SystemClock::now<goby::time::MicroTime>().value());
+
+        // Set the oneof request field correctly
+        request.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
+
+        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+    });
 });
 
     //Test Motor Harness

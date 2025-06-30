@@ -43,6 +43,6 @@ message ProductionResponse
     PressureAdjustedData pressure_report = 12; 
     Motor motor_harness_report = 13;
   } 
-  optional string imu_data_status = 3;
-  optional bool test_result = 4 [default = false];
+  optional string response = 3;
+  optional string test_result = 4;
 }
