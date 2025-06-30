@@ -463,23 +463,6 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         interprocess().publish<groups::imu>(imu_data);
     }
 
-    // publish BotStatus (motor_status) for tail overheating simulation
-    /*{
-        jaiabot::protobuf::BotStatus bot_status;
-        bot_status.set_bot_id(sim_cfg_.bot_id());
-        bot_status.set_time(goby::time::SystemClock::now<goby::time::MicroTime>());
-        // Set a high temperature if bot_tail_overheated_ is true, else normal
-        if (bot_tail_overheated_)
-        {
-            bot_status.set_thermocouple_temperature_c(120.0); // Overheat value
-        }
-        else
-        {
-            bot_status.set_thermocouple_temperature_c(30.0); // Normal value
-        }
-        interprocess().publish<groups::motor_status>(bot_status);
-    }*/
-
     last_nav_process_time_ = now;
 }
 

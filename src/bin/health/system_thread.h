@@ -15,7 +15,6 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/jaia_dccl.pb.h"
 
 #include "config.pb.h"
 
@@ -128,7 +127,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
 
   private:
     jaiabot::protobuf::Motor status_;
-    jaiabot::protobuf::BotStatus bot_status_;
+    
     goby::time::SteadyClock::time_point last_motor_rpm_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
     double rpm_value_{0};

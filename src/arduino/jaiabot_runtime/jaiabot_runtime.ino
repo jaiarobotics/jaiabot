@@ -77,13 +77,13 @@ constexpr int motor_max_step_reverse_faster = 12;
 constexpr int motor_max_step_reverse_slower = 12;
 
 // The thermocouple
-constexpr int CLOCK_PIN = 7;
-constexpr int SELECT_PIN = 4;
-constexpr int DATA_PIN = A4;
+// constexpr int CLOCK_PIN = 7;
+// constexpr int SELECT_PIN = 4;
+// constexpr int DATA_PIN = A4;
 
 bool thermocouple_is_present = false;
 
-Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
+// Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
 // Power Pins
 constexpr int POWER_PIN = A1;
@@ -153,7 +153,7 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
 
   if (thermocouple_is_present) {
     // Get the thermocouple temperature
-    ack.thermocouple_temperature_C = thermocouple.readCelsius();
+    // ack.thermocouple_temperature_C = thermocouple.readCelsius();
     ack.has_thermocouple_temperature_C = true;
   }
   else {
@@ -222,13 +222,13 @@ void setup()
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
 
   // Begin thermocouple, but abandon after 5 second
-  for (int i = 0; i < 500; i++) {
+  /*for (int i = 0; i < 500; i++) {
     if (thermocouple.begin()) {
       thermocouple_is_present = true;
       break;
     }
     delay(10);
-  }
+  }*/
 
   // Send startup code
   send_ack(jaiabot_protobuf_ArduinoStatusCode_STARTUP);
