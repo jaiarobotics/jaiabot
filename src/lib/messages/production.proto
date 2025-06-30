@@ -44,5 +44,5 @@ message ProductionResponse
     Motor motor_harness_report = 13;
   } 
   
-  optional bool test_result = 4 [default = false];
+  optional string test_result = 4;
 }

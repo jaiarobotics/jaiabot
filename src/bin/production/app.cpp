@@ -195,12 +195,12 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 //test_pressure_ = true;
                 pressure_sensor();
-                response.set_test_result(pressure_test_passed_);
+                //response.set_test_result(pressure_test_passed_);
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 //test_motor = true;
                 motor_harness();
-                response.set_test_result(motor_test_passed_);
+                //response.set_test_result(motor_test_passed_);
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -219,7 +219,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_test_result(false);
+        response.set_test_result("No IMU data has been received yet."); //might change the name of this later from set_test_result to maybe set_received_imu_data_test or something like that
         interprocess().publish<jaiabot::groups::production>(response);
         return;
     }
@@ -229,7 +229,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
                                  << since_last_imu << "s)" << std::endl;
 
         imu_test_passed_ = false;
-        response.set_test_result(false);
+        response.set_test_result("No IMU data in over 1 second");
     }
     else
     {
@@ -237,7 +237,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
                                  << since_last_imu << "s" << std::endl;
 
         imu_test_passed_ = true;
-        response.set_test_result(true);
+        response.set_test_result("IMU data received in a second or less");
 
         // Optional: reboot the IMU hardware on pass (confirm if needed)
         reboot_bno085_imu();
@@ -355,7 +355,6 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     motor_test_running_ = false;
 }
 
-// Add loop back for imu 
 void jaiabot::apps::JaiabotProduction::loop()
 {
     

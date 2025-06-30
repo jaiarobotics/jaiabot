@@ -263,7 +263,8 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             [this](const jaiabot::protobuf::LowControl& low_control)
             { tab_->post_to_wt([=]() { tab_->post_low_control(low_control); }); });
 
-            //needs testing and fixing
+            //this works with boolean which will change when we do string possible idk yet
+            /*
       interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionResponse& msg)
     {
@@ -286,6 +287,7 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             }
         });
     });
+    */
         
     } // namespace jaiabot
     ~CommsThread() {}
