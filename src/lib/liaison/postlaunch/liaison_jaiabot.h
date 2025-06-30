@@ -206,7 +206,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
-    Wt::WText* production_imu_data_status_text_;
+    Wt::WText* production_imu_data_response_text_;
     Wt::WText* production_pressure_data_status_text_;
     Wt::WText* production_motor_data_status_text_;
 
@@ -272,8 +272,8 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             switch (response.production_command())
             {
                 case jaiabot::protobuf::TEST_IMU_SENSOR:
-                    if (tab_->production_imu_data_status_text_)
-                        tab_->production_imu_data_status_text_->setText(response.response());
+                    if (tab_->production_imu_data_response_text_)
+                        tab_->production_imu_data_response_text_->setText(response.response());
                     break;
                 case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                     if (tab_->production_pressure_data_status_text_)

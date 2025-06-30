@@ -83,13 +83,13 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 // IMU test UI box
 auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
 auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-auto imu_status_text = production_imu_test_box->addNew<Wt::WText>(); // Status text below button
+auto imu_response_text = production_imu_test_box->addNew<Wt::WText>(); // Status text below button
 
 // fix button logic once publishing is done in app
-imu_test_button->clicked().connect([this, imu_test_button, imu_status_text](Wt::WMouseEvent) {
+imu_test_button->clicked().connect([this, imu_test_button, imu_response_text](Wt::WMouseEvent) {
     imu_test_button->hide();
-    this->production_imu_data_status_text_ = imu_status_text;
-    imu_status_text->setText("⏳ Waiting for IMU test result...");
+    this->production_imu_data_response_text_ = imu_response_text;
+    imu_response_text->setText("⏳ Waiting for IMU test result...");
 
     // Send production request for IMU test
     this->post_to_comms([=] {
