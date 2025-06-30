@@ -217,8 +217,13 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
     response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
     double since_last_imu = seconds_since(last_imu_msg_time_);
-
-    if (since_last_imu > 1.0)
+    if (!imu_data_received_){
+         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
+        response.set_test_result(false);
+        interprocess().publish<jaiabot::groups::production>(response);
+        return;
+    }
+    else if (since_last_imu > 1.0)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
@@ -353,20 +358,14 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 // Add loop back for imu 
 void jaiabot::apps::JaiabotProduction::loop()
 {
-    /*
-    if (test_imu_)
-    {
-        imu_sensor_data_timeCheck();
-        test_imu_ = false; // Only run once per request
-    }
-    // If you're using this for the reset test as well:
-    if (imu_reset_pending_)
-    {
-        imu_sensor_reset_check();
-    }
-      */  
+    
     
     /*
+    if (test_imu)
+    {
+        test_imu = false;
+    }
+
     if (test_pressure)
     {
         test_pressure = false;
