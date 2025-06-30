@@ -1,0 +1,41 @@
+@import "../../style/stylesheets/vars.less";
+
+div.hoverable:hover {
+    background-color: @cc-text-color;
+    color: @cc-background-color;
+}
+
+.LoadMissionPanel {
+    padding: 5pt;
+    background-color: @cc-background-color;
+    z-index: 10;
+}
+
+.LoadMissionPanel .title {
+    padding: 5pt;
+
+    font-size: 1.25rem;
+
+    color: @cc-text-color;
+}
+
+.LoadMissionPanel .missionList {
+    width: 300pt;
+    height: 200pt;
+    overflow: auto;
+
+    background-color: @cc-background-color;
+}
+
+.LoadMissionPanel .row {
+    padding: 5pt;
+    font-size: 1rem;
+    background-color: @cc-background-color;
+    color: @cc-text-color;
+}
+
+.LoadMissionPanel .selected,
+.LoadMissionPanel .selected:hover {
+    background-color: @cc-text-color;
+    color: @cc-background-color;
+}
