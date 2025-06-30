@@ -77,7 +77,6 @@ class SimXBee():
             ATStringCommand.KY: self._handle_aes_encryption_key,
             ATStringCommand.EE: self._handle_encryption_enable,
             ATStringCommand.RR: self._handle_unicast_mac_retries,
-            ATStringCommand.CN: self._handle_nyi,
             ATStringCommand.SH: self._handle_nyi,
             ATStringCommand.SL: self._handle_nyi,
             ATStringCommandExt.MR: self._handle_mesh_unicast_retries,
