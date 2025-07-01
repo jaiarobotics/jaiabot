@@ -7,6 +7,10 @@ import { FrameState } from "ol/Map";
 
 import { map } from "../../../../openlayers/maps/map";
 
+const type = "click";
+const originalEvent: KeyboardEvent = new KeyboardEvent("select");
+const dragging = false;
+
 const projection: Projection = new Projection({
     code: "EPSG:3857",
     units: "m",
@@ -56,26 +60,13 @@ const frameState: FrameState = {
     renderTargets: {},
 };
 
-export function createMapBrowserEventMock(): MapBrowserEvent<PointerEvent> {
-    const originalEvent = new PointerEvent("click", {
-        clientX: 602,
-        clientY: 147,
-        bubbles: true,
-        pointerId: 1,
-        pointerType: "mouse",
-    });
-
-    const event = new MapBrowserEvent<PointerEvent>(
-        "click",
-        map,
-        originalEvent,
-        false,
-        frameState,
-        undefined,
-    );
-
-    (event as any).pixel = [602, 147];
-    (event as any).coordinate = [-5752956.496855505, 1956787.9241005126];
-
-    return event;
-}
+export const mapBrowserEventMock = new MapBrowserEvent<KeyboardEvent>(
+    type,
+    map,
+    originalEvent,
+    dragging,
+    frameState,
+    undefined,
+);
+mapBrowserEventMock.pixel = [602, 147];
+mapBrowserEventMock.coordinate = [-5752956.496855505, 1956787.9241005126];
