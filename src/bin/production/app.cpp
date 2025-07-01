@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
 
-jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase()
+jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -246,6 +246,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 }
 
 //possibility of two seperate functions
+/*
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
     if (!imu_reset_pending_)
@@ -293,6 +294,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
     }
 }
+*/
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
@@ -371,7 +373,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     if (test_imu_)
     {
         imu_sensor_data_timeCheck();
-        imu_sensor_reset_check();
+        //imu_sensor_reset_check();
     }
 
     if (test_pressure_)

@@ -110,6 +110,7 @@ class SimulatorTranslation : public goby::moos::Translator
     int time_out_sky_{200};
 
     goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point imu_dropout_end_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
 
     bool making_forward_progress_{false};
@@ -228,11 +229,11 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                                 command.stop_forward_progress().duration_with_units());
                         break;
 
-                    case jaiabot::protobuf::SimulatorCommand::kIMUDropout:
+                    case jaiabot::protobuf::SimulatorCommand::kImuDropout:
                         imu_dropout_end_ =
                             goby::time::SteadyClock::now() +
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                                command.gps_dropout().dropout_duration_with_units());
+                                command.imu_dropout().dropout_duration_with_units());
 
                         break;
 
@@ -449,7 +450,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     
     {
         // Check for when to resume
-        if(imu_dropout_end_)
+        if(goby::time::SteadyClock::now() > imu_dropout_end_)
         {
             jaiabot::protobuf::IMUData imu_data;
             auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
