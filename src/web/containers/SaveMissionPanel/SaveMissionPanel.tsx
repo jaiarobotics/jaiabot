@@ -1,6 +1,6 @@
 // React
 import React from "react";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
@@ -15,7 +15,21 @@ import "./SaveMissionPanel.less";
  * Renders a panel for operators to save missions
  */
 export default function SaveMissionPanel() {
-    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [saveName, setSaveName] = useState<string>("");
+
+    const handleSaveClick = () => {
+        if (saveName == undefined) setSaveName("DefaultMissionSet");
+        missionSet.saveMissionSet(saveName);
+    };
+
+    const handleDeleteClick = () => {
+        if (saveName == undefined) return; //TODO, should post warning
+        missionSet.deleteMissionSet(saveName);
+    };
+
+    const handleRowClick = (name: string) => {
+        setSaveName(name);
+    };
 
     // Nem text input
     const nameInput = (
@@ -25,7 +39,7 @@ export default function SaveMissionPanel() {
                 className="textInput"
                 autoFocus
                 placeholder="Mission Name"
-                defaultValue={missionSet.getName()}
+                defaultValue={saveName}
                 onInput={(e) => {}}
                 onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -37,13 +51,11 @@ export default function SaveMissionPanel() {
 
     // Mission rows
 
-    //let savedMissionNamess = missionSet.listSavedMissionSets();
-    // TODO restore above below is for testing
-    let savedMissionNamess = ["one", "two", "three"];
+    let savedMissionNamess = missionSet.listSavedMissionSets();
 
     const missionNameRows = savedMissionNamess.map((name) => {
         var rowClasses = "row hoverable";
-        if (name == missionSet.getName()) {
+        if (name == saveName) {
             rowClasses += " selected";
         }
         let row = (
@@ -58,7 +70,7 @@ export default function SaveMissionPanel() {
     // Buttons
     let buttonRow = (
         <div className="jaia-button-row">
-            <Button className="jaia-button">
+            <Button className="jaia-button" onClick={() => handleDeleteClick()}>
                 <Icon path={mdiDelete}></Icon>
             </Button>
             <Button className="jaia-button">
@@ -66,13 +78,13 @@ export default function SaveMissionPanel() {
             </Button>
             <div className="flexSpacer"></div>
             <button>Cancel</button>
-            <button>Save</button>
+            <button onClick={() => handleSaveClick()}>Save</button>
         </div>
     );
 
     return (
         <div className="load-mission-panel">
-            <div className="title">Save Mission As</div>
+            <div className="title">Save Mission Set As</div>
             {nameInput}
             <div className="missionList">{missionNameRows}</div>
             {buttonRow}
