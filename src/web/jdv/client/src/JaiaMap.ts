@@ -361,6 +361,12 @@ export default class JaiaMap {
         this.updatePath();
     }
 
+    setTimeRange(timeRange?: number[]) {
+        this.timeRange = timeRange;
+        this.updatePath();
+        this.updateTaskAnnotations();
+    }
+
     /**
      * Compares the difference between two data points to catch outliers
      *
@@ -654,6 +660,15 @@ export default class JaiaMap {
         for (const task_packet of this.task_packets ?? []) {
             // Discard the lower-precision DCCL task packets
             if (task_packet._scheme_ == 2) {
+                continue;
+            }
+
+            // Discard if outside timeRange
+            if (
+                this.timeRange &&
+                (task_packet.start_time < this.timeRange[0] ||
+                    task_packet.start_time > this.timeRange[1])
+            ) {
                 continue;
             }
 
