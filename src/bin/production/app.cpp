@@ -360,20 +360,25 @@ void jaiabot::apps::JaiabotProduction::loop()
     
     
     //loop functionality is to start the function call if test_"imu/pressure/motor" is false
+    //each test runs only once per flag set to true
+    
     if (test_imu_)
     {
         imu_sensor_data_timeCheck();
         //imu_sensor_reset_check();
+        test_imu_ = false;  //reset flag so it only runs once per trigger
     }
 
     if (test_pressure_)
     {
         pressure_sensor();
+        test_pressure_ = false;
     }
 
     if(test_motor_)
     {
         motor_harness();
+        test_motor_ = false;
     }
 
 }
