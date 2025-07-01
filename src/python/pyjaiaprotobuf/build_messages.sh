@@ -14,10 +14,10 @@ JAIABOT_MESSAGES_DIR="${JAIABOT_DIR}/src/lib/messages/"
 
 # The target directory in which to build the protobuf python files
 if [[ -z "$2" ]]; then
-    PYTHON_OUT_DIR="$(pwd)/"
+    PYTHON_OUT_DIR="$(pwd)/src/"
 else
-    PYTHON_OUT_DIR=$"$2"
-fi  
+    PYTHON_OUT_DIR=$"$2/src/"
+fi
 
 echo "🟢 Building Jaia protobuf python modules"
 

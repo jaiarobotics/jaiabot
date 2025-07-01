@@ -2,3 +2,4 @@ build/*
 config/launch/simulation/all.launch
 __pycache__
 .vscode
+*.egg-info/
