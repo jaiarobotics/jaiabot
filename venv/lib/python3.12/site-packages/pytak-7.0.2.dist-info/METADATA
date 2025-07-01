@@ -1,0 +1,76 @@
+Metadata-Version: 2.1
+Name: pytak
+Version: 7.0.2
+Summary: PyTAK is a Python package for rapid TAK integration.
+Home-page: https://github.com/snstac/pytak
+Author-email: Greg Albrecht <oss@undef.net>
+Maintainer: Greg Albrecht <oss@undef.net>
+Maintainer-email: oss@undef.net
+License: Apache 2.0
+Keywords: Cursor on Target,CoT,ATAK,TAK,WinTAK,TAK,TAK Server
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: OS Independent
+Requires-Python: <4,>=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: test
+Requires-Dist: pytest-asyncio; extra == "test"
+Requires-Dist: pytest-cov; extra == "test"
+Requires-Dist: pylint; extra == "test"
+Requires-Dist: flake8; extra == "test"
+Requires-Dist: black; extra == "test"
+Requires-Dist: cryptography; extra == "test"
+Provides-Extra: with_crypto
+Requires-Dist: cryptography>=39.0.0; extra == "with-crypto"
+Provides-Extra: with_takproto
+Requires-Dist: takproto>=2.0.0; extra == "with-takproto"
+
+![ATAK Screenshot with PyTAK Logo.](https://pytak.readthedocs.io/en/stable/media/atak_screenshot_with_pytak_logo-x25.jpg)
+
+# Python Team Awareness Kit
+
+PyTAK is a Python Module for creating [TAK](https://tak.gov) clients, servers & gateways.
+
+PyTAK includes:
+
+- TAK Protocol support for interconnecting with ATAK, WinTAK, iTAK & TAK Server.
+- Classes for handling TAK, Cursor on Target (CoT) & non-CoT data.
+- Functions for parsing and serializing TAK & CoT data.
+- Functions for sending and receiving TAK & CoT data over a network.
+
+## Documentation
+
+See [PyTAK documentation](https://pytak.rtfd.io/) for instructions on getting 
+started with PyTAK, examples, configuration & troubleshooting options.
+
+## License & Copyright
+
+Copyright Sensors & Signals LLC https://www.snstac.com
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+asyncio_dgram is Copyright (c) 2019 Justin Bronder and is licensed under the MIT 
+License, see pytak/asyncio_dgram/LICENSE for details.
+
