@@ -86,8 +86,6 @@ class SimXBee():
             callback=self._read)
         
         self._buffer_in = bytearray()
-        self._data_in = None
-        self._buffer_out = None
 
         self._reset_all()
 
@@ -132,7 +130,7 @@ class SimXBee():
 
     def _process(self):
         """Process buffer based on current state and mode."""
-        print(self.state)
+        print(self.state, self._api_enable)
         # Check for command sequence
         self._check_command_sequence()
         # Check current state
@@ -172,12 +170,18 @@ class SimXBee():
 
     def _process_transparent_mode(self):
         """Process data in transparent mode."""
-        print('TRANSPARENT MODE NOT SUPPORTED')
+        if not self._buffer_in.decode('utf-8').isspace():
+            print(f'TRANSPARENT MODE NOT SUPPORTED: {self._buffer_in}')
 
     def _process_api_mode(self):
         """Process data in API mode."""
         print('Process API')
-        # self._data_in = self._api_parser.parse(self._buffer_in)
+        command_queue = APIParser.parse(self._buffer_in)
+        if command_queue is not None:
+            for command in command_queue:
+                if command[0] == 'AT':
+                    self._call_at_command(command[1])
+            self._buffer_in = bytearray()
 
     def _process_escaped_api_mode(self):
         """Process data in Escaped API mode."""
@@ -202,6 +206,7 @@ class SimXBee():
         # Run AT command callback
         try:
             at_out = self.at_handlers[cmd](at_param)
+            print(cmd)
             self._send(at_out)
         except KeyError:
             print("THIS COMMAND IS NOT IMPLEMENTED")
@@ -481,7 +486,7 @@ class SimXBee():
     def _handle_apply_changes(self, value=None):
         """Apply Changes
 
-        This command applies changes.
+        This command applies changes (TODO).
         """
         if value is not None:
             return self.ERROR
@@ -491,16 +496,17 @@ class SimXBee():
     def _handle_command_null(self, value=None):
         """Command Null
 
-        This command applies changes and exits command mode.
+        This command applies changes (TODO) and exits command mode.
         """
         if value is not None:
             return self.ERROR
         else:
+            self.state = 'operation'
             return self.OK
 
     def _handle_nyi(self, value=None):
         print('NOT YET IMPLEMENTED')
-        return b'NYI'
+        return self.OK
 
 class ATCommandParser:
     ATTENTION = b'AT'
@@ -512,7 +518,6 @@ class ATCommandParser:
     def parse(cls, buffer):
         """Parse AT command line"""
         # Extract AT...\r line
-        print(buffer)
         try:
             start_idx = buffer.index(cls.ATTENTION) + 2
             end_idx = buffer.rindex(cls.DELIMITER)
@@ -538,17 +543,19 @@ class ATCommandParser:
         return command_queue
         
 class APIParser:
-    def __init__(self):
-        self._delimiter = b'\x7E'
+    DELIMITER = b'\x7E'
 
-    def parse(self, buffer):
-        packets = buffer.split(self._delimiter)
+    @classmethod
+    def parse(cls, buffer):
+        command_queue = []
+        packets = buffer.split(cls.DELIMITER)
         for p in packets:
             if len(p) > 0:
-                pkt = build_frame(self._delimiter + p)
+                pkt = build_frame(cls.DELIMITER + p)
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
-                    print(pkt.command, pkt.parameter)
-
+                    # print(pkt.command, pkt.parameter)
+                    command_queue.append(('AT', (pkt.command), pkt.parameter))
+        return command_queue
 def main():
     sxb = SimXBee(name='xbeebot0')
     sxb.start()
