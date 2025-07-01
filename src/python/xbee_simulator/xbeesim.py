@@ -2,9 +2,15 @@
 
 import vserial
 
+import time
+
 from enum import Enum
 
 from digi.xbee.models.atcomm import ATStringCommand, ATCommand
+from digi.xbee.packets.aft import ApiFrameType
+from digi.xbee.packets.common import ATCommPacket
+from digi.xbee.models.mode import OperatingMode
+from digi.xbee.packets.factory import build_frame
 
 class ATStringCommandExt(Enum):
     UH = ("UH", "Source address number high")
@@ -28,9 +34,10 @@ class ATStringCommandExt(Enum):
 class SimXBee():
     # Default XBee Configuration
     DEFAULT_SETTINGS = {
-        '_network_id': '7FFF',
+        '_network_id': '0x7FFF',
         '_preamble_id': '0',
-        '_user_serial': '000000000000FFFF',
+        '_factory_serial': '0x6A616961626F7473',
+        '_user_serial': '0x6A616961626F7473',
         '_node_identifier': 'pxbee',
         '_api_enable': '0',
         '_api_options': '0',
@@ -39,7 +46,8 @@ class SimXBee():
         '_mesh_unicast_retries': '1',
         '_unicast_mac_retries': 'A',
         '_network_delay_slots': '3',
-        '_broadcast_multitransmits': '3'
+        '_broadcast_multitransmits': '3',
+        '_command_mode_timeout': '0x64' # 10 seconds
     }
 
     # XBee Return Options
@@ -53,27 +61,34 @@ class SimXBee():
     CMD_SENT_INSECURELY = b'CMD_SEND_INSECURELY\r'
     UNKNOWN = b'UNKNOWN\r'
 
+    # XBee States
+    states = {
+        'command',
+        'operation'
+    }
+
     # XBee Operating Modes
     modes = {
-        'AT mode': '0', # transparent
+        'Transparent mode': '0', # also known as 'AT mode'
         'API mode': '1',
         'Escaped API mode': '2'
     }
 
-    def __init__(self, name='pxbee'):
+    def __init__(self, name='pxbee', directory='/tmp'):
         self.name = name
-        self.port = '/tmp/' + name
+        self.port = directory + '/' + name
+
+        self.state = 'operation'
+        self._command_seq_time = None
 
         self.vsd = vserial.VirtualSerialDevice(
             port=self.port,
             callback=self._read)
         
-        self._buffer = bytearray()
+        self._buffer_in = bytearray()
         self._data_in = None
-        self._data_out = None
+        self._buffer_out = None
 
-        self._command_parser = ATCommandParser()
-        self._api_parser = APIParser()
         self._reset_all()
 
         self.at_handlers = {
@@ -86,8 +101,12 @@ class SimXBee():
             ATStringCommand.KY: self._handle_aes_encryption_key,
             ATStringCommand.EE: self._handle_encryption_enable,
             ATStringCommand.RR: self._handle_unicast_mac_retries,
-            ATStringCommand.SH: self._handle_nyi,
-            ATStringCommand.SL: self._handle_nyi,
+            ATStringCommand.SH: self._handle_factory_serial_high,
+            ATStringCommand.SL: self._handle_factory_serial_low,
+            ATStringCommand.CN: self._handle_command_null,
+            ATStringCommand.AC: self._handle_apply_changes,
+            ATStringCommand.NP: self._handle_nyi,
+            ATStringCommand.DB: self._handle_nyi,
             ATStringCommandExt.MR: self._handle_mesh_unicast_retries,
             ATStringCommandExt.NN: self._handle_network_delay_slots,
             ATStringCommandExt.MT: self._handle_broadcast_multitransmits,
@@ -103,60 +122,96 @@ class SimXBee():
         """Closes Virtual Serial Device."""
         self.vsd.close()
 
-    # === Main loop functions ==========================================================
+    # === Main Logic Functions ========================================================================================
 
     def _read(self, data):
         """Callback function for reading data in on a separate thread."""
-        self._data_in = None
-        self._data_out = None
-        self._buffer.extend(data)
-        self._parse()
+        self._buffer_in.extend(data)
+        
         self._process()
-        self._send()
-
-    def _parse(self):
-        """Parses data based on current mode."""
-        self._data_in = self._command_parser.parse(self._buffer)
-        if self._data_in is not None:
-            self._buffer = bytearray()
-        elif self._api_enable == self.modes['API mode']:
-            self._data_in = self._api_parser.parse(self._buffer)
-        elif self._api_enable == self.modes['Escaped API mode']:
-            print('ESCAPED API MODE NOT SUPPORTED')
-        else:
-            print(f'MODE NOT SUPPORTED: {self._api_enable}')
 
     def _process(self):
-        """Processes parsed data."""
-        if self._data_in is not None:
-            if self._data_in == 'OK':
-                self._data_out = self.OK
-            elif self._data_in == ('AT', None):
-                print('ATTENTION')
-                self._data_out = self.OK
+        """Process buffer based on current state and mode."""
+        print(self.state)
+        # Check for command sequence
+        self._check_command_sequence()
+        # Check current state
+        if self.state == 'command':
+            self._process_command()
+        elif self.state == 'operation':
+            # Check current mode
+            if self._api_enable == self.modes['Transparent mode']:
+                self._process_transparent_mode()
+            elif self._api_enable == self.modes['API mode']:
+                self._process_api_mode()
+            elif self._api_enable == self.modes['Escaped API mode']:
+                self._process_escaped_api_mode()
             else:
-                print(self._data_in)
-                cmd = None
-                try:
-                    cmd = ATStringCommand[self._data_in[0]]
-                except KeyError:
-                    try:
-                        cmd = ATStringCommandExt[self._data_in[0]]
-                    except KeyError:
-                        self._data_out = self.ERROR
-                        return
-                try:
-                    self._data_out = self.at_handlers[cmd](self._data_in[1])
-                except KeyError:
-                    self._data_out = b'NYI\r'
+                print(f'MODE NOT SUPPORTED: {self._api_enable}')               
 
-    def _send(self):
+    def _check_command_sequence(self):
+        """Check if a command sequence is in the buffer and alter state."""
+        if self.state != 'command' and self._buffer_in.endswith(b'+++'):
+            self.state = 'command'
+            self._command_seq_time = time.time()
+            self._send(self.OK)
+        elif self.state == 'command':
+            # Check if time expired on command state
+            if time.time() - self._command_seq_time > int(self._command_mode_timeout, 16):
+                self.state = 'operation'
+
+    def _process_command(self):
+        """Process Hayes AT commands."""
+        command_queue = ATCommandParser.parse(self._buffer_in)
+        if command_queue is not None:
+            for command in command_queue:
+                if command[0] == 'AT':
+                    self._call_at_command(command[1])
+            self._buffer_in = bytearray()
+
+
+    def _process_transparent_mode(self):
+        """Process data in transparent mode."""
+        print('TRANSPARENT MODE NOT SUPPORTED')
+
+    def _process_api_mode(self):
+        """Process data in API mode."""
+        print('Process API')
+        # self._data_in = self._api_parser.parse(self._buffer_in)
+
+    def _process_escaped_api_mode(self):
+        """Process data in Escaped API mode."""
+        print('ESCAPED API MODE NOT SUPPORTED')
+
+    def _call_at_command(self, at_sequence):
+        """Call AT command callback"""
+        at_cmd, at_param = at_sequence
+        if len(at_sequence) != 2:
+            raise ValueError(f"AT sequence must be tuple of length 2, was {len(at_sequence)}")
+        # Identify AT command
+        if at_cmd is None:
+            self._send(self.OK)
+        try:
+            cmd = ATStringCommand[at_cmd]
+        except KeyError:
+            try:
+                cmd = ATStringCommandExt[at_cmd]
+            except KeyError:
+                self._send(self.INVALID_COMMAND)
+                return
+        # Run AT command callback
+        try:
+            at_out = self.at_handlers[cmd](at_param)
+            self._send(at_out)
+        except KeyError:
+            print("THIS COMMAND IS NOT IMPLEMENTED")
+                
+    def _send(self, data):
         """Sends data to host device."""
-        if self._data_out is not None:
-            self.vsd.send(self._data_out)
-            print(self._data_out)
+        if data is not None:
+            self.vsd.send(data)
 
-    # === Configuration functions ======================================================
+    # === Configuration functions =====================================================================================
 
     def _set_all(self, settings):
         """Sets all configuration settings based on a dictionary."""
@@ -168,8 +223,9 @@ class SimXBee():
         """Sets all configuration settings based on the default dictionary."""
         self._set_all(self.DEFAULT_SETTINGS)
 
-    # === Hayes AT Command Handlers ====================================================
+    # === Hayes AT Command Handlers ===================================================================================
     # These functions change configuration details.
+    # TODO: Changes are not applied until AC (Apply Changes) or CN (Command Null)
 
     def _handle_reset(self, value=None):
         """Reset Defaults
@@ -221,6 +277,26 @@ class SimXBee():
         else:
             return self._network_id
         
+    def _handle_factory_serial_high(self, value=None):
+        """Factory serial high word
+        
+        Set or read the user-defined serial number high word.
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self._factory_serial[:8]
+
+    def _handle_factory_serial_low(self, value=None):
+        """User serial low word
+        
+        Set or read the user-defined serial number low word.
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self._factory_serial[8:]
+
     def _handle_user_serial_high(self, value=None):
         """User serial high word
         
@@ -401,49 +477,65 @@ class SimXBee():
                 return self.ERROR
         else:
             return self._broadcast_multitransmits
+        
+    def _handle_apply_changes(self, value=None):
+        """Apply Changes
+
+        This command applies changes.
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self.OK
+
+    def _handle_command_null(self, value=None):
+        """Command Null
+
+        This command applies changes and exits command mode.
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self.OK
 
     def _handle_nyi(self, value=None):
         print('NOT YET IMPLEMENTED')
         return b'NYI'
 
 class ATCommandParser:
-    def __init__(self):
-        self.command_mode = False
-        self._seperator = b'='
-        self._delimiter = b'\r'
+    ATTENTION = b'AT'
+    CMD_SEPERATOR = b','
+    PARAM_SEPERATORS = '= '
+    DELIMITER = b'\r'
 
-    def parse(self, buffer):
-        if not self.command_mode and buffer.endswith(b'+++'):
-            self.command_mode = True
-            return 'OK'
-        elif self.command_mode and buffer.endswith(self._delimiter):
-            at_out = self.extract_at_cmd(buffer)
-            return at_out
-        else:
-            return None
-        
-    def extract_at_cmd(self, buffer):
+    @classmethod
+    def parse(cls, buffer):
+        """Parse AT command line"""
+        # Extract AT...\r line
+        print(buffer)
         try:
-            at_idx = buffer.rindex(b'AT') + 2
-            end_idx = buffer.index(b'\r', at_idx)
-            at_cmd_raw = buffer[at_idx:end_idx]
+            start_idx = buffer.index(cls.ATTENTION) + 2
+            end_idx = buffer.rindex(cls.DELIMITER)
+            at_line = buffer[start_idx:end_idx]
         except ValueError:
+            # If there is no full AT command line, return None
             return None
         
-        at_cmd = None
-        at_param = None
-        if len(at_cmd_raw) > 0:
-            at_cmd = at_cmd_raw[:2].decode('UTF-8')
-            if at_cmd == 'CN':
-                self.command_mode = False
-                return 'OK'
-            if len(at_cmd_raw) > 2:
-                at_param = at_cmd_raw[2:].decode('UTF-8').strip('=').strip(' ')
-                command = ATCommand(at_cmd, at_param)
-                print(command)
-            return (at_cmd, at_param)
-        else:
-            return ('AT', None)
+        if len(at_line) == 0:
+            # This is a blank AT line
+            return [('AT', (None, None))]
+
+        command_queue = []
+        sequences = at_line.split(cls.CMD_SEPERATOR)
+        for s in sequences:
+            if len(s) > 0:
+                at_cmd = s[:2].decode('UTF-8')
+                at_param = None
+                if len(s) > 2:
+                    at_param = s[2:].decode('UTF-8').strip(cls.PARAM_SEPERATORS)
+                command_queue.append(('AT', (at_cmd, at_param)))
+
+        return command_queue
         
 class APIParser:
     def __init__(self):
@@ -453,13 +545,9 @@ class APIParser:
         packets = buffer.split(self._delimiter)
         for p in packets:
             if len(p) > 0:
-                length = p[:2]
-                cs = p[-1:]
-                message = p[2:-1]
-                print(f'Len: {length} Msg: {message} Chk: {cs}')
-                messagesum = (0xFF - (sum(message) & 0xFF)).to_bytes(1, byteorder='big')
-                print(messagesum)
-
+                pkt = build_frame(self._delimiter + p)
+                if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
+                    print(pkt.command, pkt.parameter)
 
 def main():
     sxb = SimXBee(name='xbeebot0')
