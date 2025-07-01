@@ -206,8 +206,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WText* bot_imu_text_;
     Wt::WText* bot_low_control_text_;
-    Wt::WText* production_imu_data_response_text_;
-    Wt::WText* production_pressure_data_status_text_;
+    Wt::WText* production_imu_data_test_status_text_;
+    Wt::WText* production_pressure_data_test_status_text_;
     Wt::WText* production_motor_data_status_text_;
 
     // currently shown vehicle id
@@ -272,18 +272,40 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             switch (response.production_command())
             {
                 case jaiabot::protobuf::TEST_IMU_SENSOR:
-                    if (tab_->production_imu_data_response_text_)
-                        tab_->production_imu_data_response_text_->setText(response.response());
+                {
+                    if (tab_->production_imu_data_test_status_text_)
+                    {
+                        std::string test_result = response.test_result();
+                        std::string test_response = response.response();
+
+                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response);
+                        tab_->production_imu_data_test_status_text_->setText(combined_result);
+                        tab_->production_imu_data_test_status_text_->setTextFormat(Wt::TextFormat::XHTML);
+                    }
                     break;
+                }
+
                 case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                    if (tab_->production_pressure_data_status_text_)
-                        tab_->production_pressure_data_status_text_->setText(response.response());
+                {
+                    if (tab_->production_pressure_data_test_status_text_)
+                    {
+                        std::string test_result = response.test_result();
+                        std::string test_response = response.response();
+
+                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response);
+                        tab_->production_pressure_data_test_status_text_->setText(combined_result);
+                        tab_->production_pressure_data_test_status_text_->setTextFormat(Wt::TextFormat::XHTML);
+                    }
                     break;
+                }
+
                 default:
                     break;
             }
         });
     });
+
+
         
     } // namespace jaiabot
     ~CommsThread() {}
