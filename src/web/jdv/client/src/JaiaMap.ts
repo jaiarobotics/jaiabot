@@ -361,6 +361,11 @@ export default class JaiaMap {
         this.updatePath();
     }
 
+    /**
+     * Set the time range for displayed map features, i.e. bot paths and task packets.
+     *
+     * @param {?number[]} [timeRange]
+     */
     setTimeRange(timeRange?: number[]) {
         this.timeRange = timeRange;
         this.updatePath();
