@@ -228,6 +228,14 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                                 command.stop_forward_progress().duration_with_units());
                         break;
 
+                    case jaiabot::protobuf::SimulatorCommand::kIMUDropout:
+                        imu_dropout_end_ =
+                            goby::time::SteadyClock::now() +
+                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                command.gps_dropout().dropout_duration_with_units());
+
+                        break;
+
                     case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
                         // no command, do nothing
                         break;
@@ -438,24 +446,28 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     }
 
     // publish IMUData //ITakeOutIMUFORNOW
-    /*
+    
     {
-        jaiabot::protobuf::IMUData imu_data;
-        auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
-        if (!making_forward_progress_)
-            pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
+        // Check for when to resume
+        if(imu_dropout_end_)
+        {
+            jaiabot::protobuf::IMUData imu_data;
+            auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+            if (!making_forward_progress_)
+                pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
-        imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
-        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                             si::radians);
+            imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
+            imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
+                                                                si::radians);
 
-        auto accuracies = imu_data.mutable_accuracies();
-        accuracies->set_accelerometer(3);
-        accuracies->set_gyroscope(3);
-        accuracies->set_magnetometer(3);
-        interprocess().publish<groups::imu>(imu_data);
+            auto accuracies = imu_data.mutable_accuracies();
+            accuracies->set_accelerometer(3);
+            accuracies->set_gyroscope(3);
+            accuracies->set_magnetometer(3);
+            interprocess().publish<groups::imu>(imu_data);
+        }
     }
-    */
+    
 
     last_nav_process_time_ = now;
 }

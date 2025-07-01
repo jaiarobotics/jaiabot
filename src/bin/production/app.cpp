@@ -227,7 +227,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         response.set_test_result("Test Result: FAIL");
         response.set_response("Reason: No IMU data in over 1 second");
-        imu_test_passed_ = false;
     }
     else
     {
@@ -236,10 +235,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         response.set_test_result("Test Result: PASS");
         response.set_response("Reason: IMU data received in a second or less");
-        
-        if(imu_test_passed_ == true){
-            reboot_bno085_imu();
-        }
+    
     }
 
     // Add a fresh timestamp to the response
@@ -260,7 +256,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         imu_reset_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
         //trigger the actual IMU reset service
-        restart_imu_py();
+        if (cfg().is_in_sim())
+        {
+            jaiabot::protobuf::SimulatorCommand& command;
+            command.imu_dropout().set_duration = 5;
+            interprocess().publish<jaiabot::groups::simulator_command>(command);  
+        }
+        else
+        {
+            reboot_bno085_imu();
+        }
+        
     }
     else
     {
@@ -278,7 +284,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
                 imu_test_passed_ = false;
                 glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
             }
-
+            //confirm that the data is flowing; imu data comes back on after the reset
             imu_reset_pending_ = false;
             //response.set_passed(imu_test_passed_);
             interprocess().publish<jaiabot::groups::production>(response);
@@ -365,20 +371,17 @@ void jaiabot::apps::JaiabotProduction::loop()
     if (test_imu_)
     {
         imu_sensor_data_timeCheck();
-        //imu_sensor_reset_check();
-        test_imu_ = false;  //reset flag so it only runs once per trigger
+        imu_sensor_reset_check();
     }
 
     if (test_pressure_)
     {
         pressure_sensor();
-        test_pressure_ = false;
     }
 
     if(test_motor_)
     {
         motor_harness();
-        test_motor_ = false;
     }
 
 }
