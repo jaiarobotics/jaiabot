@@ -36,6 +36,7 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/simulator.pb.h"
 #include "jaiabot/messages/production.pb.h"
 
 //imu data, pressure, motor status, production
@@ -84,6 +85,7 @@ class JaiabotProduction: public ApplicationBase
 
         jaiabot::protobuf::ProductionResponse response;
         bool test_imu_ = false;
+        bool test_imu_restart_ = false;
         //might need later
         bool test_pressure_ = false;
         bool test_motor_ = false;
@@ -119,7 +121,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
 
-jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si::hertz)
+jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(1.0 * si::hertz)
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -188,8 +190,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(0.5 * si
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-                //test_imu_ = true; fix this later
-                imu_sensor_data_timeCheck(); 
+                test_imu_ = true;
+                imu_sensor_reset_check();  
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 //test_pressure_ = true;
@@ -246,7 +248,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 }
 
 //possibility of two seperate functions
-/*
+
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
     if (!imu_reset_pending_)
@@ -259,8 +261,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         //trigger the actual IMU reset service
         if (cfg().is_in_sim())
         {
-            jaiabot::protobuf::SimulatorCommand& command;
-            command.imu_dropout().set_duration = 5;
+            jaiabot::protobuf::SimulatorCommand command;
+            command.mutable_imu_dropout()->set_dropout_duration(2.0);
             interprocess().publish<jaiabot::groups::simulator_command>(command);  
         }
         else
@@ -294,7 +296,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
     }
 }
-*/
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
@@ -374,8 +375,11 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         imu_sensor_data_timeCheck();
         //imu_sensor_reset_check();
+        
     }
 
+
+    /*
     if (test_pressure_)
     {
         pressure_sensor();
@@ -385,6 +389,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         motor_harness();
     }
+    */
+        
 
 }
 
