@@ -7,6 +7,7 @@
     - [Linux](#linux)
 - [Preparing the Workspace](#preparing-the-workspace)
 - [Launching the Simulator](#launching-the-simulator)
+    - [Stopping the Simulator](#stopping-the-simulator)
     - [Troubleshooting the Simulator](#troubleshooting-the-simulator)
 - [Modifying the Code](#modifying-code)
     - [Creating an SSH Key Pair (MacBooks)](#creating-an-ssh-key-macbooks)
@@ -23,8 +24,8 @@ Install Ubuntu 24.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/i
 
 ## Mac
 
- 1. Install and open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 24.04 LTS. 
- 2. Navigate to ‘All Instances’ and stop `username-hostname`. 
+1. Install and open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 24.04 LTS. 
+2. Navigate to ‘All Instances’ and stop `username-hostname`. 
 3. Click on `username-hostname` in ‘Name’ column. Switch from ‘Shells’ to ‘Details’ at the top. 
 4. Click ‘Configure’ under ‘Resources’. Multipass's default settings will not support the simulator. Change CPUs to 4+, Memory to 4+, Disk to 10+ (at a minimum). 
 5. Navigate back to ‘All Instances’ and start `username-hostname`. 
@@ -36,7 +37,6 @@ Install Ubuntu 24.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/i
 ## Linux
 
 The JaiaBot project supports Ubuntu 24.04. 
-
 
 # Preparing the Workspace
 
@@ -52,7 +52,7 @@ The JaiaBot project supports Ubuntu 24.04.
 2. Run the setup scripts.
     ```
     cd jaiabot/scripts
-    ````
+    ```
     ```
     ./setup-tools-build.sh
     ```
@@ -69,7 +69,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 # Launching the Simulator
 
-## Windows/Linux
+## Windows/Linux/Mac
 
 1. Launch the JCC web interface.
     ```
@@ -78,8 +78,10 @@ The JaiaBot project supports Ubuntu 24.04.
     ```
     ./run.sh
     ```
-    Should look like: WARNING:root:🏓 Pinging server localhost:40000
-
+    Expected output: 
+    ```
+    WARNING:root:🏓 Pinging server localhost:40000
+    ```
 2. Launch the simulator in a separate terminal.
     ```
     cd jaiabot/config/launch/simulation
@@ -91,59 +93,39 @@ The JaiaBot project supports Ubuntu 24.04.
     ```
     ./all.launch
     ```
-    Should look like: [all] XX:XX:XX: All processes running.
+    Expected output:
+    ```
+    [all] 08:48:16: All processes running
+    ```
 
-4. Simulator should pop up on browser -- it is running successfully!
+4. Open Chrome and go to this address for the JCC:
+    
+    * Windows/Linux  
+        ```
+        http://localhost:40001/
+        ```
+    * Mac - Open Multipass and find your Private IP address associated with the Ubuntu environment.   
+        ```
+        http://XXX.XXX.XX.X:40001/
+        ```
 
-## Mac
-1. Launch the JCC web interface.
-    ```
-    cd src/web
-    ```
-    ```
-    ./run.sh
-    ```
-    Should look like: WARNING:root:🏓 Pinging server localhost:40000 
+### Stopping the Simulator
 
-2. Launch the simulator in a separate terminal (Toolbar > Shell > New  Window). You will have to open your Multipass shell again. 
-    ```
-    multipass shell username-hostname
-    ```
-    ```
-    cd jaiabot/config/launch/simulation
-    ```
-3. Set the simulation to run 4 bots at a time warp of 5. 
-    ```
-    ./generate_all_launch.sh 4 5
-    ```
-    ```
-    ./all.launch
-    ```
-    Should look like: [all] XX:XX:XX: All processes running.
+In any terminals that are running the web and simulator, type CTRL+C. 
 
-3. Once that's running, open a tab in your preferred browser (we test in Chrome). 
-4. Open Multipass and find your Private IP address associated with the Ubuntu environment. 
-    * for example: XXX.XXX.XX.X
-5. Enter that IP address into your search bar with :40001 appended to the end. 
-    * for example: XXX.XXX.XX.X:40001 
-
-If you want to modify code, you need to [create an SSH key](#sshkey).
-
-## Troubleshooting the Simulator
+### Troubleshooting the Simulator
 * To kill all processes, `cd` into `jaiabot/scripts`, run the kill command, and relaunch the simulator. 
     ```
     ./kill-jaiabot-processes.sh
     ```
-
 * To refresh the build directory, `cd` into `jaiabot` and remove the build directory.
-
     ```
     rm -rf build
     ``` 
-Then recreate the build directory.
-```
-./build.sh
-```
+    Then recreate the build directory.
+    ```
+    ./build.sh
+    ```
 * Verify you are using Python 3.12. 
 
 <a id="cd-troublshooting"></a>
@@ -169,8 +151,9 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
 1. Launch the simulator.
 2. Modify the code as you see fit.
 3. Shut down the simulator and JCC web interface. In any terminals that are running, type CTRL+C. 
-4. Repeat **Steps 3 - 5** of [launching the simulator](#launching-the-simulator).
-5. With the new code tested, it can be [deployed](#deploying-code) to your Jaia System or submitted for review by creating a pull request.
+4. Build the code.
+5. Repeat [launching the simulator](#launching-the-simulator).
+6. With the new code tested, it can be [deployed](#deploying-code) to your Jaia System or submitted for review by creating a pull request.
 
 # Creating an SSH Key (MacBooks)
 
@@ -263,13 +246,13 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     ```
     cd ~/jaiabot/scripts
     ```
-    Connect to the BOT
+    Deploy to the BOT
     ```
-    jaiabot_arduino_type=usb jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
     ```
     Note: X indicates fleet number and Y indicates bot number plus 100. 
 
-    Connect to the HUB
+    Deploy to the HUB
     ```
     jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
     ```
