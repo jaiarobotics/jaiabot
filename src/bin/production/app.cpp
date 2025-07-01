@@ -237,7 +237,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         response.set_test_result("Test Result: PASS");
         response.set_response("Reason: IMU data received in a second or less");
         
-        if(imu_test_passed == true){
+        if(imu_test_passed_ == true){
             reboot_bno085_imu();
         }
     }
