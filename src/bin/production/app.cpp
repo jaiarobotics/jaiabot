@@ -227,6 +227,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         response.set_test_result("Test Result: FAIL");
         response.set_response("Reason: No IMU data in over 1 second");
+        imu_test_passed_ = false;
     }
     else
     {
@@ -235,9 +236,10 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         response.set_test_result("Test Result: PASS");
         response.set_response("Reason: IMU data received in a second or less");
-
-        // Optional: reboot the IMU hardware on pass (confirm if needed)
-        reboot_bno085_imu();
+        
+        if(imu_test_passed == true){
+            reboot_bno085_imu();
+        }
     }
 
     // Add a fresh timestamp to the response
@@ -247,7 +249,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     response.set_time(timestamp_us);
 }
 
-/*idea comment this out below 
 //possibility of two seperate functions
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
@@ -285,7 +286,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 
         }
     }
-}*/
+}
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
