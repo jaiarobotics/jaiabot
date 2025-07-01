@@ -9,6 +9,7 @@ Adafruit-PureIO==1.1.11
 binho-host-adapter==0.1.6
 cmocean==4.0.3
 turfpy==0.0.7
+dataclasses-json==0.6.7
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
