@@ -75,6 +75,7 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_received_ = false;
         bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
+        bool imu_reset_complete_ = false;
 
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
         void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
@@ -244,53 +245,51 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 }
 
 //possibility of two seperate functions
-
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
+    if (imu_reset_complete_)
+        return;  // already done, skip
+
     double since_last_imu = seconds_since(last_imu_msg_time_);
+
     if (!imu_reset_pending_)
     {
-        // Start reset
         imu_reset_pending_ = true;
         imu_data_paused_ = false;
         imu_reset_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
-        //trigger the actual IMU reset service
-        
-        //confirm that the data is flowing; imu data comes back on after the reset
-        //try to send the command to the simulator
+
         if (cfg().is_in_sim())
         {
             glog.is_debug1() && glog << "🧪 In simulation mode — sending IMU dropout command to simulator." << std::endl;
             jaiabot::protobuf::SimulatorCommand command;
-
-            //mutable returns pointer to imu_dropout allowing to call setters, 'set_duration'
-            //pretends the IMU has dropped offline for a duration; stops sending IMU data to Jaiabot for that time
             command.mutable_imu_dropout()->set_dropout_duration(cfg().imu_reboot_time());
 
-             glog.is_debug1() && glog << "📤 Sending imu_dropout with duration: "
-                                 << cfg().imu_reboot_time() << "s" << std::endl;
+            glog.is_debug1() && glog << "📤 Sending imu_dropout with duration: "
+                                     << cfg().imu_reboot_time() << "s" << std::endl;
 
-            interprocess().publish<jaiabot::groups::simulator_command>(command);  
+            interprocess().publish<jaiabot::groups::simulator_command>(command);
         }
         else
         {
             glog.is_debug1() && glog << "🔧 Not in simulation — calling reboot_bno085_imu() for real IMU reset." << std::endl;
-
             reboot_bno085_imu();
         }
         return;
     }
-    // After reset has started, check if the dropout window has elapsed
+
     double since_reset = seconds_since(imu_reset_start_time_);
+
     if (since_reset > cfg().imu_reboot_time())
     {
-        // Print the time since last IMU message to confirm dropout
-        glog.is_debug1() && glog << "!!!!!!IMU data received in "
-                                 << since_last_imu << "s meaning for sure stopped!!!!!!!" << std::endl;
+        glog.is_debug1() && glog << "⏱️ IMU data resumed in "
+                                 << since_last_imu << "s — dropout window passed." << std::endl;
+
         imu_reset_pending_ = false;
+        imu_reset_complete_ = true;  // ✅ Prevents future calls
     }
 }
+
 
 
 //pressure service to be restarted
