@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import vserial
+from xbee_network_sim import SimXBeeNetwork
 
 import time
 
@@ -31,7 +32,7 @@ class ATStringCommandExt(Enum):
     def description(self):
         return self.__desc
 
-class SimXBee():
+class SimXBee:
     # Default XBee Configuration
     # TODO: The type handling here could be improved
     DEFAULT_SETTINGS = {
@@ -115,6 +116,9 @@ class SimXBee():
             ATStringCommandExt.UL: self._handle_user_serial_low
         }
 
+        self._network = SimXBeeNetwork()
+        self._network.register(self)
+
     def start(self):
         """Starts Virtual Serial Device."""
         self.vsd.open()
@@ -123,7 +127,25 @@ class SimXBee():
         """Closes Virtual Serial Device."""
         self.vsd.close()
 
+    def matches(self, network, preamble, address):
+        if self._network_id == network:
+            if self._preamble_id == preamble:
+                if self._user_serial.casefold() == address.casefold() or \
+                   'FFFF'.casefold() == address.casefold():
+                    return True
+        return False
+
     # === Main Logic Functions ========================================================================================
+
+    def _transmit(self, addr, data):
+        """Transmit data to other XBees"""
+        # print('TRANSMIT', addr, data)
+        self._network.send(self, addr, data)
+
+    def receive(self, data, sender):
+        """Receive data from other XBees"""
+        # pkt = self._assemble_api_packet(data, ApiFrameType.RECEIVE_PACKET)
+        self._send(data, aft=ApiFrameType.RECEIVE_PACKET, addr=sender)
 
     def _read(self, data):
         """Callback function for reading data in on a separate thread."""
@@ -133,6 +155,7 @@ class SimXBee():
 
     def _process(self):
         """Process buffer based on current state and mode."""
+        print(self._buffer_in)
         # Check for command sequence
         self._check_command_sequence()
         # Check current state
@@ -181,6 +204,8 @@ class SimXBee():
             for command in command_queue:
                 if command[0] == 'AT':
                     self._call_at_command(command[1])
+                if command[0] == 'TRANSMIT':
+                    self._transmit(*command[1])
             self._buffer_in = bytearray()
 
     def _process_escaped_api_mode(self):
@@ -211,7 +236,7 @@ class SimXBee():
         except KeyError:
             print("THIS COMMAND IS NOT IMPLEMENTED")
                 
-    def _send(self, data):
+    def _send(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE, sender=None):
         """Sends data to host device."""
         if data is not None:
             if isinstance(data, str):
@@ -224,11 +249,11 @@ class SimXBee():
             if self.state == 'command' or self._api_enable == self.modes['Transparent mode']:
                 packet = data
             elif self._api_enable == self.modes['API mode']:
-                packet = self._assemble_api_packet(data)
+                packet = self._assemble_api_packet(data, aft, sender)
                 print(packet)
             self.vsd.send(packet)
 
-    def _assemble_api_packet(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE):
+    def _assemble_api_packet(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE, sender=None):
         """Assemble API Packet"""
         data = aft.code.to_bytes(length=1) + data
 
@@ -603,11 +628,10 @@ class APIParser:
         for p in packets:
             if len(p) > 0:
                 pkt = build_frame(cls.DELIMITER + p)
-                print(p)
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
                     command_queue.append(('AT', (pkt.command, pkt.parameter)))
                 elif pkt.get_frame_type() == ApiFrameType.TRANSMIT_REQUEST:
-                    print('TRANSMIT REQUEST', pkt)
+                    command_queue.append(('TRANSMIT', (pkt.x64bit_dest_addr, pkt._TransmitPacket__data)))
                 else:
                     print('UNK', pkt)
         return command_queue
