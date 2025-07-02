@@ -38,6 +38,7 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
+#include "jaiabot/messages/simulator.pb.h"
 //imu data, pressure, motor status, production
 
 //test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
@@ -188,16 +189,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-                //test_imu_ = true; fix this later
-                imu_sensor_data_timeCheck(); 
+                test_imu_ = true;
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                //test_pressure_ = true;
-                pressure_sensor();
+                test_pressure_ = true;
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
-                //test_motor = true;
-                motor_harness();
+                test_motor_ = true;
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -303,6 +301,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
             test_imu_ = false;
 
             interprocess().publish<jaiabot::groups::production>(response);
+            interprocess().publish<jaiabot::groups::production>(response);
         }
     }
 }
@@ -359,6 +358,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_test_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         reboot_bno085_imu(); // reset IMU at start of motor test
+        reboot_bno085_imu(); // reset IMU at start of motor test
         return;
     }else if (rpm_ok && temp_ok){
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
@@ -377,23 +377,27 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
+    //glog.is_debug1() && glog << "[LOOP] test_imu_: " << test_imu_ << ", test_pressure_: " << test_pressure_ << ", test_motor_: " << test_motor_ << std::endl;
     //loop functionality is to start the function call if test_"imu/pressure/motor" is false
     
     if (test_imu_)
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
+        //imu_sensor_data_timeCheck();
+        imu_sensor_reset_check();
     }
 
     if (test_pressure_)
     {
+        //glog.is_debug1() && glog << "[LOOP] Running Pressure test logic" << std::endl;
         pressure_sensor();
     }
 
     if(test_motor_)
     {
+        //glog.is_debug1() && glog << "[LOOP] Running Motor test logic" << std::endl;
         motor_harness();
     }
-
 }
-

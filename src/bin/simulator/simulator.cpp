@@ -450,7 +450,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     
     {
         // Check for when to resume
-        if(goby::time::SteadyClock::now() > imu_dropout_end_)
+        if(goby::time::SteadyClock::now() >= imu_dropout_end_)
         {
             jaiabot::protobuf::IMUData imu_data;
             auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
