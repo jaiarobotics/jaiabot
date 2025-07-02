@@ -89,10 +89,27 @@ message FleetConfig
     {
         message IridiumSBD
         {
-            required int32 bot_id = 1;
-            required string imei = 2;
+            message BotToIMEI
+            {
+                required int32 id = 1;
+                required string imei = 2;
+            }
+            repeated BotToIMEI bot = 1;
+            // Matches enum in Goby driver
+            enum SBDType
+            {
+                SBD_DIRECTIP = 1;
+                SBD_ROCKBLOCK = 2;
+            }
+            required SBDType sbd_type = 2;
+            message RockBLOCKParams
+            {
+                required string username = 1;
+                required string password = 2;
+            }
+            optional RockBLOCKParams rockblock = 3;
         }
-        repeated IridiumSBD iridium_sbd = 1;
+        optional IridiumSBD iridium_sbd = 1;
     }
     optional Communications comms = 9;
 

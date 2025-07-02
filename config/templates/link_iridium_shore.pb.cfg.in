@@ -6,12 +6,9 @@ link {
         [goby.acomms.iridium.protobuf.shore_config] {  
 
             device: DEVICE_IRIDIUM_9602_9603
-            sbd_type: SBD_DIRECTIP
-            
-            mo_sbd_server_port: 11800
-
-            mt_sbd_server_address: "$iridium_mt_server_address"
-            mt_sbd_server_port: $iridium_mt_server_port
+            sbd_type: $sbd_type
+            $rockblock 
+            $directip
 
             $modem_imei_map
 

@@ -92,8 +92,28 @@ def iridium_modem_imei_mapping():
         
     if is_runtime():
         with(open('/etc/jaiabot/iridium.json') as f):            
-            bots = json.load(f)
-            for bot in bots:
-                mapping += 'modem_id_to_imei { modem_id: ' + str(base_modem_id(bot["botId"] + 1)) + ' imei: "' + bot["imei"] + '" }\n'
+            j = json.load(f)
+            for bot in j["bot"]:
+                mapping += 'modem_id_to_imei { modem_id: ' + str(base_modem_id(bot["id"] + 1)) + ' imei: "' + bot["imei"] + '" }\n'
         
     return mapping
+
+def iridium_sbd_type():
+    if is_simulation():
+        # RockBLOCK not yet supported
+        return "SBD_DIRECTIP"
+
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            j = json.load(f)
+            return j["sbdType"]
+
+def iridium_rockblock_credentials():
+    if is_simulation():
+        # RockBLOCK not yet supported
+        return ("user", "pass")
+
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            j = json.load(f)
+            return (j["rockblock"]["username"], j["rockblock"]["password"])
