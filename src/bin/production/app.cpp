@@ -380,8 +380,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     if (test_imu_)
     {
         glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
-        //imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        imu_sensor_data_timeCheck();
     }
 
     if (test_pressure_)
