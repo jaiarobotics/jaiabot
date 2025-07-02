@@ -190,7 +190,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 test_imu_ = true;
-                imu_sensor_reset_check();
+                //imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 test_pressure_ = true;
@@ -211,6 +211,12 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
+    if (imu_reset_pending_)
+    {
+        // We're in a dropout window, so skip this check
+        return;
+    }
+
     response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
