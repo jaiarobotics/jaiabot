@@ -8,7 +8,7 @@ from enum import Enum
 
 from digi.xbee.models.atcomm import ATStringCommand, ATCommand
 from digi.xbee.packets.aft import ApiFrameType
-from digi.xbee.packets.common import ATCommPacket
+from digi.xbee.packets.common import ATCommPacket, ATCommResponsePacket
 from digi.xbee.models.mode import OperatingMode
 from digi.xbee.packets.factory import build_frame
 
@@ -34,10 +34,10 @@ class ATStringCommandExt(Enum):
 class SimXBee():
     # Default XBee Configuration
     DEFAULT_SETTINGS = {
-        '_network_id': '0x7FFF',
+        '_network_id': '7FFF', # HEX
         '_preamble_id': '0',
-        '_factory_serial': '0x6A616961626F7473',
-        '_user_serial': '0x6A616961626F7473',
+        '_factory_serial': '6A616961626F7473', # HEX
+        '_user_serial': '6A616961626F7473', # HEX
         '_node_identifier': 'pxbee',
         '_api_enable': '0',
         '_api_options': '0',
@@ -47,7 +47,9 @@ class SimXBee():
         '_unicast_mac_retries': 'A',
         '_network_delay_slots': '3',
         '_broadcast_multitransmits': '3',
-        '_command_mode_timeout': '0x64' # 10 seconds
+        '_command_mode_timeout': '64', # HEX 10 seconds
+        '_max_transmission_bytes': '0054', # HEX
+        '_last_packet_rssi': '0'
     }
 
     # XBee Return Options
@@ -103,8 +105,8 @@ class SimXBee():
             ATStringCommand.SL: self._handle_factory_serial_low,
             ATStringCommand.CN: self._handle_command_null,
             ATStringCommand.AC: self._handle_apply_changes,
-            ATStringCommand.NP: self._handle_nyi,
-            ATStringCommand.DB: self._handle_nyi,
+            ATStringCommand.NP: self._handle_max_transmission_bytes,
+            ATStringCommand.DB: self._handle_last_packet_rssi,
             ATStringCommandExt.MR: self._handle_mesh_unicast_retries,
             ATStringCommandExt.NN: self._handle_network_delay_slots,
             ATStringCommandExt.MT: self._handle_broadcast_multitransmits,
@@ -167,7 +169,6 @@ class SimXBee():
                     self._call_at_command(command[1])
             self._buffer_in = bytearray()
 
-
     def _process_transparent_mode(self):
         """Process data in transparent mode."""
         if not self._buffer_in.decode('utf-8').isspace():
@@ -202,6 +203,7 @@ class SimXBee():
                 cmd = ATStringCommandExt[at_cmd]
             except KeyError:
                 self._send(self.INVALID_COMMAND)
+                print(at_cmd, at_param)
                 return
         # Run AT command callback
         try:
@@ -214,7 +216,23 @@ class SimXBee():
     def _send(self, data):
         """Sends data to host device."""
         if data is not None:
-            self.vsd.send(data)
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+            if self.state == 'command' or self._api_enable == self.modes['Transparent mode']:
+                packet = data
+            elif self._api_enable == self.modes['API mode']:
+                packet = self._assemble_api_packet(data)
+                print(packet)
+            self.vsd.send(packet)
+
+    def _assemble_api_packet(self, data):
+        """Assemble API Packet"""
+        delimiter = b'\x7E'
+        size = str(len(data)).encode('utf-8')
+        packet = delimiter + size + data
+        checksum = str(0xFF - (sum(packet) & 0xFF)).encode('utf-8')
+        packet = packet + checksum
+        return packet
 
     # === Configuration functions =====================================================================================
 
@@ -503,6 +521,35 @@ class SimXBee():
         else:
             self.state = 'operation'
             return self.OK
+        
+    def _handle_max_transmission_bytes(self, value=None):
+        """Maximum Transmission Bytes
+
+        Returns the maximum number of bytes sent in a unicast transmission.
+        If encryption is enabled (EE), the maximum number decreases due to overhead.
+        Broadcast transmissions support 8 more bytes than unicast transmissions.
+        Source routing adds 2 byte addresses into the payload.
+        APS Encryption reduces payload by 4 bytes.
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self._max_transmission_bytes
+        
+    def _handle_last_packet_rssi(self, value=None):
+        """Last Packet RSSI
+
+        Returns the RSSI in -dBm of last received RF packet in hexidecimal form.
+        The reported value is only from the last hop.
+        Value is 0 if a packet has not been received.
+
+        Parameter range - 0x28 - 0x6E (-40 dBm to -110 dBm), Default = 0 (read-only)
+        """
+        if value is not None:
+            return self.ERROR
+        else:
+            return self._last_packet_rssi
+
 
     def _handle_nyi(self, value=None):
         print('NOT YET IMPLEMENTED')
@@ -553,9 +600,13 @@ class APIParser:
             if len(p) > 0:
                 pkt = build_frame(cls.DELIMITER + p)
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
-                    # print(pkt.command, pkt.parameter)
-                    command_queue.append(('AT', (pkt.command), pkt.parameter))
+                    command_queue.append(('AT', (pkt.command, pkt.parameter)))
+                elif pkt.get_frame_type() == ApiFrameType.TX_64:
+                    print('TX64', pkt)
+                else:
+                    print('UNK', pkt)
         return command_queue
+    
 def main():
     sxb = SimXBee(name='xbeebot0')
     sxb.start()
