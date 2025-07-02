@@ -361,7 +361,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         reboot_bno085_imu(); // reset IMU at start of motor test
         return;
     }else if (rpm_ok && temp_ok){
-        glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
+        glog.is_debug1() && glog << "✅ Motor Harness Test PASS!S" << std::endl;
         motor_test_passed_ = true;
     }else if(!rpm_ok || !temp_ok){
         std::string reason;
@@ -385,8 +385,8 @@ void jaiabot::apps::JaiabotProduction::loop()
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
         glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
-        //imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        imu_sensor_data_timeCheck();
     }
 
     if (test_pressure_)
