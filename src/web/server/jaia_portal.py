@@ -515,6 +515,14 @@ class Interface:
         lon = bot_status["location"]["lon"]
         callsign = bot_status.get("callsign", f"BOT_{bot_status['bot_id']}")
 
+        # Extract speed and course as floats, handling dicts if present
+        speed = bot_status.get("speed", 0.0)
+        if isinstance(speed, dict):
+            speed = speed.get("over_ground", 0.0)
+        course = bot_status.get("course", 0.0)
+        if isinstance(course, dict):
+            course = course.get("over_ground", 0.0)
+
         script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
         tak_dir = os.path.dirname(script_path)
 
@@ -523,5 +531,7 @@ class Interface:
             script_path,
             "--lat", str(lat),
             "--lon", str(lon),
-            "--callsign", callsign
+            "--callsign", callsign,
+            "--speed", str(speed),
+            "--course", str(course)
         ], cwd=tak_dir)

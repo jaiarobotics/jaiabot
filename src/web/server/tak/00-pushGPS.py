@@ -1,3 +1,11 @@
+import warnings
+warnings.filterwarnings("ignore")
+
+import logging
+logging.basicConfig(level=logging.ERROR)
+logging.getLogger("pytak").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
+
 import asyncio
 import xml.etree.ElementTree as ET
 import pytak
@@ -9,8 +17,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--lat", type=float, default=45.06857)
 parser.add_argument("--lon", type=float, default=-83.43467)
 parser.add_argument("--callsign", type=str, default="JAIABOT")
-parser.add_argument("--speed", type=float, default=0.0)
-parser.add_argument("--course", type=float, default=0.0)
+parser.add_argument("--speed", type=float, default=10)
+parser.add_argument("--course", type=float, default=0)
 args, unknown = parser.parse_known_args()
 
 callsign = args.callsign
@@ -45,7 +53,7 @@ class AsyncDelegate(pytak.QueueWorker):
 
             event = ET.SubElement(cot, 'event')            #<event 
             event.set("version", "2.0")                    #   version = "2.0"
-            event.set("type", "a-f-A-M-F-Q")                     #   type = "a-k-G"
+            event.set("type", "a-f-A-M-F-Q")               #   type = "a-k-G"
             event.set("uid", callsign)                     #   uid = "{callsign}"
             event.set("how", "m-g")                        #   how = "m-g"
             event.set("time", pytak.cot_time())            #   time = "2023-07-04T08:00:01.22Z"
@@ -53,15 +61,21 @@ class AsyncDelegate(pytak.QueueWorker):
             event.set("stale", pytak.cot_time(120))        #   stale = "2023-07-04T08:00:03.22Z" />
 
             point = ET.SubElement(event, 'point')          #<point
-            point.set("lat", str(args.lat))                   #   lat = "45.06857"
-            point.set("lon", str(args.lon))                   #   lon = "-83.43467"
+            point.set("lat", str(args.lat))                #   lat = "45.06857"
+            point.set("lon", str(args.lon))                #   lon = "-83.43467"
             point.set("hae", "15.0")                       #   hae = "15.0"
             point.set("ce", "2.009")                       #   ce  = "2.009"
             point.set("le", "3.7")                         #   le = "3.7" />
+            point.set("speed", str(args.speed))            #   speed = "0.0"
             
-            detail = ET.SubElement(event, 'detail')        #<detail/>
-            contact = ET.SubElement(detail, 'contact')     #   <contact
-            contact.set("callsign", callsign)              #      callsign="{callsign}" />
+            detail = ET.SubElement(event, 'detail')
+            contact = ET.SubElement(detail, 'contact')
+            contact.set("callsign", callsign)
+
+            # Add a <track> element for line of bearing
+            track = ET.SubElement(detail, 'track')
+            track.set("course", str(args.course))  # Bearing in degrees (0-360)
+            track.set("speed", str(args.speed))    # Speed in m/s
 
             remarks = ET.SubElement(detail, 'remarks')     #   <contact
             remarks.text = "Potentially More Usefuly Info:/n Power + Freq"
