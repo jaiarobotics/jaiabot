@@ -189,6 +189,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 test_imu_ = true;
+                imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 test_pressure_ = true;
@@ -279,29 +280,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
         
     }
-    else
-    {
-        double since_reset = seconds_since(imu_reset_start_time_);
-        double since_last_imu = seconds_since(last_imu_msg_time_);
-        if (since_reset > cfg().imu_reboot_time())
-        {
-            if (since_last_imu >= cfg().imu_reboot_time())
-            {
-                imu_data_paused_ = true;
-                glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data paused for 2 seconds after reset" << std::endl;
-            }
-            else
-            {
-                imu_test_passed_ = false;
-                glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
-            }
-            
             imu_reset_pending_ = false;
             test_imu_ = false;
-
-            interprocess().publish<jaiabot::groups::production>(response);
-        }
-    }
 }
 
 
@@ -358,7 +338,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         reboot_bno085_imu(); // reset IMU at start of motor test
         return;
     }else if (rpm_ok && temp_ok){
-        glog.is_debug1() && glog << "✅ Motor Harness Test PASS!S" << std::endl;
+        glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
         motor_test_passed_ = true;
     }else if(!rpm_ok || !temp_ok){
         std::string reason;
@@ -376,12 +356,11 @@ void jaiabot::apps::JaiabotProduction::loop()
 {
     //glog.is_debug1() && glog << "[LOOP] test_imu_: " << test_imu_ << ", test_pressure_: " << test_pressure_ << ", test_motor_: " << test_motor_ << std::endl;
     //loop functionality is to start the function call if test_"imu/pressure/motor" is false
-    
+    imu_sensor_data_timeCheck();
     if (test_imu_)
     {
         glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
-        imu_sensor_reset_check();
-        imu_sensor_data_timeCheck();
+        //imu_sensor_data_timeCheck();
     }
 
     if (test_pressure_)
