@@ -190,7 +190,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 test_imu_ = true;
-                //imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 test_pressure_ = true;
@@ -221,25 +220,21 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_test_result("Test Result: FAIL");
-        response.set_response("Reason: No IMU data has been received yet.");
+        response.set_test_result("FAIL");
+        response.set_response("No IMU data has been received yet.");
         return;
     }
     else if (since_last_imu > 1.0)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
-
-        response.set_test_result("Test Result: FAIL");
         response.set_response("Reason: No IMU data in over 1 second");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
-
-        response.set_test_result("Test Result: PASS");
-        response.set_response("Reason: IMU data received in a second or less");
+        response.set_response("IMU data received in a second or less");
     
     }
 
@@ -290,9 +285,14 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     {
         glog.is_debug1() && glog << "⏱️ IMU data resumed in "
                                  << since_last_imu << "s — dropout window passed." << std::endl;
+        response.set_test_result("PASS");
+        response.set_response("IMU data paused for at least 2 seconds");
 
         imu_reset_pending_ = false;
         imu_reset_complete_ = true;  // ✅ Prevents future calls
+    }else{
+         response.set_test_result("FAIL");
+        response.set_response("IMU data did not pause for at least 2 seconds");
     }
 }
 
@@ -372,6 +372,13 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+
+        if (imu_reset_complete_)
+    {
+        //test_imu_ = false;
+        //imu_reset_complete_ = false;
+        interprocess().publish<jaiabot::groups::production>(response);
+    }
     }
 
     if (test_pressure_)
