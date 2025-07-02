@@ -375,8 +375,6 @@ void jaiabot::apps::JaiabotProduction::loop()
 
         if (imu_reset_complete_)
     {
-        //test_imu_ = false;
-        //imu_reset_complete_ = false;
         interprocess().publish<jaiabot::groups::production>(response);
     }
     }

@@ -277,8 +277,13 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                     {
                         std::string test_result = response.test_result();
                         std::string test_response = response.response();
-
                         auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response);
+                        // Safety: show fallback loading message if both are empty
+                        if (test_result.empty() && test_response.empty())
+                        {
+                            combined_result = Wt::WString::fromUTF8("⚙️⏳⚙️ Loading...");
+                        }
+
                         tab_->production_imu_data_test_status_text_->setText(combined_result);
                         tab_->production_imu_data_test_status_text_->setTextFormat(Wt::TextFormat::XHTML);
                     }
