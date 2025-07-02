@@ -36,9 +36,8 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/simulator.pb.h"
 #include "jaiabot/messages/production.pb.h"
-
+#include "jaiabot/messages/simulator.pb.h"
 //imu data, pressure, motor status, production
 
 //test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
@@ -73,11 +72,6 @@ class JaiabotProduction: public ApplicationBase
         bool imu_reset_pending_ = false;
         goby::time::SystemClock::time_point imu_reset_start_time_;
         goby::time::SystemClock::time_point last_imu_msg_time_;
-        
-        // State imu stop variables
-        goby::time::SteadyClock::time_point imu_dropout_end_;
-        bool imu_resume_sent_ = false;
-
         bool imu_data_received_ = false;
         bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
@@ -90,7 +84,6 @@ class JaiabotProduction: public ApplicationBase
 
         jaiabot::protobuf::ProductionResponse response;
         bool test_imu_ = false;
-        bool test_imu_restart_ = false;
         //might need later
         bool test_pressure_ = false;
         bool test_motor_ = false;
@@ -126,7 +119,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
 
-jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(1.0 * si::hertz)
+jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si::hertz)
 {
     // Subscribe to IMU data
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -135,12 +128,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(1.0 * si
 
             last_imu_msg_time_ = goby::time::SystemClock::now();
             imu_data_received_ = true;
-
-              if (goby::time::SteadyClock::now() < imu_dropout_end_)
-        {
-            glog.is_debug3() && glog << "⏳ Still in IMU dropout window. Ignoring data..." << std::endl;
-            return;
-        }
             
             /*might need later
             if (imu_msg.has_euler_angles() && imu_msg.euler_angles().has_heading())
@@ -202,15 +189,12 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(1.0 * si
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 test_imu_ = true;
-                imu_sensor_reset_check();  
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                //test_pressure_ = true;
-                pressure_sensor();
+                test_pressure_ = true;
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
-                //test_motor = true;
-                motor_harness();
+                test_motor_ = true;
                 break;
             default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -259,32 +243,64 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 }
 
 //possibility of two seperate functions
+
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
-    // Prevent double-starting the dropout
-    if (imu_reset_pending_)
-        return;
-
-    imu_reset_pending_ = true;
-    imu_data_paused_ = false;
-
-    // Set the dropout window to 2 seconds
-    imu_dropout_end_ = goby::time::SteadyClock::now() + std::chrono::seconds(2);
-    imu_resume_sent_ = false;
-
-    glog.is_debug1() && glog << "📡 IMU Test: Starting IMU dropout window (2s)...\n";
-
-    // Tell the simulator to stop sending IMU data for 2 seconds
-    if (cfg().is_in_sim())
+    if (!imu_reset_pending_)
     {
-        jaiabot::protobuf::SimulatorCommand command;
-        command.mutable_imu_dropout()->set_dropout_duration(2.0);
-        interprocess().publish<jaiabot::groups::simulator_command>(command);
+        // Start reset
+        imu_reset_pending_ = true;
+        imu_data_paused_ = false;
+        imu_reset_start_time_ = goby::time::SystemClock::now();
+        glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
+        //trigger the actual IMU reset service
+        
+        //confirm that the data is flowing; imu data comes back on after the reset
+        //try to send the command to the simulator
+        if (cfg().is_in_sim())
+        {
+            glog.is_debug1() && glog << "🧪 In simulation mode — sending IMU dropout command to simulator." << std::endl;
+            jaiabot::protobuf::SimulatorCommand command;
+
+            //mutable returns pointer to imu_dropout allowing to call setters, 'set_duration'
+            //pretends the IMU has dropped offline for a duration; stops sending IMU data to Jaiabot for that time
+            command.mutable_imu_dropout()->set_dropout_duration(cfg().imu_reboot_time());
+
+             glog.is_debug1() && glog << "📤 Sending imu_dropout with duration: "
+                                 << cfg().imu_reboot_time() << "s" << std::endl;
+
+            interprocess().publish<jaiabot::groups::simulator_command>(command);  
+        }
+        else
+        {
+            glog.is_debug1() && glog << "🔧 Not in simulation — calling reboot_bno085_imu() for real IMU reset." << std::endl;
+
+            reboot_bno085_imu();
+        }
+        
     }
     else
     {
-        // On hardware, run the IMU reboot
-        reboot_bno085_imu();
+        double since_reset = seconds_since(imu_reset_start_time_);
+        double since_last_imu = seconds_since(last_imu_msg_time_);
+        if (since_reset > cfg().imu_reboot_time())
+        {
+            if (since_last_imu >= cfg().imu_reboot_time())
+            {
+                imu_data_paused_ = true;
+                glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data paused for 2 seconds after reset" << std::endl;
+            }
+            else
+            {
+                imu_test_passed_ = false;
+                glog.is_debug1() && glog << "❌ IMU Test FAIL: IMU data was not paused for 2 seconds after reset" << std::endl;
+            }
+            
+            imu_reset_pending_ = false;
+            test_imu_ = false;
+
+            interprocess().publish<jaiabot::groups::production>(response);
+        }
     }
 }
 
@@ -339,7 +355,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         motor_test_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
-        restart_imu_py(); //If we want to reset IMU at start of motor test
+        reboot_bno085_imu(); // reset IMU at start of motor test
         return;
     }else if (rpm_ok && temp_ok){
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
@@ -358,64 +374,25 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
-    
-    
+    //glog.is_debug1() && glog << "[LOOP] test_imu_: " << test_imu_ << ", test_pressure_: " << test_pressure_ << ", test_motor_: " << test_motor_ << std::endl;
     //loop functionality is to start the function call if test_"imu/pressure/motor" is false
-    //each test runs only once per flag set to true
-
-    if (test_imu_ && imu_reset_pending_)
-{
-    auto now = goby::time::SteadyClock::now();
-
-    if (now > imu_dropout_end_)
-    {
-        double since_last_imu = seconds_since(last_imu_msg_time_);
-
-        if (since_last_imu > 1.0) // Still no data = fail
-        {
-            glog.is_debug1() && glog << "❌ IMU Test FAIL: No IMU data after dropout." << std::endl;
-            response.set_test_result("Test Result: FAIL");
-            response.set_response("Reason: No IMU data returned after dropout");
-        }
-        else // Data resumed = pass
-        {
-            glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received after dropout." << std::endl;
-            response.set_test_result("Test Result: PASS");
-            response.set_response("Reason: IMU data resumed successfully");
-        }
-
-        imu_reset_pending_ = false;
-        test_imu_ = false;
-
-        // Stamp and send response
-        const auto now_sys = std::chrono::system_clock::now();
-        const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
-            now_sys.time_since_epoch()).count();
-        response.set_time(timestamp_us);
-
-        interprocess().publish<jaiabot::groups::production>(response);
-    }
-}
-
     
     if (test_imu_)
     {
-        imu_sensor_data_timeCheck();
-        
+        glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
+        //imu_sensor_data_timeCheck();
+        imu_sensor_reset_check();
     }
 
-
-    /*
     if (test_pressure_)
     {
+        //glog.is_debug1() && glog << "[LOOP] Running Pressure test logic" << std::endl;
         pressure_sensor();
     }
 
     if(test_motor_)
     {
+        //glog.is_debug1() && glog << "[LOOP] Running Motor test logic" << std::endl;
         motor_harness();
     }
-    */
-        
-
 }
