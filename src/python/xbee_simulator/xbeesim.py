@@ -33,6 +33,7 @@ class ATStringCommandExt(Enum):
 
 class SimXBee():
     # Default XBee Configuration
+    # TODO: The type handling here could be improved
     DEFAULT_SETTINGS = {
         '_network_id': '7FFF', # HEX
         '_preamble_id': '0',
@@ -132,7 +133,6 @@ class SimXBee():
 
     def _process(self):
         """Process buffer based on current state and mode."""
-        print(self.state, self._api_enable)
         # Check for command sequence
         self._check_command_sequence()
         # Check current state
@@ -176,7 +176,6 @@ class SimXBee():
 
     def _process_api_mode(self):
         """Process data in API mode."""
-        print('Process API')
         command_queue = APIParser.parse(self._buffer_in)
         if command_queue is not None:
             for command in command_queue:
@@ -208,7 +207,6 @@ class SimXBee():
         # Run AT command callback
         try:
             at_out = self.at_handlers[cmd](at_param)
-            print(cmd)
             self._send(at_out)
         except KeyError:
             print("THIS COMMAND IS NOT IMPLEMENTED")
@@ -220,7 +218,8 @@ class SimXBee():
                 try:
                     data = bytearray.fromhex(data)
                 except Exception:
-                    print("PANIC", data)
+                    # This exception is the only thing that makes
+                    # string fields be interpreted as strings. This is bad.
                     data.encode('utf-8')
             if self.state == 'command' or self._api_enable == self.modes['Transparent mode']:
                 packet = data
@@ -233,9 +232,8 @@ class SimXBee():
         """Assemble API Packet"""
         delimiter = b'\x7E'
         size = len(data).to_bytes(length=2)
-        packet = delimiter + size + data
         checksum = (0xFF - (sum(data) & 0xFF)).to_bytes(length=1)
-        packet = packet + checksum
+        packet = delimiter + size + data + checksum
         return packet
 
     # === Configuration functions =====================================================================================
@@ -606,26 +604,9 @@ class APIParser:
                 print(p)
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
                     command_queue.append(('AT', (pkt.command, pkt.parameter)))
-                elif pkt.get_frame_type() == ApiFrameType.TX_64:
-                    print('TX64', pkt)
+                elif pkt.get_frame_type() == ApiFrameType.TRANSMIT_REQUEST:
+                    print('TRANSMIT REQUEST', pkt)
                 else:
                     print('UNK', pkt)
         return command_queue
     
-def main():
-    sxb = SimXBee(name='xbeebot0')
-    sxb.start()
-    sxbhub = SimXBee(name='xbeehub0')
-    sxbhub.start()
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sxb.close()
-        sxbhub.close()
-
-
-if __name__ == "__main__":
-    main()
