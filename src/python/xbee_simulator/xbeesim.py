@@ -228,8 +228,10 @@ class SimXBee():
                 print(packet)
             self.vsd.send(packet)
 
-    def _assemble_api_packet(self, data):
+    def _assemble_api_packet(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE):
         """Assemble API Packet"""
+        data = aft.code.to_bytes(length=1) + data
+
         delimiter = b'\x7E'
         size = len(data).to_bytes(length=2)
         checksum = (0xFF - (sum(data) & 0xFF)).to_bytes(length=1)
