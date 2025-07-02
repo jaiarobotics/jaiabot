@@ -247,6 +247,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
+    double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_reset_pending_)
     {
         // Start reset
@@ -278,10 +279,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 
             reboot_bno085_imu();
         }
-        
+        return;
     }
-            imu_reset_pending_ = false;
-            test_imu_ = false;
+    // After reset has started, check if the dropout window has elapsed
+    double since_reset = seconds_since(imu_reset_start_time_);
+    if (since_reset > cfg().imu_reboot_time())
+    {
+        // Print the time since last IMU message to confirm dropout
+        glog.is_debug1() && glog << "!!!!!!IMU data received in "
+                                 << since_last_imu << "s meaning for sure stopped!!!!!!!" << std::endl;
+        imu_reset_pending_ = false;
+    }
 }
 
 
@@ -354,13 +362,11 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
-    //glog.is_debug1() && glog << "[LOOP] test_imu_: " << test_imu_ << ", test_pressure_: " << test_pressure_ << ", test_motor_: " << test_motor_ << std::endl;
-    //loop functionality is to start the function call if test_"imu/pressure/motor" is false
-    imu_sensor_data_timeCheck();
-    if (test_imu_)
+    // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
+    if (test_imu_ || imu_reset_pending_)
     {
-        glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
-        //imu_sensor_data_timeCheck();
+        imu_sensor_data_timeCheck();
+        imu_sensor_reset_check();
     }
 
     if (test_pressure_)
@@ -374,4 +380,5 @@ void jaiabot::apps::JaiabotProduction::loop()
         //glog.is_debug1() && glog << "[LOOP] Running Motor test logic" << std::endl;
         motor_harness();
     }
+        
 }
