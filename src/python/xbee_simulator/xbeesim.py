@@ -49,7 +49,7 @@ class SimXBee():
         '_broadcast_multitransmits': '3',
         '_command_mode_timeout': '64', # HEX 10 seconds
         '_max_transmission_bytes': '0054', # HEX
-        '_last_packet_rssi': '0'
+        '_last_packet_rssi': '00'
     }
 
     # XBee Return Options
@@ -217,7 +217,11 @@ class SimXBee():
         """Sends data to host device."""
         if data is not None:
             if isinstance(data, str):
-                data = data.encode('utf-8')
+                try:
+                    data = bytearray.fromhex(data)
+                except Exception:
+                    print("PANIC", data)
+                    data.encode('utf-8')
             if self.state == 'command' or self._api_enable == self.modes['Transparent mode']:
                 packet = data
             elif self._api_enable == self.modes['API mode']:
@@ -228,9 +232,9 @@ class SimXBee():
     def _assemble_api_packet(self, data):
         """Assemble API Packet"""
         delimiter = b'\x7E'
-        size = str(len(data)).encode('utf-8')
+        size = len(data).to_bytes(length=2)
         packet = delimiter + size + data
-        checksum = str(0xFF - (sum(packet) & 0xFF)).encode('utf-8')
+        checksum = (0xFF - (sum(data) & 0xFF)).to_bytes(length=1)
         packet = packet + checksum
         return packet
 
@@ -599,6 +603,7 @@ class APIParser:
         for p in packets:
             if len(p) > 0:
                 pkt = build_frame(cls.DELIMITER + p)
+                print(p)
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
                     command_queue.append(('AT', (pkt.command, pkt.parameter)))
                 elif pkt.get_frame_type() == ApiFrameType.TX_64:
