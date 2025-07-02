@@ -5,7 +5,7 @@ import pytak
 from configparser import ConfigParser
 
 
-callsign = "BLUE KNIGHT"
+callsign = "JAIABOT"
 
 #############################
 # Class Defintion for asynchronous delegate
@@ -33,7 +33,7 @@ class AsyncDelegate(pytak.QueueWorker):
 
             event = ET.SubElement(cot, 'event')            #<event 
             event.set("version", "2.0")                    #   version = "2.0"
-            event.set("type", "a-f-G")                     #   type = "a-k-G"
+            event.set("type", "a-f-A-M-F-Q")                     #   type = "a-k-G"
             event.set("uid", callsign)                     #   uid = "{callsign}"
             event.set("how", "m-g")                        #   how = "m-g"
             event.set("time", pytak.cot_time())            #   time = "2023-07-04T08:00:01.22Z"
@@ -59,7 +59,7 @@ class AsyncDelegate(pytak.QueueWorker):
             
             print(cotEvent)
             await self.handle_data(cotEvent)    # Enqueues COT for TX
-            await asyncio.sleep(30)             # Sleep 30 seconds then loop again. Change here to increase/decrease update speed.
+            await asyncio.sleep(10)             # Sleep 30 seconds then loop again. Change here to increase/decrease update speed.
 #############################
 #############################
 
