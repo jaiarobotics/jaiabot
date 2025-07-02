@@ -1,11 +1,23 @@
-
 import asyncio
 import xml.etree.ElementTree as ET
 import pytak
 from configparser import ConfigParser
+import argparse
 
 
-callsign = "JAIABOT"
+parser = argparse.ArgumentParser()
+parser.add_argument("--lat", type=float, default=45.06857)
+parser.add_argument("--lon", type=float, default=-83.43467)
+parser.add_argument("--callsign", type=str, default="JAIABOT")
+parser.add_argument("--speed", type=float, default=0.0)
+parser.add_argument("--course", type=float, default=0.0)
+args, unknown = parser.parse_known_args()
+
+callsign = args.callsign
+lat = args.lat
+lon = args.lon
+speed = args.speed
+course = args.course
 
 #############################
 # Class Defintion for asynchronous delegate
@@ -41,8 +53,8 @@ class AsyncDelegate(pytak.QueueWorker):
             event.set("stale", pytak.cot_time(120))        #   stale = "2023-07-04T08:00:03.22Z" />
 
             point = ET.SubElement(event, 'point')          #<point
-            point.set("lat", "45.06857")                   #   lat = "45.06857"
-            point.set("lon", "-83.43467")                  #   lon = "-83.43467"
+            point.set("lat", str(args.lat))                   #   lat = "45.06857"
+            point.set("lon", str(args.lon))                   #   lon = "-83.43467"
             point.set("hae", "15.0")                       #   hae = "15.0"
             point.set("ce", "2.009")                       #   ce  = "2.009"
             point.set("le", "3.7")                         #   le = "3.7" />
@@ -57,7 +69,7 @@ class AsyncDelegate(pytak.QueueWorker):
             cotEvent = ET.tostring(cot, encoding='utf-8')  #</xml>
             # FINISHED creating COT event
             
-            print(cotEvent)
+            # print(cotEvent)
             await self.handle_data(cotEvent)    # Enqueues COT for TX
             await asyncio.sleep(10)             # Sleep 30 seconds then loop again. Change here to increase/decrease update speed.
 #############################
