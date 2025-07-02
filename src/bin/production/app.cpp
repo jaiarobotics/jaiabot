@@ -38,7 +38,6 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
-#include "jaiabot/messages/simulator.pb.h"
 //imu data, pressure, motor status, production
 
 //test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
@@ -301,7 +300,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
             test_imu_ = false;
 
             interprocess().publish<jaiabot::groups::production>(response);
-            interprocess().publish<jaiabot::groups::production>(response);
         }
     }
 }
@@ -358,7 +356,6 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_test_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         reboot_bno085_imu(); // reset IMU at start of motor test
-        reboot_bno085_imu(); // reset IMU at start of motor test
         return;
     }else if (rpm_ok && temp_ok){
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS!S" << std::endl;
@@ -382,8 +379,6 @@ void jaiabot::apps::JaiabotProduction::loop()
     
     if (test_imu_)
     {
-        imu_sensor_data_timeCheck();
-        imu_sensor_reset_check();
         glog.is_debug1() && glog << "[LOOP] Running IMU test logic" << std::endl;
         imu_sensor_reset_check();
         imu_sensor_data_timeCheck();
