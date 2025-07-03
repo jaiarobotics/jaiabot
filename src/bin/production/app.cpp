@@ -85,7 +85,6 @@ class JaiabotProduction: public ApplicationBase
 
         jaiabot::protobuf::ProductionResponse response;
         bool test_imu_ = false;
-        //might need later
         bool test_pressure_ = false;
         bool test_motor_ = false;
         
@@ -98,7 +97,7 @@ class JaiabotProduction: public ApplicationBase
         void pressure_sensor();
         void motor_harness();
 
-        //double since_last_imu = seconds_since(last_imu_msg_time_);
+        double since_last_imu = seconds_since(last_imu_msg_time_);
 
         goby::time::SystemClock::time_point motor_test_start_time_;
 
@@ -217,7 +216,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     }
 
     response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
-    double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
         response.set_test_result("FAIL");
@@ -302,37 +300,42 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 }
 
 
-
 //pressure service to be restarted
+//possibility of two functions to restart pressure service
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    if (!pressure_data_received_)
-    {
-        glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data" << std::endl;
-        response.set_test_result("Test Result: FAIL");
-        response.set_response("Reason: No pressure data received");
-        return;
-    }
-
     glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
     restart_pressure_py();
 
+    pressure_test_passed_ = true;
+    pressure_data_received_ = false;
+
     glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
+
+    if (!pressure_data_received_)
+    {
+        pressure_test_passed_ = false;
+        glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
+        response.set_test_result("FAIL");
+        response.set_response("did not pass test: no pressure data received after restart");
+        return;
+    }
 
     if (latest_pressure_ < 0.2)
     {
+        pressure_test_passed_ = true;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
-        response.set_test_result("Test Result: PASS");
-        response.set_response("Reason: The pressure reading is less than 0.2");
+        response.set_test_result("PASS");
+        response.set_response("pressure reading is less than 0.2 after restart");
     }
     else
     {
-        glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2" << std::endl;
-        response.set_test_result("Test Result: FAIL");
-        response.set_response("Reason: The Pressure reading is >= 0.2");
+        pressure_test_passed_ = false;
+        glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
+        response.set_test_result("FAIL");
+        response.set_response("did not pass test: pressure reading is greater than or equal to 0.2 after restart");
     }
 }
-
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
