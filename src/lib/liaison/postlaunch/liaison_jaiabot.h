@@ -277,7 +277,8 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                     {
                         std::string test_result = response.test_result();
                         std::string test_response = response.response();
-                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response);
+                        std::string imu_reset_response = response.imu_reset_response();
+                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response + "<br/>" + imu_reset_response);
                         // Safety: show fallback loading message if both are empty
                         if (test_result.empty() && test_response.empty())
                         {

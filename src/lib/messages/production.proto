@@ -45,4 +45,5 @@ message ProductionResponse
   } 
   optional string test_result = 3;
   optional string response = 4;
+  optional string imu_reset_response = 5;
 }

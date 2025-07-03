@@ -228,7 +228,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
-        response.set_response("Reason: No IMU data in over 1 second");
+         response.set_test_result("FAIL");
+        response.set_response("No IMU data in over 1 second");
     }
     else
     {
@@ -273,7 +274,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
         else
         {
-            glog.is_debug1() && glog << "🔧 Not in simulation — calling reboot_bno085_imu() for real IMU reset." << std::endl;
+            glog.is_debug1() && glog << "🔧 Not in simulation — calling reboot_bno085_imu() for real IMU reset." << std::endl; 
             reboot_bno085_imu();
         }
         return;
@@ -286,13 +287,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         glog.is_debug1() && glog << "⏱️ IMU data resumed in "
                                  << since_last_imu << "s — dropout window passed." << std::endl;
         response.set_test_result("PASS");
-        response.set_response("IMU data paused for at least 2 seconds");
+        response.set_imu_reset_response("IMU data paused for at least 2 seconds"); //make this something other then response then clear it for others
 
         imu_reset_pending_ = false;
-        imu_reset_complete_ = true;  // ✅ Prevents future calls
-    }else{
+        
+        // Prevents future calls
+        imu_reset_complete_ = true;  
+    }else{ //think the fail is set up right but love review on it just in case!!!
          response.set_test_result("FAIL");
-        response.set_response("IMU data did not pause for at least 2 seconds");
+        response.set_imu_reset_response("IMU data did not pause for at least 2 seconds"); //make this something other then response then clear it for others
+
+        //NOTE: MIGHT NEED TO FIX SET_TEST_RESULT HERE LATER CAUSE I CAN SEE IT SAYING PASS EVEN THO ITS A FAIL CAUSE OF LOOP
     }
 }
 
