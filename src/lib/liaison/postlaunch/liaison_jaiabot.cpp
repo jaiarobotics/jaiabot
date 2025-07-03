@@ -47,31 +47,6 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     vehicle_stack_->hide();
 
-    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
-    {
-        auto bot_panel = this->addNew<Wt::WPanel>();
-        bot_panel->setTitle("Bot");
-        bot_panel->setCollapsible(true);
-        bot_panel->setCollapsed(cfg_.minimize_bot_panel());
-
-        auto bot_box = std::make_unique<Wt::WContainerWidget>();
-
-        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion");
-        bot_node_status_text_ = bot_node_status_box->addNew<WText>();
-        auto bot_low_control_box = bot_box->addNew<WGroupBox>("Control Command");
-        bot_low_control_text_ = bot_low_control_box->addNew<WText>();
-        auto bot_pt_box = bot_box->addNew<WGroupBox>("Pressure & Temperature");
-        bot_pt_text_ = bot_pt_box->addNew<WText>();
-        auto bot_salinity_box = bot_box->addNew<WGroupBox>("Salinity");
-        bot_salinity_text_ = bot_salinity_box->addNew<WText>();
-        auto bot_imu_box = bot_box->addNew<WGroupBox>("IMU");
-        bot_imu_text_ = bot_imu_box->addNew<WText>();
-        auto bot_tpv_box = bot_box->addNew<WGroupBox>("Time Position Velocity");
-        bot_tpv_text_ = bot_tpv_box->addNew<WText>();
-
-        bot_panel->setCentralWidget(std::move(bot_box));
-    }
-
     //Production panel code HERE (remove this comment later)
     auto production_panel = this->addNew<Wt::WPanel>();
     production_panel->setTitle("Production");
@@ -140,6 +115,32 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_status_text
 });
 
     production_panel->setCentralWidget(std::move(production_box));
+    
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+    {
+        auto bot_panel = this->addNew<Wt::WPanel>();
+        bot_panel->setTitle("Bot");
+        bot_panel->setCollapsible(true);
+        bot_panel->setCollapsed(cfg_.minimize_bot_panel());
+
+        auto bot_box = std::make_unique<Wt::WContainerWidget>();
+
+        auto bot_node_status_box = bot_box->addNew<WGroupBox>("Node Status from Fusion");
+        bot_node_status_text_ = bot_node_status_box->addNew<WText>();
+        auto bot_low_control_box = bot_box->addNew<WGroupBox>("Control Command");
+        bot_low_control_text_ = bot_low_control_box->addNew<WText>();
+        auto bot_pt_box = bot_box->addNew<WGroupBox>("Pressure & Temperature");
+        bot_pt_text_ = bot_pt_box->addNew<WText>();
+        auto bot_salinity_box = bot_box->addNew<WGroupBox>("Salinity");
+        bot_salinity_text_ = bot_salinity_box->addNew<WText>();
+        auto bot_imu_box = bot_box->addNew<WGroupBox>("IMU");
+        bot_imu_text_ = bot_imu_box->addNew<WText>();
+        auto bot_tpv_box = bot_box->addNew<WGroupBox>("Time Position Velocity");
+        bot_tpv_text_ = bot_tpv_box->addNew<WText>();
+
+        bot_panel->setCentralWidget(std::move(bot_box));
+    }
+
 
     const auto update_freq = cfg_.control_freq();
     timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));
