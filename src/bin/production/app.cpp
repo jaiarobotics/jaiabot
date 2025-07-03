@@ -62,49 +62,60 @@ class JaiabotProduction: public ApplicationBase
     private:
         // Test state
         bool imu_test_passed_ = false;
-        bool pressure_test_passed_ = false;
-        bool motor_test_passed_ = false;
-
-        double latest_pressure_ = 100.0;
-        double latest_rpm_ = 0.0;
-        double latest_temperature_ = 0.0;
-
-        bool imu_reset_pending_ = false;
-        goby::time::SystemClock::time_point imu_reset_start_time_;
-        goby::time::SystemClock::time_point last_imu_msg_time_;
         bool imu_data_received_ = false;
-        bool pressure_data_received_ = false;
         bool imu_data_paused_ = false;
+        bool imu_reset_pending_ = false;
         bool imu_reset_complete_ = false;
 
-        bool pressure_reset_complete_ = false;
-        bool pressure_reset_pending_ = false;
-
-        void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-        void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
-        void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
-
+        goby::time::SystemClock::time_point imu_reset_start_time_;
+        goby::time::SystemClock::time_point last_imu_msg_time_;
         goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
-        jaiabot::protobuf::ProductionResponse response;
-        bool test_imu_ = false;
-        //might need later
-        bool test_pressure_ = false;
-        bool test_motor_ = false;
-        
+        void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
+        void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
 
-        void loop() override;
-
-        bool motor_test_running_ = false;
         void imu_sensor_data_timeCheck();
         void imu_sensor_reset_check();
+        void check_imu();
+
+        bool test_imu_ = false;
+
+        // Pressure Test State
+        bool pressure_test_passed_ = false;
+        bool pressure_data_received_ = false;
+        bool pressure_reset_complete_ = false;
+        bool pressure_reset_pending_ = false;
+        double latest_pressure_ = 100.0;
         void pressure_sensor();
         void pressure_sensor_reset_check();
+
+        void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
+
+        void pressure_sensor();
+        void pressure_sensor_reset_check();
+
+        bool test_pressure_ = false;
+
+        // Motor Test State
+        /*
+        bool motor_test_passed_ = false;
+        bool motor_data_received_ = false;
+        bool motor_test_running_ = false;
+        double latest_rpm_ = 0.0;
+        double latest_temperature_ = 0.0;
+        bool motor_test_running_ = false;
+        goby::time::SystemClock::time_point motor_test_start_time_;
+
         void motor_harness();
+
+        bool test_motor_ = false;
+        */
+        
+        void loop() override;
+        
 
         //double since_last_imu = seconds_since(last_imu_msg_time_);
 
-        goby::time::SystemClock::time_point motor_test_start_time_;
 
         // Helper function calculates how many seconds have passed since a specific time point
         double seconds_since(const goby::time::SystemClock::time_point& timestamp)
@@ -159,10 +170,11 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 
         });
 
-    // Subscribe to motor status
+    /* Subscribe to motor status
     interprocess().subscribe<jaiabot::groups::motor_status>(
         [this](const jaiabot::protobuf::Motor& motor_msg)
         {
+            motor_data_received_ = true;
             latest_rpm_ = motor_msg.rpm();
             if (motor_msg.has_thermistor() && motor_msg.thermistor().has_temperature())
             {
@@ -176,7 +188,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                     motor_test_passed_ = true;
                 }
             }
-        });
+        });*/
 
    interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
@@ -370,12 +382,16 @@ void::jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
 }
 
-
+/*
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
     // Test 3: Run motor for 2s, confirm rpm >= 3600, temperature 10-30, and IMU data pauses for 2s
-        
+
+    response.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
+
+    double since_reset = seconds_since(imu_reset_start_time_);
     double elapsed = seconds_since(motor_test_start_time_);
+
     if (elapsed < 2.0)
     {
         // Still running test
@@ -385,31 +401,60 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     bool rpm_ok = latest_rpm_ >= 3600;
     bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
 
-    // Optionally: check for IMU pause here if we want to enforce the IMU reset/pause as part of this test
-    if (motor_test_running_)
+    if(!motor_data_received_)
     {
+        glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
+        response.set_test_result("FAIL");
+        response.set_response("No Motor data has been received yet");
+        return;
+    }
+
+    /*imu_sensor_data_timeCheck();
+    imu_sensor_reset_check();
+
+    if (!motor_test_running_)
+    {
+        motor_test_running_ = true;
         motor_test_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
-        reboot_bno085_imu(); // reset IMU at start of motor test
         return;
-    }else if (rpm_ok && temp_ok){
+    }
+
+    if (rpm_ok && temp_ok)
+    {
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
-        motor_test_passed_ = true;
-    }else if(!rpm_ok || !temp_ok){
+        response.set_test_result("PASS");
+        response.set_response("RPM >= 3600 and Temperature between 10-30");
+        imu_reset_pending_ = false;
+        imu_reset_complete_ = true;
+    }
+    else
+    {
         std::string reason;
-        if (!rpm_ok)
-            reason += "rpm < 3600; ";
-        if (!temp_ok)
-            reason += "temperature not in [10,30]; ";
-        glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: did not pass test, " << reason << std::endl;
+        if (!rpm_ok) reason += "rpm < 3600 ";
+        if (!temp_ok) reason += "temp not in [10,30] ";
+
+        glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
+
+        response.set_test_result("FAIL");
+        response.set_response(reason);
         motor_test_passed_ = false;
     }
-    motor_test_running_ = false;
-}
 
-void jaiabot::apps::JaiabotProduction::loop()
+    motor_test_running_ = false;
+    imu_reset_pending_ = false;
+    imu_reset_complete_ = false;
+
+    // Timestamp it
+    const auto now = std::chrono::system_clock::now();
+    const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        now.time_since_epoch()).count();
+    response.set_time(timestamp_us);
+}
+*/
+
+void jaiabot::apps::JaiabotProduction::check_imu()
 {
-    // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
     if (test_imu_ || imu_reset_pending_)
     {
         imu_sensor_reset_check();
@@ -420,6 +465,23 @@ void jaiabot::apps::JaiabotProduction::loop()
             interprocess().publish<jaiabot::groups::production>(response);
         }
     }
+}
+
+
+void jaiabot::apps::JaiabotProduction::loop()
+{
+    // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
+    /*if (test_imu_ || imu_reset_pending_)
+    {
+        imu_sensor_data_timeCheck();
+        imu_sensor_reset_check();
+
+        if (imu_reset_complete_)
+        {
+            interprocess().publish<jaiabot::groups::production>(response);
+        }
+    }*/
+    check_imu();
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
     if (test_pressure_ || pressure_reset_pending_)
@@ -434,9 +496,12 @@ void jaiabot::apps::JaiabotProduction::loop()
 
     }
 
+    /*
     if(test_motor_)
     {
         motor_harness();
-    }
+        check_imu();
+
+    }*/
         
 }
