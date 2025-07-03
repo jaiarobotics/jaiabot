@@ -9,7 +9,7 @@ from enum import Enum
 
 from digi.xbee.models.atcomm import ATStringCommand, ATCommand
 from digi.xbee.packets.aft import ApiFrameType
-from digi.xbee.packets.common import ATCommPacket, ATCommResponsePacket, ReceivePacket
+from digi.xbee.packets.common import ATCommResponsePacket
 from digi.xbee.models.mode import OperatingMode
 from digi.xbee.packets.factory import build_frame
 from digi.xbee.models.status import ATCommandStatus
