@@ -77,6 +77,9 @@ class JaiabotProduction: public ApplicationBase
         bool imu_data_paused_ = false;
         bool imu_reset_complete_ = false;
 
+        bool pressure_reset_complete_ = false;
+        bool pressure_reset_pending_ = false;
+
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
         void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
         void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
@@ -96,6 +99,7 @@ class JaiabotProduction: public ApplicationBase
         void imu_sensor_data_timeCheck();
         void imu_sensor_reset_check();
         void pressure_sensor();
+        void pressure_sensor_reset_check();
         void motor_harness();
 
         //double since_last_imu = seconds_since(last_imu_msg_time_);
@@ -323,38 +327,64 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 //possibility of two functions to restart pressure service
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    glog.is_debug1() && glog << "🔁 Restarting pressure service for test..." << std::endl;
-    restart_pressure_py();
 
-    pressure_test_passed_ = true;
-    pressure_data_received_ = false;
-
-    glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
+    response.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
 
     if (!pressure_data_received_)
     {
-        pressure_test_passed_ = false;
+        //pressure_test_passed_ = false;
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_test_result("FAIL");
-        response.set_response("did not pass test: no pressure data received after restart");
+        response.set_response("Did not pass test: no pressure data received after restart");
         return;
     }
 
     if (latest_pressure_ < 0.2)
     {
-        pressure_test_passed_ = true;
+        glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
         response.set_test_result("PASS");
-        response.set_response("pressure reading is less than 0.2 after restart");
+        response.set_response("Pressure reading is less than 0.2 after restart");
     }
     else
     {
-        pressure_test_passed_ = false;
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
         response.set_test_result("FAIL");
-        response.set_response("did not pass test: pressure reading is greater than or equal to 0.2 after restart");
+        response.set_response("Did not pass test: pressure reading is greater than or equal to 0.2 after restart");
     }
 }
+
+void::jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
+{
+    if(pressure_reset_complete_) return;
+
+    if(!pressure_reset_pending_)
+    {
+        pressure_reset_pending_ = true;
+
+        glog.is_debug1() && glog << "📡 Pressure Test: Starting Pressure reset..." << std::endl;
+
+        if (cfg().is_in_sim())
+        {
+            glog.is_debug1() && glog << "🧪 In simulation mode — sending Pressure dropout command to simulator." << std::endl;
+            jaiabot::protobuf::SimulatorCommand command;
+            command.mutable_pressure_dropout()->set_dropout_duration(cfg().imu_reboot_time());
+
+            glog.is_debug1() && glog << "📤 Sending pressure_dropout with duration: "
+                                     << cfg().imu_reboot_time() << "s" << std::endl;
+
+            interprocess().publish<jaiabot::groups::simulator_command>(command);
+        }
+        else
+        {
+            glog.is_debug1() && glog << "🔧 Not in simulation — calling restart_pressure_py() for real Pressure reset." << std::endl; 
+            restart_pressure_py();
+        }
+        return;
+    }
+
+}
+
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
@@ -401,20 +431,26 @@ void jaiabot::apps::JaiabotProduction::loop()
         imu_sensor_reset_check();
 
         if (imu_reset_complete_)
-    {
-        interprocess().publish<jaiabot::groups::production>(response);
-    }
+        {
+            interprocess().publish<jaiabot::groups::production>(response);
+        }
     }
 
-    if (test_pressure_)
+    // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
+    if (test_pressure_ || pressure_reset_pending_)
     {
-        //glog.is_debug1() && glog << "[LOOP] Running Pressure test logic" << std::endl;
         pressure_sensor();
+        pressure_sensor_reset_check();
+
+        if (pressure_reset_complete_)
+        {
+            interprocess().publish<jaiabot::groups::production>(response);
+        }
+
     }
 
     if(test_motor_)
     {
-        //glog.is_debug1() && glog << "[LOOP] Running Motor test logic" << std::endl;
         motor_harness();
     }
         
