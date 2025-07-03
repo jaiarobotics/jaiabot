@@ -45,4 +45,5 @@ message ProductionResponse
   } 
   optional string response = 3;
   optional string imu_reset_response = 4;
+  optional string pressure_response = 5;
 }
