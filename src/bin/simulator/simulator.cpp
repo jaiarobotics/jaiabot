@@ -424,8 +424,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         salinity += salinity_distribution_(generator_);
 
         auto msg = jaiabot::protobuf::SalinityData();
+        // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
         msg.set_conductivity_raw(45000.0);
-        msg.set_salinity_raw(salinity);
         msg.set_salinity_raw(salinity);
         msg.set_total_dissolved_solids(0.0);
 
