@@ -122,6 +122,8 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
+import { downloadOfflineTiles } from "../../openlayers/map/layers/tile-db";
+import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -4087,6 +4089,17 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
+        const downloadOfflineMapsButton = (
+            <Button
+                className="button-jcc"
+                onClick={() => {
+                    downloadOfflineTiles(map, noaaLayer.getSource());
+                }}
+            >
+                <Icon path={mdiDownloadMultiple} size={1.3} title="Download Offline Maps" />
+            </Button>
+        );
+
         const measureButton =
             visiblePanel == PanelType.MEASURE_TOOL ? (
                 <div>
@@ -4319,6 +4332,7 @@ export default class CommandControl extends React.Component {
                     {downloadQueueButton}
                     {measureButton}
                     {settingsPanelButton}
+                    {downloadOfflineMapsButton}
                 </div>
 
                 <div id="botsDrawer">

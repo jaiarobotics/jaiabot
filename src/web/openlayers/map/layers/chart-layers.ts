@@ -4,83 +4,13 @@ import TileWMS from "ol/source/TileWMS";
 import { persistVisibility } from "./visible-layer-persistance";
 import { TileArcGISRest } from "ol/source";
 import { ImageTile } from "ol";
-
-// IndexedDB
-import { openDB } from "idb";
-
-export const idbStore = {
-    db1: openDB("db1", 1, {
-        upgrade(db) {
-            db.createObjectStore("store1");
-        },
-    }),
-};
-
-export async function addToStore1(key: IDBKeyRange | IDBValidKey, value: any) {
-    return (await idbStore.db1).add("store1", value, key);
-}
-
-export async function getFromStore1(key: IDBKeyRange | IDBValidKey) {
-    return (await idbStore.db1).get("store1", key);
-}
+import { loadTileFromDatabase } from "./tile-db";
 
 const noaaEncSource = new TileArcGISRest({
     url: "https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer",
 });
 
-noaaEncSource.setTileLoadFunction(function (tile: ImageTile, url) {
-    const image = tile.getImage() as HTMLImageElement;
-
-    getFromStore1(url)
-        .then((blob) => {
-            if (!blob) {
-                // use online url
-                image.src = url;
-
-                // Let's add the tile to the cache since we missed it
-                fetch(url).then((response) => {
-                    if (response.ok) {
-                        response.blob().then((blob) => {
-                            addToStore1(url, blob)
-                                .then((p) => {
-                                    // console.log('added urlkey1 to store');
-                                    // console.log(p);
-                                })
-                                .catch(() => {
-                                    // console.log('urlkey1 already exists');
-                                });
-                        });
-                    }
-                });
-                return;
-            }
-
-            const objUrl = URL.createObjectURL(blob);
-            image.onload = function () {
-                URL.revokeObjectURL(objUrl);
-            };
-            image.src = objUrl;
-        })
-        .catch(() => {
-            image.src = url;
-
-            // Let's add the tile to the cache since we missed it
-            fetch(url).then((response) => {
-                if (response.ok) {
-                    response.blob().then((blob) => {
-                        addToStore1(url, blob)
-                            .then((p) => {
-                                // console.log('added urlkey1 to store');
-                                // console.log(p);
-                            })
-                            .catch(() => {
-                                // console.log('urlkey1 already exists');
-                            });
-                    });
-                }
-            });
-        });
-});
+noaaEncSource.setTileLoadFunction(loadTileFromDatabase);
 
 export const gebcoLayer = new TileLayer({
     properties: {
@@ -97,19 +27,18 @@ export const gebcoLayer = new TileLayer({
     }),
 });
 
+export const noaaLayer = new TileLayer({
+    properties: {
+        title: "NOAA ENC Charts",
+    },
+    opacity: 0.7,
+    zIndex: 20,
+    source: noaaEncSource,
+});
+
 export function createChartLayerGroup() {
     // Configure the basemap layers
-    let layers = [
-        new TileLayer({
-            properties: {
-                title: "NOAA ENC Charts",
-            },
-            opacity: 0.7,
-            zIndex: 20,
-            source: noaaEncSource,
-        }),
-        gebcoLayer,
-    ];
+    let layers = [noaaLayer, gebcoLayer];
 
     layers.forEach((layer) => {
         persistVisibility(layer);
