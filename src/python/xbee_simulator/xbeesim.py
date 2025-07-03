@@ -9,9 +9,10 @@ from enum import Enum
 
 from digi.xbee.models.atcomm import ATStringCommand, ATCommand
 from digi.xbee.packets.aft import ApiFrameType
-from digi.xbee.packets.common import ATCommPacket, ATCommResponsePacket
+from digi.xbee.packets.common import ATCommPacket, ATCommResponsePacket, ReceivePacket
 from digi.xbee.models.mode import OperatingMode
 from digi.xbee.packets.factory import build_frame
+from digi.xbee.models.status import ATCommandStatus
 
 class ATStringCommandExt(Enum):
     UH = ("UH", "Source address number high")
@@ -137,15 +138,15 @@ class SimXBee:
 
     # === Main Logic Functions ========================================================================================
 
-    def _transmit(self, addr, data):
+    def transmit(self, packet):
         """Transmit data to other XBees"""
         # print('TRANSMIT', addr, data)
-        self._network.send(self, addr, data)
+        self._network.send(self, packet)
 
-    def receive(self, data, sender):
+    def receive(self, packet):
         """Receive data from other XBees"""
         # pkt = self._assemble_api_packet(data, ApiFrameType.RECEIVE_PACKET)
-        self._send(data, aft=ApiFrameType.RECEIVE_PACKET, addr=sender)
+        self._send_packet(packet)
 
     def _read(self, data):
         """Callback function for reading data in on a separate thread."""
@@ -189,7 +190,9 @@ class SimXBee:
         if command_queue is not None:
             for command in command_queue:
                 if command[0] == 'AT':
-                    self._call_at_command(command[1])
+                    at_out = self._call_at_command(command[1])
+                    if at_out is not None:
+                        self._send_data(at_out)
             self._buffer_in = bytearray()
 
     def _process_transparent_mode(self):
@@ -199,13 +202,24 @@ class SimXBee:
 
     def _process_api_mode(self):
         """Process data in API mode."""
-        command_queue = APIParser.parse(self._buffer_in)
-        if command_queue is not None:
-            for command in command_queue:
-                if command[0] == 'AT':
-                    self._call_at_command(command[1])
-                if command[0] == 'TRANSMIT':
-                    self._transmit(*command[1])
+        packet_queue = APIParser.parse(self._buffer_in)
+        if packet_queue is not None:
+            for pkt in packet_queue:
+                if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
+                    at_cmd = pkt.command
+                    at_param = pkt.parameter
+                    at_out = bytearray(self._call_at_command((at_cmd, at_param)), encoding='utf-8')
+                    if at_out is not None:
+                        atpkt = ATCommResponsePacket(
+                            frame_id=pkt._frame_id,
+                            command=at_cmd,
+                            response_status=ATCommandStatus.OK,
+                            comm_value=at_out,
+                            op_mode=OperatingMode.API_MODE
+                        )
+                        self._send_packet(atpkt)
+                elif pkt.get_frame_type() == ApiFrameType.TRANSMIT_REQUEST:
+                    self.transmit(pkt)
             self._buffer_in = bytearray()
 
     def _process_escaped_api_mode(self):
@@ -219,25 +233,23 @@ class SimXBee:
             raise ValueError(f"AT sequence must be tuple of length 2, was {len(at_sequence)}")
         # Identify AT command
         if at_cmd is None:
-            self._send(self.OK)
+            return self.OK
         try:
             cmd = ATStringCommand[at_cmd]
         except KeyError:
             try:
                 cmd = ATStringCommandExt[at_cmd]
             except KeyError:
-                self._send(self.INVALID_COMMAND)
                 print(at_cmd, at_param)
-                return
+                return self.INVALID_COMMAND
         # Run AT command callback
         try:
             at_out = self.at_handlers[cmd](at_param)
-            self._send(at_out)
+            return at_out
         except KeyError:
             print("THIS COMMAND IS NOT IMPLEMENTED")
-                
-    def _send(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE, sender=None):
-        """Sends data to host device."""
+
+    def _send_data(self, data):
         if data is not None:
             if isinstance(data, str):
                 try:
@@ -246,12 +258,15 @@ class SimXBee:
                     # This exception is the only thing that makes
                     # string fields be interpreted as strings. This is bad.
                     data.encode('utf-8')
-            if self.state == 'command' or self._api_enable == self.modes['Transparent mode']:
-                packet = data
-            elif self._api_enable == self.modes['API mode']:
-                packet = self._assemble_api_packet(data, aft, sender)
-                print(packet)
-            self.vsd.send(packet)
+        self._send(data)
+
+    def _send_packet(self, packet):
+        data = packet.output(escaped=False)
+        self._send(data)
+                
+    def _send(self, data):
+        """Sends data to host device."""
+        self.vsd.send(data)
 
     def _assemble_api_packet(self, data, aft=ApiFrameType.AT_COMMAND_RESPONSE, sender=None):
         """Assemble API Packet"""
@@ -627,12 +642,10 @@ class APIParser:
         packets = buffer.split(cls.DELIMITER)
         for p in packets:
             if len(p) > 0:
-                pkt = build_frame(cls.DELIMITER + p)
-                if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
-                    command_queue.append(('AT', (pkt.command, pkt.parameter)))
-                elif pkt.get_frame_type() == ApiFrameType.TRANSMIT_REQUEST:
-                    command_queue.append(('TRANSMIT', (pkt.x64bit_dest_addr, pkt._TransmitPacket__data)))
-                else:
-                    print('UNK', pkt)
+                try:
+                    pkt = build_frame(bytearray(cls.DELIMITER + p))
+                    command_queue.append(pkt)
+                except Exception:
+                    print(f'Encountered invalid packet in buffer: {buffer}')
         return command_queue
     
