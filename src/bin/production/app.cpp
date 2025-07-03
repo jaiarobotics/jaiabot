@@ -241,7 +241,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     // If we're still in the reset window, wait it out
     if (imu_reset_pending_ && since_reset < cfg().imu_reboot_time())
     {
-        glog.is_debug1() && glog << "⏳ Still in IMU reset window (" << since_reset << "s), skipping check." << std::endl;
+        glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message" << since_last_imu << "s)" << std::endl;
         return;
     }
 
@@ -315,8 +315,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 
     if (since_reset > cfg().imu_reboot_time())
     {
-        glog.is_debug1() && glog << "⏱️ IMU data paused!"<< std::endl; 
-
         imu_reset_pending_ = false;
         
         // Prevents future calls
@@ -476,8 +474,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
     if (test_imu_ || imu_reset_pending_)
     {
-        imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        imu_sensor_data_timeCheck();
 
         if (imu_reset_complete_)
         {
