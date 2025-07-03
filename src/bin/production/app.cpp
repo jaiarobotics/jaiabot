@@ -303,8 +303,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 
     if (since_reset > cfg().imu_reboot_time())
     {
-        glog.is_debug1() && glog << "⏱️ IMU data resumed in "
-                                 << since_last_imu << "s — dropout window passed." << std::endl;
+        glog.is_debug1() && glog << "⏱️ IMU data resumed"<< std::endl;
         response.set_test_result("PASS");
         response.set_imu_reset_response("IMU data paused for at least 2 seconds"); //make this something other then response then clear it for others
 
@@ -397,8 +396,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
     if (test_imu_ || imu_reset_pending_)
     {
-        imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        imu_sensor_data_timeCheck();
 
         if (imu_reset_complete_)
     {
