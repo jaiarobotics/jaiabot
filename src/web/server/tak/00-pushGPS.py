@@ -1,24 +1,35 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import logging
-logging.basicConfig(level=logging.ERROR)
-logging.getLogger("pytak").setLevel(logging.ERROR)
-logging.getLogger("asyncio").setLevel(logging.ERROR)
+# import logging
+# logging.basicConfig(level=logging.ERROR)
+# logging.getLogger("pytak").setLevel(logging.ERROR)
+# logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 import asyncio
 import xml.etree.ElementTree as ET
 import pytak
+import logging
 from configparser import ConfigParser
 import argparse
+
+
+# Patch pytak logger to suppress INFO messages
+for logger_name in ("pytak", "pytak.classes"):
+    logger = logging.getLogger(logger_name)
+    logger.handlers.clear()
+    logger.setLevel(logging.ERROR)
+    logger.propagate = False
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lat", type=float, default=45.06857)
 parser.add_argument("--lon", type=float, default=-83.43467)
 parser.add_argument("--callsign", type=str, default="JAIABOT")
-parser.add_argument("--speed", type=float, default=10)
+parser.add_argument("--speed", type=float, default=2.5)
 parser.add_argument("--course", type=float, default=0)
+parser.add_argument("--remarks", type=str, default="")
+parser.add_argument("--loop", type=lambda x: (str(x).lower() == 'true'), default=True, help="Send repeatedly if True, once if False")
 args, unknown = parser.parse_known_args()
 
 callsign = args.callsign
@@ -40,10 +51,10 @@ class AsyncDelegate(pytak.QueueWorker):
         await self.put_queue(event)
 
     async def run(self, number_of_iterations=-1):
-    # This routine is the loop continually processing pre-COT data into an XML COT
-    #    then it passes the data to the routine which puts COT events on the TX queue.
-    #    Creates a new event every 30 seconds.
-        while 1:
+        # Use the --loop argument to control repetition
+        first = True
+        while args.loop or first:
+            first = False
 
             # Creating COT event from provided information:
             cot = ET.Element("xml")                        #<xml
@@ -53,7 +64,7 @@ class AsyncDelegate(pytak.QueueWorker):
 
             event = ET.SubElement(cot, 'event')            #<event 
             event.set("version", "2.0")                    #   version = "2.0"
-            event.set("type", "a-f-A-M-F-Q")               #   type = "a-k-G"
+            event.set("type", "a-f-S-U")                     #   type = "a-f-S-U"
             event.set("uid", callsign)                     #   uid = "{callsign}"
             event.set("how", "m-g")                        #   how = "m-g"
             event.set("time", pytak.cot_time())            #   time = "2023-07-04T08:00:01.22Z"
@@ -78,14 +89,12 @@ class AsyncDelegate(pytak.QueueWorker):
             track.set("speed", str(args.speed))    # Speed in m/s
 
             remarks = ET.SubElement(detail, 'remarks')     #   <contact
-            remarks.text = "Potentially More Usefuly Info:/n Power + Freq"
+            remarks.text = args.remarks
 
-            cotEvent = ET.tostring(cot, encoding='utf-8')  #</xml>
-            # FINISHED creating COT event
-            
-            # print(cotEvent)
-            await self.handle_data(cotEvent)    # Enqueues COT for TX
-            await asyncio.sleep(10)             # Sleep 30 seconds then loop again. Change here to increase/decrease update speed.
+            cotEvent = ET.tostring(cot, encoding='utf-8')
+            await self.handle_data(cotEvent)
+            if args.loop:
+                await asyncio.sleep(30)
 #############################
 #############################
 

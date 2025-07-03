@@ -511,17 +511,31 @@ class Interface:
         return self.metadata
 
     def send_cot_for_bot(self, bot_status):
-        lat = bot_status["location"]["lat"]
-        lon = bot_status["location"]["lon"]
-        callsign = bot_status.get("callsign", f"BOT_{bot_status['bot_id']}")
+        # Ensure location exists
+        location = bot_status.get("location")
+        if not location or "lat" not in location or "lon" not in location:
+            logging.warning(f"Bot {bot_status.get('bot_id', 'unknown')} has no location, skipping CoT send.")
+            return
 
-        # Extract speed and course as floats, handling dicts if present
-        speed = bot_status.get("speed", 0.0)
-        if isinstance(speed, dict):
-            speed = speed.get("over_ground", 0.0)
-        course = bot_status.get("course", 0.0)
-        if isinstance(course, dict):
-            course = course.get("over_ground", 0.0)
+        lat = location["lat"]
+        lon = location["lon"]
+        callsign = bot_status.get("callsign", f"BOT_{bot_status.get('bot_id', 'unknown')}")
+
+        # Extract speed from BotStatus.speed.over_ground, fallback to 0.0
+        speed = 0.0
+        speed_dict = bot_status.get("speed")
+        if isinstance(speed_dict, dict):
+            speed = speed_dict.get("over_ground", 0.0)
+
+        # Use heading from attitude if available, else fallback to 0.0
+        attitude = bot_status.get("attitude", {})
+        heading = attitude.get("heading", 0.0)
+
+        task_packet = bot_status.get("task_packet")
+        if task_packet is not None and task_packet != {}:
+            task_packet_summary = f"TaskPacket: {json.dumps(task_packet, indent=2)}"
+        else:
+            task_packet_summary = f"No task packet\nFull bot_status:\n{json.dumps(bot_status, indent=2)}"
 
         script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
         tak_dir = os.path.dirname(script_path)
@@ -533,5 +547,7 @@ class Interface:
             "--lon", str(lon),
             "--callsign", callsign,
             "--speed", str(speed),
-            "--course", str(course)
+            "--course", str(heading),
+            "--remarks", task_packet_summary,
+            "--loop", "False"
         ], cwd=tak_dir)
