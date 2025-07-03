@@ -420,7 +420,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(pressure_temperature_data.SerializeAsString());
-        //interthread().publish<pressure_udp_out>(io_data); //(uncomment this out later)
+        interthread().publish<pressure_udp_out>(io_data); //(uncomment this out later)
     }
 
     // publish salinity as UDP message for atlas scientific ezo-ec driver
@@ -447,7 +447,6 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     }
 
     // publish IMUData //ITakeOutIMUFORNOW
-    
     {
         // Check for when to resume
         if(goby::time::SteadyClock::now() >= imu_dropout_end_)
@@ -468,7 +467,6 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
             interprocess().publish<groups::imu>(imu_data);
         }
     }
-    
 
     last_nav_process_time_ = now;
 }

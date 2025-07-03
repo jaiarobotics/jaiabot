@@ -275,12 +275,11 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                 {
                     if (tab_->production_imu_data_test_status_text_)
                     {
-                        std::string test_result = response.test_result();
                         std::string test_response = response.response();
                         std::string imu_reset_response = response.imu_reset_response();
-                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response + "<br/>" + imu_reset_response);
+                        auto combined_result = Wt::WString::fromUTF8(test_response + "<br/>" + imu_reset_response);
                         // Safety: show fallback loading message if both are empty
-                        if (test_result.empty() && test_response.empty())
+                        if (test_response.empty() && imu_reset_response.empty())
                         {
                             combined_result = Wt::WString::fromUTF8("⚙️⏳⚙️ Loading...");
                         }
@@ -295,10 +294,9 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                 {
                     if (tab_->production_pressure_data_test_status_text_)
                     {
-                        std::string test_result = response.test_result();
                         std::string test_response = response.response();
 
-                        auto combined_result = Wt::WString::fromUTF8(test_result + "<br/>" + test_response);
+                        auto combined_result = Wt::WString::fromUTF8(test_response);
                         tab_->production_pressure_data_test_status_text_->setText(combined_result);
                         tab_->production_pressure_data_test_status_text_->setTextFormat(Wt::TextFormat::XHTML);
                     }
