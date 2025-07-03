@@ -210,41 +210,60 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
-    if (imu_reset_pending_)
-    {
-        // We're in a dropout window, so skip this check
-        return;
-    }
-
     response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+
     double since_last_imu = seconds_since(last_imu_msg_time_);
-    if (!imu_data_received_){
-         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
+    double since_reset = seconds_since(imu_reset_start_time_);
+
+    if (!imu_data_received_)
+    {
+        glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
         response.set_test_result("FAIL");
         response.set_response("No IMU data has been received yet.");
         return;
     }
-    else if (since_last_imu > 1.0)
+
+    // If we're still in the reset window, wait it out
+    if (imu_reset_pending_ && since_reset < cfg().imu_reboot_time())
+    {
+        glog.is_debug1() && glog << "⏳ Still in IMU reset window (" << since_reset << "s), skipping check." << std::endl;
+        return;
+    }
+
+    // If reset just completed, and IMU resumed, treat as PASS
+    if (imu_reset_pending_ && since_last_imu <= 0.5)
+    {
+        glog.is_debug1() && glog << "✅ IMU Test PASS: IMU resumed quickly after reset (" << since_last_imu << "s)" << std::endl;
+        response.set_test_result("PASS");
+        response.set_response("IMU data resumed shortly after reset");
+        imu_reset_pending_ = false;
+        imu_reset_complete_ = true;
+        return;
+    }
+
+    // Normal logic when not in reset mode
+    if (since_last_imu > 1.0)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
-         response.set_test_result("FAIL");
+        response.set_test_result("FAIL");
         response.set_response("No IMU data in over 1 second");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
+        response.set_test_result("PASS");
         response.set_response("IMU data received in a second or less");
-    
     }
 
-    // Add a fresh timestamp to the response
+    // Timestamp it
     const auto now = std::chrono::system_clock::now();
     const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
         now.time_since_epoch()).count();
     response.set_time(timestamp_us);
 }
+
 
 //possibility of two seperate functions
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
