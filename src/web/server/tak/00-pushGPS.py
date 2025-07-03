@@ -64,7 +64,7 @@ class AsyncDelegate(pytak.QueueWorker):
 
             event = ET.SubElement(cot, 'event')            #<event 
             event.set("version", "2.0")                    #   version = "2.0"
-            event.set("type", "a-f-S-U")                     #   type = "a-f-S-U"
+            event.set("type", "a-f-S-U")                   #   type = "a-f-S-U"
             event.set("uid", callsign)                     #   uid = "{callsign}"
             event.set("how", "m-g")                        #   how = "m-g"
             event.set("time", pytak.cot_time())            #   time = "2023-07-04T08:00:01.22Z"
