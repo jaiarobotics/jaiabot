@@ -86,8 +86,6 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_reset_complete_ = false;
         bool pressure_reset_pending_ = false;
         double latest_pressure_ = 100.0;
-        void pressure_sensor();
-        void pressure_sensor_reset_check();
 
         void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
 
@@ -107,9 +105,10 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point motor_test_start_time_;
 
         void motor_harness();
-
-        bool test_motor_ = false;
         */
+        bool test_motor_ = false;
+        jaiabot::protobuf::ProductionResponse response;
+        
         
         void loop() override;
         
@@ -170,11 +169,11 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 
         });
 
-    /* Subscribe to motor status
+    // Subscribe to motor status
+    /*
     interprocess().subscribe<jaiabot::groups::motor_status>(
         [this](const jaiabot::protobuf::Motor& motor_msg)
         {
-            motor_data_received_ = true;
             latest_rpm_ = motor_msg.rpm();
             if (motor_msg.has_thermistor() && motor_msg.thermistor().has_temperature())
             {
@@ -188,7 +187,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                     motor_test_passed_ = true;
                 }
             }
-        });*/
+        });
+        */
 
    interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
@@ -382,6 +382,7 @@ void::jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
 }
 
+
 /*
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
@@ -453,6 +454,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 }
 */
 
+/*
 void jaiabot::apps::JaiabotProduction::check_imu()
 {
     if (test_imu_ || imu_reset_pending_)
@@ -466,12 +468,13 @@ void jaiabot::apps::JaiabotProduction::check_imu()
         }
     }
 }
+*/
 
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
     // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
-    /*if (test_imu_ || imu_reset_pending_)
+    if (test_imu_ || imu_reset_pending_)
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
@@ -480,8 +483,8 @@ void jaiabot::apps::JaiabotProduction::loop()
         {
             interprocess().publish<jaiabot::groups::production>(response);
         }
-    }*/
-    check_imu();
+    }
+    //check_imu();
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
     if (test_pressure_ || pressure_reset_pending_)
