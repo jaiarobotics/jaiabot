@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
 
+import logging
+
 from digi.xbee.packets.common import ReceivePacket
 from digi.xbee.models.mode import OperatingMode
 from digi.xbee.models.address import XBee16BitAddress, XBee64BitAddress
 
 class SimXBeeNetwork:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(SimXBeeNetwork, cls).__new__(cls)
-            cls.instance.xbees = []
-            print('[SXBN] Simulated XBee Network Initialized')
-        return cls.instance
+        if not hasattr(cls, '_instance'):
+            cls._instance = super(SimXBeeNetwork, cls).__new__(cls)
+            cls._instance.xbees = []
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        self.logger = logging.getLogger()  
+
+        self.logger.info('SXBN (Simulated XBee Network) initialized.')
+        self._initialized = True
+        
 
     def register(self, xbee):
         self.xbees.append(xbee)
-        print(f'[SXBN] Registered XBee {xbee.name}')
+        self.logger.info(f'SXBN registered new XBee {xbee.name}.')
 
     def send(self, sender, packet):
         dest_addr = packet.x64bit_dest_addr
@@ -32,6 +44,6 @@ class SimXBeeNetwork:
                         rf_data=rf_data,
                         op_mode=OperatingMode.API_MODE
                     )
-                print(f'[SXBN] Sending data')
+                self.logger.debug(f'SXBN sending data from {sender.name} to {xbee.name}.')
                 xbee.receive(rxpkt)
 

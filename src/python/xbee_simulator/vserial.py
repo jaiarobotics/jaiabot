@@ -5,6 +5,7 @@ import pty
 from pathlib import Path
 from threading import Thread
 import fcntl
+import logging
 
 class VirtualSerialDevice:
     def __init__(
@@ -12,6 +13,8 @@ class VirtualSerialDevice:
             port: str ='/tmp/vserial',
             callback = None):
         self.__port = Path(port)
+
+        self._logger = logging.getLogger(__name__)
 
         if callback is not None:
             self._callback = callback
@@ -64,6 +67,7 @@ class VirtualSerialDevice:
         while self._running:
             try:
                 data = os.read(self.__master_fd, 1024)
+                self._logger.debug(f'VSD at {self.__port} read: {data}')
                 if data:
                     self._callback(data)
             except BlockingIOError:

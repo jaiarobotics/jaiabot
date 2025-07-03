@@ -6,6 +6,7 @@ from xbee_network_sim import SimXBeeNetwork
 import time
 
 from enum import Enum
+import logging
 
 from digi.xbee.models.atcomm import ATStringCommand, ATCommand
 from digi.xbee.packets.aft import ApiFrameType
@@ -84,6 +85,8 @@ class SimXBee:
         self.name = name
         self.port = directory + '/' + name
 
+        self._logger = logging.getLogger(__name__)
+
         self.state = 'operation'
         self._command_seq_time = None
 
@@ -92,7 +95,6 @@ class SimXBee:
             callback=self._read)
         
         self._buffer_in = bytearray()
-        self._settings = self.DEFAULT_SETTINGS
 
         self._reset_all()
 
@@ -119,6 +121,8 @@ class SimXBee:
             ATStringCommandExt.UL: self._handle_user_serial_low
         }
 
+        
+
         self._network = SimXBeeNetwork()
         self._network.register(self)
 
@@ -142,12 +146,12 @@ class SimXBee:
 
     def transmit(self, packet):
         """Transmit data to other XBees"""
-        # print('TRANSMIT', addr, data)
+        self._logger.debug(f'SXBee {self.name} sending packet.')
         self._network.send(self, packet)
 
     def receive(self, packet):
         """Receive data from other XBees"""
-        # pkt = self._assemble_api_packet(data, ApiFrameType.RECEIVE_PACKET)
+        self._logger.debug(f'SXBee {self.name} received packet.')
         self._send_packet(packet)
 
     def _read(self, data):
@@ -158,7 +162,6 @@ class SimXBee:
 
     def _process(self):
         """Process buffer based on current state and mode."""
-        print(self._buffer_in)
         # Check for command sequence
         self._check_command_sequence()
         # Check current state
@@ -173,7 +176,7 @@ class SimXBee:
             elif self._api_enable == self.modes['Escaped API mode']:
                 self._process_escaped_api_mode()
             else:
-                print(f'MODE NOT SUPPORTED: {self._api_enable}')               
+                self._logger.warning(f'SXBee {self.name} set to unsupported mode: {self._api_enable}')               
 
     def _check_command_sequence(self):
         """Check if a command sequence is in the buffer and alter state."""
@@ -200,7 +203,7 @@ class SimXBee:
     def _process_transparent_mode(self):
         """Process data in transparent mode."""
         if not self._buffer_in.decode('utf-8').isspace():
-            print(f'TRANSPARENT MODE NOT SUPPORTED: {self._buffer_in}')
+            self._logger.warning(f'SXBee {self.name} processing in unsupported transparent mode.')
 
     def _process_api_mode(self):
         """Process data in API mode."""
@@ -226,7 +229,7 @@ class SimXBee:
 
     def _process_escaped_api_mode(self):
         """Process data in Escaped API mode."""
-        print('ESCAPED API MODE NOT SUPPORTED')
+        self._logger.warning(f'SXBee {self.name} processing in unsupported escaped API mode.')
 
     def _call_at_command(self, at_sequence):
         """Call AT command callback"""
@@ -242,7 +245,7 @@ class SimXBee:
             try:
                 cmd = ATStringCommandExt[at_cmd]
             except KeyError:
-                print(at_cmd, at_param)
+                self._logger.warning(f'SXBee {self.name} received invalid AT command {at_cmd}')
                 return self.INVALID_COMMAND
         # Run AT command callback
         try:
@@ -284,9 +287,13 @@ class SimXBee:
 
     def _set_all(self):
         """Sets all configuration settings based on a dictionary."""
+        self._logger.debug(f'SXBee {self.name} updating settings: {self._settings}')
         for k, v in self._settings.items():
             if k in self.DEFAULT_SETTINGS.keys():
                 setattr(self, k, v)
+            else:
+                self._logger.warning(f'PXBee {self.name} encountered unsupported setting {k}.')
+        self._settings = {}
 
     def _reset_all(self):
         """Sets all configuration settings based on the default dictionary."""
@@ -322,7 +329,6 @@ class SimXBee:
         Parameter range - 0 - 9 (usually), Default = 0
         """
         if value is not None:
-            print(value)
             if 0 <= int(value, 16) <= 9:
                 self._settings['_preamble_id'] = str(value)
                 return self.OK
@@ -411,7 +417,10 @@ class SimXBee:
             if len(value) > 20:
                 return self.ERROR
             delimiter = min(value.find(','), value.find('\r'))
-            self._settings['_node_identifier'] = value[:delimiter]
+            if delimiter < 0:
+                self._settings['_node_identifier'] = value
+            else:
+                self._settings['_node_identifier'] = value[:delimiter]
             return self.OK
         else:
             return self._node_identifier
@@ -511,12 +520,12 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 0xF:
-                self._settings['_mesh_unicast_mac_retries'] = value
+                self._settings['_unicast_mac_retries'] = value
                 return self.OK
             else:
                 return self.ERROR
         else:
-            return self._mesh_unicast_mac_retries
+            return self._unicast_mac_retries
         
     def _handle_network_delay_slots(self, value=None):
         """Network Delay slots
@@ -603,7 +612,7 @@ class SimXBee:
 
 
     def _handle_nyi(self, value=None):
-        print('NOT YET IMPLEMENTED')
+        self._logger.warning(f'SXBee {self.name} received unsupported AT command.')
         return self.OK
 
 class ATCommandParser:
@@ -645,6 +654,7 @@ class APIParser:
 
     @classmethod
     def parse(cls, buffer):
+        logger = logging.getLogger(__name__)
         command_queue = []
         packets = buffer.split(cls.DELIMITER)
         for p in packets:
@@ -653,6 +663,6 @@ class APIParser:
                     pkt = build_frame(bytearray(cls.DELIMITER + p))
                     command_queue.append(pkt)
                 except Exception:
-                    print(f'Encountered invalid packet in buffer: {buffer}')
+                    logger.warning(f'API Parser encountered invalid packet in buffer: {buffer}')
         return command_queue
     
