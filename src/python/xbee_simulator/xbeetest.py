@@ -3,11 +3,17 @@ import logging
 
 class SimXBeeGroup:
     """Convenience class for initializing XBees"""
-    def __init__(self, xbees):
+    def __init__(self, xbees=None):
         self.xbees = []
-        for xbee in xbees:
-            new_xbee = SimXBee(name=xbee)
-            self.xbees.append(new_xbee)
+        if xbees is not None:
+            for xbee in xbees:
+                new_xbee = SimXBee(name=xbee)
+                self.xbees.append(new_xbee)
+
+    def add(self, name):
+        new_xbee = SimXBee(name=name)
+        self.xbees.append(new_xbee)
+        new_xbee.start()
 
     def start(self):
         for xbee in self.xbees:
