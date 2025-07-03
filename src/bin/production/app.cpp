@@ -85,6 +85,7 @@ class JaiabotProduction: public ApplicationBase
 
         jaiabot::protobuf::ProductionResponse response;
         bool test_imu_ = false;
+        //might need later
         bool test_pressure_ = false;
         bool test_motor_ = false;
         
@@ -97,7 +98,7 @@ class JaiabotProduction: public ApplicationBase
         void pressure_sensor();
         void motor_harness();
 
-        double since_last_imu = seconds_since(last_imu_msg_time_);
+        //double since_last_imu = seconds_since(last_imu_msg_time_);
 
         goby::time::SystemClock::time_point motor_test_start_time_;
 
@@ -216,6 +217,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     }
 
     response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
+    double since_last_imu = seconds_since(last_imu_msg_time_);
     if (!imu_data_received_){
          glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
         response.set_test_result("FAIL");
@@ -298,8 +300,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         //NOTE: MIGHT NEED TO FIX SET_TEST_RESULT HERE LATER CAUSE I CAN SEE IT SAYING PASS EVEN THO ITS A FAIL CAUSE OF LOOP
     }
 }
-
-
 //pressure service to be restarted
 //possibility of two functions to restart pressure service
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
