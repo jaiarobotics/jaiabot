@@ -40,7 +40,8 @@ class SimXBee:
         '_network_id': '7FFF', # HEX
         '_preamble_id': '0',
         '_factory_serial': '6A616961626F7473', # HEX
-        '_user_serial': '6A616961626F7473', # HEX
+        '_user_serial_high': '6A616961', 
+        '_user_serial_low': '626F7473',
         '_node_identifier': 'pxbee',
         '_api_enable': '0',
         '_api_options': '0',
@@ -91,6 +92,7 @@ class SimXBee:
             callback=self._read)
         
         self._buffer_in = bytearray()
+        self._settings = self.DEFAULT_SETTINGS
 
         self._reset_all()
 
@@ -280,19 +282,24 @@ class SimXBee:
 
     # === Configuration functions =====================================================================================
 
-    def _set_all(self, settings):
+    def _set_all(self):
         """Sets all configuration settings based on a dictionary."""
-        for k, v in settings.items():
+        for k, v in self._settings.items():
             if k in self.DEFAULT_SETTINGS.keys():
                 setattr(self, k, v)
 
     def _reset_all(self):
         """Sets all configuration settings based on the default dictionary."""
-        self._set_all(self.DEFAULT_SETTINGS)
+        self._settings = self.DEFAULT_SETTINGS
+        self._set_all()
 
     # === Hayes AT Command Handlers ===================================================================================
     # These functions change configuration details.
-    # TODO: Changes are not applied until AC (Apply Changes) or CN (Command Null)
+
+    @property
+    def _user_serial(self):
+        """Access user serial"""
+        return self._user_serial_high + self._user_serial_low
 
     def _handle_reset(self, value=None):
         """Reset Defaults
@@ -317,6 +324,7 @@ class SimXBee:
         if value is not None:
             print(value)
             if 0 <= int(value, 16) <= 9:
+                self._settings['_preamble_id'] = str(value)
                 return self.OK
             else: 
                 return self.ERROR
@@ -337,7 +345,7 @@ class SimXBee:
         if value is not None:
             value = int(value, 16)
             if 0 <= value <= 0x7FFF:
-                self._network_id = value
+                self._settings['_network_id'] = str(value)
                 return self.OK
             else:
                 return self.ERROR
@@ -371,8 +379,7 @@ class SimXBee:
         """
         if value is not None:
             value = value.zfill(8)
-            self._user_serial = value + self._user_serial[8:]
-            print(self._user_serial)
+            self._settings['_user_serial_high'] = value
             return self.OK
         else:
             return self._user_serial[:8]
@@ -384,8 +391,7 @@ class SimXBee:
         """
         if value is not None:
             value = value.zfill(8)
-            self._user_serial = self._user_serial[:8] + value
-            print(self._user_serial)
+            self._settings['_user_serial_low'] = value
             return self.OK
         else:
             return self._user_serial[8:]
@@ -405,8 +411,7 @@ class SimXBee:
             if len(value) > 20:
                 return self.ERROR
             delimiter = min(value.find(','), value.find('\r'))
-            self._node_identifier = value[:delimiter]
-            print(self._node_identifier)
+            self._settings['_node_identifier'] = value[:delimiter]
             return self.OK
         else:
             return self._node_identifier
@@ -422,7 +427,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 2:
-                self._api_enable = value
+                self._settings['_api_enable'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -438,7 +443,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 2:
-                self._api_options = value
+                self._settings['_api_options'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -454,7 +459,7 @@ class SimXBee:
         Parameter range - 256-bit value (64 Hexadecimal digits), Default = 0
         """
         if value is not None:
-            self._aes_encryption_key = value
+            self._settings['_aes_encryption_key'] = value
             return self.OK
         else:
             return self.OK
@@ -469,7 +474,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 1:
-                self._encryption_enable = value
+                self._settings['_encryption_enable'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -488,7 +493,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 7:
-                self._mesh_unicast_retries = value
+                self._settings['_mesh_unicast_retries'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -506,7 +511,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 0xF:
-                self._mesh_unicast_mac_retries = value
+                self._settings['_mesh_unicast_mac_retries'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -522,7 +527,7 @@ class SimXBee:
         """
         if value is not None:
             if 1 <= int(value) <= 0x5:
-                self._network_delay_slots = value
+                self._settings['_network_delay_slots'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -538,7 +543,7 @@ class SimXBee:
         """
         if value is not None:
             if 0 <= int(value) <= 5:
-                self._broadcast_multitransmits = value
+                self._settings['_broadcast_multitransmits'] = value
                 return self.OK
             else:
                 return self.ERROR
@@ -548,21 +553,23 @@ class SimXBee:
     def _handle_apply_changes(self, value=None):
         """Apply Changes
 
-        This command applies changes (TODO).
+        This command applies changes.
         """
         if value is not None:
             return self.ERROR
         else:
+            self._set_all()
             return self.OK
 
     def _handle_command_null(self, value=None):
         """Command Null
 
-        This command applies changes (TODO) and exits command mode.
+        This command applies changes and exits command mode.
         """
         if value is not None:
             return self.ERROR
         else:
+            self._set_all()
             self.state = 'operation'
             return self.OK
         
