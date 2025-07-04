@@ -25,6 +25,7 @@ import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
 import Map from "ol/Map";
+import { OfflineMapDownloadDetails } from "../OfflineMapDownloadDetails/OfflineMapDownloadDetails";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
 import { SurveyExclusions } from "../../missions/survey/survey-exclusions";
@@ -3818,13 +3819,15 @@ export default class CommandControl extends React.Component {
     }
 
     downloadOfflineTiles(map: Map, source: TileArcGISRest) {
-        if (this.offlineMapDownloadJob) {
-            this.offlineMapDownloadJob.cancel();
-            this.offlineMapDownloadJob = null;
-        } else {
+        if (!this.offlineMapDownloadJob) {
             const job = new OfflineMapDownloadJob(map, source);
             job.start(() => {
-                console.log(`${job.completed_urls} / ${job.url_list.length} files downloaded.`);
+                if (
+                    this.offlineMapDownloadJob.completed_urls >=
+                    this.offlineMapDownloadJob.url_list.length
+                ) {
+                    this.offlineMapDownloadJob = null;
+                }
             });
             this.offlineMapDownloadJob = job;
         }
@@ -4164,6 +4167,16 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
+        const offlineMapDownloadDetails = this.offlineMapDownloadJob ? (
+            <OfflineMapDownloadDetails
+                job={this.offlineMapDownloadJob}
+                onCancel={() => {
+                    this.offlineMapDownloadJob.cancel();
+                    this.offlineMapDownloadJob = null;
+                }}
+            />
+        ) : null;
+
         let visiblePanelElement: ReactElement;
 
         switch (visiblePanel) {
@@ -4388,6 +4401,8 @@ export default class CommandControl extends React.Component {
                 ) : null}
 
                 {depthContourPlot}
+
+                {offlineMapDownloadDetails}
 
                 {this.state.customAlert}
             </div>
