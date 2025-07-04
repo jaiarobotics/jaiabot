@@ -25,6 +25,7 @@ import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
 import Map from "ol/Map";
+import { OSM } from "ol/source";
 import { OfflineMapDownloadDetails } from "../OfflineMapDownloadDetails/OfflineMapDownloadDetails";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
@@ -126,7 +127,8 @@ import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
 import { OfflineMapDownloadJob } from "../../openlayers/map/layers/tile-db";
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
-import { TileArcGISRest } from "ol/source";
+import { TileImage } from "ol/source";
+import { openStreetMapSource } from "../../openlayers/map/layers/base-layers";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -3818,9 +3820,9 @@ export default class CommandControl extends React.Component {
         );
     }
 
-    downloadOfflineTiles(map: Map, source: TileArcGISRest) {
+    downloadOfflineTiles(map: Map, sources: TileImage[]) {
         if (!this.offlineMapDownloadJob) {
-            const job = new OfflineMapDownloadJob(map, source);
+            const job = new OfflineMapDownloadJob(map, sources);
             job.start(() => {
                 if (
                     this.offlineMapDownloadJob.completed_urls >=
@@ -4113,7 +4115,7 @@ export default class CommandControl extends React.Component {
             <Button
                 className="button-jcc"
                 onClick={() => {
-                    this.downloadOfflineTiles(map, noaaLayer.getSource());
+                    this.downloadOfflineTiles(map, [noaaLayer.getSource(), openStreetMapSource]);
                 }}
             >
                 <Icon path={mdiDownloadMultiple} size={1.3} title="Download Offline Maps" />

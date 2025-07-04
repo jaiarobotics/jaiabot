@@ -3,6 +3,10 @@ import TileLayer from "ol/layer/Tile";
 import { XYZ, OSM } from "ol/source";
 import { persistVisibility } from "./visible-layer-persistance";
 import * as Layers from "../../../shared/Layers";
+import { loadTileFromDatabase } from "./tile-db";
+
+export const openStreetMapSource = new OSM({ wrapX: false });
+openStreetMapSource.setTileLoadFunction(loadTileFromDatabase);
 
 export function createBaseLayerGroup() {
     const layers = [
@@ -13,7 +17,7 @@ export function createBaseLayerGroup() {
                 type: "base",
             },
             zIndex: 1,
-            source: new OSM({ wrapX: false }),
+            source: openStreetMapSource,
         }),
     ];
 
