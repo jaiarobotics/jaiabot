@@ -79,43 +79,62 @@ export function loadTileFromDatabase(tile: ImageTile, url: string) {
         });
 }
 
-export async function downloadOfflineTiles(map: Map, source: TileArcGISRest) {
-    const view = map.getView();
-    const extent = view.calculateExtent();
-    const projection = view.getProjection();
-    const resolution = view.getResolution();
-    const max_zoom = 19;
+export class OfflineMapDownloadJob {
+    url_list: string[] = [];
+    completed_urls: number = 0;
 
-    // Get the tile coordinates
-    const tile_grid = source.getTileGridForProjection(projection);
-    let tile_coords = [];
+    constructor(map: Map, source: TileArcGISRest) {
+        const view = map.getView();
+        const extent = view.calculateExtent();
+        const projection = view.getProjection();
+        const resolution = view.getResolution();
+        const max_zoom = 19;
 
-    for (let z = 0; z <= max_zoom; z++) {
-        const corner1 = tile_grid.getTileCoordForCoordAndZ([extent[0], extent[1]], z);
-        const corner2 = tile_grid.getTileCoordForCoordAndZ([extent[2], extent[3]], z);
+        // Get the tile coordinates
+        const tile_grid = source.getTileGridForProjection(projection);
+        let tile_coords = [];
 
-        const x_range = [corner1[1], corner2[1]].sort();
-        const y_range = [corner1[2], corner2[2]].sort();
+        for (let z = 0; z <= max_zoom; z++) {
+            const corner1 = tile_grid.getTileCoordForCoordAndZ([extent[0], extent[1]], z);
+            const corner2 = tile_grid.getTileCoordForCoordAndZ([extent[2], extent[3]], z);
 
-        for (let x = x_range[0]; x <= x_range[1]; x++) {
-            for (let y = y_range[0]; y <= y_range[1]; y++) {
-                tile_coords.push([z, x, y]);
+            const x_range = [corner1[1], corner2[1]].sort();
+            const y_range = [corner1[2], corner2[2]].sort();
+
+            for (let x = x_range[0]; x <= x_range[1]; x++) {
+                for (let y = y_range[0]; y <= y_range[1]; y++) {
+                    tile_coords.push([z, x, y]);
+                }
             }
+        }
+
+        for (const tile_coord of tile_coords) {
+            const tile_coord_adjusted = source.getTileCoordForTileUrlFunction(
+                tile_coord,
+                projection,
+            );
+            const url = source.tileUrlFunction(
+                tile_coord_adjusted,
+                window.devicePixelRatio,
+                projection,
+            );
+
+            this.url_list.push(url);
         }
     }
 
-    console.debug(`Total tiles to download: ${tile_coords.length}`);
-
-    for (const tile_coord of tile_coords) {
-        const tile_coord_adjusted = source.getTileCoordForTileUrlFunction(tile_coord, projection);
-        const url = source.tileUrlFunction(
-            tile_coord_adjusted,
-            window.devicePixelRatio,
-            projection,
-        );
-
-        await addUrlIfNew(url);
+    cancel() {
+        this.url_list = [];
+        this.completed_urls = 0;
     }
 
-    console.debug(`Total tiles downloaded: ${tile_coords.length}`);
+    async start(statusUpdateFunction: () => void) {
+        this.completed_urls = 0;
+
+        while (this.completed_urls < this.url_list.length) {
+            await addUrlIfNew(this.url_list[this.completed_urls]);
+            this.completed_urls += 1;
+            statusUpdateFunction();
+        }
+    }
 }

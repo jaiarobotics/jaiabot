@@ -24,6 +24,7 @@ import { BotListPanel } from "../BotListPanel/BotListPanel";
 import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
+import Map from "ol/Map";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
 import { SurveyExclusions } from "../../missions/survey/survey-exclusions";
@@ -122,8 +123,9 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
-import { downloadOfflineTiles } from "../../openlayers/map/layers/tile-db";
+import { OfflineMapDownloadJob } from "../../openlayers/map/layers/tile-db";
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
+import { TileArcGISRest } from "ol/source";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -306,6 +308,7 @@ export default class CommandControl extends React.Component {
     botPathFeatures: { [key: number]: OlFeature<OlLineString> } = {};
     // Source: Facebook's Slingshot
     isMobile: boolean = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    offlineMapDownloadJob: OfflineMapDownloadJob = null;
 
     constructor(props: Props) {
         super(props);
@@ -3813,6 +3816,20 @@ export default class CommandControl extends React.Component {
             </div>
         );
     }
+
+    downloadOfflineTiles(map: Map, source: TileArcGISRest) {
+        if (this.offlineMapDownloadJob) {
+            this.offlineMapDownloadJob.cancel();
+            this.offlineMapDownloadJob = null;
+        } else {
+            const job = new OfflineMapDownloadJob(map, source);
+            job.start(() => {
+                console.log(`${job.completed_urls} / ${job.url_list.length} files downloaded.`);
+            });
+            this.offlineMapDownloadJob = job;
+        }
+    }
+
     //
     // Render Helper Methods and Panels (End)
     //
@@ -4093,7 +4110,7 @@ export default class CommandControl extends React.Component {
             <Button
                 className="button-jcc"
                 onClick={() => {
-                    downloadOfflineTiles(map, noaaLayer.getSource());
+                    this.downloadOfflineTiles(map, noaaLayer.getSource());
                 }}
             >
                 <Icon path={mdiDownloadMultiple} size={1.3} title="Download Offline Maps" />
