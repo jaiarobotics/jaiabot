@@ -15,7 +15,9 @@ import StopButton from "../../components/StopButton/StopButton";
 import SystemButton from "../../components/SystemButton/SystemButton";
 import ActivateButton from "../../components/ActivateButton/ActivateButton";
 import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
+import DataOffloadButton from "../../components/DataOffloadButton/DataOffloadButton";
 import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
+import RemoteControlButton from "../../components/RemoteControlButton/RemoteControlButton";
 
 import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
@@ -34,7 +36,7 @@ import {
 } from "./bot-details";
 
 import { DEFAULT_HUB_ID } from "../../utils/constants";
-import { addDropdownListener } from "../../utils/style";
+import { accordionTheme, addDropdownListener } from "../../utils/style";
 import {
     formatLatitude,
     formatLongitude,
@@ -43,7 +45,7 @@ import {
 } from "../../shared/Utilities";
 
 // MDI and MUI
-import { ThemeProvider, createTheme } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
@@ -53,12 +55,6 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
-
-const accordionTheme = createTheme({
-    transitions: {
-        create: () => "none",
-    },
-});
 
 export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -241,13 +237,8 @@ export default function BotDetails() {
                             <AccordionDetails>
                                 <div className="accordion-details-buttons bot-commands">
                                     <ActivateButton bot={bot} />
-                                    <Button className="jaia-button">
-                                        <img
-                                            src={rcModeIcon}
-                                            alt="Activate RC Mode"
-                                            title="RC Mode"
-                                        ></img>
-                                    </Button>
+                                    <DataOffloadButton bot={bot} />
+                                    <RemoteControlButton bot={bot} />
                                     <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion

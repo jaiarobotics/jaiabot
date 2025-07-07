@@ -1,34 +1,27 @@
 import { useContext, useState } from "react";
-import { JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
 
-import { StartMissionDialog, DialogActions } from "./StartMissionDialog";
-import { DisabledCodes } from "./start-mission-messages";
+import { RemoteControlDialog, DialogActions } from "./RemoteControlDialog";
+import { DisabledCodes } from "./remote-control-messages";
 
-import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
-import Mission from "../../data/missions/mission";
-
-import { Command, CommandType } from "../../types/protobuf-types";
+import { Command, CommandType, MissionStart, MovementType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
-import { mdiPlay } from "@mdi/js";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
-import { microsecondsToSeconds } from "../../utils/conversions";
+import rcModeIcon from "../../style/icons/controller.svg";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 interface Props {
     bot: Bot;
-    mission: Mission;
 }
 
 /**
- * Produces the start mission button for an individual Bot.
+ * Produces the button to enter remote control mode.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function StartMissionButton(props: Props) {
+export default function RemoteControlButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
@@ -53,29 +46,14 @@ export default function StartMissionButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
-            return DisabledCodes.NO_COMMS;
-        }
-
         if (
             !isCommandAvailable(
-                CommandType.START_MISSION,
+                CommandType.REMOTE_CONTROL_TASK,
                 props.bot.getMissionStatus().missionState,
             )
         ) {
             return DisabledCodes.MISSION_STATE;
         }
-
-        if (missionsManager.getMissionID(props.bot.getBotID()) === UNASSIGNED_ID) {
-            return DisabledCodes.NO_MISSION_ASSIGNED;
-        }
-
-        // Download queue check
-
-        if (props.bot.getBatteryPercent() < MIN_BATTERY_PERCENT) {
-            return DisabledCodes.LOW_BATTERY;
-        }
-
         return DisabledCodes.NONE;
     };
 
@@ -89,17 +67,13 @@ export default function StartMissionButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const startMissionCommand: Command = {
-                bot_id: props.bot.getBotID(),
-                type: CommandType.MISSION_PLAN,
-                plan: props.mission.packageMissionForHub(),
-            };
-            const response = await sendBotCommand(startMissionCommand);
+            const enterRCCommand = getEnterRCCommand(props.bot);
+            const response = await sendBotCommand(enterRCCommand);
             if (response && response.status === "ok") {
                 jaiaDispatch({
                     type: JaiaActions.SENT_COMMAND,
                     botID: props.bot.getBotID(),
-                    command: startMissionCommand,
+                    command: enterRCCommand,
                 });
             }
         }
@@ -109,16 +83,45 @@ export default function StartMissionButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"start-mission-individual-bot"}
+                aria-label={"enter-remote-control"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiPlay} title="Start Mission" />
+                <img src={rcModeIcon} title="Enter Remote Control"></img>
             </Button>
-            <StartMissionDialog
+            <RemoteControlDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
         </div>
     );
+}
+
+/**
+ * Packages the Bot data into a command to enter RC mode
+ *
+ * @param {Bot} bot Provides the ID and location
+ * @returns {Command} Command to enter RC mode
+ */
+function getEnterRCCommand(bot: Bot) {
+    // Bot requires location to be set if no recovery at waypoint
+    let location = bot.getLocation();
+    if (!location) {
+        location = { lat: 0, lon: 0 };
+    }
+
+    const enterRCCommand: Command = {
+        bot_id: bot.getBotID(),
+        type: CommandType.MISSION_PLAN,
+        plan: {
+            start: MissionStart.START_IMMEDIATELY,
+            movement: MovementType.REMOTE_CONTROL,
+            recovery: {
+                recover_at_final_goal: false,
+                location: location,
+            },
+        },
+    };
+
+    return enterRCCommand;
 }

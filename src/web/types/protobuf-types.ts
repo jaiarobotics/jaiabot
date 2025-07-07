@@ -1204,6 +1204,7 @@ export interface BotOffloadData {
     bot_id: number;
     data_offload_percentage?: number;
     offload_succeeded?: boolean;
+    bots_pending?: number[];
 }
 
 export interface ContactStatus {

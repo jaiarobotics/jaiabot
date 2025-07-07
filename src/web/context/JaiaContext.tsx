@@ -18,12 +18,20 @@ import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
+import {
+    Command,
+    CommandType,
+    GeographicCoordinate,
+    MovementType,
+    Speeds,
+    TaskType,
+} from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
 import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import {
+    BotModes,
     NodeTypes,
     SelectedNode,
     SelectedWaypoint,
@@ -80,6 +88,7 @@ export interface JaiaAction {
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
 
+    command?: Command;
     missionSpeeds?: Speeds;
 }
 
@@ -171,6 +180,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
+
+        case JaiaActions.SENT_COMMAND:
+            return handleSentCommand(mutableState, action.botID, action.command);
 
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
@@ -512,6 +524,35 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
         task.setIsBottomDive(true);
     }
 
+    return mutableState;
+}
+
+/**
+ * Sets the mode of the Bot based on the command sent
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} botID Bot receiving the command
+ * @param {Command} command Command sent to Bot
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSentCommand(mutableState: JaiaContextType, botID: number, command: Command) {
+    const bot = bots.getBot(botID);
+
+    switch (command.type) {
+        case CommandType.MISSION_PLAN:
+            const movement = command.plan.movement;
+            if (movement === MovementType.TRANSIT) {
+                bot.setMode(BotModes.MISSION);
+            } else if (movement === MovementType.REMOTE_CONTROL) {
+                bot.setMode(BotModes.REMOTE_CONTROL);
+            }
+            break;
+        case CommandType.REMOTE_CONTROL_TASK:
+            bot.setMode(BotModes.REMOTE_CONTROL);
+            break;
+        default:
+            bot.setMode(BotModes.MISSION);
+    }
     return mutableState;
 }
 
