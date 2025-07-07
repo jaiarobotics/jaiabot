@@ -467,6 +467,9 @@ class Interface:
         if bot_id is not None:
             self.latest_task_packets[bot_id] = task_packet
 
+        # Send a separate CoT event for this task packet
+        self.send_cot_for_task_packet(task_packet)
+
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
             active_mission_plan_dict = protobufMessageToDict(active_mission_plan)
@@ -567,4 +570,44 @@ class Interface:
             "--course", str(heading),
             "--remarks", task_packet_summary,
             "--loop", "False"
+        ], cwd=tak_dir)
+
+    def send_cot_for_task_packet(self, task_packet):
+        # Choose a unique UID for the task packet
+        start_time = int(task_packet['start_time'])
+        # If start_time is in microseconds, convert to seconds
+        if start_time > 1e12:
+            start_time //= 1_000_000
+        dt = datetime.utcfromtimestamp(start_time)
+        time_str = dt.strftime("%Y%m%d_%H%M%S")
+        uid = f"taskpacket_{task_packet['bot_id']}_{time_str}"
+        # Choose a location: use dive or drift start_location if present
+        lat, lon = None, None
+        if 'dive' in task_packet and 'start_location' in task_packet['dive']:
+            lat = task_packet['dive']['start_location']['lat']
+            lon = task_packet['dive']['start_location']['lon']
+        elif 'drift' in task_packet and 'start_location' in task_packet['drift']:
+            lat = task_packet['drift']['start_location']['lat']
+            lon = task_packet['drift']['start_location']['lon']
+        else:
+            # fallback: don't send if no location
+            return
+
+        # Compose remarks
+        remarks = f"TaskPacket: {json.dumps(task_packet, indent=2)}"
+
+        script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
+        tak_dir = os.path.dirname(script_path)
+
+        subprocess.Popen([
+            "python3",
+            script_path,
+            "--lat", str(lat),
+            "--lon", str(lon),
+            "--callsign", uid,
+            "--speed", "0.0",
+            "--course", "0.0",
+            "--remarks", remarks,
+            "--loop", "False",
+            "--cot_type", "a-f-P-H"  # Pass the blue circle type
         ], cwd=tak_dir)

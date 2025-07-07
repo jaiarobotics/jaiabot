@@ -30,6 +30,7 @@ parser.add_argument("--speed", type=float, default=2.5)
 parser.add_argument("--course", type=float, default=0)
 parser.add_argument("--remarks", type=str, default="")
 parser.add_argument("--loop", type=lambda x: (str(x).lower() == 'true'), default=True, help="Send repeatedly if True, once if False")
+parser.add_argument("--cot_type", type=str, default="a-f-S-U")
 args, unknown = parser.parse_known_args()
 
 callsign = args.callsign
@@ -64,12 +65,12 @@ class AsyncDelegate(pytak.QueueWorker):
 
             event = ET.SubElement(cot, 'event')            #<event 
             event.set("version", "2.0")                    #   version = "2.0"
-            event.set("type", "a-f-S-U")                   #   type = "a-f-S-U"
+            event.set("type", args.cot_type)               #   type = "a-f-S-U"
             event.set("uid", callsign)                     #   uid = "{callsign}"
             event.set("how", "m-g")                        #   how = "m-g"
             event.set("time", pytak.cot_time())            #   time = "2023-07-04T08:00:01.22Z"
             event.set("start", pytak.cot_time())           #   start = "2023-07-04T08:00:01.22Z"
-            event.set("stale", pytak.cot_time(120))        #   stale = "2023-07-04T08:00:03.22Z" />
+            event.set("stale", pytak.cot_time(43200))      #   stale = "2023-07-04T08:00:03.22Z" />
 
             point = ET.SubElement(event, 'point')          #<point
             point.set("lat", str(args.lat))                #   lat = "45.06857"
