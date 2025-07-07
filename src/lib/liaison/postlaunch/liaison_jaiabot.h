@@ -273,13 +273,13 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             {
                 case jaiabot::protobuf::TEST_IMU_SENSOR:
                 {
-                    tab_->production_imu_data_test_status_text_->setText(response.imu_response());
+                    //tab_->production_imu_data_test_status_text_->setText(response.imu_response());
                     break;
                 }
 
                 case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 {
-                    tab_->production_pressure_data_test_status_text_->setText(response.pressure_response());
+                    //tab_->production_pressure_data_test_status_text_->setText(response.pressure_response());
                     
                     break;
                 }

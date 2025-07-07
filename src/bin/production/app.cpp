@@ -21,17 +21,13 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 #include <cstdlib>
-#include <google/protobuf/text_format.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
 #include <goby/middleware/application/interface.h>
 #include <goby/middleware/application/tool.h>
-#include <fstream>
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include <chrono>
-#include <ctime>
-#include <iomanip>
 #include <sstream>
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
@@ -76,7 +72,6 @@ class JaiabotProduction: public ApplicationBase
 
         void imu_sensor_data_timeCheck();
         void imu_sensor_reset_check();
-        void check_imu();
 
         bool test_imu_ = false;
 
