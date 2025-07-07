@@ -52,13 +52,11 @@ class JaiabotProduction: public ApplicationBase
     private:
         // Test state
         bool imu_data_received_ = false;
-        //bool imu_data_paused_ = false;
         bool imu_reset_pending_ = false;
         bool imu_reset_complete_ = false;
 
         goby::time::SystemClock::time_point imu_reset_start_time_;
         goby::time::SystemClock::time_point last_imu_msg_time_;
-        //goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
         void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
@@ -279,7 +277,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     if (!imu_reset_pending_)
     {
         imu_reset_pending_ = true;
-        //imu_data_paused_ = false;
         imu_reset_start_time_ = goby::time::SystemClock::now();
         glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
 
