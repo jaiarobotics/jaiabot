@@ -208,7 +208,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 test_imu_ = true;
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                test_pressure_ = true;
+                pressure_sensor_reset_check();
+                pressure_sensor();
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 test_motor_ = true;
@@ -226,7 +227,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 //when reset imu service is started, imu data stops sending for 2 seconds
 void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
-    response.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
 
     double since_last_imu = seconds_since(last_imu_msg_time_);
     double since_reset = seconds_since(imu_reset_start_time_);
@@ -241,8 +241,12 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     // If we're still in the reset window, wait it out
     if (imu_reset_pending_ && since_reset < cfg().imu_reboot_time())
     {
+        //take line below away later just for testing
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message" << since_last_imu << "s)" << std::endl;
-        response.set_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
+        //response.set_imu_reset_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
+        std::ostringstream oss;
+        oss << "sent reset request — waiting 2 seconds ⏱️ no IMU data for " << since_last_imu << "s";
+        response.set_imu_reset_response(oss.str());
         return;
     }
 
@@ -326,15 +330,11 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 //possibility of two functions to restart pressure service
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-
-    response.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
-
     if (!pressure_data_received_)
     {
         //pressure_test_passed_ = false;
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_pressure_response("fail_no_pressure_data_received_after_restart");
-        return;
     }
 
     if (latest_pressure_ < 0.2)
@@ -486,6 +486,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     //check_imu();
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
+    /*
     if (test_pressure_ || pressure_reset_pending_)
     {
         pressure_sensor();
@@ -497,6 +498,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         }
 
     }
+        */
 
     /*
     if(test_motor_)
