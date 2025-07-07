@@ -211,11 +211,16 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 //imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                test_imu_ = false;
                 response.clear_imu_response();       
                 response.clear_imu_reset_response();   
+                
+                pressure_reset_complete_ = false;
+                pressure_reset_pending_ = false;
+                test_pressure_ = true;
+
                 pressure_sensor_reset_check();
                 pressure_sensor();
+               
                 break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
                 test_motor_ = true;
@@ -484,7 +489,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     //check_imu();
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
-    /*
+    
     if (test_pressure_ || pressure_reset_pending_)
     {
         pressure_sensor();
@@ -496,7 +501,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         }
 
     }
-        */
+        
 
     /*
     if(test_motor_)
