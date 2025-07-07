@@ -66,7 +66,7 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Start Data Offload.
+ * For a confirmation dialog, the buttons will be Cancel and Offload Data.
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
@@ -80,7 +80,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Start Data Offload
+                    Offload Data
                 </button>
             </div>
         );
