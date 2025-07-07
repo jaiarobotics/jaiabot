@@ -58,17 +58,16 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 // IMU test UI box
 auto production_imu_test_box = production_box->addNew<WGroupBox>("IMU Sensor");
 auto imu_test_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-<<<<<<< Updated upstream
-=======
 auto imu_test_again_button = production_imu_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
+imu_test_again_button->hide();
 
 production_imu_test_box->addNew<Wt::WBreak>();
->>>>>>> Stashed changes
 auto imu_test_status_text = production_imu_test_box->addNew<Wt::WText>(); // Status text below button
 
 // fix button logic once publishing is done in app
-imu_test_button->clicked().connect([this, imu_test_button, imu_test_status_text](Wt::WMouseEvent) {
+imu_test_button->clicked().connect([this, imu_test_button, imu_test_again_button, imu_test_status_text](Wt::WMouseEvent) {
     imu_test_button->hide();
+    imu_test_again_button->show();
     this->production_imu_data_test_status_text_ = imu_test_status_text;
     imu_test_status_text->setText("⏳ Waiting for IMU test result...");
 
@@ -84,8 +83,6 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_test_status_text]
     });
 });
 
-<<<<<<< Updated upstream
-=======
 imu_test_again_button->clicked().connect([this, imu_test_again_button, imu_test_status_text](Wt::WMouseEvent) {
     //imu_test_again_button->hide();
     this->production_imu_data_test_status_text_ = imu_test_status_text;
@@ -103,21 +100,19 @@ imu_test_again_button->clicked().connect([this, imu_test_again_button, imu_test_
     });
 });
 
->>>>>>> Stashed changes
 
 //Test Pressure!!
 auto production_pressure_test_box = production_box->addNew<WGroupBox>("Pressure Sensor");
 auto pressure_test_button = production_pressure_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-<<<<<<< Updated upstream
-=======
 auto pressure_test_again_button = production_pressure_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
+pressure_test_again_button->hide();
 
 production_pressure_test_box->addNew<Wt::WBreak>();
->>>>>>> Stashed changes
 auto pressure_test_status_text = production_pressure_test_box->addNew<Wt::WText>();
 
-pressure_test_button->clicked().connect([this, pressure_test_button, pressure_test_status_text](Wt::WMouseEvent) {
+pressure_test_button->clicked().connect([this, pressure_test_button, pressure_test_again_button, pressure_test_status_text](Wt::WMouseEvent) {
     pressure_test_button->hide();
+    pressure_test_again_button->show();
 
     this->production_pressure_data_test_status_text_ = pressure_test_status_text;
     pressure_test_status_text->setText("⏳ Waiting for Pressure test result...");
@@ -134,11 +129,6 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_te
     });
 });
 
-<<<<<<< Updated upstream
-    //Test Motor Harness
-    auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
-auto motor_test_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-=======
 pressure_test_again_button->clicked().connect([this, pressure_test_again_button, pressure_test_status_text](Wt::WMouseEvent) {
     //pressure_test_again_button->hide();
     this->production_pressure_data_test_status_text_ = pressure_test_status_text;
@@ -156,21 +146,22 @@ pressure_test_again_button->clicked().connect([this, pressure_test_again_button,
     });
 });
 
-//Test Motor Harness
+/*Test Motor Harness
 auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
 auto motor_test_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test");
 //auto motor_test_again_button = production_motor_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
+motor_test_again_button->hide();
 
 production_motor_test_box->addNew<Wt::WBreak>();
->>>>>>> Stashed changes
 auto motor_status_text = production_motor_harness_test_box->addNew<Wt::WText>();
 
-motor_test_button->clicked().connect([this, motor_test_button, motor_status_text](Wt::WMouseEvent) {
+motor_test_button->clicked().connect([this, motor_test_button, motor_test_again_button, motor_status_text](Wt::WMouseEvent) {
     motor_test_button->hide();
+    motor_test_again_button->show();
 
     this->production_motor_data_status_text_ = motor_status_text;
     motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
-});
+});*/
 
     production_panel->setCentralWidget(std::move(production_box));
     
