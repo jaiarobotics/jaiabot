@@ -14,6 +14,11 @@ export enum MapIconColors {
 // Disable animations from MUI accordions because of lag experienced by operators
 export const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
+export enum Cursors {
+    DEFAULT = "default",
+    CROSSHAIR = "crosshair",
+}
+
 export function angleToXY(angle: number): XYCoordinate {
     return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) };
 }

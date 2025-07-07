@@ -46,13 +46,22 @@ export interface MapLayerAccordionStates {
     mission: boolean;
 }
 
-export const enum PanelNames {
+export const enum ButtonTypes {
+    PANEL = 1,
+    COMMAND = 2,
+    MAP_MODE = 3,
+}
+
+export const enum ButtonNames {
     NONE = "none",
-    MISSIONS = "missions",
-    WAYPOINT = "waypoint",
-    JAIA_ABOUT = "jaia_about",
-    HELP = "help",
-    DATA_OFFLOAD = "data_offload",
+    ADD_RALLY = "add_rally",
+    DATA_OFFLOAD_PANEL = "data_offload_panel",
+    HELP_PANEL = "help_panel",
+    JAIA_ABOUT_PANEL = "jaia_about_panel",
+    MISSIONS_PANEL = "missions_panel",
+    RALLY_PANEL = "rally_panel",
+    START_ALL_MISSIONS = "start_all_missions",
+    WAYPOINT_PANEL = "waypoint_panel",
 }
 
 export enum DialogActions {

@@ -17,6 +17,7 @@ import ActivateButton from "../../components/ActivateButton/ActivateButton";
 import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
 import DataOffloadButton from "../../components/DataOffloadButton/DataOffloadButton";
 import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
+import RemoteControlButton from "../../components/RemoteControlButton/RemoteControlButton";
 
 import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";
@@ -236,14 +237,8 @@ export default function BotDetails() {
                             <AccordionDetails>
                                 <div className="accordion-details-buttons bot-commands">
                                     <ActivateButton bot={bot} />
-                                    <Button className="jaia-button">
-                                        <img
-                                            src={rcModeIcon}
-                                            alt="Activate RC Mode"
-                                            title="RC Mode"
-                                        ></img>
-                                    </Button>
                                     <DataOffloadButton bot={bot} />
+                                    <RemoteControlButton bot={bot} />
                                     <NextTaskButton bot={bot} />
                                 </div>
                                 <Accordion
