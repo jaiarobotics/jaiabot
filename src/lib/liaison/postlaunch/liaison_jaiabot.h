@@ -276,10 +276,10 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                     if (tab_->production_imu_data_test_status_text_)
                     {
                         std::string test_response = response.imu_response();
-                        std::string imu_reset_response = response.imu_reset_response();
-                        auto combined_result = Wt::WString::fromUTF8(test_response + "<br/>" + imu_reset_response);
+                        //std::string imu_reset_response = response.imu_reset_response();
+                        auto combined_result = Wt::WString::fromUTF8(test_response + "!!!!");
                         // Safety: show fallback loading message if both are empty
-                        if (test_response.empty() && imu_reset_response.empty())
+                        if (test_response.empty())
                         {
                             combined_result = Wt::WString::fromUTF8("⚙️⏳⚙️ Loading...");
                         }

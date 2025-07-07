@@ -251,8 +251,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message" << since_last_imu << "s)" << std::endl;
         //response.set_imu_reset_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
         std::ostringstream reset_oss;
-        reset_oss << "finished reset, received no IMU data for " << since_last_imu << "s";
-        response.set_imu_reset_response(reset_oss.str());
+        reset_oss << "sent reset, received no IMU data for " << since_last_imu << "s";
+        response.set_imu_response(reset_oss.str());
         return;
     }
 
