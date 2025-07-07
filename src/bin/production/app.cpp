@@ -206,7 +206,9 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
                 response.clear_pressure_response();
+                imu_reset_complete_ = false; 
                 test_imu_ = true;
+                //imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 test_imu_ = false;
@@ -251,16 +253,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         std::ostringstream oss;
         oss << "finished reset, received no IMU data for " << since_last_imu << "s";
         response.set_imu_reset_response(oss.str());
-        return;
-    }
-
-    // If reset just completed, and IMU resumed, treat as PASS
-    if (imu_reset_pending_ && since_last_imu <= 0.5)
-    {
-        glog.is_debug1() && glog << "✅ IMU Test PASS: IMU resumed quickly after reset (" << since_last_imu << "s)" << std::endl;
-        response.set_imu_response("pass_imu_data_resumed_shortly_after_reset");
-        imu_reset_pending_ = false;
-        imu_reset_complete_ = true;
         return;
     }
 
