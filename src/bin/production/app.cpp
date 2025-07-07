@@ -50,35 +50,39 @@ class JaiabotProduction: public ApplicationBase
         JaiabotProduction();
 
     private:
-        // Test state
+        // Test state for IMU sensor
         bool imu_data_received_ = false;
         bool imu_reset_pending_ = false;
         bool imu_reset_complete_ = false;
+        bool test_imu_ = false;
 
+        // tracks timestamps for IMU messages and resets
         goby::time::SystemClock::time_point imu_reset_start_time_;
         goby::time::SystemClock::time_point last_imu_msg_time_;
 
+        // restart and reboot imu
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
         void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
 
+        // Declare functions
         void imu_sensor_data_timeCheck();
         void imu_sensor_reset_check();
+        void pressure_sensor();
+        void pressure_sensor_reset_check();
 
-        bool test_imu_ = false;
 
-        // Pressure Test State
+        // test state for Pressure sensor
         bool pressure_test_passed_ = false;
         bool pressure_data_received_ = false;
         bool pressure_reset_complete_ = false;
         bool pressure_reset_pending_ = false;
         double latest_pressure_ = 100.0;
+        bool test_pressure_ = false;
 
+        //restart pressure
         void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
 
-        void pressure_sensor();
-        void pressure_sensor_reset_check();
 
-        bool test_pressure_ = false;
 
         // Motor Test State
         /*
@@ -94,9 +98,10 @@ class JaiabotProduction: public ApplicationBase
         
         bool test_motor_ = false;
         */
+        
         jaiabot::protobuf::ProductionResponse response;
         
-        
+        // Declare the loop
         void loop() override;
 
         // Helper function calculates how many seconds have passed since a specific time point
@@ -172,7 +177,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             }
         });
         */
-
+    
+    // Subscribe to production
    interprocess().subscribe<jaiabot::groups::production>(
     [this](const jaiabot::protobuf::ProductionRequest& production_msg)
     {
@@ -191,6 +197,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 response.clear_pressure_response();
                 imu_reset_complete_ = false; 
                 test_imu_ = true;
+                test_pressure_ = false;
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 response.clear_imu_response();       
@@ -198,6 +205,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 pressure_reset_complete_ = false;
                 pressure_reset_pending_ = false;
                 test_pressure_ = true;
+                test_imu_ = false;
                 pressure_sensor_reset_check();
                 pressure_sensor();
                 break;
@@ -214,7 +222,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
     });
 }
 
-//when reset imu service is started, imu data stops sending for 2 seconds
+// Checks if IMU data stopped and resumed correctly during the reset window
 void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 {
 
@@ -235,9 +243,9 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         std::ostringstream reset_oss;
         std::ostringstream reset_finished_oss;
-        reset_oss << "sent reset, received no IMU data for " << since_last_imu << "s";
+        reset_oss << "sent_reset_request_received_no_IMU_data_for_ " << since_last_imu << "s";
         response.set_imu_response(reset_oss.str());
-        reset_finished_oss << "reset finished, received no IMU data for approx " << since_last_imu << "s";
+        reset_finished_oss << "reset_finished_no_IMU_data_for_approx_ " << since_reset << "s";
         response.set_imu_reset_response(reset_finished_oss.str());
         return;
     }
@@ -254,7 +262,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
         std::ostringstream IMU_oss;
-        IMU_oss << "pass_imu_data_received, last imu message sent " << since_last_imu << "s";
+        IMU_oss << "pass_imu_data_received_last_imu_message_sent_ " << since_last_imu << "s";
         response.set_imu_response(IMU_oss.str());
     }
 
@@ -266,7 +274,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 }
 
 
-//possibility of two seperate functions
+// Starts or monitors IMU reset logic depending on current state
 void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 {
     if (imu_reset_complete_)
@@ -332,7 +340,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     }
 }
 
-void::jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
+void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 {
     if(pressure_reset_complete_) return;
 
