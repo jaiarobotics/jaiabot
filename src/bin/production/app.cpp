@@ -38,13 +38,7 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
-//imu data, pressure, motor status, production
 
-//test imuSensor - test is to confirm we are receiving imu data; when reset imu servie is started
-// imu data stops sending for 2 secs
-//pressureSensor - pressure service is restarted and the pressure reading < 0.2
-//motorHarness - run motor for 2secs and confirm rpm >= 3600
-//get temperature data - temp data between 10-30; reset imu service pauses imu data for 2 secs
 using goby::glog;
 namespace si = boost::units::si;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotProduction>;
@@ -61,7 +55,6 @@ class JaiabotProduction: public ApplicationBase
 
     private:
         // Test state
-        bool imu_test_passed_ = false;
         bool imu_data_received_ = false;
         bool imu_data_paused_ = false;
         bool imu_reset_pending_ = false;
@@ -76,7 +69,6 @@ class JaiabotProduction: public ApplicationBase
 
         void imu_sensor_data_timeCheck();
         void imu_sensor_reset_check();
-        void check_imu();
 
         bool test_imu_ = false;
 
@@ -105,16 +97,13 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point motor_test_start_time_;
 
         void motor_harness();
-        */
+        
         bool test_motor_ = false;
+        */
         jaiabot::protobuf::ProductionResponse response;
         
         
         void loop() override;
-        
-
-        //double since_last_imu = seconds_since(last_imu_msg_time_);
-
 
         // Helper function calculates how many seconds have passed since a specific time point
         double seconds_since(const goby::time::SystemClock::time_point& timestamp)
@@ -208,7 +197,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 response.clear_pressure_response();
                 imu_reset_complete_ = false; 
                 test_imu_ = true;
-                //imu_sensor_reset_check();
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
                 response.clear_imu_response();       
@@ -252,9 +240,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     // If we're still in the reset window, wait it out
     if (imu_reset_pending_ && since_reset < cfg().imu_reboot_time())
     {
-        //take line below away later just for testing
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message " << since_last_imu << "s)" << std::endl;
-        //response.set_imu_reset_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
+
         std::ostringstream reset_oss;
         std::ostringstream reset_finished_oss;
         reset_oss << "sent reset, received no IMU data for " << since_last_imu << "s";
@@ -332,13 +319,12 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         imu_reset_complete_ = true;  
     }
 }
+
 //pressure service to be restarted
-//possibility of two functions to restart pressure service
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
     if (!pressure_data_received_)
     {
-        //pressure_test_passed_ = false;
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_pressure_response("fail_no_pressure_data_received_after_restart");
     }
@@ -486,7 +472,6 @@ void jaiabot::apps::JaiabotProduction::loop()
         interprocess().publish<jaiabot::groups::production>(response);
     
     }
-    //check_imu();
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
     
@@ -501,7 +486,6 @@ void jaiabot::apps::JaiabotProduction::loop()
         }
 
     }
-        
 
     /*
     if(test_motor_)
