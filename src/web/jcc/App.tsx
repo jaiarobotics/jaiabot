@@ -13,6 +13,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
 import "./App.less";
@@ -75,6 +76,8 @@ function Panel() {
             return <HelpWindow />;
         case ButtonNames.JAIA_ABOUT_PANEL:
             return <JaiaAbout />;
+        case ButtonNames.DATA_OFFLOAD_PANEL:
+            return <DataOffloadPanel />;
         default:
             return <div></div>;
     }
