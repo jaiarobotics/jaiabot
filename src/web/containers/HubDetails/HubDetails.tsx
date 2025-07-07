@@ -10,7 +10,7 @@ import {
     formatLongitude,
 } from "../../shared/Utilities";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
-import { addDropdownListener } from "../../utils/style";
+import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
 
@@ -21,7 +21,7 @@ import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import { ThemeProvider, createTheme } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 import { Icon } from "@mdi/react";
 import {
     mdiPower,
@@ -33,12 +33,6 @@ import {
 } from "@mdi/js";
 
 import "./HubDetails.less";
-
-const accordionTheme = createTheme({
-    transitions: {
-        create: () => "none",
-    },
-});
 
 export default function HubDetails() {
     const jaiaContext = useContext(JaiaContext);

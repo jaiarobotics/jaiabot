@@ -2,17 +2,18 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
+import RallyButton from "../RallyButton/RallyButton";
 import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
 import StopAllBotsButton from "../StopAllBots/StopAllBotsButton";
+import DataOffloadAllButton from "../DataOfffloadAllButton/DataOffloadAllButton";
 import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
-import RallyButton from "../RallyButton/RallyButton";
 
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiHelp, mdiViewList } from "@mdi/js";
+import { mdiHelp, mdiProgressDownload, mdiViewList } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 
@@ -65,6 +66,7 @@ export default function ButtonList(props: Props) {
                 <ActivateAllButton bots={jaiaContext.bots} />
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
+                <DataOffloadAllButton bots={jaiaContext.bots} />
                 <RallyButton />
                 <Button className="jaia-button"></Button>
                 <Button
@@ -97,7 +99,15 @@ export default function ButtonList(props: Props) {
                 >
                     <Icon path={mdiViewList} title="Missions Panel" />
                 </Button>
-                <Button className="jaia-button"></Button>
+                <Button
+                    className={getSelectedClassName(ButtonNames.DATA_OFFLOAD_PANEL)}
+                    aria-label="data-offload-panel"
+                    onClick={() =>
+                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.DATA_OFFLOAD_PANEL)
+                    }
+                >
+                    <Icon path={mdiProgressDownload} title="Data Offload Panel" />
+                </Button>
                 <Button className="jaia-button"></Button>
                 <Button className="jaia-button"></Button>
             </div>
