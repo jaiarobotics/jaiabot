@@ -311,25 +311,26 @@ struct MissionManagerStateMachine
 
         if (reset_datum)
         {
-            // use recovery location for datum
-            auto lat_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
-                                  : plan.recovery().location().lat_with_units();
-            auto lon_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
-                                  : plan.recovery().location().lon_with_units();
+            if (plan.goal_size())
+            {
+                // use first location for datum
+                auto lat_origin = plan.goal(0).location().lat_with_units();
+                auto lon_origin = plan.goal(0).location().lon_with_units();
 
-            // set the local datum origin to the first goal
-            goby::middleware::protobuf::DatumUpdate update;
-            update.mutable_datum()->set_lat_with_units(lat_origin);
-            update.mutable_datum()->set_lon_with_units(lon_origin);
-            this->interprocess().template publish<goby::middleware::groups::datum_update>(update);
-            geodesy_.reset(new goby::util::UTMGeodesy({lat_origin, lon_origin}));
 
-            goby::glog.is_debug1() &&
-                goby::glog << "Updated datum to: " << update.ShortDebugString() << std::endl;
+                // set the local datum origin to the first goal
+                goby::middleware::protobuf::DatumUpdate update;
+                update.mutable_datum()->set_lat_with_units(lat_origin);
+                update.mutable_datum()->set_lon_with_units(lon_origin);
+                this->interprocess().template publish<goby::middleware::groups::datum_update>(update);
+                geodesy_.reset(new goby::util::UTMGeodesy({lat_origin, lon_origin}));
+
+
+                goby::glog.is_debug1() &&
+                    goby::glog << "Updated datum to: " << update.ShortDebugString() << std::endl;
+            }
         }
-    }
+
     const jaiabot::protobuf::MissionPlan& mission_plan() const { return plan_; }
 
     bool has_geodesy() const { return geodesy_ ? true : false; }
