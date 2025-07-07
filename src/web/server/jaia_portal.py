@@ -148,7 +148,7 @@ class Interface:
                 self.bots[bot_id] = botStatus
 
                 # Add this line to send a CoT message for this bot:
-                self.send_cot_for_bot(botStatus)
+                self.send_cot_for_bot(msg)
 
                 # Add position to bot_paths
                 #if msg.bot_status.HasField('location'):
@@ -460,6 +460,12 @@ class Interface:
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
         self.task_packet_database.add_task_packet(task_packet)
+        # Store latest task packet per bot
+        if not hasattr(self, "latest_task_packets"):
+            self.latest_task_packets = {}
+        bot_id = task_packet.get("bot_id")
+        if bot_id is not None:
+            self.latest_task_packets[bot_id] = task_packet
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -510,8 +516,13 @@ class Interface:
     def get_Metadata(self):
         return self.metadata
 
-    def send_cot_for_bot(self, bot_status):
-        # Ensure location exists
+    def send_cot_for_bot(self, msg):
+        # Extract bot_status
+        if not msg.HasField('bot_status'):
+            logging.warning("No bot_status in message, skipping CoT send.")
+            return
+
+        bot_status = protobufMessageToDict(msg.bot_status)
         location = bot_status.get("location")
         if not location or "lat" not in location or "lon" not in location:
             logging.warning(f"Bot {bot_status.get('bot_id', 'unknown')} has no location, skipping CoT send.")
@@ -531,7 +542,13 @@ class Interface:
         attitude = bot_status.get("attitude", {})
         heading = attitude.get("heading", 0.0)
 
-        task_packet = bot_status.get("task_packet")
+        # Extract task_packet if present in the message
+        task_packet = None
+        if msg.HasField('task_packet'):
+            task_packet = protobufMessageToDict(msg.task_packet)
+
+        bot_id = bot_status.get("bot_id")
+        task_packet = getattr(self, "latest_task_packets", {}).get(bot_id)
         if task_packet is not None and task_packet != {}:
             task_packet_summary = f"TaskPacket: {json.dumps(task_packet, indent=2)}"
         else:
