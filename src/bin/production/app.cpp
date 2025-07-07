@@ -234,7 +234,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     if (!imu_data_received_)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data has been received yet." << std::endl;
-        response.set_response("fail_no_IMU_data_has_been_received_yet");
+        response.set_imu_response("fail_no_IMU_data_has_been_received_yet");
         return;
     }
 
@@ -245,7 +245,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message" << since_last_imu << "s)" << std::endl;
         //response.set_imu_reset_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
         std::ostringstream oss;
-        oss << "sent reset request — waiting 2 seconds ⏱️ no IMU data for " << since_last_imu << "s";
+        oss << "finished reset, received no IMU data for " << since_last_imu << "s";
         response.set_imu_reset_response(oss.str());
         return;
     }
@@ -254,7 +254,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     if (imu_reset_pending_ && since_last_imu <= 0.5)
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU resumed quickly after reset (" << since_last_imu << "s)" << std::endl;
-        response.set_response("pass_imu_data_resumed_shortly_after_reset");
+        response.set_imu_response("pass_imu_data_resumed_shortly_after_reset");
         imu_reset_pending_ = false;
         imu_reset_complete_ = true;
         return;
@@ -265,13 +265,15 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
-        response.set_response("fail_no_imu_data_after_reset");
+        response.set_imu_response("fail_no_imu_data_after_reset");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
-        response.set_response("pass_imu_data_received");
+        std::ostringstream oss_1;
+        oss_1 << "pass_imu_data_received, last imu message sent " << since_last_imu << "s";
+        response.set_imu_response(oss_1.str());
     }
 
     // Timestamp it

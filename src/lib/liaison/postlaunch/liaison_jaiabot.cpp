@@ -146,12 +146,8 @@ pressure_test_again_button->clicked().connect([this, pressure_test_again_button,
     });
 });
 
-<<<<<<< HEAD
-/*Test Motor Harness
-=======
 //Test Motor Harness
 /*
->>>>>>> ac3f7fbbe55ed10f8e702cc53f436fa4f873c302
 auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
 auto motor_test_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test");
 //auto motor_test_again_button = production_motor_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
@@ -166,12 +162,8 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_test_again_
 
     this->production_motor_data_status_text_ = motor_status_text;
     motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
-<<<<<<< HEAD
-});*/
-=======
 });
 */
->>>>>>> ac3f7fbbe55ed10f8e702cc53f436fa4f873c302
 
     production_panel->setCentralWidget(std::move(production_box));
     
