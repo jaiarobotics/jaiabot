@@ -205,9 +205,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
+                response.clear_pressure_response();
                 test_imu_ = true;
                 break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
+                test_imu_ = false;
+                response.clear_imu_response();       
+                response.clear_imu_reset_response();   
                 pressure_sensor_reset_check();
                 pressure_sensor();
                 break;
