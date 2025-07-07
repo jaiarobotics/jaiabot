@@ -242,6 +242,7 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     if (imu_reset_pending_ && since_reset < cfg().imu_reboot_time())
     {
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message" << since_last_imu << "s)" << std::endl;
+        response.set_response("sent reset request waiting 2 seconds"); //make sure this prints and show seconds that we did not get imu data maybe make own message yeah
         return;
     }
 
@@ -256,17 +257,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     }
 
     // Normal logic when not in reset mode
-    if (since_last_imu > 1.0)
+    if (since_last_imu > 3.0)
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
-        response.set_response("fail_no_imu_data_in_over_1_second");
+        response.set_response("fail_no_imu_data_after_reset");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
-        response.set_response("pass_imu_data_received_in_a_second_or_less");
+        response.set_response("pass_imu_data_received");
     }
 
     // Timestamp it
@@ -474,8 +475,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
     if (test_imu_ || imu_reset_pending_)
     {
-        imu_sensor_reset_check();
         imu_sensor_data_timeCheck();
+        imu_sensor_reset_check();
 
         if (imu_reset_complete_)
         {
