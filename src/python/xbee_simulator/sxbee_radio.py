@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import vserial
-from xbee_network_sim import SimXBeeNetwork
+from sxbee_network import SimXBeeNetwork
 
 import time
 
@@ -614,6 +614,28 @@ class SimXBee:
     def _handle_nyi(self, value=None):
         self._logger.warning(f'SXBee {self.name} received unsupported AT command.')
         return self.OK
+    
+class SimXBeeGroup:
+    """Convenience class for initializing XBees"""
+    def __init__(self, xbees=None):
+        self.xbees = []
+        if xbees is not None:
+            for xbee in xbees:
+                new_xbee = SimXBee(name=xbee)
+                self.xbees.append(new_xbee)
+
+    def add(self, name):
+        new_xbee = SimXBee(name=name)
+        self.xbees.append(new_xbee)
+        new_xbee.start()
+
+    def start(self):
+        for xbee in self.xbees:
+            xbee.start()
+
+    def close(self):
+        for xbee in self.xbees:
+            xbee.close()
 
 class ATCommandParser:
     ATTENTION = b'AT'
