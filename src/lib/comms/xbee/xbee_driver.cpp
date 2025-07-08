@@ -134,7 +134,7 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
         sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
         strcpy(addr.sun_path, "/tmp/sxbsim.sock");
-        if (connect(fd, (sockaddr*)&addr, sizeof(addr) == -1) {
+        if (connect(fd, (sockaddr*)&addr, sizeof(addr) == -1)) {
             perror("connect");
             close(fd);
         }
