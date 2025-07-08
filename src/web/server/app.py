@@ -13,6 +13,8 @@ from http import HTTPStatus
 import jaia_portal
 import missions
 from geotiffs import GeoTiffs
+from map_tile_server import MapTileServer
+from mime_types import *
 
 def parseDate(date):
     if date is None or date == '':
@@ -34,6 +36,7 @@ parser.add_argument("-r", dest='read_only', action='store_true', help="start a r
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
+parser.add_argument("-m", dest='mapDirectory', type=str, default='~/maps/', help="Directory to find offline map sets")
 args = parser.parse_args()
 
 # Setup logging module
@@ -305,5 +308,33 @@ def listGeoTiffFiles():
     return JSONResponse(obj=geoTiffs.list())
 
 
+###### Offline maps
+
+map_tile_server = MapTileServer("~/maps/")
+
+@app.route('/maps/', methods=['GET'])
+def get_maps():
+    """Get a list of the available map sets.
+    """
+    return Response(response=json.dumps(map_tile_server.get_map_names()),
+                        status=HTTPStatus.OK,
+                        mimetype=MIME_TYPE_JSON)
+
+
+@app.route('/maps/<map_name>/<z>/<x>/<y>')
+def get_map_tile(map_name: str, z: str, x: str, y: str):
+    """Get a map tile
+    """
+    print(map_name, z, x, y)
+    tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
+
+    if tile_data is None:
+        return Response(status=HTTPStatus.NOT_FOUND)
+
+    else:
+        return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=False)
+    app.run(host='0.0.0.0', port=40001, debug=True)
