@@ -107,6 +107,7 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     test_comms_ = config_extension().test_comms();
     auto xbee_info_location = config_extension().xbee_info_location();
     bool use_encryption = config_extension().use_xbee_encryption();
+    bool is_in_sim = config_extension().is_in_sim();
     std::string encryption_password = config_extension().xbee_encryption_password();
     std::string mesh_unicast_retries = config_extension().xbee_mesh_unicast_retries();
     std::string unicast_mac_retries = config_extension().xbee_unicast_mac_retries();
@@ -123,6 +124,21 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     {
         device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
                          config_extension().hub_id(), config_extension().fleet_id());
+    }
+
+    // if simulation, add XBee to Simulated XBee Network
+    if (is_in_sim)
+    {
+        std::string create_cmd = "CREATE " + driver_cfg_.serial_port().substr(5);
+        int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        strcpy(addr.sun_path, "/tmp/sxbsim.sock");
+        if (connect(fd, (sockaddr*)&addr, sizeof(addr) == -1) {
+            perror("connect");
+            close(fd);
+        }
+        write(fd, create_cmd.c_str(), create_cmd.size());
     }
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),

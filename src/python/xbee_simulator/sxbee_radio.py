@@ -121,8 +121,6 @@ class SimXBee:
             ATStringCommandExt.UL: self._handle_user_serial_low
         }
 
-        
-
         self._network = SimXBeeNetwork()
         self._network.register(self)
 
@@ -628,6 +626,17 @@ class SimXBeeGroup:
         new_xbee = SimXBee(name=name)
         self.xbees.append(new_xbee)
         new_xbee.start()
+    
+    def remove(self, name):
+        try:
+            for xbee in self.xbees:
+                if xbee.name == name:
+                    self.xbees.remove(xbee)
+                    return True
+                else:
+                    return False
+        except:
+            return False
 
     def start(self):
         for xbee in self.xbees:
@@ -636,6 +645,17 @@ class SimXBeeGroup:
     def close(self):
         for xbee in self.xbees:
             xbee.close()
+    
+    @property
+    def size(self):
+        return len(self.xbees)
+    
+    @property
+    def description(self):
+        desc = ''
+        for xbee in self.xbees:
+            desc += f'{xbee.name}; '
+        return desc
 
 class ATCommandParser:
     ATTENTION = b'AT'
