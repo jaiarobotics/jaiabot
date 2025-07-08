@@ -3,10 +3,13 @@ import glob
 from math import *
 from dataclasses import *
 from mime_types import *
+from shutil import rmtree
 
 
 @dataclass
 class Rectangle:
+    """A rectangle of lat/lon.
+    """
     min_lat: float
     max_lat: float
     min_lon: float
@@ -14,6 +17,16 @@ class Rectangle:
 
 
 def lon_lat_to_xy(n_zoom: int, lon_deg: float, lat_deg: float):
+    """Convert lon/lat to the corresponding xyz tile coordinates.
+
+    Args:
+        n_zoom (int): `2 ** zoom`.
+        lon_deg (float): Longitude of point.
+        lat_deg (float): Latitude of point.
+
+    Returns:
+        tuple[int, int]: x and y tile coordinates as a 2-tuple.
+    """
     xtile = int(floor(n_zoom * ((lon_deg + 180) / 360)))
     lat_rad = lat_deg * pi / 180
     ytile = int(floor(n_zoom * (1 - (log(tan(lat_rad) + 1/cos(lat_rad)) / pi)) / 2))
@@ -21,6 +34,16 @@ def lon_lat_to_xy(n_zoom: int, lon_deg: float, lat_deg: float):
 
 
 def tile_xyz_to_bbox_string(zoom: int, x: int, y: int):
+    """Convert xyz tile coordinates to a bbox for download NOAA ENC maps.
+
+    Args:
+        zoom (int): Zoom level.
+        x (int): Tile x coordinate.
+        y (int): Tile y coordinate.
+
+    Returns:
+        str: The bbox as a comma-delimited string.
+    """
     sn = 20037508.34
     we = 20037508.34
     
@@ -36,6 +59,7 @@ def tile_xyz_to_bbox_string(zoom: int, x: int, y: int):
 
 
 class MapTileServer:
+    """A simple xyz tile server for maps."""
     maps_directory: str
 
     def __init__(self, maps_directory: str):
@@ -43,6 +67,11 @@ class MapTileServer:
 
 
     def get_map_names(self):
+        """Get a list of offline map layers.
+
+        Returns:
+            list[str]: List of offline map layer names.
+        """
         map_paths = glob.glob(f'{self.maps_directory}/*')
         map_paths = filter(lambda path: os.path.isdir(path), map_paths)
         map_paths = map(lambda path: os.path.basename(path), map_paths)
@@ -50,6 +79,17 @@ class MapTileServer:
 
 
     def get_tile(self, map_name: str, z: int, x: int, y: int):
+        """Get an offline map layer tile.
+
+        Args:
+            map_name (str): Name of the map layer.
+            z (int): Zoom level.
+            x (int): Tile x coordinate.
+            y (int): Tile y coordinate.
+
+        Returns:
+            bytes or None: Binary image data in png format, if the image exists.
+        """
         tile_path = f'{self.maps_directory}/{map_name}/{z}/{x}/{y}.png'
         if not os.path.isfile(tile_path):
             return None
@@ -58,17 +98,57 @@ class MapTileServer:
 
 
     def tile_exists(self, map_name:str, z: int, x: int, y: int):
+        """Check if a tile exists
+
+        Args:
+            map_name (str): Name of the map layer.
+            z (int): Zoom level.
+            x (int): Tile x coordinate.
+            y (int): Tile y coordinate.
+
+        Returns:
+            bool: Whether the tile exists.
+        """
         tile_path = f'{self.maps_directory}/{map_name}/{z}/{x}/{y}.png'
         return os.path.isfile(tile_path)
 
 
     def put_tile(self, map_name: str, z: int, x: int, y: int, data: bytes):
+        """Upload a map tile to an offline map layer.
+
+        Args:
+            map_name (str): Name of the map layer.
+            z (int): Zoom level.
+            x (int): Tile x coordinate.
+            y (int): Tile y coordinate.
+            data (bytes): Binary image data in png format.
+        """
         path = os.path.join(self.maps_directory, map_name, str(z), str(x))
         os.makedirs(path, exist_ok=True)
         open(f'{path}/{y}.png', 'wb').write(data)
 
 
+    def delete_map(self, map_name: str):
+        """Delete an offline map layer.
+
+        Args:
+            map_name (str): Name of the map layer to delete.
+        """
+        assert(len(map_name) > 0 and len(self.maps_directory) > 0)
+        rmtree(os.path.join(self.maps_directory, map_name))
+
+
     def import_tiles(self, map_name: str, url_template: str, extent: Rectangle, min_zoom=0, max_zoom: int=19, overwrite=False):
+        """Import a set of tiles from an online tile server.
+
+        Args:
+            map_name (str): Name of the map layer.
+            url_template (str): Template string for the url, with `{x}`, `{y}`, `{z}` in place of tile coordinates.
+            extent (Rectangle): The area to download tiles.
+            min_zoom (int, optional): Minimum zoom level to download. Defaults to 0.
+            max_zoom (int, optional): Maximum zoom level to download. Defaults to 19.
+            overwrite (bool, optional): Replace existing tiles? Defaults to False.
+        """
         import requests
         from http import HTTPStatus
 
@@ -94,6 +174,16 @@ class MapTileServer:
 
 
     def import_bbox(self, map_name: str, url_template: str, extent: Rectangle, min_zoom=0, max_zoom: int=19, overwrite=False):
+        """Import tiles from e.g. a NOAA ENC server that uses a bbox parameter.
+
+        Args:
+            map_name (str): Name of the map layer.
+            url_template (str): Template string for the url, with `{bbox}` in place of the bbox.
+            extent (Rectangle): The area to download tiles.
+            min_zoom (int, optional): Minimum zoom level to download. Defaults to 0.
+            max_zoom (int, optional): Maximum zoom level to download. Defaults to 19.
+            overwrite (bool, optional): Replace existing tiles? Defaults to False.
+        """
         import requests
         from http import HTTPStatus
 
@@ -157,23 +247,4 @@ if __name__ == '__main__':
     import sys
 
     map_tile_server = MapTileServer(os.path.expanduser(sys.argv[1]))
-    lat = 41.6627684
-    lon = -71.273214
-
-    delta = 0.01
-    extent = Rectangle(min_lat=lat - delta, max_lat=lat + delta, min_lon=lon - delta, max_lon=lon + delta)
-    # map_tile_server.import_tiles('osm', 'https://tile.openstreetmap.org/{zoom}/{x}/{y}.png', extent, max_zoom=19)
-
-    # https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/export?
-    # F=image&
-    # FORMAT=PNG32&
-    # TRANSPARENT=true&
-    # SIZE=512%2C512&
-    # BBOX=-10018754.171394622, 5009377.085697312, -5009377.085697311, 10018754.171394624&
-    # BBOXSR=3857&
-    # IMAGESR=3857&
-    # DPI=180
-    # BBOX=-15028131.257091932, 0, -12523442.714243276, 2504688.5428486555
-
-    map_tile_server.import_bbox('noaa', 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/export?F=image&FORMAT=PNG32&TRANSPARENT=true&SIZE=512%2C512&BBOX={bbox}&BBOXSR=3857&IMAGESR=3857&DPI=180', extent, max_zoom=19)
     map_tile_server.start_local_server()
