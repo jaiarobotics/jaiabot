@@ -321,19 +321,30 @@ def get_maps():
                         mimetype=MIME_TYPE_JSON)
 
 
-@app.route('/maps/<map_name>/<z>/<x>/<y>')
-def get_map_tile(map_name: str, z: str, x: str, y: str):
+@app.route('/maps/<map_name>/<z>/<x>/<y>', methods=['GET', 'PUT'])
+def map_tile(map_name: str, z: str, x: str, y: str):
     """Get a map tile
     """
-    print(map_name, z, x, y)
-    tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
 
-    if tile_data is None:
-        return Response(status=HTTPStatus.NOT_FOUND)
+    if request.method == 'GET':
+        tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
 
-    else:
-        return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+        if tile_data is None:
+            return Response(status=HTTPStatus.NOT_FOUND)
 
+        else:
+            return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+    elif request.method == 'PUT':
+        map_tile_server.put_tile(map_name, z, y, x, request.data)
+        return Response(status=HTTPStatus.OK)
+
+
+@app.route('/maps/<map_name>', methods=['DELETE'])
+def delete_map(map_name: str):
+    """Delete an offline map layer
+    """
+    map_tile_server.delete_map(map_name)
+    return Response(status=HTTPStatus.OK)
 
 
 if __name__ == '__main__':
