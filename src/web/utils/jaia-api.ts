@@ -249,6 +249,12 @@ export class JaiaAPI {
         }
     }
 
+    async getOfflineMaps() {
+        return this.get("maps/").then((response) => {
+            return response as Promise<string[]>;
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }
