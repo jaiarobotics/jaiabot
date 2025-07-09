@@ -335,7 +335,7 @@ def map_tile(map_name: str, z: str, x: str, y: str):
         else:
             return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
     elif request.method == 'PUT':
-        map_tile_server.put_tile(map_name, z, y, x, request.data)
+        map_tile_server.put_tile(map_name, z, x, y, request.data)
         return Response(status=HTTPStatus.OK)
 
 

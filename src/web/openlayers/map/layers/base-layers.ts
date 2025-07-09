@@ -5,21 +5,20 @@ import { persistVisibility } from "./visible-layer-persistance";
 import * as Layers from "../../../shared/Layers";
 import { loadTileFromDatabase } from "./tile-db";
 
-export const openStreetMapSource = new OSM({ wrapX: false });
+const openStreetMapSource = new OSM({ wrapX: false });
 openStreetMapSource.setTileLoadFunction(loadTileFromDatabase);
 
+export const openStreetMapLayer = new TileLayer({
+    properties: {
+        title: "OpenStreetMap",
+        type: "base",
+    },
+    zIndex: 1,
+    source: openStreetMapSource,
+});
+
 export function createBaseLayerGroup() {
-    const layers = [
-        Layers.getArcGISSatelliteImageryLayer(),
-        new TileLayer({
-            properties: {
-                title: "OpenStreetMap",
-                type: "base",
-            },
-            zIndex: 1,
-            source: openStreetMapSource,
-        }),
-    ];
+    const layers = [Layers.getArcGISSatelliteImageryLayer(), openStreetMapLayer];
 
     layers.forEach((layer) => persistVisibility(layer));
 

@@ -125,10 +125,10 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
-import { OfflineMapDownloadJob } from "../../openlayers/map/layers/tile-db";
+import { OfflineMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
 import { TileImage } from "ol/source";
-import { openStreetMapSource } from "../../openlayers/map/layers/base-layers";
+import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -3820,14 +3820,13 @@ export default class CommandControl extends React.Component {
         );
     }
 
-    downloadOfflineTiles(map: Map, sources: TileImage[]) {
+    downloadOfflineTiles() {
         if (!this.offlineMapDownloadJob) {
-            const job = new OfflineMapDownloadJob(map, sources);
+            const layers = [noaaLayer, openStreetMapLayer];
+
+            const job = new OfflineMapDownloadJob(map, layers);
             job.start(() => {
-                if (
-                    this.offlineMapDownloadJob.completed_urls >=
-                    this.offlineMapDownloadJob.url_list.length
-                ) {
+                if (!this.offlineMapDownloadJob.running) {
                     this.offlineMapDownloadJob = null;
                 }
             });
@@ -4115,7 +4114,7 @@ export default class CommandControl extends React.Component {
             <Button
                 className="button-jcc"
                 onClick={() => {
-                    this.downloadOfflineTiles(map, [noaaLayer.getSource(), openStreetMapSource]);
+                    this.downloadOfflineTiles();
                 }}
             >
                 <Icon path={mdiDownloadMultiple} size={1.3} title="Download Offline Maps" />

@@ -255,6 +255,13 @@ export class JaiaAPI {
         });
     }
 
+    async putOfflineTile(map_name: string, zoom: number, x: number, y: number, data: Blob) {
+        return fetch(`maps/${map_name}/${zoom}/${x}/${y}`, {
+            method: "PUT",
+            body: data,
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }
