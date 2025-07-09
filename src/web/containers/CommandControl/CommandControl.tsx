@@ -16,6 +16,7 @@ import { HubOrBot } from "../../types/hub-or-bot";
 import { createMap } from "../../openlayers/map/map";
 import { BotLayers } from "../../openlayers/map/layers/bot-layers";
 import { HubLayers } from "../../openlayers/map/layers/hub-layers";
+import Gamepad from "react-gamepad";
 import { ContactLayers } from "../../openlayers/map/layers/contact-layers";
 import { HubDetails } from "../HubDetails/HubDetails";
 import { CommandList } from "../../missions/missions";
@@ -181,6 +182,7 @@ export interface Props {
 }
 
 interface State {
+    selectedBotId: number | null;
     podStatus: PodStatus;
     podStatusVersion: number;
     botExtents: { [key: number]: number[] };
@@ -335,6 +337,7 @@ export default class CommandControl extends React.Component {
             missionPlanningGrid: null,
             missionPlanningLines: null,
             missionPlanningFeature: null,
+            selectedBotId: null,
             missionBaseGoal: { task: { type: TaskType.NONE } },
             missionStartTask: { type: TaskType.NONE },
             missionEndTask: { type: TaskType.NONE },
@@ -4293,63 +4296,86 @@ export default class CommandControl extends React.Component {
         }
 
         return (
-            <div
-                id="jcc_container"
-                className={containerClasses}
-                onClick={this.handleJccContainerClick.bind(this)}
+            <Gamepad
+                onButtonDown={(buttonName) => {
+                    const bots = Object.values(this.state.podStatus.bots);
+                    if (!bots.length) return;
+
+                    const current = this.state.selectedBotId ?? null;
+                    let newBotId = current ?? 1;
+
+                    if (buttonName === "RB") {
+                        newBotId = Math.min(newBotId + 1, bots.length);
+                    } else if (buttonName === "LB") {
+                        newBotId = Math.max(newBotId - 1, 1);
+                    } else {
+                        return;
+                    }
+
+                    if (newBotId !== current) {
+                        this.toggleBot(newBotId);
+                        console.log(`🎮 Switched to bot ${newBotId}`);
+                    }
+                }}
             >
-                <JaiaAbout metadata={metadata} />
+                <div
+                    id="jcc_container"
+                    className={containerClasses}
+                    onClick={this.handleJccContainerClick.bind(this)}
+                >
+                    <JaiaAbout metadata={metadata} />
 
-                {visiblePanelElement}
+                    {visiblePanelElement}
 
-                <div id={this.mapDivId} className="map-control" />
+                    <div id={this.mapDivId} className="map-control" />
 
-                <div id="viewControls">
-                    {missionPanelButton}
-                    {addRallyPointButton}
-                    {surveyMissionSettingsButton}
-                    {downloadQueueButton}
-                    {measureButton}
-                    {settingsPanelButton}
+                    <div id="viewControls">
+                        {missionPanelButton}
+                        {addRallyPointButton}
+                        {surveyMissionSettingsButton}
+                        {downloadQueueButton}
+                        {measureButton}
+                        {settingsPanelButton}
+                    </div>
+
+                    <div id="botsDrawer">
+                        <BotListPanel
+                            podStatus={this.getPodStatus()}
+                            selectedBotId={this.selectedBotId()}
+                            selectedHubId={this.selectedHubId()}
+                            trackedBotId={this.state.trackingTarget}
+                            didClickBot={this.didClickBot.bind(this)}
+                            didClickHub={this.didClickHub.bind(this)}
+                        />
+                    </div>
+
+                    {detailsBox}
+
+                    <HubDetails />
+
+                    {rcControllerPanel}
+
+                    {this.takeControlPanel()}
+
+                    {this.commandDrawer()}
+
+                    {this.state.loadMissionPanel}
+
+                    {this.state.saveMissionPanel}
+
+                    {this.disconnectionPanel()}
+
+                    {this.state.isHelpWindowDisplayed ? (
+                        <HelpWindow
+                            onClose={() => {
+                                this.setState({ isHelpWindowDisplayed: false });
+                            }}
+                        />
+                    ) : null}
+
+                    {this.state.customAlert}
                 </div>
-
-                <div id="botsDrawer">
-                    <BotListPanel
-                        podStatus={this.getPodStatus()}
-                        selectedBotId={this.selectedBotId()}
-                        selectedHubId={this.selectedHubId()}
-                        trackedBotId={this.state.trackingTarget}
-                        didClickBot={this.didClickBot.bind(this)}
-                        didClickHub={this.didClickHub.bind(this)}
-                    />
-                </div>
-
-                {detailsBox}
-
-                <HubDetails />
-
-                {rcControllerPanel}
-
-                {this.takeControlPanel()}
-
-                {this.commandDrawer()}
-
-                {this.state.loadMissionPanel}
-
-                {this.state.saveMissionPanel}
-
-                {this.disconnectionPanel()}
-
-                {this.state.isHelpWindowDisplayed ? (
-                    <HelpWindow
-                        onClose={() => {
-                            this.setState({ isHelpWindowDisplayed: false });
-                        }}
-                    ></HelpWindow>
-                ) : null}
-
-                {this.state.customAlert}
-            </div>
+            </Gamepad>
         );
     }
 }
