@@ -2,3 +2,4 @@ dccl/
 goby/
 jaiabot/
 *.egg-info/
+nanopb_pb2.py
