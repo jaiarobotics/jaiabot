@@ -1,5 +1,11 @@
 import { jaiaAPI } from "./jaia-api";
-import { Command, CommandForHub, CommandType, MissionState } from "../types/protobuf-types";
+import {
+    Command,
+    CommandForHub,
+    CommandType,
+    Engineering,
+    MissionState,
+} from "../types/protobuf-types";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -50,7 +56,8 @@ export function isCommandAvailable(commandType: CommandType, missionState: Missi
 }
 
 /**
- * Passes a command message for a Bot to the jaiaAPI so it can reach the Hub for distribution
+ * Passes a command message for a Bot to the jaiaAPI
+ * so it can reach the Hub for distribution
  *
  * @param {Command} command Command message to be sent to Bot
  * @returns {Promise} Response from sending command
@@ -70,6 +77,17 @@ export function sendHubCommand(command: CommandForHub) {
 }
 
 /**
+ * Passes a engineering command message for a Bot to the jaiaAPI
+ * so it can reach the Hub for distribution
+ *
+ * @param {Engineering} command Engineering command message to be sent to Bot
+ * @returns {Promise} Response from sending command
+ */
+export function sendEngineeringCommand(command: Engineering) {
+    return jaiaAPI.postEngineering(command);
+}
+
+/*
  * Checks whether the client is in control
  *
  * @returns {boolean} True if the client is in control, otherwise false

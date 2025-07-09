@@ -6,6 +6,7 @@ export enum LayerTitles {
     HUB_LAYER = "hub-layer",
     MISSION_LAYER = "mission-layer",
     DIVE_LAYER = "dive-layer",
+    RALLY_LAYER = "rally-layer",
 }
 
 export enum MapFeatureTypes {
@@ -15,4 +16,10 @@ export enum MapFeatureTypes {
     WAYPOINT = "WAYPOINT",
     WAYPOINT_LINE = "WAYPOINT_LINE",
     DIVE = "DIVE",
+}
+
+export enum MapModes {
+    DEFAULT = "DEFAULT",
+    RALLY = "RALLY",
+    MEASURE = "MEASURE",
 }

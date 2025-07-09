@@ -1,9 +1,8 @@
 import { useContext } from "react";
-
-// Jaia
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
-import { PanelNames } from "../types/context-types";
-import { ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
+
+import { ButtonNames } from "../types/context-types";
+import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
 import Map from "../components/Map/Map";
 import NodeList from "../containers/NodeList/NodeList";
@@ -15,8 +14,9 @@ import HelpWindow from "../components/HelpWindow/HelpWindow";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
+import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
+import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
-// Style
 import "./App.less";
 
 /**
@@ -32,6 +32,7 @@ export default function App() {
                 <ButtonList buttonListType={ButtonListTypes.SIDE} />
                 <Details />
                 <Panel />
+                <RemoteControl />
             </JaiaContextProvider>
         </div>
     );
@@ -68,22 +69,41 @@ function Panel() {
     }
 
     switch (jaiaContext.visiblePanel) {
-        case PanelNames.MISSIONS:
+        case ButtonNames.MISSIONS_PANEL:
             return <MissionsPanel />;
-        case PanelNames.WAYPOINT:
+        case ButtonNames.WAYPOINT_PANEL:
             return <WaypointPanel />;
-        case PanelNames.HELP:
+        case ButtonNames.HELP_PANEL:
             return <HelpWindow />;
-        case PanelNames.JAIA_ABOUT:
+        case ButtonNames.JAIA_ABOUT_PANEL:
             return <JaiaAbout />;
-        case PanelNames.TASK_PACKET:
+        case ButtonNames.TASK_PACKET_PANEL:
             return (
                 <TaskPacketPanel
                     selectedTaskPacket={jaiaContext.selectedTaskPacket}
                     taskPackets={jaiaContext.taskPackets}
                 />
             );
+        case ButtonNames.DATA_OFFLOAD_PANEL:
+            return <DataOffloadPanel />;
         default:
             return <div></div>;
+    }
+}
+
+/**
+ * Controls the rendering of the RemoteControlPanel
+ */
+function RemoteControl() {
+    const jaiaContext = useContext(JaiaContext);
+
+    if (jaiaContext === null) {
+        return <div></div>;
+    }
+    if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
+        const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
+        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+            return <RemoteControlPanel botID={selectedBot.getBotID()} />;
+        }
     }
 }

@@ -1,38 +1,30 @@
-import { useContext, useState } from "react";
-import { JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
+import { useState } from "react";
 
-import { StartAllMissionsDialog, DialogActions } from "./StartAllMissionsDialog";
-import { DisabledCodes } from "../StartMissionButton/start-mission-messages";
+import { DataOffloadAllDialog, DialogActions } from "./DataOffloadAllDialog";
+import { DisabledCodes } from "../DataOffloadButton/data-offload-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiPlay } from "@mdi/js";
+import { mdiDownloadMultiple } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import Mission from "../../data/missions/mission";
 
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { Command, CommandType } from "../../types/protobuf-types";
-import { ButtonNames, ButtonTypes } from "../../types/context-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
+import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
     bots: Map<number, Bot>;
-    missions: Map<number, Mission>;
 }
 
 type DisabledCodeGroup = [DisabledCodes, number[]];
 
 /**
- * Produces the button to start all missions.
+ * Produces the button to offload data for all Bots.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function StartAllMissionsButton(props: Props) {
-    const jaiaDispatch = useContext(JaiaDispatchContext);
+export default function DataOffloadAllButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
@@ -40,7 +32,7 @@ export default function StartAllMissionsButton(props: Props) {
 
     /**
      * Loops through the connected Bots and categorizes them based on their
-     * readiness to start a mission. This sets the foundation for creating the correct
+     * ability to offload data. This sets the foundation for creating the correct
      * alert/confirm message.
      *
      * @returns {void}
@@ -52,16 +44,11 @@ export default function StartAllMissionsButton(props: Props) {
             if (isCommsDropped(bot.getStatusAge())) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
-                !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)
+                !isCommandAvailable(CommandType.RECOVERED, bot.getMissionStatus().missionState)
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
-            } else if (isMissionUnassigned(botID)) {
-                updatedBotReadyStates.get(DisabledCodes.NO_MISSION_ASSIGNED).push(botID);
-            }
-
-            // Download queue
-            else if (isCritiallyLowBattery(bot.getBatteryPercent())) {
-                updatedBotReadyStates.get(DisabledCodes.LOW_BATTERY).push(botID);
+            } else if (!bot.getWifiLinkQuality()) {
+                updatedBotReadyStates.get(DisabledCodes.WIFI_QUALITY).push(botID);
             } else {
                 updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
             }
@@ -79,11 +66,6 @@ export default function StartAllMissionsButton(props: Props) {
     const handleClick = () => {
         setIsDialogVisible(true);
         groupBotsByReadyState();
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_BUTTON,
-            buttonType: ButtonTypes.COMMAND,
-            buttonName: ButtonNames.START_ALL_MISSIONS,
-        });
     };
 
     /**
@@ -92,21 +74,16 @@ export default function StartAllMissionsButton(props: Props) {
      * @param {DialogActions} dialogAction The operators action on the dialog box
      * @returns {void}
      */
-    const onDialogClose = async (dialogAction: DialogActions) => {
+    const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
-                const missionID = missionsManager.getMissionID(botID);
-                const startMissionCommand: Command = {
+                const dataOffloadCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.MISSION_PLAN,
-                    plan: props.missions.get(missionID).packageMissionForHub(),
+                    type: CommandType.RECOVERED,
                 };
-                const res = await sendBotCommand(startMissionCommand);
-                if (res.status === "ok") {
-                    jaiaDispatch({ type: JaiaActions.SEND_MISSION, missionID: missionID });
-                }
+                sendBotCommand(dataOffloadCommand);
             }
         }
     };
@@ -115,12 +92,12 @@ export default function StartAllMissionsButton(props: Props) {
         <div>
             <Button
                 className={"jaia-button"}
-                aria-label={"start-all-missions"}
+                aria-label={"data-offload-all-bots"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiPlay} title="Start All Missions" />
+                <Icon path={mdiDownloadMultiple} title="Data Offload All" />
             </Button>
-            <StartAllMissionsDialog
+            <DataOffloadAllDialog
                 isVisible={isDialogVisible}
                 botReadyStates={botReadyStates}
                 numBots={props.bots.size}
@@ -140,9 +117,8 @@ function initBotReadyStates() {
         [DisabledCodes.NONE, []],
         [DisabledCodes.NO_COMMS, []],
         [DisabledCodes.MISSION_STATE, []],
-        [DisabledCodes.NO_MISSION_ASSIGNED, []],
+        [DisabledCodes.WIFI_QUALITY, []],
         [DisabledCodes.DOWNLOAD_QUEUE, []],
-        [DisabledCodes.LOW_BATTERY, []],
     ];
     return botReadyStates;
 }
@@ -155,24 +131,4 @@ function initBotReadyStates() {
  */
 function isCommsDropped(statusAge: number) {
     return microsecondsToSeconds(statusAge) > NO_COMMS_STATUS_AGE;
-}
-
-/**
- * Checks whether the supplied Bot ID is associated with a mission
- *
- * @param {number} botID Used in mission lookup
- * @returns {boolean} True if the Bot does not have an assigned mission
- */
-function isMissionUnassigned(botID: number) {
-    return missionsManager.getMissionID(botID) === UNASSIGNED_ID;
-}
-
-/**
- * Checks whether the supplied battery percent is below the min threshold
- *
- * @param {number} batteryPercent Bot's battery percent
- * @returns {boolean} True if the Bots battery is below the min threshold
- */
-function isCritiallyLowBattery(batteryPercent: number) {
-    return batteryPercent < MIN_BATTERY_PERCENT;
 }
