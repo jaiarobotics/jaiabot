@@ -22,15 +22,24 @@ class SimXBeeNetwork:
 
         self.logger.info('SXBN (Simulated XBee Network) initialized.')
         self._initialized = True
-        
+
+        self._xbee_addresses = []       
 
     def register(self, xbee):
         self.xbees.append(xbee)
+        self._refresh_stats()
         self.logger.info(f'SXBN registered new XBee {xbee.name}.')
+        self.logger.debug(f'SXBN address list: {self._xbee_addresses}.')
+
+    def _refresh_stats(self):
+        self._xbee_addresses = []
+        for xbee in self.xbees:
+            self._xbee_addresses.append(xbee._user_serial)
 
     def send(self, sender, packet):
         dest_addr = packet.x64bit_dest_addr
         rf_data = packet.rf_data
+        xbee_matched = False
         for xbee in self.xbees:
             rxpkt = None
             if xbee.matches(sender._network_id,
@@ -46,4 +55,8 @@ class SimXBeeNetwork:
                     )
                 self.logger.debug(f'SXBN sending data from {sender.name} to {xbee.name}.')
                 xbee.receive(rxpkt)
-
+                xbee_matched = True
+        if not xbee_matched:
+            self.logger.debug(f'SXBN sending data from {sender.name} to non-existent address: {str(dest_addr)}.')
+            self._refresh_stats()
+            self.logger.debug(f'SXBN address list: {self._xbee_addresses}.')
