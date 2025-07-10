@@ -4343,13 +4343,35 @@ export default class CommandControl extends React.Component {
                                 return;
                             }
                             index = Math.max(index - 1, 0);
+                            // Use LS to open and close rcc mode
                         } else if (buttonName === "LS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId) {
                                 const currentlyActive = this.isRCModeActive(selectedBotId);
-                                this.setRcMode(selectedBotId, !currentlyActive); // toggle it
+                                this.setRcMode(selectedBotId, !currentlyActive);
                                 this.triggerRumble();
                             }
+                        } else if (buttonName === "RS") {
+                            const selectedBotId = this.selectedBotId();
+                            if (selectedBotId && !this.isRCModeActive(selectedBotId)) {
+                                // Stop only the selected bot if not in RC mode
+                                this.takeControl(() => {
+                                    // If you have a stopSingleBot or similar method, use it here.
+                                    // Otherwise, you may need to implement it.
+                                    //this.api.postStop({ bot_id: selectedBotId });
+                                    this.api.postCommand({
+                                        bot_id: selectedBotId,
+                                        type: CommandType.STOP,
+                                    });
+                                    info(`Bot ${selectedBotId} has been stopped!`);
+                                });
+                                this.triggerRumble(300, 1, 0.2);
+                            } else if (!selectedBotId) {
+                                // No bot selected: stop all bots
+                                this.sendStopAll();
+                                this.triggerRumble(300, 1, 0.2);
+                            }
+                            return;
                         } else {
                             return;
                         }
