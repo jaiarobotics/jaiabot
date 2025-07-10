@@ -4312,20 +4312,24 @@ export default class CommandControl extends React.Component {
         return (
             <Gamepad
                 onButtonDown={(buttonName) => {
-                    const bots = Object.values(this.state.podStatus.bots);
-                    if (!bots.length) return;
+                    const botsMap = this.state.podStatus.bots;
+                    const botIds = Object.keys(botsMap)
+                        .map(Number)
+                        .sort((a, b) => a - b);
+                    if (!botIds.length) return;
 
-                    const current = this.state.selectedBotId ?? null;
-                    let newBotId = current ?? 1;
+                    const current = this.selectedBotId() ?? botIds[0];
+                    let index = botIds.indexOf(current);
 
                     if (buttonName === "RB") {
-                        newBotId = Math.min(newBotId + 1, bots.length);
+                        index = Math.min(index + 1, botIds.length - 1);
                     } else if (buttonName === "LB") {
-                        newBotId = Math.max(newBotId - 1, 1);
+                        index = Math.max(index - 1, 0);
                     } else {
                         return;
                     }
 
+                    const newBotId = botIds[index];
                     if (newBotId !== current) {
                         this.toggleBot(newBotId);
                         this.triggerRumble();
