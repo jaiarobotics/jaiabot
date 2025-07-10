@@ -5,6 +5,7 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { missions } from "../data/missions/missions";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
+import { taskPackets } from "../data/task_packets/task-packets";
 import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
@@ -14,6 +15,7 @@ import Waypoint from "../data/waypoints/waypoint";
 import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
+import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
 
@@ -24,16 +26,19 @@ import {
     GeographicCoordinate,
     MovementType,
     Speeds,
+    TaskPacket,
     TaskType,
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
 import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
+import { MapFeatureTypes } from "../types/openlayers-types";
 import {
     BotModes,
     NodeTypes,
     SelectedNode,
+    SelectedTaskPacket,
     SelectedWaypoint,
     TaskParameterPair,
 } from "../types/jaia-system-types";
@@ -53,9 +58,11 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
+    taskPackets: TaskPacket[];
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
+    selectedTaskPacket: SelectedTaskPacket;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
@@ -74,6 +81,7 @@ export interface JaiaAction {
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
+    clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
@@ -193,6 +201,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLOSED_WAYPOINT_PANEL:
             return handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint);
 
+        case JaiaActions.CLOSED_TASK_PACKET_PANEL:
+            return handleClosedTaskPacketPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
             return handleClickedNode(mutableState, action.clickedNode);
 
@@ -224,6 +235,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_WAYPOINT:
             return handleClickedWaypoint(mutableState, action.clickedWaypoint);
 
+        case JaiaActions.CLICKED_TASK_PACKET:
+            return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
+
         default:
             return state;
     }
@@ -240,9 +254,11 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missions.getMissions();
+    mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = ButtonNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
@@ -264,6 +280,7 @@ function handleInit(mutableState: JaiaContextType) {
 function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
+    mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }
 
@@ -613,6 +630,23 @@ function handleClosedWaypointPanel(
 }
 
 /**
+ * Handles cleanup when the task packet panel closes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClosedTaskPacketPanel(mutableState: JaiaContextType) {
+    jaiaGlobal.setSelectedTaskPacket({
+        botID: UNASSIGNED_ID,
+        startTime: 0,
+        type: MapFeatureTypes.NONE,
+    });
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
+    diveLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -843,6 +877,32 @@ function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: S
 
     missionLayer.updateFeatures();
 
+    return mutableState;
+}
+
+/**
+ * Opens panel for the selected task packet
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {SelectedTaskPacekt} clickedTaskPacket Identifies which task packet was clicked by operator
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClickedTaskPacket(
+    mutableState: JaiaContextType,
+    clickedTaskPacket: SelectedTaskPacket,
+) {
+    const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
+
+    if (
+        selectedTaskPacket.botID === clickedTaskPacket.botID &&
+        selectedTaskPacket.startTime === clickedTaskPacket.startTime
+    ) {
+        return mutableState;
+    }
+
+    jaiaGlobal.setSelectedTaskPacket(clickedTaskPacket);
+    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
+    mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     return mutableState;
 }
 
