@@ -20,10 +20,14 @@ if [ ! -z "$2" ]; then
     warp="$2"
 fi
 
+${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h 1 -f 0 > /etc/jaiabot/inventory.yml
+
 launchdelay=100
 
 cat <<EOF > ${launchfile}
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
+
+goby_launch -P xbee_world.launch
 
 [env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
 EOF
