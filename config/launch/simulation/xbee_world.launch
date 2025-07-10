@@ -1,0 +1,1 @@
+[kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/xbee_simulator/jaiasim_xbee.py
