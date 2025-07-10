@@ -1528,8 +1528,7 @@ export default class CommandControl extends React.Component {
                     commDest.poorHealthMessage +
                         commDest.idleStateMessage +
                         commDest.downloadQueueMessage +
-                        commDest.disconnectedMessage +
-                        notAssignedMessage,
+                        commDest.disconnectedMessage,
                 );
             } else {
                 const alertText =
@@ -3534,7 +3533,7 @@ export default class CommandControl extends React.Component {
         this.setRunList(deepcopy(this.missionHistory[this.missionHistory.length - 1]));
 
         // Close waypoint panel since it could apply to a waypoint that no longer exists
-        if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
+        if (this.state.visiblePanel === "GOAL_SETTINGS") {
             this.setState({ visiblePanel: PanelType.NONE });
         }
     }
@@ -4354,18 +4353,20 @@ export default class CommandControl extends React.Component {
                         } else if (buttonName === "RS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId && !this.isRCModeActive(selectedBotId)) {
-                                // Stop only the selected bot if not in RC mode
-                                this.takeControl(() => {
-                                    // If you have a stopSingleBot or similar method, use it here.
-                                    // Otherwise, you may need to implement it.
-                                    //this.api.postStop({ bot_id: selectedBotId });
-                                    this.api.postCommand({
-                                        bot_id: selectedBotId,
-                                        type: CommandType.STOP,
-                                    });
-                                    info(`Bot ${selectedBotId} has been stopped!`);
-                                });
-                                this.triggerRumble(300, 1, 0.2);
+                                // Show confirmation before stopping the selected bot
+                                CustomAlert.confirm(
+                                    `Are you sure you'd like to Stop bot: ${selectedBotId}?`,
+                                    "Stop",
+                                    () => {
+                                        this.takeControl(() => {
+                                            this.api.postCommand({
+                                                bot_id: selectedBotId,
+                                                type: CommandType.STOP,
+                                            });
+                                        });
+                                        this.triggerRumble(300, 1, 0.2);
+                                    },
+                                );
                             } else if (!selectedBotId) {
                                 // No bot selected: stop all bots
                                 this.sendStopAll();
