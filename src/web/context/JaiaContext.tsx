@@ -9,7 +9,6 @@ import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
-import Waypoint from "../data/waypoints/waypoint";
 
 import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
@@ -47,7 +46,6 @@ import {
     MapLayerAccordionNames,
     ButtonNames,
     ButtonTypes,
-    PanelActions,
 } from "../types/context-types";
 
 export interface JaiaContextType {
@@ -78,7 +76,6 @@ export interface JaiaAction {
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
 
-    waypoint?: Waypoint;
     location?: GeographicCoordinate;
     taskType?: TaskType;
     taskParameterPair?: TaskParameterPair;
@@ -86,7 +83,6 @@ export interface JaiaAction {
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
-    panelAction?: PanelActions;
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
@@ -200,7 +196,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleClosedDetails(mutableState);
 
         case JaiaActions.CLOSED_WAYPOINT_PANEL:
-            return handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint);
+            return handleClosedWaypointPanel(mutableState);
 
         case JaiaActions.CLOSED_RALLY_PANEL:
             return handleClosedRallyPanel(mutableState);
@@ -627,33 +623,21 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 }
 
 /**
- * Handles cleanup when a waypoint panel closes. If the operator selects
- * cancel, the waypoint data reverts to its state when the panel opened.
+ * Handles cleanup when a waypoint panel closes
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {PanelActions} panelAction How the panel closes
- * @param {Waypoint} serializedWaypoint Waypoint data at time the panel opened
  * @returns {JaiaContextType} Updated mutable state object
- *
- * @notes
- * When the waypoint is passed through the dispatch function it is serialized. To restore
- * its methods, we use Object.setPrototypeOf.
  */
-function handleClosedWaypointPanel(
-    mutableState: JaiaContextType,
-    panelAction: PanelActions,
-    serializedWaypoint?: Waypoint,
-) {
-    if (panelAction === PanelActions.CANCEL) {
-        const originalWaypoint = Object.setPrototypeOf(serializedWaypoint, Waypoint.prototype);
-        const waypoints = missions
-            .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
-            .getWaypoints();
-        waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;
-        missionLayer.updateFeatures();
+function handleClosedWaypointPanel(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+
+    // When waypoint is not deleted, disable movable property
+    if (waypoint) {
+        waypoint.setIsMovable(false);
     }
-    resetSelectedWaypoint(mutableState);
-    mutableState.visiblePanel = ButtonNames.NONE;
+
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     return mutableState;
 }
 
@@ -868,7 +852,6 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
             if (mutableState.visiblePanel !== name) {
                 visiblePanel = name;
             }
-            resetSelectedWaypoint(mutableState);
             break;
         case ButtonTypes.COMMAND:
             if (name === ButtonNames.GO_TO_RALLY) {
@@ -1000,21 +983,4 @@ function getWaypoint() {
     if (mission) {
         return mission.getWaypoint(selectedWaypoint.waypointNum);
     }
-}
-
-/**
- * Sets the selected waypoint to its default settings
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {void}
- */
-function resetSelectedWaypoint(mutableState: JaiaContextType) {
-    const waypoint = getWaypoint();
-
-    if (waypoint) {
-        waypoint.setIsMovable(false);
-    }
-
-    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }

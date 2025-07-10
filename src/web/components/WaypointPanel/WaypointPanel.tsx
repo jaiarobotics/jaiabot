@@ -1,5 +1,4 @@
 import { ChangeEvent, useContext, useEffect, useState } from "react";
-import cloneDeep from "lodash/cloneDeep";
 
 import TaskParameters from "../TaskParameters/TaskParameters";
 
@@ -7,14 +6,12 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
-import Waypoint from "../../data/waypoints/waypoint";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
-import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
@@ -22,8 +19,6 @@ import { mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
-
-let originalWaypoint: Waypoint;
 
 /**
  * Displays information about the selected waypoint such as location and task selection
@@ -51,10 +46,11 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
-    const isDisabled = jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID;
 
     useEffect(() => {
-        originalWaypoint = cloneDeep(getWaypoint());
+        return () => {
+            jaiaDispatch({ type: JaiaActions.CLOSED_WAYPOINT_PANEL });
+        };
     }, []);
 
     /**
@@ -147,21 +143,7 @@ export default function WaypointPanel() {
      * @returns {void}
      */
     const handleDeleteWaypointClick = () => {
-        if (!isDisabled) {
-            jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
-        }
-    };
-
-    /**
-     * Dispatches action to toggle edit mode
-     *
-     * @returns {void}
-     */
-    const handleEditModeClick = () => {
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_EDIT_MISSION,
-            missionID: jaiaContext.selectedWaypoint.missionID,
-        });
+        jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
     };
 
     /**
@@ -218,28 +200,6 @@ export default function WaypointPanel() {
         });
     };
 
-    /**
-     * Dispatches action to close the waypoint panel. If the operator
-     * selects cancel, a copy of the waypoint made on the inital render
-     * of the is passed to the reducer.
-     *
-     * @param {PanelActions} panelAction How the panel closed
-     * @returns {void}
-     */
-    const handleClosePanelClick = (panelAction: PanelActions) => {
-        let waypoint: Waypoint;
-
-        if (panelAction === PanelActions.CANCEL) {
-            waypoint = originalWaypoint;
-        }
-
-        jaiaDispatch({
-            type: JaiaActions.CLOSED_WAYPOINT_PANEL,
-            panelAction: panelAction,
-            waypoint: waypoint,
-        });
-    };
-
     return (
         <div className="waypoint-panel-container">
             <div className="waypoint-panel">
@@ -247,7 +207,7 @@ export default function WaypointPanel() {
                 <div className="waypoint-input-container">
                     <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
                     <Button
-                        className={`jaia-button delete-waypoint ${isDisabled ? "disabled" : ""}`}
+                        className="jaia-button delete-waypoint"
                         onClick={() => handleDeleteWaypointClick()}
                     >
                         <Icon path={mdiDelete} title="Delete Waypoint" />
@@ -260,23 +220,11 @@ export default function WaypointPanel() {
                 <div>{formatBotID()}</div>
 
                 <div className="line-break"></div>
-                <div className="toggle-row">
-                    <div className="label">Edit Mission:</div>
-                    <JaiaToggle
-                        checked={() =>
-                            jaiaContext.missionIDInEditMode ===
-                            jaiaContext.selectedWaypoint.waypointNum
-                        }
-                        onClick={() => handleEditModeClick()}
-                    />
-                </div>
 
-                <div className="line-break"></div>
-                <div className="toggle-row">
+                <div className="tap-to-move-row">
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
                         checked={() => getWaypoint().getIsMovable()}
-                        disabled={() => isDisabled}
                         onClick={() => handleTapToMoveClick()}
                     />
                 </div>
@@ -289,7 +237,6 @@ export default function WaypointPanel() {
                     value={getLatInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
-                    disabled={isDisabled}
                     onChange={(evt) => handleCoordinateChange(evt)}
                 />
 
@@ -299,7 +246,6 @@ export default function WaypointPanel() {
                     value={getLonInput()}
                     className="jaia-input coordinate"
                     autoComplete="off"
-                    disabled={isDisabled}
                     onChange={(evt) => handleCoordinateChange(evt)}
                 />
 
@@ -310,7 +256,6 @@ export default function WaypointPanel() {
                     <Select
                         value={getWaypoint().getTask().getType()}
                         onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
-                        disabled={isDisabled}
                     >
                         <MenuItem value={TaskType.NONE}>
                             {formatMenuItemText(TaskType.NONE)}
@@ -331,12 +276,8 @@ export default function WaypointPanel() {
                 </FormControl>
 
                 <div className="task-parameters-container">
-                    <TaskParameters task={getWaypoint().getTask()} isDisabled={isDisabled} />
+                    <TaskParameters task={getWaypoint().getTask()} />
                 </div>
-            </div>
-            <div className="button-row">
-                <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
-                <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
             </div>
         </div>
     );

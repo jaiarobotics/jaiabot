@@ -14,18 +14,15 @@ import "./TaskParameters.less";
 
 interface Props {
     task: Task;
-    isDisabled: boolean;
 }
 
 interface SubProps {
     task: Task;
-    isDisabled: boolean;
     onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 interface DiveParameterProps {
     task: Task;
-    isDisabled: boolean;
     handleBottomDiveClick: () => void;
     onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -67,27 +64,14 @@ export default function TaskParameters(props: Props) {
             return (
                 <DiveParameters
                     task={props.task}
-                    isDisabled={props.isDisabled}
                     onChange={onParameterChange}
                     handleBottomDiveClick={handleBottomDiveClick}
                 />
             );
         case TaskType.SURFACE_DRIFT:
-            return (
-                <DriftParameters
-                    task={props.task}
-                    isDisabled={props.isDisabled}
-                    onChange={onParameterChange}
-                />
-            );
+            return <DriftParameters task={props.task} onChange={onParameterChange} />;
         case TaskType.CONSTANT_HEADING:
-            return (
-                <ConstantHeading
-                    task={props.task}
-                    isDisabled={props.isDisabled}
-                    onChange={onParameterChange}
-                />
-            );
+            return <ConstantHeading task={props.task} onChange={onParameterChange} />;
         default:
             return <div></div>;
     }
@@ -104,7 +88,6 @@ function DiveParameters(props: DiveParameterProps) {
             <div className="dive-parameters">
                 <BottomDiveToggle
                     task={props.task}
-                    isDisabled={props.isDisabled}
                     handleBottomDiveClick={props.handleBottomDiveClick}
                 />
                 <div className="task-parameters">
@@ -115,7 +98,6 @@ function DiveParameters(props: DiveParameterProps) {
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                         className="jaia-input"
                         autoComplete="off"
-                        disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">s</div>
@@ -127,7 +109,6 @@ function DiveParameters(props: DiveParameterProps) {
             <div className="dive-parameters">
                 <BottomDiveToggle
                     task={props.task}
-                    isDisabled={props.isDisabled}
                     handleBottomDiveClick={props.handleBottomDiveClick}
                 />
 
@@ -139,7 +120,6 @@ function DiveParameters(props: DiveParameterProps) {
                         value={formatNumericalInput(diveParameters.max_depth)}
                         className="jaia-input"
                         autoComplete="off"
-                        disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">m</div>
@@ -151,7 +131,6 @@ function DiveParameters(props: DiveParameterProps) {
                         value={formatNumericalInput(diveParameters.depth_interval)}
                         className="jaia-input"
                         autoComplete="off"
-                        disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">m</div>
@@ -163,7 +142,6 @@ function DiveParameters(props: DiveParameterProps) {
                         value={formatNumericalInput(diveParameters.hold_time)}
                         className="jaia-input"
                         autoComplete="off"
-                        disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">s</div>
@@ -175,7 +153,6 @@ function DiveParameters(props: DiveParameterProps) {
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                         className="jaia-input"
                         autoComplete="off"
-                        disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">s</div>
@@ -198,7 +175,6 @@ function DriftParameters(props: SubProps) {
                 value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">s</div>
@@ -220,7 +196,6 @@ function ConstantHeading(props: SubProps) {
                 value={formatNumericalInput(constantHeadingParameters.constant_heading)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">deg</div>
@@ -232,7 +207,6 @@ function ConstantHeading(props: SubProps) {
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_time)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">s</div>
@@ -244,7 +218,6 @@ function ConstantHeading(props: SubProps) {
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_speed)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">m/s</div>
@@ -271,7 +244,6 @@ function BottomDiveToggle(props: DiveParameterProps) {
             <JaiaToggle
                 checked={() => props.task.getIsBottomDive()}
                 onClick={() => props.handleBottomDiveClick()}
-                disabled={() => props.isDisabled}
             />
         </div>
     );

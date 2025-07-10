@@ -69,8 +69,3 @@ export enum DialogActions {
     NONE = 1,
     CONFIRMED = 2,
 }
-
-export enum PanelActions {
-    CANCEL = 1,
-    DONE = 2,
-}
