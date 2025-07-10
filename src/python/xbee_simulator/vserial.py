@@ -32,13 +32,13 @@ class VirtualSerialDevice:
     def open(self):
         self._create_vserial()
         self._reader.start()
-        print(f"Attached to virtual serial device at {self.__port}")
+        self._logger.debug(f'[VSD] Attached to virtual serial device at {self.__port}')
 
     def close(self):
         self._running = False
         self._reader.join(timeout=1)
         self._cleanup_vserial()
-        print(f"Detached virtual serial device at {self.__port}")
+        self._logger.debug(f'[VSD] Detached virtual serial device at {self.__port}')
 
     def send(self, data):
         os.write(self.__master_fd, data)
@@ -67,7 +67,7 @@ class VirtualSerialDevice:
         while self._running:
             try:
                 data = os.read(self.__master_fd, 1024)
-                self._logger.debug(f'VSD at {self.__port} read: {data}')
+                self._logger.debug(f'[VSD] VSD at {self.__port} read: {data}')
                 if data:
                     self._callback(data)
             except BlockingIOError:
