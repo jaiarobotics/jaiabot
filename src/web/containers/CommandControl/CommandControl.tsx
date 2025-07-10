@@ -4323,33 +4323,36 @@ export default class CommandControl extends React.Component {
 
                     let index = isInitial ? -1 : botIds.indexOf(current);
 
-                    if (buttonName === "RB") {
-                        if (isInitial) {
-                            // First RB → select first bot (botIds[0])
-                            index = 0;
-                        } else if (current === botIds[botIds.length - 1]) {
-                            // Deselect if already at last
-                            this.toggleBot(current);
-                            return;
+                    if (!this.state.customAlert) {
+                        // block bot switching if custom alert is up
+                        if (buttonName === "RB") {
+                            if (isInitial) {
+                                // First RB → select first bot (botIds[0])
+                                index = 0;
+                            } else if (current === botIds[botIds.length - 1]) {
+                                // Deselect if already at last
+                                this.toggleBot(current);
+                                return;
+                            } else {
+                                index = Math.min(index + 1, botIds.length - 1);
+                            }
+                        } else if (buttonName === "LB") {
+                            if (current === botIds[0]) {
+                                // At first bot, deselect
+                                this.toggleBot(current);
+                                return;
+                            }
+                            index = Math.max(index - 1, 0);
+                        } else if (buttonName === "LS") {
+                            const selectedBotId = this.selectedBotId();
+                            if (selectedBotId) {
+                                const currentlyActive = this.isRCModeActive(selectedBotId);
+                                this.setRcMode(selectedBotId, !currentlyActive); // toggle it
+                                this.triggerRumble();
+                            }
                         } else {
-                            index = Math.min(index + 1, botIds.length - 1);
-                        }
-                    } else if (buttonName === "LB") {
-                        if (current === botIds[0]) {
-                            // At first bot, deselect
-                            this.toggleBot(current);
                             return;
                         }
-                        index = Math.max(index - 1, 0);
-                    } else if (buttonName === "LS") {
-                        const selectedBotId = this.selectedBotId();
-                        if (selectedBotId) {
-                            const currentlyActive = this.isRCModeActive(selectedBotId);
-                            this.setRcMode(selectedBotId, !currentlyActive); // toggle it
-                            this.triggerRumble();
-                        }
-                    } else {
-                        return;
                     }
 
                     const newBotId = botIds[index];
