@@ -3793,7 +3793,7 @@ export default class CommandControl extends React.Component {
 
     // Be able to trigger a rumble on remote controller
     triggerRumble(duration = 200, strongMagnitude = 0.5, weakMagnitude = 0.5) {
-        const gamepads = navigator.getGamepads?.() ?? [];
+        const gamepads = (navigator as Navigator).getGamepads?.() ?? [];
         for (const gp of gamepads) {
             if (gp && gp.vibrationActuator) {
                 gp.vibrationActuator.playEffect("dual-rumble", {
@@ -4341,6 +4341,13 @@ export default class CommandControl extends React.Component {
                             return;
                         }
                         index = Math.max(index - 1, 0);
+                    } else if (buttonName === "LS") {
+                        const selectedBotId = this.selectedBotId();
+                        if (selectedBotId) {
+                            const currentlyActive = this.isRCModeActive(selectedBotId);
+                            this.setRcMode(selectedBotId, !currentlyActive); // toggle it
+                            this.triggerRumble();
+                        }
                     } else {
                         return;
                     }
