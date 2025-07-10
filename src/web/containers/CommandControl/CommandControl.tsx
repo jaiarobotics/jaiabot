@@ -4318,12 +4318,28 @@ export default class CommandControl extends React.Component {
                         .sort((a, b) => a - b);
                     if (!botIds.length) return;
 
-                    const current = this.selectedBotId() ?? botIds[0];
-                    let index = botIds.indexOf(current);
+                    const current = this.selectedBotId();
+                    const isInitial = current === null || current === undefined;
+
+                    let index = isInitial ? -1 : botIds.indexOf(current);
 
                     if (buttonName === "RB") {
-                        index = Math.min(index + 1, botIds.length - 1);
+                        if (isInitial) {
+                            // First RB → select first bot (botIds[0])
+                            index = 0;
+                        } else if (current === botIds[botIds.length - 1]) {
+                            // Deselect if already at last
+                            this.toggleBot(current);
+                            return;
+                        } else {
+                            index = Math.min(index + 1, botIds.length - 1);
+                        }
                     } else if (buttonName === "LB") {
+                        if (current === botIds[0]) {
+                            // At first bot, deselect
+                            this.toggleBot(current);
+                            return;
+                        }
                         index = Math.max(index - 1, 0);
                     } else {
                         return;
