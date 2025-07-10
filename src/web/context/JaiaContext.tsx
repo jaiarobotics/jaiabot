@@ -9,6 +9,7 @@ import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/missions/mission";
+import Waypoint from "../data/waypoints/waypoint";
 
 import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
@@ -17,12 +18,20 @@ import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
 
 import { JaiaActions } from "./jaia-actions";
-import { GeographicCoordinate, Speeds, TaskType } from "../types/protobuf-types";
+import {
+    Command,
+    CommandType,
+    GeographicCoordinate,
+    MovementType,
+    Speeds,
+    TaskType,
+} from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
 import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import {
+    BotModes,
     NodeTypes,
     SelectedNode,
     SelectedRallyPoint,
@@ -38,6 +47,7 @@ import {
     MapLayerAccordionNames,
     ButtonNames,
     ButtonTypes,
+    PanelActions,
 } from "../types/context-types";
 
 export interface JaiaContextType {
@@ -68,6 +78,7 @@ export interface JaiaAction {
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
 
+    waypoint?: Waypoint;
     location?: GeographicCoordinate;
     taskType?: TaskType;
     taskParameterPair?: TaskParameterPair;
@@ -75,10 +86,12 @@ export interface JaiaAction {
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
+    panelAction?: PanelActions;
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
 
+    command?: Command;
     missionSpeeds?: Speeds;
 }
 
@@ -171,6 +184,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
 
+        case JaiaActions.SENT_COMMAND:
+            return handleSentCommand(mutableState, action.botID, action.command);
+
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
 
@@ -184,7 +200,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleClosedDetails(mutableState);
 
         case JaiaActions.CLOSED_WAYPOINT_PANEL:
-            return handleClosedWaypointPanel(mutableState);
+            return handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint);
 
         case JaiaActions.CLOSED_RALLY_PANEL:
             return handleClosedRallyPanel(mutableState);
@@ -527,6 +543,35 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
 }
 
 /**
+ * Sets the mode of the Bot based on the command sent
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {number} botID Bot receiving the command
+ * @param {Command} command Command sent to Bot
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSentCommand(mutableState: JaiaContextType, botID: number, command: Command) {
+    const bot = bots.getBot(botID);
+
+    switch (command.type) {
+        case CommandType.MISSION_PLAN:
+            const movement = command.plan.movement;
+            if (movement === MovementType.TRANSIT) {
+                bot.setMode(BotModes.MISSION);
+            } else if (movement === MovementType.REMOTE_CONTROL) {
+                bot.setMode(BotModes.REMOTE_CONTROL);
+            }
+            break;
+        case CommandType.REMOTE_CONTROL_TASK:
+            bot.setMode(BotModes.REMOTE_CONTROL);
+            break;
+        default:
+            bot.setMode(BotModes.MISSION);
+    }
+    return mutableState;
+}
+
+/**
  * Makes call to update the rally point layer
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -582,21 +627,33 @@ function handleClosedDetails(mutableState: JaiaContextType) {
 }
 
 /**
- * Handles cleanup when a waypoint panel closes
+ * Handles cleanup when a waypoint panel closes. If the operator selects
+ * cancel, the waypoint data reverts to its state when the panel opened.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {PanelActions} panelAction How the panel closes
+ * @param {Waypoint} serializedWaypoint Waypoint data at time the panel opened
  * @returns {JaiaContextType} Updated mutable state object
+ *
+ * @notes
+ * When the waypoint is passed through the dispatch function it is serialized. To restore
+ * its methods, we use Object.setPrototypeOf.
  */
-function handleClosedWaypointPanel(mutableState: JaiaContextType) {
-    const waypoint = getWaypoint();
-
-    // When waypoint is not deleted, disable movable property
-    if (waypoint) {
-        waypoint.setIsMovable(false);
+function handleClosedWaypointPanel(
+    mutableState: JaiaContextType,
+    panelAction: PanelActions,
+    serializedWaypoint?: Waypoint,
+) {
+    if (panelAction === PanelActions.CANCEL) {
+        const originalWaypoint = Object.setPrototypeOf(serializedWaypoint, Waypoint.prototype);
+        const waypoints = missions
+            .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
+            .getWaypoints();
+        waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;
+        missionLayer.updateFeatures();
     }
-
-    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    resetSelectedWaypoint(mutableState);
+    mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
 
@@ -811,6 +868,7 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
             if (mutableState.visiblePanel !== name) {
                 visiblePanel = name;
             }
+            resetSelectedWaypoint(mutableState);
             break;
         case ButtonTypes.COMMAND:
             if (name === ButtonNames.GO_TO_RALLY) {
@@ -942,4 +1000,21 @@ function getWaypoint() {
     if (mission) {
         return mission.getWaypoint(selectedWaypoint.waypointNum);
     }
+}
+
+/**
+ * Sets the selected waypoint to its default settings
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {void}
+ */
+function resetSelectedWaypoint(mutableState: JaiaContextType) {
+    const waypoint = getWaypoint();
+
+    if (waypoint) {
+        waypoint.setIsMovable(false);
+    }
+
+    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }
