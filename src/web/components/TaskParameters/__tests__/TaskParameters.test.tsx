@@ -9,7 +9,7 @@ const mockTask: Task = new Task();
 
 test("Render dive + drift parameters", () => {
     mockTask.setType(TaskType.DIVE);
-    render(<TaskParameters task={mockTask} />);
+    render(<TaskParameters task={mockTask} isDisabled={false} />);
     const depthParams = screen.getAllByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().dive.max_depth,
     );
@@ -24,7 +24,7 @@ test("Render dive + drift parameters", () => {
 
 test("Render drift parameters", () => {
     mockTask.setType(TaskType.SURFACE_DRIFT);
-    render(<TaskParameters task={mockTask} />);
+    render(<TaskParameters task={mockTask} isDisabled={false} />);
     const driftParams = screen.getByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().drift.drift_time,
     );
@@ -33,7 +33,7 @@ test("Render drift parameters", () => {
 
 test("Render constant heading parameters", () => {
     mockTask.setType(TaskType.CONSTANT_HEADING);
-    render(<TaskParameters task={mockTask} />);
+    render(<TaskParameters task={mockTask} isDisabled={false} />);
     const heading = screen.getByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().constantHeading.constant_heading,
     );
