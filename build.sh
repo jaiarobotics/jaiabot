@@ -1,6 +1,6 @@
 #!/bin/bash
 # --- System Requirements Check ---
-MIN_CPUS=4
+MIN_PROC=4
 MIN_RAM_KB=3145728    # 3-4 GiB in KB
 MIN_DISK_KB=10485760  # 10 GiB in KB
 MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
@@ -31,10 +31,10 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
     echo "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
 fi
 
-echo "Detected system: $NPROC CPU(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
+echo "Detected system: $NPROC Processor(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
 
-if [ "$NPROC" -lt "$MIN_CPUS" ]; then
-    echo "Warning: Your system has less than the required $MIN_CPUS CPUs to build the software."
+if [ "$NPROC" -lt "$MIN_PROC" ]; then
+    echo "Warning: Your system has less than the required $MIN_PROC Processors to build the software."
 fi
 
 if [ "$MEMORY_KB" -lt "$MIN_RAM_KB" ]; then
