@@ -6,6 +6,17 @@ import "./CustomAlert.css";
 type PresentAlertFunction = (props: CustomAlertProps | null) => void;
 let presentAlert: PresentAlertFunction;
 
+let currentConfirmYes: (() => void) | null = null;
+let currentConfirmNo: (() => void) | null = null;
+
+export function handleGamepadAlertConfirm(buttonName: string) {
+    if (buttonName === "RB" && currentConfirmYes) {
+        currentConfirmYes();
+    } else if (buttonName === "LB" && currentConfirmNo) {
+        currentConfirmNo();
+    }
+}
+
 export interface CustomAlertButton {
     title: string;
     action?: () => void;
@@ -22,18 +33,17 @@ export class CustomAlert extends React.Component {
 
     constructor(props: CustomAlertProps) {
         super(props);
-
         this.props = props;
     }
 
     render(): React.ReactNode {
-        var buttons: React.JSX.Element[];
+        let buttons: React.JSX.Element[];
 
         if (this.props.buttons == null) {
             buttons = [
                 <div
                     className="button"
-                    style={{ minWidth: "100px", padding: "10px" }} // try adjusting width here
+                    style={{ minWidth: "100px", padding: "10px" }}
                     onClick={() => {
                         presentAlert(null);
                     }}
@@ -58,7 +68,6 @@ export class CustomAlert extends React.Component {
             });
         }
 
-        // Deal with newlines in text
         const textDivs = this.props.text.split("\n").map((line: string) => {
             return <div className="text">{line}</div>;
         });
@@ -95,17 +104,32 @@ export class CustomAlert extends React.Component {
         action?: () => void,
         cancelAction?: () => void,
     ) {
+        // Setup controller-based confirmation
+        currentConfirmYes = () => {
+            presentAlert(null);
+            action?.();
+            currentConfirmYes = null;
+            currentConfirmNo = null;
+        };
+
+        currentConfirmNo = () => {
+            presentAlert(null);
+            cancelAction?.();
+            currentConfirmYes = null;
+            currentConfirmNo = null;
+        };
+
         presentAlert({
             title: "Confirm",
-            text: text,
+            text,
             buttons: [
                 {
                     title: "Cancel",
-                    action: cancelAction,
+                    action: currentConfirmNo,
                 },
                 {
                     title: actionTitle,
-                    action: action,
+                    action: currentConfirmYes,
                 },
             ],
         });

@@ -36,7 +36,7 @@ import { CustomLayerGroupFactory } from "../../openlayers/map/layers/geotiffs/Cu
 import { MissionLibraryLocalStorage } from "../../utils/mission-library";
 import { playDisconnectReconnectSounds } from "../../style/audio/disconnect-sounds";
 import { error, success, warning, info } from "../../notifications/notifications";
-import { CustomAlert, CustomAlertProps } from "../../shared/CustomAlert";
+import { CustomAlert, CustomAlertProps, handleGamepadAlertConfirm } from "../../shared/CustomAlert";
 import {
     MissionSettingsPanel,
     MissionSettings,
@@ -4311,6 +4311,11 @@ export default class CommandControl extends React.Component {
         return (
             <Gamepad
                 onButtonDown={(buttonName) => {
+                    if (this.state.customAlert && (buttonName === "RB" || buttonName === "LB")) {
+                        handleGamepadAlertConfirm(buttonName);
+                        return;
+                    }
+                    // Handles switching bots based on sholder buttons LB and RB
                     const botsMap = this.state.podStatus.bots;
                     const botIds = Object.keys(botsMap)
                         .map(Number)
