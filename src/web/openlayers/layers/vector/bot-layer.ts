@@ -1,10 +1,8 @@
-import { Feature } from "ol";
-
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { bots } from "../../../data/bots/bots";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { generateBotFeature } from "../../features/bot-feature";
-import { layersZIndexes } from "./zindex";
+import { layersZIndexes } from "../zindex";
 
 class BotLayer extends JaiaVectorLayer {
     constructor() {
