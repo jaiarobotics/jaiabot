@@ -27,15 +27,15 @@ class SimXBeeServer:
 
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.settimeout(2)
+        # self.socket.settimeout(2)
         self.socket.bind(self.address)
         
-        self._log.info(f'Starting XBee Simulator Server on {self.address}.')
+        self._log.info(f'[SXBSimServer] Starting XBee Simulator Server on {self.address}.')
         self._listener.start()
 
     def stop(self):
         self._running = False
-        self._log.info(f'Stopping XBee Simulator Server on : {self.address}.')
+        self._log.info(f'[SXBSimServer] Stopping XBee Simulator Server on : {self.address}.')
         for t in self._threads:
             t.join(timeout=1)
         self._listener.join(timeout=1)
@@ -86,3 +86,4 @@ class SimXBeeServer:
         msg = msg + '\n'
         conn.send(msg.encode('utf-8'))
         conn.close()
+        self._log.debug(f'[SXBSimServer] Client request handled: ({cmd} {name})')
