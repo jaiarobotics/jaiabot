@@ -14,7 +14,7 @@ import jaia_portal
 import missions
 from geotiffs import GeoTiffs
 from map_tile_server import MapTileServer
-from mime_types import *
+from map_tile_server.mime_types import *
 
 def parseDate(date):
     if date is None or date == '':
@@ -339,6 +339,23 @@ def map_tile(map_name: str, z: str, x: str, y: str):
         return Response(status=HTTPStatus.OK)
 
 
+@app.route('/maps/<map_name>/geotiff', methods=['PUT'])
+def put_map_geotiff(map_name: str):
+    """Put a geotiff file into a tile server map
+
+    Args:
+        map_name (str): Name of the target map
+    """
+
+    try:
+        map_tile_server.put_map_geotiff(map_name, request.data)
+        return Response(status=HTTPStatus.OK)
+    except Exception as e:
+        print(e)
+        print('Failed!')
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
+
 @app.route('/maps/<map_name>', methods=['DELETE'])
 def delete_map(map_name: str):
     """Delete an offline map layer
@@ -348,4 +365,4 @@ def delete_map(map_name: str):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=True)
+    app.run(host='0.0.0.0', port=40001, debug=False)

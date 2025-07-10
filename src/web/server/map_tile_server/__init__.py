@@ -2,8 +2,16 @@ import os
 import glob
 from math import *
 from dataclasses import *
-from mime_types import *
 from shutil import rmtree
+import logging
+import rasterio
+from rasterio.warp import transform
+from . import mime_types
+from . import geotiff
+
+
+logging.basicConfig()
+l = logging.getLogger(__name__)
 
 
 @dataclass
@@ -61,9 +69,19 @@ def tile_xyz_to_bbox_string(zoom: int, x: int, y: int):
 class MapTileServer:
     """A simple xyz tile server for maps."""
     maps_directory: str
+    tiles_directory: str
+    geotiffs_directory: str
 
     def __init__(self, maps_directory: str):
         self.maps_directory = os.path.expanduser(maps_directory)
+
+        self.tiles_directory = self.maps_directory + '/tiles/'
+        os.makedirs(self.tiles_directory, exist_ok=True)
+
+        self.geotiffs_directory = self.maps_directory + '/geotiffs/'
+        os.makedirs(self.geotiffs_directory, exist_ok=True)
+
+        geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
 
 
     def get_map_names(self):
@@ -72,7 +90,7 @@ class MapTileServer:
         Returns:
             list[str]: List of offline map layer names.
         """
-        map_paths = glob.glob(f'{self.maps_directory}/*')
+        map_paths = glob.glob(f'{self.tiles_directory}/*')
         map_paths = filter(lambda path: os.path.isdir(path), map_paths)
         map_paths = map(lambda path: os.path.basename(path), map_paths)
         return list(map_paths)
@@ -90,7 +108,7 @@ class MapTileServer:
         Returns:
             bytes or None: Binary image data in png format, if the image exists.
         """
-        tile_path = f'{self.maps_directory}/{map_name}/{z}/{x}/{y}.png'
+        tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
         if not os.path.isfile(tile_path):
             return None
         else:
@@ -109,7 +127,7 @@ class MapTileServer:
         Returns:
             bool: Whether the tile exists.
         """
-        tile_path = f'{self.maps_directory}/{map_name}/{z}/{x}/{y}.png'
+        tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
         return os.path.isfile(tile_path)
 
 
@@ -123,7 +141,7 @@ class MapTileServer:
             y (int): Tile y coordinate.
             data (bytes): Binary image data in png format.
         """
-        path = os.path.join(self.maps_directory, map_name, str(z), str(x))
+        path = os.path.join(self.tiles_directory, map_name, str(z), str(x))
         os.makedirs(path, exist_ok=True)
         open(f'{path}/{y}.png', 'wb').write(data)
 
@@ -134,8 +152,8 @@ class MapTileServer:
         Args:
             map_name (str): Name of the map layer to delete.
         """
-        assert(len(map_name) > 0 and len(self.maps_directory) > 0)
-        rmtree(os.path.join(self.maps_directory, map_name))
+        assert(len(map_name) > 0 and len(self.tiles_directory) > 0)
+        rmtree(os.path.join(self.tiles_directory, map_name))
 
 
     def import_tiles(self, map_name: str, url_template: str, extent: Rectangle, min_zoom=0, max_zoom: int=19, overwrite=False):
@@ -222,29 +240,34 @@ class MapTileServer:
         def get_maps():
             """Get a list of the available map sets.
             """
-            return flask.Response(response=json.dumps(map_tile_server.get_map_names()),
+            return flask.Response(response=json.dumps(self.get_map_names()),
                                 status=HTTPStatus.OK,
-                                mimetype=MIME_TYPE_JSON)
+                                mimetype=mime_types.MIME_TYPE_JSON)
 
 
         @app.route('/maps/<map_name>/<z>/<x>/<y>')
         def get_map_tile(map_name: str, z: str, x: str, y: str):
             """Get a map tile
             """
-            tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
+            tile_data = self.get_tile(map_name, int(z), int(x), int(y))
 
             if tile_data is None:
                 return flask.Response(status=HTTPStatus.NOT_FOUND)
 
             else:
-                return flask.Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+                return flask.Response(tile_data, status=HTTPStatus.OK, mimetype=mime_types.MIME_TYPE_PNG)
 
 
         app.run(host='0.0.0.0', port=port, debug=True)
 
 
-if __name__ == '__main__':
-    import sys
+    def put_map_geotiff(self, map_name: str, geotiff_data: bytes):
+        geotiff_path = os.path.join(self.geotiffs_directory, map_name + '.geotiff')
+        open(geotiff_path, 'wb').write(geotiff_data)
 
-    map_tile_server = MapTileServer(os.path.expanduser(sys.argv[1]))
-    map_tile_server.start_local_server()
+
+def test():
+    server = MapTileServer('~/maps/')
+    data = open('/home/ed/maps/RI_Bristol_353252_1955_24000_geo.tif.geotiff', 'rb').read()
+    server.put_map_geotiff('test', data)
+

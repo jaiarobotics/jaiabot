@@ -118,6 +118,7 @@ import {
     mdiMagnifyMinusOutline,
     mdiRotate3dVariant,
     mdiDownloadMultiple,
+    mdiFileImport,
 } from "@mdi/js";
 import "./CommandControl.less";
 
@@ -129,6 +130,7 @@ import { OfflineMapDownloadJob } from "../../openlayers/map/offline-map-download
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
 import { TileImage } from "ol/source";
 import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
+import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -3834,6 +3836,18 @@ export default class CommandControl extends React.Component {
         }
     }
 
+    async importGeoTiff() {
+        OpenFileDialog(".tif", false).then((file_list) => {
+            if (file_list.length) {
+                const file = file_list.item(0);
+                file.bytes().then((uint8array) => {
+                    const blob = new Blob([uint8array], { type: "application/octet-stream" });
+                    jaiaAPI.putOfflineGeoTiff(file.name, blob);
+                });
+            }
+        });
+    }
+
     //
     // Render Helper Methods and Panels (End)
     //
@@ -4121,6 +4135,17 @@ export default class CommandControl extends React.Component {
             </Button>
         );
 
+        const importGeoTiffButton = (
+            <Button
+                className="button-jcc"
+                onClick={() => {
+                    this.importGeoTiff();
+                }}
+            >
+                <Icon path={mdiFileImport} size={1.3} title="Import GeoTiff" />
+            </Button>
+        );
+
         const measureButton =
             visiblePanel == PanelType.MEASURE_TOOL ? (
                 <div>
@@ -4364,6 +4389,7 @@ export default class CommandControl extends React.Component {
                     {measureButton}
                     {settingsPanelButton}
                     {downloadOfflineMapsButton}
+                    {importGeoTiffButton}
                 </div>
 
                 <div id="botsDrawer">

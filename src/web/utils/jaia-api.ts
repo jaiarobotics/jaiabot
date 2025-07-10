@@ -262,6 +262,13 @@ export class JaiaAPI {
         });
     }
 
+    async putOfflineGeoTiff(map_name: string, data: Blob) {
+        return fetch(`maps/${map_name}/geotiff`, {
+            method: "PUT",
+            body: data,
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }
