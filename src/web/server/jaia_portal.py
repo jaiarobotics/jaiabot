@@ -6,6 +6,8 @@ import threading
 import ipaddress
 import itertools
 import collections
+import subprocess
+import os
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -106,6 +108,8 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
+        self.start_cot_receiver()
+
     def loop(self):
         while True:
 
@@ -144,6 +148,9 @@ class Interface:
 
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
+
+                # Add this line to send a CoT message for this bot:
+                self.send_cot_for_bot(msg)
 
                 # Add position to bot_paths
                 #if msg.bot_status.HasField('location'):
@@ -455,6 +462,15 @@ class Interface:
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
         self.task_packet_database.add_task_packet(task_packet)
+        # Store latest task packet per bot
+        if not hasattr(self, "latest_task_packets"):
+            self.latest_task_packets = {}
+        bot_id = task_packet.get("bot_id")
+        if bot_id is not None:
+            self.latest_task_packets[bot_id] = task_packet
+
+        # Send a separate CoT event for this task packet
+        self.send_cot_for_task_packet(task_packet)
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -504,3 +520,107 @@ class Interface:
 
     def get_Metadata(self):
         return self.metadata
+
+    def send_cot_for_bot(self, msg):
+        # Extract bot_status
+        if not msg.HasField('bot_status'):
+            logging.warning("No bot_status in message, skipping CoT send.")
+            return
+
+        bot_status = protobufMessageToDict(msg.bot_status)
+        location = bot_status.get("location")
+        if not location or "lat" not in location or "lon" not in location:
+            logging.warning(f"Bot {bot_status.get('bot_id', 'unknown')} has no location, skipping CoT send.")
+            return
+
+        lat = location["lat"]
+        lon = location["lon"]
+        callsign = bot_status.get("callsign", f"BOT_{bot_status.get('bot_id', 'unknown')}")
+
+        # Extract speed from BotStatus.speed.over_ground, fallback to 0.0
+        speed = 0.0
+        speed_dict = bot_status.get("speed")
+        if isinstance(speed_dict, dict):
+            speed = speed_dict.get("over_ground", 0.0)
+
+        # Use heading from attitude if available, else fallback to 0.0
+        attitude = bot_status.get("attitude", {})
+        heading = attitude.get("heading", 0.0)
+
+        # Extract task_packet if present in the message
+        task_packet = None
+        if msg.HasField('task_packet'):
+            task_packet = protobufMessageToDict(msg.task_packet)
+
+        bot_id = bot_status.get("bot_id")
+        task_packet = getattr(self, "latest_task_packets", {}).get(bot_id)
+        if task_packet is not None and task_packet != {}:
+            task_packet_summary = f"TaskPacket: {json.dumps(task_packet, indent=2)}"
+        else:
+            task_packet_summary = f"No task packet\nFull bot_status:\n{json.dumps(bot_status, indent=2)}"
+
+        script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
+        tak_dir = os.path.dirname(script_path)
+
+        subprocess.Popen([
+            "python3",
+            script_path,
+            "--lat", str(lat),
+            "--lon", str(lon),
+            "--callsign", callsign,
+            "--speed", str(speed),
+            "--course", str(heading),
+            "--remarks", task_packet_summary,
+            "--loop", "False"
+        ], cwd=tak_dir)
+
+    def send_cot_for_task_packet(self, task_packet):
+        # Choose a unique UID for the task packet
+        start_time = int(task_packet['start_time'])
+        # If start_time is in microseconds, convert to seconds
+        if start_time > 1e12:
+            start_time //= 1_000_000
+        dt = datetime.utcfromtimestamp(start_time)
+        time_str = dt.strftime("%Y%m%d_%H%M%S")
+        uid = f"taskpacket_{task_packet['bot_id']}_{time_str}"
+        # Choose a location: use dive or drift start_location if present
+        lat, lon = None, None
+        if 'dive' in task_packet and 'start_location' in task_packet['dive']:
+            lat = task_packet['dive']['start_location']['lat']
+            lon = task_packet['dive']['start_location']['lon']
+        elif 'drift' in task_packet and 'start_location' in task_packet['drift']:
+            lat = task_packet['drift']['start_location']['lat']
+            lon = task_packet['drift']['start_location']['lon']
+        else:
+            # fallback: don't send if no location
+            return
+
+        # Compose remarks
+        remarks = f"TaskPacket: {json.dumps(task_packet, indent=2)}"
+
+        script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
+        tak_dir = os.path.dirname(script_path)
+
+        subprocess.Popen([
+            "python3",
+            script_path,
+            "--lat", str(lat),
+            "--lon", str(lon),
+            "--callsign", uid,
+            "--speed", "0.0",
+            "--course", "0.0",
+            "--remarks", remarks,
+            "--loop", "False",
+            "--cot_type", "a-f-P-H"  # Pass the blue circle type
+        ], cwd=tak_dir)
+
+    def start_cot_receiver(self):
+        tak_dir = os.path.join(os.path.dirname(__file__), "tak")
+        receiver_path = os.path.join(tak_dir, "01-receiver.py")
+        # Use sys.executable to ensure the same Python interpreter is used
+        subprocess.Popen(
+            ["python3", receiver_path],
+            cwd=tak_dir,
+            stdout=subprocess.DEVNULL,  # or subprocess.PIPE for logs
+            stderr=subprocess.DEVNULL
+        )
