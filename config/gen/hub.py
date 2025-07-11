@@ -140,7 +140,7 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         directip=f'mo_sbd_server_port: 11800 mt_sbd_server_address: "{iridium_mt_server_address}" mt_sbd_server_port: {iridium_mt_server_port}'
     elif sbd_type == "SBD_ROCKBLOCK":
         (rockblock_username, rockblock_password) = common.comms.iridium_rockblock_credentials()
-        rockblock=f'rockblock {{ username: "{rockblock_username}" password: "{rockblock_password}" }}'
+        rockblock=f'mo_sbd_server_port: 12800 rockblock {{ username: "{rockblock_username}" password: "{rockblock_password}" }}'
         
     link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,
