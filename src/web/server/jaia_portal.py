@@ -8,6 +8,7 @@ import itertools
 import collections
 import subprocess
 import os
+import sys
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -559,9 +560,10 @@ class Interface:
 
         script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
         tak_dir = os.path.dirname(script_path)
+        venv_python = ensure_venv_and_get_python()
 
         subprocess.Popen([
-            "python3",
+            venv_python,
             script_path,
             "--lat", str(lat),
             "--lon", str(lon),
@@ -598,9 +600,10 @@ class Interface:
 
         script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
         tak_dir = os.path.dirname(script_path)
+        venv_python = ensure_venv_and_get_python()
 
         subprocess.Popen([
-            "python3",
+            venv_python,
             script_path,
             "--lat", str(lat),
             "--lon", str(lon),
@@ -609,5 +612,25 @@ class Interface:
             "--course", "0.0",
             "--remarks", remarks,
             "--loop", "False",
-            "--cot_type", "a-f-P-H"  # Pass the blue circle type
+            "--cot_type", "a-f-P-H"
         ], cwd=tak_dir)
+
+    def ensure_venv_and_get_python():
+        tak_dir = os.path.join(os.path.dirname(__file__), "tak")
+        venv_dir = os.path.join(tak_dir, "venv")
+        python_path = os.path.join(venv_dir, "bin", "python")
+
+        # Create venv if it doesn't exist
+        if not os.path.exists(venv_dir):
+            print(f"Creating virtual environment at {venv_dir}")
+            subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
+            # Optionally install requirements here if you have requirements.txt
+            requirements_path = os.path.join(os.path.dirname(__file__), "..", "..", "python", "requirements.txt")
+            pip_path = os.path.join(venv_dir, "bin", "pip")
+            if os.path.exists(requirements_path):
+                subprocess.run([pip_path, "install", "--upgrade", "pip"], check=True)
+                subprocess.run([pip_path, "install", "-r", requirements_path], check=True)
+            else:
+                subprocess.run([pip_path, "install", "pytak"], check=True)  # fallback
+
+        return python_path
