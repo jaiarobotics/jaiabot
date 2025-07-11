@@ -6,11 +6,6 @@ a2dissite 000-default || true
 # enable JCC site in apache2
 a2ensite jcc
 
-# create jaiabot lib directory and symlink
-mkdir -p /var/log/jaiabot/lib
-ln -snf /var/log/jaiabot/lib /var/lib/jaiabot
-chown -h jaia /var/log/jaiabot /var/lib/jaiabot /var/log/jaiabot/lib
-
 #DEBHELPER#
 
 exit 0
