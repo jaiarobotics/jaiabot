@@ -94,7 +94,22 @@ export class CustomAlert extends React.Component {
     }
 
     static alert(text: string) {
-        presentAlert({ text });
+        // LB should close this alert
+        currentConfirmNo = () => {
+            presentAlert(null);
+            currentConfirmNo = null;
+            currentConfirmYes = null;
+        };
+
+        presentAlert({
+            text,
+            buttons: [
+                {
+                    title: "Close",
+                    action: currentConfirmNo,
+                },
+            ],
+        });
     }
 
     static confirm(
