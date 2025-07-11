@@ -57,7 +57,7 @@ parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
-parser.add_argument('--bot_type', choices=['hydro', 'echo', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
@@ -100,6 +100,7 @@ class ELECTRONICS_STACK(Enum):
 class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
     ECHO = 'ECHO'
+    BIO = 'BIO'
     NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
@@ -170,6 +171,8 @@ if args.bot_type == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
 elif args.bot_type == 'echo':
     jaia_bot_type = BOT_TYPE.ECHO
+elif args.bot_type == 'bio':
+    jaia_bot_type = BOT_TYPE.BIO
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
@@ -263,6 +266,7 @@ common_macros['jaiabot_share_dir'] = args.jaiabot_share_dir
 common_macros['ansible_dir'] = args.ansible_dir
 common_macros['goby_bin_dir'] = args.goby_bin_dir
 common_macros['moos_bin_dir'] = args.moos_bin_dir
+common_macros['exec_start_pre'] = ''
 common_macros['extra_service'] = ''
 common_macros['extra_unit'] = ''
 common_macros['extra_flags'] = ''
@@ -297,51 +301,46 @@ elif jaia_type == Type.HUB:
 all_goby_apps = []
 
 jaiabot_apps = [
+
+    ## HUB AND BOT Services ##
+
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_on_cloudhub': True},
     {'exe': 'gobyd',
      'description': 'Goby Daemon',
      'template': 'gobyd.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBYD',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_on_cloudhub': True },
-    {'exe': 'jaiabot_health',
-     'description': 'JaiaBot Health Reporting and Management',
-     'template': 'health-app.service.in', # no failure_reporter start/stop since it would be meaningless
-     'user': 'root', # must run as root to allow restart/reboot
-     'group': 'root',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_HEALTH',
-     'runs_on': Type.BOTH,
-     'runs_on_cloudhub': True},
     {'exe': 'goby_intervehicle_portal',
      'description': 'Goby Intervehicle Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL',
      'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison',
      'description': 'Goby Liaison GUI for JaiaBot',
      'template': 'goby-app.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service',   
      'runs_on_cloudhub': True},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_GPS',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service',
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_logger',
      'description': 'Goby Logger',
      'template': 'logger-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
      'wanted_by': 'jaiabot_health.service',
      'runs_on_cloudhub': True},
@@ -349,50 +348,75 @@ jaiabot_apps = [
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_CORONER',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_health',
+     'description': 'JaiaBot Health Reporting and Management',
+     'template': 'health-app.service.in', # no failure_reporter start/stop since it would be meaningless
+     'user': 'root', # must run as root to allow restart/reboot
+     'group': 'root',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_HEALTH',
+     'runs_on': [Type.BOTH],
+     'runs_on_cloudhub': True},
     {'exe': 'jaiabot_metadata',
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_METADATA',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'update_ufw_rules',
+     'description': 'Jaia Firewall/Wifi Updater',
+     'template': 'wifi_ufw_update.service.in',
+     'runs_on': [Type.BOTH],
+     'runs_when': Mode.RUNTIME},
+
+    ## HUB Services ##
+    
     {'exe': 'jaiabot_hub_manager',
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
      'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data offload script
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
      'description': 'JaiaBot Web GUI Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_WEB_PORTAL',
-     'runs_on': Type.HUB,
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_fusion',
-     'description': 'JaiaBot Data Fusion',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.HUB],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison_standalone',
      'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
      'template': 'liaison-prelaunch.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_on_cloudhub': True},
+    {'exe': 'jaiabot_data_vision',
+     'description': 'jaiabot_data_vision visualize log data',
+     'template': 'jaiabot_data_vision.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
+     'runs_on': [Type.HUB],
+     'runs_on_cloudhub': True},
+
+    ## ALL BOT Services ##
+
+    {'exe': 'jaiabot_fusion',
+     'description': 'JaiaBot Data Fusion',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_simulator',
      'description': 'JaiaBot Simulator',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
      'wanted_by': 'jaiabot_health.service'},       
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'error_on_fail': 'ERROR__FAILED__GOBY_MOOS_GATEWAY',
      'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1',
      'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service',
@@ -402,38 +426,80 @@ jaiabot_apps = [
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
      'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_PID_CONTROL',
-     'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
-     'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER',
-     'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
-     'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ENGINEERING',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'MOOSDB',
+     'description': 'MOOSDB Broker',
+     'template': 'moosdb.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_MOOSDB',
+     'runs_on': [Type.BOT]},
+    {'exe': 'pHelmIvP',
+     'description': 'pHelmIvP Autonomy Engine',
+     'template': 'moos-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_PHELMIVP',
+     'runs_on': [Type.BOT]},    
+    {'exe': 'uProcessWatch',
+     'description': 'uProcessWatch MOOS Health monitor',
+     'template': 'moos-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_UPROCESSWATCH',
+     'runs_on': [Type.BOT]},    
+    {'exe': 'pNodeReporter',
+     'description': 'pNodeReporter MOOS data aggregator',
+     'template': 'moos-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
+     'runs_on': [Type.BOT]},
+    {'exe': 'MOOSDB',
+     'description': 'MOOSDB Simulation Broker',
+     'template': 'moosdb-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
+     'runs_on': [Type.BOT],
+     'runs_when': Mode.SIMULATION,
+     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
+    },
+    {'exe': 'uSimMarine',
+     'description': 'uSimMarine marine vehicle simulator',
+     'template': 'moos-app-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_USIMMARINE',
+     'runs_on': [Type.BOT],
+     'runs_when': Mode.SIMULATION},
+    {'exe': 'gpsd',
+     'description': 'GPSD for simulator only',
+     'template': 'gpsd-sim.service.in',
+     'runs_on': [Type.BOT],
+     'runs_when': Mode.SIMULATION},
+
+    ## Bot Types: HYDRO, ECHO, NONE Services
+
+    {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
+     'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER',
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
+     'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
@@ -441,7 +507,7 @@ jaiabot_apps = [
      'subdir': 'pressure_sensor',
      'args': f'-t {jaia_pressure_sensor_type.value}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': Type.BOT,
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
@@ -451,60 +517,46 @@ jaiabot_apps = [
      'subdir': 'atlas_scientific_ezo_ec',
      'args': '20002',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': Type.BOT,
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
-    {'exe': 'MOOSDB',
-     'description': 'MOOSDB Broker',
-     'template': 'moosdb.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_MOOSDB',
-     'runs_on': Type.BOT},
-    {'exe': 'pHelmIvP',
-     'description': 'pHelmIvP Autonomy Engine',
-     'template': 'moos-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_PHELMIVP',
-     'runs_on': Type.BOT},    
-    {'exe': 'uProcessWatch',
-     'description': 'uProcessWatch MOOS Health monitor',
-     'template': 'moos-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_UPROCESSWATCH',
-     'runs_on': Type.BOT},    
-    {'exe': 'pNodeReporter',
-     'description': 'pNodeReporter MOOS data aggregator',
-     'template': 'moos-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
-     'runs_on': Type.BOT},
-    {'exe': 'MOOSDB',
-     'description': 'MOOSDB Simulation Broker',
-     'template': 'moosdb-sim.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
-    {'exe': 'uSimMarine',
-     'description': 'uSimMarine marine vehicle simulator',
-     'template': 'moos-app-sim.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_USIMMARINE',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION},
-    {'exe': 'jaiabot_data_vision',
-     'description': 'jaiabot_data_vision visualize log data',
-     'template': 'jaiabot_data_vision.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
-     'runs_on': Type.HUB,
-     'runs_on_cloudhub': True},
-    {'exe': 'gpsd',
-     'description': 'GPSD for simulator only',
-     'template': 'gpsd-sim.service.in',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION},
-    {'exe': 'update_ufw_rules',
-     'description': 'Jaia Firewall/Wifi Updater',
-     'template': 'wifi_ufw_update.service.in',
-     'runs_on': Type.BOTH,
-     'runs_when': Mode.RUNTIME}
+
+    ## ECHO Services ##
+
+    {'exe': 'jaiabot_echo_driver',
+     'description': 'JaiaBot Echo Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
+     'runs_on': [BOT_TYPE.ECHO],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_echo.py',
+     'description': 'JaiaBot MAI Echo Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'echo',
+     'args': '20003',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
+     'runs_on': [BOT_TYPE.ECHO],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
+
+    ## BIO Services ##
+
+    {'exe': 'jaiabot_sensors',
+     'description': 'JaiaBot Sensors',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_SENSORS',
+     'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
+     'runs_on': [BOT_TYPE.BIO],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_driver_camera',
+     'description': 'JaiaBot Driver Camera',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
+     'runs_on': [BOT_TYPE.BIO],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
 ]
 
 if jaia_imu_type.value == 'bno085':
@@ -513,7 +565,7 @@ if jaia_imu_type.value == 'bno085':
         'description': 'JaiaBot BNO085 IMU Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
@@ -521,7 +573,7 @@ if jaia_imu_type.value == 'bno085':
         'subdir': 'adafruit',
         'args': f'-t {IMU_TYPE.BNO085.value} -p 20000',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
@@ -533,7 +585,7 @@ else:
         'description': 'JaiaBot BNO055 IMU Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO055 IMU Python Driver',
@@ -541,33 +593,12 @@ else:
         'subdir': 'adafruit',
         'args': f'-t {IMU_TYPE.BNO055.value} -p 20000',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
-
-if jaia_bot_type.value == 'ECHO':
-    jaiabot_apps_echo = [
-        {'exe': 'jaiabot_echo_driver',
-        'description': 'JaiaBot Echo Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
-        'runs_on': Type.BOT,
-        'wanted_by': 'jaiabot_health.service'},
-        {'exe': 'jaiabot_echo.py',
-        'description': 'JaiaBot MAI Echo Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'echo',
-        'args': '20003',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
-        'runs_on': Type.BOT,
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ] 
-    jaiabot_apps.extend(jaiabot_apps_echo)
 
 if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
     jaiabot_apps_motor_harness_type = [
@@ -579,7 +610,7 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'subdir': 'motor',
         'args': '',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'}
@@ -592,7 +623,7 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'description': 'JaiaBot TSYS01 Temperature Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_tsys01.py',
         'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
@@ -600,7 +631,7 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'subdir': 'tsys01_temperature_sensor',
         'args': '-p 20006',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
@@ -613,7 +644,7 @@ jaia_firmware = [
      'template': 'hub-button-led-poweroff.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'hub-button-led-services-running.py',
@@ -621,7 +652,7 @@ jaia_firmware = [
      'template': 'hub-button-led-services-running.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'hub-button-trigger.py',
@@ -629,7 +660,7 @@ jaia_firmware = [
      'template': 'hub-button-trigger.service.in',
      'subdir': 'led_button',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.HUB,
+     'runs_on': [Type.HUB],
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'gps-spi-pty.py',
@@ -637,7 +668,7 @@ jaia_firmware = [
      'template': 'gps_spi_pty.service.in',
      'subdir': 'gps',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME,
      'gps_type': GPS_TYPE.SPI},
     {'exe': 'gps-i2c-pty.py',
@@ -645,7 +676,7 @@ jaia_firmware = [
      'template': 'gps_i2c_pty.service.in',
      'subdir': 'gps',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME,
      'gps_type': GPS_TYPE.I2C},
      {'exe': 'arduino_spi_gpio_pin.py',
@@ -653,20 +684,20 @@ jaia_firmware = [
      'template': 'arduino-spi-gpio-pin.service.in',
      'subdir': 'arduino',
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME},
      {'exe': 'jaia_firm_backup_date.sh',
      'description': 'Backup the date to a file when we have a valid date time ntp',
      'template': 'backup-date.service.in',
      'args': '',
-     'runs_on': Type.BOTH,
+     'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME},
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
      'subdir': 'adafruit',
      'args': '--imu_install_type=' + jaia_imu_install_type.value,
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
      'run_at_boot': False},
@@ -675,7 +706,7 @@ jaia_firmware = [
      'template': 'echo-reset-gpio-pin.service.in',
      'subdir': 'echo',
      'args': '',
-     'runs_on': Type.BOT,
+     'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'run_at_boot': False}
 ]
@@ -683,7 +714,7 @@ jaia_firmware = [
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
     macros={**common_macros, **app}
-    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
+    return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
 
 for app in jaiabot_apps:
     if is_app_run(app):
@@ -733,7 +764,7 @@ for app in jaiabot_apps:
 def is_firm_run(firm):
     macros={**common_macros, **firm}
 
-    if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
+    if (jaia_type not in macros['runs_on'] and Type.BOTH not in macros['runs_on']):
         return False
     
     if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):

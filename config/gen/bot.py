@@ -50,7 +50,7 @@ if "jaia_arduino_type" in os.environ:
 if jaia_arduino_type == "spi":
     jaia_arduino_dev_location="/dev/ttyAMA1"
 elif jaia_arduino_type == 'usb':
-    jaia_arduino_dev_location="/dev/ttyUSB0"
+    jaia_arduino_dev_location="/dev/arduino"
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
@@ -85,6 +85,8 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
+liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_load.pb.cfg.in')
+
 # Milliseconds
 bot_status_period=1000
 
@@ -102,6 +104,7 @@ verbosities = \
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
+  'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE'  }, 'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG1' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -113,6 +116,7 @@ verbosities = \
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
@@ -132,6 +136,10 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+try:
+    fluorometer_coefficients = 'fluorometer_coefficients { \n' + open('/etc/jaiabot/fluorometer_coefficients.pb.cfg').read() + '\n}\n'
+except FileNotFoundError:
+    fluorometer_coefficients = 'fluorometer_coefficients {}'
 
 ack_timeout=10
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
@@ -140,6 +148,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
+        subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.xbee_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     else:
         xbee_serial_port='/dev/xbee'
 
@@ -154,6 +163,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_hub_id='',
+                                            is_in_sim=is_simulation(),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
@@ -241,7 +251,7 @@ elif common.app == 'goby_liaison':
                                      http_port=liaison_port,
                                      http_address=liaison_bind_addr,
                                      jaiabot_config=liaison_jaiabot_config,
-                                     load_protobufs=''))
+                                     load_protobufs=liaison_load_block))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
@@ -321,6 +331,13 @@ elif common.app == 'jaiabot_mission_manager':
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask))
+elif common.app == 'jaiabot_sensors':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     port='/dev/ttyUSB0',
+                                     baud=115200,
+                                     fluorometer_coefficients=fluorometer_coefficients))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
@@ -381,6 +398,11 @@ elif common.app == 'jaiabot_mission_repeater':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index))
+elif common.app == 'jaiabot_driver_camera':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     serial_camera_port=common.bot.serial_camera_port(bot_index)))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

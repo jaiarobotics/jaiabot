@@ -22,7 +22,7 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "machine_common.h"
 #include <fstream>
 #include <goby/util/seawater.h>
@@ -803,6 +803,46 @@ struct InMission
     {
         // Sets goal index to be the final goal index
         goal_index_ = (this->machine().mission_plan().goal_size() - 1);
+    }
+    void resume_after_srp_egress()
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        const int total_goals = mission_plan.goal_size();
+
+        for (int i = goal_index_; i < total_goals; ++i)
+        {
+            const auto& goal = mission_plan.goal(i);
+
+            if (goal.has_task() && goal.task().type() == protobuf::MissionTask::CONSTANT_HEADING)
+            {
+                if (i + 1 < total_goals)
+                {
+                    goal_index_ = i + 1;
+                    goby::glog.is_verbose() &&
+                        goby::glog << group("goal") << "Found CONSTANT_HEADING at index " << i
+                                   << ", advancing to goal index: " << goal_index_ << std::endl;
+                }
+                else
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << group("goal")
+                                   << "CONSTANT_HEADING was the last goal. Proceeding to recovery."
+                                   << std::endl;
+                    set_mission_complete();
+                    goal_index_ = RECOVERY_GOAL_INDEX;
+                }
+                // Stop after handling the first CONSTANT_HEADING
+                return;
+            }
+        }
+
+        // No CONSTANT_HEADING found from current index onward
+        goby::glog.is_warn() &&
+            goby::glog << group("goal") << "No CONSTANT_HEADING task found from goal index "
+                       << goal_index_ << " onward. Proceeding to recovery." << std::endl;
+
+        set_mission_complete();
+        goal_index_ = RECOVERY_GOAL_INDEX;
     }
     void set_goal_index_to_recovery()
     {
@@ -1815,7 +1855,7 @@ struct ReacquireGPS
 
                 if (context<Task>().task_packet().dive().reached_min_depth())
                 {
-                    context<InMission>().set_goal_index_to_final_goal();
+                    context<InMission>().resume_after_srp_egress();
                     this->post_event(EvBottomDepthAbort());
                 }
                 else

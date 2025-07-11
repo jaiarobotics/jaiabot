@@ -1,6 +1,7 @@
 #!/usr/bin/env -S goby_launch -P -L
 
 [kill=SIGTERM] gpsd $(../../gen/hub.py gpsd)
+# [kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/xbee_simulator/jaiasim_xbee.py
 
 gobyd <(../../gen/hub.py gobyd) -vvv -n
 [env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/hub.py goby_intervehicle_portal) -vvv -n

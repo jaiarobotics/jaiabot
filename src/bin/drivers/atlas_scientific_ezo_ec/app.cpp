@@ -34,7 +34,10 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/moos.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -65,6 +68,10 @@ class AtlasSalinityPublisher : public zeromq::MultiThreadApplication<config::Atl
     dccl::Codec dccl_;
     goby::time::SteadyClock::time_point last_atlas_salinity_report_time_{std::chrono::seconds(0)};
     bool helm_ivp_in_mission_{false};
+
+    // These are used for calculating the salinity from the conductivity
+    jaiabot::protobuf::PressureTemperatureData last_pressure_temperature_data_;
+    jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
 };
 
 } // namespace apps
@@ -80,23 +87,6 @@ int main(int argc, char* argv[])
 
 double loop_freq = 10;
 
-// for string delimiter
-std::vector<std::string> split (std::string s, std::string delimiter) {
-    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-    std::string token;
-    std::vector<std::string> res;
-
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res.push_back (token);
-    }
-
-    res.push_back (s.substr (pos_start));
-    return res;
-}
-
-
 jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
     : zeromq::MultiThreadApplication<config::AtlasSalinityPublisher>(loop_freq * si::hertz)
 {
@@ -107,31 +97,43 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
 
     interprocess().subscribe<atlas_salinity_udp_in>(
         [this](const goby::middleware::protobuf::IOData& data) {
-            auto s = std::string(data.data());
-            auto fields = split(s, ",");
-            if (fields.size() < 5)
+            jaiabot::protobuf::SalinityData salinity_data;
+            salinity_data.ParseFromString(data.data());
+
+            if (last_pressure_temperature_data_.has_temperature())
             {
-                glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s
-                                       << std::endl;
-                return;
+                const double specific_conductivity = calculate_specific_conductivity(
+                    salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature());
+                salinity_data.set_conductivity(specific_conductivity);
             }
 
-            int index = 0;
+            if (last_pressure_temperature_data_.has_temperature() &&
+                last_pressure_adjusted_data_.has_pressure_adjusted())
+            {
+                const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+                const double salinity = calculate_derived_salinity(
+                    salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature(),
+                    last_pressure_adjusted_data_.pressure_adjusted() +
+                        ATMOSPHERIC_PRESSURE_DECIBARS);
+                salinity_data.set_salinity(salinity);
+            }
 
-            auto date_string = fields[index++];
+            glog.is_debug1() && glog << "=> " << salinity_data.ShortDebugString() << std::endl;
 
-            jaiabot::protobuf::SalinityData output;
-
-            output.set_conductivity(std::stod(fields[index++]));
-            output.set_total_dissolved_solids(std::stod(fields[index++]));
-            output.set_salinity(std::stod(fields[index++]));
-            output.set_specific_gravity(std::stod(fields[index++]));
-
-            glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
-
-            interprocess().publish<groups::salinity>(output);
+            interprocess().publish<groups::salinity>(salinity_data);
 
             last_atlas_salinity_report_time_ = goby::time::SteadyClock::now();
+        });
+
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+            last_pressure_temperature_data_ = pt;
+        });
+
+    // subscribe for pressure adjusted measurements (pressure -> depth)
+    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
+            last_pressure_adjusted_data_ = pa;
         });
 
     interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {

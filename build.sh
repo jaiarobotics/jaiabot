@@ -1,4 +1,12 @@
 #!/bin/bash
+# --- System Requirements Check ---
+MIN_PROC=4
+MIN_RAM_KB=3145728    # 3-4 GiB in KB
+MIN_DISK_KB=10485760  # 10 GiB in KB
+MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+MEMORY_PER_PROCESS_KB="2000000"
+AVAILABLE_DISK_KB=$(df --output=avail / | tail -1)
+MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
 
 if [ -z "${JAIABOT_CMAKE_FLAGS}" ]; then
     JAIABOT_CMAKE_FLAGS=
@@ -10,19 +18,37 @@ fi
 
 # Allow user to set nproc for their system, if desired
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
-    MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
-    MEMORY_PER_PROCESS_KB="2000000"
-    MEMORY_NPROC=$((MEMORY_KB / MEMORY_PER_PROCESS_KB))
-    NPROC=`nproc`
+    echo "[INFO] JAIA_BUILD_NPROC not set, calculating automatically..."
 
-    if [ $MEMORY_NPROC -gt $NPROC ]; then
-        JAIA_BUILD_NPROC=$NPROC
+    NPROC=$(nproc)
+
+    if [ "${MEMORY_NPROC}" -gt "${NPROC}" ]; then
+        JAIA_BUILD_NPROC=${NPROC}
     else
-        JAIA_BUILD_NPROC=$MEMORY_NPROC
+        JAIA_BUILD_NPROC=${MEMORY_NPROC}
     fi
 
-    echo "Auto nproc = $JAIA_BUILD_NPROC"
+    echo "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
+fi
 
+echo "Detected system: $NPROC Processor(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
+
+if [ "$NPROC" -lt "$MIN_PROC" ]; then
+    echo "Warning: Your system has less than the required $MIN_PROC Processors to build the software."
+fi
+
+if [ "$MEMORY_KB" -lt "$MIN_RAM_KB" ]; then
+    echo "Warning: Your system has less than the required 4 GiB of RAM."
+fi
+
+if [ "$AVAILABLE_DISK_KB" -lt "$MIN_DISK_KB" ]; then
+    echo "Warning: Your system has less than the required 10 GiB of disk space."
+fi
+
+# Catch corner case where parallelism resolves to 0
+if [ "$JAIA_BUILD_NPROC" -le 0 ]; then
+    echo "Error: JAIA_BUILD_NPROC resolved to 0. Your system does not meet the minimum requirements to build this software."
+    exit 1
 fi
 
 script_dir=$(dirname $0)
