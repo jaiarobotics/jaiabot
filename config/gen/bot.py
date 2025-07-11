@@ -148,7 +148,6 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
-        subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.xbee_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     else:
         xbee_serial_port='/dev/xbee'
 
