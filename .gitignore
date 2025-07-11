@@ -2,3 +2,27 @@ build/*
 config/launch/simulation/all.launch
 __pycache__
 .vscode
+
+# === private files ===
+
+*.key
+*.rsa
+
+# SSL
+*.cer
+*.crt
+*.der
+*.pem
+*.p12
+
+# SSH keys
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+id_rsa
+id_rsa.pub
+
+# GPG keys
+*.gpg
+*.asc
