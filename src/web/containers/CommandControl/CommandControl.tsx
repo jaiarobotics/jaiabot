@@ -34,7 +34,6 @@ import { LoadMissionPanel } from "../LoadMissionPanel/LoadMissionPanel";
 import { SaveMissionPanel } from "../SaveMissionPanel/SaveMissionPanel";
 import { GoalSettingsPanel } from "../GoalSettings/GoalSettings";
 import { Save, GlobalSettings } from "../../missions/settings";
-import { CustomLayerGroupFactory } from "../../openlayers/map/layers/geotiffs/CustomLayers";
 import { MissionLibraryLocalStorage } from "../../utils/mission-library";
 import { playDisconnectReconnectSounds } from "../../style/audio/disconnect-sounds";
 import { error, success, warning, info } from "../../notifications/notifications";
@@ -457,9 +456,6 @@ export default class CommandControl extends React.Component {
 
         // Map initializations
         map = createMap();
-        layers.on(CustomLayerGroupFactory.customLayerGroupReady, (customLayerGroup: LayerGroup) => {
-            map.getLayers().insertAt(2, customLayerGroup);
-        });
         this.interactions = new Interactions(this, map);
         map.addInteraction(this.interactions.pointerInteraction);
         map.addInteraction(this.interactions.translateInteraction);
