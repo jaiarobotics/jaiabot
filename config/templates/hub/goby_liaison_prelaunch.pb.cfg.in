@@ -210,7 +210,11 @@ add_commander_tab: false
             display_name: "Comms Links"
             value: "xbee"
             value: "wifi"
+            value: "iridium"
             value: "xbee,wifi"
+            value: "xbee,iridium"
+            value: "wifi,iridium"
+            value: "xbee,iridium,wifi"
         }
         $limit
     }
