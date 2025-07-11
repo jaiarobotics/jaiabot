@@ -2,7 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/imu.proto";  
-import "jaiabot/messages/pressure_temperature.proto"; 
+import "jaiabot/messages/sensor/pressure_temperature.proto"; 
 import "jaiabot/messages/motor.proto";
 
 package jaiabot.protobuf;

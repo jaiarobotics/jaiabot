@@ -18,11 +18,11 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
-#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 
 namespace jaiabot

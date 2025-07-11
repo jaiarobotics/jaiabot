@@ -1,23 +1,16 @@
 load_protobuf {
-    name: "jaiabot.protobuf.IMUData" 
+    name: "jaiabot.sensor.protobuf.SensorRequest" 
     publish_to {
-        group: "jaiabot::imu"
+        group: "jaiabot_sensors::mcu_command"
     }
 } 
 
 load_protobuf {
-    name: "jaiabot.protobuf.PressureTemperatureData" 
+    name: "jaiabot.protobuf.CameraCommand" 
     publish_to {
-         group: "jaiabot::pressure_temperature"
+        group: "jaiabot::camera"
     }
-} 
-
-load_protobuf {
-    name: "jaiabot.protobuf.Motor" 
-    publish_to {
-        group: "jaiabot::motor_status" 
-    }
-} 
+}
 
 load_protobuf {
     name: "jaiabot.protobuf.ProductionRequest" 
@@ -25,7 +18,3 @@ load_protobuf {
         group: "jaiabot::production" 
     }
 } 
-
-
-
-

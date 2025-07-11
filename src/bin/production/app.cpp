@@ -31,7 +31,7 @@
 #include <sstream>
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 

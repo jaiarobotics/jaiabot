@@ -1,0 +1,4 @@
+add_executable(jaiabot_test_units test.cpp)
+target_link_libraries(jaiabot_test_units jaiabot_messages)
+
+add_test(NAME jaiabot_test_units COMMAND jaiabot_test_units)

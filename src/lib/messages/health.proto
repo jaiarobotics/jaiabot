@@ -84,6 +84,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER = 39
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_SENSORS = 40
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 41
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -221,6 +225,12 @@ enum Error
     ];  // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
     ERROR__ARDUINO_CONNECTION_FAILED = 704
         [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // jaiabot_sensor
+    ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30 = 800
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 801
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 enum Warning
@@ -315,6 +325,28 @@ enum Warning
     WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED = 722
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSION__DATA_POST_OFFLOAD_FAILED = 723
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // from jaiabot_sensor
+    
+    
+    // from jaiabot_sensors
+    WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO = 800
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC = 801
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH = 802
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__TURNER__C_FLUOR = 803
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+        
+    WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 804
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 805
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 806
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 807
         [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 

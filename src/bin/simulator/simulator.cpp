@@ -48,7 +48,8 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
-#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
@@ -431,18 +432,14 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         // randomize salinity
         salinity += salinity_distribution_(generator_);
 
-        // omit in sim
-        std::string time = "";
-        std::string conductivity = "0.0";
-        std::string dissolved_solids = "0.0";
-        std::string specific_gravity = "0.0";
-
-        // date_string, conductivity, dissolved solids, salinity, specific gravity
-        ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << conductivity << "," << dissolved_solids << "," << salinity << "," << specific_gravity;
+        auto msg = jaiabot::protobuf::SalinityData();
+        // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
+        msg.set_conductivity_raw(45000.0);
+        msg.set_salinity_raw(salinity);
+        msg.set_total_dissolved_solids(0.0);
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(ss.str());
+        io_data->set_data(msg.SerializeAsString());
         interthread().publish<salinity_udp_out>(io_data);
     }
 
