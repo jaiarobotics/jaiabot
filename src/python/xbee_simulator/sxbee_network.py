@@ -42,20 +42,21 @@ class SimXBeeNetwork:
         xbee_matched = False
         for xbee in self.xbees:
             rxpkt = None
-            if xbee.matches(sender._network_id,
-                            sender._preamble_id,
-                            str(dest_addr)):
-                if rxpkt is None:
-                    rxpkt = ReceivePacket(
-                        x64bit_addr=XBee64BitAddress(bytearray.fromhex(sender._user_serial)),
-                        x16bit_addr=XBee16BitAddress(bytearray.fromhex('FFFE')),
-                        rx_options=0x00,
-                        rf_data=rf_data,
-                        op_mode=OperatingMode.API_MODE
-                    )
-                self.logger.debug(f'SXBN sending data from {sender.name} to {xbee.name}.')
-                xbee.receive(rxpkt)
-                xbee_matched = True
+            if xbee is not sender:
+                if xbee.matches(sender._network_id,
+                                sender._preamble_id,
+                                str(dest_addr)):
+                    if rxpkt is None:
+                        rxpkt = ReceivePacket(
+                            x64bit_addr=XBee64BitAddress(bytearray.fromhex(sender._user_serial)),
+                            x16bit_addr=XBee16BitAddress(bytearray.fromhex('FFFE')),
+                            rx_options=0x00,
+                            rf_data=rf_data,
+                            op_mode=OperatingMode.API_MODE
+                        )
+                    self.logger.debug(f'SXBN sending data from {sender.name} to {xbee.name}.')
+                    xbee.receive(rxpkt)
+                    xbee_matched = True
         if not xbee_matched:
             self.logger.debug(f'SXBN sending data from {sender.name} to non-existent address: {str(dest_addr)}.')
             self._refresh_stats()
