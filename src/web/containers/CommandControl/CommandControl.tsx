@@ -1528,7 +1528,8 @@ export default class CommandControl extends React.Component {
                     commDest.poorHealthMessage +
                         commDest.idleStateMessage +
                         commDest.downloadQueueMessage +
-                        commDest.disconnectedMessage,
+                        commDest.disconnectedMessage +
+                        notAssignedMessage,
                 );
             } else {
                 const alertText =
@@ -1678,7 +1679,7 @@ export default class CommandControl extends React.Component {
             const run = runList.runs[runId];
             delete runList?.runs[runId];
             delete runList?.botsAssignedToRuns[run.assigned];
-            if (this.state.visiblePanel === "GOAL_SETTINGS") {
+            if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
                 this.setVisiblePanel(PanelType.NONE);
                 this.setMoveWptMode(
                     false,

@@ -37,13 +37,12 @@ export class CustomAlert extends React.Component {
     }
 
     render(): React.ReactNode {
-        let buttons: React.JSX.Element[];
+        var buttons: React.JSX.Element[];
 
         if (this.props.buttons == null) {
             buttons = [
                 <div
                     className="button"
-                    style={{ minWidth: "100px", padding: "10px" }}
                     onClick={() => {
                         presentAlert(null);
                     }}
@@ -62,12 +61,12 @@ export class CustomAlert extends React.Component {
                         }}
                     >
                         {buttonInput.title}
-                        <br />
                     </div>
                 );
             });
         }
 
+        // Deal with newlines in text
         const textDivs = this.props.text.split("\n").map((line: string) => {
             return <div className="text">{line}</div>;
         });
@@ -121,7 +120,7 @@ export class CustomAlert extends React.Component {
 
         presentAlert({
             title: "Confirm",
-            text,
+            text: text,
             buttons: [
                 {
                     title: "Cancel",
