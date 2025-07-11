@@ -14,8 +14,7 @@ args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger()
-# log.setLevel(args.logging_level)
-log.setLevel('DEBUG')
+log.setLevel(args.logging_level)
 
 server_address = args.socket
 

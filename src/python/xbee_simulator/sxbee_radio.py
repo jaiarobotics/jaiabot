@@ -136,7 +136,8 @@ class SimXBee:
         if self._network_id == network:
             if self._preamble_id == preamble:
                 if self._user_serial.casefold() == address.casefold() or \
-                   'FFFF'.casefold() == address.casefold():
+                   'FFFF'.casefold() == address.casefold() or \
+                   '000000000000FFFF'.casefold() == address.casefold():
                     return True
         return False
 
