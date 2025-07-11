@@ -13,7 +13,7 @@ import {
     mdiDownloadMultiple,
     mdiProgressDownload,
     mdiCog,
-    mdiWrench,
+    mdiCodeString,
     mdiSquareEditOutline,
     mdiRuler,
     mdiCancel,
@@ -26,6 +26,8 @@ import {
     mdiGamepadRight,
     mdiGamepad,
     mdiArrowLeftRightBoldOutline,
+    mdiCached,
+    mdiController,
 } from "@mdi/js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-common-types";
@@ -124,19 +126,24 @@ const buttons: ButtonDescriptor[] = [
             "Click two or more points to measure the total distance along a set of line segments.",
     },
     {
-        iconPath: mdiAlphaACircleOutline,
-        name: "Enable Overdrive",
-        description: "To enable the Overdrive function, press A on the controller.",
+        iconPath: mdiCached,
+        name: "Cycle through bots",
+        description: "To Cycle though bots use LB go up and RB to go down.",
     },
     {
         iconPath: mdiCancel,
-        name: "Cancel Overdrive",
-        description: "To cancel Overdrive when given the option, press LB on the controller.",
+        name: "Cancel/Close",
+        description: "To cancel or close when given the option, press LB on the controller.",
     },
     {
         iconPath: mdiToggleSwitchOutline,
-        name: "Confrim and Activate Overdrive",
-        description: "To enable Overdrive when given the option, press RB on the controller.",
+        name: "Confrim",
+        description: "To confirm when given the option, press RB on the controller.",
+    },
+    {
+        iconPath: mdiAlphaACircleOutline,
+        name: "Enable Overdrive",
+        description: "To enable the Overdrive function, press A on the controller.",
     },
     {
         iconPath: mdiToggleSwitchOffOutline,
@@ -180,6 +187,16 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiStop,
         name: "Stop All Missions on Controller",
         description: "To stop all missions, press down on the right stick on the controller.",
+    },
+    {
+        iconPath: mdiCodeString,
+        name: "System Check All Bots on controller",
+        description: "To conduct systems check all bots on the controller press the start button.",
+    },
+    {
+        iconPath: mdiController,
+        name: "RC Mode",
+        description: "To open RC mode on the controller press down on the left stick.",
     },
 ];
 interface Props {
