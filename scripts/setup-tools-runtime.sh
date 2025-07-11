@@ -2,19 +2,13 @@
 
 echo "Removing timesyncd (conflicts with ntp)"
 sudo apt remove systemd-timesyncd
-
 echo "Installing apt packages"
 sudo apt-get install -y goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 ntp screen python3-dateutil python3-plotly python3-pyqt5 python3-h5py python3-geopandas python3-matplotlib python3-flask python3-networkx socat
-
 echo "Creating /etc/jaiabot directory"
 sudo install -d -m 0755 -o $USER /etc/jaiabot
-
 echo "Creating /var/log/jaiabot directory"
-sudo install -d -m 0755 -o $USER /var/log/jaiabot /var/log/jaiabot/lib
-
-echo "Linking /var/lib/jaiabot -> /var/log/jaiabot/lib"
-sudo ln -snf /var/log/jaiabot/lib /var/lib/jaiabot
-sudo chown -h $USER /var/lib/jaiabot
+sudo install -d -m 0755 -o $USER /var/log/jaiabot
+echo "Creating /var/log"
 
 echo "updating PATH in ~/.bashrc if not already present"
 if ! grep -q 'jaiabot/build/amd64/bin' "$HOME/.bashrc"; then

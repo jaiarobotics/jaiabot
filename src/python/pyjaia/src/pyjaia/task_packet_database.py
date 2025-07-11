@@ -10,7 +10,6 @@ from os.path import getmtime
 import sqlite3
 import random
 import os
-import os.path
 import threading
 import shutil
 import subprocess
@@ -20,17 +19,15 @@ l = logging.getLogger('task_packet_database')
 
 
 class TaskPacketDatabase:
-    taskpacket_files_path: str
-    database_path: str
+    path: str
 
     task_packets_version = random.sample(range(2**31), 1)[0]
 
     db: sqlite3.Connection
     _lock: threading.Lock
 
-    def __init__(self, taskpacket_files_path: str="/var/log/jaiabot/bot_offload/", database_path: str="/var/lib/jaiabot/task_packet"):
-        self.taskpacket_files_path = taskpacket_files_path
-        self.database_path = database_path
+    def __init__(self, path: str="/var/log/jaiabot/bot_offload/"):
+        self.path = path
         self._lock = threading.Lock()
 
         self.db = self._create_or_open_db()
@@ -43,8 +40,7 @@ class TaskPacketDatabase:
         Returns:
             sqlite3.Connection: The database connection.
         """
-        os.makedirs(self.database_path, exist_ok=True)
-        filename = self.database_path + '/task_packet.db'
+        filename = self.path + '/task_packet.db'
         db = sqlite3.connect(filename, check_same_thread=False)
 
         # Create tables
@@ -69,10 +65,10 @@ class TaskPacketDatabase:
         """Loads all modified taskpacket files from the offload directory.  THREAD UNSAFE.
         """
 
-        processed_path = self.database_path + '/processed/'
+        processed_path = self.path + '/processed/'
         os.makedirs(processed_path, exist_ok=True)
 
-        for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
+        for taskpacket_fullpath in glob.glob(self.path + '*.taskpacket'):
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
             for line in open(taskpacket_fullpath):
                 try:
