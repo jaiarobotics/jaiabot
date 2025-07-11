@@ -26,8 +26,9 @@ class TaskPacketDatabase:
     db: sqlite3.Connection
     _lock: threading.Lock
 
-    def __init__(self, path: str="/var/log/jaiabot/bot_offload/"):
+    def __init__(self, path: str="/var/log/jaiabot/db/"):
         self.path = path
+        Path(path).mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
 
         self.db = self._create_or_open_db()
