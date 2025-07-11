@@ -17,7 +17,7 @@ credentials_phrases=(
 )
 
 for phrase in "${credentials_phrases[@]}"; do
-  if git diff --cached | grep -q "$phrase"; then
+  if git diff --cached | grep -Fq "$phrase"; then
     echo "Aborting commit due to inclusion of phrase '$phrase'"
     exit 1
   fi
