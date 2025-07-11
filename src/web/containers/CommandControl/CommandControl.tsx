@@ -4352,33 +4352,52 @@ export default class CommandControl extends React.Component {
                         } else if (buttonName === "LS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId) {
-                                const currentlyActive = this.isRCModeActive(selectedBotId);
-                                this.setRcMode(selectedBotId, !currentlyActive);
-                                this.triggerRumble();
+                                const bot = this.state.podStatus.bots[selectedBotId];
+                                const missionState = bot?.mission_state ?? "";
+                                if (missionState.includes("IDLE")) {
+                                    CustomAlert.alert(
+                                        `The command: REMOTE_CONTROL_TASK cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*, PRE_DEPLOYMENT_WAIT_FOR_MISSION_PLAN, *_FAILED`,
+                                    );
+                                } else {
+                                    const currentlyActive = this.isRCModeActive(selectedBotId);
+                                    this.setRcMode(selectedBotId, !currentlyActive);
+                                    this.triggerRumble();
+                                }
                             }
                         } else if (buttonName === "RS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId && !this.isRCModeActive(selectedBotId)) {
-                                // Show confirmation before stopping the selected bot
-                                CustomAlert.confirm(
-                                    `Are you sure you'd like to Stop bot: ${selectedBotId}?`,
-                                    "Stop",
-                                    () => {
-                                        this.takeControl(() => {
-                                            this.api.postCommand({
-                                                bot_id: selectedBotId,
-                                                type: CommandType.STOP,
+                                const bot = this.state.podStatus.bots[selectedBotId];
+                                const missionState = bot?.mission_state ?? "";
+
+                                if (missionState.includes("STOPPED")) {
+                                    CustomAlert.alert(
+                                        `The command: STOP cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*\n Stataes Not Available: IN_MISSION_UNDERWAY_RECOVERY_STOPPED`,
+                                    );
+                                } else {
+                                    // Show confirmation before stopping the selected bot
+                                    CustomAlert.confirm(
+                                        `Are you sure you'd like to Stop bot: ${selectedBotId}?`,
+                                        "Stop",
+                                        () => {
+                                            this.takeControl(() => {
+                                                this.api.postCommand({
+                                                    bot_id: selectedBotId,
+                                                    type: CommandType.STOP,
+                                                });
                                             });
-                                        });
-                                        this.triggerRumble(300, 1, 0.2);
-                                    },
-                                );
+                                            this.triggerRumble(300, 1, 0.2);
+                                        },
+                                    );
+                                }
                             } else if (!selectedBotId) {
                                 // No bot selected: stop all bots
                                 this.sendStopAll();
                                 this.triggerRumble(300, 1, 0.2);
                             }
                             return;
+                        } else if (buttonName == "Start") {
+                            this.activateAllClicked();
                         } else {
                             return;
                         }
