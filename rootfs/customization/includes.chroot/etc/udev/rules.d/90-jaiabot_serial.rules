@@ -7,3 +7,5 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="b
 ## xbee
 KERNEL=="ttyAMA4", SYMLINK+="xbee"
 
+## Iridium
+KERNEL=="ttyAMA5", SYMLINK+="iridium"
