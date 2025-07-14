@@ -17,11 +17,8 @@ __pycache__
 
 # SSH keys
 id_ecdsa
-id_ecdsa.pub
 id_ed25519
-id_ed25519.pub
 id_rsa
-id_rsa.pub
 
 # GPG keys
 *.gpg
