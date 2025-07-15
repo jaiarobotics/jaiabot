@@ -25,6 +25,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CustomAlert } from "../../shared/CustomAlert";
 import { Typography } from "@mui/material";
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
+import { amber } from "@mui/material/colors";
+import { mdiMicrosoftXboxControllerView } from "@mdi/js";
 
 interface Props {
     api: JaiaAPI;
@@ -55,6 +57,7 @@ interface State {
     isMaximized: boolean;
     overdriveEnabled: boolean;
     isAlertOpen: boolean;
+    comeToMeActive: boolean;
 }
 
 enum JoySticks {
@@ -115,6 +118,7 @@ export default class RCControllerPanel extends React.Component {
             isPlayButtonSelected: false,
             isStopButtonSelected: false,
             overdriveEnabled: false,
+            comeToMeActive: false,
         };
     }
 
@@ -689,11 +693,15 @@ export default class RCControllerPanel extends React.Component {
      */
     async sendComeToMeWaypoint() {
         try {
+            // Set Come To Me as active
+            this.setState({ comeToMeActive: true });
+
             // Get pod status to determine hub location
             const podStatus = await this.api.getStatus();
 
             if (!podStatus || !podStatus.hubs) {
                 error("Unable to get hub status for waypoint");
+                this.setState({ comeToMeActive: false });
                 return;
             }
 
@@ -712,6 +720,7 @@ export default class RCControllerPanel extends React.Component {
 
             if (!hubLocation) {
                 error("No hub location available for waypoint");
+                this.setState({ comeToMeActive: false });
                 return;
             }
 
@@ -737,14 +746,21 @@ export default class RCControllerPanel extends React.Component {
             this.api.postCommand(comeToMeCommand).then((response) => {
                 if (response.message) {
                     error("Unable to send come to me waypoint");
+                    this.setState({ comeToMeActive: false });
                 } else {
                     success(`Bot ${this.props.bot?.bot_id} heading to hub location`); //might take this out
                     // Trigger rumble for feedback
                     this.triggerRumble(750, 1.0, 1.0);
+
+                    // Keep the icon amber for 3 seconds to show it's been activated
+                    setTimeout(() => {
+                        this.setState({ comeToMeActive: false });
+                    }, 3000);
                 }
             });
         } catch (err) {
             error("Failed to create come to me waypoint: " + err.message);
+            this.setState({ comeToMeActive: false });
         }
     }
 
@@ -888,6 +904,27 @@ export default class RCControllerPanel extends React.Component {
         driveControlPad = (
             <div className="rc-labels-container">
                 <div className="rc-labels-left">
+                    <div className="rc-adv-speed-container">
+                        <div>Come To Me</div>
+                        <div
+                            onClick={() => {
+                                CustomAlert.confirm(
+                                    `Send bot ${this.props.bot?.bot_id} back to the hub?`,
+                                    "Come To Me",
+                                    () => {
+                                        this.sendComeToMeWaypoint();
+                                    },
+                                );
+                            }}
+                        >
+                            <Icon
+                                path={mdiMicrosoftXboxControllerView}
+                                size={1.2}
+                                color={this.state.comeToMeActive ? amber[600] : "white"}
+                            />
+                        </div>
+                    </div>
+
                     {selectControlType}
                     <div className="rc-info-container">
                         <div>Throttle Direction:</div>
@@ -919,6 +956,27 @@ export default class RCControllerPanel extends React.Component {
             diveControlPad = (
                 <div className="rc-labels-container">
                     <div className="rc-labels-left">
+                        <div className="rc-adv-speed-container">
+                            <div>Come To Me</div>
+                            <div
+                                onClick={() => {
+                                    CustomAlert.confirm(
+                                        `Send bot ${this.props.bot?.bot_id} back to the hub?`,
+                                        "Come To Me",
+                                        () => {
+                                            this.sendComeToMeWaypoint();
+                                        },
+                                    );
+                                }}
+                            >
+                                <Icon
+                                    path={mdiMicrosoftXboxControllerView}
+                                    size={1.2}
+                                    color={this.state.comeToMeActive ? amber[600] : "white"}
+                                />
+                            </div>
+                        </div>
+
                         {selectControlType}
                         <div className="rc-dive-info-container">
                             <div>Max Depth:</div>
