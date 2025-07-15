@@ -4370,7 +4370,11 @@ export default class CommandControl extends React.Component {
                                 const bot = this.state.podStatus.bots[selectedBotId];
                                 const missionState = bot?.mission_state ?? "";
 
-                                if (missionState.includes("STOPPED")) {
+                                if (
+                                    missionState.includes("STOPPED") ||
+                                    missionState.includes("IDLE") ||
+                                    missionState.includes("WAIT")
+                                ) {
                                     CustomAlert.alert(
                                         `The command: STOP cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*\n Stataes Not Available: IN_MISSION_UNDERWAY_RECOVERY_STOPPED`,
                                     );
@@ -4397,7 +4401,24 @@ export default class CommandControl extends React.Component {
                             }
                             return;
                         } else if (buttonName == "Start") {
-                            this.activateAllClicked();
+                            const selectedBotId = this.selectedBotId();
+                            if (selectedBotId) {
+                                CustomAlert.confirm(
+                                    `Are you sure you'd like to system check bot: ${selectedBotId}?`,
+                                    "Run System Check",
+                                    () => {
+                                        this.takeControl(() => {
+                                            this.api.postCommand({
+                                                bot_id: selectedBotId,
+                                                type: CommandType.ACTIVATE,
+                                            });
+                                        });
+                                        this.triggerRumble(300, 1, 0.2);
+                                    },
+                                );
+                            } else {
+                                this.activateAllClicked();
+                            }
                         } else {
                             return;
                         }
