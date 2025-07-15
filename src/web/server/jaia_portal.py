@@ -9,6 +9,8 @@ import collections
 import subprocess
 import os
 import sys
+import asyncio
+from configparser import ConfigParser
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -30,6 +32,14 @@ from math import *
 from utils import *
 
 import logging
+
+# Add this import for TAK functionality
+try:
+    import pytak
+    TAK_AVAILABLE = True
+except ImportError:
+    TAK_AVAILABLE = False
+    logging.warning("pytak not available - TAK integration disabled")
 
 # Threshold time interval for adding bot locations to the bot_path list (microseconds)
 BOT_PATH_UTIME_THRESHOLD = 2_000_000
@@ -108,6 +118,10 @@ class Interface:
         self.ping_portal()
 
         threading.Thread(target=lambda: self.loop()).start()
+
+        # Start TAK receiver if configuration exists
+        if self.check_tak_config():
+            threading.Thread(target=self.start_tak_receiver, daemon=True).start()
 
     def loop(self):
         while True:
@@ -613,4 +627,79 @@ class Interface:
             "--cot_type", "a-f-P-H"
         ], cwd=tak_dir)
 
-    
+    def check_tak_config(self):
+        """Check if TAK configuration exists"""
+        try:
+            if not TAK_AVAILABLE:
+                return False
+                
+            tak_config_path = os.path.join(os.path.dirname(__file__), 'tak', 'initiative.ini')
+            return os.path.exists(tak_config_path)
+        except:
+            return False
+
+    def start_tak_receiver(self):
+        """Start TAK receiver in separate thread"""
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.run_tak_receiver())
+        except Exception as e:
+            logging.error(f"Error in TAK receiver: {e}")
+
+    async def run_tak_receiver(self):
+        """Run the TAK receiver with callback to this interface"""
+        try:
+            sys.path.append(os.path.join(os.path.dirname(__file__), 'tak'))
+            
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("receiver", os.path.join(os.path.dirname(__file__), 'tak', '01-receiver.py'))
+            receiver_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(receiver_module)
+            MyReceiver = receiver_module.MyReceiver
+
+            # Change to the TAK directory so relative paths work
+            tak_dir = os.path.join(os.path.dirname(__file__), 'tak')
+            original_cwd = os.getcwd()
+            os.chdir(tak_dir)
+            
+            try:
+                config = ConfigParser()
+                config.read('initiative.ini')
+                config = config["connection"]
+
+                clitool = pytak.CLITool(config)
+                await clitool.setup()
+
+                # Create receiver with callback to this interface
+                receiver = MyReceiver(clitool.rx_queue, config, callback=self.process_tak_waypoint)
+                clitool.add_tasks(set([receiver]))
+                
+                logging.info("TAK receiver started")
+                await clitool.run()
+            finally:
+                # Restore original working directory
+                os.chdir(original_cwd)
+                
+        except Exception as e:
+            logging.error(f"Error in TAK receiver: {e}")
+
+    async def process_tak_waypoint(self, waypoint_data):
+        """Process waypoint from TAK and send to simulator"""
+        try:
+            logging.info(f"Received TAK waypoint: {waypoint_data}")
+            
+            # Create a single waypoint mission
+            mission_dict = {
+                'lat': waypoint_data['lat'],
+                'lon': waypoint_data['lon'],
+                'bot_id': 1  # Default to bot 1
+            }
+            
+            # Send the waypoint mission
+            result = self.post_single_waypoint_mission(mission_dict, 'tak_interface')
+            logging.info(f"Created waypoint mission from TAK: {result}")
+            
+        except Exception as e:
+            logging.error(f"Error processing TAK waypoint: {e}")
+

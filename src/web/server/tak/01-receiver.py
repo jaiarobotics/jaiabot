@@ -15,6 +15,10 @@ logfile = open('my_log.txt', 'a')
 class MyReceiver(pytak.QueueWorker):
     """Defines how you will handle events from RX Queue."""
 
+    def __init__(self, queue, config, callback=None):
+        super().__init__(queue, config)
+        self.callback = callback
+
     async def handle_data(self, data):
         """Handle data from the receive queue."""
         try:
@@ -108,18 +112,18 @@ class MyReceiver(pytak.QueueWorker):
     async def send_to_simulator(self, waypoint_data):
         """Send waypoint data to simulator"""
         try:
-            print("=" * 60)
-            print("🎯 WAYPOINT FOR SIMULATOR:")
-            print(f"  Latitude:  {waypoint_data['lat']}")
-            print(f"  Longitude: {waypoint_data['lon']}")
-            print(f"  Callsign:  {waypoint_data['callsign']}")
-            print(f"  Remarks:   {waypoint_data['remarks']}")
-            print(f"  UID:       {waypoint_data['uid']}")
-            print("=" * 60)
-            
-            # TODO: Integrate with jaia_portal.py to send waypoint mission
-            # You can add HTTP request or direct function call here
-            
+            if self.callback:
+                await self.callback(waypoint_data)
+            else:
+                print("=" * 60)
+                print("🎯 WAYPOINT FOR SIMULATOR:")
+                print(f"  Latitude:  {waypoint_data['lat']}")
+                print(f"  Longitude: {waypoint_data['lon']}")
+                print(f"  Callsign:  {waypoint_data['callsign']}")
+                print(f"  Remarks:   {waypoint_data['remarks']}")
+                print(f"  UID:       {waypoint_data['uid']}")
+                print("=" * 60)
+        
         except Exception as e:
             print(f"Error sending waypoint to simulator: {e}")
 
