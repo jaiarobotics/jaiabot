@@ -13,7 +13,13 @@ import { JaiaAPI } from "../../utils/jaia-api";
 import { Engineering } from "../../shared/JAIAProtobuf";
 import { PortalBotStatus } from "../../shared/PortalStatus";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
-import { TaskType, CommandType } from "../../shared/JAIAProtobuf";
+import {
+    TaskType,
+    CommandType,
+    MissionStart,
+    MovementType,
+    GeographicCoordinate,
+} from "../../shared/JAIAProtobuf";
 import { Joystick, JoystickShape } from "react-joystick-component";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CustomAlert } from "../../shared/CustomAlert";
@@ -533,6 +539,18 @@ export default class RCControllerPanel extends React.Component {
     // List of parameter keys to navigate easily
     diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
+    /**
+     * Handles Xbox controller button press events
+     * Button mappings:
+     * - A: Toggle overdrive mode
+     * - X: Switch to Manual Dual control
+     * - Y: Switch to Manual Single control
+     * - B: Switch to Dive mode (or execute dive when Play selected)
+     * - RS: Emergency stop all missions
+     * - Back: Create waypoint at hub location ("come to me")
+     * - D-Pad: Navigate dive parameters (Dive mode only)
+     * - LT/RT: Adjust dive parameter values (Dive mode only)
+     */
     async handleButtonDown(buttonName: string) {
         // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
@@ -555,6 +573,9 @@ export default class RCControllerPanel extends React.Component {
             // Bind RS to stop all
             this.sendStopAll();
             this.triggerRumble(500, 1.0, 1.0);
+        } else if (buttonName === "Back") {
+            // Back button creates waypoint at hub location - "come to me" functionality
+            this.sendComeToMeWaypoint();
         }
         // New dive param navigation & adjustment (only when in DIVE mode)
         if (this.state.controlType === ControlTypes.DIVE) {
@@ -652,6 +673,73 @@ export default class RCControllerPanel extends React.Component {
             }
         });
         this.clearRemoteControlValues();
+    }
+
+    /**
+     * Creates a waypoint mission to the hub's current location when back button is pressed.
+     * This implements the "come to me" functionality.
+     *
+     * @returns {void}
+     */
+    async sendComeToMeWaypoint() {
+        try {
+            // Get pod status to determine hub location
+            const podStatus = await this.api.getStatus();
+
+            if (!podStatus || !podStatus.hubs) {
+                error("Unable to get hub status for waypoint");
+                return;
+            }
+
+            // Find the first hub with a valid location
+            let hubLocation: GeographicCoordinate | null = null;
+            for (const hubId in podStatus.hubs) {
+                const hub = podStatus.hubs[hubId];
+                if (hub.location && hub.location.lat && hub.location.lon) {
+                    hubLocation = {
+                        lat: hub.location.lat,
+                        lon: hub.location.lon,
+                    };
+                    break;
+                }
+            }
+
+            if (!hubLocation) {
+                error("No hub location available for waypoint");
+                return;
+            }
+
+            // Create mission plan with waypoint at hub location
+            const comeToMeCommand = {
+                bot_id: this.props.bot?.bot_id,
+                time: new Date().getTime(),
+                type: CommandType.MISSION_PLAN,
+                plan: {
+                    start: MissionStart.START_IMMEDIATELY,
+                    movement: MovementType.TRANSIT,
+                    goal: [
+                        {
+                            location: hubLocation,
+                        },
+                    ],
+                    recovery: {
+                        recover_at_final_goal: true,
+                    },
+                },
+            };
+
+            this.api.postCommand(comeToMeCommand).then((response) => {
+                if (response.message) {
+                    error("Unable to send come to me waypoint");
+                } else {
+                    success(`Bot ${this.props.bot?.bot_id} heading to hub location`);
+                    // Trigger rumble for feedback
+                    this.triggerRumble(750, 1.0, 1.0);
+                }
+            });
+        } catch (err) {
+            error("Failed to create come to me waypoint: " + err.message);
+        }
     }
 
     render() {
