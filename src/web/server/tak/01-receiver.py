@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import signal
 import sys, os
+import json
 
 import asyncio
 import xml.etree.ElementTree as ET
@@ -18,35 +19,109 @@ class MyReceiver(pytak.QueueWorker):
         """Handle data from the receive queue."""
         try:
             newtree = ET.fromstring(data.decode())
-            ## PRETTY PRINT FOR DEBUGGING
-            newtree_str = ET.tostring(newtree)
-            newtree_str = xml.dom.minidom.parseString(newtree_str)
-            newtree_str = newtree_str.toprettyxml(indent="  ")
-            print(newtree_str)
-            ## END OF PRETTY PRINT CODE
 
-            if(newtree.tag == "event") & (newtree.get("uid") is not None):
-                if newtree.get("uid") != "BoringExampleUID":
-                    # Ignore some known uninteresting event ID
-                    return
-                
-                if newtree.find("detail") is not None:
-                    detailtree= newtree.find("detail")
-                    if detailtree.find("remarks") is not None:
-                          print(newtree.find("detail").find("remarks").get("text"))
-                          # There's some interesting nugget of data being reported here...
-
-                for point in newtree.findall("point"):
-                    mylat, mylon, myhae, myce, myle = point.attrib.items()
-                    print(str(newtree.get("uid")) + " @ " + str(mylat) + str(mylon))
-                    # This is where the event was reported...
+            if newtree.tag == "event" and newtree.get("uid") is not None:
+                # Check if this is a waypoint based on contact callsign
+                if self.is_waypoint_callsign(newtree):
+                    ## PRETTY PRINT FOR DEBUGGING - ONLY FOR WAYPOINTS
+                    newtree_str = ET.tostring(newtree)
+                    newtree_str = xml.dom.minidom.parseString(newtree_str)
+                    newtree_str = newtree_str.toprettyxml(indent="  ")
+                    print(newtree_str)
+                    ## END OF PRETTY PRINT CODE
+                    
+                    await self.process_waypoint_event(newtree)
+                # Silently ignore non-waypoint events - no output at all
 
         except Exception as e:
-           print(e)
+           print(f"Error processing CoT: {e}")
            exc_type, exc_obj, exc_tb = sys.exc_info()
            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
            print(exc_type, fname, exc_tb.tb_lineno)
 
+    def is_waypoint_callsign(self, newtree):
+        """Check if the contact callsign contains 'waypoint'"""
+        try:
+            detail = newtree.find("detail")
+            if detail is not None:
+                contact = detail.find("contact")
+                if contact is not None:
+                    callsign = contact.get("callsign", "").lower()
+                    return "waypoint" in callsign
+            return False
+        except Exception as e:
+            print(f"Error checking callsign: {e}")
+            return False
+
+    async def process_waypoint_event(self, newtree):
+        """Process a waypoint CoT event"""
+        try:
+            uid = newtree.get("uid")
+            event_type = newtree.get("type")
+            
+            print(f"🎯 Processing WAYPOINT event: UID={uid}, Type={event_type}")
+            
+            # Extract location data
+            point = newtree.find("point")
+            if point is None:
+                print("❌ No point data in waypoint event")
+                return
+                
+            lat = float(point.get("lat"))
+            lon = float(point.get("lon"))
+            hae = float(point.get("hae", 0))
+            
+            print(f"📍 Waypoint Location: lat={lat}, lon={lon}, hae={hae}")
+            
+            # Extract callsign and remarks
+            callsign = "Unknown"
+            remarks = ""
+            
+            detail = newtree.find("detail")
+            if detail is not None:
+                contact = detail.find("contact")
+                if contact is not None:
+                    callsign = contact.get("callsign", "Unknown")
+                
+                remarks_elem = detail.find("remarks")
+                if remarks_elem is not None:
+                    remarks = remarks_elem.text or ""
+            
+            # Create waypoint data structure
+            waypoint_data = {
+                "uid": uid,
+                "type": event_type,
+                "lat": lat,
+                "lon": lon,
+                "hae": hae,
+                "callsign": callsign,
+                "remarks": remarks,
+                "timestamp": newtree.get("time")
+            }
+            
+            print(f"🚀 Sending waypoint to simulator: {waypoint_data}")
+            await self.send_to_simulator(waypoint_data)
+
+        except Exception as e:
+            print(f"Error processing waypoint event: {e}")
+
+    async def send_to_simulator(self, waypoint_data):
+        """Send waypoint data to simulator"""
+        try:
+            print("=" * 60)
+            print("🎯 WAYPOINT FOR SIMULATOR:")
+            print(f"  Latitude:  {waypoint_data['lat']}")
+            print(f"  Longitude: {waypoint_data['lon']}")
+            print(f"  Callsign:  {waypoint_data['callsign']}")
+            print(f"  Remarks:   {waypoint_data['remarks']}")
+            print(f"  UID:       {waypoint_data['uid']}")
+            print("=" * 60)
+            
+            # TODO: Integrate with jaia_portal.py to send waypoint mission
+            # You can add HTTP request or direct function call here
+            
+        except Exception as e:
+            print(f"Error sending waypoint to simulator: {e}")
 
     async def run(self):  # pylint: disable=arguments-differ
         """Read from the receive queue, put data onto handler."""
