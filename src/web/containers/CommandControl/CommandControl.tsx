@@ -4403,19 +4403,30 @@ export default class CommandControl extends React.Component {
                         } else if (buttonName == "Start") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId) {
-                                CustomAlert.confirm(
-                                    `Are you sure you'd like to system check bot: ${selectedBotId}?`,
-                                    "Run System Check",
-                                    () => {
-                                        this.takeControl(() => {
-                                            this.api.postCommand({
-                                                bot_id: selectedBotId,
-                                                type: CommandType.ACTIVATE,
+                                const bot = this.state.podStatus.bots[selectedBotId];
+                                const missionState = bot?.mission_state ?? "";
+                                if (
+                                    !missionState.includes("IDLE") &&
+                                    !missionState.includes("PRE_DEPLOYMENT_FAILED")
+                                ) {
+                                    CustomAlert.alert(
+                                        `The command: ACTIVATE cannot be sent because the bot is in the incorrect state.\n Available States: *_IDLE, PRE_DEPLOYMENT_FAILED`,
+                                    );
+                                } else {
+                                    CustomAlert.confirm(
+                                        `Are you sure you'd like to system check bot: ${selectedBotId}?`,
+                                        "Run System Check",
+                                        () => {
+                                            this.takeControl(() => {
+                                                this.api.postCommand({
+                                                    bot_id: selectedBotId,
+                                                    type: CommandType.ACTIVATE,
+                                                });
                                             });
-                                        });
-                                        this.triggerRumble(300, 1, 0.2);
-                                    },
-                                );
+                                            this.triggerRumble(300, 1, 0.2);
+                                        },
+                                    );
+                                }
                             } else {
                                 this.activateAllClicked();
                             }

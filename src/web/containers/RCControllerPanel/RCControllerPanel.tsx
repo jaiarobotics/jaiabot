@@ -575,7 +575,13 @@ export default class RCControllerPanel extends React.Component {
             this.triggerRumble(500, 1.0, 1.0);
         } else if (buttonName === "Back") {
             // Back button creates waypoint at hub location - "come to me" functionality
-            this.sendComeToMeWaypoint();
+            CustomAlert.confirm(
+                `Send bot ${this.props.bot?.bot_id} back to the hub?`,
+                "Come To Me",
+                () => {
+                    this.sendComeToMeWaypoint();
+                },
+            );
         }
         // New dive param navigation & adjustment (only when in DIVE mode)
         if (this.state.controlType === ControlTypes.DIVE) {
@@ -732,7 +738,7 @@ export default class RCControllerPanel extends React.Component {
                 if (response.message) {
                     error("Unable to send come to me waypoint");
                 } else {
-                    success(`Bot ${this.props.bot?.bot_id} heading to hub location`);
+                    success(`Bot ${this.props.bot?.bot_id} heading to hub location`); //might take this out
                     // Trigger rumble for feedback
                     this.triggerRumble(750, 1.0, 1.0);
                 }
