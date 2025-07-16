@@ -2,6 +2,7 @@
 
 n_bots=4
 warp=5
+comms_mode="w"
 
 script_dir=$(dirname $0)
 launchfile=${script_dir}/all.launch
@@ -18,6 +19,15 @@ if [ ! -z "$1" ]; then
 fi
 if [ ! -z "$2" ]; then
     warp="$2"
+fi
+if [[ "$comms_mode" == *x* ]]; then
+    jaia_comms_mode="xbee"
+fi
+if [[ "$comms_mode" == *w* ]]; then
+    jaia_comms_mode="wifi"
+fi
+if [[ "$comms_mode" == *w* && "$comms_mode" == *x* ]]; then
+    jaia_comms_mode="xbee,wifi"
 fi
 
 ${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h 1 -f 0 > /etc/jaiabot/inventory.yml
