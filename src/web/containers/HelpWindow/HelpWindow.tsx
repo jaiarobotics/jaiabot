@@ -13,12 +13,12 @@ import {
     mdiDownloadMultiple,
     mdiProgressDownload,
     mdiCog,
-    mdiCodeString,
+    mdiMicrosoftXboxControllerMenu,
     mdiSquareEditOutline,
     mdiRuler,
     mdiCancel,
     mdiToggleSwitchOutline,
-    mdiAlphaACircleOutline,
+    mdiThumbUp,
     mdiAlphaBCircleOutline,
     mdiAlphaXCircleOutline,
     mdiAlphaYCircleOutline,
@@ -28,6 +28,7 @@ import {
     mdiArrowLeftRightBoldOutline,
     mdiCached,
     mdiController,
+    mdiMicrosoftXboxControllerView,
 } from "@mdi/js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-common-types";
@@ -127,8 +128,13 @@ const buttons: ButtonDescriptor[] = [
     },
     {
         iconPath: mdiCached,
-        name: "Cycle through bots",
-        description: "To Cycle though bots use LB go up and RB to go down.",
+        name: "Cycle Through Bots",
+        description: "Use LB to cycle to the previous bot and RB to cycle to the next bot.",
+    },
+    {
+        iconPath: mdiThumbUp,
+        name: "Confrim",
+        description: "To confirm when given the option, press RB on the controller.",
     },
     {
         iconPath: mdiCancel,
@@ -136,14 +142,39 @@ const buttons: ButtonDescriptor[] = [
         description: "To cancel or close when given the option, press LB on the controller.",
     },
     {
-        iconPath: mdiToggleSwitchOutline,
-        name: "Confrim",
-        description: "To confirm when given the option, press RB on the controller.",
+        iconPath: mdiMicrosoftXboxControllerMenu,
+        name: "System Check All Bots on controller",
+        description: "To conduct systems check all bots on the controller press the start button.",
     },
     {
-        iconPath: mdiAlphaACircleOutline,
+        iconPath: mdiStop,
+        name: "Stop All Missions on Controller",
+        description: "To stop all missions, press down on the right stick on the controller.",
+    },
+    {
+        iconPath: mdiController,
+        name: "RC Mode",
+        description: "To open RC mode on the controller press down on the left stick.",
+    },
+    {
+        iconPath: mdiAlphaXCircleOutline,
+        name: "Activate Manual Dual on Controller",
+        description: "To enable the Manual Dual function, press X on the controller.",
+    },
+    {
+        iconPath: mdiAlphaYCircleOutline,
+        name: "Activate Manual Single on Controller",
+        description: "To enable the Manual Single function, press Y on the controller.",
+    },
+    {
+        iconPath: mdiMicrosoftXboxControllerView,
+        name: "Come To Me Button",
+        description: "While in RC mode press the Back button to have bot travel back to the Hub.",
+    },
+    {
+        iconPath: mdiToggleSwitchOutline,
         name: "Enable Overdrive",
-        description: "To enable the Overdrive function, press A on the controller.",
+        description: "To enable the overdrive function, press A and then RB on the controller.",
     },
     {
         iconPath: mdiToggleSwitchOffOutline,
@@ -172,31 +203,6 @@ const buttons: ButtonDescriptor[] = [
         name: "To Increase/Decrease the Meters or Seconds for Dive Options",
         description:
             "To increase the options on the controller, press RT on the controller. To decrease the options on the controller, press LT on the controller.",
-    },
-    {
-        iconPath: mdiAlphaXCircleOutline,
-        name: "Activate Manual Dual on Controller",
-        description: "To enable the Manual Dual function, press X on the controller.",
-    },
-    {
-        iconPath: mdiAlphaYCircleOutline,
-        name: "Activate Manual Single on Controller",
-        description: "To enable the Manual Single function, press Y on the controller.",
-    },
-    {
-        iconPath: mdiStop,
-        name: "Stop All Missions on Controller",
-        description: "To stop all missions, press down on the right stick on the controller.",
-    },
-    {
-        iconPath: mdiCodeString,
-        name: "System Check All Bots on controller",
-        description: "To conduct systems check all bots on the controller press the start button.",
-    },
-    {
-        iconPath: mdiController,
-        name: "RC Mode",
-        description: "To open RC mode on the controller press down on the left stick.",
     },
 ];
 interface Props {
