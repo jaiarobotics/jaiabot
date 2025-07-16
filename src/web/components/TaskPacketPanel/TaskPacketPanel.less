@@ -1,0 +1,43 @@
+@import "../../style/stylesheets/vars.less";
+
+.task-packet-panel-container {
+    position: absolute;
+    top: @panel-top;
+    right: @panel-right;
+
+    padding: 6px;
+
+    max-height: @panel-max-height;
+
+    background-color: @overlay-background;
+}
+
+.task-packet-panel {
+    display: grid;
+    grid-template-columns: max-content min-content;
+    align-items: center;
+    gap: 15px;
+
+    padding: 15px;
+
+    background-color: @cc-background-color;
+    font-size: 1.1rem;
+}
+
+.task-packet-panel .title {
+    grid-column: 1 / 3;
+    justify-self: center;
+
+    font-weight: 600;
+    padding-bottom: 12px;
+}
+
+.task-packet-panel .label {
+    font-weight: 600;
+}
+
+.task-packet-panel .line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
+}
