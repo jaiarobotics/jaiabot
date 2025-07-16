@@ -28,6 +28,8 @@ from utils import *
 
 import logging
 
+from havoc_api import send_bot_status_to_havoc
+
 # Threshold time interval for adding bot locations to the bot_path list (microseconds)
 BOT_PATH_UTIME_THRESHOLD = 2_000_000
 
@@ -144,6 +146,8 @@ class Interface:
 
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
+
+                send_bot_status_to_havoc(botStatus)
 
                 # Add position to bot_paths
                 #if msg.bot_status.HasField('location'):
