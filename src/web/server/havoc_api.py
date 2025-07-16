@@ -12,7 +12,7 @@ bot_id_to_boat_id = {}
 sample_boat = '''{
           "meta": {
             "kind": 4,
-            "name": "jaia1"
+            "name": "jaia0"
           },
           "team": {
             "kind": 3,
@@ -22,11 +22,11 @@ sample_boat = '''{
           "status": {
             "position": {
               "location": {
-                "latitude": 45.0137000000001,
-                "longitude": -83.45858
+                "latitude": 0,
+                "longitude": 0
               }
             },
-            "heading": 123.0
+            "heading": 0
           }
         }
     '''
@@ -112,10 +112,10 @@ def patch_boatstatus_havoc_request(boat_status, boat_id):
         boat_url, json.dumps(boat_status), "PATCH"
     )
 
-def send_bot_status_to_havoc(bot_status_dict):
-    bot_id = bot_status_dict.get("bot_id")
-    location = bot_status_dict.get("location", {})
-    heading = bot_status_dict.get("heading")
+def send_bot_status_to_havoc(bot_status):
+    bot_id = bot_status.get("bot_id")
+    location = bot_status.get("location", {})
+    heading = bot_status.get("heading", 0)
 
     if "lat" not in location or "lon" not in location:
         print(f"Skipping bot {bot_id} – missing location data")
@@ -125,8 +125,7 @@ def send_bot_status_to_havoc(bot_status_dict):
     boat_status["meta"]["name"] = f"jaia{bot_id}"
     boat_status["status"]["position"]["location"]["latitude"] = location["lat"]
     boat_status["status"]["position"]["location"]["longitude"] = location["lon"]
-    if heading is not None:
-        boat_status["status"]["heading"] = heading
+    boat_status["status"]["heading"] = heading        
 
     if bot_id in bot_id_to_boat_id:
         patch_boatstatus_havoc_request(boat_status, bot_id_to_boat_id[bot_id])
