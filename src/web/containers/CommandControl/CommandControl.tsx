@@ -4316,6 +4316,12 @@ export default class CommandControl extends React.Component {
                         handleGamepadAlertConfirm(buttonName);
                         return;
                     }
+
+                    // Block all other buttons when alert is up to prevent unwanted rumble
+                    if (this.state.customAlert) {
+                        return;
+                    }
+
                     // Handles switching bots based on sholder buttons LB and RB
                     const botsMap = this.state.podStatus.bots;
                     const botIds = Object.keys(botsMap)
@@ -4354,16 +4360,41 @@ export default class CommandControl extends React.Component {
                             if (selectedBotId) {
                                 const bot = this.state.podStatus.bots[selectedBotId];
                                 const missionState = bot?.mission_state ?? "";
-                                if (missionState.includes("IDLE")) {
-                                    CustomAlert.alert(
-                                        `The command: REMOTE_CONTROL_TASK cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*, PRE_DEPLOYMENT_WAIT_FOR_MISSION_PLAN, *_FAILED`,
-                                    );
+                                const currentlyActive = this.isRCModeActive(selectedBotId);
+
+                                if (!currentlyActive) {
+                                    // First press - Enable RC mode
+                                    if (missionState.includes("IDLE")) {
+                                        CustomAlert.alert(
+                                            `The command: REMOTE_CONTROL_TASK cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*, PRE_DEPLOYMENT_WAIT_FOR_MISSION_PLAN, *_FAILED`,
+                                        );
+                                    } else {
+                                        CustomAlert.confirm(
+                                            `Are you sure you'd like to use remote control mode for Bot: ${selectedBotId}?`,
+                                            "Enable RC Mode",
+                                            () => {
+                                                this.setRcMode(selectedBotId, true);
+                                            },
+                                        );
+                                    }
                                 } else {
-                                    const currentlyActive = this.isRCModeActive(selectedBotId);
-                                    this.setRcMode(selectedBotId, !currentlyActive);
-                                    this.triggerRumble();
+                                    // Second press - Stop bot and disable RC mode
+                                    CustomAlert.confirm(
+                                        `Are you sure you'd like to stop bot ${selectedBotId}?`,
+                                        "Stop",
+                                        () => {
+                                            this.takeControl(() => {
+                                                this.api.postCommand({
+                                                    bot_id: selectedBotId,
+                                                    type: CommandType.STOP,
+                                                });
+                                            });
+                                            this.setRcMode(selectedBotId, false);
+                                        },
+                                    );
                                 }
                             }
+                            return;
                         } else if (buttonName === "RS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId && !this.isRCModeActive(selectedBotId)) {
@@ -4390,14 +4421,12 @@ export default class CommandControl extends React.Component {
                                                     type: CommandType.STOP,
                                                 });
                                             });
-                                            this.triggerRumble(300, 1, 0.2);
                                         },
                                     );
                                 }
                             } else if (!selectedBotId) {
                                 // No bot selected: stop all bots
                                 this.sendStopAll();
-                                this.triggerRumble(300, 1, 0.2);
                             }
                             return;
                         } else if (buttonName == "Start") {
@@ -4423,13 +4452,13 @@ export default class CommandControl extends React.Component {
                                                     type: CommandType.ACTIVATE,
                                                 });
                                             });
-                                            this.triggerRumble(300, 1, 0.2);
                                         },
                                     );
                                 }
                             } else {
                                 this.activateAllClicked();
                             }
+                            return;
                         } else {
                             return;
                         }
