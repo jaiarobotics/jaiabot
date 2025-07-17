@@ -112,7 +112,7 @@ export default class RCControllerPanel extends React.Component {
             // bot id is saved to determine when the user
             // clicks on a new bot details window
             botId: 0,
-            selectedDiveParamIndex: 0, //change (Remove comment)
+            selectedDiveParamIndex: 0,
             isMaximized: true,
             isAlertOpen: false,
             isPlayButtonSelected: false,
@@ -622,6 +622,16 @@ export default class RCControllerPanel extends React.Component {
         }
     }
 
+    /**
+     * Handles continuous button press events for Xbox controller triggers (LT/RT).
+     * Used to adjust dive parameter values when in dive mode - LT decreases values, RT increases values.
+     * Creates intervals to repeatedly adjust values while buttons are held down.
+     *
+     * @param {string} buttonName The name of the button being pressed (LT or RT)
+     * @param {boolean} pressed Whether the button is currently pressed or released
+     *
+     * @returns {void}
+     */
     handleButtonChange = (buttonName: string, pressed: boolean) => {
         const { isPlayButtonSelected, selectedDiveParamIndex } = this.state;
         const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
@@ -649,6 +659,17 @@ export default class RCControllerPanel extends React.Component {
         }
     };
 
+    /**
+     * Triggers haptic feedback (rumble/vibration) on connected Xbox controllers.
+     * Used to provide tactile feedback for important actions like emergency stops,
+     * overdrive activation, or successful command execution.
+     *
+     * @param {number} duration Duration of the rumble effect in milliseconds (default: 500ms)
+     * @param {number} strongMagnitude Intensity of strong motor vibration, 0.0 to 1.0 (default: 1.0)
+     * @param {number} weakMagnitude Intensity of weak motor vibration, 0.0 to 1.0 (default: 1.0)
+     *
+     * @returns {void}
+     */
     triggerRumble(duration = 500, strongMagnitude = 1.0, weakMagnitude = 1.0) {
         const gamepads = (navigator as Navigator).getGamepads
             ? (navigator as Navigator).getGamepads()
