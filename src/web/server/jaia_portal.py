@@ -701,20 +701,31 @@ class Interface:
             
             # Parse additional parameters from remarks if present
             remarks = waypoint_data.get('remarks', '').lower()
+        
+            # Parse dive depth
             if 'depth:' in remarks:
                 try:
                     depth_str = remarks.split('depth:')[1].split()[0]
                     mission_dict['dive_depth'] = float(depth_str)
                 except:
                     pass
-                    
+        
+            # Parse surface drift time
+            if 'drift:' in remarks:
+                try:
+                    drift_str = remarks.split('drift:')[1].split()[0]
+                    mission_dict['surface_drift_time'] = int(float(drift_str))
+                except:
+                    pass
+                
+            # Parse transit speed
             if 'speed:' in remarks:
                 try:
                     speed_str = remarks.split('speed:')[1].split()[0]
                     mission_dict['transit_speed'] = float(speed_str)
                 except:
                     pass
-            
+        
             # Send the waypoint mission
             result = self.post_single_waypoint_mission(mission_dict, 'tak_interface')
             
@@ -724,7 +735,7 @@ class Interface:
             else:
                 logging.error(f"Failed to send TAK waypoint: {result}")
                 self.messages['tak_error'] = f"Failed to send TAK waypoint: {result.get('message', 'Unknown error')}"
-            
+        
         except Exception as e:
             logging.error(f"Error processing TAK waypoint: {e}")
             self.messages['tak_error'] = f"Error processing TAK waypoint: {str(e)}"
