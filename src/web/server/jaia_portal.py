@@ -689,17 +689,85 @@ class Interface:
         try:
             logging.info(f"Received TAK waypoint: {waypoint_data}")
             
+            # Parse bot assignment from callsign
+            bot_id = self.parse_bot_assignment(waypoint_data['callsign'])
+            
             # Create a single waypoint mission
             mission_dict = {
                 'lat': waypoint_data['lat'],
                 'lon': waypoint_data['lon'],
-                'bot_id': 1  # Default to bot 1
+                'bot_id': bot_id
             }
+            
+            # Parse additional parameters from remarks if present
+            remarks = waypoint_data.get('remarks', '').lower()
+            if 'depth:' in remarks:
+                try:
+                    depth_str = remarks.split('depth:')[1].split()[0]
+                    mission_dict['dive_depth'] = float(depth_str)
+                except:
+                    pass
+                    
+            if 'speed:' in remarks:
+                try:
+                    speed_str = remarks.split('speed:')[1].split()[0]
+                    mission_dict['transit_speed'] = float(speed_str)
+                except:
+                    pass
             
             # Send the waypoint mission
             result = self.post_single_waypoint_mission(mission_dict, 'tak_interface')
-            logging.info(f"Created waypoint mission from TAK: {result}")
+            
+            if result['status'] == 'ok':
+                self.messages['tak_waypoint'] = f"TAK waypoint '{waypoint_data['callsign']}' sent to Bot {bot_id}"
+                logging.info(f"Successfully sent TAK waypoint to Bot {bot_id}")
+            else:
+                logging.error(f"Failed to send TAK waypoint: {result}")
+                self.messages['tak_error'] = f"Failed to send TAK waypoint: {result.get('message', 'Unknown error')}"
             
         except Exception as e:
             logging.error(f"Error processing TAK waypoint: {e}")
+            self.messages['tak_error'] = f"Error processing TAK waypoint: {str(e)}"
+
+    def parse_bot_assignment(self, callsign):
+        """Parse bot assignment from callsign"""
+        try:
+            callsign_lower = callsign.lower()
+            
+            # Look for 'bot X' pattern in callsign
+            import re
+            bot_match = re.search(r'bot\s*(\d+)', callsign_lower)
+            if bot_match:
+                bot_id = int(bot_match.group(1))
+                # Validate bot exists in our system
+                if bot_id in self.bots:
+                    logging.info(f"Assigned waypoint to Bot {bot_id} from callsign: {callsign}")
+                    return bot_id
+                else:
+                    logging.warning(f"Bot {bot_id} not found in system, defaulting to Bot 1")
+                    # Fall back to first available bot or Bot 1
+                    return self.get_default_bot_id()
+            
+            # Look for just numbers in callsign
+            number_match = re.search(r'(\d+)', callsign_lower)
+            if number_match:
+                bot_id = int(number_match.group(1))
+                if bot_id in self.bots:
+                    logging.info(f"Assigned waypoint to Bot {bot_id} from number in callsign: {callsign}")
+                    return bot_id
+            
+            # Default assignment if no bot specified
+            default_bot = self.get_default_bot_id()
+            logging.info(f"No bot assignment found in callsign '{callsign}', defaulting to Bot {default_bot}")
+            return default_bot
+            
+        except Exception as e:
+            logging.error(f"Error parsing bot assignment from callsign '{callsign}': {e}")
+            return self.get_default_bot_id()
+
+    def get_default_bot_id(self):
+        """Get the default bot ID (first available bot or 1)"""
+        if self.bots:
+            return min(self.bots.keys())  # Return lowest bot ID
+        return 1  # Default to Bot 1 if no bots available
 
