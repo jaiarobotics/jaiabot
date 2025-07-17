@@ -706,6 +706,6 @@ class APIParser:
                     pkt = build_frame(bytearray(cls.DELIMITER + p))
                     command_queue.append(pkt)
                 except Exception:
-                    logger.warning(f'API Parser encountered invalid packet in buffer: {buffer}')
+                    logger.warning(f'API Parser encountered invalid packet in buffer: {p}')
         return command_queue
     
