@@ -703,25 +703,25 @@ class Interface:
             text_to_parse = f"{waypoint_data['callsign']} {waypoint_data.get('remarks', '')}".lower()
     
             # Parse dive depth
-            if 'depth:' in text_to_parse:
+            if 'depth' in text_to_parse:
                 try:
-                    depth_str = text_to_parse.split('depth:')[1].split()[0]
+                    depth_str = text_to_parse.split('depth')[1].split()[0]
                     mission_dict['dive_depth'] = float(depth_str)
                 except:
                     pass
         
             # Parse surface drift time
-            if 'drift:' in text_to_parse:
+            if 'drift' in text_to_parse:
                 try:
-                    drift_str = text_to_parse.split('drift:')[1].split()[0]
+                    drift_str = text_to_parse.split('drift')[1].split()[0]
                     mission_dict['surface_drift_time'] = int(float(drift_str))
                 except:
                     pass
                 
             # Parse transit speed
-            if 'speed:' in text_to_parse:
+            if 'speed' in text_to_parse:
                 try:
-                    speed_str = text_to_parse.split('speed:')[1].split()[0]
+                    speed_str = text_to_parse.split('speed')[1].split()[0]
                     mission_dict['transit_speed'] = float(speed_str)
                 except:
                     pass
