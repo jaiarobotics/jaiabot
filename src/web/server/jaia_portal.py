@@ -193,6 +193,9 @@ class Interface:
                 hubStatus['lastStatusReceivedTime'] = now_utime()
 
                 self.hubs[hubStatus['hub_id']] = hubStatus
+                
+                # Add this line to send a CoT message for this hub:
+                self.send_cot_for_hub(msg)
 
             if msg.HasField('task_packet'):
                 logging.info('Task packet received')
@@ -624,7 +627,7 @@ class Interface:
             "--course", "0.0",
             "--remarks", remarks,
             "--loop", "False",
-            "--cot_type", "a-f-P-H"
+            "--cot_type", "a-h-G"
         ], cwd=tak_dir)
 
     def check_tak_config(self):
@@ -781,4 +784,43 @@ class Interface:
         if self.bots:
             return min(self.bots.keys())  # Return lowest bot ID
         return 1  # Default to Bot 1 if no bots available
+
+    def send_cot_for_hub(self, msg):
+        """Send CoT message for hub status"""
+        # Extract hub_status
+        if not msg.HasField('hub_status'):
+            logging.warning("No hub_status in message, skipping CoT send.")
+            return
+
+        hub_status = protobufMessageToDict(msg.hub_status)
+        location = hub_status.get("location")
+        if not location or "lat" not in location or "lon" not in location:
+            logging.warning(f"Hub {hub_status.get('hub_id', 'unknown')} has no location, skipping CoT send.")
+            return
+
+        lat = location["lat"]
+        lon = location["lon"]
+        
+        # Create hub callsign
+        hub_id = hub_status.get("hub_id", "unknown")
+        callsign = f"HUB_{hub_id}"
+
+        # Simple remarks - just identify as hub
+        remarks = f"JAIABOT Hub {hub_id}"
+
+        script_path = os.path.join(os.path.dirname(__file__), "tak", "00-pushGPS.py")
+        tak_dir = os.path.dirname(script_path)
+
+        subprocess.Popen([
+            "python3",
+            script_path,
+            "--lat", str(lat),
+            "--lon", str(lon),
+            "--callsign", callsign,
+            "--speed", "0.0",
+            "--course", "0.0",
+            "--remarks", remarks,
+            "--loop", "False",
+            "--cot_type", "a-h-G"  # Red ground installation icon
+        ], cwd=tak_dir)
 

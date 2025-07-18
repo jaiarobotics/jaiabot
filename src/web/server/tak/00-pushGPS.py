@@ -30,7 +30,7 @@ parser.add_argument("--speed", type=float, default=2.5)
 parser.add_argument("--course", type=float, default=0)
 parser.add_argument("--remarks", type=str, default="")
 parser.add_argument("--loop", type=lambda x: (str(x).lower() == 'true'), default=True, help="Send repeatedly if True, once if False")
-parser.add_argument("--cot_type", type=str, default="a-f-S-U")
+parser.add_argument("--cot_type", type=str, default="a-h-G-U")
 args, unknown = parser.parse_known_args()
 
 callsign = args.callsign
