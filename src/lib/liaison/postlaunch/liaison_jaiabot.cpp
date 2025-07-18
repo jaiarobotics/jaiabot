@@ -79,7 +79,7 @@ imu_test_button->clicked().connect([this, imu_test_button, imu_test_again_button
         // Set the oneof request field correctly
         request.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
 
-        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
     });
 });
 
@@ -96,7 +96,7 @@ imu_test_again_button->clicked().connect([this, imu_test_again_button, imu_test_
         // Set the oneof request field correctly
         request.set_production_command(jaiabot::protobuf::TEST_IMU_SENSOR);
 
-        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
     });
 });
 
@@ -125,7 +125,7 @@ pressure_test_button->clicked().connect([this, pressure_test_button, pressure_te
         // Set the oneof request field correctly
         request.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
 
-        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
     });
 });
 
@@ -142,7 +142,7 @@ pressure_test_again_button->clicked().connect([this, pressure_test_again_button,
         // Set the oneof request field correctly
         request.set_production_command(jaiabot::protobuf::TEST_PRESSURE_SENSOR);
 
-        goby_thread()->interprocess().publish<jaiabot::groups::production>(request);
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
     });
 });
 
@@ -342,6 +342,31 @@ void jaiabot::LiaisonJaiabot::post_low_control(const jaiabot::protobuf::LowContr
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
         bot_low_control_text_->setText("<pre>" + low_control.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_production_response(const jaiabot::protobuf::ProductionResponse& response)
+{
+    switch (response.production_command())
+    {
+        case jaiabot::protobuf::TEST_IMU_SENSOR:
+        {
+            if (production_imu_data_test_status_text_) {
+                production_imu_data_test_status_text_->setText(response.imu_response());
+            }
+            break;
+        }
+
+        case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
+        {
+            if (production_pressure_data_test_status_text_) {
+                production_pressure_data_test_status_text_->setText(response.pressure_response());
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,

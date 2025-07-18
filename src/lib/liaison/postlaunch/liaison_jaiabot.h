@@ -42,6 +42,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
     void post_low_control(const jaiabot::protobuf::LowControl& low_control);
+    void post_production_response(const jaiabot::protobuf::ProductionResponse& response);
 
   private:
     void loop();
@@ -265,30 +266,10 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
 
             //this works with boolean which will change when we do string possible idk yet
             
-      interprocess().subscribe<jaiabot::groups::production>(
-    [this](const jaiabot::protobuf::ProductionResponse& response)
-    {
-        tab_->post_to_wt([=]() {
-            switch (response.production_command())
-            {
-                case jaiabot::protobuf::TEST_IMU_SENSOR:
-                {
-                    tab_->production_imu_data_test_status_text_->setText(response.imu_response());
-                    break;
-                }
-
-                case jaiabot::protobuf::TEST_PRESSURE_SENSOR:
-                {
-                    tab_->production_pressure_data_test_status_text_->setText(response.pressure_response());
-                    
-                    break;
-                }
-
-                default:
-                    break;
-            }
-        });
-    });
+        // Subscribe to production responses
+        interprocess().subscribe<jaiabot::groups::production_response>(
+            [this](const jaiabot::protobuf::ProductionResponse& response)
+            { tab_->post_to_wt([=]() { tab_->post_production_response(response); }); });
 
 
         

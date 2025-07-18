@@ -180,7 +180,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         */
 
        // Subscribe to production
-       interprocess().subscribe<jaiabot::groups::production>(
+       interprocess().subscribe<jaiabot::groups::production_request>(
            [this](const jaiabot::protobuf::ProductionRequest& production_msg)
            {
         // Set raw timestamp
@@ -219,7 +219,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         }
         
         // When done production app responds
-        interprocess().publish<jaiabot::groups::production>(response);  // Publishes where Scope listens
+        interprocess().publish<jaiabot::groups::production_response>(response);  // Publishes where Scope listens
     });
 }
 
@@ -332,10 +332,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
+    if (!pressure_reset_complete_)
+    {
+        // Still waiting for reset to complete
+        return;
+    }
+
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_pressure_response("fail_no_pressure_data_received_after_restart");
+        return;
     }
 
     if (latest_pressure_ < 0.2)
@@ -349,6 +356,12 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
         response.set_pressure_response("fail_pressure_reading_is_greater_than_or_equal_to_0.2_after_restart");
     }
+
+    // Timestamp it
+    const auto now = std::chrono::system_clock::now();
+    const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        now.time_since_epoch()).count();
+    response.set_time(timestamp_us);
 }
 
 void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
@@ -380,6 +393,8 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
         return;
     }
 
+    // Mark reset as complete after a short delay to allow service restart
+    pressure_reset_complete_ = true;
 }
 
 
@@ -478,25 +493,17 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
-        interprocess().publish<jaiabot::groups::production>(response);
+        interprocess().publish<jaiabot::groups::production_response>(response);
     
     }
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
-    
-    /*
     if (test_pressure_ || pressure_reset_pending_)
     {
         pressure_sensor();
         pressure_sensor_reset_check();
-
-        if (pressure_reset_complete_)
-        {
-            interprocess().publish<jaiabot::groups::production>(response);
-        }
-
+        interprocess().publish<jaiabot::groups::production_response>(response);
     }
-        */
 
     /*
     if(test_motor_)
