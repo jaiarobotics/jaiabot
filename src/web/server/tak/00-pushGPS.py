@@ -104,20 +104,34 @@ class AsyncDelegate(pytak.QueueWorker):
 # MAIN APPLICATION ENTRY POINT
 ##############################
 async def main():
-    # Import amd build configuration object required for pyTAK
+    # Import and build configuration object required for pyTAK
     config = ConfigParser()
     config.read('initiative.ini')
-    config = config["connection"]
-
-    # Initializes worker queues and tasks.
-    clitool = pytak.CLITool(config)
-    await clitool.setup()
-
-    # Add your serializer to the asyncio task list.
-    clitool.add_tasks(set([AsyncDelegate(clitool.tx_queue, config)]))
-
-    # Start all tasks.
-    await clitool.run()
+    
+    # Get all connection sections
+    connection_sections = [section for section in config.sections() if section.startswith('connection')]
+    
+    if not connection_sections:
+        print("No connection sections found")
+        return
+    
+    # Create tasks for each connection
+    tasks = []
+    for section_name in connection_sections:
+        section_config = config[section_name]
+        
+        # Create CLITool for this connection
+        clitool = pytak.CLITool(section_config)
+        await clitool.setup()
+        
+        # Add the delegate task
+        clitool.add_tasks(set([AsyncDelegate(clitool.tx_queue, section_config)]))
+        
+        # Add to task list
+        tasks.append(clitool.run())
+    
+    # Run all connections simultaneously
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
