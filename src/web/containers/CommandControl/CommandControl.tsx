@@ -4354,47 +4354,6 @@ export default class CommandControl extends React.Component {
                                 return;
                             }
                             index = Math.max(index - 1, 0);
-                            // Use LS to open and close rcc mode
-                        } else if (buttonName === "LS") {
-                            const selectedBotId = this.selectedBotId();
-                            if (selectedBotId) {
-                                const bot = this.state.podStatus.bots[selectedBotId];
-                                const missionState = bot?.mission_state ?? "";
-                                const currentlyActive = this.isRCModeActive(selectedBotId);
-
-                                if (!currentlyActive) {
-                                    // First press - Enable RC mode
-                                    if (missionState.includes("IDLE")) {
-                                        CustomAlert.alert(
-                                            `The command: REMOTE_CONTROL_TASK cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*, PRE_DEPLOYMENT_WAIT_FOR_MISSION_PLAN, *_FAILED`,
-                                        );
-                                    } else {
-                                        CustomAlert.confirm(
-                                            `Are you sure you'd like to use remote control mode for Bot: ${selectedBotId}?`,
-                                            "Enable RC Mode",
-                                            () => {
-                                                this.setRcMode(selectedBotId, true);
-                                            },
-                                        );
-                                    }
-                                } else {
-                                    // Second press - Stop bot and disable RC mode
-                                    CustomAlert.confirm(
-                                        `Are you sure you'd like to stop bot ${selectedBotId}?`,
-                                        "Stop",
-                                        () => {
-                                            this.takeControl(() => {
-                                                this.api.postCommand({
-                                                    bot_id: selectedBotId,
-                                                    type: CommandType.STOP,
-                                                });
-                                            });
-                                            this.setRcMode(selectedBotId, false);
-                                        },
-                                    );
-                                }
-                            }
-                            return;
                         } else if (buttonName === "RS") {
                             const selectedBotId = this.selectedBotId();
                             if (selectedBotId && !this.isRCModeActive(selectedBotId)) {

@@ -127,6 +127,11 @@ const buttons: ButtonDescriptor[] = [
             "Click two or more points to measure the total distance along a set of line segments.",
     },
     {
+        iconPath: mdiController,
+        name: "RC Mode",
+        description: "To open RC controller Panel to remote control bots.",
+    },
+    {
         iconPath: mdiCached,
         name: "Cycle Through Bots",
         description: "Use LB to cycle to the previous bot and RB to cycle to the next bot.",
@@ -150,11 +155,6 @@ const buttons: ButtonDescriptor[] = [
         iconPath: mdiStop,
         name: "Stop All Missions on Controller",
         description: "To stop all missions, press down on the right stick on the controller.",
-    },
-    {
-        iconPath: mdiController,
-        name: "RC Mode",
-        description: "To open RC mode on the controller press down on the left stick.",
     },
     {
         iconPath: mdiAlphaXCircleOutline,
