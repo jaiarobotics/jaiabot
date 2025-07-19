@@ -22,6 +22,7 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/gpio_device.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "machine_common.h"
 #include <fstream>

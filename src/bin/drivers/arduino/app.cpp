@@ -34,6 +34,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/gpio_device.pb.h"
 #include "jaiabot/serial/serial_fletcher16.h"
 #include "jaiabot/version.h"
 
@@ -96,6 +97,10 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // LED
     bool led_switch_on = true;
+
+    // GPIO Device Pin
+    bool gpio_device_pin_init_{false};
+    int gpio_device_pin_state_{0};
 
     // Bot rolled over
     bool bot_rolled_over_{false};
@@ -306,6 +311,14 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         if (imu_data.has_bot_rolled_over())
         {
             bot_rolled_over_ = imu_data.bot_rolled_over();
+        }
+    });
+
+    interprocess().subscribe<groups::gpio_device>([this](const jaiabot::protobuf::GPIOCommand& gpio_command) {
+        if (gpio_command.has_pin_state())
+        {
+            gpio_device_pin_state_ = gpio_command.pin_state();
+            gpio_device_pin_init_ = true;
         }
     });
 }
@@ -541,6 +554,11 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
             arduino_actuators.set_led_switch_on(led_switch_on);
 
             *arduino_cmd.mutable_actuators() = arduino_actuators;
+        }
+
+        if (gpio_device_pin_init_)
+        {
+            arduino_cmd.set_gpio_device_pin_state(gpio_device_pin_state_);
         }
     }
 

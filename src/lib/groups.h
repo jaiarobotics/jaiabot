@@ -134,6 +134,9 @@ constexpr goby::middleware::Group camera{"jaiabot::camera"};
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 
+// gpio device
+constexpr goby::middleware::Group gpio_device{"jaiabot::gpio_device"};
+
 } // namespace groups
 } // namespace jaiabot
 

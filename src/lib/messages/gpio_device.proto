@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message GPIOCommand
+{
+    optional string device_name = 1 [default = "gpio_device"];
+    optional int32 pin_state = 2 [default = 0];
+}

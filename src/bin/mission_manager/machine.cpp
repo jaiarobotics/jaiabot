@@ -1283,6 +1283,11 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
 
     // Turn on pid for constant heading (different than the transit pid)
     context<InMission>().set_use_heading_constant_pid(true);
+
+    if (cfg().has_start_gpio_device_command())
+    {
+        interprocess().publish<jaiabot::groups::gpio_device>(cfg().start_gpio_device_command());
+    }  
 }
 
 jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeading()
@@ -1296,6 +1301,11 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeadin
 
     // Turn off pid for constant heading (different than the transit pid)
     context<InMission>().set_use_heading_constant_pid(false);
+
+    if (cfg().has_stop_gpio_device_command())
+    {
+        interprocess().publish<jaiabot::groups::gpio_device>(cfg().stop_gpio_device_command());
+    }  
 }
 
 void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const EvLoop&)
