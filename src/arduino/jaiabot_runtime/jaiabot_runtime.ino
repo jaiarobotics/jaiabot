@@ -100,6 +100,11 @@ constexpr int VccCurrent = A2;
 constexpr int VccVoltage = A0;
 constexpr int thermistor_pin = A4;
 
+// GPIO Device Pin 
+constexpr int GPIO_DEVICE_PIN = 3;
+int gpio_device_pin_state = 0
+bool gpio_device_pin_init = false;
+
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 double Vcccurrent_rolling_average() {
@@ -294,6 +299,19 @@ void writeToActuators()
   else if (target_led_switch_on == false){
     analogWrite(LED_D1_PIN, 0);
   }
+
+  if (gpio_device_pin_init)
+  {
+    if (gpio_device_pin_state)
+    {
+      analogWrite(GPIO_DEVICE_PIN, 255);
+    } 
+    else
+    {
+      analogWrite(GPIO_DEVICE_PIN, 0);
+    }
+
+  }
 }
 
 
@@ -404,6 +422,12 @@ void loop()
       motor_min_reverse = command.settings.reverse_start;
       //Send Ack that we successfully received command
       send_ack(jaiabot_protobuf_ArduinoStatusCode_SETTINGS);
+    }
+    
+    if (command.has_gpio_device_pin_state)
+    {
+      gpio_device_pin_state = command.gpio_device_pin_state;
+      gpio_device_pin_init = true;
     }
   }
 
