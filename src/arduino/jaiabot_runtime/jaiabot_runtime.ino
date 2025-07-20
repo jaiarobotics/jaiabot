@@ -101,8 +101,8 @@ constexpr int VccVoltage = A0;
 constexpr int thermistor_pin = A4;
 
 // GPIO Device Pin 
-constexpr int GPIO_DEVICE_PIN = 3;
-int gpio_device_pin_state = 0
+constexpr int GPIO_DEVICE_PIN = PD7;
+int gpio_device_pin_state = 0;
 bool gpio_device_pin_init = false;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
@@ -304,11 +304,11 @@ void writeToActuators()
   {
     if (gpio_device_pin_state)
     {
-      analogWrite(GPIO_DEVICE_PIN, 255);
+      digitalWrite(GPIO_DEVICE_PIN, HIGH);
     } 
     else
     {
-      analogWrite(GPIO_DEVICE_PIN, 0);
+      digitalWrite(GPIO_DEVICE_PIN, LOW);
     }
 
   }
