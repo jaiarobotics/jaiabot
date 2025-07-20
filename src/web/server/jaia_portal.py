@@ -21,6 +21,7 @@ from jaiabot.messages.jaia_dccl_pb2 import *
 
 from pyjaia.task_packet_database import TaskPacketDatabase
 from pyjaia.utils import now_utime
+from tak.callsigns import bot_callsigns, hub_callsigns
 
 import google.protobuf.json_format
 
@@ -551,7 +552,7 @@ class Interface:
 
         lat = location["lat"]
         lon = location["lon"]
-        callsign = bot_status.get("callsign", f"BOT_{bot_status.get('bot_id', 'unknown')}")
+        callsign = bot_callsigns[bot_status.get("bot_id")]
 
         # Extract speed from BotStatus.speed.over_ground, fallback to 0.0
         speed = 0.0
@@ -803,7 +804,7 @@ class Interface:
         
         # Create hub callsign
         hub_id = hub_status.get("hub_id", "unknown")
-        callsign = f"HUB_{hub_id}"
+        callsign = hub_callsigns[hub_id]
 
         # Simple remarks - just identify as hub
         remarks = f"JAIABOT Hub {hub_id}"
