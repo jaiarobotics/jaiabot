@@ -450,7 +450,6 @@ jaiabot_apps = [
     {'exe': 'jaiabot_production',
      'description': 'JaiaBot Production Testing',
      'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_PRODUCTION',
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service'},
