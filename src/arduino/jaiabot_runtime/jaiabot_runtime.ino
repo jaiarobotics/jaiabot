@@ -101,7 +101,7 @@ constexpr int VccVoltage = A0;
 constexpr int thermistor_pin = A4;
 
 // GPIO Device Pin 
-constexpr int GPIO_DEVICE_PIN = PD7;
+constexpr int GPIO_DEVICE_PIN = 7;
 int gpio_device_pin_state = 0;
 bool gpio_device_pin_init = false;
 
@@ -202,6 +202,8 @@ void setup()
 {
   // Make sure the power pin isn't in the off mode
   digitalWrite(POWER_PIN, LOW);
+
+  pinMode(GPIO_DEVICE_PIN, OUTPUT);
 
   // Enable power to actuators. In the future, we can durn off based on FAULT_ACTS
   pinMode(CTRL_ACTS, OUTPUT);
@@ -310,7 +312,6 @@ void writeToActuators()
     {
       digitalWrite(GPIO_DEVICE_PIN, LOW);
     }
-
   }
 }
 
