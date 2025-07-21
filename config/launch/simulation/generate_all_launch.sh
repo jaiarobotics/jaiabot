@@ -49,7 +49,7 @@ EOF
 cat <<EOF > ${launchfile}
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
 
-goby_launch -P world_sim.launch
+./world_sim.launch
 
 [env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
 EOF
@@ -62,4 +62,4 @@ echo "Setting excutable permissions for all.launch"
 
 chmod 755 ${launchfile}
 
-echo "Generated all.launch with $((n_bots-1)) bots @ warp ${warp}x"
+echo "Generated all.launch with $((n_bots-1)) bots @ warp ${warp}x using comms: $jaia_comms_mode"
