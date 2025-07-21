@@ -1,3 +1,3 @@
 $app_block
 $interprocess_block
-is_in_sim: false
+is_in_sim: true
