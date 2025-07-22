@@ -69,7 +69,7 @@ class JaiabotProduction: public ApplicationBase
         void imu_sensor_reset_check();
         void pressure_sensor();
         void pressure_sensor_reset_check();
-        void clear_all_test_responses();
+        void clear_imu_test_responses();
 
 
         // test state for Pressure sensor
@@ -192,25 +192,27 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         // Set production command in response
         response.set_production_command(production_msg.production_command());
         
-        //clear any lingering responses afrer a switch
-        clear_all_test_responses();
-        
         switch (production_msg.production_command())
         {
             case jaiabot::protobuf::TEST_IMU_SENSOR:
-            imu_reset_complete_ = false; 
+            //clear any lingering responses before starting IMU test
+            response.clear_pressure_response();
+            imu_reset_complete_ = false;
+            imu_reset_pending_ = false; 
             test_pressure_ = false;
             test_imu_ = true;
             break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:  
+            //clear any lingering responses before starting pressure test
+            clear_imu_test_responses();
             pressure_reset_complete_ = false;
             pressure_reset_pending_ = false;
             test_imu_ = false;
             test_pressure_ = true;
-            pressure_sensor_reset_check();
-            pressure_sensor();
             break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+            //clear any lingering responses before starting motor test
+            //clear_all_test_responses();
             //test_motor_ = true;
             break;
             default:
@@ -223,13 +225,10 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
     });
 }
 
-// Function that clears any lingering responses afrer a switch
-void jaiabot::apps::JaiabotProduction::clear_all_test_responses()
+void jaiabot::apps::JaiabotProduction::clear_imu_test_responses()
 {
     response.clear_imu_response();
     response.clear_imu_reset_response();
-    response.clear_pressure_response();
-    // response.clear_motor_response(); // Uncomment when motor response is added
 }
 
 
@@ -324,6 +323,14 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     {
         imu_reset_pending_ = false;
         
+        // Set the reset response when reset completes
+        if (!imu_reset_complete_)
+        {
+            std::ostringstream reset_finished_oss;
+            reset_finished_oss << "reset_completed_after_" << since_reset << "s";
+            response.set_imu_reset_response(reset_finished_oss.str());
+        }
+        
         // Prevents future calls
         imu_reset_complete_ = true;  
     }
@@ -342,6 +349,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_pressure_response("fail_no_pressure_data_received_after_restart");
+        test_pressure_ = false; // Stop the test
         return;
     }
 
@@ -350,11 +358,13 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
         response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
+        test_pressure_ = false; // Stop the test
     }
     else
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
         response.set_pressure_response("fail_pressure_reading_is_greater_than_or_equal_to_0.2_after_restart");
+        test_pressure_ = false; // Stop the test
     }
 
     // Timestamp it
@@ -488,17 +498,16 @@ void jaiabot::apps::JaiabotProduction::check_imu()
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
-    // Ensure IMU test logic runs while test_imu_ or imu_reset_pending_ is true
+    // Ensure IMU test logic runs while test_imu_ is true OR during reset
     if (test_imu_ || imu_reset_pending_)
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
         interprocess().publish<jaiabot::groups::production_response>(response);
-    
     }
 
-    // Ensure Pressure Sensor test logic runs while test_pressure_ or pressure_reset_pending_ is true
-    if (test_pressure_ || pressure_reset_pending_)
+    // Ensure Pressure Sensor test logic runs while test_pressure_ is true
+    if (test_pressure_)
     {
         pressure_sensor();
         pressure_sensor_reset_check();
