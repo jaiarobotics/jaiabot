@@ -4,6 +4,9 @@ interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
 http_address: "$http_address"
 http_port: $http_port
 
+upper_right_logo: "jaia_powered_by_gobysoft.png"  
+upper_right_logo_link: "https://gobysoft.org" 
+
 start_paused: false
 update_freq: 10
 
