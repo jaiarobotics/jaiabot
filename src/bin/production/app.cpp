@@ -61,8 +61,8 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point last_imu_msg_time_;
 
         // restart and reboot imu
-        void restart_imu_py() { system("systemctl restart jaiabot_imu_py.service"); }
-        void reboot_bno085_imu() { system("systemctl restart jaiabot_imu_py.service"); }
+        void restart_imu_py() { system("sudo systemctl restart jaiabot_imu_py.service"); }
+        void reboot_bno085_imu() { system("sudo systemctl restart jaiabot_imu_py.service"); }
 
         // Declare functions
         void imu_sensor_data_timeCheck();
@@ -81,7 +81,7 @@ class JaiabotProduction: public ApplicationBase
         bool test_pressure_ = false;
 
         //restart pressure
-        void restart_pressure_py() { system("systemctl restart jaiabot_pressure_py"); }
+        void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor.py"); }
 
 
 
