@@ -62,7 +62,7 @@ class JaiabotProduction: public ApplicationBase
 
         // restart and reboot imu
         void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-        void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
+        void reboot_bno085_imu() { system("systemctl restart jaiabot_imu_py"); }
 
         // Declare functions
         void imu_sensor_data_timeCheck();
@@ -315,6 +315,24 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
             reboot_bno085_imu();
         }
         return;
+    }
+
+    double since_reset = seconds_since(imu_reset_start_time_);
+
+    if (since_reset > cfg().imu_reboot_time())
+    {
+        imu_reset_pending_ = false;
+        
+        // Set the reset response when reset completes
+        if (!imu_reset_complete_)
+        {
+            std::ostringstream reset_finished_oss;
+            reset_finished_oss << "reset_completed_after_" << since_reset << "s";
+            response.set_imu_reset_response(reset_finished_oss.str());
+        }
+        
+        // Prevents future calls
+        imu_reset_complete_ = true;  
     }
 }
     
