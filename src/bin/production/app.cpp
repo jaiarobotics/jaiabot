@@ -316,24 +316,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
         return;
     }
-
-    double since_reset = seconds_since(imu_reset_start_time_);
-
-    if (since_reset > cfg().imu_reboot_time())
-    {
-        imu_reset_pending_ = false;
-        
-        // Set the reset response when reset completes
-        if (!imu_reset_complete_)
-        {
-            std::ostringstream reset_finished_oss;
-            reset_finished_oss << "reset_completed_after_" << since_reset << "s";
-            response.set_imu_reset_response(reset_finished_oss.str());
-        }
-        
-        // Prevents future calls
-        imu_reset_complete_ = true;  
-    }
 }
     
 
