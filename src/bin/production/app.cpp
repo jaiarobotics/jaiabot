@@ -252,11 +252,11 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
         glog.is_debug1() && glog << "⏳ Still in IMU reset window, ⏱️ time since last imu message " << since_last_imu << "s)" << std::endl;
 
         std::ostringstream reset_oss;
-        std::ostringstream reset_finished_oss;
+        std::ostringstream reset_continued_oss;
         reset_oss << "sent_reset_request_received_no_IMU_data_for_ " << since_last_imu << "s";
         response.set_imu_response(reset_oss.str());
-        reset_finished_oss << "reset_finished_no_IMU_data_for_approx_ " << since_last_imu << "s";
-        response.set_imu_reset_response(reset_finished_oss.str());
+        reset_continued_oss << "IMU_reset_no_IMU_data_for_approx_ " << since_last_imu << "s";
+        response.set_imu_reset_response(reset_continued_oss.str());
         return;
     }
 
@@ -316,25 +316,8 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         }
         return;
     }
-
-    double since_reset = seconds_since(imu_reset_start_time_);
-
-    if (since_reset > cfg().imu_reboot_time())
-    {
-        imu_reset_pending_ = false;
-        
-        // Set the reset response when reset completes
-        if (!imu_reset_complete_)
-        {
-            std::ostringstream reset_finished_oss;
-            reset_finished_oss << "reset_completed_after_" << since_reset << "s";
-            response.set_imu_reset_response(reset_finished_oss.str());
-        }
-        
-        // Prevents future calls
-        imu_reset_complete_ = true;  
-    }
 }
+    
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
