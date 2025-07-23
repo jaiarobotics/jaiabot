@@ -79,7 +79,9 @@ class JaiabotProduction: public ApplicationBase
         bool pressure_reset_pending_ = false;
         double latest_pressure_ = 100.0;
         bool test_pressure_ = false;
-
+        goby::time::SystemClock::time_point pressure_reset_start_time_;
+        bool pressure_data_resumed_ = false;
+        
         //restart pressure
         void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor_py.service"); }
 
@@ -375,13 +377,22 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
 
 void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 {
-    if(pressure_reset_complete_) return;
+    if (pressure_reset_complete_)
+        return;
 
-    if(!pressure_reset_pending_)
+    double since_reset = seconds_since(pressure_reset_start_time_);
+
+    if (!pressure_reset_pending_)
     {
         pressure_reset_pending_ = true;
+        pressure_data_resumed_ = false;
+        pressure_data_received_ = false;
+        pressure_reset_start_time_ = goby::time::SystemClock::now();
 
         glog.is_debug1() && glog << "📡 Pressure Test: Starting Pressure reset..." << std::endl;
+
+        response.set_pressure_response("restart_request_sent_wait_for_results");
+        interprocess().publish<jaiabot::groups::production_response>(response);
 
         if (cfg().is_in_sim())
         {
@@ -399,13 +410,29 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
             glog.is_debug1() && glog << "🔧 Not in simulation — calling restart_pressure_py() for real Pressure reset." << std::endl; 
             restart_pressure_py();
         }
+
         return;
     }
 
-    // Mark reset as complete after a short delay to allow service restart
-    pressure_reset_complete_ = true;
-}
+    // Wait for pressure to resume
+    if (!pressure_data_resumed_ && pressure_data_received_)
+    {
+        pressure_data_resumed_ = true;
+        pressure_reset_complete_ = true;
+        glog.is_debug1() && glog << "✅ Pressure Test: Pressure data resumed after reset" << std::endl;
+    }
 
+    if (!pressure_data_resumed_)
+    {
+        glog.is_debug1() && glog << "⏳ Waiting for pressure data to resume after reset ("
+                                 << since_reset << "s elapsed)..." << std::endl;
+
+        std::ostringstream oss;
+        oss << "waiting_for_pressure_data_post_restart_" << since_reset << "s";
+        response.set_pressure_response(oss.str());
+        interprocess().publish<jaiabot::groups::production_response>(response);
+    }
+}
 
 /*
 void jaiabot::apps::JaiabotProduction::motor_harness()
