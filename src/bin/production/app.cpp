@@ -358,7 +358,10 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     {
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
-        response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
+        //response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
+        std::ostringstream pressure_pass_oss;
+        pressure_pass_oss << "pass_pressure_reading_is_less_than_0.2_after_restart_pressure_raw_value_" << latest_pressure_;
+        response.set_pressure_response(pressure_pass_oss.str());
         test_pressure_ = false; // Stop the test
     }
     else
