@@ -36,12 +36,7 @@ packages:
   - apache2
   - gpg
   - wget
+  - apt-mirror
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
-  - mkdir /opt/jaia_packages
-  - wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/mini-dinstall.conf -P /opt/jaia_packages
-  - wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/sign_release.sh -P /opt/jaia_packages && chmod a+x /opt/jaia_packages/sign_release.sh
-  - wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/update_gobysoft_mirror.sh -P /opt/jaia_packages && chmod a+x /opt/jaia_packages/update_gobysoft_mirror.sh
-  - chown -R jaia:jaia /opt/jaia_packages
-  

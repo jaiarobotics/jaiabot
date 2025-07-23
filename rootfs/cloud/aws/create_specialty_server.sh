@@ -56,8 +56,10 @@ network_interfaces_json=$(jq -n -c \
 
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
-
 eval "echo \"$(< ${USER_DATA_SCRIPT_IN})\"" > ${USER_DATA_SCRIPT}
+#cat ${TMPDIR}/user-data.sh
+
+
 USER_DATA_CORE_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.yaml.in"
 USER_DATA_CORE="${TMPDIR}/user-data.yaml"
 
