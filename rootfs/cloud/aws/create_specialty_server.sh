@@ -14,6 +14,8 @@ INSTANCE_TYPE=t4g.nano
 REGION=us-west-2
 # default subnet for jaia servers in us-west-2
 SUBNET_ID=subnet-f5f17b8d
+DISK_SIZE_GB=8
+ELASTIC_IP_ALLOCATION_ID=
 
 set -a; source $1; set +a;
 
@@ -65,10 +67,25 @@ USER_DATA_FILE=${TMPDIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_CORE}:cloud-config > ${USER_DATA_FILE}
 
 
+block_device_mappings_json=$(jq -n -c \
+                  --arg volSize "$DISK_SIZE_GB" \
+                  --arg volType "gp3" \
+                  '[
+                     {
+                       "DeviceName": "/dev/sda1",
+                       "Ebs": {
+                         "VolumeSize": ($volSize | tonumber),
+                         "VolumeType": $volType
+                       }
+                     }
+                   ]')
+
+
 # Launch the EC2 instance
 INSTANCE_ID=$(run ".Instances[0].InstanceId" aws ec2 run-instances \
                     --image-id "$AMI_ID" \
                     --instance-type "$INSTANCE_TYPE" \
+                    --block-device-mappings "$block_device_mappings_json" \
                     --user-data file://"$USER_DATA_FILE" \
                     --network-interfaces "$network_interfaces_json")
 
@@ -89,11 +106,15 @@ done
 ENI_ID_0=$(run ".NetworkInterfaces[0].NetworkInterfaceId" aws ec2 describe-network-interfaces --filters "Name=attachment.instance-id,Values=$INSTANCE_ID" "Name=attachment.device-index,Values=0")
 echo ">>>>>> ENI ID: $ENI_ID_0"
 
-echo ">>>>>> Instance is running. Proceeding to associate Elastic IP Address."
+if [[ ! -z "${ELASTIC_IP_ALLOCATION_ID}" ]]; then
+    echo ">>>>>> Instance is running. Proceeding to associate Elastic IP Address."
 
-# Associate the Elastic IP Address with the EC2 Instance
-run "" aws ec2 associate-address --network-interface-id $ENI_ID_0 --allocation-id $ELASTIC_IP_ALLOCATION_ID
-echo ">>>>>> Associated Elastic IP Address with EC2 Instance"
+    # Associate the Elastic IP Address with the EC2 Instance
+    run "" aws ec2 associate-address --network-interface-id $ENI_ID_0 --allocation-id $ELASTIC_IP_ALLOCATION_ID
+    echo ">>>>>> Associated Elastic IP Address with EC2 Instance"
+else
+    echo ">>>>>> Instance is running. Not associating Elastic IP Address as ELASTIC_IP_ALLOCATION_ID is not set"
+fi
 
 run "" aws ec2 create-tags --resources "$INSTANCE_ID" \
     "$SECURITY_GROUP_ID" \
