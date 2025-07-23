@@ -62,7 +62,7 @@ class JaiabotProduction: public ApplicationBase
 
         // restart and reboot imu
         void restart_imu_py() { system("sudo systemctl restart jaiabot_imu_py.service"); }
-        void reboot_bno085_imu() { system("sudo systemctl restart jaiabot_imu_py.service"); }
+        void reboot_bno085_imu() { system("sudo systemctl start jaia_firm_bno085_reset_gpio_pin_py.service"); }
 
         // Declare functions
         void imu_sensor_data_timeCheck();
