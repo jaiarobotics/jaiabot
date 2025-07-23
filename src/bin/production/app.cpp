@@ -81,9 +81,7 @@ class JaiabotProduction: public ApplicationBase
         bool test_pressure_ = false;
 
         //restart pressure
-        void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor.py"); }
-
-
+        void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor_py.service"); }
 
         // Motor Test State
         /*
