@@ -80,6 +80,7 @@ class JaiabotProduction: public ApplicationBase
         double latest_pressure_ = 100.0;
         bool test_pressure_ = false;
         goby::time::SystemClock::time_point pressure_reset_start_time_;
+        goby::time::SystemClock::time_point last_pressure_msg_time_;
         bool pressure_data_resumed_ = false;
         
         //restart pressure
@@ -151,6 +152,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
         {
             pressure_data_received_ = true;
             latest_pressure_ = pt.pressure_raw();
+            last_pressure_msg_time_ = goby::time::SystemClock::now();
             if (latest_pressure_ < 0.2)
             {
                 pressure_test_passed_ = true;
@@ -354,7 +356,8 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         return;
     }
 
-    if (latest_pressure_ < 0.2)
+    double since_last_pressure = seconds_since(last_pressure_msg_time_);
+    if (latest_pressure_ < 0.2 && since_last_pressure < 1.0)
     {
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
@@ -364,10 +367,14 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         response.set_pressure_response(pressure_pass_oss.str());
         test_pressure_ = false; // Stop the test
     }
-    else
+    else if(latest_pressure_ > 0.2 && since_last_pressure < 1.0)
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
         response.set_pressure_response("fail_pressure_reading_is_greater_than_or_equal_to_0.2_after_restart");
+        test_pressure_ = false; // Stop the test
+    }else{
+        glog.is_debug1() && glog << "❌ Pressure Test FAIL: presser sensor was never restarted correctly" << std::endl;
+        response.set_pressure_response("fail_pressure_sensor_was_never_restarted_correctly");
         test_pressure_ = false; // Stop the test
     }
 
