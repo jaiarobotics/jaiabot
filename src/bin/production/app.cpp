@@ -356,18 +356,18 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         return;
     }
 
-    double since_last_pressure = seconds_since(last_pressure_msg_time_);
-    if (latest_pressure_ < 0.2 && since_last_pressure < 1.0)
+    double since_last_pressure_msg = seconds_since(last_pressure_msg_time_);
+    if (latest_pressure_ < 0.2 && since_last_pressure_msg < 1.0)
     {
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
         //response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
         std::ostringstream pressure_pass_oss;
-        pressure_pass_oss << "pass_pressure_reading_is_less_than_0.2_after_restart_pressure_raw_value_" << latest_pressure_;
+        pressure_pass_oss << "time_since_last_message: " << since_last_pressure_msg << " the last pressure I got: " << latest_pressure_;
         response.set_pressure_response(pressure_pass_oss.str());
         test_pressure_ = false; // Stop the test
     }
-    else if(latest_pressure_ > 0.2 && since_last_pressure < 1.0)
+    else if(latest_pressure_ >= 0.2 && since_last_pressure_msg < 1.0)
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
         response.set_pressure_response("fail_pressure_reading_is_greater_than_or_equal_to_0.2_after_restart");
@@ -543,7 +543,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     }
 
     // Ensure Pressure Sensor test logic runs while test_pressure_ is true
-    if (test_pressure_)
+    if (test_pressure_ || pressure_reset_pending_)
     {
         pressure_sensor();
         pressure_sensor_reset_check();
