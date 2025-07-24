@@ -202,22 +202,35 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             test_pressure_ = false;
             pressure_reset_pending_ = false; 
             pressure_reset_complete_ = false;
+            motor_test_running_ = false;
+            motor_test_passed_ = false;
+            motor_data_received_ = false;
+            test_motor_ = false;
             test_imu_ = true;
             break;
             case jaiabot::protobuf::TEST_PRESSURE_SENSOR:  
             //clear any lingering responses before starting pressure test
             clear_all_test_responses();
+            imu_reset_complete_ = false;
+            imu_reset_pending_ = false;
+            test_imu_ = false;
+            motor_test_running_ = false;
+            motor_test_passed_ = false;
+            motor_data_received_ = false;
+            test_motor_ = false;
             pressure_reset_complete_ = false;
             pressure_reset_pending_ = false;
-            test_imu_ = false;
             test_pressure_ = true;
             break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
             //clear any lingering responses before starting motor test
-            response.clear_imu_response();
+            response.clear_pressure_response();
             imu_reset_complete_ = false;
             imu_reset_pending_ = false;
             test_imu_ = false;
+            pressure_reset_pending_ = false; 
+            pressure_reset_complete_ = false;
+            test_pressure_ = false;
             test_motor_ = true;
             motor_test_running_ = false;
             motor_test_passed_ = false;
@@ -227,7 +240,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
             break;
         }
-        
     });
 }
 
@@ -236,7 +248,7 @@ void jaiabot::apps::JaiabotProduction::clear_all_test_responses()
     response.clear_imu_response();
     response.clear_imu_reset_response();
     response.clear_pressure_response();
-    // response.clear_motor_response(); // if you add it later
+    response.clear_motor_response(); 
 }
 
 
@@ -532,7 +544,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     }
 
 
-    if(test_motor_ || imu_reset_pending_)
+    if(test_motor_)
     {
         motor_harness();
         imu_sensor_data_timeCheck();
