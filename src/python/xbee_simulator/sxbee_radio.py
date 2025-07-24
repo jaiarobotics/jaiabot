@@ -155,6 +155,9 @@ class SimXBee:
 
     def _read(self, data):
         """Callback function for reading data in on a separate thread."""
+        if len(self._buffer_in) > 1024:
+            self._buffer_in = bytearray()
+            self._logger.warning(f'SXBee {self.name} buffer overflow.')
         self._buffer_in.extend(data)
         
         self._process()
@@ -206,7 +209,7 @@ class SimXBee:
 
     def _process_api_mode(self):
         """Process data in API mode."""
-        packet_queue = APIParser.parse(self._buffer_in)
+        packet_queue, buffer = APIParser.parse(self._buffer_in)
         if packet_queue is not None:
             for pkt in packet_queue:
                 if pkt.get_frame_type() == ApiFrameType.AT_COMMAND:
@@ -224,6 +227,9 @@ class SimXBee:
                         self._send_packet(atpkt)
                 elif pkt.get_frame_type() == ApiFrameType.TRANSMIT_REQUEST:
                     self.transmit(pkt)
+        if buffer is not None:
+            self._buffer_in = buffer
+        else:
             self._buffer_in = bytearray()
 
     def _process_escaped_api_mode(self):
@@ -699,13 +705,30 @@ class APIParser:
     def parse(cls, buffer):
         logger = logging.getLogger(__name__)
         command_queue = []
-        packets = buffer.split(cls.DELIMITER)
-        for p in packets:
-            if len(p) > 0:
-                try:
-                    pkt = build_frame(bytearray(cls.DELIMITER + p))
-                    command_queue.append(pkt)
-                except Exception:
-                    logger.warning(f'API Parser encountered invalid packet in buffer: {buffer}')
-        return command_queue
+        # packets = buffer.split(cls.DELIMITER)
+        parsing = True
+        while len(buffer) > 0:
+            try:
+                start_idx = buffer.index(cls.DELIMITER)
+            except ValueError:
+                return command_queue, buffer
+            try:
+                pkt_len = int.from_bytes(buffer[start_idx + 1: start_idx + 3])
+                logger.info(f'API packet length: {pkt_len}')
+            except Exception as e:
+                logger.debug(e)
+                return command_queue, buffer
+            if len(buffer) >= pkt_len + 4:
+                p = buffer[start_idx:pkt_len+4]
+            else:
+                return command_queue, buffer
+            try:
+                pkt = build_frame(bytearray(p))
+                command_queue.append(pkt)
+            except Exception as e:
+                logger.warning(f'API Parser encountered invalid packet in buffer: {p}')
+                logger.warning(e)
+            buffer = buffer[pkt_len+4:]
+        buffer = None
+        return command_queue, buffer
     
