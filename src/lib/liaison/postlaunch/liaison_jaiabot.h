@@ -41,6 +41,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_pt(const jaiabot::protobuf::PressureTemperatureData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
+    //void post_motor(const jaiabot::protobuf::Motor& motor_data);
     void post_low_control(const jaiabot::protobuf::LowControl& low_control);
     void post_production_response(const jaiabot::protobuf::ProductionResponse& response);
 
@@ -259,6 +260,14 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             [this](const jaiabot::protobuf::IMUData& imu)
             { tab_->post_to_wt([=]() { tab_->post_imu(imu); }); });
 
+        /*
+         // post the motor data in its own box
+        interprocess().subscribe<groups::motor>(
+            [this](const jaiabot::protobuf::Motor& motor_data)
+            { tab_->post_to_wt([=]() { tab_->post_motor(motor_data); }); });
+
+        */
+        
         // post the control surfaces data in its own box
         interprocess().subscribe<groups::low_control>(
             [this](const jaiabot::protobuf::LowControl& low_control)

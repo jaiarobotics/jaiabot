@@ -46,4 +46,6 @@ message ProductionResponse
   optional string imu_response = 3;
   optional string imu_reset_response = 4;
   optional string pressure_response = 5;
+  optional string motor_response = 6;
+
 }

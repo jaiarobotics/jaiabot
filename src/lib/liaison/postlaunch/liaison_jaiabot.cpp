@@ -147,14 +147,13 @@ pressure_test_again_button->clicked().connect([this, pressure_test_again_button,
 });
 
 //Test Motor Harness
-/*
 auto production_motor_harness_test_box = production_box->addNew<WGroupBox>("Motor Harness");
 auto motor_test_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test");
-//auto motor_test_again_button = production_motor_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
+auto motor_test_again_button = production_motor_harness_test_box->addNew<Wt::WPushButton>("▶ Run Test Again");
 motor_test_again_button->hide();
 
-production_motor_test_box->addNew<Wt::WBreak>();
-auto motor_status_text = production_motor_harness_test_box->addNew<Wt::WText>();
+production_motor_harness_test_box->addNew<Wt::WBreak>();
+auto motor_status_text = production_motor_harness_test_box->addNew<Wt::WText>(); // Status text below button
 
 motor_test_button->clicked().connect([this, motor_test_button, motor_test_again_button, motor_status_text](Wt::WMouseEvent) {
     motor_test_button->hide();
@@ -162,8 +161,35 @@ motor_test_button->clicked().connect([this, motor_test_button, motor_test_again_
 
     this->production_motor_data_status_text_ = motor_status_text;
     motor_status_text->setText("⏳ Waiting for Motor Harness test result...");
+
+    // Send production request for Motor test
+    this->post_to_comms([=] {
+        jaiabot::protobuf::ProductionRequest request;
+        request.set_time(goby::time::SystemClock::now<goby::time::MicroTime>().value());
+
+        // Set the oneof request field correctly
+        request.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
+
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
+    });
 });
-*/
+
+motor_test_again_button->clicked().connect([this, motor_test_again_button, motor_status_text](Wt::WMouseEvent) {
+    //motor_test_again_button->hide();
+    this->production_motor_data_status_text_ = motor_status_text;
+    motor_status_text->setText("⏳ Waiting for Motor test result...");
+
+    // Send production request for Motor test
+    this->post_to_comms([=] {
+        jaiabot::protobuf::ProductionRequest request;
+        request.set_time(goby::time::SystemClock::now<goby::time::MicroTime>().value());
+
+        // Set the oneof request field correctly
+        request.set_production_command(jaiabot::protobuf::TEST_MOTOR_HARNESS);
+
+        goby_thread()->interprocess().publish<jaiabot::groups::production_request>(request);
+    });
+});
 
     production_panel->setCentralWidget(std::move(production_box));
     
@@ -360,6 +386,14 @@ void jaiabot::LiaisonJaiabot::post_production_response(const jaiabot::protobuf::
         {
             if (production_pressure_data_test_status_text_) {
                 production_pressure_data_test_status_text_->setText(response.pressure_response());
+            }
+            break;
+        }
+
+        case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+        {
+            if (production_motor_data_status_text_) {
+                production_motor_data_status_text_->setText(response.motor_response());
             }
             break;
         }
