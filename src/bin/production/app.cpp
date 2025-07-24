@@ -349,17 +349,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
 {
-    if (!pressure_reset_complete_)
-    {
-        // Still waiting for reset to complete
-        return;
-    }
-
     if (!pressure_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
-        response.set_pressure_response("fail_no_pressure_data_received_after_restart");
+        response.set_pressure_response("no_pressure_data_received_after_restart_yet");
         test_pressure_ = false; // Stop the test
+        return;
+    }
+    
+    if (!pressure_reset_complete_)
+    {
+        // Still waiting for reset to complete
         return;
     }
 
@@ -370,14 +370,16 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
         //response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
         std::ostringstream pressure_pass_oss;
-        pressure_pass_oss << " PASS: the last pressure I got: " << latest_pressure_ << " the time of reset was: " << since_reset;
+        pressure_pass_oss << "pass_less_then_0.2_latest_pressure_raw: " << latest_pressure_;
         response.set_pressure_response(pressure_pass_oss.str());
         test_pressure_ = false; // Stop the test
     }
     else if(latest_pressure_ >= 0.2 && since_reset >= 3.0)
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
-        response.set_pressure_response("fail_pressure_reading_is_greater_than_or_equal_to_0.2_after_restart");
+        std::ostringstream pressure_fail_oss;
+        pressure_fail_oss << "fail_not_less_then_0.2_latest_pressure_raw: " << latest_pressure_;
+        response.set_pressure_response(pressure_fail_oss.str());
         test_pressure_ = false; // Stop the test
     }
 

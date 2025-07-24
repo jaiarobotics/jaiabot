@@ -421,7 +421,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(pressure_temperature_data.SerializeAsString());
-        interthread().publish<pressure_udp_out>(io_data); //(uncomment this out later)
+      interthread().publish<pressure_udp_out>(io_data); //(uncomment this out later)
     }
 
     // publish salinity as UDP message for atlas scientific ezo-ec driver
@@ -461,7 +461,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
             accuracies->set_accelerometer(3);
             accuracies->set_gyroscope(3);
             accuracies->set_magnetometer(3);
-            interprocess().publish<groups::imu>(imu_data);
+          interprocess().publish<groups::imu>(imu_data);
         }
     }
 
