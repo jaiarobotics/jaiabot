@@ -26,7 +26,7 @@ import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
 import Map from "ol/Map";
 import { OSM } from "ol/source";
-import { OfflineMapDownloadDetails } from "../OfflineMapDownloadDetails/OfflineMapDownloadDetails";
+import { HubMapDownloadDetails } from "../HubMapDownloadDetails/HubMapDownloadDetails";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
 import { SurveyExclusions } from "../../missions/survey/survey-exclusions";
@@ -125,11 +125,11 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
-import { OfflineMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
+import { HubMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
 import { TileImage } from "ol/source";
 import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
-import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
+import { HubMapPanel } from "../HubMapPanel/HubMapPanel";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -159,6 +159,7 @@ export enum PanelType {
     TASK_PACKET = "TASK_PACKET",
     SETTINGS = "SETTINGS",
     CONTACT_INFO = "CONTACT_INFO",
+    HUB_MAPS = "HUB_MAPS",
 }
 
 export enum Mode {
@@ -312,7 +313,7 @@ export default class CommandControl extends React.Component {
     botPathFeatures: { [key: number]: OlFeature<OlLineString> } = {};
     // Source: Facebook's Slingshot
     isMobile: boolean = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    offlineMapDownloadJob: OfflineMapDownloadJob = null;
+    hubMapDownloadJob: HubMapDownloadJob = null;
 
     constructor(props: Props) {
         super(props);
@@ -3818,32 +3819,6 @@ export default class CommandControl extends React.Component {
         );
     }
 
-    downloadOfflineTiles() {
-        if (!this.offlineMapDownloadJob) {
-            const layers = [noaaLayer, openStreetMapLayer];
-
-            const job = new OfflineMapDownloadJob(map, layers);
-            job.start(() => {
-                if (!this.offlineMapDownloadJob.running) {
-                    this.offlineMapDownloadJob = null;
-                }
-            });
-            this.offlineMapDownloadJob = job;
-        }
-    }
-
-    async importGeoTiff() {
-        OpenFileDialog(".tif", false).then((file_list) => {
-            if (file_list.length) {
-                const file = file_list.item(0);
-                file.bytes().then((uint8array) => {
-                    const blob = new Blob([uint8array], { type: "application/octet-stream" });
-                    jaiaAPI.putOfflineGeoTiff(file.name, blob);
-                });
-            }
-        });
-    }
-
     //
     // Render Helper Methods and Panels (End)
     //
@@ -4120,27 +4095,26 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
-        const downloadOfflineMapsButton = (
-            <Button
-                className="button-jcc"
-                onClick={() => {
-                    this.downloadOfflineTiles();
-                }}
-            >
-                <Icon path={mdiDownloadMultiple} size={1.3} title="Download Offline Maps" />
-            </Button>
-        );
-
-        const importGeoTiffButton = (
-            <Button
-                className="button-jcc"
-                onClick={() => {
-                    this.importGeoTiff();
-                }}
-            >
-                <Icon path={mdiFileImport} size={1.3} title="Import GeoTiff" />
-            </Button>
-        );
+        const hubMapsButton =
+            visiblePanel == PanelType.HUB_MAPS ? (
+                <Button
+                    className="button-jcc active"
+                    onClick={() => {
+                        this.setVisiblePanel(PanelType.NONE);
+                    }}
+                >
+                    <Icon path={mdiFileImport} size={1.3} title="Hub Maps" />
+                </Button>
+            ) : (
+                <Button
+                    className="button-jcc"
+                    onClick={() => {
+                        this.setVisiblePanel(PanelType.HUB_MAPS);
+                    }}
+                >
+                    <Icon path={mdiFileImport} size={1.3} title="Hub Maps" />
+                </Button>
+            );
 
         const measureButton =
             visiblePanel == PanelType.MEASURE_TOOL ? (
@@ -4189,12 +4163,12 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
-        const offlineMapDownloadDetails = this.offlineMapDownloadJob ? (
-            <OfflineMapDownloadDetails
-                job={this.offlineMapDownloadJob}
+        const hubMapDownloadDetails = this.hubMapDownloadJob ? (
+            <HubMapDownloadDetails
+                job={this.hubMapDownloadJob}
                 onCancel={() => {
-                    this.offlineMapDownloadJob.cancel();
-                    this.offlineMapDownloadJob = null;
+                    this.hubMapDownloadJob.cancel();
+                    this.hubMapDownloadJob = null;
                 }}
             />
         ) : null;
@@ -4349,6 +4323,18 @@ export default class CommandControl extends React.Component {
                     />
                 );
                 break;
+
+            case PanelType.HUB_MAPS:
+                visiblePanelElement = (
+                    <HubMapPanel
+                        map={map}
+                        hubMapDownloadJob={this.hubMapDownloadJob}
+                        setHubMapDownloadJob={(hubMapDownloadJob: HubMapDownloadJob) => {
+                            this.hubMapDownloadJob = hubMapDownloadJob;
+                        }}
+                    />
+                );
+                break;
         }
 
         var depthContourPlot = null;
@@ -4384,8 +4370,7 @@ export default class CommandControl extends React.Component {
                     {downloadQueueButton}
                     {measureButton}
                     {settingsPanelButton}
-                    {downloadOfflineMapsButton}
-                    {importGeoTiffButton}
+                    {hubMapsButton}
                 </div>
 
                 <div id="botsDrawer">
@@ -4425,7 +4410,7 @@ export default class CommandControl extends React.Component {
 
                 {depthContourPlot}
 
-                {offlineMapDownloadDetails}
+                {hubMapDownloadDetails}
 
                 {this.state.customAlert}
             </div>

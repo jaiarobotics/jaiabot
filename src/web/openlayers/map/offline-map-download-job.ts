@@ -55,7 +55,7 @@ function* tile_generator(view: View, layers: TileLayer<TileImage>[]): Generator<
     }
 }
 
-export class OfflineMapDownloadJob {
+export class HubMapDownloadJob {
     map: Map;
     layers: TileLayer<TileImage>[];
     tile_count: number = 0;

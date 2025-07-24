@@ -249,7 +249,7 @@ export class JaiaAPI {
         }
     }
 
-    async getOfflineMaps() {
+    async getHubMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<string[]>;
         });

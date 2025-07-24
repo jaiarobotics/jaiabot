@@ -1,13 +1,13 @@
 import { Button } from "@mui/material";
-import { OfflineMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
-import "./OfflineMapDownloadDetails.less";
+import { HubMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
+import "./HubMapDownloadDetails.less";
 
 interface Props {
-    job: OfflineMapDownloadJob;
+    job: HubMapDownloadJob;
     onCancel: (evt: any) => void;
 }
 
-export function OfflineMapDownloadDetails(props: Props) {
+export function HubMapDownloadDetails(props: Props) {
     const percent = ((100.0 * props.job.completed_tile_count) / props.job.tile_count).toFixed(0);
 
     return (

@@ -13,7 +13,7 @@ const offlineLayerGroup = new LayerGroup({
 });
 
 export async function refreshOfflineLayers() {
-    jaiaAPI.getOfflineMaps().then((layer_list) => {
+    jaiaAPI.getHubMaps().then((layer_list) => {
         console.error(layer_list);
 
         const layers = layer_list.map((layer_name) => {
