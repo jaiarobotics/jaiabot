@@ -214,7 +214,6 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             break;
             case jaiabot::protobuf::TEST_MOTOR_HARNESS:
             //clear any lingering responses before starting motor test
-            response.clear_pressure_response();
             response.clear_imu_response();
             imu_reset_complete_ = false;
             imu_reset_pending_ = false;
@@ -532,7 +531,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
 
-    /*
+
     if(test_motor_ || imu_reset_pending_)
     {
         motor_harness();
@@ -540,5 +539,5 @@ void jaiabot::apps::JaiabotProduction::loop()
         imu_sensor_reset_check();
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
-    */
+    
 }
