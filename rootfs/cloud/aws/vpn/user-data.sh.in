@@ -1,1 +1,16 @@
 #!/bin/bash
+
+# Install script for pulling data from old vpn.jaia.tech (if relevant)
+sync_script=/home/jaia/sync_from_prior_vpn_server.sh
+cat <<EOF > \${sync_script}
+#!/bin/bash
+# Prereqs:
+#   - Need to manually provide SSH key pair for new server to log into dput on old server
+# sync existing files
+ssh jaia@vpn.jaia.tech "sudo tar cfvz /home/jaia/vpn_backup.tar.gz /etc/wireguard/*"
+rsync -aP jaia@vpn.jaia.tech:/home/jaia/vpn_backup.tar.gz .
+sudo tar xfz -C / vpn_backup.tar.gz
+EOF
+
+chmod a+x \${sync_script}
+chown jaia:jaia \${sync_script}
