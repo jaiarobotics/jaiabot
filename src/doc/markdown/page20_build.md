@@ -174,6 +174,8 @@ ssh -A jaia@<new server IP address>
 
 Once this is complete you can swap the elastic IP (https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Addresses:) for packages.jaia.tech by using "Disassociate Elastic IP Address" and "Associate Elastic IP address", chosing the new server on the second step (associate). When you are satisfied that the new server is working correctly, you can terminate the old one.
 
+You will also need to update `jaiabot/.circleci/config.yml` to change the known_hosts entry for the new server for uploads (under the "Upload packages to packages.jaia.tech" task).
+
 ### packages.gobysoft.org mirror
 
 To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update_gobysoft_mirror.sh` script.
