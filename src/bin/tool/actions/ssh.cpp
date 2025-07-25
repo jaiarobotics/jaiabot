@@ -14,7 +14,7 @@ jaiabot::apps::SshTool::SshTool()
     std::string user = app_cfg().user();
 
     // special case default user "ubuntu" for these servers
-    if (!app_cfg().has_user() && (host_ip == "vpn.jaia.tech" || host_ip == "packages.jaia.tech"))
+    if (!app_cfg().has_user() && (host_ip == "vpn.jaia.tech"))
         user = "ubuntu";
 
     std::string user_and_host = user + "@" + host_ip;
