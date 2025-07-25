@@ -36,6 +36,22 @@ ${INDENTED_ROOT_PUBKEYS}
       };
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+  - path: /etc/apache2/sites-available/001-jaia-docs.conf
+    content: |
+      <VirtualHost *:80>
+        ServerName docs.jaia.tech    
+        ServerAdmin info@jaia.tech
+        DocumentRoot /var/www/html
+        Alias "/figures" "/var/www/figures"
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+      
+        RewriteEngine on
+        RewriteCond %{SERVER_NAME} =docs.jaia.tech [OR]
+        RewriteCond %{SERVER_NAME} =whatsupdoc.jaia.tech
+        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+      </VirtualHost>
       
 apt:
   sources:
@@ -50,6 +66,14 @@ packages:
   - zile
   - jaiabot-apps
   - jaiabot-doc
+  - certbot
+  - apache2
+  - python3-certbot-apache
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
+  - a2enmod rewrite
+  - a2dissite 000-default
+  - a2ensite 001-jaia-docs
+  
+# run certbot manually
