@@ -60,8 +60,7 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point imu_reset_start_time_;
         goby::time::SystemClock::time_point last_imu_msg_time_;
 
-        // restart and reboot imu
-        void restart_imu_py() { system("sudo systemctl restart jaiabot_imu_py.service"); }
+        // reboot imu
         void reboot_bno085_imu() { system("sudo systemctl start jaia_firm_bno085_reset_gpio_pin_py.service"); }
 
         // Declare functions
@@ -83,7 +82,7 @@ class JaiabotProduction: public ApplicationBase
         goby::time::SystemClock::time_point last_pressure_msg_time_;
         bool pressure_data_resumed_ = false;
         
-        //restart pressure
+        // restart pressure
         void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor_py.service"); }
 
         // Motor Test State
@@ -110,14 +109,13 @@ class JaiabotProduction: public ApplicationBase
             using namespace std::chrono;
             return duration_cast<duration<double>>(goby::time::SystemClock::now() - timestamp).count();
         }
-};
+    };
 
 } //namespace apps
 } //namespace jaiabot
 
 int main(int argc, char* argv[])
 {
-
     return goby::run<jaiabot::apps::JaiabotProduction>(
         goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotProduction>(argc, argv));
 }
@@ -144,7 +142,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
             }*/
         });
 
-    // Subscribe to pressure sensor data
+        // Subscribe to pressure sensor data
         interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt)
         {
@@ -158,8 +156,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
 
         });
 
-    // Subscribe to motor status
-    
+    // Subscribe to motor status    
     interprocess().subscribe<jaiabot::groups::motor_status>(
         [this](const jaiabot::protobuf::Motor& motor_msg)
         {
@@ -183,64 +180,64 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
        interprocess().subscribe<jaiabot::groups::production_request>(
            [this](const jaiabot::protobuf::ProductionRequest& production_msg)
            {
-        // Set raw timestamp
-        const auto now = std::chrono::system_clock::now();
-        const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
-            now.time_since_epoch()).count();
-        response.set_time(timestamp_us);
-        
-        // Set production command in response
-        response.set_production_command(production_msg.production_command());
-        
-        switch (production_msg.production_command())
-        {
-            case jaiabot::protobuf::TEST_IMU_SENSOR:
-            //clear any lingering responses before starting IMU test
-            clear_all_test_responses();
-            imu_reset_complete_ = false;
-            imu_reset_pending_ = false; 
-            test_pressure_ = false;
-            pressure_reset_pending_ = false; 
-            pressure_reset_complete_ = false;
-            motor_test_running_ = false;
-            motor_test_passed_ = false;
-            motor_data_received_ = false;
-            test_motor_ = false;
-            test_imu_ = true;
-            break;
-            case jaiabot::protobuf::TEST_PRESSURE_SENSOR:  
-            //clear any lingering responses before starting pressure test
-            clear_all_test_responses();
-            imu_reset_complete_ = false;
-            imu_reset_pending_ = false;
-            test_imu_ = false;
-            motor_test_running_ = false;
-            motor_test_passed_ = false;
-            motor_data_received_ = false;
-            test_motor_ = false;
-            pressure_reset_complete_ = false;
-            pressure_reset_pending_ = false;
-            test_pressure_ = true;
-            break;
-            case jaiabot::protobuf::TEST_MOTOR_HARNESS:
-            //clear any lingering responses before starting motor test
-            response.clear_pressure_response();
-            imu_reset_complete_ = false;
-            imu_reset_pending_ = false;
-            test_imu_ = false;
-            pressure_reset_pending_ = false; 
-            pressure_reset_complete_ = false;
-            test_pressure_ = false;
-            test_motor_ = true;
-            motor_test_running_ = false;
-            motor_test_passed_ = false;
-            motor_data_received_ = false;
-            break;
-            default:
-            glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
-            break;
-        }
-    });
+            // Set raw timestamp
+            const auto now = std::chrono::system_clock::now();
+            const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                now.time_since_epoch()).count();
+            response.set_time(timestamp_us);
+            
+            // Set production command in response
+            response.set_production_command(production_msg.production_command());
+            
+            switch (production_msg.production_command())
+            {
+                case jaiabot::protobuf::TEST_IMU_SENSOR:
+                //clear any lingering responses before starting IMU test
+                clear_all_test_responses();
+                imu_reset_complete_ = false;
+                imu_reset_pending_ = false; 
+                test_pressure_ = false;
+                pressure_reset_pending_ = false; 
+                pressure_reset_complete_ = false;
+                motor_test_running_ = false;
+                motor_test_passed_ = false;
+                motor_data_received_ = false;
+                test_motor_ = false;
+                test_imu_ = true;
+                break;
+                case jaiabot::protobuf::TEST_PRESSURE_SENSOR:  
+                //clear any lingering responses before starting pressure test
+                clear_all_test_responses();
+                imu_reset_complete_ = false;
+                imu_reset_pending_ = false;
+                test_imu_ = false;
+                motor_test_running_ = false;
+                motor_test_passed_ = false;
+                motor_data_received_ = false;
+                test_motor_ = false;
+                pressure_reset_complete_ = false;
+                pressure_reset_pending_ = false;
+                test_pressure_ = true;
+                break;
+                case jaiabot::protobuf::TEST_MOTOR_HARNESS:
+                //clear any lingering responses before starting motor test
+                response.clear_pressure_response();
+                imu_reset_complete_ = false;
+                imu_reset_pending_ = false;
+                test_imu_ = false;
+                pressure_reset_pending_ = false; 
+                pressure_reset_complete_ = false;
+                test_pressure_ = false;
+                test_motor_ = true;
+                motor_test_running_ = false;
+                motor_test_passed_ = false;
+                motor_data_received_ = false;
+                break;
+                default:
+                glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
+                break;
+            }
+        });
 }
 
 void jaiabot::apps::JaiabotProduction::clear_all_test_responses()
@@ -273,8 +270,10 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
 
         std::ostringstream reset_oss;
         std::ostringstream reset_continued_oss;
+
         reset_oss << "sent_reset_request_received_no_IMU_data_for_ " << since_last_imu << "s";
         response.set_imu_response(reset_oss.str());
+
         reset_continued_oss << "IMU_reset_no_IMU_data_for_approx_ " << since_last_imu << "s";
         response.set_imu_reset_response(reset_continued_oss.str());
         return;
@@ -285,14 +284,17 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_data_timeCheck()
     {
         glog.is_debug1() && glog << "🛑 IMU Test FAIL: No IMU data in over 1 second (" 
                                  << since_last_imu << "s)" << std::endl;
+
         response.set_imu_response("fail_no_imu_data_after_reset");
     }
     else
     {
         glog.is_debug1() && glog << "✅ IMU Test PASS: IMU data received in " 
                                  << since_last_imu << "s" << std::endl;
+
         std::ostringstream IMU_oss;
         IMU_oss << "pass_imu_data_received_last_imu_message_sent_ " << since_last_imu << "s";
+
         response.set_imu_response(IMU_oss.str());
     }
 
@@ -316,11 +318,13 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     {
         imu_reset_pending_ = true;
         imu_reset_start_time_ = goby::time::SystemClock::now();
+
         glog.is_debug1() && glog << "📡 IMU Test: Starting IMU reset, expecting no IMU data for 2s..." << std::endl;
 
         if (cfg().is_in_sim())
         {
             glog.is_debug1() && glog << "🧪 In simulation mode — sending IMU dropout command to simulator." << std::endl;
+
             jaiabot::protobuf::SimulatorCommand command;
             command.mutable_imu_dropout()->set_dropout_duration(cfg().imu_reboot_time());
 
@@ -343,11 +347,12 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
     {
         imu_reset_pending_ = false;
         
-        // Set the reset response when reset completes
+        // Sets the reset response when reset completes
         if (!imu_reset_complete_)
         {
             std::ostringstream reset_finished_oss;
             reset_finished_oss << "reset_completed_after_" << since_reset << "s";
+
             response.set_imu_reset_response(reset_finished_oss.str());
         }
         
@@ -355,7 +360,6 @@ void jaiabot::apps::JaiabotProduction::imu_sensor_reset_check()
         imu_reset_complete_ = true;  
     }
 }
-    
 
 //pressure service to be restarted
 void jaiabot::apps::JaiabotProduction::pressure_sensor()
@@ -364,6 +368,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     {
         glog.is_debug1() && glog << "🛑 Pressure Test FAIL: did not receive any pressure data after restart" << std::endl;
         response.set_pressure_response("no_pressure_data_received_after_restart_yet");
+
         test_pressure_ = false; // Stop the test
         return;
     }
@@ -379,17 +384,22 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor()
     {
         glog.is_debug1() && glog << "💧 Pressure is: " << latest_pressure_ << std::endl;
         glog.is_debug1() && glog << "✅ Pressure Test PASS" << std::endl;
+
         //response.set_pressure_response("pass_pressure_reading_is_less_than_0.2_after_restart");
+
         std::ostringstream pressure_pass_oss;
         pressure_pass_oss << "pass_less_then_0.2_latest_pressure_raw: " << latest_pressure_;
+
         response.set_pressure_response(pressure_pass_oss.str());
         test_pressure_ = false; // Stop the test
     }
     else if(latest_pressure_ >= 0.2 && since_reset >= 3.0)
     {
         glog.is_debug1() && glog << "❌ Pressure Test FAIL: pressure reading >= 0.2 after restart" << std::endl;
+
         std::ostringstream pressure_fail_oss;
         pressure_fail_oss << "fail_not_less_then_0.2_latest_pressure_raw: " << latest_pressure_;
+
         response.set_pressure_response(pressure_fail_oss.str());
         test_pressure_ = false; // Stop the test
     }
@@ -423,6 +433,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
         if (cfg().is_in_sim())
         {
             glog.is_debug1() && glog << "🧪 In simulation mode — sending Pressure dropout command to simulator." << std::endl;
+
             jaiabot::protobuf::SimulatorCommand command;
             command.mutable_pressure_dropout()->set_dropout_duration(cfg().imu_reboot_time());
 
@@ -445,6 +456,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
     {
         pressure_data_resumed_ = true;
         pressure_reset_complete_ = true;
+
         glog.is_debug1() && glog << "!!Pressure Test: Pressure data resumed after reset!!" << std::endl;
     }
 
@@ -455,6 +467,7 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
         std::ostringstream oss;
         oss << "waiting_for_pressure_data_post_restart_" << since_reset << "s";
+
         response.set_pressure_response(oss.str());
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
@@ -466,8 +479,10 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         motor_test_running_ = true;
         motor_test_start_time_ = goby::time::SystemClock::now();
+
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         response.set_motor_response("motor_test_started_running_for_2s");
+
         return;
     }
 
@@ -478,6 +493,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         // Still running test
         std::ostringstream motor_running_oss;
         motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s";
+
         response.set_motor_response(motor_running_oss.str());
         return;
     }
@@ -487,6 +503,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
         response.set_motor_response("fail_no_motor_data_received");
+
         test_motor_ = false;
         return;
     }
@@ -501,8 +518,10 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     if (rpm_ok && temp_ok && imu_reset_complete_)
     {
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
+
         std::ostringstream motor_pass_oss;
         motor_pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_ << "_imu_reset_completed";
+
         response.set_motor_response(motor_pass_oss.str());
         test_motor_ = false;
     }
@@ -532,6 +551,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+        
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
 
@@ -540,6 +560,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     {
         pressure_sensor();
         pressure_sensor_reset_check();
+
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
 
@@ -549,6 +570,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         motor_harness();
         imu_sensor_data_timeCheck();
         imu_sensor_reset_check();
+
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
     
