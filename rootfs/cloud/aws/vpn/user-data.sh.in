@@ -5,12 +5,21 @@ sync_script=/home/jaia/sync_from_prior_vpn_server.sh
 cat <<EOF > \${sync_script}
 #!/bin/bash
 # Prereqs:
-#   - Need to manually provide SSH key pair for new server to log into dput on old server
+#   - Need to manually provide SSH key pair for new server to log into jaia on old server
 # sync existing files
-ssh jaia@vpn.jaia.tech "sudo tar cfvz /home/jaia/vpn_backup.tar.gz /etc/wireguard/*"
+ssh jaia@vpn.jaia.tech \"sudo tar cfvz /home/jaia/vpn_backup.tar.gz /etc/wireguard\"
 rsync -aP jaia@vpn.jaia.tech:/home/jaia/vpn_backup.tar.gz .
-sudo tar xfz -C / vpn_backup.tar.gz
+sudo tar -C / -x -z -f vpn_backup.tar.gz
 EOF
 
 chmod a+x \${sync_script}
 chown jaia:jaia \${sync_script}
+
+
+for conf in \$(sudo find /etc/wireguard -name *.conf)
+do
+   filename=\$(basename \${conf})
+   wgname="\${filename%.conf}"
+   sudo systemctl enable wg-quick@\${wgname}
+   sudo systemctl start wg-quick@\${wgname}
+done
