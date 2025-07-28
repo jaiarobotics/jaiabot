@@ -7,6 +7,7 @@ import { Fill, Icon, Style, Text } from "ol/style";
 import { view } from "../views/view";
 
 import { GeographicCoordinate } from "../../types/protobuf-types";
+import { MapFeatureTypes } from "../../types/openlayers-types";
 
 import rallyIcon from "../../style/icons/rally-point.svg";
 
@@ -27,7 +28,9 @@ export function generateRallyFeature(location: GeographicCoordinate, rallyNum: n
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
 
+    feature.set("type", MapFeatureTypes.RALLY_POINT);
     feature.set("id", rallyNum);
+    feature.set("location", location);
     feature.setStyle(generateRallyStyle(rallyNum));
     return feature;
 }

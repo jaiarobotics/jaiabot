@@ -55,6 +55,7 @@ export const enum ButtonTypes {
 export const enum ButtonNames {
     NONE = "none",
     ADD_RALLY = "add_rally",
+    GO_TO_RALLY = "go_to_rally",
     DATA_OFFLOAD_PANEL = "data_offload_panel",
     HELP_PANEL = "help_panel",
     JAIA_ABOUT_PANEL = "jaia_about_panel",
