@@ -1,7 +1,7 @@
 import { Feature } from "ol";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
-import { layersZIndexes } from "./zindex";
+import { layersZIndexes } from "../zindex";
 import { generateRallyFeature } from "../../features/rally-feature";
 
 import { LayerTitles } from "../../../types/openlayers-types";
