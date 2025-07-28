@@ -11,6 +11,7 @@ import HubDetails from "../containers/HubDetails/HubDetails";
 import BotDetails from "../containers/BotDetails/BotDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
+import RallyPanel from "../components/RallyPanel/RallyPanel";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
@@ -77,6 +78,8 @@ function Panel() {
             return <HelpWindow />;
         case ButtonNames.JAIA_ABOUT_PANEL:
             return <JaiaAbout />;
+        case ButtonNames.RALLY_PANEL:
+            return <RallyPanel />;
         case ButtonNames.TASK_PACKET_PANEL:
             return (
                 <TaskPacketPanel
