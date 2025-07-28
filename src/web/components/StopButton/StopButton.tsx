@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { StopDialog, DialogActions } from "./StopDialog";
 import { DisabledCodes } from "./stop-messages";
@@ -21,6 +23,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StopButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -59,7 +62,7 @@ export default function StopButton(props: Props) {
      * @notes
      * After refactoring the command structure, issue the stop command
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
@@ -67,7 +70,14 @@ export default function StopButton(props: Props) {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.STOP,
             };
-            sendBotCommand(stopCommand);
+            const response = await sendBotCommand(stopCommand);
+            if (response && response.status === "ok") {
+                jaiaDispatch({
+                    type: JaiaActions.SENT_COMMAND,
+                    botID: props.bot.getBotID(),
+                    command: stopCommand,
+                });
+            }
         }
     };
 

@@ -1,7 +1,9 @@
+import { MapFeatureTypes } from "./openlayers-types";
 import {
     ConstantHeadingParameters,
     DiveParameters,
     DriftParameters,
+    GeographicCoordinate,
     MissionState,
 } from "./protobuf-types";
 
@@ -19,6 +21,17 @@ export interface SelectedNode {
 export interface SelectedWaypoint {
     waypointNum: number;
     missionID: number;
+}
+
+export interface SelectedRallyPoint {
+    id: number;
+    location?: GeographicCoordinate;
+}
+
+export interface SelectedTaskPacket {
+    botID: number;
+    startTime: number;
+    type: MapFeatureTypes;
 }
 
 export interface MissionStatus {
@@ -63,4 +76,9 @@ export enum ButtonListTypes {
 export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",
+}
+
+export const enum BotModes {
+    MISSION = 1,
+    REMOTE_CONTROL = 2,
 }

@@ -53,5 +53,5 @@ test("Click data offload button in enabled state", async () => {
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
-    expect(screen.getByText("Start Data Offload")).toBeInTheDocument();
+    expect(screen.getByText("Offload Data")).toBeInTheDocument();
 });

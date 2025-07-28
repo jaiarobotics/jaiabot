@@ -13,6 +13,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
@@ -23,7 +24,6 @@ import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
-import { UNASSIGNED_ID } from "../../utils/constants";
 
 /**
  * Creates a waypoint icon to be placed on the map with the correct label and color

@@ -1,6 +1,6 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
-import { layersZIndexes } from "./zindex";
+import { layersZIndexes } from "../zindex";
 import { CommsRangeTypes, generateHubCommsFeature } from "../../features/hub-comms-feature";
 
 class HubCommsLayer extends JaiaVectorLayer {

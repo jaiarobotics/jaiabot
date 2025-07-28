@@ -94,11 +94,12 @@ export default function StartMissionButton(props: Props) {
                 type: CommandType.MISSION_PLAN,
                 plan: props.mission.packageMissionForHub(),
             };
-            const res = await sendBotCommand(startMissionCommand);
-            if (res.status === "ok") {
+            const response = await sendBotCommand(startMissionCommand);
+            if (response && response.status === "ok") {
                 jaiaDispatch({
-                    type: JaiaActions.SEND_MISSION,
-                    missionID: props.mission.getMissionID(),
+                    type: JaiaActions.SENT_COMMAND,
+                    botID: props.bot.getBotID(),
+                    command: startMissionCommand,
                 });
             }
         }
