@@ -491,19 +491,15 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     double elapsed = seconds_since(motor_test_start_time_);
 
-    if (elapsed < 5.1)
+    if (elapsed < 2.1)
     {
         if (!motor_command_sent_)
         {
-            glog.is_debug1() && glog << "➡️ Publishing motor DesiredSetpoints" << std::endl;
+            glog.is_debug1() && glog << "➡️ Publishing motor DesiredSetpoints (POWERED_ASCENT with max throttle)" << std::endl;
 
             jaiabot::protobuf::DesiredSetpoints setpoint;
-            setpoint.set_type(jaiabot::protobuf::SETPOINT_REMOTE_CONTROL);
-
-            auto* rc = setpoint.mutable_remote_control();
-            rc->set_duration(5); // 5 seconds
-            rc->set_speed(5.0);   // Speed in m/s
-            rc->set_heading(0);   // Straight forward
+            setpoint.set_type(jaiabot::protobuf::SETPOINT_POWERED_ASCENT);
+            setpoint.set_throttle(75.0);  // High throttle for maximum RPM (range is -100 to 100)
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
             motor_command_sent_ = true;
@@ -514,6 +510,18 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         response.set_motor_response(motor_running_oss.str());
         return;
+    }
+
+    // Send stop command after test duration
+    if (elapsed >= 2.1 && motor_command_sent_)
+    {
+        glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
+        
+        jaiabot::protobuf::DesiredSetpoints stop_setpoint;
+        stop_setpoint.set_type(jaiabot::protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(stop_setpoint);
+        
+        motor_command_sent_ = false; // Prevent repeated stop commands
     }
 
     // Test completed, check results
