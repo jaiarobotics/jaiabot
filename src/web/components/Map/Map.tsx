@@ -48,6 +48,8 @@ export default function Map() {
                 case MapFeatureTypes.WAYPOINT:
                     handleWaypointClick(feature);
                     return;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
                 case MapFeatureTypes.DIVE:
                     handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
                 default:
@@ -103,7 +105,19 @@ export default function Map() {
     };
 
     /**
-     * Dispatches action to set the selected task packet
+     * Dispatches action to open the rally panel
+     *
+     * @param {Feature<Geometry>} feature Clicked rally point
+     * @returns {void}
+     */
+    const handleRallyPointClick = (feature: Feature<Geometry>) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_RALLY_POINT,
+            rallyID: feature.get("id"),
+        });
+    };
+
+    /** Dispatches action to set the selected task packet
      *
      * @param {Feature<Geometry>} feature
      * @param {MapFeatureTypes} type

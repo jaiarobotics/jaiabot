@@ -1,0 +1,30 @@
+@import "../../style/stylesheets/vars.less";
+
+.rally-panel-container {
+    position: absolute;
+    top: @panel-top;
+    right: @panel-right;
+    padding: 6px;
+    background-color: @overlay-background;
+}
+
+.rally-buttons-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+
+    padding: 15px;
+}
+
+.close-button-container {
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.close-button-container button {
+    all: unset;
+    padding: 9px;
+    color: @cc-text-color-light;
+}
