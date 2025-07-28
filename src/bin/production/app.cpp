@@ -495,15 +495,11 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         if (!motor_command_sent_)
         {
-            glog.is_debug1() && glog << "➡️ Publishing motor DesiredSetpoints" << std::endl;
+            glog.is_debug1() && glog << "➡️ Publishing motor throttle command" << std::endl;
 
             jaiabot::protobuf::DesiredSetpoints setpoint;
-            setpoint.set_type(jaiabot::protobuf::SETPOINT_REMOTE_CONTROL);
-
-            auto* rc = setpoint.mutable_remote_control();
-            rc->set_duration(2); // 2 seconds
-            rc->set_speed(1.5);   // Speed in m/s
-            rc->set_heading(0);   // Straight forward
+            setpoint.set_type(jaiabot::protobuf::SETPOINT_POWERED_ASCENT);
+            setpoint.set_throttle(0.7); // 70% throttle to move the motor and increase RPM
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
             motor_command_sent_ = true;
@@ -514,6 +510,19 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         response.set_motor_response(motor_running_oss.str());
         return;
+    }
+
+    // After 2 seconds, send stop command and check results
+    if (motor_command_sent_)
+    {
+        // Send stop command to turn off throttle
+        glog.is_debug1() && glog << "🛑 Sending motor stop command after 2 seconds" << std::endl;
+        
+        jaiabot::protobuf::DesiredSetpoints stop_setpoint;
+        stop_setpoint.set_type(jaiabot::protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(stop_setpoint);
+        
+        motor_command_sent_ = false; // Reset flag
     }
 
     // Test completed, check results
