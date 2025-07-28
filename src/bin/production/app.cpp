@@ -34,6 +34,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
+#include "jaiabot/messages/high_control.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -90,6 +91,7 @@ class JaiabotProduction: public ApplicationBase
         bool motor_test_passed_ = false;
         bool motor_data_received_ = false;
         bool motor_test_running_ = false;
+        bool motor_command_sent_ = false;
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
         goby::time::SystemClock::time_point motor_test_start_time_;
@@ -478,6 +480,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     if (!motor_test_running_)
     {
         motor_test_running_ = true;
+        motor_command_sent_ = false; // <-- Add this if not already in your class
         motor_test_start_time_ = goby::time::SystemClock::now();
 
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
@@ -490,7 +493,22 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     if (elapsed < 2.1)
     {
-        // Still running test
+        if (!motor_command_sent_)
+        {
+            glog.is_debug1() && glog << "➡️ Publishing motor DesiredSetpoints" << std::endl;
+
+            jaiabot::protobuf::DesiredSetpoints setpoint;
+            setpoint.set_type(jaiabot::protobuf::SETPOINT_REMOTE_CONTROL);
+
+            auto* rc = setpoint.mutable_remote_control();
+            rc->set_duration(2); // 2 seconds
+            rc->set_speed(1.5);   // Speed in m/s
+            rc->set_heading(0);   // Straight forward
+
+            interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
+            motor_command_sent_ = true;
+        }
+
         std::ostringstream motor_running_oss;
         motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s";
 
