@@ -491,7 +491,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     double elapsed = seconds_since(motor_test_start_time_);
 
-    if (elapsed < 2.1)
+    if (elapsed < 5.1)
     {
         if (!motor_command_sent_)
         {
@@ -501,8 +501,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             setpoint.set_type(jaiabot::protobuf::SETPOINT_REMOTE_CONTROL);
 
             auto* rc = setpoint.mutable_remote_control();
-            rc->set_duration(2); // 2 seconds
-            rc->set_speed(2.0);   // Speed in m/s
+            rc->set_duration(5); // 5 seconds
+            rc->set_speed(1.0);   // Speed in m/s
             rc->set_heading(0);   // Straight forward
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
@@ -583,7 +583,7 @@ void jaiabot::apps::JaiabotProduction::loop()
     }
 
 
-    if(test_motor_)
+    if(test_motor_ || motor_test_running_)
     {
         motor_harness();
         imu_sensor_data_timeCheck();
