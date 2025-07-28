@@ -502,7 +502,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
             auto* rc = setpoint.mutable_remote_control();
             rc->set_duration(2); // 2 seconds
-            rc->set_speed(1.0);   // Speed in m/s
+            rc->set_speed(2.0);   // Speed in m/s
             rc->set_heading(0);   // Straight forward
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
