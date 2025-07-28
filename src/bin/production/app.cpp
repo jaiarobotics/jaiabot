@@ -483,6 +483,11 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         motor_command_sent_ = false; // <-- Add this if not already in your class
         motor_test_start_time_ = goby::time::SystemClock::now();
 
+        // Reset motor test data at start
+        motor_data_received_ = false;
+        latest_rpm_ = 0.0;
+        latest_temperature_ = 0.0;
+
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         response.set_motor_response("motor_test_started_running_for_2s");
 
@@ -531,6 +536,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         response.set_motor_response("fail_no_motor_data_received");
 
         test_motor_ = false;
+        motor_test_running_ = false;
         return;
     }
 
@@ -550,6 +556,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         response.set_motor_response(motor_pass_oss.str());
         test_motor_ = false;
+        motor_test_running_ = false;
+
     }
     else
     {
@@ -561,6 +569,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
         response.set_motor_response(reason);
         test_motor_ = false;
+        motor_test_running_ = false;
     }
 
     // Timestamp it
