@@ -499,7 +499,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
             jaiabot::protobuf::DesiredSetpoints setpoint;
             setpoint.set_type(jaiabot::protobuf::SETPOINT_POWERED_ASCENT);
-            setpoint.set_throttle(75.0);  // High throttle for maximum RPM (range is -100 to 100)
+            setpoint.set_throttle(37.5);  // High throttle for maximum RPM (range is -100 to 100)
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
             motor_command_sent_ = true;
