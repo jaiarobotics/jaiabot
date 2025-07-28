@@ -5,6 +5,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 import { layers } from "../../openlayers/layers/layers";
 import { LayerTitles } from "../../types/openlayers-types";
 import { MapLayerAccordionNames } from "../../types/context-types";
+import { accordionTheme } from "../../utils/style";
 
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
@@ -12,7 +13,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Checkbox from "@mui/material/Checkbox";
-import { Radio, ThemeProvider, createTheme } from "@mui/material";
+import { Radio, ThemeProvider } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
 import "./LayerSwitcherMenu.less";
@@ -65,13 +66,6 @@ export default function LayerSwitcherMenu() {
 
     const [layerCheckedStates, setLayerCheckedStates] = useState(getDefaultLayerCheckedStates());
     const [checkedBaseMap, setCheckedBaseMap] = useState(getDefaultBaseMapLayerCheckedState());
-    const [accordionTheme, setAccordionTheme] = useState(
-        createTheme({
-            transitions: {
-                create: () => "none",
-            },
-        }),
-    );
 
     /**
      * Notifies Context which accordion the operator clicked on. This data lives in Context

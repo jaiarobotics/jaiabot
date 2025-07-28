@@ -1,4 +1,5 @@
 import { SCROLL_DELAY } from "./constants";
+import { createTheme } from "@mui/material";
 
 interface XYCoordinate {
     x: number;
@@ -9,6 +10,9 @@ export enum MapIconColors {
     SELECTED = "turquoise",
     DEFAULT = "white",
 }
+
+// Disable animations from MUI accordions because of lag experienced by operators
+export const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
 export enum Cursors {
     DEFAULT = "default",

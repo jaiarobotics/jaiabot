@@ -50,6 +50,8 @@ export default function Map() {
                     return;
                 case MapFeatureTypes.RALLY_POINT:
                     handleRallyPointClick(feature);
+                case MapFeatureTypes.DIVE:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
                 default:
                     return;
             }
@@ -112,6 +114,23 @@ export default function Map() {
         jaiaDispatch({
             type: JaiaActions.CLICKED_RALLY_POINT,
             rallyID: feature.get("id"),
+        });
+    };
+
+    /** Dispatches action to set the selected task packet
+     *
+     * @param {Feature<Geometry>} feature
+     * @param {MapFeatureTypes} type
+     * @returns {void}
+     */
+    const handleTaskPacketClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_TASK_PACKET,
+            clickedTaskPacket: {
+                botID: feature.get("botID"),
+                startTime: feature.get("startTime"),
+                type: type,
+            },
         });
     };
 
