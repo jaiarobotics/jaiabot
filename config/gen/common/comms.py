@@ -171,5 +171,5 @@ def hub2hub_remotes(this_hub_id, fleet_index):
     return remotes
 
 def hub2hub_mac_slots(hub_id):
-    slots = 'slot { src: ' + str(hub2hub_modem_id(hub_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
+    slots = 'slot { src: ' + str(hub2hub_modem_id(hub_id)) + ' slot_seconds: 0.1 max_frame_bytes: 1000 }\n'
     return slots
