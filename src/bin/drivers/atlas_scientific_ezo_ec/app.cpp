@@ -87,23 +87,6 @@ int main(int argc, char* argv[])
 
 double loop_freq = 10;
 
-// for string delimiter
-std::vector<std::string> split (std::string s, std::string delimiter) {
-    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-    std::string token;
-    std::vector<std::string> res;
-
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res.push_back (token);
-    }
-
-    res.push_back (s.substr (pos_start));
-    return res;
-}
-
-
 jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
     : zeromq::MultiThreadApplication<config::AtlasSalinityPublisher>(loop_freq * si::hertz)
 {
@@ -114,29 +97,14 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
 
     interprocess().subscribe<atlas_salinity_udp_in>(
         [this](const goby::middleware::protobuf::IOData& data) {
-            auto s = std::string(data.data());
-            auto fields = split(s, ",");
-            if (fields.size() < 5)
-            {
-                glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s
-                                       << std::endl;
-                return;
-            }
-
-            int index = 0;
-
-            auto date_string = fields[index++];
-
-            jaiabot::protobuf::SalinityData output;
-
-            const double conductivity_raw = std::stod(fields[index++]);
-            output.set_conductivity_raw(conductivity_raw);
+            jaiabot::protobuf::SalinityData salinity_data;
+            salinity_data.ParseFromString(data.data());
 
             if (last_pressure_temperature_data_.has_temperature())
             {
                 const double specific_conductivity = calculate_specific_conductivity(
-                    output.conductivity_raw(), last_pressure_temperature_data_.temperature());
-                output.set_conductivity(specific_conductivity);
+                    salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature());
+                salinity_data.set_conductivity(specific_conductivity);
             }
 
             if (last_pressure_temperature_data_.has_temperature() &&
@@ -144,18 +112,15 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
             {
                 const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
                 const double salinity = calculate_derived_salinity(
-                    conductivity_raw, last_pressure_temperature_data_.temperature(),
+                    salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature(),
                     last_pressure_adjusted_data_.pressure_adjusted() +
                         ATMOSPHERIC_PRESSURE_DECIBARS);
-                output.set_salinity(salinity);
+                salinity_data.set_salinity(salinity);
             }
 
-            output.set_total_dissolved_solids(std::stod(fields[index++]));
-            output.set_salinity_raw(std::stod(fields[index++]));
+            glog.is_debug1() && glog << "=> " << salinity_data.ShortDebugString() << std::endl;
 
-            glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
-
-            interprocess().publish<groups::salinity>(output);
+            interprocess().publish<groups::salinity>(salinity_data);
 
             last_atlas_salinity_report_time_ = goby::time::SteadyClock::now();
         });

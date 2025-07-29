@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from time import sleep
 from datetime import datetime
 import random
@@ -7,6 +7,7 @@ import argparse
 import socket
 import logging
 import atlas_oem
+from jaiabot.messages.sensor.salinity_pb2 import SalinityData
 
 parser = argparse.ArgumentParser(description=\
     '''Read salinity from an Atlas Scientific EC EZO sensor, and publish over UDP port.  The data is published as a comma-separated series on one line.  These are the fields, in the order they will appear:
@@ -43,17 +44,17 @@ class Sensor:
             self.is_setup = True
             log.info(f'Salinity sensor I2C address: 0x{args.address:02x}')
 
-    def read(self):
+    def read(self) -> SalinityData:
         if not self.is_setup:
             self.setup()
 
         if self.device.newReadingAvailable():
-            EC = self.device.EC()
-            TDS = self.device.TDS()
-            S = self.device.salinity()
-            SG = 0.0
+            msg = SalinityData()
+            msg.conductivity_raw = self.device.EC()
+            msg.total_dissolved_solids = self.device.TDS()
+            msg.salinity_raw = self.device.salinity()
 
-            return [EC, TDS, S, SG]
+            return msg
         else:
             raise SensorError()
 
@@ -66,8 +67,12 @@ class SensorSimulator:
     def setup(self):
         pass
 
-    def read(self):
-        return [0, 0, 0, 0]
+    def read(self) -> SalinityData:
+        msg = SalinityData()
+        msg.conductivity_raw = 0.0
+        msg.total_dissolved_solids = 0.0
+        msg.salinity_raw = 0.0
+        return msg
 
 # Setup the device
 if args.simulator:
@@ -93,8 +98,5 @@ while True:
         log.warning(f'Exception on sensor.read(): {e}')
         continue
 
-    now = datetime.utcnow()
-    line = '%s,%9.2f,%9.2f,%9.2f,%9.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), data[0], data[1], data[2], data[3])
-
-    sock.sendto(line.encode('utf8'), addr)
-    log.debug(f'Sent: {line}')
+    sock.sendto(data.SerializeToString(), addr)
+    log.debug(f'Sent: {data}')
