@@ -519,7 +519,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             control_surfaces->set_port_elevator(0);
             control_surfaces->set_stbd_elevator(0);
             control_surfaces->set_rudder(0);
-            control_surfaces->set_timeout(2);       // seconds
+            control_surfaces->set_timeout(5);       // seconds
             control_surfaces->set_led_switch_on(false);
 
             interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
