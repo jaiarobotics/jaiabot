@@ -153,6 +153,18 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
                                              rockblock=rockblock,
                                              directip=directip)
 
+# Hub2Hub comms
+link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+                                         subnet_mask=common.comms.subnet_mask,                                            
+                                         modem_id=common.comms.hub2hub_modem_id(hub_index),
+                                         local_port=common.udp.hub2hub_udp_port(hub_index),
+                                         remotes=common.comms.hub2hub_remotes(hub_index, fleet_index),
+                                         hub_endpoints='',
+                                         wifi_hub_id='',
+                                         mac_slots=common.comms.hub2hub_mac_slots(hub_index),
+                                         sub_buffer=sub_buffer_config,
+                                         ack_timeout=ack_timeout)
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'
 if common.is_vfleet or is_cloudhub:
