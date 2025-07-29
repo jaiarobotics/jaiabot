@@ -49,7 +49,7 @@ const taskPacketInterval = setInterval(async () => {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
-            taskPackets.setTaskPackets(json);
+            taskPackets.setTaskPackets(json.result.included);
             updateTaskLayers();
         }
     } catch (error) {

@@ -74,4 +74,5 @@ export enum DialogActions {
 export enum PanelActions {
     CANCEL = 1,
     DONE = 2,
+    CLOSE = 3,
 }
