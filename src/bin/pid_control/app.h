@@ -114,6 +114,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
     void handle_dive_depth(const jaiabot::protobuf::DesiredSetpoints& command);
     void handle_powered_ascent(const jaiabot::protobuf::DesiredSetpoints& command);
+    void suspend_pid(const jaiabot::protobuf::DesiredSetpoints& command);
+
 
     void handle_engineering_command(const jaiabot::protobuf::PIDControl& pid_control);
     void publish_engineering_status();
