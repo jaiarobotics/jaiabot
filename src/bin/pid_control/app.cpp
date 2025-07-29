@@ -680,7 +680,7 @@ void jaiabot::apps::BotPidControl::handle_command(
             break;
         case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command); break;
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(command); break;
-        case jaiabot::protobuf::SETPOINT_SUSPEND_PID: suspend_pid(command); break;
+        case jaiabot::protobuf::SETPOINT_SUSPEND_PID: suspended_ = true; break;
     }
 
     // Special case:  don't track the rudder if the target speed is zero, and the throttle is speed-PID
@@ -783,24 +783,6 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent(
     {
         throttle_ = 25.0;
     }
-}
-
-void jaiabot::apps::BotPidControl::suspend_pid(
-    const jaiabot::protobuf::DesiredSetpoints& command)
-{
-    suspended_ = true;
-
-    // Stop all control surfaces and disable all PIDs
-    throttle_ = 0.0;
-    setThrottleMode(MANUAL);
-    
-    rudder_ = 0.0;
-    toggleRudderPid(false);
-    
-    // disables elevator PID 
-    toggleElevatorPid(false);
-    port_elevator_ = 0.0;
-    stbd_elevator_ = 0.0;
 }
 
 void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings)
