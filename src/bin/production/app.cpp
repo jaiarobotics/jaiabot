@@ -508,12 +508,25 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
             interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
 
-            
-            //low control publish 
-            jaiabot::protobuf::DesiredSetpoints setpoint;
-            setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
 
-            interprocess().publish<jaiabot::groups::low_control>(setpoint);
+
+            jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
+            suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
+            interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
+
+            jaiabot::protobuf::LowControl low_control_msg;
+            low_control_msg.set_id(0);
+            low_control_msg.set_vehicle(1); 
+            low_control_msg.set_time(0);
+            
+            auto* control_surfaces = low_control_msg.mutable_control_surfaces();
+            control_surfaces->set_motor(40);        // Motor power from cfg
+            control_surfaces->set_port_elevator(0);
+            control_surfaces->set_stbd_elevator(0);
+            control_surfaces->set_rudder(0);
+            control_surfaces->set_timeout(2);       // Timeout from cfg
+            control_surfaces->set_led_switch_on(false);
+
 
             motor_command_sent_ = true;
         }
