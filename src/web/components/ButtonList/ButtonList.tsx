@@ -67,7 +67,6 @@ export default function ButtonList(props: Props) {
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <DataOffloadAllButton bots={jaiaContext.bots} />
-                <RallyButton />
                 <Button className="jaia-button"></Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.HELP_PANEL)}
@@ -99,6 +98,7 @@ export default function ButtonList(props: Props) {
                 >
                     <Icon path={mdiViewList} title="Missions Panel" />
                 </Button>
+                <RallyButton />
                 <Button
                     className={getSelectedClassName(ButtonNames.DATA_OFFLOAD_PANEL)}
                     aria-label="data-offload-panel"
