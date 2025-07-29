@@ -34,6 +34,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/production.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 
 using goby::glog;
