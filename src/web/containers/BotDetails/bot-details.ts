@@ -81,7 +81,10 @@ export function getBotOffloadPercent(botID: number, hub: Hub) {
     let botOffloadPercentage = "";
 
     if (botID === hub.getBotOffload()?.bot_id) {
-        botOffloadPercentage = " " + hub.getBotOffload().data_offload_percentage + "%";
+        const data_offload_percentage = hub.getBotOffload().data_offload_percentage;
+        if (data_offload_percentage && data_offload_percentage !== 100) {
+            botOffloadPercentage = " " + data_offload_percentage + "%";
+        }
     }
 
     return botOffloadPercentage;

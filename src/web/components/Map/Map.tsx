@@ -14,7 +14,7 @@ import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../types/openlayers-types";
+import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import "./Map.less";
@@ -48,9 +48,18 @@ export default function Map() {
                 case MapFeatureTypes.WAYPOINT:
                     handleWaypointClick(feature);
                     return;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
+                case MapFeatureTypes.DIVE:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
                 default:
                     return;
             }
+        }
+
+        if (jaiaGlobal.getMapMode() === MapModes.RALLY) {
+            handleAddRallyPoint(event.coordinate);
+            return;
         }
 
         if (isWaypointMovable()) {
@@ -96,6 +105,36 @@ export default function Map() {
     };
 
     /**
+     * Dispatches action to open the rally panel
+     *
+     * @param {Feature<Geometry>} feature Clicked rally point
+     * @returns {void}
+     */
+    const handleRallyPointClick = (feature: Feature<Geometry>) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_RALLY_POINT,
+            rallyID: feature.get("id"),
+        });
+    };
+
+    /** Dispatches action to set the selected task packet
+     *
+     * @param {Feature<Geometry>} feature
+     * @param {MapFeatureTypes} type
+     * @returns {void}
+     */
+    const handleTaskPacketClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_TASK_PACKET,
+            clickedTaskPacket: {
+                botID: feature.get("botID"),
+                startTime: feature.get("startTime"),
+                type: type,
+            },
+        });
+    };
+
+    /**
      * Dispatches action to move the selected waypoint on the map
      *
      * @param {Coordinate} coordinate Location of click on map
@@ -109,6 +148,20 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
             type: JaiaActions.MOVE_WAYPOINT,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    /**
+     * Dispatches action to add a rally point to the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleAddRallyPoint = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
     };

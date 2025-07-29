@@ -59,17 +59,28 @@ class MissionsManager {
     }
 
     /**
-     * Assigns available Bots to open missions. The Bot and mission assignments move from low IDs to high IDs
+     * Assigns available Bots to open missions. The Bot and mission assignments move from low IDs to high IDs.
      *
      * @returns {void}
      */
     autoAssign() {
         for (let [missionID, mission] of missionSet.getMissions()) {
-            if (this.getBotID(mission.getMissionID()) === UNASSIGNED_ID) {
+            if (this.getBotID(missionID) === UNASSIGNED_ID) {
                 if (this.getNextAvailableBotID() !== UNASSIGNED_ID) {
-                    this.assign(this.getNextAvailableBotID(), mission.getMissionID());
+                    this.assign(this.getNextAvailableBotID(), missionID);
                 }
             }
+        }
+    }
+
+    /**
+     * Assigns all missions to UNASSIGNED_ID
+     *
+     * @returns {void}
+     */
+    unassignAll() {
+        for (let [missionID, mission] of missions.getMissions()) {
+            this.assign(UNASSIGNED_ID, missionID);
         }
     }
 

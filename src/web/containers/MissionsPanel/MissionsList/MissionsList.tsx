@@ -9,7 +9,7 @@ import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteM
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { addDropdownListener, scrollMissionsList } from "../../../utils/style";
+import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
@@ -22,7 +22,6 @@ import {
     AccordionSummary,
     Button,
     ThemeProvider,
-    createTheme,
 } from "@mui/material";
 
 import "./MissionsList.less";
@@ -30,9 +29,6 @@ import "./MissionsList.less";
 interface MissionAccordionTitleProps {
     missionID: number;
 }
-
-// Disable animations from MUI accordions because of lag experienced by operators
-const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
 export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);

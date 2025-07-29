@@ -5,16 +5,24 @@ import { fromLonLat } from "ol/proj";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { taskPackets } from "../data/task_packets/task-packets";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
-import { DATA_MODEL_POLL_TIME, INITAL_ZOOM_DURATION, INITIAL_ZOOM } from "../utils/constants";
+import { diveLayer } from "../openlayers/layers/vector/dive-layer";
+import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
+import {
+    DATA_MODEL_POLL_TIME,
+    INITAL_ZOOM_DURATION,
+    INITIAL_ZOOM,
+    TASK_PACKET_POLL_TIME,
+} from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
-const statusIntervalTimeout = DATA_MODEL_POLL_TIME; // ms
 const statusURL = "http://localhost:40001/jaia/v0/status";
+const taskPacketURL = "http://localhost:40001/jaia/v0/task-packets";
 
 let isFirstBot = true;
 
@@ -32,7 +40,22 @@ const statusInterval = setInterval(async () => {
     } catch (error) {
         console.error(error);
     }
-}, statusIntervalTimeout);
+}, DATA_MODEL_POLL_TIME);
+
+const taskPacketInterval = setInterval(async () => {
+    try {
+        const response = await fetch(taskPacketURL);
+        if (!response.ok) {
+            console.error(`Response status: ${response.status}`);
+        } else {
+            const json = await response.json();
+            taskPackets.setTaskPackets(json);
+            updateTaskLayers();
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}, TASK_PACKET_POLL_TIME);
 
 /**
  * Moves Bot data from the server to the client-side data model
@@ -70,10 +93,20 @@ function updateOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+    hubCommsLayer.updateFeatures();
 
     if (isFirstBot && bots.getBots().size > 0) {
         zoomToFirstBot();
     }
+}
+
+/**
+ * Makes calls to update the task layers with the latest task packet data
+ *
+ * @returns {void}
+ */
+function updateTaskLayers() {
+    diveLayer.updateFeatures();
 }
 
 /**

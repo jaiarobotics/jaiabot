@@ -1,12 +1,14 @@
 export enum DisabledCodes {
-    NONE = 0,
-    MISSION_STATE = 1,
-    WIFI_QUALITY = 2,
-    DOWNLOAD_QUEUE = 3,
+    NONE = 1,
+    NO_COMMS = 2,
+    MISSION_STATE = 3,
+    WIFI_QUALITY = 4,
+    DOWNLOAD_QUEUE = 5,
 }
 
 export const messages = new Map<DisabledCodes, string>([
     [DisabledCodes.NONE, ""],
+    [DisabledCodes.NO_COMMS, "The Bot does not have comms with the Hub."],
     [
         DisabledCodes.MISSION_STATE,
         "Cannot start a data offload because the Bot is not in an idle state. Try sending the stop command first.",

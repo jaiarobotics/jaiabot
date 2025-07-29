@@ -13,6 +13,7 @@ import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
 import { missionSet } from "../../../data/missions/missionSet";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
+import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 import { map } from "../../../openlayers/maps/map";
 import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
@@ -22,8 +23,7 @@ import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
-import { createMapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
-import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
 
 const mapModule = jest.requireActual("../../../openlayers/maps/map");
 
@@ -59,15 +59,13 @@ test("Select and deselect Bot and Hub icons on map", () => {
     // Bot
     bots.setBot(botStatusMock1);
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.BOT);
     expect(jaiaGlobal.getSelectedNode().id).toBe(1);
 
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.NONE);
     expect(jaiaGlobal.getSelectedNode().id).toBe(-1);
@@ -76,14 +74,12 @@ test("Select and deselect Bot and Hub icons on map", () => {
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(hubFeatureMock);
     hubs.setHub(hubStatusMock1);
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.HUB);
     expect(jaiaGlobal.getSelectedNode().id).toBe(1);
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
     expect(jaiaGlobal.getSelectedNode().type).toBe(NodeTypes.NONE);
     expect(jaiaGlobal.getSelectedNode().id).toBe(-1);
@@ -97,8 +93,7 @@ test("Click on map twice with mission in edit mode", () => {
     missionsManager.assign(1, missionID);
 
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
@@ -107,8 +102,7 @@ test("Click on map twice with mission in edit mode", () => {
     expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
 
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
 
     missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
@@ -127,8 +121,7 @@ test("Click on map with no mission in edit mode and no Bot selected", () => {
     expect(missionSet.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
 
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
 
     expect(missionLayer.getVectorLayer().getSource().getFeatures().length).toBe(0);
@@ -140,8 +133,7 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.BOT, id: 1 });
 
     act(() => {
-        const mockEvent = createMapBrowserEventMock();
-        map.dispatchEvent(mockEvent);
+        map.dispatchEvent(mapBrowserEventMock);
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();

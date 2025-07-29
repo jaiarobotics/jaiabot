@@ -1,7 +1,7 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { missionSet } from "../../../data/missions/missionSet";
 import { LayerTitles } from "../../../types/openlayers-types";
-import { layersZIndexes } from "./zindex";
+import { layersZIndexes } from "../zindex";
 import {
     generateWaypointFeature,
     generateWaypointLineFeature,
