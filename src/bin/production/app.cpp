@@ -481,10 +481,10 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     if (!motor_test_running_)
     {
         motor_test_running_ = true;
-        motor_command_sent_ = false; // <-- Add this if not already in your class
+        motor_command_sent_ = false;
         motor_test_start_time_ = goby::time::SystemClock::now();
 
-        // Reset motor test data at start
+        // Reset motor test data
         motor_data_received_ = false;
         latest_rpm_ = 0.0;
         latest_temperature_ = 0.0;
@@ -501,57 +501,50 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         if (!motor_command_sent_)
         {
-            glog.is_debug1() && glog << "➡️ Publishing motor DesiredSetpoints (POWERED_ASCENT with max throttle)" << std::endl;
+            glog.is_debug1() && glog << "➡️ Suspending PID and sending raw motor control" << std::endl;
 
-            jaiabot::protobuf::DesiredSetpoints setpoint;
-            setpoint.set_type(jaiabot::protobuf::SETPOINT_POWERED_ASCENT);
-            setpoint.set_throttle(37.5);  // High throttle for maximum RPM (range is -100 to 100)
-
-            interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint);
-
-
-
+            // 1. Suspend PID
             jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
             suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
             interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
 
+            // 2. Send low-level motor command
             jaiabot::protobuf::LowControl low_control_msg;
             low_control_msg.set_id(0);
-            low_control_msg.set_vehicle(1); 
-            low_control_msg.set_time(0);
-            
+            low_control_msg.set_vehicle(1);  // hard coded 1 might need to change later
+            low_control_msg.set_time(0); // optional: set timestamp if needed
+
             auto* control_surfaces = low_control_msg.mutable_control_surfaces();
-            control_surfaces->set_motor(40);        // Motor power from cfg
+            control_surfaces->set_motor(40);        // Motor power
             control_surfaces->set_port_elevator(0);
             control_surfaces->set_stbd_elevator(0);
             control_surfaces->set_rudder(0);
-            control_surfaces->set_timeout(2);       // Timeout from cfg
+            control_surfaces->set_timeout(2);       // seconds
             control_surfaces->set_led_switch_on(false);
 
+            interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
 
             motor_command_sent_ = true;
         }
 
         std::ostringstream motor_running_oss;
         motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s";
-
         response.set_motor_response(motor_running_oss.str());
         return;
     }
 
-    // Send stop command after test duration
     if (elapsed >= 2.1 && motor_command_sent_)
     {
         glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
-        
+
         jaiabot::protobuf::DesiredSetpoints stop_setpoint;
         stop_setpoint.set_type(jaiabot::protobuf::SETPOINT_STOP);
         interprocess().publish<jaiabot::groups::desired_setpoints>(stop_setpoint);
-        
-        motor_command_sent_ = false; // Prevent repeated stop commands
+
+        motor_command_sent_ = false;
     }
 
-    // Test completed, check results
+    // Motor test result logic
     if (!motor_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
@@ -565,21 +558,16 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     bool rpm_ok = latest_rpm_ >= 3600;
     bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
 
-    // Also check IMU reset during motor test
     imu_sensor_reset_check();
     imu_sensor_data_timeCheck();
 
     if (rpm_ok && temp_ok && imu_reset_complete_)
     {
         glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
+        std::ostringstream pass_oss;
+        pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_ << "_imu_reset_completed";
 
-        std::ostringstream motor_pass_oss;
-        motor_pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_ << "_imu_reset_completed";
-
-        response.set_motor_response(motor_pass_oss.str());
-        test_motor_ = false;
-        motor_test_running_ = false;
-
+        response.set_motor_response(pass_oss.str());
     }
     else
     {
@@ -590,14 +578,13 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
         response.set_motor_response(reason);
-        test_motor_ = false;
-        motor_test_running_ = false;
     }
 
-    // Timestamp it
+    test_motor_ = false;
+    motor_test_running_ = false;
+
     const auto now = std::chrono::system_clock::now();
-    const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
-        now.time_since_epoch()).count();
+    const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     response.set_time(timestamp_us);
 }
 
