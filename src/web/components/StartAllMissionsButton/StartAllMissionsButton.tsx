@@ -10,7 +10,7 @@ import { Button } from "@mui/material";
 import { mdiPlay } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
-import Mission from "../../data/missions/mission";
+import Mission from "../../data/mission_set/mission";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 

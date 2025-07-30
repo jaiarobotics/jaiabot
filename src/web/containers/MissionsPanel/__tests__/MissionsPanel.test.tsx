@@ -5,7 +5,7 @@ import MissionsPanel from "../MissionsPanel";
 import ButtonList from "../../../components/ButtonList/ButtonList";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
@@ -25,7 +25,7 @@ bots.setBot(botStatusMock1);
 bots.setBot(botStatusMock2);
 
 beforeEach(async () => {
-    missions.deleteAllMissions();
+    missionSet.deleteAllMissions();
     missionsManager.clear();
 });
 
@@ -53,7 +53,7 @@ test.skip("Adding two missions to Missions panel", async () => {
     expect(mission1AccordionChildren[0].textContent).toBe("Mission-1");
     expect(mission1AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(1);
-    expect(missions.getMission(1).getMissionID()).toBe(1);
+    expect(missionSet.getMission(1).getMissionID()).toBe(1);
 
     // Add second mission
     await userEvent.click(addMissionButton);
@@ -62,7 +62,7 @@ test.skip("Adding two missions to Missions panel", async () => {
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
     expect(mission2AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(2);
-    expect(missions.getMission(2).getMissionID()).toBe(2);
+    expect(missionSet.getMission(2).getMissionID()).toBe(2);
 });
 
 test.skip("Delete all missions", async () => {
@@ -87,8 +87,8 @@ test.skip("Delete all missions", async () => {
     await userEvent.click(addMissionButton);
     await userEvent.click(deleteAllMissionsButton);
     expect(Array.from(missionsList.children).length).toBe(0);
-    expect(missions.getMission(1)).toBeUndefined();
-    expect(missions.getMission(2)).toBeUndefined();
+    expect(missionSet.getMission(1)).toBeUndefined();
+    expect(missionSet.getMission(2)).toBeUndefined();
 });
 
 test.skip("Auto assign two Bots to two missions", async () => {
@@ -168,7 +168,7 @@ test.skip("Clicking delete mission button inside mission accordion", async () =>
     const deleteButton = screen.getByRole("button", { name: "delete-mission" });
     await userEvent.click(deleteButton);
     expect(mission1Accordion).not.toBeVisible();
-    expect(missions.getMission(1)).toBeUndefined();
+    expect(missionSet.getMission(1)).toBeUndefined();
 });
 
 test.skip("Assigning and unassigning a Bot to a mission", async () => {

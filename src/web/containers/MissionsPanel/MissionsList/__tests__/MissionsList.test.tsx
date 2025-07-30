@@ -4,8 +4,8 @@ import { userEvent } from "@testing-library/user-event";
 import MissionsList from "../MissionsList";
 import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
-import { missions } from "../../../../data/missions/missions";
-import Mission from "../../../../data/missions/mission";
+import { missionSet } from "../../../../data/mission_set/mission-set";
+import Mission from "../../../../data/mission_set/mission";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";
@@ -13,7 +13,7 @@ import { TaskType } from "../../../../types/protobuf-types";
 test.skip("Exercise Duplicate Mission Button", async () => {
     // Pre-seed data model with original mission
     let originalMission = new Mission();
-    const originalID = missions.addMission(originalMission);
+    const originalID = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
     let waypoint1 = originalMission.getWaypoint(1);
@@ -37,7 +37,7 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     expect(mission1AccordionChildren[0].textContent).toBe("Mission-1");
     expect(mission1AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(1);
-    expect(missions.getMission(1).getMissionID()).toBe(1);
+    expect(missionSet.getMission(1).getMissionID()).toBe(1);
 
     const duplicateMissionButton1 = screen.getByTestId("duplicate-mission-1");
     expect(duplicateMissionButton1).toBeInTheDocument();
@@ -51,5 +51,5 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     expect(mission2AccordionChildren[0].textContent).toBe("Mission-2");
     expect(mission2AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(2);
-    expect(missions.getMission(2).getMissionID()).toBe(2);
+    expect(missionSet.getMission(2).getMissionID()).toBe(2);
 });

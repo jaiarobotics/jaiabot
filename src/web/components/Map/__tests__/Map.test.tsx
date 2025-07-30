@@ -8,10 +8,10 @@ import { Geometry } from "ol/geom";
 import Map from "../Map";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
@@ -89,7 +89,7 @@ test("Select and deselect Bot and Hub icons on map", () => {
 
 test("Click on map twice with mission in edit mode", () => {
     const mission = new Mission();
-    const missionID = missions.addMission(mission);
+    const missionID = missionSet.addMission(mission);
     missionsManager.assign(1, missionID);
 
     act(() => {
@@ -112,13 +112,13 @@ test("Click on map twice with mission in edit mode", () => {
     expect(missionLayerFeatures[3].get("waypointNum")).toBe(2);
 
     // Reset states
-    missions.deleteAllMissions();
+    missionSet.deleteAllMissions();
     missionsManager.clear();
     missionLayer.getVectorLayer().getSource().clear();
 });
 
 test("Click on map with no mission in edit mode and no Bot selected", () => {
-    expect(missions.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
+    expect(missionSet.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
 
     act(() => {
         map.dispatchEvent(mapBrowserEventMock);
@@ -128,7 +128,7 @@ test("Click on map with no mission in edit mode and no Bot selected", () => {
 });
 
 test("Click on map with Bot selected and not assigned to a mission", () => {
-    expect(missions.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
+    expect(missionSet.getMissionIDInEditMode()).toBe(UNASSIGNED_ID);
 
     jaiaGlobal.setSelectedNode({ type: NodeTypes.BOT, id: 1 });
 
@@ -141,9 +141,9 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
     expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
 
-    expect(missions.getMissionIDInEditMode()).toBe(1);
+    expect(missionSet.getMissionIDInEditMode()).toBe(1);
 
     // Reset states
-    missions.deleteAllMissions();
+    missionSet.deleteAllMissions();
     missionLayer.getVectorLayer().getSource().clear();
 });

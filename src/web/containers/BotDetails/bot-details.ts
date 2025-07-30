@@ -3,10 +3,10 @@ import { MissionState } from "../../types/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
-import { missions } from "../../data/missions/missions";
+import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
-import Mission from "../../data/missions/mission";
+import Mission from "../../data/mission_set/mission";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
 
@@ -64,7 +64,7 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
  * until mission management refactor is complete
  */
 export function getWaypontHelperText(mission: Mission) {
-    if (!mission || missions.getMissionIDInEditMode() === mission.getMissionID()) {
+    if (!mission || missionSet.getMissionIDInEditMode() === mission.getMissionID()) {
         return "Click on the map to create waypoints";
     }
     return "Click edit toggle to create waypoint";

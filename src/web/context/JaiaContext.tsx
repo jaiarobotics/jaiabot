@@ -3,13 +3,13 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
-import { missions } from "../data/missions/missions";
+import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
-import Mission from "../data/missions/mission";
+import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 
 import { map } from "../openlayers/maps/map";
@@ -268,7 +268,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
-    mutableState.missions = missions.getMissions();
+    mutableState.missions = missionSet.getMissions();
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
@@ -280,7 +280,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
-    mutableState.missionSpeeds = missions.getMissionSpeeds();
+    mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
 
     return mutableState;
@@ -311,11 +311,10 @@ function handlePollDataModel(mutableState: JaiaContextType) {
 function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const newMission = new Mission();
-    const newMissionID = missions.addMission(newMission);
+    const newMissionID = missionSet.addMission(newMission);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missions = missions.getMissions();
-    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -331,7 +330,7 @@ function handleAddMission(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
-    missions.deleteMission(missionID);
+    missionSet.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
 
     missionLayer.updateFeatures();
@@ -350,11 +349,11 @@ function handleDuplicateMission(mutableState: JaiaContextType, missionID: number
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 
     // Create a complete clone of the existing mission
-    const missionCopy = cloneDeep(missions.getMission(missionID));
-    const newMissionID = missions.addMission(missionCopy);
+    const missionCopy = cloneDeep(missionSet.getMission(missionID));
+    const newMissionID = missionSet.addMission(missionCopy);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -369,7 +368,7 @@ function handleDuplicateMission(mutableState: JaiaContextType, missionID: number
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteAllMissions(mutableState: JaiaContextType) {
-    missions.deleteAllMissions();
+    missionSet.deleteAllMissions();
     missionsManager.clear();
 
     mutableState.missionAccordionStates = {};
@@ -416,7 +415,7 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
-    missions.setMissionSpeeds(missionSpeeds);
+    missionSet.setMissionSpeeds(missionSpeeds);
     mutableState.missionSpeeds = missionSpeeds;
     return mutableState;
 }
@@ -429,8 +428,8 @@ function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds:
  * @returns {void}
  */
 function handleSendMission(mutableState: JaiaContextType, missionID: number) {
-    if (missions.getMissionIDInEditMode() === missionID) {
-        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+    if (missionSet.getMissionIDInEditMode() === missionID) {
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
         mutableState.missionIDInEditMode = UNASSIGNED_ID;
     }
 
@@ -446,7 +445,7 @@ function handleSendMission(mutableState: JaiaContextType, missionID: number) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    const missionIDInEditMode = missions.getMissionIDInEditMode();
+    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
     if (
@@ -455,14 +454,14 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     ) {
         // Create new mission and add first waypoint for selected Bot without mission
         const newMission = new Mission();
-        const newMissionID = missions.addMission(newMission);
+        const newMissionID = missionSet.addMission(newMission);
         newMission.addWaypoint(location);
         missionsManager.assign(selectedNode.id, newMissionID);
         mutableState.missionIDInEditMode = newMissionID;
         mutableState.missionAccordionStates[newMissionID] = true;
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
-        const mission = missions.getMission(missionIDInEditMode);
+        const mission = missionSet.getMission(missionIDInEditMode);
         mission.addWaypoint(location);
     }
 
@@ -478,7 +477,7 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteWaypoint(mutableState: JaiaContextType) {
-    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
 
@@ -498,7 +497,7 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+    const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, location);
 
     missionLayer.updateFeatures();
@@ -663,7 +662,7 @@ function handleClosedWaypointPanel(
 ) {
     if (panelAction === PanelActions.CANCEL) {
         const originalWaypoint = Object.setPrototypeOf(serializedWaypoint, Waypoint.prototype);
-        const waypoints = missions
+        const waypoints = missionSet
             .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
             .getWaypoints();
         waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;
@@ -860,13 +859,13 @@ function handleClickedMissionAccordion(
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedEditMission(mutableState: JaiaContextType, missionID: number) {
-    if (missionID !== missions.getMissionIDInEditMode()) {
-        missions.setMissionIDInEditMode(missionID);
+    if (missionID !== missionSet.getMissionIDInEditMode()) {
+        missionSet.setMissionIDInEditMode(missionID);
     } else {
-        missions.setMissionIDInEditMode(UNASSIGNED_ID);
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     }
 
-    mutableState.missionIDInEditMode = missions.getMissionIDInEditMode();
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
 
     missionLayer.updateFeatures();
 
@@ -1060,7 +1059,7 @@ function setOpenLayersCursor(cursor: Cursors) {
  */
 function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    const mission = missions.getMission(selectedWaypoint.missionID);
+    const mission = missionSet.getMission(selectedWaypoint.missionID);
 
     if (mission) {
         return mission.getWaypoint(selectedWaypoint.waypointNum);

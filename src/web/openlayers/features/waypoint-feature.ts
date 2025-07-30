@@ -6,7 +6,7 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
 import { bots } from "../../data/bots/bots";
-import { missions } from "../../data/missions/missions";
+import { missionSet } from "../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
@@ -62,7 +62,7 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
-    const taskType = missions.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+    const taskType = missionSet.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
 
     return new Style({
         image: new Icon({
@@ -187,7 +187,7 @@ export function generateMissionFlagFeature(location: GeographicCoordinate, missi
  * @returns {Style} Style to be applied to the mission flag feature
  */
 function generateMissionFlagStyle(missionID: number) {
-    const taskType = missions.getMission(missionID).getWaypoint(1).getTask().getType();
+    const taskType = missionSet.getMission(missionID).getWaypoint(1).getTask().getType();
 
     return new Style({
         image: new Icon({
@@ -239,7 +239,7 @@ function getWaypointColor(missionID: number, waypointNum?: number) {
         return OpenLayersColors.TARGET;
     }
 
-    if (missionID === missions.getMissionIDInEditMode()) {
+    if (missionID === missionSet.getMissionIDInEditMode()) {
         return OpenLayersColors.EDIT;
     }
 
@@ -264,7 +264,7 @@ function getWaypointColor(missionID: number, waypointNum?: number) {
 function getWaypointZIndex(missionID: number, waypointNum?: number) {
     let waypointZIndex = 0;
     // Provide proper mission stacking
-    if (missionID === missions.getMissionIDInEditMode()) {
+    if (missionID === missionSet.getMissionIDInEditMode()) {
         // Assume there are less than 1000 missions
         waypointZIndex = 1000;
     } else {
@@ -275,7 +275,7 @@ function getWaypointZIndex(missionID: number, waypointNum?: number) {
         waypointZIndex = waypointZIndex + waypointNum;
         if (
             waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
-            missionID === missions.getMissionIDInEditMode()
+            missionID === missionSet.getMissionIDInEditMode()
         ) {
             // Assume there are less than 100 waypoints
             waypointZIndex = waypointZIndex + 100;
@@ -294,7 +294,7 @@ function getWaypointZIndex(missionID: number, waypointNum?: number) {
  * @returns {boolean} True if the target waypoint needs the TARGET color
  */
 function shouldColorTargetWaypoint(missionID: number, waypointNum: number) {
-    if (missions.getMissionIDInEditMode() === missionID) {
+    if (missionSet.getMissionIDInEditMode() === missionID) {
         return false;
     }
 

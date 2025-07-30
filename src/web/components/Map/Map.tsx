@@ -3,7 +3,7 @@ import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { missions } from "../../data/missions/missions";
+import { missionSet } from "../../data/mission_set/mission-set";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
@@ -192,7 +192,7 @@ export default function Map() {
      */
     const isWaypointMovable = () => {
         if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
-            const mission = missions.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+            const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
             const waypoint = mission.getWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
 
             if (waypoint.getIsMovable()) {

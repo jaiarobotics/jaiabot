@@ -4,9 +4,9 @@ import { userEvent } from "@testing-library/user-event";
 import StartAllMissionsButton from "../StartAllMissionsButton";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/mission_set/mission-set";
 
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";
@@ -63,9 +63,9 @@ bots.setBot(botStatusMock3);
 bots.setBot(botStatusMock4);
 bots.setBot(botStatusMock5);
 
-const missionID1 = missions.addMission(new Mission());
-const missionID2 = missions.addMission(new Mission());
-const missionID3 = missions.addMission(new Mission());
+const missionID1 = missionSet.addMission(new Mission());
+const missionID2 = missionSet.addMission(new Mission());
+const missionID3 = missionSet.addMission(new Mission());
 
 missionsManager.assign(1, missionID1);
 missionsManager.assign(5, missionID2);
@@ -79,7 +79,7 @@ originalModule.jaiaAPI.hit = jest
 test("0 Bots ready to start a mission", async () => {
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
     const button = screen.getByRole("button", { name: "start-all-missions" });
@@ -116,7 +116,7 @@ test("1 Bot ready to start a mission", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 
@@ -157,7 +157,7 @@ test("2 Bots ready to start missions", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 
@@ -204,7 +204,7 @@ test("All Bots ready to start missions", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 

@@ -5,11 +5,11 @@ import DeleteMissionButton from "../DeleteMissionButton";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
 import { bots } from "../../../data/bots/bots";
-import { missions } from "../../../data/missions/missions";
+import { missionSet } from "../../../data/mission_set/mission-set";
 
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { DisabledCodes, messages } from "../delete-mission-messages";
 
 const botStatusMock: PortalBotStatus = {
@@ -20,7 +20,7 @@ const botStatusMock: PortalBotStatus = {
 bots.setBot(botStatusMock);
 
 const mockMission = new Mission();
-const missionID = missions.addMission(mockMission);
+const missionID = missionSet.addMission(mockMission);
 
 test("Simulate no mission assignment in BotDetails", async () => {
     render(
@@ -100,12 +100,12 @@ test("Click Delete Mission confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete Mission")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
-    expect(missions.getMissions().size).toBe(0);
+    expect(missionSet.getMissions().size).toBe(0);
 });
 
 test("Click Delete All Missions confirmation button", async () => {
     const mockMission = new Mission();
-    const missionID = missions.addMission(mockMission);
+    const missionID = missionSet.addMission(mockMission);
 
     render(
         <JaiaContextProvider>
@@ -117,5 +117,5 @@ test("Click Delete All Missions confirmation button", async () => {
     expect(screen.queryByText("Confirm")).toBeVisible();
     await userEvent.click(screen.getAllByText("Delete All Missions")[1]);
     expect(screen.queryByText("Confirm")).toBeNull();
-    expect(missions.getMissions().size).toBe(0);
+    expect(missionSet.getMissions().size).toBe(0);
 });
