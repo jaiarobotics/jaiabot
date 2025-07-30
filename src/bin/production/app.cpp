@@ -578,9 +578,6 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         response.set_motor_response(reason);
     }
 
-    test_motor_ = false;
-    motor_test_running_ = false;
-
     const auto now = std::chrono::system_clock::now();
     const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     response.set_time(timestamp_us);
