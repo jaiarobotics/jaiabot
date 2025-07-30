@@ -497,7 +497,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     double elapsed = seconds_since(motor_test_start_time_);
 
-    if (elapsed < 2.1)
+    if (elapsed < 5)
     {
         if (!motor_command_sent_)
         {
@@ -533,7 +533,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         return;
     }
 
-    if (elapsed >= 2.1 && motor_command_sent_)
+    if (elapsed >= 5 && motor_command_sent_)
     {
         glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
 
