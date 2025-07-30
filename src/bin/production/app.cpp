@@ -528,7 +528,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         }
 
         std::ostringstream motor_running_oss;
-        motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s";
+        motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s!!!!!!!!!!?????";
         response.set_motor_response(motor_running_oss.str());
         return;
     }
