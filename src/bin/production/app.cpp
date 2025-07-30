@@ -550,8 +550,6 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
         response.set_motor_response("fail_no_motor_data_received");
 
-        test_motor_ = false;
-        motor_test_running_ = false;
         return;
     }
 
@@ -612,8 +610,8 @@ void jaiabot::apps::JaiabotProduction::loop()
     if(test_motor_ || motor_test_running_)
     {
         motor_harness();
-        imu_sensor_data_timeCheck();
-        imu_sensor_reset_check();
+        //imu_sensor_data_timeCheck();
+        //imu_sensor_reset_check();
 
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
