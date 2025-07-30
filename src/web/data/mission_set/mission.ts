@@ -120,10 +120,10 @@ export default class Mission {
     /**
      * Creates a mission object from serialized mission data
      *
-     * @param {any} serializedMission Serialized Mission data to transform to Mission object
+     * @param {string} serializedMission Serialized Mission data to transform to Mission object
      * @returns {Mission} mission Resulting Mission object
      */
-    static fromJSON(serializedMission: any): Mission {
+    static fromJSON(serializedMission: string) {
         const mission = Object.assign(new Mission(), serializedMission);
         mission.waypoints = mission.waypoints.map((serializedWaypoint: any) => {
             const waypoint = Object.assign(new Waypoint(), serializedWaypoint);
