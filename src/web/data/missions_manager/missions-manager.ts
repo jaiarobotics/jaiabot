@@ -79,7 +79,7 @@ class MissionsManager {
      * @returns {void}
      */
     unassignAll() {
-        for (let [missionID, mission] of missions.getMissions()) {
+        for (let [missionID, mission] of missionSet.getMissions()) {
             this.assign(UNASSIGNED_ID, missionID);
         }
     }

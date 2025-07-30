@@ -662,7 +662,7 @@ function handleClosedWaypointPanel(
 ) {
     if (panelAction === PanelActions.CANCEL) {
         const originalWaypoint = Object.setPrototypeOf(serializedWaypoint, Waypoint.prototype);
-        const waypoints = missions
+        const waypoints = missionSet
             .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
             .getWaypoints();
         waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;

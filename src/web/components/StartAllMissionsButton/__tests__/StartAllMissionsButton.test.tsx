@@ -79,7 +79,7 @@ originalModule.jaiaAPI.hit = jest
 test("0 Bots ready to start a mission", async () => {
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
     const button = screen.getByRole("button", { name: "start-all-missions" });
@@ -116,7 +116,7 @@ test("1 Bot ready to start a mission", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 
@@ -157,7 +157,7 @@ test("2 Bots ready to start missions", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 
@@ -204,7 +204,7 @@ test("All Bots ready to start missions", async () => {
 
     render(
         <JaiaContextProvider>
-            <StartAllMissionsButton bots={bots.getBots()} missions={missions.getMissions()} />
+            <StartAllMissionsButton bots={bots.getBots()} missions={missionSet.getMissions()} />
         </JaiaContextProvider>,
     );
 
