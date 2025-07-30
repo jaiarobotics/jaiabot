@@ -9,7 +9,7 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
-import Mission from "../../data/missions/mission";
+import Mission from "../../data/mission_set/mission";
 
 import { Command, CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";

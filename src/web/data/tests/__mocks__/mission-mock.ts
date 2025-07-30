@@ -1,4 +1,4 @@
-import Mission from "../../missions/mission";
+import Mission from "../../mission_set/mission";
 import Waypoint from "../../waypoints/waypoint";
 
 const waypointA = new Waypoint();

@@ -1,5 +1,5 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
-import { missionSet } from "../../../data/missions/missionSet";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import {

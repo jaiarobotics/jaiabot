@@ -5,7 +5,7 @@ import MissionsPanel from "../MissionsPanel";
 import ButtonList from "../../../components/ButtonList/ButtonList";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import { missionSet } from "../../../data/missions/missionSet";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";

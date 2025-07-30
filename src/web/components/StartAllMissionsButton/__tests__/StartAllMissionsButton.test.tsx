@@ -4,9 +4,9 @@ import { userEvent } from "@testing-library/user-event";
 import StartAllMissionsButton from "../StartAllMissionsButton";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
-import { missionSet } from "../../../data/missions/missionSet";
+import { missionSet } from "../../../data/mission_set/mission-set";
 
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";

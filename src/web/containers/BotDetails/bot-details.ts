@@ -3,10 +3,10 @@ import { MissionState } from "../../types/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
-import { missionSet } from "../../data/missions/missionSet";
+import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
-import Mission from "../../data/missions/mission";
+import Mission from "../../data/mission_set/mission";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
 

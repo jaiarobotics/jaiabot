@@ -1,5 +1,5 @@
 import { bots } from "../bots/bots";
-import { missionSet } from "../missions/missionSet";
+import { missionSet } from "../mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";

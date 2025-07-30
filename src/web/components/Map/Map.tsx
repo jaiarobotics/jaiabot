@@ -3,7 +3,7 @@ import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { missionSet } from "../../data/missions/missionSet";
+import { missionSet } from "../../data/mission_set/mission-set";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";

@@ -4,8 +4,8 @@ import { userEvent } from "@testing-library/user-event";
 import MissionsList from "../MissionsList";
 import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
-import { missionSet } from "../../../../data/missions/missionSet";
-import Mission from "../../../../data/missions/mission";
+import { missionSet } from "../../../../data/mission_set/mission-set";
+import Mission from "../../../../data/mission_set/mission";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";

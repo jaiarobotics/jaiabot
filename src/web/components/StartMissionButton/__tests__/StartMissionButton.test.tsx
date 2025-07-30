@@ -4,9 +4,9 @@ import { userEvent } from "@testing-library/user-event";
 import StartMissionButton from "../StartMissionButton";
 import { DisabledCodes, messages } from "../start-mission-messages";
 
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
-import { missionSet } from "../../../data/missions/missionSet";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
 import { MissionState } from "../../../types/protobuf-types";

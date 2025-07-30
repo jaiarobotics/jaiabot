@@ -3,13 +3,13 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
-import { missionSet } from "../data/missions/missionSet";
+import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { missionsManager } from "../data/missions_manager/missions-manager";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
-import Mission from "../data/missions/mission";
+import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 
 import { map } from "../openlayers/maps/map";

@@ -8,10 +8,10 @@ import { Geometry } from "ol/geom";
 import Map from "../Map";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import Mission from "../../../data/missions/mission";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
-import { missionSet } from "../../../data/missions/missionSet";
+import { missionSet } from "../../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 

@@ -6,7 +6,7 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
 import { bots } from "../../data/bots/bots";
-import { missionSet } from "../../data/missions/missionSet";
+import { missionSet } from "../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
