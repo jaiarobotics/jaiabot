@@ -518,7 +518,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             control_surfaces->set_motor(40);        // Motor power
             control_surfaces->set_port_elevator(0);
             control_surfaces->set_stbd_elevator(0);
-            control_surfaces->set_rudder(2);
+            control_surfaces->set_rudder(0);
             control_surfaces->set_timeout(5);       // seconds
             control_surfaces->set_led_switch_on(false);
 
@@ -537,9 +537,20 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
 
-        jaiabot::protobuf::DesiredSetpoints stop_setpoint;
-        stop_setpoint.set_type(jaiabot::protobuf::SETPOINT_STOP);
-        interprocess().publish<jaiabot::groups::desired_setpoints>(stop_setpoint);
+        jaiabot::protobuf::LowControl stop_control;
+        stop_control.set_id(0);
+        stop_control.set_vehicle(1);
+        stop_control.set_time(0);
+        
+        auto* control_surfaces = stop_control.mutable_control_surfaces();
+        control_surfaces->set_motor(0);           // Stop motor
+        control_surfaces->set_port_elevator(0);
+        control_surfaces->set_stbd_elevator(0);
+        control_surfaces->set_rudder(0);
+        control_surfaces->set_timeout(5);
+        control_surfaces->set_led_switch_on(false);
+
+        interprocess().publish<jaiabot::groups::low_control>(stop_control);
 
         motor_command_sent_ = false;
     }
