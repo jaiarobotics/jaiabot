@@ -95,41 +95,6 @@ class MissionSet {
     }
 
     /**
-     * Saves an individual mission to local storage
-     *
-     * @param {string} name Name to use when storing mission in local storage
-     * @param {number} missionID Mission ID of mission to be saved
-     *
-     * @returns {void}
-     *
-     * @notes not used at this time, provided for future capabilities
-     */
-    saveMissionLocalStorage(name: string, missionID: number) {
-        const mission = this.getMission(missionID);
-        // Save name for later correlation
-        mission.setName(name);
-        localStorage.setItem(name, JSON.stringify(mission));
-    }
-
-    /**
-     * Adds a mission to the mission set from local storage
-     *
-     * @param {string} name Name of save mission to load from local storage
-     *
-     * @returns {void}
-     *
-     * @notes not used at this time, provided for future capabilities
-     */
-    loadMissionLocalStorage(name: string) {
-        const jsonMission = localStorage.getItem(name);
-        if (!jsonMission) throw new Error("No mission found in storage");
-
-        const newMission = Mission.fromJSON(JSON.parse(jsonMission));
-        // Save to the mission set
-        this.addMission(newMission);
-    }
-
-    /**
      * Saves all the current missions as a mission set to local storage
      *
      * @param {string} name Name to use for storing the mission set
@@ -137,9 +102,6 @@ class MissionSet {
     saveMissionSet(name: string) {
         // Apply the name to the mission set and all the missions
         this.setName(name);
-        this.missions.forEach((mission) => {
-            mission.setName(name);
-        });
         // Convert missions Map to an array before using stringify
         const missionsArray = Array.from(this.missions.entries());
         // Read the saved mission sets from localStorage (or start fresh)

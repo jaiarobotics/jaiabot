@@ -101,41 +101,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         missionSet.deleteAllMissions();
         localStorage.clear();
     });
-    test("Save and retrieve a mission", () => {
-        // Create test mission
-        let originalMission = new Mission();
-        originalMission.addWaypoint(locationA);
-        let waypoint1 = originalMission.getWaypoint(1);
-        let task1 = new Task();
-        task1.setType(TaskType.DIVE);
-        task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
-        waypoint1.setTask(task1);
-        originalMission.addWaypoint(locationB);
-
-        const originalID: number = missionSet.addMission(originalMission);
-        expect(originalID).toEqual(1);
-        expect(missionSet.getMissions().size).toEqual(1);
-
-        // Save the mission to localStorage
-        missionSet.saveMissionLocalStorage("SavedMission", originalID);
-        expect(originalMission.getName()).toEqual("SavedMission");
-
-        // Retrieve mission from localStorage
-        missionSet.loadMissionLocalStorage("SavedMission");
-
-        // Verify the retrieved mission is a new copy of the original
-        expect(missionSet.getMissions().size).toEqual(2);
-        const newMission = missionSet.getMission(2);
-        // Verify it is a new reference
-        expect(newMission).not.toEqual(originalMission);
-        expect(newMission.getName()).toEqual("SavedMission");
-        expect(newMission.getMissionID()).toEqual(2);
-        expect(newMission.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
-        expect(newMission.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
-        expect(newMission.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
-        expect(newMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
-    });
-
     test("Save and retrieve a mission set from localStorage", () => {
         // Create test mission set
         let mission1 = new Mission();
@@ -177,7 +142,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Verify the 1st mission
         let retrievedMission1 = missionSet.getMission(1);
         expect(retrievedMission1.getMissionID()).toEqual(1);
-        expect(retrievedMission1.getName()).toEqual("Test-Mission-Set");
         expect(retrievedMission1.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
         expect(retrievedMission1.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
         expect(retrievedMission1.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
@@ -190,7 +154,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         let retrievedMission2 = missionSet.getMission(2);
         expect(retrievedMission2.getMissionID()).toEqual(2);
-        expect(retrievedMission2.getName()).toEqual("Test-Mission-Set");
         expect(retrievedMission2.getWaypoint(1).getLocation().lat).toEqual(locationC.lat);
         expect(retrievedMission2.getWaypoint(1).getLocation().lon).toEqual(locationC.lon);
         expect(retrievedMission2.getWaypoint(1).getTask().getType()).toEqual(TaskType.STATION_KEEP);
@@ -211,7 +174,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(missionSet.listSavedMissionSets().length).toEqual(1);
         expect(missionSet.listSavedMissionSets()[0]).toEqual("Test-mission-Set-A");
         expect(missionSet.getName()).toEqual("Test-mission-Set-A");
-        expect(missionSet.getMission(1).getName()).toEqual("Test-mission-Set-A");
 
         // Create another mission set and save it
         missionSet.deleteAllMissions();
@@ -226,7 +188,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Retrieve first set from localStorage and check local misssions data
         expect(missionSet.loadMissionSet("Test-mission-Set-A")).toEqual(true);
         expect(missionSet.getMissions().size).toEqual(2);
-        expect(missionSet.getMission(1).getName()).toEqual("Test-mission-Set-A");
 
         // Delete the first set from localStorage
         expect(missionSet.deleteMissionSet("Test-mission-Set-A")).toEqual(true);

@@ -11,7 +11,6 @@ import Task from "../tasks/task";
 
 export default class Mission {
     private missionID: number;
-    private name: string;
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
@@ -29,14 +28,6 @@ export default class Mission {
     // Set automatically when a Mission is added to the Missions singleton
     setMissionID(missionID: number) {
         this.missionID = missionID;
-    }
-
-    setName(name: string) {
-        this.name = name;
-    }
-
-    getName() {
-        return this.name;
     }
 
     getWaypoints() {
