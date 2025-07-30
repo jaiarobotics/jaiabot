@@ -211,7 +211,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint);
 
         case JaiaActions.CLOSED_TASK_PACKET_PANEL:
-            return handleClosedTaskPacketPanel(mutableState);
+            return handleClosedTaskPacketPanel(mutableState, action.panelAction);
 
         case JaiaActions.CLOSED_RALLY_PANEL:
             return handleClosedRallyPanel(mutableState);
@@ -677,9 +677,16 @@ function handleClosedWaypointPanel(
  * Handles cleanup when the task packet panel closes
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {PanelActions} panelAction Indicates if a new panel opened or the close button was clicked
  * @returns {JaiaContextType} Updated mutable state object
  */
-function handleClosedTaskPacketPanel(mutableState: JaiaContextType) {
+function handleClosedTaskPacketPanel(mutableState: JaiaContextType, panelAction: PanelActions) {
+    if (panelAction === PanelActions.CLOSE) {
+        mutableState.visiblePanel = ButtonNames.NONE;
+        // useEffect in TaskPacketPanel will be triggered to conduct remaining cleanup
+        return mutableState;
+    }
+
     jaiaGlobal.setSelectedTaskPacket({
         botID: UNASSIGNED_ID,
         startTime: 0,

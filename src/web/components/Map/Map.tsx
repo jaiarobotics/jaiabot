@@ -50,6 +50,7 @@ export default function Map() {
                     return;
                 case MapFeatureTypes.RALLY_POINT:
                     handleRallyPointClick(feature);
+                    return;
                 case MapFeatureTypes.DIVE:
                     handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
                 default:

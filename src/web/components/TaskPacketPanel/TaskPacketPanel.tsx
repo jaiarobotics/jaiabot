@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPacket } from "../../types/protobuf-types";
+import { PanelActions } from "../../types/context-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
 
 import "./TaskPacketPanel.less";
@@ -54,6 +55,18 @@ export default function TaskPacketPanel(props: Props) {
         };
     }, []);
 
+    /**
+     * Dispatches action to close panel
+     *
+     * @returns {void}
+     */
+    const handleCloseClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.CLOSED_TASK_PACKET_PANEL,
+            panelAction: PanelActions.CLOSE,
+        });
+    };
+
     if (taskPacket.dive) {
         return (
             <div className="task-packet-panel-container">
@@ -76,6 +89,7 @@ export default function TaskPacketPanel(props: Props) {
                     <div className="label">End Time:</div>
                     <div>{endTime}</div>
                 </div>
+                <button onClick={() => handleCloseClick()}>Close</button>
             </div>
         );
     }
