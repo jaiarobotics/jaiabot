@@ -1,0 +1,134 @@
+import TileLayer from "ol/layer/Tile";
+import { TileImage } from "ol/source";
+import View from "ol/View";
+import { jaiaAPI } from "../../utils/jaia-api";
+
+/**
+ * Describes a layer with a view area and max zoom level for extraction.
+ *
+ * @interface LayerViewDescriptor
+ * @typedef {LayerViewDescriptor}
+ */
+export interface LayerViewDescriptor {
+    view: View;
+    layer: TileLayer<TileImage>;
+    max_zoom: number;
+}
+
+/**
+ * Descriptor for a tile to download.
+ *
+ * @interface TileDescriptor
+ * @typedef {TileDescriptor}
+ */
+interface TileDescriptor {
+    layer_name: string;
+    zoom: number;
+    x: number;
+    y: number;
+    url: string;
+}
+
+function* tile_generator(layerViewDescriptor: LayerViewDescriptor): Generator<TileDescriptor> {
+    const extent = layerViewDescriptor.view.calculateExtent();
+    const projection = layerViewDescriptor.view.getProjection();
+    const max_zoom = 19;
+
+    const source = layerViewDescriptor.layer.getSource();
+
+    // Get the tile coordinates
+    const tile_grid = source.getTileGridForProjection(projection);
+
+    for (let z = 0; z <= max_zoom; z++) {
+        const corner1 = tile_grid.getTileCoordForCoordAndZ([extent[0], extent[1]], z);
+        const corner2 = tile_grid.getTileCoordForCoordAndZ([extent[2], extent[3]], z);
+
+        const x_range = [corner1[1], corner2[1]].sort();
+        const y_range = [corner1[2], corner2[2]].sort();
+
+        for (let x = x_range[0]; x <= x_range[1]; x++) {
+            for (let y = y_range[0]; y <= y_range[1]; y++) {
+                const tile_coord_adjusted = source.getTileCoordForTileUrlFunction(
+                    [z, x, y],
+                    projection,
+                );
+                const url = source.tileUrlFunction(
+                    tile_coord_adjusted,
+                    window.devicePixelRatio,
+                    projection,
+                );
+
+                yield {
+                    layer_name: layerViewDescriptor.layer.get("title"),
+                    zoom: z,
+                    x: x,
+                    y: y,
+                    url: url,
+                };
+            }
+        }
+    }
+}
+
+export class HubMapDownloader {
+    tileDescriptors: TileDescriptor[] = [];
+    running = false;
+    completedTiles = 0;
+    observer: (hubMapDownloader: HubMapDownloader, error?: string) => void = null;
+
+    clear() {
+        this.tileDescriptors = [];
+    }
+
+    /**
+     * Add a layer and view to the download queue.
+     *
+     * @param {LayerViewDescriptor} layerViewDescriptor
+     * @returns {*}
+     */
+    async add(layerViewDescriptor: LayerViewDescriptor) {
+        for (const tile of tile_generator(layerViewDescriptor)) {
+            this.tileDescriptors.push(tile);
+        }
+        this._startDownloading();
+    }
+
+    async _startDownloading() {
+        if (this.running) {
+            return;
+        }
+
+        this.running = true;
+        this.completedTiles = 0;
+
+        while (true) {
+            const tile = this.tileDescriptors.shift();
+            if (!tile) break;
+
+            this?.observer(this);
+
+            // Do we already have this tile?
+            const existingTile = await fetch(
+                `/maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+            );
+
+            if (existingTile.ok) {
+                console.log(
+                    `Already have /maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+                );
+            } else {
+                const tileBlob = await fetch(tile.url).then((response) => {
+                    return response.blob();
+                });
+                jaiaAPI.putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob);
+            }
+
+            this.completedTiles += 1;
+        }
+
+        this.running = false;
+        this?.observer(this);
+    }
+}
+
+export const hubMapDownloader = new HubMapDownloader();

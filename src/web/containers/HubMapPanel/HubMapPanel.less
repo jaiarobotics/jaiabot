@@ -1,3 +1,5 @@
+@import "../../style/util.less";
+
 .hub-map-panel {
     --toolbar-panels-top: 72px;
     --toolbar-panels-right: 72px;
@@ -25,4 +27,27 @@
     font-weight: 600;
 
     align-self: center;
+}
+
+.hub-map-layer-list {
+    width: 250pt;
+    border: thin solid black;
+    border-radius: 10pt;
+    margin-top: 10pt;
+    margin-bottom: 10pt;
+}
+
+.hub-map-layer-name {
+    margin: 10pt;
+    white-space: nowrap; /*keep text on one line */
+    overflow: hidden; /*prevent text from being shown outside the border */
+    text-overflow: ellipsis; /*cut off text with an ellipsis*/
+}
+
+input.checkbox {
+    margin: 10pt;
+}
+
+.danger {
+    color: red;
 }

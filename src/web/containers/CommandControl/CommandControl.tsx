@@ -26,7 +26,6 @@ import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
 import Map from "ol/Map";
 import { OSM } from "ol/source";
-import { HubMapDownloadDetails } from "../HubMapDownloadDetails/HubMapDownloadDetails";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
 import { SurveyExclusions } from "../../missions/survey/survey-exclusions";
@@ -125,7 +124,6 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
-import { HubMapDownloadJob } from "../../openlayers/map/offline-map-download-job";
 import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
 import { TileImage } from "ol/source";
 import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
@@ -313,7 +311,6 @@ export default class CommandControl extends React.Component {
     botPathFeatures: { [key: number]: OlFeature<OlLineString> } = {};
     // Source: Facebook's Slingshot
     isMobile: boolean = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    hubMapDownloadJob: HubMapDownloadJob = null;
 
     constructor(props: Props) {
         super(props);
@@ -4163,16 +4160,6 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
-        const hubMapDownloadDetails = this.hubMapDownloadJob ? (
-            <HubMapDownloadDetails
-                job={this.hubMapDownloadJob}
-                onCancel={() => {
-                    this.hubMapDownloadJob.cancel();
-                    this.hubMapDownloadJob = null;
-                }}
-            />
-        ) : null;
-
         let visiblePanelElement: ReactElement;
 
         switch (visiblePanel) {
@@ -4325,15 +4312,7 @@ export default class CommandControl extends React.Component {
                 break;
 
             case PanelType.HUB_MAPS:
-                visiblePanelElement = (
-                    <HubMapPanel
-                        map={map}
-                        hubMapDownloadJob={this.hubMapDownloadJob}
-                        setHubMapDownloadJob={(hubMapDownloadJob: HubMapDownloadJob) => {
-                            this.hubMapDownloadJob = hubMapDownloadJob;
-                        }}
-                    />
-                );
+                visiblePanelElement = <HubMapPanel map={map} />;
                 break;
         }
 
@@ -4409,8 +4388,6 @@ export default class CommandControl extends React.Component {
                 ) : null}
 
                 {depthContourPlot}
-
-                {hubMapDownloadDetails}
 
                 {this.state.customAlert}
             </div>

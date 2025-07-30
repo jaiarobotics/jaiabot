@@ -269,6 +269,12 @@ export class JaiaAPI {
         });
     }
 
+    async deleteHubMap(map_name: string) {
+        return fetch(`maps/${map_name}`, {
+            method: "DELETE",
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }

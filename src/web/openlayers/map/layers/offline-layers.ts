@@ -4,7 +4,7 @@ import { Collection } from "ol";
 import { XYZ } from "ol/source";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
-const offlineLayerGroup = new LayerGroup({
+export const offlineLayerGroup = new LayerGroup({
     properties: {
         title: "Offline Layers",
         fold: "close",
@@ -12,11 +12,20 @@ const offlineLayerGroup = new LayerGroup({
     layers: [],
 });
 
-export async function refreshOfflineLayers() {
-    jaiaAPI.getHubMaps().then((layer_list) => {
-        console.error(layer_list);
+function areSetsEqual<T>(a: Set<T>, b: Set<T>) {
+    return a.size === b.size && [...a].every((value) => b.has(value));
+}
 
-        const layers = layer_list.map((layer_name) => {
+export async function refreshOfflineLayers() {
+    jaiaAPI.getHubMaps().then((hubLayerTitlesArray) => {
+        const currentLayerTitles = new Set(
+            offlineLayerGroup.getLayersArray().map<string>((layer) => layer.get("title")),
+        );
+        const hubLayerTitles = new Set(hubLayerTitlesArray);
+
+        if (areSetsEqual(currentLayerTitles, hubLayerTitles)) return;
+
+        const layers = hubLayerTitlesArray.map((layer_name) => {
             return new TileLayer({
                 properties: {
                     title: layer_name,
