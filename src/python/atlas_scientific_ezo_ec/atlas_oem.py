@@ -2,8 +2,12 @@
 
 try:
     from smbus import SMBus
-except:
-    from smbus2 import SMBus
+except ImportError:
+    try:
+        from smbus2 import SMBus
+    except ImportError:
+        print('Could not import smbus module.  No physical device is available.')
+
 
 class AtlasOEM:
 
