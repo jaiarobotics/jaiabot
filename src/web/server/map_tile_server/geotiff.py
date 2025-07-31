@@ -133,6 +133,7 @@ def watch_directory_and_convert_to_tiles(geotiff_path: str, tiles_path: str):
             for geotiff_file in geotiff_files:
                 l.warning(f'Extracting {geotiff_file} to tileset')
                 extract_tiles(geotiff_file, tiles_path + '/' + os.path.basename(geotiff_file))
+                os.makedirs(completed_path, exist_ok=True)
                 os.replace(geotiff_file, completed_path + os.path.basename(geotiff_file))
             
             time.sleep(2)

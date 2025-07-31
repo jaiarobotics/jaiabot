@@ -262,6 +262,7 @@ class MapTileServer:
 
 
     def put_map_geotiff(self, map_name: str, geotiff_data: bytes):
+        os.makedirs(self.geotiffs_directory, exist_ok=True)
         geotiff_path = os.path.join(self.geotiffs_directory, map_name + '.geotiff')
         open(geotiff_path, 'wb').write(geotiff_data)
 
