@@ -96,6 +96,8 @@ class JaiabotProduction: public ApplicationBase
         double latest_rpm_ = 0.0;
         double latest_temperature_ = 0.0;
         goby::time::SystemClock::time_point motor_test_start_time_;
+        goby::time::SystemClock::time_point last_motor_command_time_;
+        double motor_command_repeat_interval_sec_ = 1.0; // in seconds
 
         void motor_harness();
         
@@ -231,11 +233,13 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 pressure_reset_pending_ = false; 
                 pressure_reset_complete_ = false;
                 test_pressure_ = false;
-                //test_motor_ = true;
+                test_motor_ = true;
                 motor_test_running_ = false;
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
-                motor_harness();
+                last_motor_command_time_ = goby::time::SystemClock::now(); // initialize timer
+    motor_test_start_time_ = goby::time::SystemClock::now();   // track total test duration
+                //motor_harness();
                 break;
                 default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -479,11 +483,56 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
+    double seconds_since_last_command = seconds_since(last_motor_command_time_);
+
+    if (!motor_command_sent_ || seconds_since_last_command >= motor_command_repeat_interval_sec_)
+    {
+        glog.is_debug1() && glog << "Motor Harness Test: Sending motor command..." << std::endl;
+        response.set_motor_response("sent motor command!");
+
+        // 1. Suspend PID (only once — or you can move this outside if needed)
+        jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
+        suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
+
+        // 2. Low control motor message
+        jaiabot::protobuf::LowControl low_control_msg;
+        low_control_msg.set_id(1);
+        low_control_msg.set_vehicle(1);
+        low_control_msg.set_time(0);
+
+        auto* control_surfaces = low_control_msg.mutable_control_surfaces();
+        control_surfaces->set_motor(37.5);
+        control_surfaces->set_timeout(3);
+        control_surfaces->set_led_switch_on(false);
+
+        interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
+
+        last_motor_command_time_ = goby::time::SystemClock::now();
+        motor_command_sent_ = true;
+
+        interprocess().publish<jaiabot::groups::production_response>(response);
+    }
+    // Stop test after 2.5s
+if (motor_test_running_ && seconds_since(motor_test_start_time_) > 2.5)
+{
+    glog.is_debug1() && glog << "🛑 Motor Test complete: stopping loop." << std::endl;
+    test_motor_ = false;
+    motor_test_running_ = false;
+    motor_command_sent_ = false;
+}
+
+}
+
+
+/*
+void jaiabot::apps::JaiabotProduction::motor_harness()
+{
     //motor_test_running_ = true;
     //motor_command_sent_ = false;
 
     // Reset motor test data
-    latest_rpm_ = 0.0;
+    //latest_rpm_ = 0.0;
     //latest_temperature_ = 0.0;
 
     glog.is_debug1() && glog << "Motor Harness Test: Starting motor run..." << std::endl;
@@ -511,7 +560,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     //motor_command_sent_ = true;
 // Separate into its own function so we can check in the loop
-/*
+
     // Evaluate motor test
     if (!motor_data_received_)
     {
@@ -549,8 +598,9 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     response.set_time(timestamp_us);
 
     interprocess().publish<jaiabot::groups::production_response>(response);
-    */
+    
 }
+    */
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
@@ -572,7 +622,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
 
-    /*
+    
     if(test_motor_ || motor_test_running_)
     {
         motor_harness();
@@ -581,6 +631,5 @@ void jaiabot::apps::JaiabotProduction::loop()
 
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
-        */
     
 }
