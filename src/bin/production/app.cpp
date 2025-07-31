@@ -235,6 +235,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 motor_test_running_ = false;
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
+                motor_command_sent_ = false;
                 break;
                 default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -495,7 +496,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         response.set_motor_response("motor_test_started_running_for_2s");
 
-        return;
+        //return;
     }
 
     const double elapsed = seconds_since(motor_test_start_time_);
@@ -511,8 +512,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         interprocess().publish<jaiabot::groups::desired_setpoints>(suspend);
 
         // 2. Raw motor control via low_control
-        jaiabot::protobuf::LowLevelControl low;
-        low.set_vehicle(cfg().bot_id());
+        jaiabot::protobuf::LowControl low;
+        low.set_vehicle(1);
         auto* surf = low.mutable_control_surfaces();
         surf->set_motor(40);  // example throttle
         surf->set_port_elevator(0);
@@ -524,7 +525,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         interprocess().publish<jaiabot::groups::low_control>(low);
 
         motor_command_sent_ = true;
-        return; // wait for 2 seconds to elapse
+        //return; // wait for 2 seconds to elapse
     }
 
     // Stop motor after 2 seconds
@@ -532,8 +533,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
 
-        jaiabot::protobuf::LowLevelControl stop;
-        stop.set_vehicle(cfg().bot_id());
+        jaiabot::protobuf::LowControl stop;
+        stop.set_vehicle(1);
         auto* surf = stop.mutable_control_surfaces();
         surf->set_motor(0);  // stop motor
         surf->set_port_elevator(0);
@@ -561,8 +562,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             bool rpm_ok = latest_rpm_ >= 3600;
             bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
 
-            imu_sensor_reset_check();
-            imu_sensor_data_timeCheck();
+            //imu_sensor_reset_check();
+            //imu_sensor_data_timeCheck();
 
             if (rpm_ok && temp_ok && imu_reset_complete_)
             {
@@ -588,11 +589,9 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
         response.set_time(timestamp_us);
 
-        // Reset state so another test can be run
         motor_test_running_ = false;
     }
 }
-
 
 void jaiabot::apps::JaiabotProduction::loop()
 {
