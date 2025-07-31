@@ -493,21 +493,23 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
     interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
     // 2. Send low-level motor command
-    jaiabot::protobuf::LowControl low_control_msg;
-    low_control_msg.set_id(1);
-    low_control_msg.set_vehicle(1); // may want to parameterize this later
-    low_control_msg.set_time(0);    // optional
+    jaiabot::protobuf::LowControl cmd_msg_;
+    cmd_msg_.set_id(1);
+    cmd_msg_.set_vehicle(1); // may want to parameterize this later
+    cmd_msg_.set_time(0);    // optional
 
-    auto* control_surfaces = low_control_msg.mutable_control_surfaces();
-    control_surfaces->set_motor(37.5); // Motor power
-    control_surfaces->set_port_elevator(0);
-    control_surfaces->set_stbd_elevator(0);
-    control_surfaces->set_rudder(0);
-    control_surfaces->set_timeout(3); // seconds
-    control_surfaces->set_led_switch_on(false);
+    auto& control_surfaces = *cmd_msg_.mutable_control_surfaces();
+    control_surfaces.set_motor(37.5); // Motor power
+    control_surfaces.set_port_elevator(0);
+    control_surfaces.set_stbd_elevator(0);
+    control_surfaces.set_rudder(0);
+    control_surfaces.set_timeout(3); // seconds
+    control_surfaces.set_led_switch_on(false);
 
-    interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
+    interprocess().publish<jaiabot::groups::low_control>(cmd_msg_);
 
     //motor_command_sent_ = true;
 // Separate into its own function so we can check in the loop
