@@ -152,8 +152,30 @@ def get_fluor_data(file: h5py.File):
 
     return df
 
-def utime_to_datetime(df: pd.DataFrame, dataset: str):
-    return pd.to_datetime(df[dataset], unit='us')
+def utime_to_datetime(utime: pd.Series):
+    """
+    Converts a unix time in microseconds to a datetime.
+    
+    Args:
+        utime: Input Series containing unix time in microseconds
+    
+    Returns:
+        pandas.Series: Datetime values
+    """
+    return pd.to_datetime(utime, unit='us')
+
+def datetime_to_utime(datetime: pd.Series):
+    """
+    Converts a datetime to unix time in microseconds.
+    
+    Args:
+        datetime: Input Series containing datetime values
+    
+    Returns:
+        pandas.Series: Unix time in microseconds since epoch
+    """
+    return datetime.astype(np.int64) // 10**3
+
 
 
 ### DATA ANALYSIS ###
