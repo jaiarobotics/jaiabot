@@ -488,18 +488,18 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     glog.is_debug1() && glog << "Motor Harness Test: Starting motor run..." << std::endl;
 
-    // 1. Suspend PID
+    // Suspend PID
     jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
     suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
     interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    // 2. Send low-level motor command
+    // Send low-level motor command
     jaiabot::protobuf::LowControl cmd_msg_;
     cmd_msg_.set_id(1);
     cmd_msg_.set_vehicle(1); // may want to parameterize this later
-    cmd_msg_.set_time(0);    // optional
+    cmd_msg_.set_time(0);    //
 
     auto& control_surfaces = *cmd_msg_.mutable_control_surfaces();
     control_surfaces.set_motor(37.5); // Motor power
@@ -511,20 +511,32 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     interprocess().publish<jaiabot::groups::low_control>(cmd_msg_);
 
-    //motor_command_sent_ = true;
+}
+
 // Separate into its own function so we can check in the loop
-/*
+void jaiabot::apps::JaiabotProduction::motor_check(){
+   
+    double elapsed = seconds_since(motor_test_start_time_);
+
+
+    if(elapsed < 2.0)
+    {
+        return;
+    }    
+
     // Evaluate motor test
     if (!motor_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
         response.set_motor_response("fail_no_motor_data_received");
         motor_test_running_ = false;
+        test_motor_ = false;
     }
     else
     {
         bool rpm_ok = latest_rpm_ >= 3600;
         bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
+
 
         if (rpm_ok && temp_ok)
         {
@@ -539,19 +551,20 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
             if (!rpm_ok) reason += "rpm_" + std::to_string(latest_rpm_) + "_less_than_3600_";
             if (!temp_ok) reason += "temp_" + std::to_string(latest_temperature_) + "_not_in_range_10_30_";
 
+
             glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
             response.set_motor_response(reason);
         }
 
-        motor_test_running_ = false;
+
     }
 
     const auto now = std::chrono::system_clock::now();
     const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     response.set_time(timestamp_us);
 
+
     interprocess().publish<jaiabot::groups::production_response>(response);
-    */
 }
 
 void jaiabot::apps::JaiabotProduction::loop()
