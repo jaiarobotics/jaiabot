@@ -479,12 +479,12 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
-    motor_test_running_ = true;
-    motor_command_sent_ = false;
+    //motor_test_running_ = true;
+    //motor_command_sent_ = false;
 
     // Reset motor test data
     latest_rpm_ = 0.0;
-    latest_temperature_ = 0.0;
+    //latest_temperature_ = 0.0;
 
     glog.is_debug1() && glog << "Motor Harness Test: Starting motor run..." << std::endl;
 
@@ -495,22 +495,23 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
     // 2. Send low-level motor command
     jaiabot::protobuf::LowControl low_control_msg;
-    low_control_msg.set_id(0);
+    low_control_msg.set_id(1);
     low_control_msg.set_vehicle(1); // may want to parameterize this later
     low_control_msg.set_time(0);    // optional
 
     auto* control_surfaces = low_control_msg.mutable_control_surfaces();
-    control_surfaces->set_motor(40); // Motor power
+    control_surfaces->set_motor(37.5); // Motor power
     control_surfaces->set_port_elevator(0);
     control_surfaces->set_stbd_elevator(0);
     control_surfaces->set_rudder(0);
-    control_surfaces->set_timeout(5); // seconds
+    control_surfaces->set_timeout(3); // seconds
     control_surfaces->set_led_switch_on(false);
 
     interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
 
-    motor_command_sent_ = true;
-
+    //motor_command_sent_ = true;
+// Separate into its own function so we can check in the loop
+/*
     // Evaluate motor test
     if (!motor_data_received_)
     {
@@ -548,6 +549,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     response.set_time(timestamp_us);
 
     interprocess().publish<jaiabot::groups::production_response>(response);
+    */
 }
 
 void jaiabot::apps::JaiabotProduction::loop()
