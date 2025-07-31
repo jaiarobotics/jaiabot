@@ -560,7 +560,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     {
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
         response.set_motor_response("fail_no_motor_data_received");
-
+        test_motor_ = false;
+        motor_test_running_ = false;
         return;
     }
 
@@ -577,6 +578,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_ << "_imu_reset_completed";
 
         response.set_motor_response(pass_oss.str());
+        test_motor_ = false;
+        motor_test_running_ = false;
     }
     else
     {
@@ -587,6 +590,8 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
         response.set_motor_response(reason);
+        test_motor_ = false;
+        motor_test_running_ = false;
     }
 
     const auto now = std::chrono::system_clock::now();
