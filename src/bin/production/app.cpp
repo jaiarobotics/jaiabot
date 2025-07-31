@@ -483,7 +483,6 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     motor_command_sent_ = false;
 
     // Reset motor test data
-    motor_data_received_ = false;
     latest_rpm_ = 0.0;
     latest_temperature_ = 0.0;
 
