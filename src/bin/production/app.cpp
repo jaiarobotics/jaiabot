@@ -205,7 +205,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 motor_test_running_ = false;
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
-                test_motor_ = false;
+                //test_motor_ = false;
                 test_imu_ = true;
                 break;
                 case jaiabot::protobuf::TEST_PRESSURE_SENSOR:  
@@ -217,7 +217,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 motor_test_running_ = false;
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
-                test_motor_ = false;
+                //test_motor_ = false;
                 pressure_reset_complete_ = false;
                 pressure_reset_pending_ = false;
                 test_pressure_ = true;
@@ -231,10 +231,11 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 pressure_reset_pending_ = false; 
                 pressure_reset_complete_ = false;
                 test_pressure_ = false;
-                test_motor_ = true;
+                //test_motor_ = true;
                 motor_test_running_ = false;
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
+                motor_harness();
                 break;
                 default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -478,125 +479,76 @@ void jaiabot::apps::JaiabotProduction::pressure_sensor_reset_check()
 
 void jaiabot::apps::JaiabotProduction::motor_harness()
 {
-    if (!motor_test_running_)
-    {
-        motor_test_running_ = true;
-        motor_command_sent_ = false;
-        motor_test_start_time_ = goby::time::SystemClock::now();
+    motor_test_running_ = true;
+    motor_command_sent_ = false;
 
-        // Reset motor test data
-        motor_data_received_ = false;
-        latest_rpm_ = 0.0;
-        latest_temperature_ = 0.0;
+    // Reset motor test data
+    motor_data_received_ = false;
+    latest_rpm_ = 0.0;
+    latest_temperature_ = 0.0;
 
-        glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
-        response.set_motor_response("motor_test_started_running_for_2s");
+    glog.is_debug1() && glog << "Motor Harness Test: Starting motor run..." << std::endl;
 
-        return;
-    }
+    // 1. Suspend PID
+    jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
+    suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
 
-    double elapsed = seconds_since(motor_test_start_time_);
+    // 2. Send low-level motor command
+    jaiabot::protobuf::LowControl low_control_msg;
+    low_control_msg.set_id(0);
+    low_control_msg.set_vehicle(1); // may want to parameterize this later
+    low_control_msg.set_time(0);    // optional
 
-    if (elapsed < 5)
-    {
-        if (!motor_command_sent_)
-        {
-            glog.is_debug1() && glog << "➡️ Suspending PID and sending raw motor control" << std::endl;
+    auto* control_surfaces = low_control_msg.mutable_control_surfaces();
+    control_surfaces->set_motor(40); // Motor power
+    control_surfaces->set_port_elevator(0);
+    control_surfaces->set_stbd_elevator(0);
+    control_surfaces->set_rudder(0);
+    control_surfaces->set_timeout(5); // seconds
+    control_surfaces->set_led_switch_on(false);
 
-            // 1. Suspend PID
-            jaiabot::protobuf::DesiredSetpoints suspend_setpoint;
-            suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
-            interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
+    interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
 
-            // 2. Send low-level motor command
-            jaiabot::protobuf::LowControl low_control_msg;
-            low_control_msg.set_id(0);
-            low_control_msg.set_vehicle(1);  // hard coded 1 might need to change later
-            low_control_msg.set_time(0); // optional: set timestamp if needed
+    motor_command_sent_ = true;
 
-            auto* control_surfaces = low_control_msg.mutable_control_surfaces();
-            control_surfaces->set_motor(40);        // Motor power
-            control_surfaces->set_port_elevator(0);
-            control_surfaces->set_stbd_elevator(0);
-            control_surfaces->set_rudder(0);
-            control_surfaces->set_timeout(5);       // seconds
-            control_surfaces->set_led_switch_on(false);
-
-            interprocess().publish<jaiabot::groups::low_control>(low_control_msg);
-
-            motor_command_sent_ = true;
-        }
-
-        std::ostringstream motor_running_oss;
-        motor_running_oss << "motor_test_running_elapsed_time_" << elapsed << "s!!!";
-        response.set_motor_response(motor_running_oss.str());
-        return;
-    }
-
-    if (elapsed >= 5 && motor_command_sent_)
-    {
-        glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
-
-        jaiabot::protobuf::LowControl stop_control;
-        stop_control.set_id(0);
-        stop_control.set_vehicle(1);
-        stop_control.set_time(0);
-        
-        auto* control_surfaces = stop_control.mutable_control_surfaces();
-        control_surfaces->set_motor(0);           // Stop motor
-        control_surfaces->set_port_elevator(0);
-        control_surfaces->set_stbd_elevator(0);
-        control_surfaces->set_rudder(0);
-        control_surfaces->set_timeout(5);
-        control_surfaces->set_led_switch_on(false);
-
-        interprocess().publish<jaiabot::groups::low_control>(stop_control);
-
-        motor_command_sent_ = false;
-    }
-
-    // Motor test result logic
+    // Evaluate motor test
     if (!motor_data_received_)
     {
         glog.is_debug1() && glog << "🛑 Motor Test FAIL: did not receive any motor data" << std::endl;
         response.set_motor_response("fail_no_motor_data_received");
-        test_motor_ = false;
-        motor_test_running_ = false;
-        return;
-    }
-
-    bool rpm_ok = latest_rpm_ >= 3600;
-    bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
-
-    //imu_sensor_reset_check();
-    //imu_sensor_data_timeCheck();
-
-    if (rpm_ok && temp_ok) //&& imu_reset_complete_)
-    {
-        glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
-        std::ostringstream pass_oss;
-        pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_ << "_imu_reset_completed";
-
-        response.set_motor_response(pass_oss.str());
-        test_motor_ = false;
         motor_test_running_ = false;
     }
     else
     {
-        std::string reason = "fail_";
-        if (!rpm_ok) reason += "rpm_" + std::to_string(latest_rpm_) + "_less_than_3600_";
-        if (!temp_ok) reason += "temp_" + std::to_string(latest_temperature_) + "_not_in_range_10_30_";
-        //if (!imu_reset_complete_) reason += "imu_reset_not_completed_";
+        bool rpm_ok = latest_rpm_ >= 3600;
+        bool temp_ok = latest_temperature_ >= 10 && latest_temperature_ <= 30;
 
-        glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
-        response.set_motor_response(reason);
-        test_motor_ = false;
+        if (rpm_ok && temp_ok)
+        {
+            glog.is_debug1() && glog << "✅ Motor Harness Test PASS" << std::endl;
+            std::ostringstream pass_oss;
+            pass_oss << "pass_rpm_" << latest_rpm_ << "_temp_" << latest_temperature_;
+            response.set_motor_response(pass_oss.str());
+        }
+        else
+        {
+            std::string reason = "fail_";
+            if (!rpm_ok) reason += "rpm_" + std::to_string(latest_rpm_) + "_less_than_3600_";
+            if (!temp_ok) reason += "temp_" + std::to_string(latest_temperature_) + "_not_in_range_10_30_";
+
+            glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
+            response.set_motor_response(reason);
+        }
+
         motor_test_running_ = false;
     }
 
     const auto now = std::chrono::system_clock::now();
     const auto timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     response.set_time(timestamp_us);
+
+    interprocess().publish<jaiabot::groups::production_response>(response);
 }
 
 void jaiabot::apps::JaiabotProduction::loop()
@@ -619,7 +571,7 @@ void jaiabot::apps::JaiabotProduction::loop()
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
 
-
+    /*
     if(test_motor_ || motor_test_running_)
     {
         motor_harness();
@@ -628,5 +580,6 @@ void jaiabot::apps::JaiabotProduction::loop()
 
         interprocess().publish<jaiabot::groups::production_response>(response);
     }
+        */
     
 }
