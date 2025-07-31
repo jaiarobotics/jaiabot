@@ -36,6 +36,32 @@ def _tilexyz_transform(tile_xyz: tuple[int, int, int], pixel_size: int=256) -> r
            rasterio.Affine.scale(tile_size / pixel_size, -tile_size / pixel_size)
 
 
+def scale_band(input_data: np.ndarray, nodata_value) -> np.ndarray:
+    """Returns a numpy array that is scaled to the 0-255 range for PNG image output.
+
+    Args:
+        input_data (np.ndarray): Array of band data
+        nodata_value (_type_): _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
+    filtered_input_data = input_data[input_data != nodata_value]
+    min_value = np.min(filtered_input_data)
+    max_value = np.max(filtered_input_data)
+    if max_value == min_value:
+        # Let's dodge divide by zero
+        max_value = min_value + 1
+
+    scale_coefficient = 255.0 / (max_value - min_value)
+
+    # copy and replace nodata with min_value
+    data = input_data.copy()
+    data[data == nodata_value] = min_value
+
+    return (data - min_value) * scale_coefficient
+
+
 def extract_tiles(geotiff_path: str, tileset_path: str, zoom_levels=None, tile_size=256):
     """Extracts a tileset of png files from a GeoTIFF.
 
@@ -88,6 +114,7 @@ def extract_tiles(geotiff_path: str, tileset_path: str, zoom_levels=None, tile_s
 
                     meta.update({
                         'driver': 'PNG',
+                        'dtype': 'uint8',
                         'transform': tile_transform,
                         'height': tile_size,
                         'width': tile_size
@@ -98,6 +125,11 @@ def extract_tiles(geotiff_path: str, tileset_path: str, zoom_levels=None, tile_s
 
                         band: np.ndarray
                         for i, band in enumerate(src_data, 1):
+
+                            if band.dtype == 'float32':
+                                # If this is a float band, we want to scale it to the 0-255 range for the PNG image
+                                band = scale_band(band, nodata_value=meta.get('nodata'))
+
                             dest = np.zeros([tile_size, tile_size])
 
                             rasterio.warp.reproject(
@@ -141,4 +173,48 @@ def watch_directory_and_convert_to_tiles(geotiff_path: str, tiles_path: str):
     
     threading.Thread(target=watch_function).start()
 
+
+def info(geotiff_path: str):
+    print(geotiff_path)
+    with rasterio.open(geotiff_path) as geotiff_file:
+        print(f'meta: {geotiff_file.meta}')
+    print()
+
+
+def print_range(geotiff_path: str):
+    print(geotiff_path)
+    with rasterio.open(geotiff_path) as geotiff_file:
+        src_data: np.ndarray = geotiff_file.read()
+        nodata_value = geotiff_file.meta.get('nodata', None)
+
+        for i, band in enumerate(src_data, 1):
+            filtered_band = band[band != nodata_value]
+            print(f'BAND {i} range: {np.min(filtered_band)} - {np.max(filtered_band)}')
+
+    print()
+
+
+if __name__ == '__main__':
+    import sys
+    import os.path
+
+    command = sys.argv[1]
+
+    if command == 'add':
+        geotiff_path, maps_path = sys.argv[2:4]
+        tileset_path = os.path.join(maps_path, 'tiles', os.path.basename(geotiff_path))
+
+        print(f'Extracting {geotiff_path} -> {tileset_path}')
+        extract_tiles(geotiff_path, tileset_path)
+        print('Done extraction.')
+    elif command == 'info':
+        geotiff_paths = sys.argv[2:]
+        for geotiff_path in geotiff_paths:
+            info(geotiff_path)
+    elif command == 'range':
+        geotiff_path = sys.argv[2]
+        print_range(geotiff_path)
+    else:
+        l.error(f'Unknown command: {command}')
+        exit(1)
 
