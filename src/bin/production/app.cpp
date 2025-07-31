@@ -496,7 +496,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "Motor Harness Test: Starting 2s motor run..." << std::endl;
         response.set_motor_response("motor_test_started_running_for_2s");
 
-        //return;
+        return;
     }
 
     const double elapsed = seconds_since(motor_test_start_time_);
@@ -513,7 +513,9 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
 
         // 2. Raw motor control via low_control
         jaiabot::protobuf::LowControl low;
+        low.set_id(0);
         low.set_vehicle(1);
+        low.set_time(0);
         auto* surf = low.mutable_control_surfaces();
         surf->set_motor(40);  // example throttle
         surf->set_port_elevator(0);
@@ -525,7 +527,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         interprocess().publish<jaiabot::groups::low_control>(low);
 
         motor_command_sent_ = true;
-        //return; // wait for 2 seconds to elapse
+        return; // wait for 2 seconds to elapse
     }
 
     // Stop motor after 2 seconds
@@ -534,7 +536,9 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         glog.is_debug1() && glog << "🛑 Stopping motor after test completion" << std::endl;
 
         jaiabot::protobuf::LowControl stop;
+        stop.set_id(0);
         stop.set_vehicle(1);
+        stop.set_time(0);
         auto* surf = stop.mutable_control_surfaces();
         surf->set_motor(0);  // stop motor
         surf->set_port_elevator(0);
@@ -590,6 +594,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
         response.set_time(timestamp_us);
 
         motor_test_running_ = false;
+        test_motor_ = false;
     }
 }
 
