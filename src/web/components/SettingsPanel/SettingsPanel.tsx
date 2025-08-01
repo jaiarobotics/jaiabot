@@ -5,6 +5,9 @@ import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/
 
 import "./SettingsPanel.less";
 
+/**
+ * Contains general configurations for the JCC and Jaia System
+ */
 export default function SettingsPanel() {
     return (
         <div className="jaia-panel settings-panel">
