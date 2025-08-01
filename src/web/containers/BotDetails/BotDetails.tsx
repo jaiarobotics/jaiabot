@@ -54,6 +54,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 
 import rcModeIcon from "../../style/icons/controller.svg";
+import satelliteIcon from "../../style/icons/satellite.svg"; // Add satellite icon import
 import "./BotDetails.less";
 
 export default function BotDetails() {
@@ -162,6 +163,18 @@ export default function BotDetails() {
                                                     "__",
                                                     "\n",
                                                 ) + getBotOffloadPercent(botID, hub)}
+                                                {missionStatus?.missionState?.includes(
+                                                    "REACQUIRE_GPS",
+                                                ) && (
+                                                    <span
+                                                        style={{
+                                                            color: "#ff8c00",
+                                                            marginLeft: "8px",
+                                                        }}
+                                                    >
+                                                        🛰️ GPS Reacquire
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                         <tr>
