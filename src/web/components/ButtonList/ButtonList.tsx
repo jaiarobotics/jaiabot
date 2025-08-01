@@ -13,7 +13,7 @@ import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiHelp, mdiProgressDownload, mdiViewList } from "@mdi/js";
+import { mdiCog, mdiHelp, mdiProgressDownload, mdiViewList } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 
@@ -109,7 +109,13 @@ export default function ButtonList(props: Props) {
                     <Icon path={mdiProgressDownload} title="Data Offload Panel" />
                 </Button>
                 <Button className="jaia-button"></Button>
-                <Button className="jaia-button"></Button>
+                <Button
+                    className={getSelectedClassName(ButtonNames.SETTINGS_PANEL)}
+                    aria-label="settings-panel"
+                    onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.SETTINGS_PANEL)}
+                >
+                    <Icon path={mdiCog} size={1.3} title="Settings Panel" />
+                </Button>
             </div>
         );
     }
