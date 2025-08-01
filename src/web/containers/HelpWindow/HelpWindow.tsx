@@ -129,7 +129,7 @@ const buttons: ButtonDescriptor[] = [
     {
         iconPath: mdiController,
         name: "RC Mode",
-        description: "To open RC controller Panel to remote control bots.",
+        description: "Open RC controller Panel to remote control bots.",
     },
     {
         iconPath: mdiCached,

@@ -4312,6 +4312,8 @@ export default class CommandControl extends React.Component {
         return (
             <Gamepad
                 onButtonDown={(buttonName) => {
+                    // When a custom alert is displayed, only allow RB/LB buttons to navigate the alert
+                    // All other buttons are blocked to prevent unwanted actions during alert display
                     if (this.state.customAlert && (buttonName === "RB" || buttonName === "LB")) {
                         handleGamepadAlertConfirm(buttonName);
                         return;
@@ -4322,54 +4324,66 @@ export default class CommandControl extends React.Component {
                         return;
                     }
 
-                    // Handles switching bots based on sholder buttons LB and RB
+                    // Get the current bot status map and extract available bot IDs
                     const botsMap = this.state.podStatus.bots;
                     const botIds = Object.keys(botsMap)
-                        .map(Number)
-                        .sort((a, b) => a - b);
+                        .map(Number) // Convert string keys to numbers
+                        .sort((a, b) => a - b); // Sort in ascending order for consistent navigation
+
+                    // Exit early if no bots are available
                     if (!botIds.length) return;
 
-                    const current = this.selectedBotId();
-                    const isInitial = current === null || current === undefined;
+                    // Get currently selected bot and its mission state for validation
+                    const selectedBotId = this.selectedBotId();
+                    const bot = selectedBotId ? botsMap[selectedBotId] : null;
+                    const missionState = bot?.mission_state ?? "";
 
-                    let index = isInitial ? -1 : botIds.indexOf(current);
+                    // Determine if this is the initial selection (no bot currently selected)
+                    const isInitial = selectedBotId === null || selectedBotId === undefined;
+                    // Find the current bot's position in the sorted array (-1 if no bot selected)
+                    let index = isInitial ? -1 : botIds.indexOf(selectedBotId);
 
+                    // Only process button commands if no custom alert is active
                     if (!this.state.customAlert) {
-                        // block bot switching if custom alert is up
+                        // Rb cycles to next bot
                         if (buttonName === "RB") {
                             if (isInitial) {
-                                // First RB → select first bot (botIds[0])
+                                // First RB press → select first bot in the list
                                 index = 0;
-                            } else if (current === botIds[botIds.length - 1]) {
-                                // Deselect if already at last
-                                this.toggleBot(current);
+                            } else if (selectedBotId === botIds[botIds.length - 1]) {
+                                // Already at last bot → deselect current bot and exit
+                                this.toggleBot(selectedBotId);
                                 return;
                             } else {
+                                // Move to next bot in the list
                                 index = Math.min(index + 1, botIds.length - 1);
                             }
-                        } else if (buttonName === "LB") {
-                            if (current === botIds[0]) {
-                                // At first bot, deselect
-                                this.toggleBot(current);
+                        }
+                        //cycles to next bot
+                        else if (buttonName === "LB") {
+                            if (selectedBotId === botIds[0]) {
+                                // Already at first bot → deselect current bot and exit
+                                this.toggleBot(selectedBotId);
                                 return;
                             }
+                            // Move to previous bot in the list
                             index = Math.max(index - 1, 0);
-                        } else if (buttonName === "RS") {
-                            const selectedBotId = this.selectedBotId();
+                        }
+                        // RS BUTTON (Right Stick): Stop bot command
+                        else if (buttonName === "RS") {
                             if (selectedBotId && !this.isRCModeActive(selectedBotId)) {
-                                const bot = this.state.podStatus.bots[selectedBotId];
-                                const missionState = bot?.mission_state ?? "";
-
+                                // Validate that the bot is in a state where it can be stopped
                                 if (
                                     missionState.includes("STOPPED") ||
                                     missionState.includes("IDLE") ||
                                     missionState.includes("WAIT")
                                 ) {
+                                    // Bot is in invalid state for stop command
                                     CustomAlert.alert(
                                         `The command: STOP cannot be sent because the bot is in the incorrect state.\n Available States: IN_MISSION_*\n Stataes Not Available: IN_MISSION_UNDERWAY_RECOVERY_STOPPED`,
                                     );
                                 } else {
-                                    // Show confirmation before stopping the selected bot
+                                    // Bot is in valid state → show confirmation dialog
                                     CustomAlert.confirm(
                                         `Are you sure you'd like to Stop bot: ${selectedBotId}?`,
                                         "Stop",
@@ -4384,23 +4398,25 @@ export default class CommandControl extends React.Component {
                                     );
                                 }
                             } else if (!selectedBotId) {
-                                // No bot selected: stop all bots
+                                // No bot selected → stop all bots
                                 this.sendStopAll();
                             }
                             return;
-                        } else if (buttonName == "Start") {
-                            const selectedBotId = this.selectedBotId();
+                        }
+                        // START BUTTON: Activate/System Check bot command
+                        else if (buttonName == "Start") {
                             if (selectedBotId) {
-                                const bot = this.state.podStatus.bots[selectedBotId];
-                                const missionState = bot?.mission_state ?? "";
+                                // Validate that the bot is in a state where it can be activated
                                 if (
                                     !missionState.includes("IDLE") &&
                                     !missionState.includes("PRE_DEPLOYMENT_FAILED")
                                 ) {
+                                    // Bot is in invalid state for activate command
                                     CustomAlert.alert(
                                         `The command: ACTIVATE cannot be sent because the bot is in the incorrect state.\n Available States: *_IDLE, PRE_DEPLOYMENT_FAILED`,
                                     );
                                 } else {
+                                    // Bot is in valid state → show confirmation dialog
                                     CustomAlert.confirm(
                                         `Are you sure you'd like to system check bot: ${selectedBotId}?`,
                                         "Run System Check",
@@ -4415,17 +4431,20 @@ export default class CommandControl extends React.Component {
                                     );
                                 }
                             } else {
+                                // No bot selected → activate all bots
                                 this.activateAllClicked();
                             }
                             return;
                         } else {
+                            // Unknown button pressed → exit without action
                             return;
                         }
                     }
 
+                    // Apply the new bot selection if the index has changed
                     const newBotId = botIds[index];
-                    if (newBotId !== current) {
-                        this.toggleBot(newBotId);
+                    if (newBotId !== selectedBotId) {
+                        this.toggleBot(newBotId); // Select the new bot
                         this.triggerRumble();
                     }
                 }}
