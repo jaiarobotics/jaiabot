@@ -7,11 +7,27 @@ let presentAlert: PresentAlertFunction;
 let currentConfirmYes: (() => void) | null = null;
 let currentConfirmNo: (() => void) | null = null;
 
+// Trigger rumble feedback on gamepad
+function triggerRumble(duration = 500, strongMagnitude = 1.0, weakMagnitude = 1.0) {
+    const gamepads = (navigator as Navigator).getGamepads?.() ?? [];
+    for (const gp of gamepads) {
+        if (gp && gp.vibrationActuator) {
+            gp.vibrationActuator.playEffect("dual-rumble", {
+                duration,
+                strongMagnitude,
+                weakMagnitude,
+            });
+        }
+    }
+}
+
 // Use RB/LB to cancel or confirm alert messages
 export function handleGamepadAlertConfirm(buttonName: string) {
     if (buttonName === "RB" && currentConfirmYes) {
+        triggerRumble(); // Trigger rumble on confirm
         currentConfirmYes();
     } else if (buttonName === "LB" && currentConfirmNo) {
+        triggerRumble(); // Trigger rumble on cancel
         currentConfirmNo();
     }
 }
