@@ -13,6 +13,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
+import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
@@ -89,6 +90,8 @@ function Panel() {
             );
         case ButtonNames.DATA_OFFLOAD_PANEL:
             return <DataOffloadPanel />;
+        case ButtonNames.SETTINGS_PANEL:
+            return <SettingsPanel />;
         default:
             return <div></div>;
     }
