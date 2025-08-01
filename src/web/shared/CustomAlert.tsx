@@ -1,5 +1,3 @@
-// Kaitlyn made most recent changes to this code
-//Finished changes to controller must have leaders test just in case
 import React from "react";
 import "./CustomAlert.css";
 

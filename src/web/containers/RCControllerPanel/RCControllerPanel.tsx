@@ -1,5 +1,3 @@
-// Kaitlyn and KAnz worked on recent changes to this code
-//Finished changes to controller must have leaders test just in case
 import React, { ReactElement } from "react";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Button from "@mui/material/Button";
@@ -556,67 +554,91 @@ export default class RCControllerPanel extends React.Component {
      * - LT/RT: Adjust dive parameter values (Dive mode only)
      */
     async handleButtonDown(buttonName: string) {
-        // Always send input to alert first
         window.dispatchEvent(new CustomEvent("gamepad-button", { detail: buttonName }));
 
+        // Block all non-navigation buttons when an alert dialog is open
+        // Only LB/RB are allowed through for alert navigation (OK/Cancel)
         if (this.state.isAlertOpen && buttonName !== "LB" && buttonName !== "RB") return;
 
+        // ==========================================
+        // CONTROL MODE SWITCHING BUTTONS
+        // ==========================================
+
+        // A BUTTON: Overdrive toggle (disabled in dive mode to prevent accidental activation)
         if (buttonName === "A") {
-            if (this.state.controlType === ControlTypes.DIVE) return; // ignore A in DIVE mode
-            await this.handleOverdriveCheck();
-        } else if (buttonName === "X") {
+            if (this.state.controlType === ControlTypes.DIVE) return; // Overdrive not applicable in dive mode
+            await this.handleOverdriveCheck(); // Show confirmation dialog and toggle overdrive state
+        }
+        // X BUTTON: Switch to Manual Dual control (separate throttle and rudder joysticks)
+        else if (buttonName === "X") {
             this.setState({ controlType: ControlTypes.MANUAL_DUAL });
             this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT]);
-        } else if (buttonName === "Y") {
+        }
+        // Y BUTTON: Switch to Manual Single control (combined throttle/rudder on one joystick)
+        else if (buttonName === "Y") {
             this.setState({ controlType: ControlTypes.MANUAL_SINGLE });
             this.setJoyStickStatus([JoySticks.SOLE]);
-        } else if (buttonName === "B") {
+        }
+        // B BUTTON: Switch to Dive mode (parameter-based dive control)
+        else if (buttonName === "B") {
             this.setState({ controlType: ControlTypes.DIVE });
             this.setJoyStickStatus([]);
-        } else if (buttonName === "RS") {
-            // Bind RS to stop all
-            this.sendStopAll();
+        }
+        // RS BUTTON: Emergency stop all missions (right stick click)
+        else if (buttonName === "RS") {
+            this.sendStopAll(); // Send stop command to bot
             this.triggerRumble(500, 1.0, 1.0);
-        } else if (buttonName === "Back") {
-            // Back button creates waypoint at hub location - "come to me" functionality
+        }
+        // BACK BUTTON: "Come to me" functionality - creates waypoint at hub location
+        else if (buttonName === "Back") {
             CustomAlert.confirm(
                 `Send bot ${this.props.bot?.bot_id} back to the hub?`,
                 "Come To Me",
                 () => {
-                    this.sendComeToMeWaypoint();
+                    this.sendComeToMeWaypoint(); // Create mission to return bot to hub
                 },
             );
         }
-        // New dive param navigation & adjustment (only when in DIVE mode)
+
+        // ==========================================
+        // DIVE MODE PARAMETER NAVIGATION
+        // ==========================================
+        // Additional button handling specific to dive mode for parameter adjustment
         if (this.state.controlType === ControlTypes.DIVE) {
+            // Define the order of dive parameters for navigation
             const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
             let currentIndex = this.state.selectedDiveParamIndex;
             const isPlayButtonSelected = this.state.isPlayButtonSelected;
 
+            // D-PAD UP: Navigate to previous dive parameter
             if (buttonName === "DPadUp") {
                 currentIndex = (currentIndex - 1 + diveParamKeys.length) % diveParamKeys.length;
                 this.setState({ selectedDiveParamIndex: currentIndex });
-            } else if (buttonName === "DPadDown") {
+            }
+            // D-PAD DOWN: Navigate to next dive parameter
+            else if (buttonName === "DPadDown") {
                 currentIndex = (currentIndex + 1) % diveParamKeys.length;
                 this.setState({ selectedDiveParamIndex: currentIndex });
-            } else if (buttonName === "DPadRight") {
-                // Always go to Play when pressing Right
+            }
+            // D-PAD RIGHT: Move selection to Play button
+            else if (buttonName === "DPadRight") {
                 this.setState({ isPlayButtonSelected: true });
-            } else if (buttonName === "DPadLeft") {
+            }
+            // D-PAD LEFT: Move selection back from Play button to dive parameters
+            else if (buttonName === "DPadLeft") {
                 if (isPlayButtonSelected) {
-                    // Move back from Play to last input
                     this.setState({ isPlayButtonSelected: false });
                 }
-            } else if (buttonName === "B" && isPlayButtonSelected) {
-                // Activate the Dive (Play) when Play is selected
+            }
+            // B BUTTON (in dive mode): Execute dive mission when Play button is selected
+            else if (buttonName === "B" && isPlayButtonSelected) {
                 this.handleDiveButtonClick();
-                // Trigger rumble
                 this.triggerRumble(500, 1.0, 1.0);
 
-                // Clear all highlights after play button is selected
+                // Reset UI selection state after dive execution
                 this.setState({
-                    isPlayButtonSelected: false,
-                    selectedDiveParamIndex: -1, // or default index if you prefer
+                    isPlayButtonSelected: false, // Deselect Play button
+                    selectedDiveParamIndex: -1, // Clear parameter selection highlighting
                 });
             }
         }
@@ -636,22 +658,28 @@ export default class RCControllerPanel extends React.Component {
         const { isPlayButtonSelected, selectedDiveParamIndex } = this.state;
         const diveParamKeys = ["maxDepth", "depthInterval", "holdTime", "driftTime"];
 
+        // LEFT TRIGGER (LT): DECREASE PARAMETER VALUE
         if (buttonName === "LT" && !isPlayButtonSelected) {
+            // TRIGGER PRESSED: Start continuous decrease interval
             if (pressed && !this.ltIntervalId) {
                 this.ltIntervalId = setInterval(() => {
                     this.adjustDiveParameter(diveParamKeys[selectedDiveParamIndex], -1);
                 }, 150);
+                // TRIGGER RELEASED: Stop the increase interval
             } else if (!pressed && this.ltIntervalId) {
                 clearInterval(this.ltIntervalId);
                 this.ltIntervalId = null;
             }
         }
 
+        // RIGHT TRIGGER (RT): INCREASE PARAMETER VALUE
         if (buttonName === "RT" && !isPlayButtonSelected) {
+            // TRIGGER PRESSED: Start continuous increase interval
             if (pressed && !this.rtIntervalId) {
                 this.rtIntervalId = setInterval(() => {
                     this.adjustDiveParameter(diveParamKeys[selectedDiveParamIndex], +1);
                 }, 150);
+                // TRIGGER RELEASED: Stop the increase interval
             } else if (!pressed && this.rtIntervalId) {
                 clearInterval(this.rtIntervalId);
                 this.rtIntervalId = null;
@@ -921,7 +949,7 @@ export default class RCControllerPanel extends React.Component {
                 />
             </div>
         );
-        // K and K work here remove this comment later
+
         driveControlPad = (
             <div className="rc-labels-container">
                 <div className="rc-labels-left">
