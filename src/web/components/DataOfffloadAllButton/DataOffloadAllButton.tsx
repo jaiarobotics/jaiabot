@@ -9,7 +9,7 @@ import { mdiDownloadMultiple } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 
-import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
@@ -95,7 +95,7 @@ export default function DataOffloadAllButton(props: Props) {
                 aria-label={"data-offload-all-bots"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiDownloadMultiple} title="Data Offload All" />
+                <Icon path={mdiDownloadMultiple} size={MDI_BUTTON_SIZE} title="Data Offload All" />
             </Button>
             <DataOffloadAllDialog
                 isVisible={isDialogVisible}

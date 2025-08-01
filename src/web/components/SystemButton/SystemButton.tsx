@@ -10,6 +10,7 @@ import { mdiPower, mdiRestart, mdiRestartAlert } from "@mdi/js";
 import Bot from "../../data/bots/bot";
 import { SystemButtonTypes } from "../../types/jaia-system-types";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
@@ -140,7 +141,7 @@ export default function SystemButton(props: Props) {
                 aria-label={getAriaLabel()}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={getIconPath()} title={getIconTitle()} />
+                <Icon path={getIconPath()} size={MDI_BUTTON_SIZE} title={getIconTitle()} />
             </Button>
             <SystemDialog
                 isVisible={isDialogVisible}

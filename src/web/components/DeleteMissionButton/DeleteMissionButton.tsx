@@ -9,6 +9,7 @@ import { DisabledCodes } from "./delete-mission-messages";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiDelete } from "@mdi/js";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 
 interface Props {
     deleteAll: boolean;
@@ -91,6 +92,7 @@ export default function DeleteMissionButton(props: Props) {
                 <Icon
                     path={mdiDelete}
                     title={props.deleteAll ? "Delete All Missions" : "Delete Mission"}
+                    size={MDI_BUTTON_SIZE}
                 />
             </Button>
             <DeleteMissionDialog

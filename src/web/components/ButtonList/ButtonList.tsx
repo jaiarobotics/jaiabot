@@ -13,9 +13,12 @@ import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiCog, mdiHelp, mdiProgressDownload, mdiViewList } from "@mdi/js";
+import { mdiCog, mdiHelp, mdiProgressDownload, mdiRuler, mdiViewList } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
+
+import "./ButtonList.less";
 
 interface Props {
     buttonListType: ButtonListTypes;
@@ -73,7 +76,7 @@ export default function ButtonList(props: Props) {
                     aria-label="help-window"
                     onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.HELP_PANEL)}
                 >
-                    <Icon path={mdiHelp} />
+                    <Icon path={mdiHelp} size={MDI_BUTTON_SIZE} />
                 </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.JAIA_ABOUT_PANEL)}
@@ -96,7 +99,7 @@ export default function ButtonList(props: Props) {
                     aria-label="missions-panel"
                     onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.MISSIONS_PANEL)}
                 >
-                    <Icon path={mdiViewList} title="Missions Panel" />
+                    <Icon path={mdiViewList} size={MDI_BUTTON_SIZE} title="Missions Panel" />
                 </Button>
                 <RallyButton />
                 <Button
@@ -106,15 +109,27 @@ export default function ButtonList(props: Props) {
                         handleButtonClick(ButtonTypes.PANEL, ButtonNames.DATA_OFFLOAD_PANEL)
                     }
                 >
-                    <Icon path={mdiProgressDownload} title="Data Offload Panel" />
+                    <Icon
+                        path={mdiProgressDownload}
+                        size={MDI_BUTTON_SIZE}
+                        title="Data Offload Panel"
+                    />
                 </Button>
-                <Button className="jaia-button"></Button>
+                <Button
+                    className="jaia-button"
+                    aria-label="measure-tool"
+                    onClick={() =>
+                        handleButtonClick(ButtonTypes.MAP_MODE, ButtonNames.MEASURE_TOOL)
+                    }
+                >
+                    <Icon path={mdiRuler} size={MDI_BUTTON_SIZE} title="Measure Tool"></Icon>
+                </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.SETTINGS_PANEL)}
                     aria-label="settings-panel"
                     onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.SETTINGS_PANEL)}
                 >
-                    <Icon path={mdiCog} size={1.3} title="Settings Panel" />
+                    <Icon path={mdiCog} size={MDI_BUTTON_SIZE} title="Settings Panel" />
                 </Button>
             </div>
         );
