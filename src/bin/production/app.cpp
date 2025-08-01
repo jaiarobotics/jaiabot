@@ -88,7 +88,6 @@ class JaiabotProduction: public ApplicationBase
         void restart_pressure_py() { system("sudo systemctl restart jaiabot_pressure_sensor_py.service"); }
 
         // Motor Test State
-        
         bool motor_test_passed_ = false;
         bool motor_data_received_ = false;
         bool motor_test_running_ = false;
@@ -236,6 +235,8 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
                 motor_harness();
+                response.set_motor_response("send command to get motor to run!!");
+                interprocess().publish<jaiabot::groups::production_response>(response);
                 break;
                 default:
                 glog.is_debug1() && glog << "❓Unknown production command" << std::endl;
@@ -483,7 +484,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     //motor_command_sent_ = false;
 
     // Reset motor test data
-    latest_rpm_ = 0.0;
+    //latest_rpm_ = 0.0;
     //latest_temperature_ = 0.0;
 
     glog.is_debug1() && glog << "Motor Harness Test: Starting motor run..." << std::endl;
@@ -493,7 +494,7 @@ void jaiabot::apps::JaiabotProduction::motor_harness()
     suspend_setpoint.set_type(jaiabot::protobuf::SETPOINT_SUSPEND_PID);
     interprocess().publish<jaiabot::groups::desired_setpoints>(suspend_setpoint);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500)); //need this or low control command does not get send!!!
 
     // 2. Send low-level motor command
     jaiabot::protobuf::LowControl cmd_msg_;
