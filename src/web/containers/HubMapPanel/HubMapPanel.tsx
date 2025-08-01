@@ -3,16 +3,13 @@ import { Button } from "@mui/material";
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
 import { jaiaAPI } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
-import { mdiContentSave, mdiDelete, mdiUpload } from "@mdi/js";
+import { mdiCancel, mdiContentSave, mdiDelete, mdiUpload } from "@mdi/js";
 import { hubMapDownloader } from "./HubMapDownloader";
 import { Map } from "ol";
 import { useEffect, useState } from "react";
 import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
-import {
-    offlineLayerGroup,
-    refreshOfflineLayers,
-} from "../../openlayers/map/layers/offline-layers";
+import { offlineLayerManager } from "../../openlayers/map/layers/offline-layers";
 import { CustomAlert } from "../../shared/CustomAlert";
 
 interface Props {
@@ -22,7 +19,12 @@ interface Props {
 export function HubMapPanel(props: Props) {
     const [tileDownloader, setTileDownloader] = useState(hubMapDownloader);
     const [error, setError] = useState<string>(null);
+    const [layerTitles, setLayerTitles] = useState<string[]>(offlineLayerManager.layerTitles);
     const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
+
+    function refreshLayerList() {
+        setLayerTitles(offlineLayerManager.layerTitles);
+    }
 
     useEffect(() => {
         hubMapDownloader.observer = (hubMapDownloader, error) => {
@@ -34,8 +36,12 @@ export function HubMapPanel(props: Props) {
             setTileDownloader(hubMapDownloader);
         };
 
+        const offlineLayerObserver = offlineLayerManager.subscribe(refreshLayerList);
+        offlineLayerManager.refresh();
+
         return () => {
             hubMapDownloader.observer = null;
+            offlineLayerManager.unsubscribe(offlineLayerObserver);
         };
     });
 
@@ -55,6 +61,15 @@ export function HubMapPanel(props: Props) {
                     Tiles: {tileDownloader.completedTiles} / {totalTileCount} ({percent}%)
                 </div>
                 <div>Layer: {tile.layer_name}</div>
+                <Button
+                    className="button-jcc"
+                    onClick={() => {
+                        hubMapDownloader.clear();
+                    }}
+                >
+                    <Icon path={mdiCancel}></Icon>
+                    <div className="danger">Cancel Downloads</div>
+                </Button>
             </div>
         );
     };
@@ -66,9 +81,7 @@ export function HubMapPanel(props: Props) {
     };
 
     const hubLayerListSection = () => {
-        const hubLayerDivs = offlineLayerGroup.getLayersArray().map((layer) => {
-            const layerTitle = layer.get("title");
-
+        const hubLayerDivs = offlineLayerManager.layerTitles.map((layerTitle) => {
             return (
                 <div key={layerTitle} className="hub-map-layer-name">
                     <input
@@ -113,7 +126,7 @@ export function HubMapPanel(props: Props) {
                         await jaiaAPI.deleteHubMap(layerName);
                         checkedLayers.delete(layerName);
                     }
-                    refreshOfflineLayers();
+                    offlineLayerManager.refresh();
                 }
             }}
         >
@@ -136,7 +149,7 @@ export function HubMapPanel(props: Props) {
                 }
             })
             .then(() => {
-                refreshOfflineLayers();
+                offlineLayerManager.refresh();
             });
     }
 

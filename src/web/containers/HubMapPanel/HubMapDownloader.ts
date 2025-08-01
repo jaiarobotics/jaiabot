@@ -2,6 +2,7 @@ import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
 import View from "ol/View";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { offlineLayerManager } from "../../openlayers/map/layers/offline-layers";
 
 /**
  * Describes a layer with a view area and max zoom level for extraction.
@@ -120,7 +121,13 @@ export class HubMapDownloader {
                 const tileBlob = await fetch(tile.url).then((response) => {
                     return response.blob();
                 });
-                jaiaAPI.putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob);
+                jaiaAPI
+                    .putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob)
+                    .then(() => {
+                        if (!(tile.layer_name in offlineLayerManager.layerTitles)) {
+                            offlineLayerManager.refresh();
+                        }
+                    });
             }
 
             this.completedTiles += 1;

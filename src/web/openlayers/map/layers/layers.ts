@@ -9,7 +9,7 @@ import * as Style from "ol/style";
 import * as Styles from "../../../shared/Styles";
 import { getBotPathColor } from "../../../shared/BotPathColors";
 import { EventEmitter } from "events";
-import { createOfflineLayerGroup } from "./offline-layers";
+import { offlineLayerManager } from "./offline-layers";
 
 export class Layers {
     missionLayerSource = new VectorSource();
@@ -158,7 +158,7 @@ export class Layers {
 
     baseLayerGroup = createBaseLayerGroup();
     chartLayerGroup = createChartLayerGroup();
-    offlineLayerGroup = createOfflineLayerGroup();
+    offlineLayerGroup = offlineLayerManager.layerGroup;
     eventEmitter = new EventEmitter();
 
     getAllLayers() {
