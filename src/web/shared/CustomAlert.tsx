@@ -172,6 +172,7 @@ export class CustomAlert extends React.Component {
                     cleanup();
                     resolve(true);
                 } else if (e.detail === "LB") {
+                    triggerRumble();
                     cleanup();
                     resolve(false);
                 }

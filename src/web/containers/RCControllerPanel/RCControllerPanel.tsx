@@ -566,6 +566,7 @@ export default class RCControllerPanel extends React.Component {
 
         // A BUTTON: Overdrive toggle (disabled in dive mode to prevent accidental activation)
         if (buttonName === "A") {
+            this.triggerRumble(500, 1.0, 1.0);
             if (this.state.controlType === ControlTypes.DIVE) return; // Overdrive not applicable in dive mode
             await this.handleOverdriveCheck(); // Show confirmation dialog and toggle overdrive state
         }
