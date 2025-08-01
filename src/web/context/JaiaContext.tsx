@@ -903,17 +903,28 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
                 mapMode = MapModes.RALLY;
                 cursor = Cursors.CROSSHAIR;
             }
+
+            if (name === ButtonNames.MEASURE_TOOL && mutableState.visiblePanel !== name) {
+                mapMode = MapModes.MEASURE;
+                cursor = Cursors.CROSSHAIR;
+                visiblePanel = name;
+            }
             break;
         case ButtonTypes.PANEL:
             if (mutableState.visiblePanel !== name) {
                 visiblePanel = name;
             }
-            resetSelectedWaypoint(mutableState);
             break;
         case ButtonTypes.COMMAND:
             if (name === ButtonNames.GO_TO_RALLY) {
                 visiblePanel = ButtonNames.RALLY_PANEL;
             }
+            break;
+    }
+
+    // Resets
+    if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
+        resetSelectedWaypoint(mutableState);
     }
 
     jaiaGlobal.setMapMode(mapMode);
