@@ -7,6 +7,7 @@ let presentAlert: PresentAlertFunction;
 let currentConfirmYes: (() => void) | null = null;
 let currentConfirmNo: (() => void) | null = null;
 
+// Use RB/LB to cancel or confirm alert messages
 export function handleGamepadAlertConfirm(buttonName: string) {
     if (buttonName === "RB" && currentConfirmYes) {
         currentConfirmYes();
@@ -147,6 +148,7 @@ export class CustomAlert extends React.Component {
         });
     }
 
+    // RB/LB to cancel or enable overdrive
     static confirmAsync(text: string, actionTitle: string, title?: string): Promise<boolean> {
         return new Promise((resolve) => {
             const handleGamepadConfirm = (e: any) => {
