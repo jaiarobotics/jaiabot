@@ -59,6 +59,7 @@ export const enum ButtonNames {
     DATA_OFFLOAD_PANEL = "data_offload_panel",
     HELP_PANEL = "help_panel",
     JAIA_ABOUT_PANEL = "jaia_about_panel",
+    MEASURE_TOOL = "measure_tool",
     MISSIONS_PANEL = "missions_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",

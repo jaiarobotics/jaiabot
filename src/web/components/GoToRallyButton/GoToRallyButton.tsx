@@ -17,13 +17,12 @@ import {
     CommandType,
     MissionStart,
     MovementType,
-    Speed,
     Speeds,
 } from "../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -139,7 +138,7 @@ export default function GoToRallyButton(props: Props) {
                 aria-label={"go-to-rally-point"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiPlay} title="Go To Rally Point" />
+                <Icon path={mdiPlay} size={MDI_BUTTON_SIZE} title="Go To Rally Point" />
             </Button>
             <GoToRallyDialog
                 isVisible={isDialogVisible}

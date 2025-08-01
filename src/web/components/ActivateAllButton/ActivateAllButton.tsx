@@ -11,6 +11,7 @@ import Bot from "../../data/bots/bot";
 
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
@@ -93,7 +94,11 @@ export default function ActivateAllButton(props: Props) {
                 aria-label={"activate-all-bots"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="Activate All" />
+                <Icon
+                    path={mdiCheckboxMarkedCirclePlusOutline}
+                    size={MDI_BUTTON_SIZE}
+                    title="Activate All"
+                />
             </Button>
             <ActivateAllDialog
                 isVisible={isDialogVisible}

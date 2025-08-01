@@ -12,6 +12,7 @@ import { mdiStop } from "@mdi/js";
 import Bot from "../../data/bots/bot";
 
 import { Command, CommandType } from "../../types/protobuf-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
@@ -88,7 +89,7 @@ export default function StopButton(props: Props) {
                 aria-label={"stop-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiStop} title="Stop Mission" />
+                <Icon path={mdiStop} size={MDI_BUTTON_SIZE} title="Stop Mission" />
             </Button>
             <StopDialog
                 isVisible={isDialogVisible}
