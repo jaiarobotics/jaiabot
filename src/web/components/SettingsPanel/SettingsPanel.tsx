@@ -34,7 +34,7 @@ export default function SettingsPanel() {
                             expandIcon={<ExpandMoreIcon />}
                             className="accordion-summary"
                         >
-                            <Typography>Map Layers</Typography>
+                            <Typography>Engineering</Typography>
                         </AccordionSummary>
                         <AccordionDetails></AccordionDetails>
                     </Accordion>
