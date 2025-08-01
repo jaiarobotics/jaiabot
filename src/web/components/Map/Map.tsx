@@ -36,6 +36,15 @@ export default function Map() {
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
+        switch (jaiaGlobal.getMapMode()) {
+            case MapModes.RALLY:
+                handleAddRallyPoint(event.coordinate);
+                return;
+            case MapModes.MEASURE:
+                console.log("Measure Point");
+                return;
+        }
+
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
         if (feature && feature.get("type")) {
             switch (feature.get("type")) {
@@ -56,11 +65,6 @@ export default function Map() {
                 default:
                     return;
             }
-        }
-
-        if (jaiaGlobal.getMapMode() === MapModes.RALLY) {
-            handleAddRallyPoint(event.coordinate);
-            return;
         }
 
         if (isWaypointMovable()) {
