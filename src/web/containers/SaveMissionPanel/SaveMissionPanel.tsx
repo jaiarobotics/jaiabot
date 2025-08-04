@@ -4,7 +4,8 @@ import { useContext, useState } from "react";
 
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { missionSet } from "../../data/missions/missionSet";
+import { missionSet } from "../../data/mission_set/mission-set";
+import { listSavedMissionSets } from "../../utils/local-storage";
 
 import Icon from "@mdi/react";
 import Button from "@mui/material/Button";
@@ -19,12 +20,12 @@ export default function SaveMissionPanel() {
 
     const handleSaveClick = () => {
         if (saveName == undefined) setSaveName("DefaultMissionSet");
-        missionSet.saveMissionSet(saveName);
+        missionSet.saveToLocalStorage(saveName);
     };
 
     const handleDeleteClick = () => {
         if (saveName == undefined) return; //TODO, should post warning
-        missionSet.deleteMissionSet(saveName);
+        missionSet.deleteFromLocalStorage(saveName);
     };
 
     const handleRowClick = (name: string) => {
@@ -51,7 +52,7 @@ export default function SaveMissionPanel() {
 
     // Mission rows
 
-    let savedMissionNamess = missionSet.listSavedMissionSets();
+    let savedMissionNamess = listSavedMissionSets();
 
     const missionNameRows = savedMissionNamess.map((name) => {
         var rowClasses = "row hoverable";
