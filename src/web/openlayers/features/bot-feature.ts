@@ -21,6 +21,11 @@ import { angleToXY } from "../../utils/style";
 
 // Style
 import botIcon from "../../style/icons/bot.svg";
+import { MissionState } from "../../shared/JAIAProtobuf";
+
+const satellite = require("../../style/icons/satellite.svg") as string;
+
+const driftArrowColor = "darkorange";
 
 export function generateBotFeature(botID: number) {
     const bot = bots.getBot(botID);
@@ -43,29 +48,58 @@ export function generateBotFeature(botID: number) {
     return feature;
 }
 
-function generateBotStyle(bot: Bot) {
-    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
-
+function getGpsStyle(headingRadians: number): Style {
     return new Style({
         image: new Icon({
-            src: botIcon,
-            color: getBotIconColor(bot),
-            anchor: [0.5, 0.5],
-            rotation: heading,
+            src: satellite,
+            color: driftArrowColor,
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
             rotateWithView: true,
         }),
-        text: new Text({
-            text: bot.getBotID().toString(),
-            font: "bold 11pt sans-serif",
-            fill: new Fill({
-                color: "black",
-            }),
-            rotateWithView: true,
-            offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
-            offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
-        }),
-        zIndex: getBotIconZIndex(bot),
+        zIndex: 104, // One higher than the bot's zIndex to prevent to the bot from covering the icon
     });
+}
+
+function generateBotStyle(bot: Bot): Style[] {
+    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
+
+    const styles = [
+        new Style({
+            image: new Icon({
+                src: botIcon,
+                color: getBotIconColor(bot),
+                anchor: [0.5, 0.5],
+                rotation: heading,
+                rotateWithView: true,
+            }),
+            text: new Text({
+                text: bot.getBotID().toString(),
+                font: "bold 11pt sans-serif",
+                fill: new Fill({
+                    color: "black",
+                }),
+                rotateWithView: true,
+                offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
+                offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
+            }),
+            zIndex: getBotIconZIndex(bot),
+        }),
+    ];
+
+    // Add GPS satellite if bot is in reacquire GPS state
+    const missionStatus = bot.getMissionStatus();
+
+    if (
+        missionStatus.missionState ===
+            MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS ||
+        missionStatus.missionState === MissionState.IN_MISSION__PAUSE__REACQUIRE_GPS
+    ) {
+        styles.push(getGpsStyle(heading));
+    }
+
+    return styles;
 }
 
 function getBotIconColor(bot: Bot) {

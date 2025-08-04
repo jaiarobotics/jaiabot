@@ -163,18 +163,6 @@ export default function BotDetails() {
                                                     "__",
                                                     "\n",
                                                 ) + getBotOffloadPercent(botID, hub)}
-                                                {missionStatus?.missionState?.includes(
-                                                    "REACQUIRE_GPS",
-                                                ) && (
-                                                    <span
-                                                        style={{
-                                                            color: "#ff8c00",
-                                                            marginLeft: "8px",
-                                                        }}
-                                                    >
-                                                        🛰️ GPS Reacquire
-                                                    </span>
-                                                )}
                                             </td>
                                         </tr>
                                         <tr>
