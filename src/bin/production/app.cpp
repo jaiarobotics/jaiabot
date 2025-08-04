@@ -560,7 +560,7 @@ void jaiabot::apps::JaiabotProduction::motor_check(){
         std::string reason = "fail_";
         if (!rpm_ok) reason += "rpm_" + std::to_string(latest_rpm_) + "_less_than_3600_";
         if (!temp_ok) reason += "temp_" + std::to_string(latest_temperature_) + "_not_in_range_10_30_";
-        if (!imu_reset_complete_) response.set_motor_response("imu_reset_not_completed_yet");
+        if (!imu_reset_complete_) reason = "imu_reset_not_completed_yet"; //just need to fix this so it comes up (idea reason =)
         if(since_last_imu > 3.0){
             reason += "no_imu_data_after_reset_";
         }
