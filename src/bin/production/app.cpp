@@ -235,7 +235,7 @@ jaiabot::apps::JaiabotProduction::JaiabotProduction() : ApplicationBase(5.0 * si
                 motor_test_passed_ = false;
                 motor_data_received_ = false;
                 motor_harness();
-                response.set_motor_response("send command to get motor to run!!");
+                response.set_motor_response("send command to get motor to run!!!");
                 interprocess().publish<jaiabot::groups::production_response>(response);
                 break;
                 default:
