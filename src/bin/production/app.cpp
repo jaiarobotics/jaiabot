@@ -57,6 +57,7 @@ class JaiabotProduction: public ApplicationBase
         bool imu_reset_pending_ = false;
         bool imu_reset_complete_ = false;
         bool test_imu_ = false;
+        double since_last_imu = 10.0;
 
         // tracks timestamps for IMU messages and resets
         goby::time::SystemClock::time_point imu_reset_start_time_;
@@ -542,7 +543,8 @@ void jaiabot::apps::JaiabotProduction::motor_check(){
 
     // Also check IMU reset during motor test
     imu_sensor_reset_check();
-    imu_sensor_data_timeCheck();
+    double since_last_imu = seconds_since(last_imu_msg_time_);
+    //imu_sensor_data_timeCheck();
 
     if (rpm_ok && temp_ok && imu_reset_complete_)
     {
@@ -558,7 +560,10 @@ void jaiabot::apps::JaiabotProduction::motor_check(){
         std::string reason = "fail_";
         if (!rpm_ok) reason += "rpm_" + std::to_string(latest_rpm_) + "_less_than_3600_";
         if (!temp_ok) reason += "temp_" + std::to_string(latest_temperature_) + "_not_in_range_10_30_";
-        if (!imu_reset_complete_) reason += "imu_reset_not_completed_";
+        if (!imu_reset_complete_) response.set_motor_response("imu_reset_not_completed_yet");
+        if(since_last_imu > 3.0){
+            reason += "no_imu_data_after_reset_";
+        }
 
         glog.is_debug1() && glog << "❌ Motor Harness Test FAIL: " << reason << std::endl;
         response.set_motor_response(reason);

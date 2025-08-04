@@ -461,7 +461,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
             accuracies->set_accelerometer(3);
             accuracies->set_gyroscope(3);
             accuracies->set_magnetometer(3);
-          interprocess().publish<groups::imu>(imu_data);
+            interprocess().publish<groups::imu>(imu_data);
         }
     }
 
