@@ -60,14 +60,26 @@ class TrackPod {
 
         // If tracking "pod", find the first available bot
         if (trackingTarget === "pod" && botsMap.size > 0) {
-            // Get the first bot with a location
-            for (const [botId, bot] of botsMap.entries()) {
-                if (bot.getLocation()?.lat && bot.getLocation()?.lon) {
-                    this.centerOnBot(bot.getLocation());
-                    break;
+            let latSum = 0;
+            let lonSum = 0;
+            let count = 0;
+
+            for (const [, bot] of botsMap.entries()) {
+                const loc = bot.getLocation();
+                if (loc && !isNaN(loc.lat) && !isNaN(loc.lon)) {
+                    latSum += loc.lat;
+                    lonSum += loc.lon;
+                    count++;
                 }
             }
+
+            if (count > 0) {
+                const centroidLat = latSum / count;
+                const centroidLon = lonSum / count;
+                this.centerOnBot({ lat: centroidLat, lon: centroidLon });
+            }
         }
+
         // If tracking a specific bot ID
         else if (
             typeof trackingTarget === "number" ||
