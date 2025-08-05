@@ -31,7 +31,6 @@ import {
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
-import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -587,7 +586,6 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
-    setOpenLayersCursor(Cursors.DEFAULT);
     jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
@@ -885,19 +883,16 @@ function handleClickedTapToMove(mutableState: JaiaContextType) {
  */
 function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, name: ButtonNames) {
     let mapMode = MapModes.DEFAULT;
-    let cursor = Cursors.DEFAULT;
     let visiblePanel = ButtonNames.NONE;
 
     switch (type) {
         case ButtonTypes.MAP_MODE:
             if (name === ButtonNames.ADD_RALLY && jaiaGlobal.getMapMode() !== MapModes.RALLY) {
                 mapMode = MapModes.RALLY;
-                cursor = Cursors.CROSSHAIR;
             }
 
             if (name === ButtonNames.MEASURE_TOOL && mutableState.visiblePanel !== name) {
                 mapMode = MapModes.MEASURE;
-                cursor = Cursors.CROSSHAIR;
                 visiblePanel = name;
             }
             break;
@@ -919,8 +914,6 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     }
 
     jaiaGlobal.setMapMode(mapMode);
-    setOpenLayersCursor(cursor);
-
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
@@ -1037,21 +1030,6 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
-}
-
-/**
- * Sets the cursor that appears when hovering over the map
- *
- * @returns {void}
- *
- * @notes
- * This logic does not occur in jaiaGlobal.setMapMode to avoid
- * circular reference
- */
-function setOpenLayersCursor(cursor: Cursors) {
-    if (map.getTargetElement()) {
-        map.getTargetElement().style.cursor = cursor;
-    }
 }
 
 /**

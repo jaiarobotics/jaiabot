@@ -15,30 +15,42 @@ import { layersZIndexes } from "../zindex";
 
 class MeasureLayer extends JaiaVectorLayer {
     private length: number;
+    private draw: Draw;
 
     constructor() {
         super(LayerTitles.MEASURE_LAYER, layersZIndexes.get(LayerTitles.MEASURE_LAYER));
         this.getVectorLayer().setStyle(this.getLayerStyle());
+        this.length = 0;
+        this.draw = null;
     }
 
     getLength() {
         return this.length;
     }
 
+    getDraw() {
+        return this.draw;
+    }
+
     createDrawInteraction() {
-        const draw = new Draw({
+        this.draw = new Draw({
             source: this.getVectorLayer().getSource(),
             type: "LineString",
             style: this.getDrawStyle(),
         });
 
-        draw.on("drawstart", (event: DrawEvent) => {
+        this.draw.on("drawstart", (event: DrawEvent) => {
             this.getVectorLayer().getSource().clear();
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
                 this.length = getLength(event.target);
             });
         });
-        return draw;
+        return this.draw;
+    }
+
+    clearDrawInteraction() {
+        this.getVectorLayer().getSource().clear();
+        this.draw = null;
     }
 
     getLayerStyle() {
