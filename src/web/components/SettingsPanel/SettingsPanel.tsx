@@ -5,6 +5,7 @@ import { accordionTheme } from "../../utils/style";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { useState } from "react";
 import { trackPod } from "../../openlayers/controls/track-pod";
+import { info } from "../../notifications/notifications";
 
 import "./SettingsPanel.less";
 
@@ -25,16 +26,20 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 props.zoomToPod(false);
                 props.trackBot(null);
                 trackPod.stopTracking();
+                info("Tracking disabled.");
             } else {
                 props.zoomToPod(true);
                 props.trackBot("pod");
                 trackPod.startTracking("pod");
+                info("Tracking enabled.");
             }
         } else {
             if (isTrackingPod) {
                 trackPod.stopTracking();
+                info("Tracking disabled.");
             } else {
                 trackPod.startTracking("pod");
+                info("Tracking enabled.");
             }
             setIsTrackingPod(!isTrackingPod);
         }
