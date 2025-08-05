@@ -12,7 +12,7 @@ export default function MeasurePanel() {
     const formatDistance = () => {
         const distance = jaiaContext.measureDistance;
         if (distance > KILOMETER_FACTOR) {
-            return (distance / KILOMETER_FACTOR).toFixed(0) + " km";
+            return (distance / KILOMETER_FACTOR).toFixed(1) + " km";
         }
         return distance.toFixed(0) + " m";
     };

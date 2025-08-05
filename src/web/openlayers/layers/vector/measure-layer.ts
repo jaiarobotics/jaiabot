@@ -12,6 +12,7 @@ import { getLength } from "ol/sphere";
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
+import { OpenLayersColors } from "../../../style/openlayers/colors";
 
 class MeasureLayer extends JaiaVectorLayer {
     private length: number;
@@ -61,13 +62,13 @@ class MeasureLayer extends JaiaVectorLayer {
                 color: "rgba(255, 255, 255, 0.2)",
             }),
             stroke: new Stroke({
-                color: "#ffcc33",
+                color: OpenLayersColors.MEASURE_LINE,
                 width: 2,
             }),
             image: new CircleStyle({
                 radius: 7,
                 fill: new Fill({
-                    color: "#ffcc33",
+                    color: OpenLayersColors.MEASURE_LINE,
                 }),
             }),
         });
