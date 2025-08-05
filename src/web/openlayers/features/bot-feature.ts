@@ -46,48 +46,38 @@ export function generateBotFeature(botID: number) {
 
 function generateBotStyle(bot: Bot) {
     const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
+    const zIndex = getBotIconZIndex(bot);
 
-    const styles = [
-        new Style({
-            image: new Icon({
-                src: botIcon,
-                color: getBotIconColor(bot),
-                anchor: [0.5, 0.5],
-                rotation: heading,
-                rotateWithView: true,
-            }),
-            text: new Text({
-                text: bot.getBotID().toString(),
-                font: "bold 11pt sans-serif",
-                fill: new Fill({
-                    color: "black",
-                }),
-                rotateWithView: true,
-                offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
-                offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
-            }),
-            zIndex: getBotIconZIndex(bot),
+    const styles = [];
+
+    const botStyle = new Style({
+        image: new Icon({
+            src: botIcon,
+            color: getBotIconColor(bot),
+            anchor: [0.5, 0.5],
+            rotation: heading,
+            rotateWithView: true,
         }),
-    ];
+        text: new Text({
+            text: bot.getBotID().toString(),
+            font: "bold 11pt sans-serif",
+            fill: new Fill({
+                color: "black",
+            }),
+            rotateWithView: true,
+            offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
+            offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
+        }),
+        zIndex: zIndex,
+    });
+    styles.push(botStyle);
 
-    const gpsStyle = checkGPS(bot);
-    if (gpsStyle) {
+    if (bot.getMissionStatus()?.missionState?.includes("REACQUIRE_GPS")) {
+        const gpsStyle = generateGPSStyle(heading, zIndex);
         styles.push(gpsStyle);
     }
+
     return styles;
-}
-
-function checkGPS(bot: Bot) {
-    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
-
-    // Add GPS satellite if bot is in reacquire GPS state
-    const missionStatus = bot.getMissionStatus();
-
-    if (missionStatus?.missionState?.includes("REACQUIRE")) {
-        return generateGPSIconStyle(heading, bot);
-    }
-
-    return null;
 }
 
 function getBotIconColor(bot: Bot) {
@@ -113,7 +103,7 @@ function getBotIconZIndex(bot: Bot) {
     return botZIndex;
 }
 
-function generateGPSIconStyle(headingRadians: number, bot: Bot) {
+function generateGPSStyle(headingRadians: number, zIndex: number) {
     return new Style({
         image: new Icon({
             src: satellite,
@@ -123,6 +113,6 @@ function generateGPSIconStyle(headingRadians: number, bot: Bot) {
             rotation: headingRadians,
             rotateWithView: true,
         }),
-        zIndex: getBotIconZIndex(bot), // places the satellite below the bot to avoid being covered
+        zIndex: zIndex,
     });
 }
