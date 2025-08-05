@@ -21,11 +21,7 @@ import { angleToXY } from "../../utils/style";
 
 // Style
 import botIcon from "../../style/icons/bot.svg";
-import { MissionState } from "../../shared/JAIAProtobuf";
-
-const satellite = require("../../style/icons/satellite.svg") as string;
-
-const driftArrowColor = "darkorange";
+import satellite from "../../style/icons/satellite.svg";
 
 export function generateBotFeature(botID: number) {
     const bot = bots.getBot(botID);
@@ -48,21 +44,7 @@ export function generateBotFeature(botID: number) {
     return feature;
 }
 
-function getGpsStyle(headingRadians: number): Style {
-    return new Style({
-        image: new Icon({
-            src: satellite,
-            color: driftArrowColor,
-            anchor: [0.5, -1.25],
-            scale: 1.25,
-            rotation: headingRadians,
-            rotateWithView: true,
-        }),
-        zIndex: 104, // One higher than the bot's zIndex to prevent to the bot from covering the icon
-    });
-}
-
-function generateBotStyle(bot: Bot): Style[] {
+function generateBotStyle(bot: Bot) {
     const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
 
     const styles = [
@@ -88,18 +70,24 @@ function generateBotStyle(bot: Bot): Style[] {
         }),
     ];
 
+    const gpsStyle = checkGPS(bot);
+    if (gpsStyle) {
+        styles.push(gpsStyle);
+    }
+    return styles;
+}
+
+function checkGPS(bot: Bot) {
+    const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
+
     // Add GPS satellite if bot is in reacquire GPS state
     const missionStatus = bot.getMissionStatus();
 
-    if (
-        missionStatus.missionState ===
-            MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS ||
-        missionStatus.missionState === MissionState.IN_MISSION__PAUSE__REACQUIRE_GPS
-    ) {
-        styles.push(getGpsStyle(heading));
+    if (missionStatus?.missionState?.includes("REACQUIRE")) {
+        return generateGPSIconStyle(heading, bot);
     }
 
-    return styles;
+    return null;
 }
 
 function getBotIconColor(bot: Bot) {
@@ -123,4 +111,18 @@ function getBotIconZIndex(bot: Bot) {
     }
 
     return botZIndex;
+}
+
+function generateGPSIconStyle(headingRadians: number, bot: Bot) {
+    return new Style({
+        image: new Icon({
+            src: satellite,
+            color: "darkorange",
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
+            rotateWithView: true,
+        }),
+        zIndex: getBotIconZIndex(bot), // places the satellite below the bot to avoid being covered
+    });
 }
