@@ -13,6 +13,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
+import { KILOMETER_FACTOR } from "../../../utils/constants";
 
 class MeasureLayer extends JaiaVectorLayer {
     private length: number;
@@ -43,10 +44,14 @@ class MeasureLayer extends JaiaVectorLayer {
         this.draw.on("drawstart", (event: DrawEvent) => {
             this.getVectorLayer().getSource().clear();
             this.length = 0;
+            document.getElementById("measured-distance").innerHTML = this.formatDistance();
+
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
                 this.length = getLength(event.target);
+                document.getElementById("measured-distance").innerHTML = this.formatDistance();
             });
         });
+
         return this.draw;
     }
 
@@ -54,6 +59,13 @@ class MeasureLayer extends JaiaVectorLayer {
         this.getVectorLayer().getSource().clear();
         this.length = 0;
         this.draw = null;
+    }
+
+    formatDistance() {
+        if (this.length > KILOMETER_FACTOR) {
+            return (this.length / KILOMETER_FACTOR).toFixed(1) + " km";
+        }
+        return this.length.toFixed(0) + " m";
     }
 
     getLayerStyle() {

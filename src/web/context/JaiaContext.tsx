@@ -73,7 +73,6 @@ export interface JaiaContextType {
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
     mapMode: MapModes;
-    measureDistance: number;
 }
 
 export interface JaiaAction {
@@ -201,9 +200,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.SENT_COMMAND:
             return handleSentCommand(mutableState, action.command);
 
-        case JaiaActions.MEASURE_DISTANCE:
-            return handleMeasureDistance(mutableState);
-
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
 
@@ -282,7 +278,6 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
-    mutableState.measureDistance = 0;
 
     return mutableState;
 }
@@ -608,11 +603,6 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
     return mutableState;
 }
 
-function handleMeasureDistance(mutableState: JaiaContextType) {
-    mutableState.measureDistance = measureLayer.getLength();
-    return mutableState;
-}
-
 /**
  * Closes the Bot or Hub details panel
  *
@@ -904,10 +894,6 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     // Resets
     if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
-    }
-
-    if (mutableState.measureDistance !== 0) {
-        mutableState.measureDistance = 0;
     }
 
     jaiaGlobal.setMapMode(mapMode);
