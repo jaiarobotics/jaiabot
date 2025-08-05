@@ -116,29 +116,6 @@ class TrackPod {
             });
         }
     }
-
-    /**
-     * Gets the current pod status (for compatibility with existing code)
-     */
-    private getPodStatus(): PodStatus {
-        const podStatus: PodStatus = {
-            bots: {},
-            hubs: {},
-            contacts: {},
-            controllingClientId: "",
-        };
-
-        // Convert bots map to the expected format
-        for (const [botId, bot] of bots.getBots().entries()) {
-            podStatus.bots[botId.toString()] = {
-                bot_id: bot.getBotID(),
-                location: bot.getLocation(),
-                // Add other properties as needed
-            } as any;
-        }
-
-        return podStatus;
-    }
 }
 
 // Export singleton instance
