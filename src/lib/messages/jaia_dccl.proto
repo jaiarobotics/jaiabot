@@ -33,6 +33,7 @@ message Command
         (dccl.field) = { min: 0 max: 255 },
         (jaia.field).rest_api.presence = OMITTED  // specified in 'targets'
     ];
+
     required uint64 time = 2 [
         (dccl.field) = {
             codec: "dccl.time2"
@@ -46,6 +47,8 @@ message Command
     // Special case: not sent in message - written upon receipt based on the
     // Link traversed
     optional Link link = 3 [(dccl.field).omit = true];
+
+    optional uint32 from_hub_id = 4 [(dccl.field) = { min: 0 max: 30 }];
 
     enum CommandType
     {

@@ -24,19 +24,28 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/transporter_config.proto";
+import "jaiabot/messages/link.proto";
+import "dccl/option_extensions.proto";
 
 package jaiabot.config;
 
-message JaiabotEngineering
+message CommsManager
 {
-    // required parameters for ApplicationBase3 class
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     optional goby.middleware.protobuf.AppConfig app = 1;
-    // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    required int32 bot_id = 10;
-    required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
+    message SubscribeRule
+    {
+        required jaiabot.protobuf.Link link = 1;
+        required bool subscribe_on_start = 2;
+        required bool resubscribe = 3;
+        optional int32 resubscribe_interval = 4
+            [(dccl.field).units = { base_dimensions: "T" }];
+    }
 
-    required uint32 subnet_mask = 13;
+    repeated SubscribeRule subscribe = 3;
 }

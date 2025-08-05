@@ -1,5 +1,6 @@
 from common import is_simulation, is_runtime
 from common import udp
+from common.hub import expected_hubs_from_inventory
 import common.bot
 import netifaces
 import math
@@ -17,6 +18,8 @@ hub_node_id=0
 # same as jaiabot/src/lib/comms/comms.h
 number_of_hubs_max=31
 number_of_bots_max=151
+
+default_hub_id=1
 
 # Broadcast is modem id = 0 in Goby, so increment vehicle id by 1 to get base modem id
 def base_modem_id(node_id):
@@ -66,14 +69,17 @@ def wifi_remotes(this_node_id, fleet_index, hub_id):
     first_node_id=0
     
     for node_id in range(first_node_id, number_of_bots_max+first_node_id+1):
-        if this_node_id != node_id:
+        # skip self and hub, we'll add the hub in later with wifi_hub_remotes
+        if this_node_id != node_id and node_id != hub_node_id:
             remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
     return remotes
 
 def wifi_hub_remotes(this_node_id, fleet_index):
     hub_eps=''
-    for hub_id in range(0, number_of_hubs_max):
-        hub_eps+='hub_endpoint: { hub_id: ' + str(hub_id) + ' remote { modem_id: ' + str(base_modem_id(hub_node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' } }\n'
+    broadcast_modem_id=0
+    for hub_id in expected_hubs_from_inventory():
+        # use broadcast ID so that UDP driver will transmit to all hubs in use
+        hub_eps+='# hub ' + str(hub_id) + '\nremote { modem_id: ' + str(broadcast_modem_id) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' }\n'
     return hub_eps
 
 def wifi_mac_slots(node_id):

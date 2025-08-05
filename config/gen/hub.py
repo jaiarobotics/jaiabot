@@ -36,8 +36,8 @@ except:
 is_cloudhub = hub_index == cloudhub_index
 if not is_cloudhub:
     cloudhub_type=''
-    
-log_file_dir = common.jaia_log_dir + '/hub'
+
+log_file_dir = common.jaia_log_dir + '/hub/'  + str(hub_index)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir
 
@@ -182,17 +182,9 @@ if common.app == 'gobyd':
                                      link_block=link_block,
                                      required_clients=required_clients))
 elif common.app == 'goby_intervehicle_portal':
-    persist_subscriptions = 'persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'
-
-    # don't persist subscriptions on Cloudhub to reduce unnecessary Iridium usage for bots that aren't in use
-    # this means that if Cloudhub is restarted, the bots will also need to be restarted, but that should cause little issue for normal operations
-    if is_cloudhub:
-        persist_subscriptions = ''
-    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     persist_subscriptions=persist_subscriptions,
                                      link_block=link_block))
 elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
@@ -266,7 +258,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      hub_id=hub_index,
-                                     expected_bots=common.hub.expected_bots_from_inventory(),
+                                     expected_hubs=f"id: {common.hub.expected_hubs_from_inventory()}",
                                      fleet_id=fleet_index,
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      hub_log_offload_dir=common.hub_log_offload_dir,

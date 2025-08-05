@@ -46,6 +46,10 @@ constexpr int hub_id_min{0};
 constexpr int hub_id_max{30};
 constexpr int hub_id_total{hub_id_max - hub_id_min + 1};
 
+// All bots use the same hub ID for bot-hub comms, regardless of the actual
+// Hub ID - this allows multicast-style comms to the hub(s).
+constexpr int default_hub_id{1};
+
 inline void check_bot_id_bounds(int bot_id)
 {
     if (bot_id < bot_id_min)
@@ -68,10 +72,20 @@ inline void check_hub_id_bounds(int hub_id)
                                  " is greater than Hub ID maximum"));
 }
 
-inline int hub_modem_id(unsigned subnet_mask, jaiabot::protobuf::Link link)
+inline int hub_modem_id(unsigned subnet_mask, jaiabot::protobuf::Link link, int hub_id = -1)
 {
     unsigned num_modems_in_subnet = (0xFFFF ^ subnet_mask) + 1;
-    return static_cast<int>(link) * num_modems_in_subnet + hub_base_modem_id;
+    if (link == jaiabot::protobuf::LINK_HUB2HUB)
+    {
+        if (hub_id == -1)
+            throw(jaiabot::Exception("Hub ID must be set for LINK_HUB2HUB"));
+
+        return hub_id + 1 + static_cast<int>(link) * num_modems_in_subnet;
+    }
+    else
+    {
+        return static_cast<int>(link) * num_modems_in_subnet + hub_base_modem_id;
+    }
 }
 
 inline int modem_id_from_bot_id(int bot_id, unsigned subnet_mask, jaiabot::protobuf::Link link)
@@ -105,18 +119,18 @@ void set_link_type(DCCLMessageWithLinkField& msg, int src_modem_id, unsigned sub
     msg.set_link(link_from_modem_id(src_modem_id, subnet_mask));
 }
 
-
-inline goby::acomms::protobuf::DynamicBufferConfig buffer_for_link(const jaiabot::protobuf::LinkAwareBufferConfig& link_aware_buffer, jaiabot::protobuf::Link link)
+inline goby::acomms::protobuf::DynamicBufferConfig
+buffer_for_link(const jaiabot::protobuf::LinkAwareBufferConfig& link_aware_buffer,
+                jaiabot::protobuf::Link link)
 {
     auto buffer = link_aware_buffer.buffer_base();
-    for(const auto& override_buffer : link_aware_buffer.buffer_override())
+    for (const auto& override_buffer : link_aware_buffer.buffer_override())
     {
-        if(override_buffer.link() == link)
+        if (override_buffer.link() == link)
             buffer.MergeFrom(override_buffer.buffer());
     }
     return buffer;
 }
-
 
 } // namespace comms
 } // namespace jaiabot
