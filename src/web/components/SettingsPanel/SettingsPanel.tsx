@@ -4,6 +4,7 @@ import { ThemeProvider } from "@emotion/react";
 import { accordionTheme } from "../../utils/style";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { useState } from "react";
+import { trackPod } from "../../openlayers/controls/track-pod";
 
 import "./SettingsPanel.less";
 
@@ -22,13 +23,19 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         if (props.trackBot && props.zoomToPod && props.trackingTarget !== undefined) {
             if (isPodCurrentlyTracked) {
                 props.zoomToPod(false);
-                props.trackBot(null); // ✅ use null to disable
+                props.trackBot(null);
+                trackPod.stopTracking();
             } else {
                 props.zoomToPod(true);
                 props.trackBot("pod");
+                trackPod.startTracking("pod");
             }
         } else {
-            // Visual-only toggle (when not connected to real props)
+            if (isTrackingPod) {
+                trackPod.stopTracking();
+            } else {
+                trackPod.startTracking("pod");
+            }
             setIsTrackingPod(!isTrackingPod);
         }
     };
