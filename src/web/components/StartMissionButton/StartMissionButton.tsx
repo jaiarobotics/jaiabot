@@ -101,11 +101,7 @@ export default function StartMissionButton(props: Props) {
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {
-                jaiaDispatch({
-                    type: JaiaActions.SENT_COMMAND,
-                    botID: props.bot.getBotID(),
-                    command: startMissionCommand,
-                });
+                jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
             }
         }
     };
