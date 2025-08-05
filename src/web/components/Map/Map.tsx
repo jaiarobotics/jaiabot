@@ -41,7 +41,7 @@ export default function Map() {
                 handleAddRallyPoint(event.coordinate);
                 return;
             case MapModes.MEASURE:
-                console.log("Measure Point");
+                handleMeasureClick();
                 return;
         }
 
@@ -73,6 +73,24 @@ export default function Map() {
         }
 
         handleAddWaypointClick(event.coordinate);
+    };
+
+    /**
+     * Dispatches action to add a rally point to the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleAddRallyPoint = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.ADD_RALLY_POINT,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    const handleMeasureClick = () => {
+        jaiaDispatch({ type: JaiaActions.MEASURE_DISTANCE });
     };
 
     /**
@@ -153,20 +171,6 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
             type: JaiaActions.MOVE_WAYPOINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
-    };
-
-    /**
-     * Dispatches action to add a rally point to the map
-     *
-     * @param {Coordinate} coordinate Location of click on map
-     * @returns {void}
-     */
-    const handleAddRallyPoint = (coordinate: Coordinate) => {
-        const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
     };

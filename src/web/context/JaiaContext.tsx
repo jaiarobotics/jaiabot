@@ -12,12 +12,12 @@ import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 
-import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
+import { measureLayer } from "../openlayers/layers/vector/measure-layer";
 
 import { JaiaActions } from "./jaia-actions";
 import {
@@ -73,6 +73,7 @@ export interface JaiaContextType {
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
     mapMode: MapModes;
+    measureDistance: number;
 }
 
 export interface JaiaAction {
@@ -188,9 +189,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
 
-        case JaiaActions.SENT_COMMAND:
-            return handleSentCommand(mutableState, action.command);
-
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
 
@@ -199,6 +197,12 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.SEND_RALLY_MISSION:
             return handleSendRallyMission(mutableState);
+
+        case JaiaActions.SENT_COMMAND:
+            return handleSentCommand(mutableState, action.command);
+
+        case JaiaActions.MEASURE_DISTANCE:
+            return handleMeasureDistance(mutableState);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -278,6 +282,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
+    mutableState.measureDistance = 0;
 
     return mutableState;
 }
@@ -417,23 +422,6 @@ function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds:
 }
 
 /**
- * Turns off edit mode upon starting a mission
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {number} missionID Checks sent mission against missionID in edit mode
- * @returns {void}
- */
-function handleSendMission(mutableState: JaiaContextType, missionID: number) {
-    if (missionSet.getMissionIDInEditMode() === missionID) {
-        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        mutableState.missionIDInEditMode = UNASSIGNED_ID;
-    }
-
-    missionLayer.updateFeatures();
-    return mutableState;
-}
-
-/**
  * Makes call to add waypoint if mission is in edit mode
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -555,29 +543,6 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
 }
 
 /**
- * Sets the mode of the Bot based on the command sent
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {Command} command Command sent to Bot
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleSentCommand(mutableState: JaiaContextType, command: Command) {
-    const bot = bots.getBot(command.bot_id);
-
-    switch (command.type) {
-        case CommandType.MISSION_PLAN:
-            handleSentMissionPlanCommand(mutableState, command);
-            break;
-        case CommandType.REMOTE_CONTROL_TASK:
-            bot.setMode(BotModes.REMOTE_CONTROL);
-            break;
-        default:
-            bot.setMode(BotModes.MISSION);
-    }
-    return mutableState;
-}
-
-/**
  * Makes call to update the rally point layer
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -617,6 +582,34 @@ function handleSendRallyMission(mutableState: JaiaContextType) {
 
     syncOpenLayers();
 
+    return mutableState;
+}
+
+/**
+ * Sets the mode of the Bot based on the command sent
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {Command} command Command sent to Bot
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSentCommand(mutableState: JaiaContextType, command: Command) {
+    const bot = bots.getBot(command.bot_id);
+
+    switch (command.type) {
+        case CommandType.MISSION_PLAN:
+            handleSentMissionPlanCommand(mutableState, command);
+            break;
+        case CommandType.REMOTE_CONTROL_TASK:
+            bot.setMode(BotModes.REMOTE_CONTROL);
+            break;
+        default:
+            bot.setMode(BotModes.MISSION);
+    }
+    return mutableState;
+}
+
+function handleMeasureDistance(mutableState: JaiaContextType) {
+    mutableState.measureDistance = measureLayer.getLength();
     return mutableState;
 }
 
@@ -911,6 +904,10 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     // Resets
     if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
+    }
+
+    if (mutableState.measureDistance !== 0) {
+        mutableState.measureDistance = 0;
     }
 
     jaiaGlobal.setMapMode(mapMode);

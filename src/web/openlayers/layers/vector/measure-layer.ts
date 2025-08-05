@@ -41,6 +41,7 @@ class MeasureLayer extends JaiaVectorLayer {
 
         this.draw.on("drawstart", (event: DrawEvent) => {
             this.getVectorLayer().getSource().clear();
+            this.length = 0;
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
                 this.length = getLength(event.target);
             });
@@ -50,6 +51,7 @@ class MeasureLayer extends JaiaVectorLayer {
 
     clearDrawInteraction() {
         this.getVectorLayer().getSource().clear();
+        this.length = 0;
         this.draw = null;
     }
 
