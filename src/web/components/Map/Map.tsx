@@ -41,7 +41,7 @@ export default function Map() {
                 handleAddRallyPoint(event.coordinate);
                 return;
             case MapModes.MEASURE:
-                handleMeasureClick();
+                // Measurement clicks handled by measure layer
                 return;
         }
 
@@ -87,10 +87,6 @@ export default function Map() {
             type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
-    };
-
-    const handleMeasureClick = () => {
-        jaiaDispatch({ type: JaiaActions.MEASURE_DISTANCE });
     };
 
     /**
