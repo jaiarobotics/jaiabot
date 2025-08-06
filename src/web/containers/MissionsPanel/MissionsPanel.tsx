@@ -7,6 +7,7 @@ import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMiss
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { scrollMissionsList } from "../../utils/style";
 
 // MUI | MDI
@@ -63,7 +64,7 @@ export default function MissionsPanel() {
                     aria-label="add-mission"
                     onClick={() => handleAddMissionClick()}
                 >
-                    <Icon path={mdiPlus} title="Add mission" />
+                    <Icon path={mdiPlus} size={MDI_BUTTON_SIZE} title="Add mission" />
                 </Button>
                 <DeleteMissionButton deleteAll={true} />
                 <Button
@@ -71,21 +72,21 @@ export default function MissionsPanel() {
                     aria-label="load-missions"
                     onClick={() => handleLoadMissionsClick()}
                 >
-                    <Icon path={mdiFolderOpen} title="Load missions" />
+                    <Icon path={mdiFolderOpen} size={MDI_BUTTON_SIZE} title="Load missions" />
                 </Button>
                 <Button
                     className="jaia-button"
                     aria-label="save-missions"
                     onClick={() => handleSaveMissionsClick()}
                 >
-                    <Icon path={mdiContentSave} title="Save missions" />
+                    <Icon path={mdiContentSave} size={MDI_BUTTON_SIZE} title="Save missions" />
                 </Button>
                 <Button
                     className="jaia-button"
                     aria-label="auto-assign-bots"
                     onClick={() => handleAutoAssignClick()}
                 >
-                    <Icon path={mdiAutoFix} title="Auto assign Bots" />
+                    <Icon path={mdiAutoFix} size={MDI_BUTTON_SIZE} title="Auto assign Bots" />
                 </Button>
             </div>
             <MissionsList />

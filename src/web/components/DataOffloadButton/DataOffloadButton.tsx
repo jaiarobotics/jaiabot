@@ -9,6 +9,7 @@ import { mdiDownload } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
@@ -85,7 +86,7 @@ export default function DataOffloadButton(props: Props) {
                 aria-label={"data-offload-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiDownload} title="Data Offload" />
+                <Icon path={mdiDownload} size={MDI_BUTTON_SIZE} title="Data Offload" />
             </Button>
             <DataOffloadDialog
                 isVisible={isDialogVisible}

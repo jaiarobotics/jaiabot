@@ -9,6 +9,7 @@ import { mdiSkipNext } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 import { Command, CommandType } from "../../types/protobuf-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
@@ -74,7 +75,7 @@ export default function NextTaskButton(props: Props) {
                 aria-label={"next-task"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiSkipNext} title="Next Task" />
+                <Icon path={mdiSkipNext} size={MDI_BUTTON_SIZE} title="Next Task" />
             </Button>
             <NextTaskDialog
                 isVisible={isDialogVisible}
