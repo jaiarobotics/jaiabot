@@ -124,6 +124,37 @@ class MissionsManager {
         this.botsToMissions.clear();
         this.missionsToBots.clear();
     }
+
+    /**
+     * Gets the current mission assignments for saving to history
+     *
+     * @returns {Array} Array of bot to mission assignments
+     */
+    getAssignments() {
+        const assignments: { botID: number; missionID: number }[] = [];
+        for (const [botID, missionID] of this.botsToMissions) {
+            if (missionID !== UNASSIGNED_ID) {
+                assignments.push({ botID, missionID });
+            }
+        }
+        return assignments;
+    }
+
+    /**
+     * Restores mission assignments from history data
+     *
+     * @param {Array} assignments Array of bot to mission assignments
+     * @returns {void}
+     */
+    restoreAssignments(assignments: { botID: number; missionID: number }[]) {
+        // Clear existing assignments
+        this.clear();
+
+        // Restore assignments
+        assignments.forEach(({ botID, missionID }) => {
+            this.assign(botID, missionID);
+        });
+    }
 }
 
 export const missionsManager = new MissionsManager();

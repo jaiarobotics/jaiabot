@@ -61,6 +61,7 @@ export interface MissionHistoryState {
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
     rallyPoints: { id: number; location: GeographicCoordinate }[];
+    missionAssignments: { botID: number; missionID: number }[];
     timestamp: number;
 }
 
@@ -156,33 +157,45 @@ export const JaiaDispatchContext = createContext(null);
  * performance issues. The operator can undo up to 10 actions.
  */
 function updateMissionHistory(mutableState: JaiaContextType) {
-    const missionHistoryMaxLen = 11;
+    try {
+        console.log("updateMissionHistory called");
+        const missionHistoryMaxLen = 11;
 
-    // Create a snapshot of the current mission state
-    const historySnapshot: MissionHistoryState = {
-        missions: cloneDeep(mutableState.missions),
-        missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
-        missionIDInEditMode: mutableState.missionIDInEditMode,
-        missionSpeeds: cloneDeep(mutableState.missionSpeeds),
-        rallyPoints: cloneDeep(
-            rallyLayer
-                .getVectorLayer()
-                .getSource()
-                .getFeatures()
-                .map((feature) => ({
-                    id: feature.get("id"),
-                    location: feature.get("location"),
-                })),
-        ),
-        timestamp: Date.now(),
-    };
+        // Create a snapshot of the current mission state
+        const historySnapshot: MissionHistoryState = {
+            missions: cloneDeep(mutableState.missions),
+            missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
+            missionIDInEditMode: mutableState.missionIDInEditMode,
+            missionSpeeds: cloneDeep(mutableState.missionSpeeds),
+            rallyPoints: cloneDeep(
+                rallyLayer
+                    .getVectorLayer()
+                    .getSource()
+                    .getFeatures()
+                    .map((feature) => ({
+                        id: feature.get("id"),
+                        location: feature.get("location"),
+                    })),
+            ),
+            missionAssignments: cloneDeep(missionsManager.getAssignments()),
+            timestamp: Date.now(),
+        };
 
-    // Remove oldest entry if we've reached the maximum length
-    if (mutableState.missionHistory.length === missionHistoryMaxLen) {
-        mutableState.missionHistory.shift();
+        // Remove oldest entry if we've reached the maximum length
+        if (mutableState.missionHistory.length === missionHistoryMaxLen) {
+            mutableState.missionHistory.shift();
+        }
+
+        mutableState.missionHistory.push(historySnapshot);
+        console.log(
+            "History snapshot saved. Total history entries:",
+            mutableState.missionHistory.length,
+        );
+    } catch (error) {
+        console.error("Error in updateMissionHistory:", error);
+        console.error("Stack trace:", error.stack);
+        // Don't throw the error to prevent cascading failures
     }
-
-    mutableState.missionHistory.push(historySnapshot);
 }
 
 /**
@@ -212,36 +225,68 @@ export function canUndoMission(state: JaiaContextType): boolean {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleUndoLastAction(mutableState: JaiaContextType) {
-    if (!canUndo(mutableState)) {
+    try {
+        console.log("handleUndoLastAction called");
+        if (!canUndo(mutableState)) {
+            console.log("No history available to undo");
+            return mutableState;
+        }
+
+        // Get the last saved state
+        const lastState = mutableState.missionHistory.pop();
+        console.log("Restoring state from:", lastState?.timestamp);
+
+        if (lastState) {
+            // Restore mission data to the missionSet singleton
+            console.log("Restoring missions to missionSet");
+            missionSet.setMissions(lastState.missions);
+            missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
+            missionSet.setMissionSpeeds(lastState.missionSpeeds);
+
+            // Restore mission assignments to the missionsManager
+            console.log("Restoring mission assignments");
+            missionsManager.restoreAssignments(lastState.missionAssignments);
+
+            // Restore rally points using the proper restoration method
+            console.log("Restoring rally points");
+            rallyLayer.restoreRallyPoints(lastState.rallyPoints);
+
+            // Update context state
+            console.log("Updating context state");
+            mutableState.missions = lastState.missions;
+            mutableState.missionAccordionStates = lastState.missionAccordionStates;
+            mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
+            mutableState.missionSpeeds = lastState.missionSpeeds;
+
+            // Reset any selected states that might cause conflicts after undo
+            console.log("Resetting selected states");
+            jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+            mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+            mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+            jaiaGlobal.setSelectedWaypoint({
+                waypointNum: UNASSIGNED_ID,
+                missionID: UNASSIGNED_ID,
+            });
+            mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+
+            // Close any open panels that might reference stale state
+            mutableState.visiblePanel = ButtonNames.NONE;
+            mutableState.visibleDetails = NodeTypes.NONE;
+
+            // Ensure proper synchronization of all map layers
+            console.log("Synchronizing map layers");
+            syncOpenLayers();
+
+            console.log("Undo completed successfully");
+        }
+
+        return mutableState;
+    } catch (error) {
+        console.error("Error in handleUndoLastAction:", error);
+        console.error("Stack trace:", error.stack);
+        // Return state unchanged to prevent crash
         return mutableState;
     }
-
-    // Get the last saved state
-    const lastState = mutableState.missionHistory.pop();
-
-    if (lastState) {
-        // Restore mission data to the missionSet singleton
-        missionSet.setMissions(lastState.missions);
-        missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
-        missionSet.setMissionSpeeds(lastState.missionSpeeds);
-
-        // Restore rally points
-        rallyLayer.getVectorLayer().getSource().clear();
-        lastState.rallyPoints.forEach((rallyData) => {
-            rallyLayer.addRallyPoint(rallyData.location);
-        });
-
-        // Update context state
-        mutableState.missions = lastState.missions;
-        mutableState.missionAccordionStates = lastState.missionAccordionStates;
-        mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
-        mutableState.missionSpeeds = lastState.missionSpeeds;
-
-        // Update visual layers
-        missionLayer.updateFeatures();
-    }
-
-    return mutableState;
 }
 
 /**
@@ -571,37 +616,64 @@ function handleSendMission(mutableState: JaiaContextType, missionID: number) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    const selectedNode = jaiaGlobal.getSelectedNode();
+    try {
+        console.log("handleAddWaypoint called with location:", location);
+        console.log("Current missionIDInEditMode:", missionSet.getMissionIDInEditMode());
+        console.log("Current selectedNode:", jaiaGlobal.getSelectedNode());
 
-    if (
-        selectedNode.type === NodeTypes.BOT &&
-        missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
-    ) {
-        // Save current state to history before making changes
-        updateMissionHistory(mutableState);
+        const missionIDInEditMode = missionSet.getMissionIDInEditMode();
+        const selectedNode = jaiaGlobal.getSelectedNode();
 
-        // Create new mission and add first waypoint for selected Bot without mission
-        const newMission = new Mission();
-        const newMissionID = missionSet.addMission(newMission);
-        newMission.addWaypoint(location);
-        missionsManager.assign(selectedNode.id, newMissionID);
-        mutableState.missionIDInEditMode = newMissionID;
-        mutableState.missionAccordionStates[newMissionID] = true;
+        if (
+            selectedNode.type === NodeTypes.BOT &&
+            missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
+        ) {
+            console.log("Creating new mission for bot:", selectedNode.id);
+            // Save current state to history before making changes
+            updateMissionHistory(mutableState);
 
-        missionLayer.updateFeatures();
-    } else if (missionIDInEditMode !== UNASSIGNED_ID) {
-        // Save current state to history before making changes
-        updateMissionHistory(mutableState);
+            // Create new mission and add first waypoint for selected Bot without mission
+            const newMission = new Mission();
+            const newMissionID = missionSet.addMission(newMission);
+            newMission.addWaypoint(location);
+            missionsManager.assign(selectedNode.id, newMissionID);
+            mutableState.missionIDInEditMode = newMissionID;
+            mutableState.missionAccordionStates[newMissionID] = true;
 
-        // Add waypoint to mission in edit mode
-        const mission = missionSet.getMission(missionIDInEditMode);
-        mission.addWaypoint(location);
+            missionLayer.updateFeatures();
+        } else if (missionIDInEditMode !== UNASSIGNED_ID) {
+            console.log("Adding waypoint to existing mission:", missionIDInEditMode);
+            // Check if the mission still exists before trying to add waypoint
+            const mission = missionSet.getMission(missionIDInEditMode);
+            if (mission) {
+                console.log("Mission found, adding waypoint");
+                // Save current state to history before making changes
+                updateMissionHistory(mutableState);
 
-        missionLayer.updateFeatures();
+                // Add waypoint to mission in edit mode
+                mission.addWaypoint(location);
+                missionLayer.updateFeatures();
+            } else {
+                console.warn(
+                    "Mission not found, resetting edit mode. Mission ID was:",
+                    missionIDInEditMode,
+                );
+                // Mission no longer exists, reset edit mode
+                missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+                mutableState.missionIDInEditMode = UNASSIGNED_ID;
+            }
+        } else {
+            console.log("No action taken - no bot selected and no mission in edit mode");
+        }
+
+        console.log("handleAddWaypoint completed successfully");
+        return mutableState;
+    } catch (error) {
+        console.error("Error in handleAddWaypoint:", error);
+        console.error("Stack trace:", error.stack);
+        // Return state unchanged to prevent crash
+        return mutableState;
     }
-
-    return mutableState;
 }
 
 /**
