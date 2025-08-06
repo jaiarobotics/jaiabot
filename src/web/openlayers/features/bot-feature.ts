@@ -21,6 +21,7 @@ import { angleToXY } from "../../utils/style";
 
 // Style
 import botIcon from "../../style/icons/bot.svg";
+import satellite from "../../style/icons/satellite.svg";
 
 export function generateBotFeature(botID: number) {
     const bot = bots.getBot(botID);
@@ -45,8 +46,11 @@ export function generateBotFeature(botID: number) {
 
 function generateBotStyle(bot: Bot) {
     const heading = degreesToRadians(bot.getBotSensors().getIMU().getHeading()) ?? 0;
+    const zIndex = getBotIconZIndex(bot);
 
-    return new Style({
+    const styles = [];
+
+    const botStyle = new Style({
         image: new Icon({
             src: botIcon,
             color: getBotIconColor(bot),
@@ -64,8 +68,16 @@ function generateBotStyle(bot: Bot) {
             offsetX: -TEXT_OFFSET_RADIUS * angleToXY(heading).x,
             offsetY: -TEXT_OFFSET_RADIUS * angleToXY(heading).y,
         }),
-        zIndex: getBotIconZIndex(bot),
+        zIndex: zIndex,
     });
+    styles.push(botStyle);
+
+    if (bot.getMissionStatus()?.missionState?.includes("REACQUIRE_GPS")) {
+        const gpsStyle = generateGPSStyle(heading, zIndex);
+        styles.push(gpsStyle);
+    }
+
+    return styles;
 }
 
 function getBotIconColor(bot: Bot) {
@@ -89,4 +101,18 @@ function getBotIconZIndex(bot: Bot) {
     }
 
     return botZIndex;
+}
+
+function generateGPSStyle(headingRadians: number, zIndex: number) {
+    return new Style({
+        image: new Icon({
+            src: satellite,
+            color: "darkorange",
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
+            rotateWithView: true,
+        }),
+        zIndex: zIndex,
+    });
 }
