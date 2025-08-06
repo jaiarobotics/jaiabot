@@ -16,7 +16,12 @@ import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
+import {
+    MDI_BUTTON_SIZE,
+    MIN_BATTERY_PERCENT,
+    NO_COMMS_STATUS_AGE,
+    UNASSIGNED_ID,
+} from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 
 interface Props {
@@ -96,11 +101,7 @@ export default function StartMissionButton(props: Props) {
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {
-                jaiaDispatch({
-                    type: JaiaActions.SENT_COMMAND,
-                    botID: props.bot.getBotID(),
-                    command: startMissionCommand,
-                });
+                jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
             }
         }
     };
@@ -112,7 +113,7 @@ export default function StartMissionButton(props: Props) {
                 aria-label={"start-mission-individual-bot"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiPlay} title="Start Mission" />
+                <Icon path={mdiPlay} size={MDI_BUTTON_SIZE} title="Start Mission" />
             </Button>
             <StartMissionDialog
                 isVisible={isDialogVisible}

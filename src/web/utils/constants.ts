@@ -20,3 +20,4 @@ export const MIN_SPEED = 0.5; // meters per second
 export const MAX_SPEED = 3; // meters per second
 export const HUB_COMMS_INNER_RADIUS = 250; // meters
 export const HUB_COMMS_OUTER_RADIUS = 500; // meters
+export const MDI_BUTTON_SIZE = 1.3;

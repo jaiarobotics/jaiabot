@@ -171,9 +171,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_MISSION_SPEEDS:
             return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
-        case JaiaActions.SEND_MISSION:
-            return handleSendMission(mutableState, action.missionID);
-
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -193,7 +190,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleToggleBottomDive(mutableState);
 
         case JaiaActions.SENT_COMMAND:
-            return handleSentCommand(mutableState, action.botID, action.command);
+            return handleSentCommand(mutableState, action.command);
 
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
@@ -562,21 +559,15 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  * Sets the mode of the Bot based on the command sent
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {number} botID Bot receiving the command
  * @param {Command} command Command sent to Bot
  * @returns {JaiaContextType} Updated mutable state object
  */
-function handleSentCommand(mutableState: JaiaContextType, botID: number, command: Command) {
-    const bot = bots.getBot(botID);
+function handleSentCommand(mutableState: JaiaContextType, command: Command) {
+    const bot = bots.getBot(command.bot_id);
 
     switch (command.type) {
         case CommandType.MISSION_PLAN:
-            const movement = command.plan.movement;
-            if (movement === MovementType.TRANSIT) {
-                bot.setMode(BotModes.MISSION);
-            } else if (movement === MovementType.REMOTE_CONTROL) {
-                bot.setMode(BotModes.REMOTE_CONTROL);
-            }
+            handleSentMissionPlanCommand(mutableState, command);
             break;
         case CommandType.REMOTE_CONTROL_TASK:
             bot.setMode(BotModes.REMOTE_CONTROL);
@@ -1081,4 +1072,27 @@ function resetSelectedWaypoint(mutableState: JaiaContextType) {
 
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+}
+
+/**
+ * Sets the mode of the Bot and turns off edit mode for the mission underway
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {Command} command Provides access to the Bot and movement type
+ * @returns {void}
+ */
+function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Command) {
+    const bot = bots.getBot(command.bot_id);
+    const movement = command.plan.movement;
+    if (movement === MovementType.TRANSIT) {
+        bot.setMode(BotModes.MISSION);
+    } else if (movement === MovementType.REMOTE_CONTROL) {
+        bot.setMode(BotModes.REMOTE_CONTROL);
+    }
+
+    const missionID = missionsManager.getMissionID(bot.getBotID());
+    if (missionSet.getMissionIDInEditMode() === missionID) {
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+        mutableState.missionIDInEditMode = UNASSIGNED_ID;
+    }
 }
