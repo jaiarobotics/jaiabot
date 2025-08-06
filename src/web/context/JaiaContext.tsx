@@ -59,6 +59,8 @@ export interface MissionHistoryState {
     missions: Map<number, Mission>;
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    rallyPoints: { id: number; location: GeographicCoordinate }[];
     timestamp: number;
 }
 
@@ -161,6 +163,17 @@ function updateMissionHistory(mutableState: JaiaContextType) {
         missions: cloneDeep(mutableState.missions),
         missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
         missionIDInEditMode: mutableState.missionIDInEditMode,
+        missionSpeeds: cloneDeep(mutableState.missionSpeeds),
+        rallyPoints: cloneDeep(
+            rallyLayer
+                .getVectorLayer()
+                .getSource()
+                .getFeatures()
+                .map((feature) => ({
+                    id: feature.get("id"),
+                    location: feature.get("location"),
+                })),
+        ),
         timestamp: Date.now(),
     };
 
@@ -210,11 +223,19 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
         // Restore mission data to the missionSet singleton
         missionSet.setMissions(lastState.missions);
         missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
+        missionSet.setMissionSpeeds(lastState.missionSpeeds);
+
+        // Restore rally points
+        rallyLayer.getVectorLayer().getSource().clear();
+        lastState.rallyPoints.forEach((rallyData) => {
+            rallyLayer.addRallyPoint(rallyData.location);
+        });
 
         // Update context state
         mutableState.missions = lastState.missions;
         mutableState.missionAccordionStates = lastState.missionAccordionStates;
         mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
+        mutableState.missionSpeeds = lastState.missionSpeeds;
 
         // Update visual layers
         missionLayer.updateFeatures();
@@ -517,6 +538,9 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     missionSet.setMissionSpeeds(missionSpeeds);
     mutableState.missionSpeeds = missionSpeeds;
     return mutableState;
@@ -610,6 +634,9 @@ function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, location);
 
@@ -626,6 +653,9 @@ function handleMoveWaypoint(mutableState: JaiaContextType, location: GeographicC
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleSelectTask(mutableState: JaiaContextType, taskType: TaskType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     const task = getWaypoint().getTask();
 
     if (task) {
@@ -648,6 +678,9 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     const task = getWaypoint().getTask();
     task.setParameter(taskParameterPair);
     return mutableState;
@@ -660,6 +693,9 @@ function handleChangeTaskParameter(
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleToggleBottomDive(mutableState: JaiaContextType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     const task = getWaypoint().getTask();
 
     if (task.getIsBottomDive()) {
@@ -702,6 +738,9 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     rallyLayer.addRallyPoint(location);
     setOpenLayersCursor(Cursors.DEFAULT);
     jaiaGlobal.setMapMode(MapModes.DEFAULT);
@@ -716,6 +755,9 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteRallyPoint(mutableState: JaiaContextType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     rallyLayer.deleteRallyPoint(mutableState.selectedRallyPoint.id);
     mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     mutableState.visiblePanel = ButtonNames.NONE;
