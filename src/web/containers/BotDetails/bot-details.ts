@@ -21,12 +21,12 @@ export function getStatusAgeClassName(portalStatusAge: number) {
     const healthDegradedTimeout = 10;
     const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
-    if (statusAgeSeconds > healthFailedTimeout) {
-        return "healthFailed";
+    if (statusAgeSeconds >= healthFailedTimeout) {
+        return "health-state-failed";
     }
 
     if (statusAgeSeconds > healthDegradedTimeout) {
-        return "healthDegraded";
+        return "health-state-degraded";
     }
 
     return "";
