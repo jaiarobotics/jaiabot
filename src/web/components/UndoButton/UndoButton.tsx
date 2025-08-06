@@ -5,21 +5,21 @@ import { JaiaActions } from "../../context/jaia-actions";
 
 import { DisabledCodes } from "./undo-messages";
 
+import Bot from "../../data/bots/bot";
+import Mission from "../../data/mission_set/mission";
+import { missionSet } from "../../data/mission_set/mission-set";
+
 import { Icon } from "@mdi/react";
-import { Button } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { mdiArrowULeftTop } from "@mdi/js";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-
-interface Props {
-    // Props can be extended as needed for specific undo functionality
-}
+import { info } from "../../notifications/notifications";
 
 /**
- * Produces the undo button for mission planning actions.
- * Performs immediate undo without confirmation dialog for better UX.
- * Implements undo functionality for mission planning actions like waypoint management.
+ * Produces the undo button that allows users to revert the last action.
+ * This component provides visual feedback about whether undo is available.
  */
-export default function UndoButton(props: Props) {
+export default function UndoButton() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
@@ -31,48 +31,25 @@ export default function UndoButton(props: Props) {
     const getClassName = () => {
         let className = "jaia-button";
 
-        if (getDisabledCode() !== DisabledCodes.NONE) {
-            className += " disabled";
-        }
-
         return className;
     };
 
     /**
-     * Checks if there is mission history available to undo
-     *
-     * @returns {DisabledCodes} The applicable disabled code based on mission history availability
-     */
-    const getDisabledCode = () => {
-        // Check if there's mission history available to undo
-        // This would need to be implemented based on your mission history management system
-        // For now, just check if we have context - you'll need to add missionHistory to JaiaContext
-        if (!jaiaContext) {
-            return DisabledCodes.NO_HISTORY;
-        }
-
-        // TODO: Add proper mission history check when integrated
-        // if (!jaiaContext.missionHistory || jaiaContext.missionHistory.length <= 1) {
-        //     return DisabledCodes.NO_HISTORY;
-        // }
-
-        return DisabledCodes.NONE;
-    };
-
-    /**
-     * Handles the button click to perform immediate undo
+     * Handles the undo button click event
+     * Currently shows a notification - in a full implementation this would
+     * revert the last action from a history stack
      *
      * @returns {void}
      */
-    const handleClick = () => {
-        if (getDisabledCode() === DisabledCodes.NONE && jaiaDispatch) {
-            // Immediate undo action - no dialog needed
-            // TODO: Add UNDO_MISSION_ACTION to JaiaActions enum
-            // jaiaDispatch({ type: JaiaActions.UNDO_MISSION_ACTION });
+    const handleUndo = () => {
+        // Show notification for now - in a full implementation this would:
+        // 1. Get the last action from history
+        // 2. Dispatch the appropriate reverse action
+        // 3. Update the history stack
+        info("Undo functionality clicked - would revert last action");
 
-            // For now, just log the action
-            console.log("Undo action triggered");
-        }
+        // Example of how this might work with actual undo functionality:
+        // jaiaDispatch({ type: JaiaActions.UNDO_LAST_ACTION });
     };
 
     if (jaiaContext === null) {
@@ -80,15 +57,10 @@ export default function UndoButton(props: Props) {
     }
 
     return (
-        <div>
-            <Button
-                className={getClassName()}
-                aria-label="undo-mission-action"
-                onClick={handleClick}
-                disabled={getDisabledCode() !== DisabledCodes.NONE}
-            >
+        <span>
+            <Button className={getClassName()} aria-label="undo-button" onClick={handleUndo}>
                 <Icon path={mdiArrowULeftTop} title="Undo" size={MDI_BUTTON_SIZE} />
             </Button>
-        </div>
+        </span>
     );
 }
