@@ -55,6 +55,13 @@ import {
     PanelActions,
 } from "../types/context-types";
 
+export interface MissionHistoryState {
+    missions: Map<number, Mission>;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    timestamp: number;
+}
+
 export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
@@ -74,6 +81,7 @@ export interface JaiaContextType {
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
     mapMode: MapModes;
+    missionHistory: MissionHistoryState[];
 }
 
 export interface JaiaAction {
@@ -133,6 +141,87 @@ const defaultMapLayerAccordionStates = {
 
 export const JaiaContext = createContext<JaiaContextType>(null);
 export const JaiaDispatchContext = createContext(null);
+
+/**
+ * Saves a deep copy of the current mission state so the operator can restore changes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {void}
+ *
+ * @notes
+ * The maximum size of the missionHistory array is set to 11.
+ * This is to prevent the mission history from growing unbounded and potentially causing
+ * performance issues. The operator can undo up to 10 actions.
+ */
+function updateMissionHistory(mutableState: JaiaContextType) {
+    const missionHistoryMaxLen = 11;
+
+    // Create a snapshot of the current mission state
+    const historySnapshot: MissionHistoryState = {
+        missions: cloneDeep(mutableState.missions),
+        missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
+        missionIDInEditMode: mutableState.missionIDInEditMode,
+        timestamp: Date.now(),
+    };
+
+    // Remove oldest entry if we've reached the maximum length
+    if (mutableState.missionHistory.length === missionHistoryMaxLen) {
+        mutableState.missionHistory.shift();
+    }
+
+    mutableState.missionHistory.push(historySnapshot);
+}
+
+/**
+ * Checks if there are any mission history states available for undo
+ *
+ * @param {JaiaContextType} state Current context state
+ * @returns {boolean} True if undo is possible
+ */
+function canUndo(state: JaiaContextType): boolean {
+    return state.missionHistory.length > 0;
+}
+
+/**
+ * Exported utility function to check if undo is available
+ *
+ * @param {JaiaContextType} state Current context state
+ * @returns {boolean} True if undo is possible
+ */
+export function canUndoMission(state: JaiaContextType): boolean {
+    return canUndo(state);
+}
+
+/**
+ * Restores the previous mission state from history
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleUndoLastAction(mutableState: JaiaContextType) {
+    if (!canUndo(mutableState)) {
+        return mutableState;
+    }
+
+    // Get the last saved state
+    const lastState = mutableState.missionHistory.pop();
+
+    if (lastState) {
+        // Restore mission data to the missionSet singleton
+        missionSet.setMissions(lastState.missions);
+        missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
+
+        // Update context state
+        mutableState.missions = lastState.missions;
+        mutableState.missionAccordionStates = lastState.missionAccordionStates;
+        mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
+
+        // Update visual layers
+        missionLayer.updateFeatures();
+    }
+
+    return mutableState;
+}
 
 /**
  * Updates JaiaContext
@@ -250,6 +339,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLICKED_TASK_PACKET:
             return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
 
+        case JaiaActions.UNDO_LAST_ACTION:
+            return handleUndoLastAction(mutableState);
+
         default:
             return state;
     }
@@ -279,6 +371,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
+    mutableState.missionHistory = [];
 
     return mutableState;
 }
@@ -306,6 +399,9 @@ function handlePollDataModel(mutableState: JaiaContextType) {
  * Implement auto scroll to bottom of missions panel
  */
 function handleAddMission(mutableState: JaiaContextType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const newMission = new Mission();
     const newMissionID = missionSet.addMission(newMission);
@@ -327,6 +423,9 @@ function handleAddMission(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     missionSet.deleteMission(missionID);
     missionsManager.removeAssignment(missionID);
 
@@ -343,6 +442,9 @@ function handleDeleteMission(mutableState: JaiaContextType, missionID: number) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDuplicateMission(mutableState: JaiaContextType, missionID: number) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 
     // Create a complete clone of the existing mission
@@ -365,6 +467,9 @@ function handleDuplicateMission(mutableState: JaiaContextType, missionID: number
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteAllMissions(mutableState: JaiaContextType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     missionSet.deleteAllMissions();
     missionsManager.clear();
 
@@ -445,6 +550,9 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     if (
         selectedNode.type === NodeTypes.BOT &&
         missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
@@ -474,6 +582,9 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteWaypoint(mutableState: JaiaContextType) {
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
+
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
     jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
