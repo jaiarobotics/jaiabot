@@ -7,13 +7,21 @@ import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
 import StopAllBotsButton from "../StopAllBots/StopAllBotsButton";
 import DataOffloadAllButton from "../DataOfffloadAllButton/DataOffloadAllButton";
 import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
+import UndoButton from "../UndoButton/UndoButton";
 
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiCog, mdiHelp, mdiProgressDownload, mdiRuler, mdiViewList } from "@mdi/js";
+import {
+    mdiArrowULeftTop,
+    mdiCog,
+    mdiHelp,
+    mdiProgressDownload,
+    mdiRuler,
+    mdiViewList,
+} from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
@@ -70,7 +78,7 @@ export default function ButtonList(props: Props) {
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <DataOffloadAllButton bots={jaiaContext.bots} />
-                <Button className="jaia-button"></Button>
+                <UndoButton />
                 <Button
                     className={getSelectedClassName(ButtonNames.HELP_PANEL)}
                     aria-label="help-window"
