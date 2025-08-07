@@ -40,17 +40,13 @@ ${INDENTED_ROOT_PUBKEYS}
     content: |
       <VirtualHost *:80>
         ServerName docs.jaia.tech    
+        ServerAlias whatsupdoc.jaia.tech    
         ServerAdmin info@jaia.tech
         DocumentRoot /var/www/html
         Alias "/figures" "/var/www/figures"
 
         ErrorLog ${APACHE_LOG_DIR}/error.log
         CustomLog ${APACHE_LOG_DIR}/access.log combined
-      
-        RewriteEngine on
-        RewriteCond %{SERVER_NAME} =docs.jaia.tech [OR]
-        RewriteCond %{SERVER_NAME} =whatsupdoc.jaia.tech
-        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
       </VirtualHost>
       
 apt:
