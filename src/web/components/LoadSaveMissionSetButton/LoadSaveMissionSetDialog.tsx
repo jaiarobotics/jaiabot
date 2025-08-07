@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../utils/local-storage";
+import { DialogActions } from "../../types/context-types";
 
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
@@ -9,7 +10,7 @@ import { mdiDelete, mdiFolderUpload, mdiFolderDownload } from "@mdi/js";
 interface DialogProps {
     isVisible: boolean;
     //disabledCode: DisabledCodes;
-    //onClose: (dialogAction: DialogActions) => void;
+    onClose: () => void;
 }
 
 /**
@@ -88,7 +89,9 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
             </Button>
 
             <div className="flexSpacer"></div>
-            <button className="dialog-button">Cancel</button>
+            <button className="dialog-button" onClick={() => props.onClose()}>
+                Cancel
+            </button>
         </div>
     );
 
