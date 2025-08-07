@@ -5,6 +5,7 @@ import { useContext } from "react";
 import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
+import LoadSaveMissionSetButton from "../../components/LoadSaveMissionSetButton/LoadSaveMissionSetButton";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
@@ -67,20 +68,7 @@ export default function MissionsPanel() {
                     <Icon path={mdiPlus} size={MDI_BUTTON_SIZE} title="Add mission" />
                 </Button>
                 <DeleteMissionButton deleteAll={true} />
-                <Button
-                    className="jaia-button"
-                    aria-label="load-missions"
-                    onClick={() => handleLoadMissionsClick()}
-                >
-                    <Icon path={mdiFolderOpen} size={MDI_BUTTON_SIZE} title="Load missions" />
-                </Button>
-                <Button
-                    className="jaia-button"
-                    aria-label="save-missions"
-                    onClick={() => handleSaveMissionsClick()}
-                >
-                    <Icon path={mdiContentSave} size={MDI_BUTTON_SIZE} title="Save missions" />
-                </Button>
+                <LoadSaveMissionSetButton />
                 <Button
                     className="jaia-button"
                     aria-label="auto-assign-bots"
