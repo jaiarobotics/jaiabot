@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../utils/local-storage";
 import { DialogActions } from "../../types/context-types";
@@ -25,12 +25,14 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
         //TODO, may post warning
         if (saveName == undefined) setSaveName("DefaultMissionSet");
         missionSet.saveToLocalStorage(saveName);
+        props.onClose();
     };
 
     const handleLoadClick = () => {
         //TODO, should post warning
-        if (saveName == undefined) setSaveName("DefaultMissionSet");
+        if (saveName == undefined) return;
         missionSet.loadFromLocalStorage(saveName);
+        props.onClose();
     };
 
     const handleDeleteClick = () => {
@@ -120,6 +122,4 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
             </div>
         </div>
     );
-
-    return <div className="load-mission-panel"></div>;
 }
