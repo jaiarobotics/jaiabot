@@ -32,6 +32,17 @@ export function getStatusAgeClassName(portalStatusAge: number) {
     return "";
 }
 
+export function isBotDisconnected(portalStatusAge: number) {
+    const healthFailedTimeout = 30;
+    const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
+
+    if (statusAgeSeconds >= healthFailedTimeout) {
+        return "disconnected"; // gray color
+    }
+
+    return "";
+}
+
 /**
  * Calculates the distance between a Bot and Hub
  *

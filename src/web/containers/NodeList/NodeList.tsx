@@ -9,7 +9,7 @@ import {
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";
-
+import { isBotDisconnected } from "../BotDetails/bot-details";
 import "./NodeList.less";
 
 /**
@@ -62,7 +62,11 @@ export default function NodeList() {
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
-        return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass}`;
+        const bot = nodeType === NodeTypes.BOT ? jaiaContext.bots.get(nodeID) : null;
+        const disconnectedClass =
+            nodeType === NodeTypes.BOT && bot ? isBotDisconnected(bot.getStatusAge()) : "";
+
+        return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
 
     return (
