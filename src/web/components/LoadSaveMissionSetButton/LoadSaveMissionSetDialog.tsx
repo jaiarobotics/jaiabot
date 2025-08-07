@@ -19,11 +19,18 @@ interface DialogProps {
  * sent or a confirmation prior to sending the command.
  */
 export function LoadSaveMissionSetDialog(props: DialogProps) {
-    const [saveName, setSaveName] = useState<string>("");
+    const [saveName, setSaveName] = useState<string>(missionSet.getName());
 
     const handleSaveClick = () => {
+        //TODO, may post warning
         if (saveName == undefined) setSaveName("DefaultMissionSet");
         missionSet.saveToLocalStorage(saveName);
+    };
+
+    const handleLoadClick = () => {
+        //TODO, should post warning
+        if (saveName == undefined) setSaveName("DefaultMissionSet");
+        missionSet.loadFromLocalStorage(saveName);
     };
 
     const handleDeleteClick = () => {
@@ -44,7 +51,9 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
                 autoFocus
                 placeholder="Mission Name"
                 defaultValue={saveName}
-                onInput={(e) => {}}
+                onInput={(e) => {
+                    setSaveName((e.target as any).value);
+                }}
                 onKeyDown={(e) => {
                     if (e.key === "Enter") {
                     }
@@ -63,7 +72,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
             rowClasses += " selected";
         }
         let row = (
-            <div key={name} className={rowClasses}>
+            <div key={name} className={rowClasses} onClick={() => handleRowClick(name)}>
                 {name}
             </div>
         );
@@ -81,10 +90,10 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
             >
                 <Icon path={mdiDelete} title="Delete Mission Set"></Icon>
             </Button>
-            <Button className="jaia-button">
+            <Button className="jaia-button" onClick={() => handleSaveClick()}>
                 <Icon path={mdiFolderDownload} title="Save Mission Set"></Icon>
             </Button>
-            <Button className="jaia-button">
+            <Button className="jaia-button" onClick={() => handleLoadClick()}>
                 <Icon path={mdiFolderUpload} title="Load Mission Set"></Icon>
             </Button>
 
