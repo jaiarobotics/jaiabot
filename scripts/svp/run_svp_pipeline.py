@@ -145,6 +145,6 @@ _compute_svp_and_export_csv(
     lon=args.lon,
     lat=args.lat,
     cond_scale=COND_SCALE,
-    out_csv=svp_csv,
+    out_csv=svp_csv,c
 )
 
