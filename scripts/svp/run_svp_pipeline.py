@@ -106,9 +106,6 @@ parser.add_argument("--csv", default=None, help="Output CSV for aligned table (d
 # SVP export (no plots)
 parser.add_argument("--lon", type=float, default=-70.0, help="Longitude (deg E; negative for W)")
 parser.add_argument("--lat", type=float, default=41.0,  help="Latitude (deg N)")
-parser.add_argument("--cond-scale", type=float, default=1.0,
-                    help="Multiply aligned 'cond' by this to convert to mS/cm (GSW input).")
-
 args = parser.parse_args()
 
 # 1) ALIGN
@@ -145,6 +142,6 @@ _compute_svp_and_export_csv(
     lon=args.lon,
     lat=args.lat,
     cond_scale=COND_SCALE,
-    out_csv=svp_csv,c
+    out_csv=svp_csv
 )
 

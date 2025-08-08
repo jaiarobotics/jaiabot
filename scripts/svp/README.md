@@ -1,11 +1,9 @@
 # Low-Pass Filtering, Inverse Filtering, and SVP Computation
 
-
-This script takes the consolidated, time-aligned CTD dataset produced by `align_ctd.py` and applies three sequential processing steps to prepare high-quality Sound Velocity Profiles (SVPs):
+This script takes the consolidated, time-aligned CTD dataset produced by consolidate_ctd.py and applies three sequential processing steps to prepare high-quality Sound Velocity Profiles (SVPs):
 
 1. Low-Pass Filtering (Noise Reduction)
     * A low-pass filter is applied to the raw temperature signal to suppress high-frequency electronic noise while preserving true environmental variability. This smoothing step ensures that subsequent lag-correction is applied to a cleaner signal.
-
 2. Inverse Filtering (Sensor Lag Correction)
     * The smoothed temperature data is then passed through an inverse exponential filter to compensate for the finite thermal response time of the temperature sensor. This correction shifts the signal closer to the “true” in-situ temperature by reducing the temporal lag introduced by the sensor’s physical properties.
 3. Sound Velocity Profile Computation
@@ -41,7 +39,7 @@ The output is a noise-reduced, lag-corrected SVP derived from synchronized CTD m
     * `--h5` points to the JaiaBot `.h5` log to read
         * dive_data.h5 is just an example 
     * `--start` and `--end` set the extraction window in **EST** (`YYYY-MM-DD HH:MM:SS`). 
-    * location `--lon` (deg East; negative = West) and `--lat` (deg North) for TEOS-10 conversions. 
+    * location `--lon` (deg East; negative = West) and `--lat` (deg North; negative = South) for TEOS-10 conversions. 
 
 ### More info on GSW 
 
