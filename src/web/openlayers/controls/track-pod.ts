@@ -27,7 +27,7 @@ class TrackPod {
             // Start tracking at 10Hz (100ms intervals)
             this.intervalId = window.setInterval(() => {
                 this.doTracking();
-            }, 100);
+            }, 500);
         }
     }
 
@@ -64,11 +64,11 @@ class TrackPod {
             let lonSum = 0;
             let count = 0;
 
-            for (const [, bot] of botsMap.entries()) {
-                const loc = bot.getLocation();
-                if (loc && !isNaN(loc.lat) && !isNaN(loc.lon)) {
-                    latSum += loc.lat;
-                    lonSum += loc.lon;
+            for (const bot of botsMap.values()) {
+                const location = bot.getLocation();
+                if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
+                    latSum += location.lat;
+                    lonSum += location.lon;
                     count++;
                 }
             }

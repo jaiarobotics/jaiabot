@@ -8,6 +8,9 @@ import { trackPod } from "../../openlayers/controls/track-pod";
 
 import "./SettingsPanel.less";
 
+/**
+ * Contains general configurations for the JCC and Jaia System
+ */
 export default function SettingsPanel() {
     const [isTrackingPod, setIsTrackingPod] = useState(false);
 
