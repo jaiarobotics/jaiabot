@@ -14,6 +14,11 @@ import argparse, os, sys
 import numpy as np
 import pandas as pd
 
+TAU = 9.0
+FC  = 0.2
+COND_SCALE = 0.0001
+
+
 # run from anywhere
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -36,10 +41,9 @@ def _gsw_svp_from_CTP(gsw, C_mScm, T_degC, P_dbar, lon, lat):
     """
     SP = gsw.SP_from_C(C_mScm, T_degC, P_dbar)
     SA = gsw.SA_from_SP(SP, P_dbar, lon, lat)
-    print(SA)
     CT = gsw.CT_from_t(SA, T_degC, P_dbar)
     c  = gsw.sound_speed(SA, CT, P_dbar)
-    print(c)
+
     return c
 
 
@@ -98,20 +102,12 @@ parser.add_argument("--base_timeline", choices=["cond", "pressure", "temp", "tsy
 parser.add_argument("--csv", default=None, help="Output CSV for aligned table (default: <h5_basename>_svp_matched.csv)")
 
 # Inverse stage
-parser.add_argument("--inverse-target", choices=["temp_celsius"], default=None,
-                    help="If set, inverse-filter this aligned temp column (uses tau/fc)")
-parser.add_argument("--tau", type=float, default=9.0, help="Time constant (s) for inverse filter")
-parser.add_argument("--fc",  type=float, default=0.2, help="Low-pass cutoff (Hz) before inverse filter")
 
 # SVP export (no plots)
-parser.add_argument("--compute-svp", action="store_true",
-                    help="Compute SVP using aligned cond/pressure and temp_celsius[_inv] and export CSV.")
 parser.add_argument("--lon", type=float, default=-70.0, help="Longitude (deg E; negative for W)")
 parser.add_argument("--lat", type=float, default=41.0,  help="Latitude (deg N)")
 parser.add_argument("--cond-scale", type=float, default=1.0,
                     help="Multiply aligned 'cond' by this to convert to mS/cm (GSW input).")
-parser.add_argument("--svp-csv", default=None,
-                    help="Path to SVP CSV to write (defaults to <h5_basename>_svp.csv)")
 
 args = parser.parse_args()
 
@@ -129,28 +125,26 @@ df = build_aligned_dataframe(
 aligned_csv = args.csv or default_output_csv(args.h5)
 
 # 2) INVERSE on temp_celsius
-if args.inverse_target:
-    df = apply_inverse_to_df(df, target_col=args.inverse_target, tau=args.tau, fc=args.fc)
-    # if user didn't specify a name, append suffix so it's obvious this table has the corrected temp
-    if args.csv is None:
-        root, ext = os.path.splitext(aligned_csv)
-        aligned_csv = f"{root}_{args.inverse_target}_inv{ext}"
-    print(f"Inverse-filtered: {args.inverse_target} (tau={args.tau}s, fc={args.fc}Hz) → column '{args.inverse_target}_inv'")
+df = apply_inverse_to_df(df, target_col="temp_celsius", tau=TAU, fc=FC)
+# if user didn't specify a name, append suffix so it's obvious this table has the corrected temp
+root, ext = os.path.splitext(aligned_csv)
+aligned_csv = f"{root}_temp_celsius_inv{ext}"
+print(f"Inverse-filtered temp_celsius (tau={TAU}s, fc={FC}Hz) → column 'temp_celsius_inv'")
 
 # save aligned table (with temp corrections if any)
 save_csv(df, aligned_csv)
 print(f"✅ Aligned CSV saved → {aligned_csv}")
 
-# 3) (optional) SVP export (NO PLOTS)
-if args.compute_svp:
-    svp_csv = args.svp_csv
-    if not svp_csv:
-        stem = os.path.splitext(os.path.basename(args.h5))[0]
-        svp_csv = os.path.join(os.path.dirname(args.h5), f"{stem}_svp.csv")
-    _compute_svp_and_export_csv(
-        df_aligned=df,
-        lon=args.lon,
-        lat=args.lat,
-        cond_scale=args.cond_scale,
-        out_csv=svp_csv,
-    )
+
+# 3) SVP export (NO PLOTS) — ALWAYS RUN, to <h5_basename>_svp.csv next to the H5
+stem = os.path.splitext(os.path.basename(args.h5))[0]
+svp_csv = os.path.join(os.path.dirname(args.h5), f"{stem}_svp.csv")
+
+_compute_svp_and_export_csv(
+    df_aligned=df,
+    lon=args.lon,
+    lat=args.lat,
+    cond_scale=COND_SCALE,
+    out_csv=svp_csv,
+)
+
