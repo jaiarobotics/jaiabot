@@ -102,7 +102,6 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
-                                            xbee_hub_id='hub_id: ' + str(hub_index),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
@@ -116,7 +115,6 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             local_port=common.udp.wifi_udp_port(node_id, hub_index),
                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
                                             hub_endpoints='',
-                                            wifi_hub_id='hub_id: ' + str(hub_index),
                                             mac_slots=common.comms.wifi_mac_slots(node_id),
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
@@ -160,7 +158,6 @@ link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                          local_port=common.udp.hub2hub_udp_port(hub_index),
                                          remotes=common.comms.hub2hub_remotes(hub_index, fleet_index),
                                          hub_endpoints='',
-                                         wifi_hub_id='',
                                          mac_slots=common.comms.hub2hub_mac_slots(hub_index),
                                          sub_buffer=sub_buffer_config,
                                          ack_timeout=ack_timeout)

@@ -494,7 +494,11 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
 
     intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
         [this](const jaiabot::protobuf::Hub2HubData& data)
-        { glog.is_verbose() && glog << "Received Hub2Hub data: " << data.ShortDebugString() << std::endl; },
+        {
+            glog.is_verbose() && glog << "Received Hub2Hub data: " << data.ShortDebugString()
+                                      << std::endl;
+            interprocess().publish<jaiabot::groups::hub2hub_data>(data);
+        },
         subscriber);
 }
 
