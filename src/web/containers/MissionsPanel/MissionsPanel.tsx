@@ -5,7 +5,7 @@ import { useContext } from "react";
 import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
-import LoadSaveMissionSetButton from "../../components/LoadSaveMissionSetButton/LoadSaveMissionSetButton";
+import LoadSaveMissionSetButton from "../../components/LoadSaveMissionSet/LoadSaveMissionSetButton";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
