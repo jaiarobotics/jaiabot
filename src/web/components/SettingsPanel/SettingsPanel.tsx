@@ -8,60 +8,27 @@ import { trackPod } from "../../openlayers/controls/track-pod";
 
 import "./SettingsPanel.less";
 
-interface SettingsPanelProps {
-    trackingTarget?: string | number | null;
-    trackBot?: (id: number | string | null) => void;
-    zoomToPod?: (firstMove: boolean) => void;
-}
-
-export default function SettingsPanel(props: SettingsPanelProps) {
+export default function SettingsPanel() {
     const [isTrackingPod, setIsTrackingPod] = useState(false);
 
     const handleTrackPodToggleClick = () => {
-        const isPodCurrentlyTracked = props.trackingTarget === "pod";
-
-        if (props.trackBot && props.zoomToPod && props.trackingTarget !== undefined) {
-            if (isPodCurrentlyTracked) {
-                props.zoomToPod(false);
-                props.trackBot(null);
-                trackPod.stopTracking();
-            } else {
-                props.zoomToPod(true);
-                props.trackBot("pod");
-                trackPod.startTracking("pod");
-            }
+        if (isTrackingPod) {
+            trackPod.stopTracking();
         } else {
-            if (isTrackingPod) {
-                trackPod.stopTracking();
-            } else {
-                trackPod.startTracking("pod");
-            }
-            setIsTrackingPod(!isTrackingPod);
+            trackPod.startTracking("pod");
         }
+        setIsTrackingPod(!isTrackingPod);
     };
 
-    const isChecked =
-        props.trackingTarget !== undefined ? props.trackingTarget === "pod" : isTrackingPod;
+    const isChecked = isTrackingPod;
 
     return (
         <div className="jaia-panel settings-panel">
             <div className="jaia-panel-title">Settings</div>
             <div className="accordions-container">
                 <div className="settings-card-container">
-                    <div
-                        className="settings-card"
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                        }}
-                    >
-                        <div
-                            className="settings-label"
-                            style={{ color: "white", fontWeight: "bold" }}
-                        >
-                            Track Pod:
-                        </div>
+                    <div className="settings-card">
+                        <div className="settings-track-pod-label">Track Pod:</div>
                         <JaiaToggle checked={() => isChecked} onClick={handleTrackPodToggleClick} />
                     </div>
                 </div>
