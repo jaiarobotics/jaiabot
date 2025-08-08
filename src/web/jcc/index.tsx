@@ -12,6 +12,7 @@ import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
+import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import {
     DATA_MODEL_POLL_TIME,
@@ -107,6 +108,7 @@ function updateOpenLayers() {
  */
 function updateTaskLayers() {
     diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
 }
 
 /**

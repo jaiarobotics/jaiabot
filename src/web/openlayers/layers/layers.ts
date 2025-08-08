@@ -8,6 +8,7 @@ import { hubLayer } from "./vector/hub-layer";
 import { missionLayer } from "./vector/mission-layer";
 import { rallyLayer } from "./vector/rally-layer";
 import { diveLayer } from "./vector/dive-layer";
+import { driftLayer } from "./vector/drift-layer";
 import { hubCommsLayer } from "./vector/hub-comms-layer";
 
 import { LayerTitles } from "../../types/openlayers-types";
@@ -27,6 +28,7 @@ class Layers {
         this.layers.set(LayerTitles.MISSION_LAYER, missionLayer.getVectorLayer());
         this.layers.set(LayerTitles.RALLY_LAYER, rallyLayer.getVectorLayer());
         this.layers.set(LayerTitles.DIVE_LAYER, diveLayer.getVectorLayer());
+        this.layers.set(LayerTitles.DRIFT_LAYER, driftLayer.getVectorLayer());
         this.layers.set(LayerTitles.HUB_COMMS_LAYER, hubCommsLayer.getVectorLayer());
     }
 
