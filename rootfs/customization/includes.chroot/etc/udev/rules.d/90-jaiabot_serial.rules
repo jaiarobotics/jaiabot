@@ -8,4 +8,4 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="b
 KERNEL=="ttyAMA4", SYMLINK+="xbee"
 
 ## rpicam
-KERNAL=="ttyAMA5", SYMLINK+="rpicam"
+SUBSYSTEM=="tty", SUBSYSTEMS=="amba", DRIVERS=="uart-pl011", ATTRS{id}=="00241011", SYMLINK+="rpicam"
