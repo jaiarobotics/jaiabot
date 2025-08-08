@@ -13,7 +13,7 @@ The output is a noise-reduced, lag-corrected SVP derived from synchronized CTD m
 
 ### Running the Scripts
 
-1. In order to successfully run this SVP script, you must download the GSW Pythong Github Toolbox
+1. In order to successfully run this SVP script, you must download the GSW Python Github Toolbox
     - Make an executable 
         ```
         chmod +x create-python-virt-env.sh
