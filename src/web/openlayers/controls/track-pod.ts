@@ -1,29 +1,19 @@
 import { bots } from "../../data/bots/bots";
-import { PodStatus } from "../../shared/PortalStatus";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 import { map } from "../maps/map";
 import { getMapCoordinate } from "../../shared/Utilities";
 
-interface TrackingState {
-    trackingTarget: string | number | null;
-    lastBotCount: number;
-}
-
 class TrackPod {
-    private state: TrackingState = {
-        trackingTarget: null,
-        lastBotCount: 0,
-    };
+    private trackingTarget: string | null = null;
     private intervalId: number | null = null;
 
     /**
-     * Starts the tracking functionality
-     * @param target The target to track (e.g., "pod" or a bot ID)
+     * Starts the tracking functionality for "pod"
      */
-    startTracking(target: string | number | null) {
-        this.state.trackingTarget = target;
+    startTracking() {
+        this.trackingTarget = "pod";
 
-        if (target && !this.intervalId) {
+        if (!this.intervalId) {
             this.intervalId = window.setInterval(() => {
                 this.doTracking();
             }, 500);
@@ -34,7 +24,7 @@ class TrackPod {
      * Stops the tracking functionality
      */
     stopTracking() {
-        this.state.trackingTarget = null;
+        this.trackingTarget = null;
 
         if (this.intervalId) {
             clearInterval(this.intervalId);
@@ -46,25 +36,16 @@ class TrackPod {
      * Gets the current tracking target
      */
     getTrackingTarget() {
-        return this.state.trackingTarget;
+        return this.trackingTarget;
     }
 
     /**
-     * Main tracking logic - centers the map on the tracked target
+     * Main tracking logic - centers the map on the pod centroid
      */
     private doTracking() {
-        const { trackingTarget } = this.state;
-
-        if (trackingTarget === "pod") {
+        if (this.trackingTarget === "pod") {
             this.trackPodCentroid(bots.getBots());
-        } else if (
-            typeof trackingTarget === "number" ||
-            (typeof trackingTarget === "string" && !isNaN(Number(trackingTarget)))
-        ) {
-            this.trackBotById(Number(trackingTarget));
         }
-
-        this.state.lastBotCount = bots.getBots().size;
     }
 
     private trackPodCentroid(botsMap: Map<number, any>) {
@@ -88,20 +69,7 @@ class TrackPod {
         }
     }
 
-    private trackBotById(botId: number) {
-        const bot = bots.getBot(botId);
-        const location = bot?.getLocation();
-        if (location && typeof location.lat === "number" && typeof location.lon === "number") {
-            this.centerOnBot(location);
-        }
-    }
-
-    /**
-     * Centers the map on the given location
-     * @param location Geographic coordinate to center on
-     */
     private centerOnBot(location: GeographicCoordinate) {
-        // Ensure location has both lat and lon defined
         if (!location || typeof location.lat !== "number" || typeof location.lon !== "number") {
             return;
         }
@@ -111,7 +79,7 @@ class TrackPod {
         if (mapCoordinate) {
             map.getView().animate({
                 center: mapCoordinate,
-                duration: 200, // Smooth animation
+                duration: 200,
             });
         }
     }

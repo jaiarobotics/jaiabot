@@ -1,15 +1,12 @@
 // Example of how to use the track-pod functionality
 // This demonstrates the integration between SettingsPanel and track-pod.ts
-
+//this needs fixing IMPORTANT
 import { trackPod } from "../openlayers/controls/track-pod";
 
 // Example usage:
 
 // 1. Start tracking the pod (first available bot)
-trackPod.startTracking("pod");
-
-// 2. Start tracking a specific bot ID
-trackPod.startTracking(123);
+trackPod.startTracking();
 
 // 3. Stop tracking
 trackPod.stopTracking();

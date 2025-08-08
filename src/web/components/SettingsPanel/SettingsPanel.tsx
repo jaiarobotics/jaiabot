@@ -18,7 +18,7 @@ export default function SettingsPanel() {
         if (isTrackingPod) {
             trackPod.stopTracking();
         } else {
-            trackPod.startTracking("pod");
+            trackPod.startTracking();
         }
         setIsTrackingPod(!isTrackingPod);
     };
