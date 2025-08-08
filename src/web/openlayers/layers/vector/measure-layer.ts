@@ -34,6 +34,12 @@ class MeasureLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
+    /**
+     * Creates a Draw Interaction that measures distance as an operator
+     * drags a mouse or taps the screen
+     *
+     * @returns {Draw} The Draw Interaction to be added to the map
+     */
     createDrawInteraction() {
         this.draw = new Draw({
             source: this.getVectorLayer().getSource(),
@@ -55,12 +61,23 @@ class MeasureLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
+    /**
+     * Resets the components associated with the Draw Interaction
+     *
+     * @returns {void}
+     */
     clearDrawInteraction() {
         this.getVectorLayer().getSource().clear();
         this.length = 0;
         this.draw = null;
     }
 
+    /**
+     * Displays the distances using meters for shorter distances
+     * and kilometers for longer distances
+     *
+     * @returns {string} The distance with units
+     */
     formatDistance() {
         if (this.length > KILOMETER_FACTOR) {
             return (this.length / KILOMETER_FACTOR).toFixed(1) + " km";
@@ -68,6 +85,11 @@ class MeasureLayer extends JaiaVectorLayer {
         return this.length.toFixed(0) + " m";
     }
 
+    /**
+     * The appearance of the line when the operator double clicks after measuring
+     *
+     * @returns {Style} The appearance of the line when the Draw event ends
+     */
     getLayerStyle() {
         const solidLineStyle = new Style({
             fill: new Fill({
@@ -87,6 +109,11 @@ class MeasureLayer extends JaiaVectorLayer {
         return solidLineStyle;
     }
 
+    /**
+     * The appearance of the line while the operator drags the mouse
+     *
+     * @returns {Style} The appearance of the line while measuring
+     */
     getDrawStyle() {
         const dottedLineStyle = new Style({
             fill: new Fill({

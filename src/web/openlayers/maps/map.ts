@@ -18,6 +18,12 @@ export const map = new Map({
     moveTolerance: 20,
 });
 
+/**
+ * Makes changes to the map based on the mode the operator enters
+ *
+ * @param {MapModes} mapMode The new state of the map
+ * @returns {void}
+ */
 export function handleMapModeChange(mapMode: MapModes) {
     switch (mapMode) {
         case MapModes.RALLY:
@@ -38,6 +44,12 @@ export function handleMapModeChange(mapMode: MapModes) {
     jaiaGlobal.setMapMode(mapMode);
 }
 
+/**
+ * Changes the cursor that appears when hovering over the map
+ *
+ * @param {Cursors} cursor Which cursor to show when hovering
+ * @returns {void}
+ */
 function changeCursor(cursor: Cursors) {
     let currentCursor = map.getTargetElement();
     if (currentCursor) {
