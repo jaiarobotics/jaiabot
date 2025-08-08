@@ -24,7 +24,6 @@ class TrackPod {
         this.state.trackingTarget = target;
 
         if (target && !this.intervalId) {
-            // Start tracking at 10Hz (100ms intervals)
             this.intervalId = window.setInterval(() => {
                 this.doTracking();
             }, 500);
@@ -54,47 +53,49 @@ class TrackPod {
      * Main tracking logic - centers the map on the tracked target
      */
     private doTracking() {
-        const { lastBotCount, trackingTarget } = this.state;
+        const { trackingTarget } = this.state;
         const botsMap = bots.getBots();
         const botCount = botsMap.size;
 
-        // If tracking "pod", find the first available bot
-        if (trackingTarget === "pod" && botsMap.size > 0) {
-            let latSum = 0;
-            let lonSum = 0;
-            let count = 0;
-
-            for (const bot of botsMap.values()) {
-                const location = bot.getLocation();
-                if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
-                    latSum += location.lat;
-                    lonSum += location.lon;
-                    count++;
-                }
-            }
-
-            if (count > 0) {
-                const centroidLat = latSum / count;
-                const centroidLon = lonSum / count;
-                this.centerOnBot({ lat: centroidLat, lon: centroidLon });
-            }
-        }
-
-        // If tracking a specific bot ID
-        else if (
+        if (trackingTarget === "pod") {
+            this.trackPodCentroid(botsMap);
+        } else if (
             typeof trackingTarget === "number" ||
             (typeof trackingTarget === "string" && !isNaN(Number(trackingTarget)))
         ) {
-            const botId = Number(trackingTarget);
-            const bot = bots.getBot(botId);
+            this.trackBotById(Number(trackingTarget));
+        }
 
-            if (bot && bot.getLocation()?.lat && bot.getLocation()?.lon) {
-                this.centerOnBot(bot.getLocation());
+        this.state.lastBotCount = botCount;
+    }
+
+    private trackPodCentroid(botsMap: Map<number, any>) {
+        let latSum = 0;
+        let lonSum = 0;
+        let count = 0;
+
+        for (const bot of botsMap.values()) {
+            const location = bot.getLocation();
+            if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
+                latSum += location.lat;
+                lonSum += location.lon;
+                count++;
             }
         }
 
-        // Update bot count for potential future use
-        this.state.lastBotCount = botCount;
+        if (count > 0) {
+            const centroidLat = latSum / count;
+            const centroidLon = lonSum / count;
+            this.centerOnBot({ lat: centroidLat, lon: centroidLon });
+        }
+    }
+
+    private trackBotById(botId: number) {
+        const bot = bots.getBot(botId);
+        const location = bot?.getLocation();
+        if (location && typeof location.lat === "number" && typeof location.lon === "number") {
+            this.centerOnBot(location);
+        }
     }
 
     /**
