@@ -62,9 +62,10 @@ export default function NodeList() {
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
-        const bot = nodeType === NodeTypes.BOT ? jaiaContext.bots.get(nodeID) : null;
         const disconnectedClass =
-            nodeType === NodeTypes.BOT && bot ? isBotDisconnected(bot.getStatusAge()) : "";
+            nodeType === NodeTypes.BOT && jaiaContext.bots.get(nodeID)
+                ? isBotDisconnected(jaiaContext.bots.get(nodeID)!.getStatusAge())
+                : "";
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }

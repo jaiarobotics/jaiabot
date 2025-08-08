@@ -37,7 +37,7 @@ export function isBotDisconnected(portalStatusAge: number) {
     const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
     if (statusAgeSeconds >= healthFailedTimeout) {
-        return "disconnected"; // gray color
+        return "disconnected";
     }
 
     return "";
