@@ -6,6 +6,7 @@ import { DialogActions } from "../../types/context-types";
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
 import { mdiDelete, mdiFolderUpload, mdiFolderDownload } from "@mdi/js";
+import "./LoadSaveMissionSet.less";
 
 interface DialogProps {
     isVisible: boolean;
@@ -41,18 +42,19 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
     };
 
     const handleRowClick = (name: string) => {
+        // console.log("Clicked on:",name);
         setSaveName(name);
     };
 
-    // Nem text input
+    // Name text input
     const nameInput = (
-        <div>
+        <div className="load-save-mission-set">
             <input
                 type="text"
                 className="textInput"
                 autoFocus
                 placeholder="Mission Name"
-                defaultValue={saveName}
+                value={saveName}
                 onInput={(e) => {
                     setSaveName((e.target as any).value);
                 }}
@@ -113,11 +115,13 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={"jaia-dialog"}>
-                    <h1> "Load or Save Mission Set" </h1>
-                    <div className="title">Save Mission Set As</div>
-                    {nameInput}
-                    <div className="missionList">{missionNameRows}</div>
-                    {buttonRow}
+                    <div className={"load-save-mission-set"}>
+                        <h1> "Load or Save Mission Set" </h1>
+                        <div className="title">Save Mission Set As</div>
+                        {nameInput}
+                        <div className="missionList">{missionNameRows}</div>
+                        {buttonRow}
+                    </div>
                 </div>
             </div>
         </div>
