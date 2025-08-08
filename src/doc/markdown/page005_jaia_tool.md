@@ -26,7 +26,7 @@ jaia admin ssh help add
 
 Many of the actions (`jaia ip`, `jaia ping`, `jaia ssh`) act on another (remote) host (Bot or Hub). The remote host is specified using a shorthand that encodes the host type (bot or hub), ID, network, and fleet ID.
 
-At its simplest the shorthand is b*N*f*M* for Bot  N on fleet M or h*I*f*J* for Hub I on Fleet J. This uses the local network for fleet operations.
+At its simplest the shorthand is bNfM for Bot  N on fleet M or hIfJ for Hub I on Fleet J. This uses the local network for fleet operations.
 
 Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page56_cloud.md) page for more details) or via the service VPN for remote support. In these cases a character before the fleet 'f' is used to indicate the network in use:
 
