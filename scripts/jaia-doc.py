@@ -7,8 +7,8 @@ import importlib.util
 import argparse
 import gzip
 
-md_name_replacements = [(r'^page\d+_', ''), ('\.md$', ''), ('\.md\.gz$', '')]
-path_name_replacements = [('\.py$', '.md')]
+md_name_replacements = [(r'^page\d+_', ''), (r'\.md$', ''), (r'\.md\.gz$', '')]
+path_name_replacements = [(r'\.py$', '.md')]
 
 def list_markdown_files(directory):
     """List all markdown files in the given directory."""
@@ -113,9 +113,9 @@ def main():
 
         if len(matches) > 1:
             # check if this is unambiguous after applying substitutions
-            part_filename_without_extension = re.sub('\.md$', '', part_filename)
+            part_filename_without_extension = re.sub(r'\.md$', '', part_filename)
             cleaned_matches = matches
-            for old, new in md_name_replacements + [('\.md$', '')]:
+            for old, new in md_name_replacements + [(r'\.md$', '')]:
                 cleaned_matches = [re.sub(old, new, f) for f in cleaned_matches]
 
             try:
