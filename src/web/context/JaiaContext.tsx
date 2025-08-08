@@ -17,7 +17,7 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
-import { measureLayer } from "../openlayers/layers/vector/measure-layer";
+import { handleMapModeChange } from "../openlayers/maps/map";
 
 import { JaiaActions } from "./jaia-actions";
 import {
@@ -546,7 +546,7 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
-    jaiaGlobal.setMapMode(MapModes.DEFAULT);
+    handleMapModeChange(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
 }
@@ -896,7 +896,7 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
         resetSelectedWaypoint(mutableState);
     }
 
-    jaiaGlobal.setMapMode(mapMode);
+    handleMapModeChange(mapMode);
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;

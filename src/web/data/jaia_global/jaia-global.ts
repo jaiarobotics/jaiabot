@@ -7,9 +7,6 @@ import {
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { Cursors } from "../../utils/style";
-import { map } from "../../openlayers/maps/map";
-import { measureLayer } from "../../openlayers/layers/vector/measure-layer";
 
 const defaultTaskParameters: TaskParameters = {
     dive: {
@@ -82,21 +79,6 @@ class JaiaGlobal {
     }
 
     setMapMode(mapMode: MapModes) {
-        switch (mapMode) {
-            case MapModes.RALLY:
-                map.getTargetElement().style.cursor = Cursors.CROSSHAIR;
-                break;
-            case MapModes.MEASURE:
-                map.addInteraction(measureLayer.createDrawInteraction());
-                break;
-            default:
-                map.getTargetElement().style.cursor = Cursors.DEFAULT;
-        }
-
-        if (mapMode !== MapModes.MEASURE) {
-            this.clearMeasureMode();
-        }
-
         this.mapMode = mapMode;
     }
 
@@ -106,11 +88,6 @@ class JaiaGlobal {
 
     setDefaultTaskParameters(defaultTaskParameters: TaskParameters) {
         this.defaultTaskParameters = defaultTaskParameters;
-    }
-
-    clearMeasureMode() {
-        map.removeInteraction(measureLayer.getDraw());
-        measureLayer.clearDrawInteraction();
     }
 }
 
