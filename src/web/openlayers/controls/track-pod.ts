@@ -54,11 +54,9 @@ class TrackPod {
      */
     private doTracking() {
         const { trackingTarget } = this.state;
-        const botsMap = bots.getBots();
-        const botCount = botsMap.size;
 
         if (trackingTarget === "pod") {
-            this.trackPodCentroid(botsMap);
+            this.trackPodCentroid(bots.getBots());
         } else if (
             typeof trackingTarget === "number" ||
             (typeof trackingTarget === "string" && !isNaN(Number(trackingTarget)))
@@ -66,7 +64,7 @@ class TrackPod {
             this.trackBotById(Number(trackingTarget));
         }
 
-        this.state.lastBotCount = botCount;
+        this.state.lastBotCount = bots.getBots().size;
     }
 
     private trackPodCentroid(botsMap: Map<number, any>) {
