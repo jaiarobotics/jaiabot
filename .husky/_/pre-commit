@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# clang-format=hooks
+scripts/git-hooks/clang-format-hooks/git-pre-commit-format
+
+# prettier
+scripts/git-hooks/prettier/write.sh
+
+# prevent secure credentials from being committed
+credentials_phrases=(
+  "SECURITY KEY"
+  "PRIVATE KEY"
+  "BEGIN RSA"
+  "BEGIN TRUSTED CERTIFICATE"
+  "BEGIN CERTIFICATE"
+  "BEGIN ENCRYPTED PRIVATE KEY"
+)
+
+for phrase in "${credentials_phrases[@]}"; do
+  if git diff --cached --name-only | grep -v "pre-commit" | xargs -r git diff --cached -- | grep -Fq "$phrase"; then
+    echo "Aborting commit due to inclusion of phrase '$phrase'"
+    exit 1
+  fi
+done
+
+exit 0
