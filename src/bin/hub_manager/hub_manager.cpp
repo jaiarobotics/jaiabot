@@ -99,6 +99,7 @@ class HubManager : public ApplicationBase
     }
 
     void start_dataoffload(int bot_id);
+    void update_hub_temperature();
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -478,6 +479,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
+    update_hub_temperature();
 
     if (offload_thread_)
     {
@@ -1051,4 +1054,24 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     };
 
     offload_thread_.reset(new std::thread(offload_func));
+}
+
+void jaiabot::apps::HubManager::update_hub_temperature()
+{
+    std::ifstream temp_file("/sys/class/thermal/thermal_zone0/temp");
+    if (temp_file.is_open())
+    {
+        int temp_millicelsius;
+        temp_file >> temp_millicelsius;
+        double temp_celsius = temp_millicelsius / 1000.0;
+        
+        latest_hub_status_.set_temperature_celsius(temp_celsius);
+        temp_file.close();
+
+        glog.is_debug2() && glog << "Hub temperature: " << temp_celsius << "°C" << std::endl;
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Could not read hub temperature from thermal zone" << std::endl;
+    }
 }

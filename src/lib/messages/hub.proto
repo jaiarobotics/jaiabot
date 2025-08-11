@@ -68,4 +68,6 @@ message HubStatus
     }
     repeated KnownBot known_bot = 15
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional double temperature_celsius = 16;
 }
