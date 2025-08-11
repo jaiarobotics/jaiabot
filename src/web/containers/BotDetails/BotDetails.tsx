@@ -53,7 +53,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 
-import rcModeIcon from "../../style/icons/controller.svg";
 import "./BotDetails.less";
 
 export default function BotDetails() {
