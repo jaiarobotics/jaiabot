@@ -12,8 +12,8 @@ trackPod.startTracking();
 trackPod.stopTracking();
 
 // 4. Check what's currently being tracked
-const currentTarget = trackPod.getTrackingTarget();
-console.log("Currently tracking:", currentTarget);
+//const currentTarget = trackPod.getTrackingTarget();
+//console.log("Currently tracking:", currentTarget);
 
 // The SettingsPanel component automatically integrates with this:
 // - When the toggle is turned ON, it calls trackPod.startTracking("pod")

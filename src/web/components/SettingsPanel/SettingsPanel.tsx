@@ -11,8 +11,12 @@ import "./SettingsPanel.less";
 /**
  * Contains general configurations for the JCC and Jaia System
  */
+
 export default function SettingsPanel() {
-    const [isTrackingPod, setIsTrackingPod] = useState(false);
+    const [isTrackingPod, setIsTrackingPod] = useState(() => {
+        const saved = localStorage.getItem("isTrackingPod");
+        return saved === "true";
+    });
 
     const handleTrackPodToggleClick = () => {
         if (isTrackingPod) {

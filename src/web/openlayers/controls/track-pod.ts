@@ -7,22 +7,36 @@ class TrackPod {
     private trackingTarget: string | null = null;
     private intervalId: number | null = null;
 
-    /**
-     * Starts the tracking functionality for "pod"
-     */
     startTracking() {
         this.trackingTarget = "pod";
 
         if (!this.intervalId) {
             this.intervalId = window.setInterval(() => {
-                this.doTracking();
+                // Inline "doTracking" logic here
+                if (this.trackingTarget === "pod") {
+                    let latSum = 0;
+                    let lonSum = 0;
+                    let count = 0;
+
+                    for (const bot of bots.getBots().values()) {
+                        const location = bot.getLocation();
+                        if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
+                            latSum += location.lat;
+                            lonSum += location.lon;
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        const centroidLat = latSum / count;
+                        const centroidLon = lonSum / count;
+                        this.PanToCenter({ lat: centroidLat, lon: centroidLon });
+                    }
+                }
             }, 500);
         }
     }
 
-    /**
-     * Stops the tracking functionality
-     */
     stopTracking() {
         this.trackingTarget = null;
 
@@ -32,44 +46,7 @@ class TrackPod {
         }
     }
 
-    /**
-     * Gets the current tracking target
-     */
-    getTrackingTarget() {
-        return this.trackingTarget;
-    }
-
-    /**
-     * Main tracking logic - centers the map on the pod centroid
-     */
-    private doTracking() {
-        if (this.trackingTarget === "pod") {
-            this.trackPodCentroid(bots.getBots());
-        }
-    }
-
-    private trackPodCentroid(botsMap: Map<number, any>) {
-        let latSum = 0;
-        let lonSum = 0;
-        let count = 0;
-
-        for (const bot of botsMap.values()) {
-            const location = bot.getLocation();
-            if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
-                latSum += location.lat;
-                lonSum += location.lon;
-                count++;
-            }
-        }
-
-        if (count > 0) {
-            const centroidLat = latSum / count;
-            const centroidLon = lonSum / count;
-            this.centerOnBot({ lat: centroidLat, lon: centroidLon });
-        }
-    }
-
-    private centerOnBot(location: GeographicCoordinate) {
+    private PanToCenter(location: GeographicCoordinate) {
         if (!location || typeof location.lat !== "number" || typeof location.lon !== "number") {
             return;
         }
