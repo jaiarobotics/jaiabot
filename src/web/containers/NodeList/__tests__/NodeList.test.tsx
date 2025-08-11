@@ -52,10 +52,10 @@ test("Verfiy all Nodes are displayed correctly", () => {
     expect(nodes).toHaveLength(4);
     expect(nodes.map((div) => div.textContent)).toEqual(["HUB", "1", "2", "5"]);
     expect(nodes.map((div) => div.className)).toEqual([
-        "node-item hub-item faultLevel0  ",
-        "node-item bot-item faultLevel0  ",
-        "node-item bot-item faultLevel1  ",
-        "node-item bot-item faultLevel2  ",
+        "node-item hub-item faultLevel0 ",
+        "node-item bot-item faultLevel0 ",
+        "node-item bot-item faultLevel1 ",
+        "node-item bot-item faultLevel2 ",
     ]);
 });
 
