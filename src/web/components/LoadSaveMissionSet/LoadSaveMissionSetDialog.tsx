@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../utils/local-storage";
-import { DialogActions } from "../../types/context-types";
 
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
@@ -10,7 +9,6 @@ import "./LoadSaveMissionSet.less";
 
 interface DialogProps {
     isVisible: boolean;
-    //disabledCode: DisabledCodes;
     onClose: () => void;
 }
 

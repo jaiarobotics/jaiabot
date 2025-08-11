@@ -1,15 +1,11 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import { LoadSaveMissionSetDialog } from "./LoadSaveMissionSetDialog";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiFolder } from "@mdi/js";
 
-import { JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
-
 export default function LoadSaveMissionSetButton() {
-    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
