@@ -12,26 +12,24 @@ class TrackPod {
 
         if (!this.intervalId) {
             this.intervalId = window.setInterval(() => {
-                // Inline "doTracking" logic here
                 if (this.trackingTarget === "pod") {
+                    const botCount = bots.getBots().size;
+                    if (botCount === 0) return; // nothing to track
+
                     let latSum = 0;
                     let lonSum = 0;
-                    let count = 0;
 
                     for (const bot of bots.getBots().values()) {
                         const location = bot.getLocation();
-                        if (location && !isNaN(location.lat) && !isNaN(location.lon)) {
-                            latSum += location.lat;
-                            lonSum += location.lon;
-                            count++;
-                        }
+                        if (!location) return;
+                        latSum += location.lat;
+                        lonSum += location.lon;
                     }
 
-                    if (count > 0) {
-                        const centroidLat = latSum / count;
-                        const centroidLon = lonSum / count;
-                        this.PanToCenter({ lat: centroidLat, lon: centroidLon });
-                    }
+                    this.PanToCenter({
+                        lat: latSum / botCount,
+                        lon: lonSum / botCount,
+                    });
                 }
             }, 500);
         }
