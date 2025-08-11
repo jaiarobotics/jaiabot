@@ -17,7 +17,7 @@ status_buffer {
     buffer_override {
         link: LINK_IRIDIUM
         buffer { 
-            blackout_time: 29
+            blackout_time: 60
         }
     }
 }
@@ -35,7 +35,7 @@ engineering_status_buffer {
     buffer_override {
         link: LINK_IRIDIUM
         buffer { 
-            blackout_time: 30
+            blackout_time: 60
         }
     }
 }
