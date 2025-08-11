@@ -67,7 +67,7 @@ export default function NodeList() {
                 ? isBotDisconnected(jaiaContext.bots.get(nodeID)!.getStatusAge())
                 : "";
 
-        return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`.trim();
+        return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
 
     return (
