@@ -49,8 +49,8 @@ export function LoadMissionSetDialog(props: DialogProps) {
 }
 
 /**
- * Produces the title for the dialog box. If there is nothing blocking the command from
- * being sent the title will be Confirm, otherwise it will be Alert.
+ * Produces the title for the dialog box. If there are no error conditions the title
+ * will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
     if (props.disabledCode === DisabledCodes.CONFIRM) {

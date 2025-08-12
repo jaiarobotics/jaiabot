@@ -49,8 +49,8 @@ export function DeleteMissionSetDialog(props: DialogProps) {
 }
 
 /**
- * Produces the title for the dialog box. If there is nothing blocking the command from
- * being sent the title will be Confirm, otherwise it will be Alert.
+ * Produces the title for the dialog box. If there are no error conditions the
+ *  title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
     if (props.disabledCode === DisabledCodes.CONFIRM) {
@@ -62,7 +62,7 @@ function Title(props: TitleProps) {
 
 /**
  * Produces the buttons for the dialox box.
- * For a confirmation dialog, the buttons will be Cancel and Save.
+ * For a confirmation dialog, the buttons will be Cancel and Delete.
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {

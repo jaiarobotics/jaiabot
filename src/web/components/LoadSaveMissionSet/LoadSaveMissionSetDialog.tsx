@@ -4,9 +4,6 @@ import { listSavedMissionSets } from "../../utils/local-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
-import { Button } from "@mui/material";
-import Icon from "@mdi/react";
-import { mdiDelete, mdiFolderUpload, mdiFolderDownload } from "@mdi/js";
 import "./LoadSaveMissionSet.less";
 
 interface DialogProps {
@@ -15,15 +12,13 @@ interface DialogProps {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the remote control button.
- * This dialog will be an alert if the command cannot be
- * sent or a confirmation prior to sending the command.
+ * Produces the dialog box that appears when clicking on the load/save mission set button
+ * This dialog provides delete, save and load mission set buttons
  */
 export function LoadSaveMissionSetDialog(props: DialogProps) {
     const [saveName, setSaveName] = useState<string>(missionSet.getName());
 
     const handleRowClick = (name: string) => {
-        // console.log("Clicked on:",name);
         setSaveName(name);
     };
 
@@ -87,7 +82,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
                 <div className={"jaia-dialog"}>
                     <div className={"load-save-mission-set"}>
                         <h1> "Load or Save Mission Set" </h1>
-                        <div className="title">Save Mission Set As</div>
+                        <div className="title">Mission Set Name</div>
                         {nameInput}
                         <div className="missionList">{missionNameRows}</div>
                         {buttonRow}

@@ -19,7 +19,6 @@ interface Props {
  */
 export default function LoadMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
-    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button
@@ -29,17 +28,13 @@ export default function LoadMissionSetButton(props: Props) {
     const getClassName = () => {
         let className = "jaia-button";
 
-        // if (getDisabledCode() !== DisabledCodes.NONE) {
-        //     className += " disabled";
-        // }
-
         return className;
     };
 
     /**
-     * Checks the Mission Set and applies the appropriate disable code
+     * Checks the mission set and applies the appropriate disable code
      *
-     * @returns {DisabledCodes} The applicable disabled code based on the Mission Set conditions
+     * @returns {DisabledCodes} The applicable disabled code based on the mission set conditions
      */
     const getDisabledCode = () => {
         if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
