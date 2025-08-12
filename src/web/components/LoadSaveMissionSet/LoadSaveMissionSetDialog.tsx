@@ -64,8 +64,8 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
     let buttonRow = (
         <div className="jaia-button-row">
             <DeleteMissionSetButton saveName={saveName} />
-            <SaveMissionSetButton saveName={saveName} />
-            <LoadMissionSetButton saveName={saveName} />
+            <SaveMissionSetButton saveName={saveName} onClose={props.onClose} />
+            <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
             <div className="flexSpacer"></div>
             <button className="dialog-button" onClick={() => props.onClose()}>
                 Close

@@ -12,6 +12,7 @@ import { DialogActions } from "../../../types/context-types";
 
 interface Props {
     saveName: string;
+    onClose: () => void;
 }
 /**
  * Produces the load mission set button.
@@ -61,6 +62,7 @@ export default function LoadMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.loadFromLocalStorage(props.saveName);
+            props.onClose();
         }
     };
 

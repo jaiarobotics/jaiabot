@@ -12,6 +12,7 @@ import { DialogActions } from "../../../types/context-types";
 
 interface Props {
     saveName: string;
+    onClose: () => void;
 }
 /**
  * Produces the save mission set button.
@@ -66,6 +67,7 @@ export default function SaveMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.saveToLocalStorage(props.saveName);
+            props.onClose();
         }
     };
 
