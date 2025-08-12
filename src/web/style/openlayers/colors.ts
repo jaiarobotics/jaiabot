@@ -7,5 +7,5 @@ export enum OpenLayersColors {
     TARGET = "chartreuse",
     INNER_COMMS = "green",
     OUTER_COMMS = "rgba(192,0,0)",
-    MEASURE_LINE = "black",
+    MEASURE_LINE = "white",
 }

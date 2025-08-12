@@ -41,7 +41,7 @@ export default function Map() {
                 handleAddRallyPoint(event.coordinate);
                 return;
             case MapModes.MEASURE:
-                // Measurement clicks handled by measure layer
+                // Measurement clicks handled by measure layer (src/web/openlayers/layers)
                 return;
         }
 
