@@ -156,8 +156,13 @@ def runtime_hub2hub_ip_addr(hub_id, fleet_index):
     return str(ipv6)
 
 def has_cloudhub_vpn(fleet_index):
-    cloudhub_vpn_iface=f'wg_jaia_ch{fleet_index}'
-    return cloudhub_vpn_iface in netifaces.interfaces()
+    cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_index}', 'wg_cloudhub']
+    all_interfaces=netifaces.interfaces()
+    for iface in cloudhub_vpn_iface:
+        if iface in all_interfaces:
+            return True
+    return False
+
 
 def hub2hub_ip_addr(this_hub_id, hub_id, fleet_index):
     hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_index)
