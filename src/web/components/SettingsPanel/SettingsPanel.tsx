@@ -17,6 +17,11 @@ import "./SettingsPanel.less";
 export default function SettingsPanel() {
     const [isTrackingPod, setIsTrackingPod] = useState(trackPod.isTracking());
 
+    /**
+     * Switches the track pod functionality on/off based on the toggle state
+     *
+     * @returns {void}
+     */
     const handleTrackPodToggleClick = () => {
         if (isTrackingPod) {
             trackPod.stopTracking();

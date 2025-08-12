@@ -13,6 +13,11 @@ class TrackPod {
         this.intervalID = null;
     }
 
+    /**
+     * Reports whether or not the pod is being tracked
+     *
+     * @returns {boolean} Whether or not the pod is being tracked
+     */
     isTracking() {
         if (this.intervalID !== null) {
             return true;
@@ -20,6 +25,11 @@ class TrackPod {
         return false;
     }
 
+    /**
+     * Starts an interval to update the map viewport periodically as the Bots move
+     *
+     * @returns {void}
+     */
     startTracking() {
         this.intervalID = setInterval(() => {
             const botCount = bots.getBots().size;
@@ -43,11 +53,22 @@ class TrackPod {
         }, DATA_MODEL_POLL_TIME);
     }
 
+    /**
+     * Stops the interval updating the map viewport
+     *
+     * @returns {void}
+     */
     stopTracking() {
         clearInterval(this.intervalID);
         this.intervalID = null;
     }
 
+    /**
+     * Shifts the maps viewport to the provided location
+     *
+     * @param {GeographicLocation} location
+     * @returns {void}
+     */
     private panToPodCenter(location: GeographicCoordinate) {
         const mapCoordinate = fromLonLat(
             [location.lon, location.lat],
