@@ -53,6 +53,10 @@ export default function Map() {
                     return;
                 case MapFeatureTypes.DIVE:
                     handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
+                    return;
+                case MapFeatureTypes.DRIFT:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
+                    return;
                 default:
                     return;
             }

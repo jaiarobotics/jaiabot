@@ -21,7 +21,6 @@ import driftMarker6 from "../../style/icons/drift-arrows/drift-arrow-6.svg";
 enum TaskPacketColors {
     LIGHT = "white",
     DARK = "black",
-    WARNING = "red",
 }
 
 const DRIFT_INTENSITY_INTERVAL = 0.5; // m/s
@@ -57,6 +56,10 @@ export function generateDriftFeature(taskPacket: TaskPacket) {
  * @returns {Style} Style to be applied to a drift feature
  */
 function generateDriftStyle(taskPacket: TaskPacket) {
+    if (!taskPacket.drift.estimated_drift) {
+        return new Style();
+    }
+
     return new Style({
         image: new Icon({
             src: getIconSource(taskPacket.drift),
