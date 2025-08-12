@@ -1,55 +1,46 @@
+import { fromLonLat } from "ol/proj";
+
 import { bots } from "../../data/bots/bots";
-import { GeographicCoordinate } from "../../types/protobuf-types";
 import { map } from "../maps/map";
-import { getMapCoordinate } from "../../shared/Utilities";
+
+import { GeographicCoordinate } from "../../types/protobuf-types";
+import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
 
 class TrackPod {
-    private trackingTarget: string | null = null;
-    private intervalId: number | null = null;
+    private intervalID: NodeJS.Timeout;
 
     startTracking() {
-        this.trackingTarget = "pod";
+        this.intervalID = setInterval(() => {
+            const botCount = bots.getBots().size;
 
-        if (!this.intervalId) {
-            this.intervalId = window.setInterval(() => {
-                if (this.trackingTarget === "pod") {
-                    const botCount = bots.getBots().size;
-                    if (botCount === 0) return; // nothing to track
+            if (botCount === 0) return;
 
-                    let latSum = 0;
-                    let lonSum = 0;
+            let latSum = 0;
+            let lonSum = 0;
 
-                    for (const bot of bots.getBots().values()) {
-                        const location = bot.getLocation();
-                        if (!location) return;
-                        latSum += location.lat;
-                        lonSum += location.lon;
-                    }
+            for (const bot of bots.getBots().values()) {
+                const location = bot.getLocation();
+                if (!location) return;
+                latSum += location.lat;
+                lonSum += location.lon;
+            }
 
-                    this.PanToCenter({
-                        lat: latSum / botCount,
-                        lon: lonSum / botCount,
-                    });
-                }
-            }, 500);
-        }
+            this.panToPodCenter({
+                lat: latSum / botCount,
+                lon: lonSum / botCount,
+            });
+        }, DATA_MODEL_POLL_TIME);
     }
 
     stopTracking() {
-        this.trackingTarget = null;
-
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
+        clearInterval(this.intervalID);
     }
 
-    private PanToCenter(location: GeographicCoordinate) {
-        if (!location || typeof location.lat !== "number" || typeof location.lon !== "number") {
-            return;
-        }
-
-        const mapCoordinate = getMapCoordinate(location, map);
+    private panToPodCenter(location: GeographicCoordinate) {
+        const mapCoordinate = fromLonLat(
+            [location.lon, location.lat],
+            map.getView().getProjection(),
+        );
 
         if (mapCoordinate) {
             map.getView().animate({
@@ -60,5 +51,4 @@ class TrackPod {
     }
 }
 
-// Export singleton instance
 export const trackPod = new TrackPod();
