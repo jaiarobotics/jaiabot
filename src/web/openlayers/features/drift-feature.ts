@@ -103,7 +103,8 @@ function getColor(taskPacket: TaskPacket) {
 
     if (
         selectedTaskPacket.botID === taskPacket.bot_id &&
-        selectedTaskPacket.startTime === taskPacket.start_time
+        selectedTaskPacket.startTime === taskPacket.start_time &&
+        selectedTaskPacket.type === MapFeatureTypes.DRIFT
     ) {
         if (taskPacketColor === TaskPacketColors.LIGHT) {
             taskPacketColor = TaskPacketColors.DARK;

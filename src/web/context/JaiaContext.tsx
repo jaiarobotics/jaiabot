@@ -16,6 +16,7 @@ import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
+import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
 
@@ -685,6 +686,7 @@ function handleClosedTaskPacketPanel(mutableState: JaiaContextType, panelAction:
     });
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
     return mutableState;
 }
 
@@ -968,7 +970,8 @@ function handleClickedTaskPacket(
 
     if (
         selectedTaskPacket.botID === clickedTaskPacket.botID &&
-        selectedTaskPacket.startTime === clickedTaskPacket.startTime
+        selectedTaskPacket.startTime === clickedTaskPacket.startTime &&
+        selectedTaskPacket.type === clickedTaskPacket.type
     ) {
         return mutableState;
     }
@@ -976,6 +979,8 @@ function handleClickedTaskPacket(
     jaiaGlobal.setSelectedTaskPacket(clickedTaskPacket);
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
+    diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
     return mutableState;
 }
 
