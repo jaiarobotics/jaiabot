@@ -163,12 +163,11 @@ def has_cloudhub_vpn(fleet_index):
             return True
     return False
 
-
 def hub2hub_ip_addr(this_hub_id, hub_id, fleet_index):
     hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_index)
     if is_simulation():
         # use localhost (for standard single machine sim)
-        return "127.0.0.1"
+        return "::1"
     else:
         return hub2hub_ip
     

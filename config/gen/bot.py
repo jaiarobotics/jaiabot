@@ -189,14 +189,15 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
 }\n'''
 
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
-                                            subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.modem_id("wifi",node_id),
-                                            local_port=common.udp.wifi_udp_port(node_id),
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
-                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
-                                            mac_slots=common.comms.wifi_mac_slots(node_id),
-                                            sub_buffer=sub_buffer_config,
-                                            ack_timeout=ack_timeout)
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.modem_id("wifi",node_id),
+                                             local_port=common.udp.wifi_udp_port(node_id),
+                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
+                                             hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                             mac_slots=common.comms.wifi_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=ack_timeout,
+                                             ipv6='')
 
 
 if common.CommsMode.IRIDIUM in common.jaia_comms_modes:    
@@ -434,7 +435,7 @@ elif common.app == 'jaiabot_driver_camera':
                                      interprocess_block = interprocess_common,
                                      serial_camera_port=common.bot.serial_camera_port(bot_index)))
 elif common.app == 'jaiabot_comms_manager':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_comms_manager.pb.cfg.in',
+    print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      subscribes=subscribes_block))

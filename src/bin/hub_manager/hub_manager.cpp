@@ -47,6 +47,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -308,12 +309,19 @@ jaiabot::apps::HubManager::HubManager()
         [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
         { handle_hardware_status(hardware_status); });
 
-    // subscribe to other hubs
-    for (int other_hub_id : cfg().expected_hubs().id())
-    {
-        if (other_hub_id != cfg().hub_id())
-            hub2hub_subscribe(other_hub_id);
-    }
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
+        {
+            if (req.link() == jaiabot::protobuf::LINK_HUB2HUB)
+            {
+                // subscribe to other hubs
+                for (int other_hub_id : cfg().expected_hubs().id())
+                {
+                    if (other_hub_id != cfg().hub_id())
+                        hub2hub_subscribe(other_hub_id);
+                }
+            }
+        });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
