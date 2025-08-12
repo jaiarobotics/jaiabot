@@ -3,7 +3,7 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../utils/local-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
-
+import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
 import { mdiDelete, mdiFolderUpload, mdiFolderDownload } from "@mdi/js";
@@ -21,25 +21,6 @@ interface DialogProps {
  */
 export function LoadSaveMissionSetDialog(props: DialogProps) {
     const [saveName, setSaveName] = useState<string>(missionSet.getName());
-
-    const handleSaveClick = () => {
-        //TODO, may post warning
-        if (saveName == undefined) setSaveName("DefaultMissionSet");
-        missionSet.saveToLocalStorage(saveName);
-        props.onClose();
-    };
-
-    const handleLoadClick = () => {
-        //TODO, should post warning
-        if (saveName == undefined) return;
-        missionSet.loadFromLocalStorage(saveName);
-        props.onClose();
-    };
-
-    const handleDeleteClick = () => {
-        if (saveName == undefined) return; //TODO, should post warning
-        missionSet.deleteFromLocalStorage(saveName);
-    };
 
     const handleRowClick = (name: string) => {
         // console.log("Clicked on:",name);
@@ -87,13 +68,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
     // Buttons
     let buttonRow = (
         <div className="jaia-button-row">
-            <Button
-                className="jaia-button"
-                aria-label="help-window"
-                onClick={() => handleDeleteClick()}
-            >
-                <Icon path={mdiDelete} title="Delete Mission Set"></Icon>
-            </Button>
+            <DeleteMissionSetButton saveName={saveName} />
             <SaveMissionSetButton saveName={saveName} />
             <LoadMissionSetButton saveName={saveName} />
             <div className="flexSpacer"></div>
