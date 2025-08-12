@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo } from "react";
+import { useContext, useEffect } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPacket } from "../../types/protobuf-types";
@@ -46,10 +46,6 @@ export default function TaskPacketPanel(props: Props) {
 
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const taskPacket = useMemo(() => getTaskPacket(), []);
-    const startTime = useMemo(() => formatDate(taskPacket.start_time), []);
-    const endTime = useMemo(() => formatDate(taskPacket.end_time), []);
-
     useEffect(() => {
         return () => {
             jaiaDispatch({ type: JaiaActions.CLOSED_TASK_PACKET_PANEL });
@@ -67,6 +63,10 @@ export default function TaskPacketPanel(props: Props) {
             panelAction: PanelActions.CLOSE,
         });
     };
+
+    const taskPacket = getTaskPacket();
+    const startTime = formatDate(taskPacket.start_time);
+    const endTime = formatDate(taskPacket.end_time);
 
     switch (props.selectedTaskPacket.type) {
         case MapFeatureTypes.DIVE:
@@ -111,7 +111,9 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">Direction:</div>
                         <div>{taskPacket.drift.estimated_drift.heading} deg</div>
                         <div className="line-break"></div>
-                        <div className="label">Sig Wave Height (Beta):</div>
+                        <div className="label">
+                            Sig Wave Height<br></br>Beta:
+                        </div>
                         <div>{taskPacket.drift.significant_wave_height} m</div>
                         <div className="line-break"></div>
                         <div className="label">Start Time:</div>
