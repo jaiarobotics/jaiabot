@@ -155,15 +155,15 @@ def runtime_hub2hub_ip_addr(hub_id, fleet_index):
     ipv6 += 0*2**16
     return str(ipv6)
 
+def has_cloudhub_vpn(fleet_index):
+    cloudhub_vpn_iface=f'wg_jaia_ch{fleet_index}'
+    return cloudhub_vpn_iface in netifaces.interfaces()
+
 def hub2hub_ip_addr(this_hub_id, hub_id, fleet_index):
     hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_index)
     if is_simulation():
-        # if this computer has an assigned IP address matching the expected runtime IP address, use the standard hub2hub IP addresses (VirtualBox fleet)        
-        if runtime_hub2hub_ip_addr(this_hub_id, fleet_index) in all_local_ip_addresses:
-            return hub2hub_ip
-        # otherwise use localhost (for standard single machine sim)
-        else:
-            return "127.0.0.1"
+        # use localhost (for standard single machine sim)
+        return "127.0.0.1"
     else:
         return hub2hub_ip
     

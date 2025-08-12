@@ -10,6 +10,7 @@ link {
             $remotes
             $hub_endpoints
             max_frame_size: 1400
+            ipv6: true
         }
     }
     mac { 
