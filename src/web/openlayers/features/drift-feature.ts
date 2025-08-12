@@ -56,6 +56,7 @@ export function generateDriftFeature(taskPacket: TaskPacket) {
  * @returns {Style} Style to be applied to a drift feature
  */
 function generateDriftStyle(taskPacket: TaskPacket) {
+    // Handles 0 second drift
     if (!taskPacket.drift.estimated_drift) {
         return new Style();
     }
@@ -71,6 +72,12 @@ function generateDriftStyle(taskPacket: TaskPacket) {
     });
 }
 
+/**
+ * Choses the correct drift icon based on drift speed
+ *
+ * @param driftPacket Drift speed determines which icon to display
+ * @returns {string} Drift icon SVG
+ */
 function getIconSource(driftPacket: DriftPacket) {
     const drfitIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
 
