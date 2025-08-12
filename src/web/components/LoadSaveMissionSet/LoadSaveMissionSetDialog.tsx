@@ -68,7 +68,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
             <LoadMissionSetButton saveName={saveName} />
             <div className="flexSpacer"></div>
             <button className="dialog-button" onClick={() => props.onClose()}>
-                Cancel
+                Close
             </button>
         </div>
     );

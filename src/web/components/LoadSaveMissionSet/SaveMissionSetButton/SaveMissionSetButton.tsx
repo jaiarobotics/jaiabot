@@ -81,6 +81,7 @@ export default function SaveMissionSetButton(props: Props) {
             <SaveMissionSetDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
+                saveName={props.saveName}
                 onClose={onDialogClose}
             />
         </div>

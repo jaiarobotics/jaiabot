@@ -76,6 +76,7 @@ export default function LoadMissionSetButton(props: Props) {
             <LoadMissionSetDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
+                saveName={props.saveName}
                 onClose={onDialogClose}
             />
         </div>

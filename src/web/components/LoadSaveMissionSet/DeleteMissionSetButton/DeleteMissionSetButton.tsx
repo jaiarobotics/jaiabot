@@ -75,6 +75,7 @@ export default function LoadMissionSetButton(props: Props) {
             </Button>
             <DeleteMissionSetDialog
                 isVisible={isDialogVisible}
+                saveName={props.saveName}
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />

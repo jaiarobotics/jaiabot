@@ -4,6 +4,7 @@ import { DialogActions } from "../../../types/context-types";
 interface DialogProps {
     isVisible: boolean;
     disabledCode: DisabledCodes;
+    saveName: string;
     onClose: (dialogAction: DialogActions) => void;
 }
 
@@ -40,7 +41,10 @@ export function SaveMissionSetDialog(props: DialogProps) {
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={getClassName()}>
                     <Title disabledCode={props.disabledCode} />
-                    <p>{messages.get(props.disabledCode)}</p>
+                    <p>
+                        {messages.get(props.disabledCode)}{" "}
+                        {props.disabledCode === DisabledCodes.OVERWRITE ? props.saveName : ""}
+                    </p>
                     <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
                 </div>
             </div>
