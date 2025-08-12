@@ -1,10 +1,12 @@
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
-import { ThemeProvider } from "@emotion/react";
-import { accordionTheme } from "../../utils/style";
-import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { useState } from "react";
+
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
+import { ThemeProvider } from "@emotion/react";
+
+import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import { trackPod } from "../../openlayers/controls/track-pod";
+import { accordionTheme } from "../../utils/style";
 
 import "./SettingsPanel.less";
 
@@ -13,10 +15,7 @@ import "./SettingsPanel.less";
  */
 
 export default function SettingsPanel() {
-    const [isTrackingPod, setIsTrackingPod] = useState(() => {
-        const saved = localStorage.getItem("isTrackingPod");
-        return saved === "true";
-    });
+    const [isTrackingPod, setIsTrackingPod] = useState(trackPod.isTracking());
 
     const handleTrackPodToggleClick = () => {
         if (isTrackingPod) {
@@ -27,19 +26,14 @@ export default function SettingsPanel() {
         setIsTrackingPod(!isTrackingPod);
     };
 
-    const isChecked = isTrackingPod;
-
     return (
         <div className="jaia-panel settings-panel">
             <div className="jaia-panel-title">Settings</div>
+            <div className="settings-row">
+                <div className="settings-label">Track Pod:</div>
+                <JaiaToggle checked={() => isTrackingPod} onClick={handleTrackPodToggleClick} />
+            </div>
             <div className="accordions-container">
-                <div className="settings-card-container">
-                    <div className="settings-card">
-                        <div className="settings-track-pod-label">Track Pod:</div>
-                        <JaiaToggle checked={() => isChecked} onClick={handleTrackPodToggleClick} />
-                    </div>
-                </div>
-
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion className="accordion-container">
                         <AccordionSummary

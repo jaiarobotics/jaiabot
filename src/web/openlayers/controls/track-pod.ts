@@ -9,6 +9,17 @@ import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
 class TrackPod {
     private intervalID: NodeJS.Timeout;
 
+    constructor() {
+        this.intervalID = null;
+    }
+
+    isTracking() {
+        if (this.intervalID !== null) {
+            return true;
+        }
+        return false;
+    }
+
     startTracking() {
         this.intervalID = setInterval(() => {
             const botCount = bots.getBots().size;
@@ -34,6 +45,7 @@ class TrackPod {
 
     stopTracking() {
         clearInterval(this.intervalID);
+        this.intervalID = null;
     }
 
     private panToPodCenter(location: GeographicCoordinate) {
