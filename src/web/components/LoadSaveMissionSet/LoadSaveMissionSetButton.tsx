@@ -27,11 +27,7 @@ export default function LoadSaveMissionSetButton() {
             >
                 <Icon path={mdiFolder} title="Load or Save Mission Set"></Icon>
             </Button>
-            <LoadSaveMissionSetDialog
-                isVisible={isDialogVisible}
-                //disabledCode={getDisabledCode()}
-                onClose={onDialogClose}
-            />
+            <LoadSaveMissionSetDialog isVisible={isDialogVisible} onClose={onDialogClose} />
         </div>
     );
 }
