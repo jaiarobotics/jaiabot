@@ -12,7 +12,7 @@ import Bot from "../../data/bots/bot";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -91,7 +91,7 @@ export default function StopAllBotsButton(props: Props) {
                 aria-label={"stop-all-bots"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiStop} title="Stop All Bots" />
+                <Icon path={mdiStop} size={MDI_BUTTON_SIZE} title="Stop All Bots" />
             </Button>
             <StopAllBotsDialog
                 isVisible={isDialogVisible}

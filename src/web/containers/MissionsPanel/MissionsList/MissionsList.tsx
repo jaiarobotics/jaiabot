@@ -8,7 +8,7 @@ import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssi
 import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteMissionButton";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
@@ -124,7 +124,11 @@ export default function MissionsList() {
                                         handleDuplicateMissionClick(mission.getMissionID())
                                     }
                                 >
-                                    <Icon path={mdiContentDuplicate} title="Duplicate Mission" />
+                                    <Icon
+                                        path={mdiContentDuplicate}
+                                        size={MDI_BUTTON_SIZE}
+                                        title="Duplicate Mission"
+                                    />
                                 </Button>
                                 <DeleteMissionButton
                                     deleteAll={false}

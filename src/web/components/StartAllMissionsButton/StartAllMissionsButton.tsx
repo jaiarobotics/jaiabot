@@ -18,7 +18,12 @@ import { Command, CommandType } from "../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE, UNASSIGNED_ID } from "../../utils/constants";
+import {
+    MDI_BUTTON_SIZE,
+    MIN_BATTERY_PERCENT,
+    NO_COMMS_STATUS_AGE,
+    UNASSIGNED_ID,
+} from "../../utils/constants";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -105,7 +110,7 @@ export default function StartAllMissionsButton(props: Props) {
                 };
                 const res = await sendBotCommand(startMissionCommand);
                 if (res.status === "ok") {
-                    jaiaDispatch({ type: JaiaActions.SEND_MISSION, missionID: missionID });
+                    jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
                 }
             }
         }
@@ -118,7 +123,7 @@ export default function StartAllMissionsButton(props: Props) {
                 aria-label={"start-all-missions"}
                 onClick={() => handleClick()}
             >
-                <Icon path={mdiPlay} title="Start All Missions" />
+                <Icon path={mdiPlay} size={MDI_BUTTON_SIZE} title="Start All Missions" />
             </Button>
             <StartAllMissionsDialog
                 isVisible={isDialogVisible}

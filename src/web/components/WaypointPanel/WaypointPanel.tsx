@@ -265,7 +265,7 @@ export default function WaypointPanel() {
                     <JaiaToggle
                         checked={() =>
                             jaiaContext.missionIDInEditMode ===
-                            jaiaContext.selectedWaypoint.waypointNum
+                            jaiaContext.selectedWaypoint.missionID
                         }
                         onClick={() => handleEditModeClick()}
                     />
