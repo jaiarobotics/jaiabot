@@ -2,6 +2,7 @@ import { useState } from "react";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../utils/local-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
+import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
@@ -94,10 +95,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
                 <Icon path={mdiDelete} title="Delete Mission Set"></Icon>
             </Button>
             <SaveMissionSetButton saveName={saveName} />
-            <Button className="jaia-button" onClick={() => handleLoadClick()}>
-                <Icon path={mdiFolderUpload} title="Load Mission Set"></Icon>
-            </Button>
-
+            <LoadMissionSetButton saveName={saveName} />
             <div className="flexSpacer"></div>
             <button className="dialog-button" onClick={() => props.onClose()}>
                 Cancel

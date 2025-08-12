@@ -53,7 +53,7 @@ export function SaveMissionSetDialog(props: DialogProps) {
  * being sent the title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
-    if (props.disabledCode === DisabledCodes.NONE) {
+    if (props.disabledCode === DisabledCodes.OVERWRITE) {
         return <h1>Confirm</h1>;
     }
 
@@ -67,38 +67,7 @@ function Title(props: TitleProps) {
  */
 function ButtonRow(props: ButtonRowProps) {
     switch (props.disabledCode) {
-        case DisabledCodes.NONE: {
-            return (
-                <div className="dialog-button-row">
-                    <button
-                        className="dialog-button"
-                        onClick={() => props.onClose(DialogActions.NONE)}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className="dialog-button"
-                        onClick={() => props.onClose(DialogActions.CONFIRMED)}
-                    >
-                        Save
-                    </button>
-                </div>
-            );
-        }
-        case DisabledCodes.NO_MISSIONS: {
-            return (
-                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
-                    Close
-                </button>
-            );
-        }
-        case DisabledCodes.NO_NAME: {
-            return (
-                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
-                    Close
-                </button>
-            );
-        }
+        case DisabledCodes.NONE:
         case DisabledCodes.OVERWRITE: {
             return (
                 <div className="dialog-button-row">
@@ -115,6 +84,14 @@ function ButtonRow(props: ButtonRowProps) {
                         Save
                     </button>
                 </div>
+            );
+        }
+        case DisabledCodes.NO_MISSIONS:
+        case DisabledCodes.NO_NAME: {
+            return (
+                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+                    Close
+                </button>
             );
         }
     }

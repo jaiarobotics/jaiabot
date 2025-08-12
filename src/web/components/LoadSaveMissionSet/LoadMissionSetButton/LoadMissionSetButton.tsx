@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../../utils/local-storage";
-import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
-import { DisabledCodes } from "./save-messages";
+import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
+import { DisabledCodes } from "./load-messages";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiFolderDownload } from "@mdi/js";
+import { mdiFolderUpload } from "@mdi/js";
 
 import { DialogActions } from "../../../types/context-types";
 
@@ -14,10 +14,10 @@ interface Props {
     saveName: string;
 }
 /**
- * Produces the save mission set button.
+ * Produces the load mission set button.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function SaveMissionSetButton(props: Props) {
+export default function LoadMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
@@ -42,23 +42,17 @@ export default function SaveMissionSetButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Mission Set conditions
      */
     const getDisabledCode = () => {
-        if (missionSet.getMissions().size == 0) return DisabledCodes.NO_MISSIONS;
-        if (props.saveName == "") return DisabledCodes.NO_NAME;
-        if (listSavedMissionSets().includes(props.saveName)) return DisabledCodes.OVERWRITE;
-        return DisabledCodes.NONE;
+        if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
+        return DisabledCodes.CONFIRM;
     };
 
     /**
-     * Displays dialog if a warning condition exist or saves the mission set
+     * Displays dialog before loading the mission set
      *
      * @returns {void}
      */
     const onButtonClick = async () => {
-        if (getDisabledCode() !== DisabledCodes.NONE) {
-            setIsDialogVisible(true);
-        } else {
-            onDialogClose(DialogActions.CONFIRMED);
-        }
+        setIsDialogVisible(true);
     };
 
     /**
@@ -71,7 +65,7 @@ export default function SaveMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            missionSet.saveToLocalStorage(props.saveName);
+            missionSet.loadFromLocalStorage(props.saveName);
         }
     };
 
@@ -79,12 +73,12 @@ export default function SaveMissionSetButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"save-mission-set"}
+                aria-label={"load-mission-set"}
                 onClick={() => onButtonClick()}
             >
-                <Icon path={mdiFolderDownload} title="Save Mission Set" />
+                <Icon path={mdiFolderUpload} title="Load Mission Set" />
             </Button>
-            <SaveMissionSetDialog
+            <LoadMissionSetDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
