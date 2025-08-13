@@ -57,13 +57,8 @@ import {
 
 export interface MissionHistoryState {
     missions: Map<number, Mission>;
-    missionAccordionStates: { [missionID: number]: boolean };
-    missionIDInEditMode: number;
-    missionSpeeds: Speeds;
-    rallyPoints: { id: number; location: GeographicCoordinate }[];
     missionAssignments: { botID: number; missionID: number }[];
     nextMissionID: number;
-    timestamp: number;
 }
 
 export interface JaiaContextType {
@@ -153,34 +148,20 @@ export const JaiaDispatchContext = createContext(null);
  * @returns {void}
  *
  * @notes
- * The maximum size of the missionHistory array is set to 11.
+ * The maximum size of the missionHistory array is set to 10.
  * This is to prevent the mission history from growing unbounded and potentially causing
  * performance issues. The operator can undo up to 10 actions.
  */
 function updateMissionHistory(mutableState: JaiaContextType) {
     try {
         console.log("updateMissionHistory called");
-        const missionHistoryMaxLen = 11;
+        const missionHistoryMaxLen = 10;
 
         // Create a snapshot of the current mission state
         const historySnapshot: MissionHistoryState = {
             missions: cloneDeep(mutableState.missions),
-            missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
-            missionIDInEditMode: mutableState.missionIDInEditMode,
-            missionSpeeds: cloneDeep(mutableState.missionSpeeds),
-            rallyPoints: cloneDeep(
-                rallyLayer
-                    .getVectorLayer()
-                    .getSource()
-                    .getFeatures()
-                    .map((feature) => ({
-                        id: feature.get("id"),
-                        location: feature.get("location"),
-                    })),
-            ),
             missionAssignments: cloneDeep(missionsManager.getAssignments()),
             nextMissionID: missionSet.getNextMissionID(),
-            timestamp: Date.now(),
         };
 
         // Remove oldest entry if we've reached the maximum length
@@ -236,14 +217,11 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
 
         // Get the last saved state
         const lastState = mutableState.missionHistory.pop();
-        console.log("Restoring state from:", lastState?.timestamp);
 
         if (lastState) {
             // Restore mission data to the missionSet singleton
             console.log("Restoring missions to missionSet");
             missionSet.setMissions(lastState.missions);
-            missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
-            missionSet.setMissionSpeeds(lastState.missionSpeeds);
             missionSet.setNextMissionID(lastState.nextMissionID);
 
             // Restore mission assignments to the missionsManager
@@ -253,9 +231,6 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             // Update context state
             console.log("Updating context state");
             mutableState.missions = lastState.missions;
-            mutableState.missionAccordionStates = lastState.missionAccordionStates;
-            mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
-            mutableState.missionSpeeds = lastState.missionSpeeds;
 
             // Reset any selected states that might cause conflicts after undo
             console.log("Resetting selected states");
