@@ -101,6 +101,7 @@ export interface JaiaAction {
 
     command?: Command;
     missionSpeeds?: Speeds;
+    missionSetName?: string;
 }
 
 interface JaiaContextProviderProps {
@@ -171,6 +172,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_MISSION_SPEEDS:
             return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
+        case JaiaActions.LOAD_MISSION_SET:
+            return handleLoadMissionSet(mutableState, action.missionSetName);
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -417,6 +420,23 @@ function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds:
     return mutableState;
 }
 
+/**
+ * Loads a mission set from local storage
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleLoadMissionSet(mutableState: JaiaContextType, missionSetName: string) {
+    missionSet.loadFromLocalStorage(missionSetName);
+    missionsManager.unassignAll();
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
+    mutableState.missionAccordionStates = Object.fromEntries(
+        Array.from(mutableState.missions.keys(), (key) => [key, false]),
+    );
+
+    missionLayer.updateFeatures();
+    return mutableState;
+}
 /**
  * Turns off edit mode upon starting a mission
  *

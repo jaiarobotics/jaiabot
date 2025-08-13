@@ -140,7 +140,7 @@ class MissionSet {
                 this.addMission(mission);
             });
         }
-
+        this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = targetMissionSet.missionSpeeds;
         this.name = targetMissionSet.name;
         return true;

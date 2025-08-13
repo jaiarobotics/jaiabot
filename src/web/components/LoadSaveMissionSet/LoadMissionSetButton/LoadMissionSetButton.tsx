@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
+
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "../../../utils/local-storage";
 import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
@@ -19,6 +22,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function LoadMissionSetButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -52,7 +56,7 @@ export default function LoadMissionSetButton(props: Props) {
     };
 
     /**
-     * Closes the dialog box then acts based on the button clicked
+     * Closes the dialog box and dispatches an event based on the button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
@@ -61,7 +65,7 @@ export default function LoadMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            missionSet.loadFromLocalStorage(props.saveName);
+            jaiaDispatch({ type: JaiaActions.LOAD_MISSION_SET, missionSetName: props.saveName });
             props.onClose();
         }
     };
