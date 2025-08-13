@@ -30,6 +30,13 @@ interface TileDescriptor {
     url: string;
 }
 
+/**
+ * A generator function that generates TileDescriptors from a LayerViewDescriptor.  You can iterate through the TileDescriptors to get
+ * URLs to download each tile up to the max zoom level.
+ *
+ * @param {LayerViewDescriptor} layerViewDescriptor An object indicating which view, layer, and max_zoom level to iterate through the tiles for.
+ * @returns {Generator<TileDescriptor>} A generator of TileDescriptors, which can be used to download the tiles.
+ */
 function* tile_generator(layerViewDescriptor: LayerViewDescriptor): Generator<TileDescriptor> {
     const extent = layerViewDescriptor.view.calculateExtent();
     const projection = layerViewDescriptor.view.getProjection();
@@ -118,12 +125,14 @@ export class HubMapDownloader {
                     `Already have /maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
                 );
             } else {
+                console.log(`Need to fetch ${tile.url}`);
                 const tileBlob = await fetch(tile.url).then((response) => {
                     return response.blob();
                 });
                 jaiaAPI
                     .putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob)
                     .then(() => {
+                        // If this layer isn't in the list of offline layer titles, add it and refresh.
                         if (!(tile.layer_name in offlineLayerManager.layerTitles)) {
                             offlineLayerManager.refresh();
                         }
@@ -134,7 +143,7 @@ export class HubMapDownloader {
         }
 
         this.running = false;
-        this?.observer(this);
+        this.observer?.(this);
     }
 }
 

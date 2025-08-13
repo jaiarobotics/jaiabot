@@ -4092,27 +4092,6 @@ export default class CommandControl extends React.Component {
                 </Button>
             );
 
-        const hubMapsButton =
-            visiblePanel == PanelType.HUB_MAPS ? (
-                <Button
-                    className="button-jcc active"
-                    onClick={() => {
-                        this.setVisiblePanel(PanelType.NONE);
-                    }}
-                >
-                    <Icon path={mdiFileImport} size={1.3} title="Hub Maps" />
-                </Button>
-            ) : (
-                <Button
-                    className="button-jcc"
-                    onClick={() => {
-                        this.setVisiblePanel(PanelType.HUB_MAPS);
-                    }}
-                >
-                    <Icon path={mdiFileImport} size={1.3} title="Hub Maps" />
-                </Button>
-            );
-
         const measureButton =
             visiblePanel == PanelType.MEASURE_TOOL ? (
                 <div>
@@ -4349,7 +4328,6 @@ export default class CommandControl extends React.Component {
                     {downloadQueueButton}
                     {measureButton}
                     {settingsPanelButton}
-                    {hubMapsButton}
                 </div>
 
                 <div id="botsDrawer">

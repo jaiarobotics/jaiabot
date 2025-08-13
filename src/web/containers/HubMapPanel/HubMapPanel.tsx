@@ -1,9 +1,9 @@
 import "./HubMapPanel.less";
-import { Button } from "@mui/material";
+import { Button, InputLabel, FormControl, Select, MenuItem, Typography } from "@mui/material";
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
 import { jaiaAPI } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
-import { mdiCancel, mdiContentSave, mdiDelete, mdiUpload } from "@mdi/js";
+import { mdiCancel, mdiContentSave, mdiDelete, mdiPlus, mdiUpload } from "@mdi/js";
 import { hubMapDownloader } from "./HubMapDownloader";
 import { Map } from "ol";
 import { useEffect, useState } from "react";
@@ -11,6 +11,9 @@ import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
 import { offlineLayerManager } from "../../openlayers/map/layers/offline-layers";
 import { CustomAlert } from "../../shared/CustomAlert";
+import * as Layers from "../../shared/Layers";
+import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
+import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
 
 interface Props {
     map: Map;
@@ -21,6 +24,7 @@ export function HubMapPanel(props: Props) {
     const [error, setError] = useState<string>(null);
     const [layerTitles, setLayerTitles] = useState<string[]>(offlineLayerManager.layerTitles);
     const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
+    const [selectedOnlineTileLayerIndex, setSelectedOnlineTileLayerIndex] = useState(0);
 
     function refreshLayerList() {
         setLayerTitles(offlineLayerManager.layerTitles);
@@ -164,31 +168,53 @@ export function HubMapPanel(props: Props) {
 
     // Import visible layers
 
-    function importVisibleLayers() {
-        props.map
-            .getAllLayers()
-            .filter((layer) => {
-                return layer.isVisible() && layer instanceof TileLayer;
-            })
-            .forEach((layer: TileLayer<TileImage>) => {
-                hubMapDownloader.add({
-                    layer: layer,
-                    view: props.map.getView(),
-                    max_zoom: 17,
-                });
-            });
+    function importOnlineTileLayer(tileLayer: TileLayer<TileImage>) {
+        hubMapDownloader.add({
+            layer: tileLayer,
+            view: props.map.getView(),
+            max_zoom: 17,
+        });
     }
 
-    const importTileLayersButton = (
+    const onlineTileLayers = [
+        noaaLayer,
+        Layers.getArcGISSatelliteImageryLayer(),
+        openStreetMapLayer,
+    ];
+
+    const menuItems = onlineTileLayers.map((layer, index) => {
+        return <MenuItem value={index}>{layer.get("title")}</MenuItem>;
+    });
+
+    const tileLayerSelectForm = (
+        <FormControl fullWidth>
+            <InputLabel id="demo-simple-select-label">Layer</InputLabel>
+            <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                value={selectedOnlineTileLayerIndex}
+                label="Layer"
+                onChange={(evt) => {
+                    setSelectedOnlineTileLayerIndex(Number(evt.target.value));
+                }}
+            >
+                {menuItems}
+            </Select>
+        </FormControl>
+    );
+
+    const importTileLayersSection = (
         <div className="hub-map-section">
+            <Typography>Import from Online Layer</Typography>
+            {tileLayerSelectForm}
             <Button
                 className="button-jcc"
                 onClick={() => {
-                    importVisibleLayers();
+                    importOnlineTileLayer(onlineTileLayers[selectedOnlineTileLayerIndex]);
                 }}
             >
-                <Icon path={mdiContentSave}></Icon>
-                Import visible layers to Hub
+                <Icon path={mdiPlus}></Icon>
+                Start Importing Area of Screen
             </Button>
         </div>
     );
@@ -196,16 +222,15 @@ export function HubMapPanel(props: Props) {
     /////////////////
 
     return (
-        <div className="hub-map-panel">
-            <div className="hub-map-layout-container">
-                <div className="hub-map-title">Hub Map Layers</div>
-                {hubLayerListSection()}
-                {deleteLayerButton}
-                {importGeoTIFFButton}
-                {importTileLayersButton}
-                {tileDownloaderStatusSection()}
-                {errorSection()}
-            </div>
+        // <div className="hub-map-panel">
+        <div className="hub-map-layout-container">
+            {hubLayerListSection()}
+            {deleteLayerButton}
+            {importGeoTIFFButton}
+            {importTileLayersSection}
+            {tileDownloaderStatusSection()}
+            {errorSection()}
         </div>
+        // </div>
     );
 }
