@@ -47,7 +47,7 @@ beforeEach(() => {
     );
 });
 
-test("Verfiy all Nodes are displayed correctly", () => {
+test("Verfiy all nodes are displayed correctly", () => {
     const nodeList = screen.getByTestId("nodeList");
     const nodes = within(nodeList).getAllByRole("generic");
     expect(nodes).toHaveLength(4);
@@ -60,7 +60,7 @@ test("Verfiy all Nodes are displayed correctly", () => {
     ]);
 });
 
-test("Verify Node Selection Updates Style", async () => {
+test("Verify node selection updates style", async () => {
     const nodeList = screen.getByTestId("nodeList");
     const nodes = within(nodeList).getAllByRole("generic");
     expect(nodes).toHaveLength(4);
@@ -82,21 +82,20 @@ test("Verify Node Selection Updates Style", async () => {
     expect(nodes.map((div) => div.className)).not.toContain("selected");
 });
 
-// Test sorting order
-test("Nodes should be displayed in correct order (hubs first, then bots sorted by ID)", () => {
+test("Nodes should be displayed in correct order (Hub first, then Bots sorted by ID)", () => {
     const nodeList = screen.getByTestId("nodeList");
     const nodes = within(nodeList).getAllByRole("generic");
 
-    // Should be: HUB(s), then bots in ascending order
+    // Should be: HUB(s), then Bots in ascending order
     const textContent = nodes.map((div) => div.textContent);
 
     // Check that HUB comes first
     expect(textContent[0]).toBe("HUB");
 
-    // Check that bot IDs are in ascending order
+    // Check that Bot IDs are in ascending order
     const botTexts = textContent.slice(1); // Remove HUB(s)
-    const botIds = botTexts.map((text) => parseInt(text)).filter((id) => !isNaN(id));
-    const sortedBotIds = [...botIds].sort((a, b) => a - b);
+    const botIDs = botTexts.map((text) => Number(text));
+    const sortedBotIds = [...botIDs].sort((a, b) => a - b);
 
-    expect(botIds).toEqual(sortedBotIds);
+    expect(botIDs).toEqual(sortedBotIds);
 });
