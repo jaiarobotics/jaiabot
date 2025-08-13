@@ -56,7 +56,7 @@ export function DeleteMissionSetDialog(props: DialogProps) {
  *  title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
-    if (props.disabledCode === DisabledCodes.CONFIRM) {
+    if (props.disabledCode === DisabledCodes.NONE) {
         return <h1>Confirm</h1>;
     }
 
@@ -70,8 +70,7 @@ function Title(props: TitleProps) {
  */
 function ButtonRow(props: ButtonRowProps) {
     switch (props.disabledCode) {
-        case DisabledCodes.NONE:
-        case DisabledCodes.CONFIRM: {
+        case DisabledCodes.NONE: {
             return (
                 <div className="dialog-button-row">
                     <button

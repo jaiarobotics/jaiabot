@@ -43,7 +43,7 @@ export default function LoadMissionSetButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
-        return DisabledCodes.CONFIRM;
+        return DisabledCodes.NONE;
     };
 
     /**
