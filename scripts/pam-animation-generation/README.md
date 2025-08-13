@@ -12,7 +12,7 @@ work flow
 * run prepare sections on a recording folder with node subfolders to generate "_generated" selection tables for each series of recordings
 * import audio files and selection tables to RAVEN 1) drag the files onto raven and then 2) drag the selction table into the selection panel
 * turn off the waveform from the views panel so that they do not appear in the selection table when you save it
-* save selection table with calculated inband power with "_inbandPower" in the name instead of "_generated"
+* save selection table with calculated inband power with "inbandPower.Table" in the name instead of "generated.Table"
 * run the visualize script on the recording folder so that you can ID an acceptable threshold
 * run animation script
 
