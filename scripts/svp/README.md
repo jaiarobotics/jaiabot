@@ -1,4 +1,4 @@
-1. In order to successfully run this SVP script, you must download the GSW Pythong Github Toolbox
+1. In order to successfully run this SVP script, you must download the GSW Python Github Toolbox
     - Make an executable 
         ```
         chmod +x create-python-virt-env.sh
@@ -24,4 +24,4 @@
     * `--h5` points to the JaiaBot `.h5` log to read
         * dive_data.h5 is just an example 
     * `--start` and `--end` set the extraction window in **EST** (`YYYY-MM-DD HH:MM:SS`). 
-    * location `--lon` (deg East; negative = West) and `--lat` (deg North) for TEOS-10 conversions. 
+    * location `--lon` (deg East; negative = West) and `--lat` (deg North; negative = South) for TEOS-10 conversions. 
