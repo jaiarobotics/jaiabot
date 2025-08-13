@@ -579,9 +579,6 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
-    // Save current state to history before making changes
-    updateMissionHistory(mutableState);
-
     missionSet.setMissionSpeeds(missionSpeeds);
     mutableState.missionSpeeds = missionSpeeds;
     return mutableState;
@@ -746,9 +743,6 @@ function handleChangeTaskParameter(
     mutableState: JaiaContextType,
     taskParameterPair: TaskParameterPair,
 ) {
-    // Save current state to history before making changes
-    updateMissionHistory(mutableState);
-
     const task = getWaypoint().getTask();
     task.setParameter(taskParameterPair);
     return mutableState;
@@ -761,9 +755,6 @@ function handleChangeTaskParameter(
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleToggleBottomDive(mutableState: JaiaContextType) {
-    // Save current state to history before making changes
-    updateMissionHistory(mutableState);
-
     const task = getWaypoint().getTask();
 
     if (task.getIsBottomDive()) {
@@ -806,9 +797,6 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    // Save current state to history before making changes
-    updateMissionHistory(mutableState);
-
     rallyLayer.addRallyPoint(location);
     setOpenLayersCursor(Cursors.DEFAULT);
     jaiaGlobal.setMapMode(MapModes.DEFAULT);
@@ -823,9 +811,6 @@ function handleAddRallyPoint(mutableState: JaiaContextType, location: Geographic
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleDeleteRallyPoint(mutableState: JaiaContextType) {
-    // Save current state to history before making changes
-    updateMissionHistory(mutableState);
-
     rallyLayer.deleteRallyPoint(mutableState.selectedRallyPoint.id);
     mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     mutableState.visiblePanel = ButtonNames.NONE;
