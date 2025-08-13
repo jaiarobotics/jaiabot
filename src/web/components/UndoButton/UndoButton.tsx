@@ -6,7 +6,6 @@ import { Icon } from "@mdi/react";
 import { Button, Tooltip } from "@mui/material";
 import { mdiArrowULeftTop } from "@mdi/js";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-import { info } from "../../notifications/notifications";
 
 /**
  * Produces the undo button that allows users to revert the last action.
@@ -31,7 +30,6 @@ export default function UndoButton() {
         if (jaiaContext.missionHistory.length === 0) {
             // If only one history entry exists, we're at the beginning
             jaiaDispatch({ type: JaiaActions.UNDO_LAST_ACTION });
-            info("There is no more history");
             return;
         }
 
