@@ -8,6 +8,7 @@ export enum LayerTitles {
     MISSION_LAYER = "mission-layer",
     DIVE_LAYER = "dive-layer",
     RALLY_LAYER = "rally-layer",
+    MEASURE_LAYER = "measure-layer",
 }
 
 export enum MapFeatureTypes {
