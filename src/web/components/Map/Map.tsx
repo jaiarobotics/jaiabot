@@ -36,6 +36,15 @@ export default function Map() {
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
+        switch (jaiaGlobal.getMapMode()) {
+            case MapModes.RALLY:
+                handleAddRallyPoint(event.coordinate);
+                return;
+            case MapModes.MEASURE:
+                // Measurement clicks handled by measure layer (src/web/openlayers/layers)
+                return;
+        }
+
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
         if (feature && feature.get("type")) {
             switch (feature.get("type")) {
@@ -62,17 +71,26 @@ export default function Map() {
             }
         }
 
-        if (jaiaGlobal.getMapMode() === MapModes.RALLY) {
-            handleAddRallyPoint(event.coordinate);
-            return;
-        }
-
         if (isWaypointMovable()) {
             handleMoveWaypointClick(event.coordinate);
             return;
         }
 
         handleAddWaypointClick(event.coordinate);
+    };
+
+    /**
+     * Dispatches action to add a rally point to the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleAddRallyPoint = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.ADD_RALLY_POINT,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
     };
 
     /**
@@ -153,20 +171,6 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
             type: JaiaActions.MOVE_WAYPOINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
-    };
-
-    /**
-     * Dispatches action to add a rally point to the map
-     *
-     * @param {Coordinate} coordinate Location of click on map
-     * @returns {void}
-     */
-    const handleAddRallyPoint = (coordinate: Coordinate) => {
-        const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
     };

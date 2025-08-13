@@ -2,6 +2,7 @@ import { LayerTitles } from "../../types/openlayers-types";
 
 export const layersZIndexes = new Map<LayerTitles, number>();
 
+layersZIndexes.set(LayerTitles.MEASURE_LAYER, 7);
 layersZIndexes.set(LayerTitles.BOT_LAYER, 6);
 layersZIndexes.set(LayerTitles.HUB_LAYER, 5);
 layersZIndexes.set(LayerTitles.MISSION_LAYER, 4);
