@@ -78,30 +78,6 @@ class RallyLayer extends JaiaVectorLayer {
             }
         }
     }
-
-    /**
-     * Restores rally points from history data
-     *
-     * @param {Array} rallyPointsData Array of rally point data with id and location
-     * @returns {void}
-     */
-    restoreRallyPoints(rallyPointsData: { id: number; location: GeographicCoordinate }[]) {
-        // Clear existing rally points
-        this.getVectorLayer().getSource().clear();
-        this.rallyIDs = [];
-
-        // Restore rally points and update internal state
-        rallyPointsData.forEach((rallyData) => {
-            const feature = generateRallyFeature(rallyData.location, rallyData.id);
-            this.getVectorLayer().getSource().addFeature(feature);
-
-            // Ensure rallyIDs array is large enough and set the ID
-            while (this.rallyIDs.length < rallyData.id) {
-                this.rallyIDs.push(UNASSIGNED_ID);
-            }
-            this.rallyIDs[rallyData.id - 1] = rallyData.id;
-        });
-    }
 }
 
 export const rallyLayer = new RallyLayer();

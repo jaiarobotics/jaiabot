@@ -247,10 +247,6 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             console.log("Restoring mission assignments");
             missionsManager.restoreAssignments(lastState.missionAssignments);
 
-            // Restore rally points using the proper restoration method
-            console.log("Restoring rally points");
-            rallyLayer.restoreRallyPoints(lastState.rallyPoints);
-
             // Update context state
             console.log("Updating context state");
             mutableState.missions = lastState.missions;

@@ -3,7 +3,7 @@ import { JaiaContext, JaiaDispatchContext, canUndoMission } from "../../context/
 import { JaiaActions } from "../../context/jaia-actions";
 import { ButtonNames } from "../../types/context-types";
 import { Icon } from "@mdi/react";
-import { Button, Tooltip } from "@mui/material";
+import { Button } from "@mui/material";
 import { mdiArrowULeftTop } from "@mdi/js";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
 
