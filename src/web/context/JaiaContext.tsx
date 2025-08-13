@@ -62,6 +62,7 @@ export interface MissionHistoryState {
     missionSpeeds: Speeds;
     rallyPoints: { id: number; location: GeographicCoordinate }[];
     missionAssignments: { botID: number; missionID: number }[];
+    nextMissionID: number;
     timestamp: number;
 }
 
@@ -178,6 +179,7 @@ function updateMissionHistory(mutableState: JaiaContextType) {
                     })),
             ),
             missionAssignments: cloneDeep(missionsManager.getAssignments()),
+            nextMissionID: missionSet.getNextMissionID(),
             timestamp: Date.now(),
         };
 
@@ -242,6 +244,7 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             missionSet.setMissions(lastState.missions);
             missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
             missionSet.setMissionSpeeds(lastState.missionSpeeds);
+            missionSet.setNextMissionID(lastState.nextMissionID);
 
             // Restore mission assignments to the missionsManager
             console.log("Restoring mission assignments");
