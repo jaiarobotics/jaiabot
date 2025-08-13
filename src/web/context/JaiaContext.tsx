@@ -776,7 +776,6 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
-    setOpenLayersCursor(Cursors.DEFAULT);
     jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
@@ -1097,8 +1096,6 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     }
 
     jaiaGlobal.setMapMode(mapMode);
-    setOpenLayersCursor(cursor);
-
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
@@ -1215,21 +1212,6 @@ function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
-}
-
-/**
- * Sets the cursor that appears when hovering over the map
- *
- * @returns {void}
- *
- * @notes
- * This logic does not occur in jaiaGlobal.setMapMode to avoid
- * circular reference
- */
-function setOpenLayersCursor(cursor: Cursors) {
-    if (map.getTargetElement()) {
-        map.getTargetElement().style.cursor = cursor;
-    }
 }
 
 /**
