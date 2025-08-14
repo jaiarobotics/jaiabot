@@ -55,8 +55,13 @@ import {
 
 export interface MissionHistoryState {
     missions: Map<number, Mission>;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    rallyPoints: { id: number; location: GeographicCoordinate }[];
     missionAssignments: { botID: number; missionID: number }[];
     nextMissionID: number;
+    timestamp: number;
 }
 
 export interface JaiaContextType {
@@ -155,27 +160,30 @@ function updateMissionHistory(mutableState: JaiaContextType) {
         console.log("updateMissionHistory called");
         const missionHistoryMaxLen = 10;
 
-        // Create a snapshot of the current mission state
         const historySnapshot: MissionHistoryState = {
             missions: cloneDeep(mutableState.missions),
+            missionAccordionStates: cloneDeep(mutableState.missionAccordionStates),
+            missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+            missionSpeeds: cloneDeep(mutableState.missionSpeeds),
+            // TODO: capture real rally points when a read API exists on rallyLayer
+            rallyPoints: [],
             missionAssignments: cloneDeep(missionsManager.getAssignments()),
             nextMissionID: missionSet.getNextMissionID(),
+            timestamp: Date.now(),
         };
 
-        // Remove oldest entry if we've reached the maximum length
         if (mutableState.missionHistory.length === missionHistoryMaxLen) {
             mutableState.missionHistory.shift();
         }
-
         mutableState.missionHistory.push(historySnapshot);
+
         console.log(
             "History snapshot saved. Total history entries:",
             mutableState.missionHistory.length,
         );
     } catch (error) {
         console.error("Error in updateMissionHistory:", error);
-        console.error("Stack trace:", error.stack);
-        // Don't throw the error to prevent cascading failures
+        console.error("Stack trace:", (error as Error).stack);
     }
 }
 
@@ -213,62 +221,58 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             return mutableState;
         }
 
-        // Prevent popping if only one entry left (so state is never empty), this prevents crashing
-        if (mutableState.missionHistory.length === 0) {
-            console.log("Mission history is empty, cannot undo further");
-            return mutableState;
-        }
-
         // Get the last saved state
         const lastState = mutableState.missionHistory.pop();
+        console.log("Restoring state from:", lastState?.timestamp);
 
-        if (!lastState) {
-            // Defensive: If no lastState, don't change anything
-            console.log("No lastState found in history, skipping undo");
-            return mutableState;
+        if (lastState) {
+            // Restore mission data to the missionSet singleton
+            console.log("Restoring missions to missionSet");
+            missionSet.setMissions(lastState.missions);
+            missionSet.setMissionIDInEditMode(lastState.missionIDInEditMode);
+            missionSet.setMissionSpeeds(lastState.missionSpeeds);
+            missionSet.setNextMissionID(lastState.nextMissionID);
+
+            // Restore mission assignments to the missionsManager
+            console.log("Restoring mission assignments");
+            missionsManager.restoreAssignments(lastState.missionAssignments);
+
+            // Update context state
+            console.log("Updating context state");
+            mutableState.missions = lastState.missions;
+            mutableState.missionAccordionStates = lastState.missionAccordionStates;
+            mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
+            mutableState.missionSpeeds = lastState.missionSpeeds;
+
+            // Reset any selected states that might cause conflicts after undo
+            console.log("Resetting selected states");
+            jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+            mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+            mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+            jaiaGlobal.setSelectedWaypoint({
+                waypointNum: UNASSIGNED_ID,
+                missionID: UNASSIGNED_ID,
+            });
+            mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+
+            // Close any open panels that might reference stale state
+            mutableState.visiblePanel = ButtonNames.NONE;
+            mutableState.visibleDetails = NodeTypes.NONE;
+
+            // Ensure proper synchronization of all map layers
+            console.log("Synchronizing map layers");
+            syncOpenLayers();
+
+            console.log("Undo completed successfully");
         }
 
-        // Restore mission data to the missionSet singleton
-        console.log("Restoring missions to missionSet");
-        missionSet.setMissions(lastState.missions);
-        missionSet.setNextMissionID(lastState.nextMissionID);
-
-        // Restore mission assignments to the missionsManager
-        console.log("Restoring mission assignments");
-        missionsManager.restoreAssignments(lastState.missionAssignments);
-
-        // Update context state
-        console.log("Updating context state");
-        mutableState.missions = lastState.missions;
-
-        // Reset any selected states that might cause conflicts after undo
-        console.log("Resetting selected states");
-        jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-        mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-        mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
-        jaiaGlobal.setSelectedWaypoint({
-            waypointNum: UNASSIGNED_ID,
-            missionID: UNASSIGNED_ID,
-        });
-        mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-
-        // Close any open panels that might reference stale state
-        mutableState.visiblePanel = ButtonNames.NONE;
-        mutableState.visibleDetails = NodeTypes.NONE;
-
-        // Ensure proper synchronization of all map layers
-        console.log("Synchronizing map layers");
-        syncOpenLayers();
-
-        console.log("Undo completed successfully");
+        return mutableState;
     } catch (error) {
         console.error("Error in handleUndoLastAction:", error);
         console.error("Stack trace:", error.stack);
         // Return state unchanged to prevent crash
         return mutableState;
     }
-
-    return mutableState;
 }
 
 /**
