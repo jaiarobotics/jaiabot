@@ -12,7 +12,6 @@ import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 
-import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
@@ -31,7 +30,6 @@ import {
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
-import { Cursors } from "../utils/style";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -318,9 +316,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.TOGGLE_BOTTOM_DIVE:
             return handleToggleBottomDive(mutableState);
 
-        case JaiaActions.SENT_COMMAND:
-            return handleSentCommand(mutableState, action.command);
-
         case JaiaActions.ADD_RALLY_POINT:
             return handleAddRallyPoint(mutableState, action.location);
 
@@ -329,6 +324,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.SEND_RALLY_MISSION:
             return handleSendRallyMission(mutableState);
+
+        case JaiaActions.SENT_COMMAND:
+            return handleSentCommand(mutableState, action.command);
 
         case JaiaActions.CLOSED_DETAILS:
             return handleClosedDetails(mutableState);
@@ -563,23 +561,6 @@ function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds:
 }
 
 /**
- * Turns off edit mode upon starting a mission
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {number} missionID Checks sent mission against missionID in edit mode
- * @returns {void}
- */
-function handleSendMission(mutableState: JaiaContextType, missionID: number) {
-    if (missionSet.getMissionIDInEditMode() === missionID) {
-        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        mutableState.missionIDInEditMode = UNASSIGNED_ID;
-    }
-
-    missionLayer.updateFeatures();
-    return mutableState;
-}
-
-/**
  * Makes call to add waypoint if mission is in edit mode
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -587,64 +568,32 @@ function handleSendMission(mutableState: JaiaContextType, missionID: number) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
-    try {
-        console.log("handleAddWaypoint called with location:", location);
-        console.log("Current missionIDInEditMode:", missionSet.getMissionIDInEditMode());
-        console.log("Current selectedNode:", jaiaGlobal.getSelectedNode());
+    // Save current state to history before making changes
+    updateMissionHistory(mutableState);
 
-        const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-        const selectedNode = jaiaGlobal.getSelectedNode();
+    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
+    const selectedNode = jaiaGlobal.getSelectedNode();
 
-        if (
-            selectedNode.type === NodeTypes.BOT &&
-            missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
-        ) {
-            console.log("Creating new mission for bot:", selectedNode.id);
-            // Save current state to history before making changes
-            updateMissionHistory(mutableState);
-
-            // Create new mission and add first waypoint for selected Bot without mission
-            const newMission = new Mission();
-            const newMissionID = missionSet.addMission(newMission);
-            newMission.addWaypoint(location);
-            missionsManager.assign(selectedNode.id, newMissionID);
-            mutableState.missionIDInEditMode = newMissionID;
-            mutableState.missionAccordionStates[newMissionID] = true;
-
-            missionLayer.updateFeatures();
-        } else if (missionIDInEditMode !== UNASSIGNED_ID) {
-            console.log("Adding waypoint to existing mission:", missionIDInEditMode);
-            // Check if the mission still exists before trying to add waypoint
-            const mission = missionSet.getMission(missionIDInEditMode);
-            if (mission) {
-                console.log("Mission found, adding waypoint");
-                // Save current state to history before making changes
-                updateMissionHistory(mutableState);
-
-                // Add waypoint to mission in edit mode
-                mission.addWaypoint(location);
-                missionLayer.updateFeatures();
-            } else {
-                console.warn(
-                    "Mission not found, resetting edit mode. Mission ID was:",
-                    missionIDInEditMode,
-                );
-                // Mission no longer exists, reset edit mode
-                missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-                mutableState.missionIDInEditMode = UNASSIGNED_ID;
-            }
-        } else {
-            console.log("No action taken - no bot selected and no mission in edit mode");
-        }
-
-        console.log("handleAddWaypoint completed successfully");
-        return mutableState;
-    } catch (error) {
-        console.error("Error in handleAddWaypoint:", error);
-        console.error("Stack trace:", error.stack);
-        // Return state unchanged to prevent crash
-        return mutableState;
+    if (
+        selectedNode.type === NodeTypes.BOT &&
+        missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
+    ) {
+        // Create new mission and add first waypoint for selected Bot without mission
+        const newMission = new Mission();
+        const newMissionID = missionSet.addMission(newMission);
+        newMission.addWaypoint(location);
+        missionsManager.assign(selectedNode.id, newMissionID);
+        mutableState.missionIDInEditMode = newMissionID;
+        mutableState.missionAccordionStates[newMissionID] = true;
+    } else if (missionIDInEditMode !== UNASSIGNED_ID) {
+        // Add waypoint to mission in edit mode
+        const mission = missionSet.getMission(missionIDInEditMode);
+        mission.addWaypoint(location);
     }
+
+    missionLayer.updateFeatures();
+
+    return mutableState;
 }
 
 /**
@@ -745,29 +694,6 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
 }
 
 /**
- * Sets the mode of the Bot based on the command sent
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {Command} command Command sent to Bot
- * @returns {JaiaContextType} Updated mutable state object
- */
-function handleSentCommand(mutableState: JaiaContextType, command: Command) {
-    const bot = bots.getBot(command.bot_id);
-
-    switch (command.type) {
-        case CommandType.MISSION_PLAN:
-            handleSentMissionPlanCommand(mutableState, command);
-            break;
-        case CommandType.REMOTE_CONTROL_TASK:
-            bot.setMode(BotModes.REMOTE_CONTROL);
-            break;
-        default:
-            bot.setMode(BotModes.MISSION);
-    }
-    return mutableState;
-}
-
-/**
  * Makes call to update the rally point layer
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -776,7 +702,6 @@ function handleSentCommand(mutableState: JaiaContextType, command: Command) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
-    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
 }
@@ -807,6 +732,29 @@ function handleSendRallyMission(mutableState: JaiaContextType) {
 
     syncOpenLayers();
 
+    return mutableState;
+}
+
+/**
+ * Sets the mode of the Bot based on the command sent
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {Command} command Command sent to Bot
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleSentCommand(mutableState: JaiaContextType, command: Command) {
+    const bot = bots.getBot(command.bot_id);
+
+    switch (command.type) {
+        case CommandType.MISSION_PLAN:
+            handleSentMissionPlanCommand(mutableState, command);
+            break;
+        case CommandType.REMOTE_CONTROL_TASK:
+            bot.setMode(BotModes.REMOTE_CONTROL);
+            break;
+        default:
+            bot.setMode(BotModes.MISSION);
+    }
     return mutableState;
 }
 
@@ -1073,26 +1021,34 @@ function handleClickedTapToMove(mutableState: JaiaContextType) {
  */
 function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, name: ButtonNames) {
     let mapMode = MapModes.DEFAULT;
-    let cursor = Cursors.DEFAULT;
     let visiblePanel = ButtonNames.NONE;
 
     switch (type) {
         case ButtonTypes.MAP_MODE:
             if (name === ButtonNames.ADD_RALLY && jaiaGlobal.getMapMode() !== MapModes.RALLY) {
                 mapMode = MapModes.RALLY;
-                cursor = Cursors.CROSSHAIR;
+            }
+
+            if (name === ButtonNames.MEASURE_TOOL && mutableState.visiblePanel !== name) {
+                mapMode = MapModes.MEASURE;
+                visiblePanel = name;
             }
             break;
         case ButtonTypes.PANEL:
             if (mutableState.visiblePanel !== name) {
                 visiblePanel = name;
             }
-            resetSelectedWaypoint(mutableState);
             break;
         case ButtonTypes.COMMAND:
             if (name === ButtonNames.GO_TO_RALLY) {
                 visiblePanel = ButtonNames.RALLY_PANEL;
             }
+            break;
+    }
+
+    // Resets
+    if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
+        resetSelectedWaypoint(mutableState);
     }
 
     jaiaGlobal.setMapMode(mapMode);
@@ -1154,7 +1110,8 @@ function handleClickedTaskPacket(
 
     if (
         selectedTaskPacket.botID === clickedTaskPacket.botID &&
-        selectedTaskPacket.startTime === clickedTaskPacket.startTime
+        selectedTaskPacket.startTime === clickedTaskPacket.startTime &&
+        selectedTaskPacket.type === clickedTaskPacket.type
     ) {
         return mutableState;
     }
@@ -1162,6 +1119,7 @@ function handleClickedTaskPacket(
     jaiaGlobal.setSelectedTaskPacket(clickedTaskPacket);
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
+    diveLayer.updateFeatures();
     return mutableState;
 }
 
