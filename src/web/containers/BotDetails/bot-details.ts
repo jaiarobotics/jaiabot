@@ -13,7 +13,7 @@ import { point, rhumbDistance, Units } from "@turf/turf";
 /**
  * Provides a class name that corresponds to styles illustrating comms health
  *
- * @param {number} portalStatusAge Time since last communication between Bot and Hub
+ * @param {number} portalStatusAge Time since last communication between Bot and Hub (microseconds)
  * @returns {string} Class name that dictates the style of the status age
  */
 export function getStatusAgeClassName(portalStatusAge: number) {
@@ -21,15 +21,32 @@ export function getStatusAgeClassName(portalStatusAge: number) {
     const healthDegradedTimeout = 10;
     const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
-    if (statusAgeSeconds > healthFailedTimeout) {
-        return "healthFailed";
+    if (statusAgeSeconds >= healthFailedTimeout) {
+        return "health-state-failed";
     }
 
     if (statusAgeSeconds > healthDegradedTimeout) {
-        return "healthDegraded";
+        return "health-state-degraded";
     }
 
     return "";
+}
+
+/**
+ * Checks whether the Bot and Hub are communcating
+ *
+ * @param {number} portalStatusAge Time since last communcation between Bot and Hub (microseconds)
+ * @returns {boolean} True if the Bot has communicated with the Hub in the last 30 seconds
+ */
+export function isDisconnected(portalStatusAge: number) {
+    const healthFailedTimeout = 30;
+    const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
+
+    if (statusAgeSeconds >= healthFailedTimeout) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
