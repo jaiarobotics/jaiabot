@@ -73,6 +73,10 @@ export default function NodeList() {
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
 
+    if (hubs.length === 0 && bots.length === 0) {
+        return;
+    }
+
     return (
         <div id="nodeList" data-testid="nodeList">
             {hubs.map((hub) => (
