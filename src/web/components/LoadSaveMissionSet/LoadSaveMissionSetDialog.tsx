@@ -80,7 +80,7 @@ export function LoadSaveMissionSetDialog(props: DialogProps) {
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={"jaia-dialog"}>
-                    <div className={"load-save-mission-set"}>
+                    <div className={"load-or-save-mission-set"}>
                         <h1> "Load or Save Mission Set" </h1>
                         <div className="title">Mission Set Name</div>
                         {nameInput}

@@ -28,7 +28,7 @@ export default function LoadMissionSetButton(props: Props) {
     /**
      * Forms the style of the button
      *
-     * @returns {string} General class name jaia-button plus enable/disable factor
+     * @returns {string} General class name jaia-button
      */
     const getClassName = () => {
         let className = "jaia-button";
@@ -56,7 +56,7 @@ export default function LoadMissionSetButton(props: Props) {
     };
 
     /**
-     * Closes the dialog box and dispatches an event based on the button clicked
+     * Closes the dialog and dispatches an event based on the button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}

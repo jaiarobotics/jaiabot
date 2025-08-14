@@ -9,9 +9,8 @@ export default function LoadSaveMissionSetButton() {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
-     * Closes the dialog box then acts based on the type of button clicked
+     * Closes the dialog box
      *
-     * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
     const onDialogClose = async () => {
@@ -22,7 +21,7 @@ export default function LoadSaveMissionSetButton() {
         <div>
             <Button
                 className={"jaia-button"}
-                aria-label={"load-mission-set"}
+                aria-label={"load-or-mission-set"}
                 onClick={() => setIsDialogVisible(true)}
             >
                 <Icon path={mdiFolder} title="Load or Save Mission Set"></Icon>

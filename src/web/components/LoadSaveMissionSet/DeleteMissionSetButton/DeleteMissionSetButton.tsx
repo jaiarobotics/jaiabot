@@ -23,7 +23,7 @@ export default function LoadMissionSetButton(props: Props) {
     /**
      * Forms the style of the button
      *
-     * @returns {string} General class name jaia-button plus enable/disable factor
+     * @returns {string} General class name jaia-button
      */
     const getClassName = () => {
         let className = "jaia-button";
@@ -51,7 +51,7 @@ export default function LoadMissionSetButton(props: Props) {
     };
 
     /**
-     * Closes the dialog box then acts based on the button clicked
+     * Closes the dialog and then acts based on the button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
@@ -68,7 +68,7 @@ export default function LoadMissionSetButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"load-mission-set"}
+                aria-label={"delete-mission-set"}
                 onClick={() => onButtonClick()}
             >
                 <Icon path={mdiDelete} title="Delete Mission Set" />

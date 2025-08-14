@@ -64,7 +64,7 @@ function Title(props: TitleProps) {
 }
 
 /**
- * Produces the buttons for the dialox box.
+ * Produces the buttons for the dialog box.
  * For a confirmation dialog, the buttons will be Cancel and Delete.
  * For an alert, the button will be Close.
  */
