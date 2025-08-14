@@ -394,7 +394,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                     jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
                 };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
+
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
@@ -414,8 +417,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                     jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
                 };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().task_packet_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().task_packet_buffer(), link);
+
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
             goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(
@@ -439,8 +444,9 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                     jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
                 };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().engineering_status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().engineering_status_buffer(), link);
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
