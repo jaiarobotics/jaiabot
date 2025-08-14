@@ -213,52 +213,62 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             return mutableState;
         }
 
+        // Prevent popping if only one entry left (so state is never empty), this prevents crashing
+        if (mutableState.missionHistory.length === 0) {
+            console.log("Mission history is empty, cannot undo further");
+            return mutableState;
+        }
+
         // Get the last saved state
         const lastState = mutableState.missionHistory.pop();
 
-        if (lastState) {
-            // Restore mission data to the missionSet singleton
-            console.log("Restoring missions to missionSet");
-            missionSet.setMissions(lastState.missions);
-            missionSet.setNextMissionID(lastState.nextMissionID);
-
-            // Restore mission assignments to the missionsManager
-            console.log("Restoring mission assignments");
-            missionsManager.restoreAssignments(lastState.missionAssignments);
-
-            // Update context state
-            console.log("Updating context state");
-            mutableState.missions = lastState.missions;
-
-            // Reset any selected states that might cause conflicts after undo
-            console.log("Resetting selected states");
-            jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-            mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-            mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
-            jaiaGlobal.setSelectedWaypoint({
-                waypointNum: UNASSIGNED_ID,
-                missionID: UNASSIGNED_ID,
-            });
-            mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-
-            // Close any open panels that might reference stale state
-            mutableState.visiblePanel = ButtonNames.NONE;
-            mutableState.visibleDetails = NodeTypes.NONE;
-
-            // Ensure proper synchronization of all map layers
-            console.log("Synchronizing map layers");
-            syncOpenLayers();
-
-            console.log("Undo completed successfully");
+        if (!lastState) {
+            // Defensive: If no lastState, don't change anything
+            console.log("No lastState found in history, skipping undo");
+            return mutableState;
         }
 
-        return mutableState;
+        // Restore mission data to the missionSet singleton
+        console.log("Restoring missions to missionSet");
+        missionSet.setMissions(lastState.missions);
+        missionSet.setNextMissionID(lastState.nextMissionID);
+
+        // Restore mission assignments to the missionsManager
+        console.log("Restoring mission assignments");
+        missionsManager.restoreAssignments(lastState.missionAssignments);
+
+        // Update context state
+        console.log("Updating context state");
+        mutableState.missions = lastState.missions;
+
+        // Reset any selected states that might cause conflicts after undo
+        console.log("Resetting selected states");
+        jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+        mutableState.selectedNode = jaiaGlobal.getSelectedNode();
+        mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+        jaiaGlobal.setSelectedWaypoint({
+            waypointNum: UNASSIGNED_ID,
+            missionID: UNASSIGNED_ID,
+        });
+        mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+
+        // Close any open panels that might reference stale state
+        mutableState.visiblePanel = ButtonNames.NONE;
+        mutableState.visibleDetails = NodeTypes.NONE;
+
+        // Ensure proper synchronization of all map layers
+        console.log("Synchronizing map layers");
+        syncOpenLayers();
+
+        console.log("Undo completed successfully");
     } catch (error) {
         console.error("Error in handleUndoLastAction:", error);
         console.error("Stack trace:", error.stack);
         // Return state unchanged to prevent crash
         return mutableState;
     }
+
+    return mutableState;
 }
 
 /**
