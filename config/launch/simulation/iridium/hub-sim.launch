@@ -1,0 +1,3 @@
+#!/usr/bin/env -S goby_launch -P -L
+
+[kill=SIGTERM] iridium_mt_forward_server.py -b 10800 --forward=000000000000001:127.0.0.1:10801 --forward 000000000000002:127.0.0.1:10802 --forward 000000000000003:127.0.0.1:10803 --forward 000000000000004:127.0.0.1:10804  --forward 000000000000005:127.0.0.1:10805
