@@ -1,15 +1,22 @@
 # Communications
 
-The Jaia bots and hubs communicate using two types of wireless radio:
+The Jaia bots and hubs communicate using several types of wireless radio:
 
-- 802.11 Wifi (Internet Protocol)
-- XBee radio (XBP9X-DMUS-001 or XBP9B-DMSTB002)
+- 802.11 Wifi (Internet Protocol): "WIFI"
+- XBee radio (XBP9X-DMUS-001 or XBP9B-DMSTB002): "XBEE"
+- Iridium satellite Short Burst Data (SBD): "IRIDIUM"
 
-During real (as opposed to simulated) operations the XBee radio is used for all hub to bot operational communications (BotStatus, Command, etc.). The Wifi link is only used for data offload. During simulated operations the (simulated) Wifi link is used for all communications (no XBee simulator has been implemented).
+Depending on the fleet hardware configuration and deployment needs, one or more of these links can be enabled to be used simultaneously for operational communications (BotStatus, Command, etc.). For data offload, only the WIFI link is used.
 
 Bot to Hub communications (and vice-versa) is based on the [intervehicle layer](https://goby.software/3.0/md_doc210_transporter.html#autotoc_md57) of the Goby3 middleware. This is a publish/subscribe model, with explicit messages sent to initiate actual communications over the radio link  (subscription forwarding).
 
-Each physical radio is interfaced with using a driver implemented from `goby::acomms::ModemDriverBase`. The XBee driver is in the `jaiabot` repository in the `src/lib/comms/xbee` directory. The UDPDriver from Goby3 is used for Wifi communications (during simulation). Data offload is not sent via Goby3 but rather  uses `rsync` over SSH.
+Each physical radio is interfaced with using a driver implemented from `goby::acomms::ModemDriverBase`:
+
+- The XBee driver is in the `jaiabot` repository in the `src/lib/comms/xbee` directory
+- The UDPDriver is forked (to provide multi-hub support) from Goby3 is used to use for Wifi communications and is in the `jaiabot` repository in the `src/lib/comms/wifi` directory. 
+- The Iridium drivers (DRIVER_IRIDIUM and DRIVER_IRIDIUM_SHORE) from Goby3 are used for Iridium.
+
+Data offload is not sent via Goby3 but rather  uses `rsync` over SSH.
 
 ## XBee
 
@@ -41,18 +48,6 @@ The XBee driver takes the following configuration (within `gobyd`'s configuratio
         network_id: 7  # Network ID for this fleet (must match 
                        # other peers in fleet): sets Xbee 
                        # ATID=network_id (optional) (default=7)
-        peers {  # Mapping of Xbee serial_number to hub/bot id 
-                 # for all peers in the fleet (repeated)
-          node_id: ""  # DEPRECATED (use hub_id or bot_id): set 
-                       # peer modem id as string (optional)
-          hub_id:   # Hub ID number for this peer (if peer is 
-                    # hub) (optional)
-          bot_id:   # Bot ID number for this peer (if peer is 
-                    # bot) (optional)
-          serial_number:   # XBee serial number for this peer 
-                           # (determined by querying ATSH and ATSL) 
-                           # (required)
-        }
         test_comms: false  # If true, enables testing 
                            # functionality and diagnostics 
                            # (optional) (default=false)
@@ -80,8 +75,7 @@ The XBee driver takes the following configuration (within `gobyd`'s configuratio
 ```
 
 
-The `peers` table must match for all bots and hubs in a particular fleet, and is required since the XBee serial numbers are factory set and cannot be changed.
-The `encryption` settings must match as well for the fleet.
+The `encryption` settings must match for the fleet.
 
 An example configuration for hub 1 in a two bot/two hub fleet is:
 
@@ -93,22 +87,6 @@ An example configuration for hub 1 in a two bot/two hub fleet is:
         modem_id: 1
         [xbee.protobuf.config] {
             network_id: 0
-            peers {
-                hub_id: 0
-                serial_number: 0x13A200421F31C3
-            }
-            peers {
-                hub_id: 1
-                serial_number: 0x13A200421F6C51
-            }
-            peers {
-                bot_id: 0
-                serial_number: 0x13A200421F6BC2
-            }
-            peers {
-                bot_id: 1
-                serial_number: 0x13A200421F6B7A
-            }
             hub_id: 1
             use_xbee_encryption: false 
             xbee_encryption_password: "" 
@@ -126,9 +104,6 @@ and for bot 0 in the same fleet:
         modem_id: 2
         [xbee.protobuf.config] {
             network_id: 0
-            peers {
-              ... // same as for hub 1
-            }
             use_xbee_encryption: false 
             xbee_encryption_password: "" 
         }
@@ -159,3 +134,28 @@ The intervehicle subscriptions are set up when hub0 sends its subscriptiosn, and
 ![Multi Hub Sequence Diagram](../figures/multihub-sequence.png)
 
 For log analysis purposes, the current hub in use by a given bot can always be determined by the `hub_id` present within the `HubInfo` protobuf message sent on the `jaiabot::intervehicle_subscribe_request` group.
+
+
+## Iridium
+
+Iridium satellite communications provides global coverage using the Short Burst Data (SBD) message protocol. While this provides the convenience of fully remote and over-the-horizon operations, it introduces some additional complexity for setup.
+
+Iridium SBD is inherently asymmetric: The bots are equipped with a modem (Iridium 9603) that is referred to by Iridium as an "ISU" (Iridium Subscriber Unit). This device uses a Hayes-type protocol (AT messages) over serial and is managed by the Goby3 DRIVER_IRIDIUM driver.
+
+The hub is virtualized (CloudHub: see [Cloud Computing](page56_cloud.md)) and runs effectively a TCP client/server pair for inbound/outbound communications using Iridium's "DirectIP" protocol from to and from their servers. This is a binary protocol unrelated to the Hayes protocol on the bot side and is managed by the Goby3 DRIVER_IRIDIUM_SHORE driver.
+
+Some more terminology:
+
+- Mobile Terminated (MT): Messages from the hub to the bot
+- Mobile Originated (MO): Messages from the bot to the hub
+- International Mobile Equipment Identity (IMEI): a unique 15-digit serial number assigned to every mobile phone (included Iridium ISUs). This is used to address messages to bots (MT) and identify the source of messages from a bot (MO). 
+
+### Message routing and multiplexing
+
+For security (by not directly exposing ports on Cloudhub) and as Iridium charges for each IP address provisioned to send MT messages, we have chosen to multiplex our SBD messages through a separate AWS server (iridium.jaia.tech / 44.233.97.88).
+
+The figure below diagrams the flow for messages between the bots and hubs using this intermediate server, as well as Iridium's servers.
+
+![Iridium Multiplexing layout](../figures/iridium-server.png)
+
+Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 

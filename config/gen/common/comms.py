@@ -3,10 +3,11 @@ from common import udp
 import common.bot
 import netifaces
 import math
+import json
 
 subnet_mask=0xFF00
 
-subnet_index={'xbee': 0, 'wifi': 1}
+subnet_index={'xbee': 0, 'wifi': 1, 'iridium': 2}
 num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 
 # first id is hub id
@@ -22,11 +23,8 @@ all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['ad
 def base_modem_id(node_id):
     return node_id + 1
 
-def wifi_modem_id(node_id):
-    return base_modem_id(node_id) + subnet_index['wifi']*num_modems_in_subnet
-
-def xbee_modem_id(node_id):
-    return base_modem_id(node_id) + subnet_index['xbee']*num_modems_in_subnet
+def modem_id(link, node_id):
+    return base_modem_id(node_id) + subnet_index[link]*num_modems_in_subnet
 
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     if node_id == hub_node_id:
@@ -64,9 +62,58 @@ def wifi_hub_remotes(this_node_id, fleet_index):
     return hub_eps
 
 def wifi_mac_slots(node_id):
-    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
+    slots = 'slot { src: ' + str(modem_id("wifi", node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
     return slots
 
 def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.1 }\n'
+    slots = 'slot { src: ' + str(modem_id("xbee", node_id)) + ' slot_seconds: 0.1 }\n'
     return slots
+
+def iridium_mac_slots(node_id):
+    # SBD is rate 0 in the Goby driver
+    sbd_rate=0
+    slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 15 rate: ' + str(sbd_rate) + ' [goby.acomms.iridium.protobuf.transmission]: { if_no_data_do_mailbox_check: false } }\n'
+    return slots
+
+def iridium_shore_mac_slots(node_id):
+    sbd_rate=0
+    # no reason to really rate limit commands substantially
+    slots = 'slot { src: ' + str(modem_id("iridium", node_id)) + ' slot_seconds: 5 rate: ' + str(sbd_rate) + ' }\n'
+    return slots
+
+def iridium_modem_imei_mapping():
+    mapping=''
+    if is_simulation():
+        first_bot_node_id=1
+        for node_id in range(first_bot_node_id, number_of_bots_max+first_bot_node_id):
+            modem_id = base_modem_id(node_id)
+            bot_id = node_id - 1
+            mapping += 'modem_id_to_imei { modem_id: ' + str(modem_id) + ' imei: "' + f'{bot_id:015d}' + '" }\n'
+        
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            j = json.load(f)
+            for bot in j["bot"]:
+                mapping += 'modem_id_to_imei { modem_id: ' + str(base_modem_id(bot["id"] + 1)) + ' imei: "' + bot["imei"] + '" }\n'
+        
+    return mapping
+
+def iridium_sbd_type():
+    if is_simulation():
+        # RockBLOCK not yet supported
+        return "SBD_DIRECTIP"
+
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            j = json.load(f)
+            return j["sbdType"]
+
+def iridium_rockblock_credentials():
+    if is_simulation():
+        # RockBLOCK not yet supported
+        return ("user", "pass")
+
+    if is_runtime():
+        with(open('/etc/jaiabot/iridium.json') as f):            
+            j = json.load(f)
+            return (j["rockblock"]["username"], j["rockblock"]["password"])
