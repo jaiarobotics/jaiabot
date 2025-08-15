@@ -22,16 +22,6 @@ export default function SaveMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
-     * Forms the style of the button
-     *
-     * @returns {string} General class name jaia-button plus enable/disable factor
-     */
-    const getClassName = () => {
-        let className = "jaia-button";
-        return className;
-    };
-
-    /**
      * Checks the mission set and applies the appropriate disable code
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Mission Set conditions
@@ -73,13 +63,9 @@ export default function SaveMissionSetButton(props: Props) {
 
     return (
         <div>
-            <Button
-                className={getClassName()}
-                aria-label={"save-mission-set"}
-                onClick={() => onButtonClick()}
-            >
-                <Icon path={mdiFolderDownload} title="Save Mission Set" />
-            </Button>
+            <button aria-label={"save-mission-set"} onClick={() => onButtonClick()}>
+                Save
+            </button>
             <SaveMissionSetDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}

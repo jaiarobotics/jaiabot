@@ -21,17 +21,6 @@ export default function LoadMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
-     * Forms the style of the button
-     *
-     * @returns {string} General class name jaia-button
-     */
-    const getClassName = () => {
-        let className = "jaia-button";
-
-        return className;
-    };
-
-    /**
      * Checks the mission set and applies the appropriate disable code
      *
      * @returns {DisabledCodes} The applicable disabled code based on the mission set conditions
@@ -66,13 +55,9 @@ export default function LoadMissionSetButton(props: Props) {
 
     return (
         <div>
-            <Button
-                className={getClassName()}
-                aria-label={"delete-mission-set"}
-                onClick={() => onButtonClick()}
-            >
-                <Icon path={mdiDelete} title="Delete Mission Set" />
-            </Button>
+            <button aria-label={"delete-mission-set"} onClick={() => onButtonClick()}>
+                Delete
+            </button>
             <DeleteMissionSetDialog
                 isVisible={isDialogVisible}
                 saveName={props.saveName}
