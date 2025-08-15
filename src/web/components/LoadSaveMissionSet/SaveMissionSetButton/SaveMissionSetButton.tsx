@@ -1,14 +1,9 @@
 import { useState } from "react";
 import { missionSet } from "../../../data/mission_set/mission-set";
-import { listSavedMissionSets } from "../../../utils/local-storage";
-import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
-import { DisabledCodes } from "./save-messages";
-
-import { Icon } from "@mdi/react";
-import { Button } from "@mui/material";
-import { mdiFolderDownload } from "@mdi/js";
-
 import { DialogActions } from "../../../types/context-types";
+import { listSavedMissionSets } from "../../../utils/local-storage";
+import { DisabledCodes } from "./save-messages";
+import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
 
 interface Props {
     saveName: string;

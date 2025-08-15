@@ -1,17 +1,10 @@
 import { useContext, useState } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
-
-import { missionSet } from "../../../data/mission_set/mission-set";
-import { listSavedMissionSets } from "../../../utils/local-storage";
-import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
-import { DisabledCodes } from "./load-messages";
-
-import { Icon } from "@mdi/react";
-import { Button } from "@mui/material";
-import { mdiFolderUpload } from "@mdi/js";
-
 import { DialogActions } from "../../../types/context-types";
+import { listSavedMissionSets } from "../../../utils/local-storage";
+import { DisabledCodes } from "./load-messages";
+import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
 
 interface Props {
     saveName: string;
