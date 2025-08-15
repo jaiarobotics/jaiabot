@@ -48,7 +48,7 @@ export default function SaveMissionSetButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const onButtonClick = () => {
         if (getDisabledCode() !== DisabledCodes.NONE) {
             setIsDialogVisible(true);
         } else {

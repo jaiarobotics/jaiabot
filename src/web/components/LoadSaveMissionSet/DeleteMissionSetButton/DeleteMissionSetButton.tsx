@@ -17,7 +17,7 @@ interface Props {
  * Produces the delete mission set button.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function LoadMissionSetButton(props: Props) {
+export default function DeleteMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -42,11 +42,11 @@ export default function LoadMissionSetButton(props: Props) {
     };
 
     /**
-     * Displays dialog before loading the mission set
+     * Displays dialog before deleting the mission set
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const onButtonClick = () => {
         setIsDialogVisible(true);
     };
 
@@ -61,6 +61,7 @@ export default function LoadMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.deleteFromLocalStorage(props.saveName);
+            props.saveName = "";
         }
     };
 
