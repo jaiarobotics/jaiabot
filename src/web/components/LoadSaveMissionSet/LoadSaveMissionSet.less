@@ -3,6 +3,7 @@
 .jaia-dialog.mission-set-storage {
     align-items: center;
     gap: 24px;
+    position: relative;
 }
 .mission-set-storage .input-container,
 .mission-sets-container {
@@ -65,4 +66,21 @@
 
 .row.hoverable.selected {
     background-color: @selected-color;
+}
+
+.mission-set-storage .secondary-dialog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #9ca3af;
+    background-color: #f3f4f6;
 }

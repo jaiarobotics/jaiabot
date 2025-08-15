@@ -4,6 +4,6 @@ export enum DisabledCodes {
 }
 
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
-    [DisabledCodes.NONE, "Are you sure you want to delete the Mission Set named"],
-    [DisabledCodes.FILE_NOT_FOUND, "There is no saved Mission Set with the name"],
+    [DisabledCodes.NONE, ""],
+    [DisabledCodes.FILE_NOT_FOUND, "There is no saved mission set with the name: "],
 ]);
