@@ -8,4 +8,5 @@ enum Link
     LINK_UNKNOWN = -1;
     LINK_XBEE = 0;
     LINK_WIFI = 1;
+    LINK_IRIDIUM = 2;
 }
