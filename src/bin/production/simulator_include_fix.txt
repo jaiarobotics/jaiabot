@@ -1,2 +1,0 @@
-// This header is required for SimulatorCommand usage in C++
-#include "jaiabot/messages/simulator.pb.h"
