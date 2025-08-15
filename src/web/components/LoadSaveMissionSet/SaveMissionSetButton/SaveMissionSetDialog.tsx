@@ -29,7 +29,14 @@ export function SaveMissionSetDialog(props: DialogProps) {
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
+        return `secondary-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
+    };
+
+    const getDialogMessage = () => {
+        if (props.disabledCode === DisabledCodes.OVERWRITE) {
+            return messages.get(props.disabledCode) + props.saveName;
+        }
+        return messages.get(props.disabledCode);
     };
 
     if (!props.isVisible) {
@@ -37,17 +44,10 @@ export function SaveMissionSetDialog(props: DialogProps) {
     }
 
     return (
-        <div className="jaia-dialog-container">
-            <div className="blocking-overlay" onClick={() => {}}>
-                <div className={getClassName()}>
-                    <Title disabledCode={props.disabledCode} />
-                    <p>
-                        {messages.get(props.disabledCode)}{" "}
-                        {props.disabledCode === DisabledCodes.OVERWRITE ? props.saveName : ""}
-                    </p>
-                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
-                </div>
-            </div>
+        <div className={getClassName()}>
+            <Title disabledCode={props.disabledCode} />
+            <p>{getDialogMessage()}</p>
+            <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
         </div>
     );
 }

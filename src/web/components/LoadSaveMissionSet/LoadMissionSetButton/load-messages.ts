@@ -4,6 +4,6 @@ export enum DisabledCodes {
 }
 
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
-    [DisabledCodes.NONE, "The mission set panel will be cleared to upon load."],
+    [DisabledCodes.NONE, "The mission set panel will be cleared prior to loading."],
     [DisabledCodes.FILE_NOT_FOUND, "There is no mission set with name: "],
 ]);

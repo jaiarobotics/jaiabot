@@ -7,7 +7,7 @@ export enum DisabledCodes {
 
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NONE, ""],
-    [DisabledCodes.NO_MISSIONS, "Please create a Mission before saving the Mission Set"],
-    [DisabledCodes.NO_NAME, "Please name the Mission Set before saving."],
-    [DisabledCodes.OVERWRITE, "Are you sure you want to replace the Misison Set named "],
+    [DisabledCodes.NO_MISSIONS, "Please create a mission before saving the mission set."],
+    [DisabledCodes.NO_NAME, "Please name the mission set before saving."],
+    [DisabledCodes.OVERWRITE, "Replace the misison set named: "],
 ]);
