@@ -61,7 +61,6 @@ export default function DeleteMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.deleteFromLocalStorage(props.saveName);
-            props.saveName = "";
         }
     };
 
