@@ -40,7 +40,7 @@ export default function LoadMissionSetButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const onButtonClick = () => {
         setIsDialogVisible(true);
     };
 
