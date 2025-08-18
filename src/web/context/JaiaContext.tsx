@@ -246,20 +246,29 @@ function handleUndoLastAction(mutableState: JaiaContextType) {
             mutableState.missionIDInEditMode = lastState.missionIDInEditMode;
             mutableState.missionSpeeds = lastState.missionSpeeds;
 
-            // Reset any selected states that might cause conflicts after undo
-            console.log("Resetting selected states");
-            jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-            mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-            mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+            // Reset only selections that can become stale after undo.
+            // Preserve selectedNode and visibleDetails so Bot/Hub details stay open.
+            console.log("Resetting selections safe for undo");
+
+            // Clear waypoint selection (panel references can be stale)
             jaiaGlobal.setSelectedWaypoint({
                 waypointNum: UNASSIGNED_ID,
                 missionID: UNASSIGNED_ID,
             });
             mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 
-            // Close any open panels that might reference stale state
+            // Clear task packet selection (if any) and rally selection
+            jaiaGlobal.setSelectedTaskPacket({
+                botID: UNASSIGNED_ID,
+                startTime: 0,
+                type: MapFeatureTypes.NONE,
+            });
+            mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
+            mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+
+            // Close any side panels (waypoint/task/rally/measure) but keep details open
             mutableState.visiblePanel = ButtonNames.NONE;
-            mutableState.visibleDetails = NodeTypes.NONE;
+            // DO NOT touch mutableState.visibleDetails or selectedNode
 
             // Ensure proper synchronization of all map layers
             console.log("Synchronizing map layers");
@@ -1068,7 +1077,7 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
     }
-  
+
     handleMapModeChange(mapMode);
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
