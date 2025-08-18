@@ -13,6 +13,12 @@ interface DialogProps {
     onClose: () => void;
 }
 
+interface MissionSetRowProps {
+    name: string;
+    saveName: string;
+    onClick: (name: string) => void;
+}
+
 /**
  * Produces the dialog box that appears when clicking on the load/save mission set button
  * This dialog provides delete, save and load mission set buttons
@@ -20,29 +26,24 @@ interface DialogProps {
 export function MissionSetStorageDialog(props: DialogProps) {
     const [saveName, setSaveName] = useState<string>(missionSet.getName());
 
-    const handleRowClick = (name: string) => {
+    /**
+     * Updates the selected mission set in state
+     *
+     * @param {string} name Mission set name clicked
+     * @returns {void}
+     */
+    const handleMissionSetClick = (name: string) => {
         setSaveName(name);
     };
 
+    /**
+     * Updates the selected mission set text after mission set deletion
+     *
+     * @returns {void}
+     */
     const resetSaveName = () => {
         setSaveName(missionSet.getName());
     };
-
-    let savedMissionNamess = listSavedMissionSets();
-
-    const missionNameRows = savedMissionNamess.map((name) => {
-        var rowClasses = "row hoverable";
-        if (name == saveName) {
-            rowClasses += " selected";
-        }
-        let row = (
-            <div key={name} className={rowClasses} onClick={() => handleRowClick(name)}>
-                {name}
-            </div>
-        );
-
-        return row;
-    });
 
     if (!props.isVisible) {
         return <div></div>;
@@ -65,7 +66,17 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     </div>
                     <div className="mission-sets-container">
                         <label>Mission Sets</label>
-                        <div className="mission-set-names">{missionNameRows}</div>
+                        <ul className="mission-set-names">
+                            {listSavedMissionSets().map((name) => {
+                                return (
+                                    <MissionSetRow
+                                        name={name}
+                                        saveName={saveName}
+                                        onClick={handleMissionSetClick}
+                                    />
+                                );
+                            })}
+                        </ul>
                     </div>
                     <div className="button-row">
                         <DeleteMissionSetButton saveName={saveName} resetSaveName={resetSaveName} />
@@ -76,5 +87,29 @@ export function MissionSetStorageDialog(props: DialogProps) {
                 </div>
             </div>
         </div>
+    );
+}
+
+/**
+ * Produces a clickable list item for each mission set in local storage
+ */
+function MissionSetRow(props: MissionSetRowProps) {
+    /**
+     * Provides the class name to produce the correct style
+     *
+     * @returns {string} Class name that will apply correct style
+     */
+    const getClassName = () => {
+        let className = "mission-set-row";
+        if (props.name === props.saveName) {
+            className += " selected";
+        }
+        return className;
+    };
+
+    return (
+        <li key={props.name} className={getClassName()} onClick={() => props.onClick(props.name)}>
+            {props.name}
+        </li>
     );
 }
