@@ -28,6 +28,7 @@
 
 #include "jaiabot/exception.h"
 #include "jaiabot/messages/link.pb.h"
+#include "jaiabot/messages/link_config.pb.h"
 
 namespace jaiabot
 {
@@ -103,6 +104,19 @@ void set_link_type(DCCLMessageWithLinkField& msg, int src_modem_id, unsigned sub
 {
     msg.set_link(link_from_modem_id(src_modem_id, subnet_mask));
 }
+
+
+inline goby::acomms::protobuf::DynamicBufferConfig buffer_for_link(const jaiabot::protobuf::LinkAwareBufferConfig& link_aware_buffer, jaiabot::protobuf::Link link)
+{
+    auto buffer = link_aware_buffer.buffer_base();
+    for(const auto& override_buffer : link_aware_buffer.buffer_override())
+    {
+        if(override_buffer.link() == link)
+            buffer.MergeFrom(override_buffer.buffer());
+    }
+    return buffer;
+}
+
 
 } // namespace comms
 } // namespace jaiabot

@@ -40,7 +40,11 @@ if [ "$INCLUDES_HUB_KEYS" = true ]; then
     cat >> "$CONFIG_FILE" <<EOL
 Host 10.23.*.*
     StrictHostKeyChecking accept-new
-    IdentityFile $SSH_DIR/$PRIVATE_BASENAME 
+    IdentityFile $SSH_DIR/$PRIVATE_BASENAME
+
+Host fd0f:77ac:4fdf:*
+    StrictHostKeyChecking accept-new
+    IdentityFile $SSH_DIR/$PRIVATE_BASENAME
 EOL
 
     # Set permissions for the config file
