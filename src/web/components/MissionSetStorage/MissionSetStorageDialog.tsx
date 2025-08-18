@@ -24,7 +24,7 @@ interface MissionSetRowProps {
  * This dialog provides delete, save and load mission set buttons
  */
 export function MissionSetStorageDialog(props: DialogProps) {
-    const [saveName, setSaveName] = useState<string>(missionSet.getName());
+    const [saveName, setSaveName] = useState(missionSet.getName());
 
     /**
      * Updates the selected mission set in state
@@ -43,6 +43,17 @@ export function MissionSetStorageDialog(props: DialogProps) {
      */
     const resetSaveName = () => {
         setSaveName(missionSet.getName());
+    };
+
+    /**
+     * Resets the selected name to the mission set displayed in the JCC and
+     * closes the dialog
+     *
+     * @returns {void}
+     */
+    const handleCloseButtonClick = () => {
+        resetSaveName();
+        props.onClose();
     };
 
     if (!props.isVisible) {
@@ -73,6 +84,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                                         name={name}
                                         saveName={saveName}
                                         onClick={handleMissionSetClick}
+                                        key={name}
                                     />
                                 );
                             })}
@@ -80,10 +92,10 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     </div>
                     <div className="button-row">
                         <DeleteMissionSetButton saveName={saveName} resetSaveName={resetSaveName} />
-                        <SaveMissionSetButton saveName={saveName} onClose={props.onClose} />
+                        <SaveMissionSetButton saveName={saveName} />
                         <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
                     </div>
-                    <button onClick={() => props.onClose()}>Close</button>
+                    <button onClick={() => handleCloseButtonClick()}>Close</button>
                 </div>
             </div>
         </div>
@@ -108,7 +120,7 @@ function MissionSetRow(props: MissionSetRowProps) {
     };
 
     return (
-        <li key={props.name} className={getClassName()} onClick={() => props.onClick(props.name)}>
+        <li className={getClassName()} onClick={() => props.onClick(props.name)}>
             {props.name}
         </li>
     );
