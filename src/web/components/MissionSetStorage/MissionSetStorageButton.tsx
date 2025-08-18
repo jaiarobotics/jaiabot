@@ -1,11 +1,11 @@
 import { useState } from "react";
 
-import { LoadSaveMissionSetDialog } from "./LoadSaveMissionSetDialog";
+import { MissionSetStorageDialog } from "./MissionSetStorageDialog";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiFolder } from "@mdi/js";
 
-export default function LoadSaveMissionSetButton() {
+export default function MissionSetStorageButton() {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -26,7 +26,7 @@ export default function LoadSaveMissionSetButton() {
             >
                 <Icon path={mdiFolder} title="Load or Save Mission Set"></Icon>
             </Button>
-            <LoadSaveMissionSetDialog isVisible={isDialogVisible} onClose={onDialogClose} />
+            <MissionSetStorageDialog isVisible={isDialogVisible} onClose={onDialogClose} />
         </div>
     );
 }

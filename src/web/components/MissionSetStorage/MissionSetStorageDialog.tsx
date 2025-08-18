@@ -17,7 +17,7 @@ interface DialogProps {
  * Produces the dialog box that appears when clicking on the load/save mission set button
  * This dialog provides delete, save and load mission set buttons
  */
-export function LoadSaveMissionSetDialog(props: DialogProps) {
+export function MissionSetStorageDialog(props: DialogProps) {
     const [saveName, setSaveName] = useState<string>(missionSet.getName());
 
     const handleRowClick = (name: string) => {
