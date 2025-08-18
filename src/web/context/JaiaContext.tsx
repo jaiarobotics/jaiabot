@@ -15,8 +15,10 @@ import Waypoint from "../data/waypoints/waypoint";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
+import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../openlayers/layers/vector/rally-layer";
+import { handleMapModeChange } from "../openlayers/maps/map";
 
 import { JaiaActions } from "./jaia-actions";
 import {
@@ -716,6 +718,7 @@ function handleToggleBottomDive(mutableState: JaiaContextType) {
  */
 function handleAddRallyPoint(mutableState: JaiaContextType, location: GeographicCoordinate) {
     rallyLayer.addRallyPoint(location);
+    handleMapModeChange(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
 }
@@ -835,6 +838,7 @@ function handleClosedTaskPacketPanel(mutableState: JaiaContextType, panelAction:
     });
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
     return mutableState;
 }
 
@@ -1064,8 +1068,8 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
     }
-
-    jaiaGlobal.setMapMode(mapMode);
+  
+    handleMapModeChange(mapMode);
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
@@ -1134,6 +1138,7 @@ function handleClickedTaskPacket(
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
     return mutableState;
 }
 

@@ -124,7 +124,7 @@ export default function ButtonList(props: Props) {
                     />
                 </Button>
                 <Button
-                    className="jaia-button"
+                    className={getSelectedClassName(ButtonNames.MEASURE_TOOL)}
                     aria-label="measure-tool"
                     onClick={() =>
                         handleButtonClick(ButtonTypes.MAP_MODE, ButtonNames.MEASURE_TOOL)

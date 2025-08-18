@@ -12,6 +12,7 @@ import BotDetails from "../containers/BotDetails/BotDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
+import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
@@ -92,6 +93,8 @@ function Panel() {
             return <DataOffloadPanel />;
         case ButtonNames.SETTINGS_PANEL:
             return <SettingsPanel />;
+        case ButtonNames.MEASURE_TOOL:
+            return <MeasurePanel />;
         default:
             return <div></div>;
     }
