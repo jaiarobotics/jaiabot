@@ -162,6 +162,7 @@ class MissionSet {
         delete allMissionSets[name];
 
         localStorage.setItem("missionSets", JSON.stringify(allMissionSets));
+        this.setName("");
         return true;
     }
 }
