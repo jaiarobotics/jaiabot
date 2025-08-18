@@ -10,6 +10,7 @@ interface Props {
     saveName: string;
     onClose: () => void;
 }
+
 /**
  * Produces the load mission set button.
  * It manages the alert/confirm dialog that appears when clicking on the button.
@@ -42,7 +43,6 @@ export default function LoadMissionSetButton(props: Props) {
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
-     *
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);

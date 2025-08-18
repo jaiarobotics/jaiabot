@@ -32,6 +32,11 @@ export function DeleteMissionSetDialog(props: DialogProps) {
         return `secondary-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
     };
 
+    /**
+     * Adjusts the text in the dialog based on the disabled code
+     *
+     * @returns {string} The text to be displayed in the dialog
+     */
     const getDialogMessage = () => {
         if (props.disabledCode !== DisabledCodes.NONE) {
             return messages.get(props.disabledCode) + props.saveName;

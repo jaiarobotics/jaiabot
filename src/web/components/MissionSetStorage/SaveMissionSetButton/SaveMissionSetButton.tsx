@@ -9,6 +9,7 @@ interface Props {
     saveName: string;
     onClose: () => void;
 }
+
 /**
  * Produces the save mission set button.
  * It manages the alert/confirm dialog that appears when clicking on the button.
