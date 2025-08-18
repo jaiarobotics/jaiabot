@@ -6,7 +6,7 @@ import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
 
-import "./LoadSaveMissionSet.less";
+import "./MissionSetStorage.less";
 
 interface DialogProps {
     isVisible: boolean;
