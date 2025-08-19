@@ -41,7 +41,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
      *
      * @returns {void}
      */
-    const resetSaveName = () => {
+    const clearSaveName = () => {
         setSaveName("");
     };
 
@@ -92,7 +92,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         </ul>
                     </div>
                     <div className="button-row">
-                        <DeleteMissionSetButton saveName={saveName} resetSaveName={resetSaveName} />
+                        <DeleteMissionSetButton saveName={saveName} clearSaveName={clearSaveName} />
                         <SaveMissionSetButton saveName={saveName} onClose={props.onClose} />
                         <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
                     </div>

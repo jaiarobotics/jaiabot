@@ -7,7 +7,7 @@ import { DeleteMissionSetDialog } from "./DeleteMissionSetDialog";
 
 interface Props {
     saveName: string;
-    resetSaveName: () => void;
+    clearSaveName: () => void;
 }
 
 /**
@@ -47,7 +47,7 @@ export default function DeleteMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.deleteFromLocalStorage(props.saveName);
-            props.resetSaveName();
+            props.clearSaveName();
         }
     };
 

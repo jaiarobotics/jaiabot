@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { missionSet } from "../../data/mission_set/mission-set";
 import { MissionSetStorageDialog } from "./MissionSetStorageDialog";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
