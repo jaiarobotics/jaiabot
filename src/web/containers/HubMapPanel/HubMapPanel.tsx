@@ -84,6 +84,15 @@ export function HubMapPanel(props: Props) {
     };
 
     const hubLayerListSection = () => {
+        if (layerTitles.length == 0) {
+            return (
+                <div className="hub-map-section">
+                    <h1>Offline Layers</h1>
+                    <p>No offline layers on the hub yet.</p>
+                </div>
+            );
+        }
+
         const hubLayerDivs = layerTitles.map((layerTitle) => {
             return (
                 <div key={layerTitle} className="hub-map-layer-name">
@@ -108,35 +117,37 @@ export function HubMapPanel(props: Props) {
             );
         });
 
-        return <div className="hub-map-section hub-map-layer-list">{hubLayerDivs}</div>;
+        return (
+            <div className="hub-map-section">
+                <h1>Offline Layers</h1>
+                <div className="hub-map-layer-list">{hubLayerDivs}</div>
+                <Button
+                    className="button-jcc danger"
+                    onClick={async () => {
+                        if (checkedLayers.size == 0) return;
+
+                        const message = `Are you sure you want to delete ${checkedLayers.size} layers from the hub?`;
+                        if (
+                            await CustomAlert.confirmAsync(
+                                message,
+                                "Delete Layers",
+                                "Delete Layers from Hub",
+                            )
+                        ) {
+                            for (const layerName of checkedLayers) {
+                                await jaiaAPI.deleteHubMap(layerName);
+                                checkedLayers.delete(layerName);
+                            }
+                            offlineLayerManager.refresh();
+                        }
+                    }}
+                >
+                    <Icon path={mdiDelete} />
+                    <div className="danger">Delete Layer(s)</div>
+                </Button>
+            </div>
+        );
     };
-
-    const deleteLayerButton = (
-        <Button
-            className="button-jcc danger"
-            onClick={async () => {
-                if (checkedLayers.size == 0) return;
-
-                const message = `Are you sure you want to delete ${checkedLayers.size} layers from the hub?`;
-                if (
-                    await CustomAlert.confirmAsync(
-                        message,
-                        "Delete Layers",
-                        "Delete Layers from Hub",
-                    )
-                ) {
-                    for (const layerName of checkedLayers) {
-                        await jaiaAPI.deleteHubMap(layerName);
-                        checkedLayers.delete(layerName);
-                    }
-                    offlineLayerManager.refresh();
-                }
-            }}
-        >
-            <Icon path={mdiDelete} />
-            <div className="danger">Delete Layer(s)</div>
-        </Button>
-    );
 
     // Import GeoTIFF
 
@@ -186,7 +197,7 @@ export function HubMapPanel(props: Props) {
     });
 
     const tileLayerSelectForm = (
-        <FormControl fullWidth>
+        <FormControl style={{ width: "200pt" }}>
             <InputLabel id="demo-simple-select-label">Layer</InputLabel>
             <Select
                 labelId="demo-simple-select-label"
@@ -204,7 +215,6 @@ export function HubMapPanel(props: Props) {
 
     const importTileLayersSection = (
         <div className="hub-map-section">
-            <Typography>Import from Online Layer</Typography>
             {tileLayerSelectForm}
             <Button
                 className="button-jcc"
@@ -213,22 +223,30 @@ export function HubMapPanel(props: Props) {
                 }}
             >
                 <Icon path={mdiPlus}></Icon>
-                Start Importing Area of Screen
+                Import Viewport
             </Button>
         </div>
     );
+
+    function importSection() {
+        return (
+            <div className="hub-map-section">
+                <h1>Import</h1>
+                {importGeoTIFFButton}
+                {importTileLayersSection}
+                {tileDownloaderStatusSection()}
+                {errorSection()}
+            </div>
+        );
+    }
 
     /////////////////
 
     return (
         // <div className="hub-map-panel">
         <div className="hub-map-layout-container">
+            {importSection()}
             {hubLayerListSection()}
-            {deleteLayerButton}
-            {importGeoTIFFButton}
-            {importTileLayersSection}
-            {tileDownloaderStatusSection()}
-            {errorSection()}
         </div>
         // </div>
     );
