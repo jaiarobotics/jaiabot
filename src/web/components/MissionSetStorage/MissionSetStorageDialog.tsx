@@ -42,7 +42,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
      * @returns {void}
      */
     const resetSaveName = () => {
-        setSaveName(missionSet.getName());
+        setSaveName("");
     };
 
     /**
@@ -52,7 +52,8 @@ export function MissionSetStorageDialog(props: DialogProps) {
      * @returns {void}
      */
     const handleCloseButtonClick = () => {
-        resetSaveName();
+        // reset save name for next time the dialog is opened
+        setSaveName(missionSet.getName());
         props.onClose();
     };
 
@@ -76,7 +77,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         />
                     </div>
                     <div className="mission-sets-container">
-                        <label>Mission Sets</label>
+                        <label>Stored Mission Sets</label>
                         <ul className="mission-set-names">
                             {listSavedMissionSets().map((name) => {
                                 return (
@@ -92,7 +93,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     </div>
                     <div className="button-row">
                         <DeleteMissionSetButton saveName={saveName} resetSaveName={resetSaveName} />
-                        <SaveMissionSetButton saveName={saveName} />
+                        <SaveMissionSetButton saveName={saveName} onClose={props.onClose} />
                         <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
                     </div>
                     <button onClick={() => handleCloseButtonClick()}>Close</button>

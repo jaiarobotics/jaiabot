@@ -7,6 +7,7 @@ import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
 
 interface Props {
     saveName: string;
+    onClose: () => void;
 }
 
 /**
@@ -52,6 +53,7 @@ export default function SaveMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             missionSet.saveToLocalStorage(props.saveName);
+            props.onClose();
         }
     };
 

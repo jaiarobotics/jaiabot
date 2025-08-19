@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { missionSet } from "../../data/mission_set/mission-set";
 import { MissionSetStorageDialog } from "./MissionSetStorageDialog";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -24,7 +24,7 @@ export default function MissionSetStorageButton() {
                 aria-label={"load-or-mission-set"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <Icon path={mdiFolder} title="Load or Save Mission Set"></Icon>
+                <Icon path={mdiFolder} title="Mission Set Storage"></Icon>
             </Button>
             <MissionSetStorageDialog isVisible={isDialogVisible} onClose={onDialogClose} />
         </div>
