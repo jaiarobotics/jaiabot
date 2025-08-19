@@ -124,9 +124,7 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
-import { noaaLayer } from "../../openlayers/map/layers/chart-layers";
-import { TileImage } from "ol/source";
-import { openStreetMapLayer } from "../../openlayers/map/layers/base-layers";
+import { offlineLayerManager } from "../../openlayers/map/layers/offline-layers";
 import { HubMapPanel } from "../HubMapPanel/HubMapPanel";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
@@ -735,15 +733,22 @@ export default class CommandControl extends React.Component {
     }
 
     setupMapLayersPanel() {
-        const mapLayersPanel = document.getElementById("mapLayers");
+        function renderPanel() {
+            const mapLayersPanel = document.getElementById("mapLayers");
 
-        if (mapLayersPanel == null) {
-            // Panel may not be visible, therefore the element is not present at the moment
-            return;
+            if (mapLayersPanel == null) {
+                // Panel may not be visible, therefore the element is not present at the moment
+                return;
+            }
+
+            OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
+            mapLayersPanel.addEventListener("click", handleLayerSwitcherClick);
         }
 
-        OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
-        mapLayersPanel.addEventListener("click", handleLayerSwitcherClick);
+        renderPanel();
+
+        // Add a listener to update the OlLayerSwitcher whenever the list of offline layers changes
+        offlineLayerManager.subscribe(renderPanel, "renderPanel");
 
         function handleLayerSwitcherClick(event: Event) {
             let targetElement = event.target as HTMLElement;

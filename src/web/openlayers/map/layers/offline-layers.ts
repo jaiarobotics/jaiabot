@@ -19,26 +19,30 @@ export class OfflineLayerManager {
 
     layerTitles: string[] = [];
 
-    observers: (() => void)[] = [];
+    observers: { [key: string]: () => void } = {};
 
     constructor() {
-        this.refresh();
+        setInterval(() => {
+            this.refresh();
+        }, 2000);
     }
 
-    subscribe(func: () => void) {
-        this.observers.push(func);
+    subscribe(func: () => void, id: string) {
+        this.observers[id] = func;
+        console.log("subscribe");
+        console.log(this.observers);
         func();
         return func;
     }
 
-    unsubscribe(func: () => void) {
-        this.observers = this.observers.filter((observer) => {
-            observer !== func;
-        });
+    unsubscribe(id: string) {
+        console.log("unsubscribe");
+        delete this.observers[id];
+        console.log(this.observers);
     }
 
     notify() {
-        this.observers.forEach((observer) => {
+        Object.values(this.observers).forEach((observer) => {
             observer();
         });
     }

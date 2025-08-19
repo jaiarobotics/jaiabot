@@ -40,14 +40,13 @@ export function HubMapPanel(props: Props) {
             setTileDownloader(hubMapDownloader);
         };
 
-        const offlineLayerObserver = offlineLayerManager.subscribe(refreshLayerList);
-        offlineLayerManager.refresh();
+        offlineLayerManager.subscribe(refreshLayerList, "refreshLayerList");
 
         return () => {
             hubMapDownloader.observer = null;
-            offlineLayerManager.unsubscribe(offlineLayerObserver);
+            offlineLayerManager.unsubscribe("refreshLayerList");
         };
-    });
+    }, []);
 
     const tileDownloaderStatusSection = () => {
         const tile = tileDownloader.tileDescriptors.at(0);
@@ -85,7 +84,7 @@ export function HubMapPanel(props: Props) {
     };
 
     const hubLayerListSection = () => {
-        const hubLayerDivs = offlineLayerManager.layerTitles.map((layerTitle) => {
+        const hubLayerDivs = layerTitles.map((layerTitle) => {
             return (
                 <div key={layerTitle} className="hub-map-layer-name">
                     <input

@@ -72,7 +72,10 @@ def extract_tiles(geotiff_path: str, tileset_path: str, zoom_levels=None, tile_s
         tile_size (int, optional): Pixel dimensions of each square tile. Defaults to 256.
     """
     # Refer to https://rasterio.readthedocs.io/en/stable/topics/reading.html
-    with rasterio.open(geotiff_path) as geotiff_file:
+
+    try:
+        geotiff_file = rasterio.open(geotiff_path)
+
         web_mercator_bounds = rasterio.warp.transform_bounds(geotiff_file.crs, web_mercator, *geotiff_file.bounds, densify_pts=0)
 
         # If zoom_levels is None, then we want to calculate a max zoom level based on the resolution of the GeoTIFF
@@ -120,28 +123,39 @@ def extract_tiles(geotiff_path: str, tileset_path: str, zoom_levels=None, tile_s
                         'width': tile_size
                     })
 
-                    tile_file: rasterio.io.DatasetWriter
-                    with rasterio.open(tile_path, 'w', **meta) as tile_file:
+                    if not os.path.exists(tileset_path):
+                        # This tileset may have been deleted
+                        return
 
-                        band: np.ndarray
-                        for i, band in enumerate(src_data, 1):
+                    tile_file = rasterio.open(tile_path, 'w', **meta)
 
-                            if band.dtype == 'float32':
-                                # If this is a float band, we want to scale it to the 0-255 range for the PNG image
-                                band = scale_band(band, nodata_value=meta.get('nodata'))
+                    band: np.ndarray
+                    for i, band in enumerate(src_data, 1):
 
-                            dest = np.zeros([tile_size, tile_size])
+                        if band.dtype == 'float32':
+                            # If this is a float band, we want to scale it to the 0-255 range for the PNG image
+                            band = scale_band(band, nodata_value=meta.get('nodata'))
 
-                            rasterio.warp.reproject(
-                                band,
-                                dest,
-                                src_transform=geotiff_transform,
-                                src_crs=geotiff_crs,
-                                dst_transform=tile_transform,
-                                dst_crs=web_mercator,
-                                resampling=rasterio.warp.Resampling.nearest)
+                        dest = np.zeros([tile_size, tile_size])
 
-                            tile_file.write(dest, indexes=i)
+                        rasterio.warp.reproject(
+                            band,
+                            dest,
+                            src_transform=geotiff_transform,
+                            src_crs=geotiff_crs,
+                            dst_transform=tile_transform,
+                            dst_crs=web_mercator,
+                            resampling=rasterio.warp.Resampling.nearest)
+
+                        tile_file.write(dest, indexes=i)
+
+                    tile_file.close()
+    
+    except Exception as e:
+        print(e)
+        print(f'Tileset {tileset_path} possible deleted?  Aborting extraction.')
+        return
+
 
     l.warning('Extraction complete')
 
