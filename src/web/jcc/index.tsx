@@ -37,8 +37,10 @@ const statusInterval = setInterval(async () => {
             updateBots(json.bots);
             updateHubs(json.hubs);
             updateOpenLayers();
+            updateDisconnectedWarning(false);
         }
     } catch (error) {
+        updateDisconnectedWarning(true);
         console.error(error);
     }
 }, DATA_MODEL_POLL_TIME);
@@ -109,6 +111,21 @@ function updateOpenLayers() {
 function updateTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+}
+
+/**
+ * Displays a warning to the operator when the connection to the Hub drops
+ *
+ * @param {boolean} isDisconnected State of client to server connection
+ * @returns {void}
+ */
+function updateDisconnectedWarning(isDisconnected: boolean) {
+    const connectionWarning = document.getElementById("connection-warning");
+    if (isDisconnected) {
+        connectionWarning.style.visibility = "visible";
+    } else {
+        connectionWarning.style.visibility = "hidden";
+    }
 }
 
 /**
