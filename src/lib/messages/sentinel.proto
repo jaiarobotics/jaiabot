@@ -1,0 +1,58 @@
+// Copyright 2025:
+//   JaiaRobotics LLC
+// File authors:
+//   Matthew Ferro <matt.ferro@jaia.tech>
+//
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Libraries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "jaiabot/messages/geographic_coordinate.proto";
+
+package jaiabot.protobuf;
+
+message Track
+{
+    enum TrackState
+    {
+        DEAD = 0;
+        BORN = 1;
+        ACTIVE = 2;
+        PREDICTING = 3;
+        ABANDONED = 4;
+        LAGGED = 5;
+        PERSISTED = 6;
+        REMOVED_HIDDEN = 7;
+    }
+
+    enum AlertState
+    {
+        MODERATE = 1;
+        SUBSTANTIAL = 2;
+        SEVERE = 3;
+        CRITICAL = 4;
+    }
+
+    optional int32 id = 1;
+    optional GeographicCoordinate location = 2;
+    optional double heading = 3;
+    optional double speed = 4;
+    optional TrackState track_state = 5;
+    optional AlertState alert_state = 6;
+    optional double age = 7;
+}
