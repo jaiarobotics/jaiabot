@@ -46,7 +46,6 @@ import {
 
 // MDI and MUI
 import { ThemeProvider } from "@mui/material";
-import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
