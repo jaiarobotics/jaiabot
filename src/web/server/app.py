@@ -305,5 +305,16 @@ def listGeoTiffFiles():
     return JSONResponse(obj=geoTiffs.list())
 
 
+####### Sentinel Tracks Data
+
+@app.route('/jaia/v0/sentinel-tracks', methods=['GET'])
+def getSentinelTracks():
+    return JSONResponse(jaia_interface.get_sentinel_tracks())
+
+@app.route('/jaia/v0/sentinel-tracks', methods=['POST'])
+def postSentinelTracks():
+    response = jaia_interface.post_sentinel_tracks(request.json)
+    return JSONResponse(response)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)

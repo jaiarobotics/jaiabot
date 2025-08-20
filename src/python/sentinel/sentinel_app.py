@@ -9,6 +9,10 @@ import socket
 import sys
 from dataclasses import dataclass
 from typing import List, Tuple
+from google.protobuf.json_format import MessageToDict  # or MessageToJson
+from jaiabot.messages import sentinel_pb2
+from jaiabot.messages import geographic_coordinate_pb2
+import requests
 
 from construct import (
     Struct, Int8ub, Int16ub, Int32ub, Float32b, Float64b, PaddedString, Bytes,
@@ -147,18 +151,6 @@ ALERT_STATE_MAP = {
     4: "critical",
 }
 
-# ======== Data structures ========
-@dataclass
-class TrackBrief:
-    track_id: int
-    state: str
-    alert: str
-    lat_deg: float
-    lon_deg: float
-    heading_deg: float
-    speed_mps: float
-    age_s: float
-
 # ======== Helpers ========
 def radians_to_deg(x: float) -> float:
     return math.degrees(x)
@@ -181,33 +173,42 @@ def recv_exact(sock: socket.socket, n: int) -> bytes:
         buf.extend(chunk)
     return bytes(buf)
 
-# ======== Parsing ========
-def parse_tracks_record(rd: bytes) -> Tuple[int, int, List[TrackBrief]]:
-    msg = TracksRecord.parse(rd)
+def to_track_pb(track) -> sentinel_pb2.Track:
+    """
+    track: your parsed object (id, lat_deg, lon_deg, heading_deg, speed_mps, track_state, alert_state, age_s)
+    Returns a populated protobuf Track message.
+    """
+    msg = sentinel_pb2.Track()
 
-    num_active = msg.header.num_active_tracks
-    num_tracks = msg.header.num_tracks
+    # Scalars
+    msg.id = int(track.track_id)
+    msg.heading = float(track.heading)
+    msg.speed = float(track.speed)
+    msg.age = float(track.age)
 
-    tracks: List[TrackBrief] = []
-    for trk in msg.tracks:
-        f = trk.fixed
+    # Location
+    loc = geographic_coordinate_pb2.GeographicCoordinate()
+    loc.lat = float(radians_to_deg(track.track_lat))
+    loc.lon = float(radians_to_deg_west_positive(track.track_lon))
+    msg.location.CopyFrom(loc)
 
-        state = TRACK_STATE_MAP.get(f.track_state, f"Unknown({f.track_state})")
-        alert = ALERT_STATE_MAP.get(f.alert_state, f"Unknown({f.alert_state})")
+    # Enums
+    msg.track_state = track.track_state
+    msg.alert_state = track.alert_state
 
-        tracks.append(
-            TrackBrief(
-                track_id=f.track_id,
-                state=state,
-                alert=alert,
-                lat_deg=radians_to_deg(f.track_lat),
-                lon_deg=radians_to_deg_west_positive(f.track_lon),
-                heading_deg=f.heading,
-                speed_mps=f.speed,
-                age_s=f.age,
-            )
-        )
-    return num_active, num_tracks, tracks
+    return msg
+
+def post_tracks_pb(url: str, tracks) -> None:
+    """
+    Build protobuf messages, convert each to JSON-dict with protobuf's JSON mapping,
+    and POST a JSON array (list) to Flask endpoint.
+    """
+    pb_msgs = [to_track_pb(t.fixed) for t in tracks]
+
+    payload = [MessageToDict(m, preserving_proto_field_name=True) for m in pb_msgs]
+
+    r = requests.post(url, json=payload, timeout=3.0)
+    r.raise_for_status()
 
 # ======== Message handling ========
 def handle_one_message(payload: bytes) -> None:
@@ -215,22 +216,19 @@ def handle_one_message(payload: bytes) -> None:
 
     # Every message on the wire begins with a 12-byte Record Header (RH)
     rh = RH.parse(payload[:12])
+
     # Record Data (RD): payload[0:12] → header (12 bytes), payload[12:X] → record data (X bytes)
     rd = payload[12:12 + rh.data_size]
 
     if rh.record_type != RECORD_TYPE_TRACKS:
         return
 
-    num_active, num_tracks, tracks = parse_tracks_record(rd)
+    msg = TracksRecord.parse(rd)
 
-    print(f"\nTracks message: total_tracks={num_tracks}, active={num_active}")
-    for t in tracks:
-        print(
-            f"  id={t.track_id:>6}  state={t.state:<12} alert={t.alert:<11}  "
-            f"lat={t.lat_deg:8.5f}  lon={t.lon_deg:9.5f}  "
-            f"hdg={t.heading_deg:6.2f}°  spd={t.speed_mps:5.2f} m/s  "
-            f"age={t.age_s:6.1f}s"
-        )
+    if msg.header.num_tracks == 0:
+        return
+
+    post_tracks_pb("http://localhost:40001/jaia/v0/sentinel-tracks", msg.tracks)
 
 # ======== TCP receive loop ========
 def run_tcp(host: str, port: int) -> None:
