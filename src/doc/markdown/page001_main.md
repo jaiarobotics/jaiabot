@@ -6,5 +6,7 @@ The documentation for this project consists of this set of Markdown files (resid
 
 Latest tagged release of jaiabot: <https://github.com/jaiarobotics/jaiabot/releases>
 
-Setting up a simulation envrionment and launching the simulator instructions: <https://github.com/jaiarobotics/jaiabot/blob/1.y/src/doc/markdown/page120_working_with_jaia_software.md>
+Setting up a simulation envrionment and launching the simulator instructions: [Developer Instructions](page120_working_with_jaia_software.md)
+
+Setting up the docker simulator: [Docker Simulator Instructions](page121_working_with_jaia_software.md)
 

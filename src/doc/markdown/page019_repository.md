@@ -1,7 +1,7 @@
 # JaiaBot Repositories
 The JaiaBot source code lives in the `jaiabot` Git repository (<https://github.com/jaiarobotics/jaiabot>).
 
-It consists of source code that is compiled into a variety of binary applications and libraries to be run on the target platforms (vehicles and base station computers). This compilation can be carried out manually by the developers on their computers and automatically be the CircleCI service for the target hardware. See [Building and CI/CD](page20_build.md) for more details.
+It consists of source code that is compiled into a variety of binary applications and libraries to be run on the target platforms (vehicles and base station computers). This compilation can be carried out manually by the developers on their computers and automatically be the CircleCI service for the target hardware. See [Building and CI/CD](page020_build.md) for more details.
 
 * `jaiabot`
   * `src`: Source code (C++ primarily) that is built into compiled code (binaries and libraries)
