@@ -61,7 +61,7 @@ The components of the VPC include:
 
 The use of the `jaia ip` tool is recommended for determining IP addresses for a given node, id, fleet, etc.
 
-The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page55_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
+The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page055_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
 1. Real "fleet VPN": The fleet VPN for remote support (vpn.jaia.tech) - UDP port 51821 + fleet ID. Managed by vpn.jaia.tech.
 2. "VirtualFleet VPN": The virtual fleet VPN for access to the "digital twin" virtual fleet - UDP port 51820. Managed by the fleet's CloudHub.
@@ -80,7 +80,7 @@ Additionally, each VPC has two subnets assigned as previously mentioned:
 
 ### IPv4 
 
-1. Fleet VPN: The IPv4 addresses remain as assigned in [VPN](page55_vpn.md) document: 172.23.flt.bot_or_hub, where flt = Fleet ID, bot_or_hub = 10 + hub ID or 100 + bot ID.
+1. Fleet VPN: The IPv4 addresses remain as assigned in [VPN](page055_vpn.md) document: 172.23.flt.bot_or_hub, where flt = Fleet ID, bot_or_hub = 10 + hub ID or 100 + bot ID.
 2. VirtualFleet VPN / CloudHub VPN: No IPv4 addresses are assigned except for the VPN server itself (to allow connections from IPv4 only customers).
 
 ### IPv6 
@@ -144,7 +144,7 @@ jaia ip chf15
 - Name: jaiabot__rootfs-feature_aws-cloud-v1.0.0~alpha1+93+g66c96e1__code-v1.7.0
 - jaiabot-rootfs-gen_version: 1.0.0~alpha1+93+g66c96e1
 - jaiabot-rootfs-gen_repository: release
-- jaiabot-rootfs-gen_repository_version: 1.y
+- jaiabot-rootfs-gen_repository_version: 2.y
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 
