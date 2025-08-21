@@ -1,7 +1,8 @@
 import { Feature } from "ol";
 import { Style } from "ol/style";
+import { Track } from "../../../types/protobuf-types";
 
-export function generateTrackFeature() {
+export function generateTrackFeature(track: Track) {
     const feature = new Feature();
     feature.setStyle(generateTrackStyle());
     return feature;
