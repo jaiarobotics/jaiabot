@@ -39,6 +39,7 @@ import {
     NodeTypes,
     SelectedNode,
     SelectedRallyPoint,
+    SelectedSentinelFeature,
     SelectedTaskPacket,
     SelectedWaypoint,
     TaskParameterPair,
@@ -85,6 +86,7 @@ export interface JaiaAction {
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
     clickedTaskPacket?: SelectedTaskPacket;
+    clickedSentinelFeature?: SelectedSentinelFeature;
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
@@ -252,6 +254,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_TASK_PACKET:
             return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
+
+        case JaiaActions.CLICKED_SENTINEL_FEATURE:
+            return handleClickedSentinelFeature(mutableState);
 
         default:
             return state;
@@ -989,6 +994,11 @@ function handleClickedTaskPacket(
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    return mutableState;
+}
+
+function handleClickedSentinelFeature(mutableState: JaiaContextType) {
+    mutableState.visiblePanel = ButtonNames.SENTINEL;
     return mutableState;
 }
 
