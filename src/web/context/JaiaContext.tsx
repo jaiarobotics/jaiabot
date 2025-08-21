@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { sentinel } from "../data/sentinel/sentinel";
 import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
@@ -25,10 +26,12 @@ import {
     Command,
     CommandType,
     GeographicCoordinate,
+    Intercept,
     MovementType,
     Speeds,
     TaskPacket,
     TaskType,
+    Track,
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
 import { compareWaypoints } from "../utils/comparisons";
@@ -60,6 +63,8 @@ export interface JaiaContextType {
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
     taskPackets: TaskPacket[];
+    tracks: Track[];
+    intercepts: Intercept[];
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -270,6 +275,8 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
     mutableState.taskPackets = taskPackets.getTaskPackets();
+    mutableState.tracks = sentinel.getTracks();
+    mutableState.intercepts = sentinel.getIntercepts();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -296,6 +303,8 @@ function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.taskPackets = taskPackets.getTaskPackets();
+    mutableState.tracks = sentinel.getTracks();
+    mutableState.intercepts = sentinel.getIntercepts();
     return mutableState;
 }
 
