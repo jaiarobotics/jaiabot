@@ -226,8 +226,10 @@ def post_tracks_pb(tracks) -> None:
 
     payload = [MessageToDict(m, preserving_proto_field_name=True) for m in pb_msgs]
 
-    r = requests.post(args.tracks_url, json=payload, timeout=3.0)
-    r.raise_for_status()
+    try:
+        requests.post(args.tracks_url, json=payload, timeout=3.0)
+    except Exception as e:
+        logging.warning("Track Post Error: ", e)
 
 # ======== Message handling ========
 
