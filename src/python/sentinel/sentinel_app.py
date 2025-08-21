@@ -1,23 +1,40 @@
 #!/usr/bin/env python3
-# Sentinel Tracks reader (TCP only) using `construct`
+
+# Sentinel Tracks reader using `construct`
 # - Parses RH and Tracks RD (big-endian) from a TCP stream
-# - Prints concise rows per track
+# - Posts to Jaia Robotics sentinel-tracks endpoint
 
 import argparse
 import math
 import socket
 import sys
+import argparse
+import logging
+from threading import Thread
 from dataclasses import dataclass
-from typing import List, Tuple
 from google.protobuf.json_format import MessageToDict  # or MessageToJson
 from jaiabot.messages import sentinel_pb2
 from jaiabot.messages import geographic_coordinate_pb2
 import requests
-
 from construct import (
     Struct, Int8ub, Int16ub, Int32ub, Float32b, Float64b, PaddedString, Bytes,
     Array, this
 )
+
+parser = argparse.ArgumentParser(description='Sentinel App that receives sentinel data, posts to sentinel-tracks, and handles intercepts')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
+parser.add_argument("--host", default="127.0.0.1", help="IP/hostname (default: 127.0.0.1)")
+parser.add_argument("--port", type=int, default=51000, help="Tracks port (default: 51000)")
+parser.add_argument("--tracks-url", metavar='tracks_url', default="http://localhost:40001/jaia/v0/sentinel-tracks", help="URL for the tracks endpoint")
+args = parser.parse_args()
+
+logging.warning(args)
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('jaiabot_sentinel')
+log.setLevel(args.logging_level)
+
+# Reference: Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf
 
 # TracksRecord
 #  ├─ Header (one per message)
@@ -30,21 +47,22 @@ from construct import (
 #  ├─ ...
 
 # ======== Constants ========
-# Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf - Page 10: 4.1
+
+# Reference: Page 10: 4.1
 RECORD_TYPE_TRACKS = 9010  # Tracks interface record id
 
 # ======== Construct schemas ========
 
 # Record Header (RH): record_type u32, record_version u32, data_size u32
-# Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf - Page 5: 2.2.1
+# Reference: Page 5: 2.2.1
 RH = Struct(
     "record_type" / Int32ub,
     "record_version" / Int32ub,
     "data_size" / Int32ub,
 )
 
-# Top-level Tracks header (up to NumberOfTracks)
-# Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf - Page 10: 4.1
+# Top-level Tracks header
+# Reference: Page 10: 4.1
 TracksHeader = Struct(
     "device_id" / Int32ub,
     "tracker_id" / Int8ub,
@@ -75,8 +93,8 @@ TracksHeader = Struct(
     "num_tracks" / Int32ub,
 )
 
-# Per-track fixed-size section (always present)
-# Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf - Page 12: 4.1.2
+# Per-track fixed-size section
+# Reference: Page 12: 4.1.2
 TrackFixed = Struct(
     "track_id" / Int32ub,
     "track_name" / PaddedString(32, "ascii"),  # unused unless fusion enabled
@@ -111,8 +129,7 @@ TrackFixed = Struct(
     "num_trail_points" / Int32ub,
 )
 
-# TrailPoint: lat f64 (rad), lon f64 (rad), time f32 (s from init)
-# Sentinel2 -IDS C2 LAN  Remote Interface 1.0.5 (WFD-1002).pdf - Page 16: 4.1.3
+# Reference: Page 16: 4.1.3
 TrailPoint = Struct(
     "lat" / Float64b, # radians (+N)
     "lon" / Float64b, # radians (+W)
@@ -132,6 +149,7 @@ TracksRecord = Struct(
 )
 
 # ======== Enums / maps ========
+
 TRACK_STATE_MAP = {
     0: "Dead",
     1: "Born",
@@ -152,6 +170,7 @@ ALERT_STATE_MAP = {
 }
 
 # ======== Helpers ========
+
 def radians_to_deg(x: float) -> float:
     return math.degrees(x)
 
@@ -175,7 +194,7 @@ def recv_exact(sock: socket.socket, n: int) -> bytes:
 
 def to_track_pb(track) -> sentinel_pb2.Track:
     """
-    track: your parsed object (id, lat_deg, lon_deg, heading_deg, speed_mps, track_state, alert_state, age_s)
+    track: your parsed object
     Returns a populated protobuf Track message.
     """
     msg = sentinel_pb2.Track()
@@ -198,7 +217,7 @@ def to_track_pb(track) -> sentinel_pb2.Track:
 
     return msg
 
-def post_tracks_pb(url: str, tracks) -> None:
+def post_tracks_pb(tracks) -> None:
     """
     Build protobuf messages, convert each to JSON-dict with protobuf's JSON mapping,
     and POST a JSON array (list) to Flask endpoint.
@@ -207,10 +226,11 @@ def post_tracks_pb(url: str, tracks) -> None:
 
     payload = [MessageToDict(m, preserving_proto_field_name=True) for m in pb_msgs]
 
-    r = requests.post(url, json=payload, timeout=3.0)
+    r = requests.post(args.tracks_url, json=payload, timeout=3.0)
     r.raise_for_status()
 
 # ======== Message handling ========
+
 def handle_one_message(payload: bytes) -> None:
     """Decode one full C2 message (RH + RD) and print Tracks rows."""
 
@@ -228,12 +248,13 @@ def handle_one_message(payload: bytes) -> None:
     if msg.header.num_tracks == 0:
         return
 
-    post_tracks_pb("http://localhost:40001/jaia/v0/sentinel-tracks", msg.tracks)
+    post_tracks_pb(msg.tracks)
 
-# ======== TCP receive loop ========
-def run_tcp(host: str, port: int) -> None:
-    with socket.create_connection((host, port)) as s:
-        print(f"Connecting TCP to {host}:{port} ...")
+# ======== Sentinel receive loop ========
+
+def connect_to_sentinel() -> None:
+    with socket.create_connection((args.host, args.port)) as s:
+        print(f"Connecting TCP to {args.host}:{args.port} ...")
         while True:
             # Each message: 12-byte RH + RD of size 'data_size'
             rh_bytes = recv_exact(s, 12)
@@ -241,20 +262,13 @@ def run_tcp(host: str, port: int) -> None:
             rd = recv_exact(s, rh.data_size)
             handle_one_message(rh_bytes + rd)
 
-# ======== CLI ========
-def main():
-    ap = argparse.ArgumentParser(description="Sentinel Tracks reader (TCP only)")
-    ap.add_argument("--host", default="127.0.0.1", help="IP/hostname (default: 127.0.0.1)")
-    ap.add_argument("--port", type=int, default=51000, help="Tracks port (default: 51000)")
-    args = ap.parse_args()
-
+if __name__ == "__main__":
     try:
-        run_tcp(args.host, args.port)
+        sentinelReceiveThread = Thread(target=connect_to_sentinel, name='portThread', daemon=True)
+        sentinelReceiveThread.start()
+        sentinelReceiveThread.join() 
     except KeyboardInterrupt:
         print("\nExiting.")
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(2)
-
-if __name__ == "__main__":
-    main()
