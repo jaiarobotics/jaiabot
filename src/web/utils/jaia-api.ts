@@ -262,10 +262,17 @@ export class JaiaAPI {
         });
     }
 
-    async putOfflineGeoTiff(map_name: string, data: Blob) {
+    async putOfflineGeoTiff(map_name: string, data: BodyInit) {
         return fetch(`maps/${map_name}/geotiff`, {
             method: "PUT",
             body: data,
+        });
+    }
+
+    async putOfflineGeoTiffChunk(map_name: string, chunk: Uint8Array) {
+        return fetch(`maps/${map_name}/geotiffchunk`, {
+            method: "PUT",
+            body: chunk,
         });
     }
 

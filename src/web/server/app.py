@@ -356,6 +356,23 @@ def put_map_geotiff(map_name: str):
         return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
 
 
+@app.route('/maps/<map_name>/geotiffchunk', methods=['PUT'])
+def put_map_geotiff_chunk(map_name: str):
+    """Put a geotiff file chunk into a tile server map.  A chunk size of zero means the geotiff is fully uploaded.
+
+    Args:
+        map_name (str): Name of the target map
+    """
+
+    try:
+        map_tile_server.put_map_geotiff_chunk(map_name, request.data)
+        return Response(status=HTTPStatus.OK)
+    except Exception as e:
+        print(e)
+        print('Failed!')
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
+
 @app.route('/maps/<map_name>', methods=['DELETE'])
 def delete_map(map_name: str):
     """Delete an offline map layer

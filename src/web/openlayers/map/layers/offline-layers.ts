@@ -29,16 +29,12 @@ export class OfflineLayerManager {
 
     subscribe(func: () => void, id: string) {
         this.observers[id] = func;
-        console.log("subscribe");
-        console.log(this.observers);
         func();
         return func;
     }
 
     unsubscribe(id: string) {
-        console.log("unsubscribe");
         delete this.observers[id];
-        console.log(this.observers);
     }
 
     notify() {

@@ -267,6 +267,29 @@ class MapTileServer:
         open(geotiff_path, 'wb').write(geotiff_data)
 
 
+    def put_map_geotiff_chunk(self, map_name: str, geotiff_chunk: bytes):
+        """PUT a new chunk of geotiff data to a chunked GeoTIFF file upload.
+
+        Args:
+            map_name (str): Destination tileset name
+            geotiff_chunk (bytes): Chunk of the GeoTIFF file to append
+        """
+
+        partial_geotiff_directory = self.geotiffs_directory + '/partial/'
+        os.makedirs(partial_geotiff_directory, exist_ok=True)
+        partial_geotiff_path = os.path.join(partial_geotiff_directory, map_name + '.geotiff')
+
+
+        if len(geotiff_chunk) == 0:
+            l.warning(f'GeoTIFF file upload complete: {map_name}')
+            complete_geotiff_path = os.path.join(self.geotiffs_directory, map_name + '.geotiff')
+            os.rename(partial_geotiff_path, complete_geotiff_path)
+            return
+        else:
+            l.warning(f'Appending {len(geotiff_chunk)} to {partial_geotiff_path}')
+            open(partial_geotiff_path, 'ab').write(geotiff_chunk)
+
+
 def test():
     server = MapTileServer('~/maps/')
     data = open('/home/ed/maps/RI_Bristol_353252_1955_24000_geo.tif.geotiff', 'rb').read()

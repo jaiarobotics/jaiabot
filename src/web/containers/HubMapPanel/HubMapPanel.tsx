@@ -1,5 +1,13 @@
 import "./HubMapPanel.less";
-import { Button, InputLabel, FormControl, Select, MenuItem, Typography } from "@mui/material";
+import {
+    Button,
+    InputLabel,
+    FormControl,
+    Select,
+    MenuItem,
+    Typography,
+    CircularProgress,
+} from "@mui/material";
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
 import { jaiaAPI } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
@@ -25,6 +33,11 @@ export function HubMapPanel(props: Props) {
     const [layerTitles, setLayerTitles] = useState<string[]>(offlineLayerManager.layerTitles);
     const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
     const [selectedOnlineTileLayerIndex, setSelectedOnlineTileLayerIndex] = useState(0);
+
+    // GeoTIFF uploading state
+    const [isUploadingGeoTIFF, setIsUploadingGeoTIFF] = useState(false);
+    const [geoTIFFBytesUploaded, setGeoTIFFBytesUploaded] = useState(0);
+    const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
 
     function refreshLayerList() {
         setLayerTitles(offlineLayerManager.layerTitles);
@@ -150,16 +163,32 @@ export function HubMapPanel(props: Props) {
     };
 
     // Import GeoTIFF
+    async function uploadGeoTIFF(geotiff: File) {
+        const reader = geotiff.stream().getReader();
+        setIsUploadingGeoTIFF(true);
+        setGeoTIFFTotalBytes(geotiff.size);
+        let bytesUploaded = 0;
 
-    async function importGeoTiff() {
+        while (true) {
+            const result = await reader.read();
+            if (result.done) {
+                await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, new Uint8Array());
+                break;
+            }
+
+            await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, result.value);
+            bytesUploaded += result.value.length;
+            setGeoTIFFBytesUploaded(bytesUploaded);
+            setIsUploadingGeoTIFF(true);
+        }
+        setIsUploadingGeoTIFF(false);
+    }
+
+    async function clickedImportGeoTIFFButton() {
         OpenFileDialog(".tif", false)
             .then((file_list) => {
                 if (file_list.length) {
-                    const file = file_list.item(0);
-                    file.bytes().then((uint8array) => {
-                        const blob = new Blob([uint8array], { type: "application/octet-stream" });
-                        jaiaAPI.putOfflineGeoTiff(file.name, blob);
-                    });
+                    uploadGeoTIFF(file_list.item(0));
                 }
             })
             .then(() => {
@@ -167,14 +196,41 @@ export function HubMapPanel(props: Props) {
             });
     }
 
-    const importGeoTIFFButton = (
-        <div className="hub-map-section">
-            <Button className="button-jcc" onClick={importGeoTiff}>
+    function geoTiffSection() {
+        const geotiffUploadButton = (
+            <Button
+                className="button-jcc"
+                onClick={clickedImportGeoTIFFButton}
+                style={{ verticalAlign: "middle" }}
+            >
                 <Icon path={mdiUpload}></Icon>
                 Upload GeoTiff to Hub...
             </Button>
-        </div>
-    );
+        );
+
+        function geotiffUploadProgressIndicator() {
+            const geotiffUploadPercent = isUploadingGeoTIFF
+                ? (100 * geoTIFFBytesUploaded) / geoTIFFTotalBytes
+                : 0;
+            return (
+                <div>
+                    <CircularProgress
+                        variant="determinate"
+                        value={geotiffUploadPercent}
+                        size={36}
+                        style={{ verticalAlign: "middle", marginLeft: "10pt", marginRight: "10pt" }}
+                    ></CircularProgress>
+                    {`Uploading GeoTIFF: ${geotiffUploadPercent.toFixed(0)}% complete`}
+                </div>
+            );
+        }
+
+        return (
+            <div className="hub-map-section" style={{ height: "50pt" }}>
+                {isUploadingGeoTIFF ? geotiffUploadProgressIndicator() : geotiffUploadButton}
+            </div>
+        );
+    }
 
     // Import visible layers
 
@@ -193,7 +249,11 @@ export function HubMapPanel(props: Props) {
     ];
 
     const menuItems = onlineTileLayers.map((layer, index) => {
-        return <MenuItem value={index}>{layer.get("title")}</MenuItem>;
+        return (
+            <MenuItem value={index} key={index}>
+                {layer.get("title")}
+            </MenuItem>
+        );
     });
 
     const tileLayerSelectForm = (
@@ -232,7 +292,7 @@ export function HubMapPanel(props: Props) {
         return (
             <div className="hub-map-section">
                 <h1>Import</h1>
-                {importGeoTIFFButton}
+                {geoTiffSection()}
                 {importTileLayersSection}
                 {tileDownloaderStatusSection()}
                 {errorSection()}
