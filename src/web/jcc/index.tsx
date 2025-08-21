@@ -16,7 +16,7 @@ import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { sentinelLayer } from "../openlayers/layers/vector/sentinel-layer";
-import { SentinelData } from "../types/protobuf-types";
+import { SentinelData, Track } from "../types/protobuf-types";
 import {
     DATA_MODEL_POLL_TIME,
     INITAL_ZOOM_DURATION,
@@ -27,7 +27,7 @@ import {
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
 const statusURL = "http://localhost:40001/jaia/v0/status";
 const taskPacketURL = "http://localhost:40001/jaia/v0/task-packets";
-const sentinelURL = "";
+const sentinelURL = "http://localhost:40001/jaia/v0/sentinel-tracks";
 
 let isFirstBot = true;
 
@@ -62,14 +62,14 @@ const taskPacketInterval = setInterval(async () => {
     }
 }, TASK_PACKET_POLL_TIME);
 
-const sentinelInterval = setInterval(async () => {
+const sentinelTrackInterval = setInterval(async () => {
     try {
-        const response = await fetch(taskPacketURL);
+        const response = await fetch(sentinelURL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
-            updateSentinel(json);
+            updateSentinelTracks(json);
         }
     } catch (error) {
         console.error(error);
@@ -102,15 +102,13 @@ function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
     }
 }
 
-function updateSentinel(sentinelData: SentinelData) {
-    if (sentinelData.tracks) {
-        sentinel.setTracks(sentinelData.tracks);
+function updateSentinelTracks(tracksRaw: { [trackID: number]: Track }) {
+    const tracks = new Map();
+    const trackIDs = Object.keys(tracksRaw);
+    for (let trackID of trackIDs) {
+        tracks.set(Number(trackID), tracksRaw[Number(trackID)]);
     }
-
-    if (sentinelData.intercepts) {
-        sentinel.setIntercepts(sentinelData.intercepts);
-    }
-
+    sentinel.setTracks(tracks);
     sentinelLayer.updateFeatures();
 }
 

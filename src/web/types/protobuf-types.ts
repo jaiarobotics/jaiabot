@@ -1248,6 +1248,6 @@ export interface Intercept {
 }
 
 export interface SentinelData {
-    tracks?: Track[];
-    intercepts?: Intercept[];
+    tracks?: Map<number, Track>;
+    intercepts?: Map<number, Intercept>;
 }

@@ -1,19 +1,19 @@
 import { Intercept, Track } from "../../types/protobuf-types";
 
 export class Sentinel {
-    private tracks: Track[];
-    private intercepts: Intercept[];
+    private tracks: Map<number, Track>;
+    private intercepts: Map<number, Intercept>;
 
     constructor() {
-        this.tracks = [];
-        this.intercepts = [];
+        this.tracks = new Map();
+        this.intercepts = new Map();
     }
 
     getTracks() {
         return this.tracks;
     }
 
-    setTracks(tracks: Track[]) {
+    setTracks(tracks: Map<number, Track>) {
         this.tracks = tracks;
     }
 
@@ -21,7 +21,7 @@ export class Sentinel {
         return this.intercepts;
     }
 
-    setIntercepts(intercepts: Intercept[]) {
+    setIntercepts(intercepts: Map<number, Intercept>) {
         this.intercepts = intercepts;
     }
 }
