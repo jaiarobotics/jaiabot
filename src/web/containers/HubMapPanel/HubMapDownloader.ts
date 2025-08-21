@@ -113,11 +113,12 @@ export class HubMapDownloader {
             const tile = this.tileDescriptors.shift();
             if (!tile) break;
 
-            this?.observer(this);
+            this.observer?.(this);
 
             // Do we already have this tile?
             const existingTile = await fetch(
                 `/maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+                { method: "HEAD" },
             );
 
             if (existingTile.ok) {

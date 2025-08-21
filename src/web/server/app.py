@@ -321,19 +321,24 @@ def get_maps():
                         mimetype=MIME_TYPE_JSON)
 
 
-@app.route('/maps/<map_name>/<z>/<x>/<y>', methods=['GET', 'PUT'])
+@app.route('/maps/<map_name>/<z>/<x>/<y>', methods=['GET', 'PUT', 'HEAD'])
 def map_tile(map_name: str, z: str, x: str, y: str):
     """Get a map tile
     """
 
-    if request.method == 'GET':
+    method = request.method
+    if method in {'HEAD', 'GET'}:
         tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
-
+    
         if tile_data is None:
             return Response(status=HTTPStatus.NOT_FOUND)
+    
+    if method == 'GET':
+        return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
 
-        else:
-            return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+    elif method == 'HEAD':
+        return Response(None, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+
     elif request.method == 'PUT':
         map_tile_server.put_tile(map_name, z, x, y, request.data)
         return Response(status=HTTPStatus.OK)

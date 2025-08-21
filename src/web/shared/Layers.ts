@@ -5,7 +5,6 @@ export function getArcGISSatelliteImageryLayer() {
     return new TileLayer({
         properties: {
             title: "ArcGIS Satellite Imagery",
-            type: "base",
         },
         zIndex: 1,
         source: new SourceXYZ({

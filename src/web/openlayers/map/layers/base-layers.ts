@@ -11,7 +11,6 @@ openStreetMapSource.setTileLoadFunction(loadTileFromDatabase);
 export const openStreetMapLayer = new TileLayer({
     properties: {
         title: "OpenStreetMap",
-        type: "base",
     },
     zIndex: 1,
     source: openStreetMapSource,
