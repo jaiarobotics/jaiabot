@@ -99,12 +99,7 @@ function Panel() {
         case ButtonNames.MEASURE_TOOL:
             return <MeasurePanel />;
         case ButtonNames.SENTINEL:
-            return (
-                <SentinelPanel
-                    tracks={sentinel.getTracks()}
-                    intercepts={sentinel.getIntercepts()}
-                />
-            );
+            return <SentinelPanel track={sentinel.getTracks().get(sentinel.getSelectedID())} />;
         default:
             return <div></div>;
     }

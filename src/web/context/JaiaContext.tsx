@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { sentinel } from "../data/sentinel/sentinel";
 import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
@@ -256,7 +257,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
 
         case JaiaActions.CLICKED_SENTINEL_FEATURE:
-            return handleClickedSentinelFeature(mutableState);
+            return handleClickedSentinelFeature(mutableState, action.clickedSentinelFeature);
 
         default:
             return state;
@@ -997,7 +998,11 @@ function handleClickedTaskPacket(
     return mutableState;
 }
 
-function handleClickedSentinelFeature(mutableState: JaiaContextType) {
+function handleClickedSentinelFeature(
+    mutableState: JaiaContextType,
+    clickedSentinelFeature: SelectedSentinelFeature,
+) {
+    sentinel.setSelectedID(clickedSentinelFeature.trackID);
     mutableState.visiblePanel = ButtonNames.SENTINEL;
     return mutableState;
 }
