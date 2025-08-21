@@ -68,6 +68,9 @@ class Interface:
     # Task packet database
     task_packet_database = TaskPacketDatabase()
 
+    # Sentinel tracks
+    sentinel_tracks = {}
+
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
 
@@ -494,7 +497,6 @@ class Interface:
             bot_paths[bot_id] = list(itertools.islice(bot_path, start_index, None))
         return bot_paths
 
-
     # Controlling clientId
 
     def setControllingClientId(self, clientId):
@@ -504,3 +506,15 @@ class Interface:
 
     def get_Metadata(self):
         return self.metadata
+    
+    # Sentinel Tracks 
+
+    def get_sentinel_tracks(self):
+        return self.sentinel_tracks
+
+    def post_sentinel_tracks(self, tracks):
+        for track in tracks:
+            track_id = track["id"]
+            self.sentinel_tracks[track_id] = track
+
+        return {'status': 'ok'}
