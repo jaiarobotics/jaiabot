@@ -267,7 +267,7 @@ class MapTileServer:
         open(geotiff_path, 'wb').write(geotiff_data)
 
 
-    def put_map_geotiff_chunk(self, map_name: str, geotiff_chunk: bytes):
+    def put_map_geotiff_chunk(self, map_name: str, chunk_index: int, geotiff_chunk: bytes):
         """PUT a new chunk of geotiff data to a chunked GeoTIFF file upload.
 
         Args:
@@ -286,8 +286,12 @@ class MapTileServer:
             os.rename(partial_geotiff_path, complete_geotiff_path)
             return
         else:
+            if chunk_index == 0:
+                mode = 'wb' # new file
+            else:
+                mode = 'ab' # append to file
             l.warning(f'Appending {len(geotiff_chunk)} to {partial_geotiff_path}')
-            open(partial_geotiff_path, 'ab').write(geotiff_chunk)
+            open(partial_geotiff_path, mode).write(geotiff_chunk)
 
 
 def test():

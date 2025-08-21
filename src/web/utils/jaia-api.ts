@@ -269,8 +269,8 @@ export class JaiaAPI {
         });
     }
 
-    async putOfflineGeoTiffChunk(map_name: string, chunk: Uint8Array) {
-        return fetch(`maps/${map_name}/geotiffchunk`, {
+    async putOfflineGeoTiffChunk(map_name: string, chunk_index: number, chunk: Uint8Array) {
+        return fetch(`maps/${map_name}/geotiffchunk/${chunk_index}`, {
             method: "PUT",
             body: chunk,
         });

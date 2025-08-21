@@ -168,18 +168,21 @@ export function HubMapPanel(props: Props) {
         setIsUploadingGeoTIFF(true);
         setGeoTIFFTotalBytes(geotiff.size);
         let bytesUploaded = 0;
+        let chunk_index = 0;
 
         while (true) {
             const result = await reader.read();
             if (result.done) {
-                await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, new Uint8Array());
+                await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, chunk_index, new Uint8Array());
                 break;
             }
 
-            await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, result.value);
+            await jaiaAPI.putOfflineGeoTiffChunk(geotiff.name, chunk_index, result.value);
             bytesUploaded += result.value.length;
             setGeoTIFFBytesUploaded(bytesUploaded);
             setIsUploadingGeoTIFF(true);
+
+            chunk_index += 1;
         }
         setIsUploadingGeoTIFF(false);
     }

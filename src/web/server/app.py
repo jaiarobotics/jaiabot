@@ -361,8 +361,8 @@ def put_map_geotiff(map_name: str):
         return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
 
 
-@app.route('/maps/<map_name>/geotiffchunk', methods=['PUT'])
-def put_map_geotiff_chunk(map_name: str):
+@app.route('/maps/<map_name>/geotiffchunk/<chunk_index>', methods=['PUT'])
+def put_map_geotiff_chunk(map_name: str, chunk_index: int):
     """Put a geotiff file chunk into a tile server map.  A chunk size of zero means the geotiff is fully uploaded.
 
     Args:
@@ -370,7 +370,7 @@ def put_map_geotiff_chunk(map_name: str):
     """
 
     try:
-        map_tile_server.put_map_geotiff_chunk(map_name, request.data)
+        map_tile_server.put_map_geotiff_chunk(map_name, chunk_index, request.data)
         return Response(status=HTTPStatus.OK)
     except Exception as e:
         print(e)
