@@ -16,9 +16,6 @@ def gpsd_port(hub_id):
         return default_gpsd_port
 
 def expected_bots_from_inventory():
-    if is_simulation():
-        return ''
-
     try:
         with open('/etc/jaiabot/inventory.yml', 'r') as file:
             data = yaml.safe_load(file)            

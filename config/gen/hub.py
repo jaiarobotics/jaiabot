@@ -103,6 +103,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_hub_id='hub_id: ' + str(hub_index),
+                                            is_in_sim=is_simulation(),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
