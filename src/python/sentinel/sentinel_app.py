@@ -11,6 +11,7 @@ import sys
 import argparse
 import logging
 import time
+from enum import Enum
 from threading import Thread
 from dataclasses import dataclass
 from google.protobuf.json_format import MessageToDict  # or MessageToJson
@@ -27,10 +28,11 @@ parser = argparse.ArgumentParser(description='Sentinel App that receives sentine
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument("--host", default="127.0.0.1", help="IP/hostname (default: 127.0.0.1)")
 parser.add_argument("--port", type=int, default=51000, help="Tracks port (default: 51000)")
-parser.add_argument("--tracks-url", metavar='tracks_url', default="http://localhost:40001/jaia/v0/sentinel-tracks", help="URL for the tracks endpoint")
-parser.add_argument("--status-url", metavar='status_url', default="http://localhost:40001/jaia/v0/status-bots", help="URL for the bot status endpoint")
-parser.add_argument("--intercept-url", metavar='intercept_url', default="http://localhost:40001/jaia/v0/bots-to-intercept", help="URL for the bot status endpoint")
-parser.add_argument("--single-wpt-url", metavar='single_wpt_url', default="http://localhost:40001/jaia/v0/single-waypoint-mission", help="URL for the single wpt command")
+parser.add_argument("--tracks-url", default="http://localhost:40001/jaia/v0/sentinel-tracks", help="URL for the tracks endpoint")
+parser.add_argument("--status-url", default="http://localhost:40001/jaia/v0/status-bots", help="URL for the bot status endpoint")
+parser.add_argument("--bots-intercept-url", default="http://localhost:40001/jaia/v0/bots-to-intercept", help="URL for the bots to intercept endpoint")
+parser.add_argument("--single-wpt-url", default="http://localhost:40001/jaia/v0/single-waypoint-mission", help="URL for the single wpt command endpoint")
+parser.add_argument("--intercept-track-url", default="http://localhost:40001/jaia/v0/intercept-track", help="URL for to send the intercept location endpoint")
 args = parser.parse_args()
 
 logging.warning(args)
@@ -55,6 +57,9 @@ log.setLevel(args.logging_level)
 
 # Reference: Page 10: 4.1
 RECORD_TYPE_TRACKS = 9010  # Tracks interface record id
+
+# Define the headers for the request
+headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
 
 # ======== Construct schemas ========
 
@@ -155,24 +160,26 @@ TracksRecord = Struct(
 
 # ======== Enums / maps ========
 
-TRACK_STATE_MAP = {
-    0: "Dead",
-    1: "Born",
-    2: "Active",
-    3: "Predicting",
-    4: "Abandoned",
-    5: "Lagged",
-    6: "Persisted",
-    7: "Removed/Hidden",
-}
+class TrackState(Enum):
+    DEAD = 0
+    BORN = 1
+    ACTIVE = 2
+    PREDICTING = 3
+    ABANDON = 4
+    LAGGED = 5
+    PERSISTED = 6
+    REMOVED_HIDDEN = 7
 
 # How threatening or important a track is
-ALERT_STATE_MAP = {
-    1: "moderate",
-    2: "substantial",
-    3: "severe",
-    4: "critical",
-}
+class TrackState(Enum):
+    MODERATE = 1
+    SUBSTANTIAL = 2
+    SEVERE = 3
+    CRITICAL = 4
+
+class InterceptState(Enum):
+    IN_PROGRESS = 1
+    TERMINATED = 2
 
 # ======== Global Vars =========
 
@@ -234,29 +241,51 @@ def to_track_pb(track) -> sentinel_pb2.Track:
 def post_tracks(tracks) -> None:
     """
     Build protobuf messages, convert each to JSON-dict with protobuf's JSON mapping,
-    and POST a JSON array (list) to Flask endpoint.
+    and POST a JSON array (list) to endpoint.
     """
     pb_msgs = [to_track_pb(t.fixed) for t in tracks]
 
-    payload = [MessageToDict(m, preserving_proto_field_name=True) for m in pb_msgs]
+    payload = [MessageToDict(msg, preserving_proto_field_name=True) for msg in pb_msgs]
 
     try:
         requests.post(args.tracks_url, json=payload, timeout=3.0)
     except Exception as e:
         logging.warning("Track Post Error: ", e)
     
-def post_command(lat, lon, bot_ids) -> None:
-    # define the headers for the request
-    # define the headers for the request
-    headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+def post_command(lat, lon, bot_id) -> None:
+    """
+    Build single wpt message and POST a JSON single wpt command to endpoint.
+    """
+    data = {'bot_id': bot_id, 'lat': lat, 'lon': lon, 'dive_depth': 2,'transit_speed': 3, 'station_keep_speed': 2}
 
-    for bot_id in bot_ids:
-        data = {'bot_id': bot_id, 'lat': lat, 'lon': lon, 'dive_depth': 2,'transit_speed': 3, 'station_keep_speed': 2}
+    try:
+        requests.post(args.single_wpt_url, json=data, headers=headers)
+    except Exception as e:
+        logging.warning("Command Post Error: ", e)
 
-    requests.post(args.single_wpt_url, json=data, headers=headers)
-
-def post_intercept_track() -> None:
+def post_intercept_track(track_id, lat, lon, bot_id, state) -> None:
+    """
+    Build protobuf message, convert to JSON-dict with protobuf's JSON mapping,
+    and POST a JSON intercept to endpoint.
+    """
     msg = sentinel_pb2.Intercept()
+
+    msg.track_id = int(track_id)
+    msg.bot_id = int(bot_id)
+    msg.state = state
+
+    # Location
+    loc = geographic_coordinate_pb2.GeographicCoordinate()
+    loc.lat = float(lat)
+    loc.lon = float(lon)
+    msg.location.CopyFrom(loc) 
+
+    payload = MessageToDict(msg, preserving_proto_field_name=True)
+
+    try:
+        requests.post(args.intercept_track_url, json=payload, headers=headers)
+    except Exception as e:
+        logging.warning("Intercept track Post Error: ", e)
 
 # ======== Message handling ========
 
@@ -309,9 +338,9 @@ def test_intercept() -> None:
     bot = bots["1"]
     interceptor = MovingObject(
         lat_deg=bot["location"]["lat"],
-        lon_deg=bot["location"]["lon"],   # use the real one from JSON
+        lon_deg=bot["location"]["lon"],
         heading_deg=bot["attitude"]["heading"],
-        speed_mps=3                        #bot["speed"]["over_ground"]
+        speed_mps=3 
     )
     result = intercept_point(target, interceptor)
     print(result)
@@ -320,16 +349,17 @@ def test_intercept() -> None:
     else:
         lat, lon, t = result
         if t > min_time_to_update_intercept:
-            post_command(lat, lon, {1})
-            post_intercept_track()
+            post_command(lat, lon, 1)
+            post_intercept_track(first_track.id, lat, lon, 1, InterceptState.IN_PROGRESS.value)
             print(f"Intercept at {lat:.6f}, {lon:.6f} in {t:.1f} s")
         else:
             print(f"We are not sending new updated command, \nIntercept at {lat:.6f}, {lon:.6f} in {t:.1f} s")
+            post_intercept_track(first_track.id, lat, lon, 1, InterceptState.TERMINATED.value)
 
 def connect_to_jaia_bot_status() -> None:
     while True:
         try:
-            resp = requests.get(args.status_url, timeout=5)
+            resp = requests.get(args.status_url, timeout=3)
             resp.raise_for_status()
             new_data = resp.json()
             bots.update(new_data)
@@ -342,7 +372,7 @@ def connect_to_jaia_bot_status() -> None:
 
 def connect_to_jaia_bots_to_intercept() -> None:
     while True:
-        resp = requests.get(args.intercept_url)
+        resp = requests.get(args.bots_intercept_url)
         print(resp)
         time.sleep(1)
 

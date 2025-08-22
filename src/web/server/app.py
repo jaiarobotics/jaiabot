@@ -317,11 +317,11 @@ def postSentinelTracks():
     return JSONResponse(response)
 
 @app.route('/jaia/v0/intercept-tracks', methods=['GET'])
-def getSentinelTracks():
+def getInterceptTracks():
     return JSONResponse(jaia_interface.get_intercept_tracks())
 
 @app.route('/jaia/v0/intercept-track', methods=['POST'])
-def postSentinelTracks():
+def postInterceptTrack():
     response = jaia_interface.post_intercept_track(request.json)
     return JSONResponse(response)
 

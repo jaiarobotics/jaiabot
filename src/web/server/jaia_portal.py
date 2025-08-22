@@ -536,7 +536,7 @@ class Interface:
         return self.intercept_tracks
 
     def post_intercept_track(self, track):
-        track_id = track["id"]
+        track_id = track["track_id"]
         self.intercept_tracks[track_id] = track
 
         return {'status': 'ok'}
