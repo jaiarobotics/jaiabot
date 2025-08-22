@@ -142,6 +142,7 @@ except FileNotFoundError:
     fluorometer_coefficients = 'fluorometer_coefficients {}'
 
 ack_timeout=10
+iridium_ack_timeout=120
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 link_block=''
 if common.CommsMode.XBEE in common.jaia_comms_modes:
@@ -158,7 +159,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
         
     link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_hub_id='',
@@ -173,10 +174,10 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
     # used for virtualfleet as until we have an inventory file we don't send any hub subscriptions out without an Xbee config.
     default_hub_id=1
 
-    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.modem_id("wifi",common.comms.hub_node_id)) + ' changed: true }'
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.wifi_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("wifi",node_id),
                                             local_port=common.udp.wifi_udp_port(node_id),
                                             wifi_hub_id='',
                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
@@ -185,6 +186,24 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
+
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+    # have the bots subscribe when we're using Iridium as there's only one hub
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.modem_id("iridium",common.comms.hub_node_id)) + ' changed: true }'
+    
+    if is_simulation():
+        iridium_serial_port='/tmp/iridium' + str(bot_index)
+    else:
+        iridium_serial_port='/dev/iridium'
+
+    link_block += config.template_substitute(templates_dir+'/link_iridium.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.modem_id("iridium",node_id),
+                                             serial_port=iridium_serial_port,
+                                             mac_slots=common.comms.iridium_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=iridium_ack_timeout)
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
 liaison_bind_addr='0.0.0.0'
