@@ -10,6 +10,7 @@ import socket
 import sys
 import argparse
 import logging
+import time
 from threading import Thread
 from dataclasses import dataclass
 from google.protobuf.json_format import MessageToDict  # or MessageToJson
@@ -20,12 +21,16 @@ from construct import (
     Struct, Int8ub, Int16ub, Int32ub, Float32b, Float64b, PaddedString, Bytes,
     Array, this
 )
+from intercept_calculations import MovingObject, intercept_point
 
 parser = argparse.ArgumentParser(description='Sentinel App that receives sentinel data, posts to sentinel-tracks, and handles intercepts')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument("--host", default="127.0.0.1", help="IP/hostname (default: 127.0.0.1)")
 parser.add_argument("--port", type=int, default=51000, help="Tracks port (default: 51000)")
 parser.add_argument("--tracks-url", metavar='tracks_url', default="http://localhost:40001/jaia/v0/sentinel-tracks", help="URL for the tracks endpoint")
+parser.add_argument("--status-url", metavar='status_url', default="http://localhost:40001/jaia/v0/status-bots", help="URL for the bot status endpoint")
+parser.add_argument("--intercept-url", metavar='intercept_url', default="http://localhost:40001/jaia/v0/bots-to-intercept", help="URL for the bot status endpoint")
+parser.add_argument("--single-wpt-url", metavar='single_wpt_url', default="http://localhost:40001/jaia/v0/single-waypoint-mission", help="URL for the single wpt command")
 args = parser.parse_args()
 
 logging.warning(args)
@@ -169,6 +174,12 @@ ALERT_STATE_MAP = {
     4: "critical",
 }
 
+# ======== Global Vars =========
+
+sentinel_tracks = {}
+bots = {}
+min_time_to_update_intercept = 10
+
 # ======== Helpers ========
 
 def radians_to_deg(x: float) -> float:
@@ -215,9 +226,12 @@ def to_track_pb(track) -> sentinel_pb2.Track:
     msg.track_state = track.track_state
     msg.alert_state = track.alert_state
 
+    # Save the known tracks
+    sentinel_tracks[msg.id] = msg
+
     return msg
 
-def post_tracks_pb(tracks) -> None:
+def post_tracks(tracks) -> None:
     """
     Build protobuf messages, convert each to JSON-dict with protobuf's JSON mapping,
     and POST a JSON array (list) to Flask endpoint.
@@ -230,6 +244,19 @@ def post_tracks_pb(tracks) -> None:
         requests.post(args.tracks_url, json=payload, timeout=3.0)
     except Exception as e:
         logging.warning("Track Post Error: ", e)
+    
+def post_command(lat, lon, bot_ids) -> None:
+    # define the headers for the request
+    # define the headers for the request
+    headers = {'clientid': 'backseat-control', 'Content-Type' : 'application/json; charset=utf-8'}
+
+    for bot_id in bot_ids:
+        data = {'bot_id': bot_id, 'lat': lat, 'lon': lon, 'dive_depth': 2,'transit_speed': 3, 'station_keep_speed': 2}
+
+    requests.post(args.single_wpt_url, json=data, headers=headers)
+
+def post_intercept_track() -> None:
+    msg = sentinel_pb2.Intercept()
 
 # ======== Message handling ========
 
@@ -250,9 +277,9 @@ def handle_one_message(payload: bytes) -> None:
     if msg.header.num_tracks == 0:
         return
 
-    post_tracks_pb(msg.tracks)
+    post_tracks(msg.tracks)
 
-# ======== Sentinel receive loop ========
+# ======== Receive loops ========
 
 def connect_to_sentinel() -> None:
     with socket.create_connection((args.host, args.port)) as s:
@@ -264,11 +291,73 @@ def connect_to_sentinel() -> None:
             rd = recv_exact(s, rh.data_size)
             handle_one_message(rh_bytes + rd)
 
+def test_intercept() -> None:
+    first_track = next(iter(sentinel_tracks.values()), None)
+
+    print(first_track)
+    if first_track is None:
+        return
+    
+    # proto-style attribute access
+    target = MovingObject(
+        lat_deg=first_track.location.lat,
+        lon_deg=first_track.location.lon,
+        heading_deg=first_track.heading,
+        speed_mps=first_track.speed,
+    )
+
+    bot = bots["1"]
+    interceptor = MovingObject(
+        lat_deg=bot["location"]["lat"],
+        lon_deg=bot["location"]["lon"],   # use the real one from JSON
+        heading_deg=bot["attitude"]["heading"],
+        speed_mps=3                        #bot["speed"]["over_ground"]
+    )
+    result = intercept_point(target, interceptor)
+    print(result)
+    if result is None:
+        print("No feasible intercept at current interceptor speed.")
+    else:
+        lat, lon, t = result
+        if t > min_time_to_update_intercept:
+            post_command(lat, lon, {1})
+            post_intercept_track()
+            print(f"Intercept at {lat:.6f}, {lon:.6f} in {t:.1f} s")
+        else:
+            print(f"We are not sending new updated command, \nIntercept at {lat:.6f}, {lon:.6f} in {t:.1f} s")
+
+def connect_to_jaia_bot_status() -> None:
+    while True:
+        try:
+            resp = requests.get(args.status_url, timeout=5)
+            resp.raise_for_status()
+            new_data = resp.json()
+            bots.update(new_data)
+
+            test_intercept()
+
+        except (requests.RequestException, ValueError) as e:
+            print(f"Error updating bots: {e}")
+        time.sleep(5)
+
+def connect_to_jaia_bots_to_intercept() -> None:
+    while True:
+        resp = requests.get(args.intercept_url)
+        print(resp)
+        time.sleep(1)
+
 if __name__ == "__main__":
     try:
-        sentinelReceiveThread = Thread(target=connect_to_sentinel, name='portThread', daemon=True)
+        sentinelReceiveThread = Thread(target=connect_to_sentinel, name='sentinel-receive', daemon=True)
         sentinelReceiveThread.start()
-        sentinelReceiveThread.join() 
+
+        botStatusReceiveThread = Thread(target=connect_to_jaia_bot_status, name='botstatus-receive', daemon=True)
+        botStatusReceiveThread.start()
+
+        #botsToInterceptReceiveThread = Thread(target=connect_to_jaia_bots_to_intercept, name='bots-to-intercept-receive', daemon=True)
+        #botsToInterceptReceiveThread.start()
+
+        sentinelReceiveThread.join()
     except KeyboardInterrupt:
         print("\nExiting.")
     except Exception as e:

@@ -26,6 +26,13 @@ import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
 
+enum InterceptState
+{
+    READY = 1;
+    IN_PROGRESS = 2;
+    TERMINATED = 3;
+}
+
 message Track
 {
     enum TrackState
@@ -55,4 +62,11 @@ message Track
     optional TrackState track_state = 5;
     optional AlertState alert_state = 6;
     optional double age = 7;
+}
+
+message Intercept
+{
+    optional int32 track_id = 1;
+    optional GeographicCoordinate location = 2;
+    optional InterceptState state = 3;
 }

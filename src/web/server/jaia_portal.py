@@ -68,8 +68,9 @@ class Interface:
     # Task packet database
     task_packet_database = TaskPacketDatabase()
 
-    # Sentinel tracks
+    # Sentinel
     sentinel_tracks = {}
+    intercept_tracks = {}
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
@@ -411,6 +412,18 @@ class Interface:
 
         return status
     
+    def get_status_bots(self):
+        """Gets status for all online bots
+        Returns:
+            {[bot_id: int]: BotStatus}: The status for all online bots
+        """
+        for bot in self.bots.values():
+            # Add the time since last status
+            if not 'portalStatusAge' in bot:
+                bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
+        
+        return self.bots
+    
     def get_status_hubs(self):
         """Gets status for all online hubs
         Returns:
@@ -516,5 +529,14 @@ class Interface:
         for track in tracks:
             track_id = track["id"]
             self.sentinel_tracks[track_id] = track
+
+        return {'status': 'ok'}
+    
+    def get_intercept_tracks(self):
+        return self.intercept_tracks
+
+    def post_intercept_track(self, track):
+        track_id = track["id"]
+        self.intercept_tracks[track_id] = track
 
         return {'status': 'ok'}
