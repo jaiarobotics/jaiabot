@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Track } from "../../types/protobuf-types";
 import "./SentinelPanel.less";
 
@@ -6,6 +7,23 @@ interface Props {
 }
 
 export default function SentinelPanel(props: Props) {
+    const [selectedBotIDs, setSelectedBotIDs] = useState(new Map<number, boolean>());
+
+    const handleBotClick = (botID: number) => {
+        if (selectedBotIDs.has(botID)) {
+            selectedBotIDs.delete(botID);
+        } else {
+            selectedBotIDs.set(botID, true);
+        }
+        setSelectedBotIDs(new Map(selectedBotIDs));
+    };
+
+    const getClassName = (botID: number) => {
+        if (selectedBotIDs.has(botID)) {
+            return "selected";
+        }
+    };
+
     return (
         <div className="jaia-panel sentinel-panel">
             <div className="jaia-panel-title">Track {props.track.id}</div>
@@ -30,6 +48,24 @@ export default function SentinelPanel(props: Props) {
 
                 <div className="label">Heading:</div>
                 <div>{props.track?.heading?.toFixed(0)}</div>
+            </div>
+            <div className="bot-select-container">
+                <button className={getClassName(1)} onClick={() => handleBotClick(1)}>
+                    Bot 1
+                </button>
+                <button className={getClassName(2)} onClick={() => handleBotClick(2)}>
+                    Bot 2
+                </button>
+                <button className={getClassName(3)} onClick={() => handleBotClick(3)}>
+                    Bot 3
+                </button>
+                <button className={getClassName(4)} onClick={() => handleBotClick(4)}>
+                    Bot 4
+                </button>
+            </div>
+            <div className="action-buttons-container">
+                <button>Close</button>
+                <button>Go</button>
             </div>
         </div>
     );
