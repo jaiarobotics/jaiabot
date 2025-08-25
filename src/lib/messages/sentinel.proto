@@ -63,6 +63,7 @@ message Intercept
     {
         IN_PROGRESS = 1;
         TERMINATED = 2;
+        CANCELLED = 3;
     }
 
     optional int32 track_id = 1;
