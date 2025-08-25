@@ -325,6 +325,10 @@ def postInterceptTrack():
     response = jaia_interface.post_intercept_track(request.json)
     return JSONResponse(response)
 
+@app.route('/jaia/v0/bots-to-intercept', methods=['GET'])
+def getBotsToIntercept():
+    return JSONResponse(jaia_interface.get_bots_to_intercept())
+
 @app.route('/jaia/v0/bots-to-intercept', methods=['POST'])
 def postBotsToIntercept():
     response = jaia_interface.post_bots_to_intercept(request.json)
