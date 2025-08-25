@@ -296,7 +296,7 @@ export class JaiaAPI {
     }
 
     postBotsToIntercept(botsToInterceptMsg: BotsToIntercept) {
-        return this.post("bots-to-intercept", botsToInterceptMsg);
+        return this.post("jaia/v0/bots-to-intercept", botsToInterceptMsg);
     }
 }
 

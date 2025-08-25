@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Track } from "../../types/protobuf-types";
+import { jaiaAPI } from "../../utils/jaia-api";
+import { BotsToIntercept, Track } from "../../types/protobuf-types";
 import "./SentinelPanel.less";
 
 interface Props {
@@ -22,6 +23,15 @@ export default function SentinelPanel(props: Props) {
         if (selectedBotIDs.has(botID)) {
             return "selected";
         }
+    };
+
+    const sendBotsToIntercept = async () => {
+        const botsToIntercept: BotsToIntercept = {
+            track_id: props.track.id,
+            bot_ids: Array.from(selectedBotIDs.keys()),
+            initiated: false,
+        };
+        const res = await jaiaAPI.postBotsToIntercept(botsToIntercept);
     };
 
     return (
@@ -65,7 +75,7 @@ export default function SentinelPanel(props: Props) {
             </div>
             <div className="action-buttons-container">
                 <button>Close</button>
-                <button>Go</button>
+                <button onClick={() => sendBotsToIntercept()}>Go</button>
             </div>
         </div>
     );

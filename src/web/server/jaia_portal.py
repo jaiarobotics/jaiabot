@@ -521,8 +521,5 @@ class Interface:
         return {'status': 'ok'}
     
     def post_bots_to_intercept(self, bots_to_intercept_msg):
-        try:
-            self.bots_to_intercept_msg =  protobufMessageToDict(bots_to_intercept_msg)
-            return { 'status': 'ok' }
-        except:
-            return { 'status': 'fail', 'message': 'Protobuf parse error' }
+        self.bots_to_intercept = bots_to_intercept_msg
+        return { 'status': 'ok' }
