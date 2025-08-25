@@ -1,6 +1,8 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
+import { sentinel } from "../data/sentinel/sentinel";
+
 import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
@@ -15,6 +17,7 @@ import RallyPanel from "../components/RallyPanel/RallyPanel";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
+import SentinelPanel from "../components/SentinelPanel/SentinelPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
@@ -95,6 +98,8 @@ function Panel() {
             return <SettingsPanel />;
         case ButtonNames.MEASURE_TOOL:
             return <MeasurePanel />;
+        case ButtonNames.SENTINEL:
+            return <SentinelPanel track={sentinel.getTracks().get(sentinel.getSelectedID())} />;
         default:
             return <div></div>;
     }

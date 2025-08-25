@@ -66,6 +66,12 @@ export default function Map() {
                 case MapFeatureTypes.DRIFT:
                     handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
                     return;
+                case MapFeatureTypes.SENTINAL_TRACK:
+                    handleSentinelClick(feature);
+                    return;
+                case MapFeatureTypes.SENTINAL_INTERCEPT:
+                    handleSentinelClick(feature);
+                    return;
                 default:
                     return;
             }
@@ -153,6 +159,16 @@ export default function Map() {
                 botID: feature.get("botID"),
                 startTime: feature.get("startTime"),
                 type: type,
+            },
+        });
+    };
+
+    const handleSentinelClick = (feature: Feature<Geometry>) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_SENTINEL_FEATURE,
+            clickedSentinelFeature: {
+                type: feature.get("type"),
+                trackID: feature.get("id"),
             },
         });
     };

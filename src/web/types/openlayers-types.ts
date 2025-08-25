@@ -10,6 +10,7 @@ export enum LayerTitles {
     DRIFT_LAYER = "drift-layer",
     RALLY_LAYER = "rally-layer",
     MEASURE_LAYER = "measure-layer",
+    SENTINEL_LAYER = "sentinel-layer",
 }
 
 export enum MapFeatureTypes {
@@ -21,6 +22,8 @@ export enum MapFeatureTypes {
     RALLY_POINT = "RALLY_POINT",
     DIVE = "DIVE",
     DRIFT = "DRIFT",
+    SENTINAL_TRACK = "SENTINAL_TRACK",
+    SENTINAL_INTERCEPT = "SENTINAL_INTERCEPT",
 }
 
 export enum MapModes {

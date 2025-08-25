@@ -71,3 +71,9 @@ message Intercept
     optional int32 bot_id = 3;
     optional InterceptState state = 4;
 }
+
+message BotsToIntercept {
+    optional int32 track_id = 1;
+    repeated int32 bot_ids = 2;
+    optional bool initiated = 3;
+}

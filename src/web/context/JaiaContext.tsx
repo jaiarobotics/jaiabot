@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { sentinel } from "../data/sentinel/sentinel";
 import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
@@ -39,6 +40,7 @@ import {
     NodeTypes,
     SelectedNode,
     SelectedRallyPoint,
+    SelectedSentinelFeature,
     SelectedTaskPacket,
     SelectedWaypoint,
     TaskParameterPair,
@@ -85,6 +87,7 @@ export interface JaiaAction {
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
     clickedTaskPacket?: SelectedTaskPacket;
+    clickedSentinelFeature?: SelectedSentinelFeature;
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
@@ -101,6 +104,7 @@ export interface JaiaAction {
 
     command?: Command;
     missionSpeeds?: Speeds;
+    missionSetName?: string;
 }
 
 interface JaiaContextProviderProps {
@@ -171,6 +175,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CHANGE_MISSION_SPEEDS:
             return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
 
+        case JaiaActions.LOAD_MISSION_SET:
+            return handleLoadMissionSet(mutableState, action.missionSetName);
         case JaiaActions.ADD_WAYPOINT:
             return handleAddWaypoint(mutableState, action.location);
 
@@ -213,6 +219,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLOSED_RALLY_PANEL:
             return handleClosedRallyPanel(mutableState);
 
+        case JaiaActions.CLOSED_SENTINEL_PANEL:
+            return handleClosedSentinelPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
             return handleClickedNode(mutableState, action.clickedNode);
 
@@ -249,6 +258,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
         case JaiaActions.CLICKED_TASK_PACKET:
             return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
+
+        case JaiaActions.CLICKED_SENTINEL_FEATURE:
+            return handleClickedSentinelFeature(mutableState, action.clickedSentinelFeature);
 
         default:
             return state;
@@ -414,6 +426,24 @@ function handleAutoAssignMissions(mutableState: JaiaContextType) {
 function handleChangeMissionSpeeds(mutableState: JaiaContextType, missionSpeeds: Speeds) {
     missionSet.setMissionSpeeds(missionSpeeds);
     mutableState.missionSpeeds = missionSpeeds;
+    return mutableState;
+}
+
+/**
+ * Loads a mission set from local storage
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleLoadMissionSet(mutableState: JaiaContextType, missionSetName: string) {
+    missionSet.loadFromLocalStorage(missionSetName);
+    missionsManager.unassignAll();
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
+    mutableState.missionAccordionStates = Object.fromEntries(
+        Array.from(mutableState.missions.keys(), (key) => [key, false]),
+    );
+
+    missionLayer.updateFeatures();
     return mutableState;
 }
 
@@ -684,6 +714,18 @@ function handleClosedRallyPanel(mutableState: JaiaContextType) {
 }
 
 /**
+ * Closes the Sentinel panel
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClosedSentinelPanel(mutableState: JaiaContextType) {
+    mutableState.visiblePanel = ButtonNames.NONE;
+    sentinel.setSelectedID(UNASSIGNED_ID);
+    return mutableState;
+}
+
+/**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -898,6 +940,10 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
         resetSelectedWaypoint(mutableState);
     }
 
+    if (sentinel.getSelectedID() !== UNASSIGNED_ID) {
+        sentinel.setSelectedID(UNASSIGNED_ID);
+    }
+
     handleMapModeChange(mapMode);
     mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
@@ -968,6 +1014,15 @@ function handleClickedTaskPacket(
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    return mutableState;
+}
+
+function handleClickedSentinelFeature(
+    mutableState: JaiaContextType,
+    clickedSentinelFeature: SelectedSentinelFeature,
+) {
+    sentinel.setSelectedID(clickedSentinelFeature.trackID);
+    mutableState.visiblePanel = ButtonNames.SENTINEL;
     return mutableState;
 }
 

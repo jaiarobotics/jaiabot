@@ -1213,3 +1213,47 @@ export interface ContactStatus {
     speed_over_ground?: number;
     heading_or_cog?: number;
 }
+
+export enum TrackState {
+    DEAD = 1,
+    BORN = 2,
+    ACTIVE = 3,
+    PREDICTING = 4,
+    ABANDONED = 5,
+    LAGGED = 6,
+    PERSISTED = 7,
+    REMOVED_HIDDEN = 8,
+}
+
+export enum AlertState {
+    MODERATE = 1,
+    SUBSTANTIAL = 2,
+    SEVERE = 3,
+    CRITICAL = 4,
+}
+
+export interface Track {
+    id?: number;
+    location?: GeographicCoordinate;
+    heading?: number;
+    speed?: number;
+    track_state?: TrackState;
+    alert_state?: AlertState;
+    age?: number;
+}
+
+export interface Intercept {
+    trackID?: number;
+    location?: GeographicCoordinate;
+}
+
+export interface SentinelData {
+    tracks?: Map<number, Track>;
+    intercepts?: Map<number, Intercept>;
+}
+
+export interface BotsToIntercept {
+    track_id?: number;
+    bot_ids?: number[];
+    initiated?: boolean;
+}

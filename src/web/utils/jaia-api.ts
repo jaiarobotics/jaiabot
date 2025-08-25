@@ -3,7 +3,13 @@ require("es6-promise").polyfill();
 require("isomorphic-fetch");
 
 import { GeoJSON } from "ol/format";
-import { Command, Engineering, CommandForHub, TaskPacket } from "../types/protobuf-types";
+import {
+    Command,
+    Engineering,
+    CommandForHub,
+    TaskPacket,
+    BotsToIntercept,
+} from "../types/protobuf-types";
 import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { FeatureCollection, Geometry } from "geojson";
 import { Feature } from "ol";
@@ -287,6 +293,10 @@ export class JaiaAPI {
 
     postMissionFilesCreate(descriptor: any) {
         return this.post("missionfiles/create", descriptor);
+    }
+
+    postBotsToIntercept(botsToInterceptMsg: BotsToIntercept) {
+        return this.post("jaia/v0/bots-to-intercept", botsToInterceptMsg);
     }
 }
 

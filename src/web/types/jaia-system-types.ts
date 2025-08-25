@@ -34,6 +34,11 @@ export interface SelectedTaskPacket {
     type: MapFeatureTypes;
 }
 
+export interface SelectedSentinelFeature {
+    type: MapFeatureTypes;
+    trackID: number;
+}
+
 export interface MissionStatus {
     missionState?: MissionState;
     targetWaypoint?: number;

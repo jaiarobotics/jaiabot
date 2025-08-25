@@ -1,0 +1,55 @@
+.sentinel-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.track-data-container {
+    display: grid;
+    grid-template-columns: max-content 90px;
+    column-gap: 18px;
+    row-gap: 12px;
+
+    padding: 12px;
+    background-color: #fff;
+}
+
+.track-data-container .label {
+    font-weight: 600;
+}
+
+.bot-select-container {
+    display: grid;
+    grid-template-columns: 90px 90px;
+    gap: 12px;
+}
+
+.bot-select-container button {
+    all: unset;
+    box-sizing: border-box;
+    height: 30px;
+    border: 1px solid #fff;
+    color: #fff;
+    text-align: center;
+}
+
+.bot-select-container button.selected {
+    border: 2px solid green;
+    color: green;
+}
+
+.action-buttons-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.action-buttons-container button {
+    all: unset;
+    box-sizing: border-box;
+    padding: 6px 0 3px 0;
+    border-bottom: 2px solid #fff;
+    color: #fff;
+    font-weight: 600;
+}
