@@ -1251,3 +1251,9 @@ export interface SentinelData {
     tracks?: Map<number, Track>;
     intercepts?: Map<number, Intercept>;
 }
+
+export interface BotsToIntercept {
+    track_id?: number;
+    bot_ids?: number[];
+    initiated?: boolean;
+}

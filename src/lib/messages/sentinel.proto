@@ -56,3 +56,9 @@ message Track
     optional AlertState alert_state = 6;
     optional double age = 7;
 }
+
+message BotsToIntercept {
+    optional int32 track_id = 1;
+    repeated int32 bot_ids = 2;
+    optional bool initiated = 3;
+}

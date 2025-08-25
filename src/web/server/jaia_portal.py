@@ -68,8 +68,9 @@ class Interface:
     # Task packet database
     task_packet_database = TaskPacketDatabase()
 
-    # Sentinel tracks
+    # Sentinel
     sentinel_tracks = {}
+    bots_to_intercept = {}
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
@@ -518,3 +519,10 @@ class Interface:
             self.sentinel_tracks[track_id] = track
 
         return {'status': 'ok'}
+    
+    def post_bots_to_intercept(self, bots_to_intercept_msg):
+        try:
+            self.bots_to_intercept_msg =  protobufMessageToDict(bots_to_intercept_msg)
+            return { 'status': 'ok' }
+        except:
+            return { 'status': 'fail', 'message': 'Protobuf parse error' }

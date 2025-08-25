@@ -316,5 +316,10 @@ def postSentinelTracks():
     response = jaia_interface.post_sentinel_tracks(request.json)
     return JSONResponse(response)
 
+@app.route('/jaia/v0/bots-to-intercept', methods=['POST'])
+def postBotsToIntercept():
+    response = jaia_interface.post_bots_to_intercept(request.json)
+    return JSONResponse(response)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)
