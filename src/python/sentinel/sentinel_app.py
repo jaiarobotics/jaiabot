@@ -376,40 +376,54 @@ def connect_to_jaia_bots_to_intercept() -> None:
 def intercept_tack() -> None:
     while True:
         for bot_id, track in intercept_tracks:
-            track = sentinel_tracks[track.track_id]
-        
-            target = MovingObject(
-                lat_deg=track.location.lat,
-                lon_deg=track.location.lon,
-                heading_deg=track.heading,
-                speed_mps=track.speed,
-            )
-
             bot = bots[bot_id]
-            interceptor = MovingObject(
-                lat_deg=bot["location"]["lat"],
-                lon_deg=bot["location"]["lon"],
-                heading_deg=bot["attitude"]["heading"],
-                speed_mps=3 
-            )
+            track = sentinel_tracks[track.track_id]
 
-            result = intercept_point(target, interceptor)
+            # Make sure the intercept is in progress
+            if intercept_tracks[bot_id].state == InterceptState.IN_PROGRESS:
 
-            if result is None:
-                print("No feasible intercept at current interceptor speed.")
-            else:
-                lat, lon, t = result
-                intercept_tracks[bot_id].lat = lat
-                intercept_tracks[bot_id].lat = lon
-
-                if t > min_time_to_update_intercept:
-                    post_command(intercept_tracks[bot_id])
+                # Check to see if the operator has intervened and stopped the bot
+                if bot["mission_state"] == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED":
+                    intercept_tracks[bot_id].state = InterceptState.CANCELLED
                     post_intercept_track(intercept_tracks[bot_id])
+                    print("Operator cancelled interception.")
                 else:
-                    intercept_tracks[bot_id].state = InterceptState.TERMINATED
+                    target = MovingObject(
+                        lat_deg=track.location.lat,
+                        lon_deg=track.location.lon,
+                        heading_deg=track.heading,
+                        speed_mps=track.speed,
+                    )
 
-                    print(f"We are not sending new updated command because we are within {min_time_to_update_intercept} sec")
-                    post_intercept_track(intercept_tracks[bot_id])
+                    bot = bots[bot_id]
+                    interceptor = MovingObject(
+                        lat_deg=bot["location"]["lat"],
+                        lon_deg=bot["location"]["lon"],
+                        heading_deg=bot["attitude"]["heading"],
+                        speed_mps=3 
+                    )
+
+                    result = intercept_point(target, interceptor)
+
+                    if result is None:
+                        print("No feasible intercept at current interceptor speed.")
+                    else:
+                        lat, lon, t = result
+                        intercept_tracks[bot_id].lat = lat
+                        intercept_tracks[bot_id].lat = lon
+
+                        if t > min_time_to_update_intercept:
+                            post_command(intercept_tracks[bot_id])
+                            post_intercept_track(intercept_tracks[bot_id])
+                            print("Sending updated intercept location.")
+                        else:
+                            intercept_tracks[bot_id].state = InterceptState.TERMINATED
+                            print(f"We are not sending new updated command because we are within {min_time_to_update_intercept} sec")
+                            post_intercept_track(intercept_tracks[bot_id])
+            else:
+                intercept_tracks.pop(bot_id, None)
+                print("Remove bot associated intercept")
+
         time.sleep(5)
 
 if __name__ == "__main__":
