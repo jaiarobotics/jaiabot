@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { jaiaAPI } from "../../utils/jaia-api";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { BotsToIntercept, Track } from "../../types/protobuf-types";
+import { jaiaAPI } from "../../utils/jaia-api";
+import { error, success } from "../../utils/notifications";
 import "./SentinelPanel.less";
 
 interface Props {
@@ -8,6 +11,7 @@ interface Props {
 }
 
 export default function SentinelPanel(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [selectedBotIDs, setSelectedBotIDs] = useState(new Map<number, boolean>());
 
     const handleBotClick = (botID: number) => {
@@ -32,6 +36,15 @@ export default function SentinelPanel(props: Props) {
             initiated: false,
         };
         const res = await jaiaAPI.postBotsToIntercept(botsToIntercept);
+        if (res.status == "ok") {
+            success("Sending Bots to intercept");
+        } else {
+            error("Failed to send Bots to intercept");
+        }
+    };
+
+    const handleClickedCloseButton = () => {
+        jaiaDispatch({ type: JaiaActions.CLOSED_SENTINEL_PANEL });
     };
 
     return (
@@ -74,7 +87,7 @@ export default function SentinelPanel(props: Props) {
                 </button>
             </div>
             <div className="action-buttons-container">
-                <button>Close</button>
+                <button onClick={() => handleClickedCloseButton()}>Close</button>
                 <button onClick={() => sendBotsToIntercept()}>Go</button>
             </div>
         </div>

@@ -219,6 +219,9 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         case JaiaActions.CLOSED_RALLY_PANEL:
             return handleClosedRallyPanel(mutableState);
 
+        case JaiaActions.CLOSED_SENTINEL_PANEL:
+            return handleClosedSentinelPanel(mutableState);
+
         case JaiaActions.CLICKED_NODE:
             return handleClickedNode(mutableState, action.clickedNode);
 
@@ -711,6 +714,18 @@ function handleClosedRallyPanel(mutableState: JaiaContextType) {
 }
 
 /**
+ * Closes the Sentinel panel
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+function handleClosedSentinelPanel(mutableState: JaiaContextType) {
+    mutableState.visiblePanel = ButtonNames.NONE;
+    sentinel.setSelectedID(UNASSIGNED_ID);
+    return mutableState;
+}
+
+/**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -923,6 +938,10 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
     // Resets
     if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
+    }
+
+    if (sentinel.getSelectedID() !== UNASSIGNED_ID) {
+        sentinel.setSelectedID(UNASSIGNED_ID);
     }
 
     handleMapModeChange(mapMode);
