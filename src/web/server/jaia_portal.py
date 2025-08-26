@@ -275,7 +275,7 @@ class Interface:
                             'dive': {
                                 'max_depth': single_waypoint_mission_dict['dive_depth'],
                                 'depth_interval': single_waypoint_mission_dict['dive_depth'],
-                                'hold_time': 0  
+                                'hold_time': 15  
                             },
                             'surface_drift': {
                                 'drift_time': drift_time

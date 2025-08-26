@@ -194,7 +194,8 @@ class InterceptInfo:
 
 # ======== Global Vars =========
 
-min_time_to_update_intercept = 10 # seconds
+min_time_to_update_intercept_secs = 10
+predict_ahead_secs = 10
 sentinel_tracks = {}
 bots = {}
 # Keep track of bots intercepting tracks
@@ -441,19 +442,17 @@ def intercept_tack() -> None:
             ref_sentinel_tracks = get_sentinel_tracks()
 
             if str(bot_id) not in ref_bots:
+                print(f"No Bot {bot_id} in bots list")
                 time.sleep(1)
                 continue
 
             if intercept.track_id not in ref_sentinel_tracks:
+                print(f"No sentinel track {intercept.track_id} in sentinel_tracks list")
                 time.sleep(1)
                 continue
 
             bot = ref_bots[str(bot_id)]
             track = ref_sentinel_tracks[intercept.track_id]
-
-            if not bot or not track:
-                time.sleep(1)
-                continue
 
             # Make sure the intercept is in progress
             if intercept.state != InterceptState.IN_PROGRESS:
@@ -486,7 +485,7 @@ def intercept_tack() -> None:
                 speed_mps=3 
             )
 
-            result = intercept_point(target, interceptor)
+            result = intercept_point(target, interceptor, predict_ahead_secs=predict_ahead_secs)
 
             if result is None:
                 print("No feasible intercept at current interceptor speed.")
@@ -497,14 +496,14 @@ def intercept_tack() -> None:
             intercept_tracks[bot_id].lat = lat
             intercept_tracks[bot_id].lon = lon
 
-            if t > min_time_to_update_intercept:
+            if t > min_time_to_update_intercept_secs:
                 post_command(intercept_tracks[bot_id])
                 post_intercept_track(intercept_tracks[bot_id])
                 print("Sending updated intercept location.")
             else:
                 intercept_tracks[bot_id].state = InterceptState.TERMINATED
                 post_intercept_track(intercept_tracks[bot_id])
-                print(f"Not sending new command. Within {min_time_to_update_intercept} sec.")
+                print(f"Not sending new command. Within {min_time_to_update_intercept_secs} sec.")
                 to_remove.append(bot_id)
 
         # now remove intercepts after the loop

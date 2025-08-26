@@ -51,9 +51,14 @@ def intercept_point(
     interceptor: MovingObject,
     ref_lat: Optional[float] = None,
     ref_lon: Optional[float] = None,
+    predict_ahead_secs: float = 0.0,
 ) -> Optional[Tuple[float, float, float]]:
     """
     Returns (intercept_lat_deg, intercept_lon_deg, time_s) or None if not feasible.
+
+    predict_ahead_secs > 0 means solve for a meeting point where the interceptor
+    arrives first, then the target arrives predict_ahead_secs later.
+    In other words, at interceptor time t, target time is t + predict_ahead_secs.
 
     Assumptions:
     - Both keep constant speed and heading.
@@ -74,16 +79,21 @@ def intercept_point(
     vt_e, vt_n = _vel_from_heading_speed(target.heading_deg, target.speed_mps)
     s_i = interceptor.speed_mps
 
-    # Quadratic coefficients: (|vt|^2 - s_i^2) t^2 + 2 (r·vt) t + |r|^2 = 0
-    rdotvt = r_e * vt_e + r_n * vt_n
+    # Apply prediction lead: meet where target will be at time t + tau
+    tau = max(0.0, float(predict_ahead_secs))
+    r_lead_e = r_e + vt_e * tau
+    r_lead_n = r_n + vt_n * tau
+
+    # Quadratic for interceptor time t:
+    # (|vt|^2 - s_i^2) t^2 + 2 (r_lead · vt) t + |r_lead|^2 = 0
+    rdotvt = r_lead_e * vt_e + r_lead_n * vt_n
     vt2 = vt_e * vt_e + vt_n * vt_n
-    r2 = r_e * r_e + r_n * r_n
+    r2 = r_lead_e * r_lead_e + r_lead_n * r_lead_n
     a = vt2 - s_i * s_i
     b = 2.0 * rdotvt
     c = r2
 
     t_candidates = []
-
     eps = 1e-9
     if abs(a) < eps:
         # Linear case: s_i == |vt|, solve 2 r·vt t + |r|^2 = 0
@@ -112,15 +122,15 @@ def intercept_point(
     if not t_candidates:
         return None
 
-    t_hit = min(t_candidates)
+    t_hit_interceptor = min(t_candidates)
 
-    # Target future position at t_hit
-    hit_e = rt_e + vt_e * t_hit
-    hit_n = rt_n + vt_n * t_hit
+    # Meeting location is where the target will be at time t_hit_interceptor + tau
+    hit_e = rt_e + vt_e * (t_hit_interceptor + tau)
+    hit_n = rt_n + vt_n * (t_hit_interceptor + tau)
 
     # Convert back to lat lon
     hit_lat, hit_lon = _latlon_from_enu(hit_e, hit_n, lat0, lon0)
-    return hit_lat, hit_lon, t_hit
+    return hit_lat, hit_lon, t_hit_interceptor
 
 # Example
 if __name__ == "__main__":
