@@ -227,9 +227,9 @@ def remove_intercept_track(bot_id):
     with _state_lock:
         intercept_tracks.pop(bot_id, None)
 
-def set_intercept_tracks(new_intercept):
+def set_intercept_tracks(bot_id, new_intercept):
     with _state_lock:
-        intercept_tracks.update(new_intercept)
+        intercept_tracks[bot_id] = new_intercept
 
 def get_intercept_tracks():
     with _state_lock:
@@ -336,7 +336,6 @@ def post_intercept_track(track) -> None:
         msg.location.CopyFrom(loc) 
 
     payload = MessageToDict(msg, preserving_proto_field_name=True)
-
     try:
         requests.post(args.intercept_track_url, json=payload, headers=headers)
     except Exception as e:
@@ -425,9 +424,7 @@ def connect_to_jaia_bots_to_intercept() -> None:
                     bot_id=bot_id,
                     state=InterceptState.IN_PROGRESS
                 )
-                intercepts[bot_id] = new_intercept
-                set_intercept_tracks(intercepts)
-                print(intercepts[bot_id])
+                set_intercept_tracks(bot_id, new_intercept)
                 print(f"Added new intercept for Bot {bot_id}")
 
         except (requests.RequestException, ValueError) as e:
