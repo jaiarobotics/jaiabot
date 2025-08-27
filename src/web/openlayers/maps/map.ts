@@ -1,7 +1,6 @@
 // OpenLayers
 import { Map } from "ol";
 import { Coordinate } from "ol/coordinate";
-import { INITIAL_ZOOM } from "../../utils/constants";
 
 // Jaia
 import { layers } from "../layers/layers";
@@ -12,7 +11,7 @@ import { Cursors } from "../../utils/style";
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
-export interface MapSettings {
+interface MapSettings {
     visibleLayers: string[];
     center: Coordinate;
     zoomLevel: number;
@@ -37,8 +36,8 @@ if (mapSettings.rotation !== undefined) {
 // Instantiate map with persisted or default view options
 export const map = new Map({
     layers: Array.from(layers.getLayers().values()),
-    controls,
-    view,
+    controls: controls,
+    view: view,
     maxTilesLoading: 64,
     moveTolerance: 20,
 });
@@ -123,6 +122,3 @@ function changeCursor(cursor: Cursors) {
         currentCursor.style.cursor = cursor;
     }
 }
-
-function saveMapSettings(settings: MapSettings) {}
-function loadMapSettings() {}
