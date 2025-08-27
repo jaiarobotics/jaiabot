@@ -25,7 +25,7 @@ import {
 const statusURL = "http://localhost:40001/jaia/v0/status";
 const taskPacketURL = "http://localhost:40001/jaia/v0/task-packets";
 
-let isFirstBot = true;
+let isFirstBot = false;
 
 const statusInterval = setInterval(async () => {
     try {
