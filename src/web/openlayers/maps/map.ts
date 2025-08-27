@@ -20,7 +20,7 @@ interface MapSettings {
 
 // Load saved settings (if any) from localStorage
 const saved = localStorage.getItem("mapSettings");
-const mapSettings = saved ? JSON.parse(saved) : {};
+const mapSettings: Partial<MapSettings> = saved ? JSON.parse(saved) : {};
 
 // Apply saved settings to shared view if available
 if (mapSettings.center) {
@@ -61,7 +61,6 @@ function debounce(fn: () => void, delay: number) {
 /**
  * Debounced save function, writes to local storage after changes settle down
  */
-// Debounced save function
 const saveSettings = debounce(() => {
     localStorage.setItem("mapSettings", JSON.stringify(mapSettings));
 }, 200);
