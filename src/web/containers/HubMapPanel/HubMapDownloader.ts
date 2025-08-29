@@ -137,7 +137,9 @@ export class HubMapDownloader {
                         if (
                             !(
                                 tile.layer_name in
-                                offlineLayerManager.tilesets.map((tileset) => tileset.name)
+                                offlineLayerManager.maps_directory.maps.map(
+                                    (tileset) => tileset.name,
+                                )
                             )
                         ) {
                             offlineLayerManager.refresh();

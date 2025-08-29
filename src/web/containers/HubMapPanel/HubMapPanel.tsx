@@ -9,7 +9,7 @@ import {
     CircularProgress,
 } from "@mui/material";
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
-import { jaiaAPI, Tileset } from "../../utils/jaia-api";
+import { jaiaAPI, MapsDirectory, Tileset } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
 import { mdiCancel, mdiContentSave, mdiDelete, mdiPlus, mdiUpload } from "@mdi/js";
 import { hubMapDownloader } from "./HubMapDownloader";
@@ -27,10 +27,16 @@ interface Props {
     map: Map;
 }
 
+function MBString(bytes: number) {
+    return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+}
+
 export function HubMapPanel(props: Props) {
     const [tileDownloader, setTileDownloader] = useState(hubMapDownloader);
     const [error, setError] = useState<string>(null);
-    const [tilesets, setTilesets] = useState<Tileset[]>(offlineLayerManager.tilesets);
+    const [mapsDirectory, setMapsDirectory] = useState<MapsDirectory>(
+        offlineLayerManager.maps_directory,
+    );
     const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
     const [selectedOnlineTileLayerIndex, setSelectedOnlineTileLayerIndex] = useState(0);
 
@@ -39,8 +45,8 @@ export function HubMapPanel(props: Props) {
     const [geoTIFFBytesUploaded, setGeoTIFFBytesUploaded] = useState(0);
     const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
 
-    function refreshLayerList() {
-        setTilesets(offlineLayerManager.tilesets);
+    function refreshMapsDirectory() {
+        setMapsDirectory(offlineLayerManager.maps_directory);
     }
 
     useEffect(() => {
@@ -53,11 +59,11 @@ export function HubMapPanel(props: Props) {
             setTileDownloader(hubMapDownloader);
         };
 
-        offlineLayerManager.subscribe(refreshLayerList, "refreshLayerList");
+        offlineLayerManager.subscribe(refreshMapsDirectory, "HubMapPanel");
 
         return () => {
             hubMapDownloader.observer = null;
-            offlineLayerManager.unsubscribe("refreshLayerList");
+            offlineLayerManager.unsubscribe("HubMapPanel");
         };
     }, []);
 
@@ -239,7 +245,9 @@ export function HubMapPanel(props: Props) {
     // Offline Layer list
 
     const offlineLayerList = () => {
-        if (tilesets.length == 0) {
+        if (mapsDirectory == null) return null;
+
+        if (mapsDirectory.maps.length == 0) {
             return (
                 <div className="hub-map-section">
                     <h1>Offline Layers</h1>
@@ -248,7 +256,7 @@ export function HubMapPanel(props: Props) {
             );
         }
 
-        const offlineLayerDivs = tilesets.map((tileset) => {
+        const offlineLayerDivs = mapsDirectory.maps.map((tileset) => {
             return (
                 <div key={tileset.name}>
                     <span className="hub-map-layer-name">
@@ -270,9 +278,7 @@ export function HubMapPanel(props: Props) {
                         />
                         {tileset.name}
                     </span>
-                    <span className="hub-map-layer-size">
-                        {`(${(tileset.size / 1000000).toFixed(1)} MB)`}
-                    </span>
+                    <span className="hub-map-layer-size">({MBString(tileset.size)})</span>
                 </div>
             );
         });
@@ -281,6 +287,9 @@ export function HubMapPanel(props: Props) {
             <div className="hub-map-section">
                 <h1>Offline Layers</h1>
                 <div className="hub-map-layer-list">{offlineLayerDivs}</div>
+                <div className="hub-map-disk-space">
+                    Available disk space: {MBString(mapsDirectory.available_disk_bytes)}
+                </div>
                 <Button
                     className="button-jcc danger"
                     onClick={async () => {

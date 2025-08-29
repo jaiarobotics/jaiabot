@@ -29,6 +29,12 @@ export interface Tileset {
     tile_count: number;
 }
 
+export interface MapsDirectory {
+    maps: Tileset[];
+    available_disk_bytes: number;
+    total_disk_bytes: number;
+}
+
 export class JaiaAPI {
     clientId: string;
     url: string;
@@ -257,7 +263,7 @@ export class JaiaAPI {
 
     async getHubMaps() {
         return this.get("maps/").then((response) => {
-            return response as Promise<Tileset[]>;
+            return response as Promise<MapsDirectory>;
         });
     }
 

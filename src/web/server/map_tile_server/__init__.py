@@ -35,6 +35,16 @@ class Tileset:
 
     def json(self):
         return {'name': self.name, 'size': self.size, 'tile_count': self.tile_count}
+    
+
+@dataclass
+class MapsDirectory:
+    maps: list[Tileset] = field(default_factory=list)
+    available_disk_bytes: int = 0
+    total_disk_bytes: int = 0
+
+    def json(self):
+        return {'maps': [map.json() for map in self.maps], 'available_disk_bytes': self.available_disk_bytes, 'total_disk_bytes': self.total_disk_bytes}
 
 
 def lon_lat_to_xy(n_zoom: int, lon_deg: float, lat_deg: float):
@@ -110,16 +120,19 @@ class MapTileServer:
 
 
     def get_maps(self):
+        maps_directory = MapsDirectory()
+
         map_paths = glob.glob(f'{self.tiles_directory}/*')
         map_paths = filter(lambda path: os.path.isdir(path), map_paths)
 
-        maps = []
         for map_path in map_paths:
             total_size, tile_count = get_directory_size(map_path)
             map = Tileset(os.path.basename(map_path), total_size, tile_count)
-            maps.append(map.json())
+            maps_directory.maps.append(map)
 
-        return maps
+        maps_directory.available_disk_bytes, maps_directory.total_disk_bytes = self.get_free_disk_space()
+
+        return maps_directory.json()
 
 
     def get_tile(self, map_name: str, z: int, x: int, y: int):
@@ -318,6 +331,16 @@ class MapTileServer:
                 mode = 'ab' # append to file
             l.warning(f'Appending {len(geotiff_chunk)} to {partial_geotiff_path}')
             open(partial_geotiff_path, mode).write(geotiff_chunk)
+
+
+    def get_free_disk_space(self):
+        """Returns the free and total disk space where the offline maps are stored.
+
+        Returns:
+            tuple[int, int]: The available space, and the total space.  Both in bytes.
+        """
+        statvfs = os.statvfs(self.maps_directory)
+        return statvfs.f_frsize * statvfs.f_bavail, statvfs.f_frsize * statvfs.f_blocks
 
 
 def test():
