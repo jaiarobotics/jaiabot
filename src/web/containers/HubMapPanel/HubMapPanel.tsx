@@ -180,10 +180,25 @@ export function HubMapPanel(props: Props) {
     };
 
     function importOnlineTileLayer(tileLayer: TileLayer<TileImage>) {
-        hubMapDownloader.add({
+        const layerViewDescriptor = {
             layer: tileLayer,
             view: props.map.getView(),
             max_zoom: 17,
+        };
+
+        const tileCount = hubMapDownloader.getTileCount(layerViewDescriptor);
+        // We estimate about 11 kB per tile, which is approximately correct for the larger tile file sizes (such as satellite imagery)
+        // Other layers may be significantly less, such as Open Street Maps or NOAA ENC tiles.
+        const estimatedSize = tileCount * 11000;
+
+        CustomAlert.confirmAsync(
+            `This will download the visible ${tileLayer.get("title")} tiles.\nApproximate download size: ${MBString(estimatedSize)} in ${tileCount} tiles.`,
+            "Download to Hub",
+            "Download Map Tiles",
+        ).then((confirmed) => {
+            if (confirmed) {
+                hubMapDownloader.add(layerViewDescriptor);
+            }
         });
     }
 
@@ -235,12 +250,6 @@ export function HubMapPanel(props: Props) {
             </div>
         );
     }
-
-    const errorSection = () => {
-        if (error) {
-            return <div className="hub-map-section danger">{error}</div>;
-        } else return null;
-    };
 
     // Offline Layer list
 

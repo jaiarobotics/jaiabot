@@ -41,7 +41,10 @@ export class OfflineLayerManager {
 
     async refresh() {
         return jaiaAPI.getHubMaps().then((maps_directory) => {
-            if (JSON.stringify(maps_directory?.maps) != JSON.stringify(this.maps_directory?.maps)) {
+            if (
+                JSON.stringify(maps_directory?.maps?.map((map) => map.name)) !=
+                JSON.stringify(this.maps_directory?.maps?.map((map) => map.name))
+            ) {
                 const layers = maps_directory.maps.map((tileset) => {
                     return new TileLayer({
                         properties: {

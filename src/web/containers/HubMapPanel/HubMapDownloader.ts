@@ -101,6 +101,20 @@ export class HubMapDownloader {
         this._startDownloading();
     }
 
+    /**
+     * Get the count of number of tiles described by a LayerViewDescriptor.
+     *
+     * @param {LayerViewDescriptor} layerViewDescriptor
+     * @returns
+     */
+    getTileCount(layerViewDescriptor: LayerViewDescriptor) {
+        let tileCount = 0;
+        for (const tileDescriptor of tile_generator(layerViewDescriptor)) {
+            tileCount += 1;
+        }
+        return tileCount;
+    }
+
     async _startDownloading() {
         if (this.running) {
             return;
