@@ -23,6 +23,12 @@ export interface JaiaResponse<T> {
     result?: T;
 }
 
+export interface Tileset {
+    name: string;
+    size: number;
+    tile_count: number;
+}
+
 export class JaiaAPI {
     clientId: string;
     url: string;
@@ -251,7 +257,7 @@ export class JaiaAPI {
 
     async getHubMaps() {
         return this.get("maps/").then((response) => {
-            return response as Promise<string[]>;
+            return response as Promise<Tileset[]>;
         });
     }
 
@@ -269,7 +275,7 @@ export class JaiaAPI {
         });
     }
 
-    async putOfflineGeoTiffChunk(map_name: string, chunk_index: number, chunk: Uint8Array) {
+    async putOfflineGeoTiffChunk(map_name: string, chunk_index: number, chunk: BodyInit) {
         return fetch(`maps/${map_name}/geotiffchunk/${chunk_index}`, {
             method: "PUT",
             body: chunk,

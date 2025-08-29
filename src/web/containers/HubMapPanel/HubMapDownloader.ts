@@ -134,7 +134,12 @@ export class HubMapDownloader {
                     .putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob)
                     .then(() => {
                         // If this layer isn't in the list of offline layer titles, add it and refresh.
-                        if (!(tile.layer_name in offlineLayerManager.layerTitles)) {
+                        if (
+                            !(
+                                tile.layer_name in
+                                offlineLayerManager.tilesets.map((tileset) => tileset.name)
+                            )
+                        ) {
                             offlineLayerManager.refresh();
                         }
                     });

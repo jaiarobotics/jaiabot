@@ -8,6 +8,7 @@ import rasterio
 from rasterio.warp import transform
 from . import mime_types
 from . import geotiff
+from .utils import *
 
 
 logging.basicConfig()
@@ -22,6 +23,18 @@ class Rectangle:
     max_lat: float
     min_lon: float
     max_lon: float
+
+
+@dataclass
+class Tileset:
+    """Tileset metadata
+    """
+    name: str
+    size: int
+    tile_count: int
+
+    def json(self):
+        return {'name': self.name, 'size': self.size, 'tile_count': self.tile_count}
 
 
 def lon_lat_to_xy(n_zoom: int, lon_deg: float, lat_deg: float):
@@ -94,6 +107,19 @@ class MapTileServer:
         map_paths = filter(lambda path: os.path.isdir(path), map_paths)
         map_paths = map(lambda path: os.path.basename(path), map_paths)
         return list(map_paths)
+
+
+    def get_maps(self):
+        map_paths = glob.glob(f'{self.tiles_directory}/*')
+        map_paths = filter(lambda path: os.path.isdir(path), map_paths)
+
+        maps = []
+        for map_path in map_paths:
+            total_size, tile_count = get_directory_size(map_path)
+            map = Tileset(os.path.basename(map_path), total_size, tile_count)
+            maps.append(map.json())
+
+        return maps
 
 
     def get_tile(self, map_name: str, z: int, x: int, y: int):

@@ -316,7 +316,7 @@ map_tile_server = MapTileServer("~/maps/")
 def get_maps():
     """Get a list of the available map sets.
     """
-    return Response(response=json.dumps(map_tile_server.get_map_names()),
+    return Response(response=json.dumps(map_tile_server.get_maps()),
                         status=HTTPStatus.OK,
                         mimetype=MIME_TYPE_JSON)
 

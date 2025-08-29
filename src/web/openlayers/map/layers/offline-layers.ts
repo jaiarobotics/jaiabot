@@ -2,10 +2,13 @@ import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import { Collection } from "ol";
 import { XYZ } from "ol/source";
-import { jaiaAPI } from "../../../utils/jaia-api";
+import { jaiaAPI, Tileset } from "../../../utils/jaia-api";
 
-function areSetsEqual<T>(a: Set<T>, b: Set<T>) {
-    return a.size === b.size && [...a].every((value) => b.has(value));
+function tilesetArraysAreEqual(a: Tileset[], b: Tileset[]) {
+    if (a.length != b.length) return false;
+
+    const b_set = new Set(b.map((item) => JSON.stringify(item)));
+    return [...a].every((value) => b_set.has(JSON.stringify(value)));
 }
 
 export class OfflineLayerManager {
@@ -17,7 +20,7 @@ export class OfflineLayerManager {
         layers: [],
     });
 
-    layerTitles: string[] = [];
+    tilesets: Tileset[] = [];
 
     observers: { [key: string]: () => void } = {};
 
@@ -44,29 +47,24 @@ export class OfflineLayerManager {
     }
 
     async refresh() {
-        return jaiaAPI.getHubMaps().then((hubLayerTitlesArray) => {
-            const hubLayerTitles = new Set(hubLayerTitlesArray);
+        return jaiaAPI.getHubMaps().then((tilesets) => {
+            if (tilesetArraysAreEqual(this.tilesets, tilesets)) return;
 
-            if (areSetsEqual(new Set(this.layerTitles), hubLayerTitles)) return;
-
-            const layers = hubLayerTitlesArray.map((layer_name) => {
+            const layers = tilesets.map((tileset) => {
                 return new TileLayer({
                     properties: {
-                        title: layer_name,
+                        title: tileset.name,
                     },
                     opacity: 0.7,
                     zIndex: 20,
                     source: new XYZ({
-                        url: `/maps/${layer_name}/{z}/{x}/{y}`,
+                        url: `/maps/${tileset.name}/{z}/{x}/{y}`,
                     }),
                 });
             });
 
             this.layerGroup.setLayers(new Collection(layers));
-            this.layerTitles = this.layerGroup
-                .getLayersArray()
-                .map((layer) => layer.get("title"))
-                .sort();
+            this.tilesets = tilesets;
             this.notify();
         });
     }

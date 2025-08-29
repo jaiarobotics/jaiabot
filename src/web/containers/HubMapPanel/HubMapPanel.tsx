@@ -9,7 +9,7 @@ import {
     CircularProgress,
 } from "@mui/material";
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
-import { jaiaAPI } from "../../utils/jaia-api";
+import { jaiaAPI, Tileset } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
 import { mdiCancel, mdiContentSave, mdiDelete, mdiPlus, mdiUpload } from "@mdi/js";
 import { hubMapDownloader } from "./HubMapDownloader";
@@ -30,7 +30,7 @@ interface Props {
 export function HubMapPanel(props: Props) {
     const [tileDownloader, setTileDownloader] = useState(hubMapDownloader);
     const [error, setError] = useState<string>(null);
-    const [layerTitles, setLayerTitles] = useState<string[]>(offlineLayerManager.layerTitles);
+    const [tilesets, setTilesets] = useState<Tileset[]>(offlineLayerManager.tilesets);
     const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
     const [selectedOnlineTileLayerIndex, setSelectedOnlineTileLayerIndex] = useState(0);
 
@@ -40,7 +40,7 @@ export function HubMapPanel(props: Props) {
     const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
 
     function refreshLayerList() {
-        setLayerTitles(offlineLayerManager.layerTitles);
+        setTilesets(offlineLayerManager.tilesets);
     }
 
     useEffect(() => {
@@ -239,7 +239,7 @@ export function HubMapPanel(props: Props) {
     // Offline Layer list
 
     const offlineLayerList = () => {
-        if (layerTitles.length == 0) {
+        if (tilesets.length == 0) {
             return (
                 <div className="hub-map-section">
                     <h1>Offline Layers</h1>
@@ -248,26 +248,31 @@ export function HubMapPanel(props: Props) {
             );
         }
 
-        const offlineLayerDivs = layerTitles.map((layerTitle) => {
+        const offlineLayerDivs = tilesets.map((tileset) => {
             return (
-                <div key={layerTitle} className="hub-map-layer-name">
-                    <input
-                        className="checkbox"
-                        type="checkbox"
-                        id={layerTitle}
-                        name={layerTitle}
-                        value={layerTitle}
-                        onChange={(event) => {
-                            if (event.target.checked) {
-                                checkedLayers.add(event.target.value);
-                            } else {
-                                checkedLayers.delete(event.target.value);
-                            }
-                            console.log(checkedLayers);
-                            setCheckedLayers(checkedLayers);
-                        }}
-                    />
-                    {layerTitle}
+                <div key={tileset.name}>
+                    <span className="hub-map-layer-name">
+                        <input
+                            className="checkbox"
+                            type="checkbox"
+                            id={tileset.name}
+                            name={tileset.name}
+                            value={tileset.name}
+                            onChange={(event) => {
+                                if (event.target.checked) {
+                                    checkedLayers.add(event.target.value);
+                                } else {
+                                    checkedLayers.delete(event.target.value);
+                                }
+                                console.log(checkedLayers);
+                                setCheckedLayers(checkedLayers);
+                            }}
+                        />
+                        {tileset.name}
+                    </span>
+                    <span className="hub-map-layer-size">
+                        {`(${(tileset.size / 1000000).toFixed(1)} MB)`}
+                    </span>
                 </div>
             );
         });
