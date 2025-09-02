@@ -12,7 +12,6 @@ from http import HTTPStatus
 # Internal Imports
 import jaia_portal
 import missions
-from geotiffs import GeoTiffs
 from map_tile_server import MapTileServer
 from map_tile_server.mime_types import *
 
@@ -294,20 +293,6 @@ def get_bot_paths():
     return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
-####### GeoTIFF files
-
-geoTiff_root = '/usr/share/jaiabot/overlays'
-
-@app.route('/geoTiffs/<path>', methods=['GET'])
-def getGeoTiffFile(path):
-    return send_from_directory(geoTiff_root, path)
-
-@app.route('/geoTiffs', methods=['GET'])
-def listGeoTiffFiles():
-    geoTiffs = GeoTiffs(geoTiff_root)
-    return JSONResponse(obj=geoTiffs.list())
-
-
 ###### Offline maps
 
 map_tile_server = MapTileServer("/var/log/jaiabot/lib/maps/")
@@ -323,7 +308,19 @@ def get_maps():
 
 @app.route('/maps/<map_name>/<z>/<x>/<y>', methods=['GET', 'PUT', 'HEAD'])
 def map_tile(map_name: str, z: str, x: str, y: str):
-    """Get a map tile
+    """Get or put a map tile.
+
+    Args:
+        map_name (str): Name of the map tileset.
+        z (str): Zoom level of the tile.
+        x (str): X index of the tile.
+        y (str): Y index of the tile.
+
+    Returns:
+        Response: Status of 200 OK if the operation was successful.  Status of 404 Not Found if the tile doesn't exist on the hub.
+
+    Note:
+        A HEAD request can be performed to find out if a tile already exists, without transferring the tile's contents.
     """
 
     method = request.method
@@ -381,6 +378,9 @@ def put_map_geotiff_chunk(map_name: str, chunk_index: int):
 @app.route('/maps/<map_name>', methods=['DELETE'])
 def delete_map(map_name: str):
     """Delete an offline map layer
+
+    Args:
+        map_name (str): Name of the offline hub map layer to delete.
     """
     map_tile_server.delete_map(map_name)
     return Response(status=HTTPStatus.OK)
