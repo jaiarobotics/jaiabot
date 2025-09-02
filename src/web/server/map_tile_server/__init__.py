@@ -39,6 +39,7 @@ class Tileset:
 
 @dataclass
 class MapsDirectory:
+    """A directory of available maps, as well as disk size and available bytes."""
     maps: list[Tileset] = field(default_factory=list)
     available_disk_bytes: int = 0
     total_disk_bytes: int = 0
@@ -96,6 +97,11 @@ class MapTileServer:
     geotiffs_directory: str
 
     def __init__(self, maps_directory: str):
+        """Create a MapTileServer
+
+        Args:
+            maps_directory (str): Location of the directory where the tilesets, uploaded GeoTIFF files, etc. will be placed.
+        """
         self.maps_directory = os.path.expanduser(maps_directory)
 
         self.tiles_directory = self.maps_directory + '/tiles/'
@@ -107,19 +113,12 @@ class MapTileServer:
         geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
 
 
-    def get_map_names(self):
-        """Get a list of offline map layers.
+    def get_maps(self):
+        """Get a directory of the available offline map layers.
 
         Returns:
-            list[str]: List of offline map layer names.
+            dict: A MapDirectory object as a JSONable python dict.
         """
-        map_paths = glob.glob(f'{self.tiles_directory}/*')
-        map_paths = filter(lambda path: os.path.isdir(path), map_paths)
-        map_paths = map(lambda path: os.path.basename(path), map_paths)
-        return list(map_paths)
-
-
-    def get_maps(self):
         maps_directory = MapsDirectory()
 
         map_paths = glob.glob(f'{self.tiles_directory}/*')
@@ -268,6 +267,11 @@ class MapTileServer:
 
 
     def start_local_server(self, port=59373):
+        """Start a local map tile server.
+
+        Args:
+            port (int, optional): Port to serve the map tile server. Defaults to 59373.
+        """
         import flask
         import json
         from http import HTTPStatus
@@ -279,7 +283,7 @@ class MapTileServer:
         def get_maps():
             """Get a list of the available map sets.
             """
-            return flask.Response(response=json.dumps(self.get_map_names()),
+            return flask.Response(response=json.dumps(self.get_maps()),
                                 status=HTTPStatus.OK,
                                 mimetype=mime_types.MIME_TYPE_JSON)
 
@@ -301,6 +305,12 @@ class MapTileServer:
 
 
     def put_map_geotiff(self, map_name: str, geotiff_data: bytes):
+        """PUT a GeoTIFF file in one request, rather than chunked.
+
+        Args:
+            map_name (str): Destination tileset name.
+            geotiff_data (bytes): GeoTIFF file data.
+        """
         os.makedirs(self.geotiffs_directory, exist_ok=True)
         geotiff_path = os.path.join(self.geotiffs_directory, map_name + '.geotiff')
         open(geotiff_path, 'wb').write(geotiff_data)
@@ -341,10 +351,4 @@ class MapTileServer:
         """
         statvfs = os.statvfs(self.maps_directory)
         return statvfs.f_frsize * statvfs.f_bavail, statvfs.f_frsize * statvfs.f_blocks
-
-
-def test():
-    server = MapTileServer('~/maps/')
-    data = open('/home/ed/maps/RI_Bristol_353252_1955_24000_geo.tif.geotiff', 'rb').read()
-    server.put_map_geotiff('test', data)
 
