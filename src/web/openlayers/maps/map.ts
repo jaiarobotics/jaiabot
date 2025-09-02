@@ -20,9 +20,10 @@ interface MapSettings {
 
 // Load saved settings (if any) from localStorage
 const saved = localStorage.getItem("mapSettings");
-const mapSettings: Partial<MapSettings> = saved ? JSON.parse(saved) : {};
+const mapSettings: MapSettings = saved ? JSON.parse(saved) : {};
 
 // Apply saved settings to shared view if available
+
 if (mapSettings.center) {
     view.setCenter(mapSettings.center);
 }
@@ -63,7 +64,7 @@ function debounce(fn: () => void, delay: number) {
  */
 const saveSettings = debounce(() => {
     localStorage.setItem("mapSettings", JSON.stringify(mapSettings));
-}, 200);
+}, 500);
 
 // Persist map center
 map.getView().on("change:center", () => {
