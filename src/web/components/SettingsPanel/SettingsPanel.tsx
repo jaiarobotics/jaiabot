@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
+import LayerSwitcherMenu from "../../containers/LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
-import { accordionTheme } from "../../utils/style";
+import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
 
@@ -16,6 +17,10 @@ import "./SettingsPanel.less";
 
 export default function SettingsPanel() {
     const [isTrackingPod, setIsTrackingPod] = useState(trackPod.isTracking());
+
+    useEffect(() => {
+        addDropdownListener("accordion-container", "settings-accordions-container");
+    });
 
     /**
      * Switches the track pod functionality on/off based on the toggle state
@@ -38,7 +43,7 @@ export default function SettingsPanel() {
                 <div className="settings-label">Track Pod:</div>
                 <JaiaToggle checked={() => isTrackingPod} onClick={handleTrackPodToggleClick} />
             </div>
-            <div className="accordions-container">
+            <div className="accordions-container" id="settings-accordions-container">
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion className="accordion-container">
                         <AccordionSummary
@@ -57,7 +62,9 @@ export default function SettingsPanel() {
                         >
                             <Typography>Map Layers</Typography>
                         </AccordionSummary>
-                        <AccordionDetails></AccordionDetails>
+                        <AccordionDetails>
+                            <LayerSwitcherMenu />
+                        </AccordionDetails>
                     </Accordion>
 
                     <Accordion className="accordion-container">
