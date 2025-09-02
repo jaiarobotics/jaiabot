@@ -95,16 +95,6 @@ jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
 jaia_jcc_hub_ip={{JCC_HUB_IP}}
 EOF
 
-## Add inventory for CloudHub prelaunch GUI
-cat <<EOF > /etc/jaiabot/inventory.yml
-hubs:
-  hosts:
-    hub30-fleet{{FLEET_ID}}:
-      ansible_connection: local
-    localhost:
-      ansible_connection: local
-EOF
-
 ## Ansible jobs for VFleet need boto3
 apt-get -y install python3-boto3
 

@@ -14,6 +14,7 @@ link {
             xbee_encryption_password: "$encryption_password"
             $xbee_hub_id
             subnet_mask: $subnet_mask
+            is_in_sim: $is_in_sim
         }
     }
     mac { 
