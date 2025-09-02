@@ -310,7 +310,7 @@ def listGeoTiffFiles():
 
 ###### Offline maps
 
-map_tile_server = MapTileServer("~/maps/")
+map_tile_server = MapTileServer("/var/log/jaiabot/lib/maps/")
 
 @app.route('/maps/', methods=['GET'])
 def get_maps():
