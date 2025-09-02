@@ -569,7 +569,7 @@ class LogApp extends React.Component {
 
         Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
             // Apply plot range to map path
-            this.map.timeRange = this.get_plot_range();
+            this.map.setTimeRange(this.get_plot_range());
 
             // Setup the triggers
             let self = this;
@@ -590,8 +590,7 @@ class LogApp extends React.Component {
                 function (eventdata: Plotly.PlotRelayoutEvent) {
                     // When autorange, zoom out to the whole set of points
                     if (eventdata["xaxis.autorange"]) {
-                        self.map.timeRange = null;
-                        self.map.updatePath();
+                        self.map.setTimeRange(null);
                         return;
                     }
 
@@ -602,11 +601,9 @@ class LogApp extends React.Component {
                     const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"]));
 
                     if (t0 == null || t1 == null) {
-                        self.map.timeRange = null;
-                        self.map.updatePath();
+                        self.map.setTimeRange(null);
                     } else {
-                        self.map.timeRange = [t0, t1];
-                        self.map.updatePath();
+                        self.map.setTimeRange([t0, t1]);
                     }
                 },
             );

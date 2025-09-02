@@ -10,6 +10,7 @@ from common import logger
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
 from pathlib import Path
+import subprocess
 
 try:
     fleet_index=int(os.environ['jaia_fleet_index'])
@@ -26,13 +27,22 @@ try:
     user_role=os.environ['jaia_user_role'].upper()
 except:
     user_role='USER'
+
+try:
+    cloudhub_type=os.environ['jaia_cloudhub_type'].upper()
+except:
+    cloudhub_type='SECONDARY'
+
+is_cloudhub = hub_index == cloudhub_index
+if not is_cloudhub:
+    cloudhub_type=''
     
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir
 
 node_id = 0 
-wifi_modem_id = common.comms.wifi_modem_id(node_id)
+wifi_modem_id = common.comms.modem_id("wifi",node_id)
 vehicle_type= 'HUB'
 
 templates_dir=common.jaia_templates_dir
@@ -45,14 +55,14 @@ if common.is_vfleet:
     vfleet_shutdown_times='vfleet {  shutdown_after_last_command_seconds: 3600 hub_shutdown_delay_seconds: 300 }'
     
 verbosities = \
-{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_intervehicle_portal':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'goby_intervehicle_portal':  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET'  },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_liaison_prelaunch':    { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_logger':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_coroner':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_health':            { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG2'}},
+  'jaiabot_health':            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET'},  'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG2'}},
   'jaiabot_metadata':          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'VERBOSE' }},
   'jaiabot_hub_manager':       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
   'jaiabot_web_portal':        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
@@ -73,6 +83,7 @@ except FileNotFoundError:
     xbee_info = 'xbee {}'
 
 ack_timeout=10
+iridium_ack_timeout=120
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 link_block=''
 if common.CommsMode.XBEE in common.jaia_comms_modes:
@@ -88,10 +99,11 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     
     link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_hub_id='hub_id: ' + str(hub_index),
+                                            is_in_sim=is_simulation(),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
@@ -101,7 +113,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
 if common.CommsMode.WIFI in common.jaia_comms_modes:
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.wifi_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("wifi",node_id),
                                             local_port=common.udp.wifi_udp_port(node_id, hub_index),
                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
                                             hub_endpoints='',
@@ -110,13 +122,45 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                             sub_buffer=sub_buffer_config,
                                             ack_timeout=ack_timeout)
 
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+
+    if is_simulation():
+        iridium_mt_server_address='127.0.0.1'
+        iridium_mt_server_port=10800
+    else:
+        # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
+        iridium_jaia_tech_hub_id=25
+        result = subprocess.run(f"jaia-ip.py addr --node hub --node_id {iridium_jaia_tech_hub_id} --net cloudhub_vpn --fleet_id {fleet_index} --ipv6", stdout=subprocess.PIPE, shell=True)
+        iridium_mt_server_address=result.stdout.decode().strip()
+        iridium_mt_server_port=10800+fleet_index
+
+    sbd_type=common.comms.iridium_sbd_type()
+    rockblock=''
+    directip=''
+    if sbd_type == "SBD_DIRECTIP":
+        directip=f'mo_sbd_server_port: 11800 mt_sbd_server_address: "{iridium_mt_server_address}" mt_sbd_server_port: {iridium_mt_server_port}'
+    elif sbd_type == "SBD_ROCKBLOCK":
+        (rockblock_username, rockblock_password) = common.comms.iridium_rockblock_credentials()
+        rockblock=f'mo_sbd_server_port: 12800 rockblock {{ username: "{rockblock_username}" password: "{rockblock_password}" }}'
+        
+    link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,
+                                             modem_id=common.comms.modem_id("iridium",node_id),
+                                             mac_slots=common.comms.iridium_shore_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=iridium_ack_timeout,
+                                             modem_imei_map=common.comms.iridium_modem_imei_mapping(),
+                                             sbd_type=sbd_type,
+                                             rockblock=rockblock,
+                                             directip=directip)
+
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'
-if common.is_vfleet or hub_index == cloudhub_index:
+if common.is_vfleet or is_cloudhub:
     liaison_bind_addr='0::0'
 
 if common.app == 'gobyd':
-    if hub_index == cloudhub_index:
+    if cloudhub_type == 'SECONDARY':
         required_clients=''
     else:
         required_clients='required_client: "goby_intervehicle_portal"'
@@ -126,11 +170,18 @@ if common.app == 'gobyd':
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
                                      required_clients=required_clients))
-elif common.app == 'goby_intervehicle_portal':    
+elif common.app == 'goby_intervehicle_portal':
+    persist_subscriptions = 'persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'
+
+    # don't persist subscriptions on Cloudhub to reduce unnecessary Iridium usage for bots that aren't in use
+    # this means that if Cloudhub is restarted, the bots will also need to be restarted, but that should cause little issue for normal operations
+    if is_cloudhub:
+        persist_subscriptions = ''
+    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     persist_subscriptions='persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }',
+                                     persist_subscriptions=persist_subscriptions,
                                      link_block=link_block))
 elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
@@ -163,11 +214,14 @@ elif common.app == 'goby_liaison_prelaunch':
     liaison_port=9091
     this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)
     inventory='/etc/jaiabot/inventory.yml'
-    if hub_index == cloudhub_index:
+    if is_cloudhub:
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
     else:
         vfleet_playbooks=''
-        
+
+    limit=''
+    if cloudhub_type == 'PRIMARY':
+        limit='limit: "all"'
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -177,6 +231,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_index=hub_index,
+                                     limit=limit,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
@@ -209,7 +264,8 @@ elif common.app == 'jaiabot_hub_manager':
                                      vfleet_shutdown_times=vfleet_shutdown_times,
                                      hub_gpsd_device=common.hub.gpsd_device(),
                                      subnet_mask=common.comms.subnet_mask,
-                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes) + "]"))
+                                      # do not hub subscribe automatically on Iridium to save data - let the bots subscribe as we only have one hub
+                                     links_to_subscribe_on="[" + ", ".join(f"LINK_{mode.value.upper()}" for mode in common.jaia_comms_modes if mode != common.CommsMode.IRIDIUM) + "]"))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

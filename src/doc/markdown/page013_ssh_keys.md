@@ -7,7 +7,7 @@ The JaiaBots and Hubs require SSH access for several purposes:
 - Data offload from bots -> hub
 - Debugging and miscellaneous admin tasks
 
-SSH is primarily allowed through FIDO hardware authenticators (the Yubikey product) via OpenSSH's “ed25519-sk" public key type. This provides convenient two-factor authentication ([1] physical key + [2] private key file).
+SSH is primarily allowed through FIDO hardware authenticators (the Yubikey product) via OpenSSH's "ed25519-sk" public key type. This provides convenient two-factor authentication ([1] physical key + [2] private key file).
 
 All permissions flow from a set of "root" Yubikeys that are flashed to the image at generation time (jaiabot/rootfs/customization/includes.chroot/etc/jaiabot/ssh/root_authorized_keys).
 

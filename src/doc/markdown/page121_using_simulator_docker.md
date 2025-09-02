@@ -1,4 +1,4 @@
-# Using the Jaiabot Simulator in Docker <!-- omit in toc -->
+# Using the Jaiabot Simulator in Docker
 
 - [Introduction](#introduction)
   - [Install Docker](#install-docker)
