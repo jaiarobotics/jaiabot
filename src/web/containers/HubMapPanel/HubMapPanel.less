@@ -34,7 +34,7 @@
 }
 
 .hub-map-layer-list {
-    width: 300pt;
+    max-width: 340pt;
     background-color: #f0f0f0;
     margin-top: 10pt;
     margin-bottom: 10pt;
@@ -42,6 +42,7 @@
 
 .hub-map-layer-name {
     margin: 10pt;
+    max-width: 70%;
     white-space: nowrap; /*keep text on one line */
     overflow: hidden; /*prevent text from being shown outside the border */
     text-overflow: ellipsis; /*cut off text with an ellipsis*/
@@ -57,4 +58,25 @@ input.checkbox {
 
 .danger {
     color: red;
+}
+
+div.flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+div.flex-grow {
+    flex-grow: 1;
+}
+
+div.flex-shrink {
+    flex-shrink: 1;
+}
+
+div.flex-unshrinkable {
+    flex-shrink: 0;
+}
+
+div.padded {
+    padding: 10pt;
 }

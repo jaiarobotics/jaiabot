@@ -154,16 +154,18 @@ export function HubMapPanel(props: Props) {
 
         return (
             <div className="hub-map-section">
-                <div>
+                <div className="flex-row padded">
                     <CircularProgress
                         variant="determinate"
                         value={percent}
                         size={36}
                         style={{ verticalAlign: "middle", marginLeft: "10pt", marginRight: "10pt" }}
                     />
-                    {`Importing ${tile.layer_name}`}
+                    <span>
+                        <p>{`Importing ${tile.layer_name}`}</p>
+                        <p>{`${tileDownloader.completedTiles} / ${totalTileCount} (${percent}%)`}</p>
+                    </span>
                 </div>
-                <div>{`${tileDownloader.completedTiles} / ${totalTileCount} (${percent}%)`}</div>
                 <div>
                     <Button
                         className="button-jcc"
@@ -267,8 +269,8 @@ export function HubMapPanel(props: Props) {
 
         const offlineLayerDivs = mapsDirectory.maps.map((tileset) => {
             return (
-                <div key={tileset.name}>
-                    <span className="hub-map-layer-name">
+                <div key={tileset.name} className="flex-row">
+                    <div className="hub-map-layer-name flex-grow flex-shrink">
                         <input
                             className="checkbox"
                             type="checkbox"
@@ -286,8 +288,10 @@ export function HubMapPanel(props: Props) {
                             }}
                         />
                         {tileset.name}
-                    </span>
-                    <span className="hub-map-layer-size">({MBString(tileset.size)})</span>
+                    </div>
+                    <div className="hub-map-layer-size flex-unshrinkable">
+                        ({MBString(tileset.size)})
+                    </div>
                 </div>
             );
         });
