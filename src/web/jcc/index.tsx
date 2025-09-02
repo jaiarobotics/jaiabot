@@ -7,25 +7,17 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
-import { map } from "../openlayers/maps/map";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
-import {
-    DATA_MODEL_POLL_TIME,
-    INITAL_ZOOM_DURATION,
-    INITIAL_ZOOM,
-    TASK_PACKET_POLL_TIME,
-} from "../utils/constants";
+import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
 const statusURL = "http://localhost:40001/jaia/v0/status";
 const taskPacketURL = "http://localhost:40001/jaia/v0/task-packets";
-
-let isFirstBot = true;
 
 const statusInterval = setInterval(async () => {
     try {
@@ -95,10 +87,6 @@ function updateOpenLayers() {
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
     hubCommsLayer.updateFeatures();
-
-    if (isFirstBot && bots.getBots().size > 0) {
-        zoomToFirstBot();
-    }
 }
 
 /**
@@ -109,26 +97,6 @@ function updateOpenLayers() {
 function updateTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
-}
-
-/**
- * Finds the first Bot with a GPS fix and zooms to that location
- *
- * @returns {void}
- */
-function zoomToFirstBot() {
-    for (const [botID, bot] of bots.getBots().entries()) {
-        if (bot.getLocation()?.lat && bot.getLocation()?.lon) {
-            const location = fromLonLat([bot.getLocation().lon, bot.getLocation().lat]);
-            map.getView().animate({
-                center: location,
-                duration: INITAL_ZOOM_DURATION,
-                zoom: INITIAL_ZOOM,
-            });
-            isFirstBot = false;
-            break;
-        }
-    }
 }
 
 let element = document.getElementById("root");

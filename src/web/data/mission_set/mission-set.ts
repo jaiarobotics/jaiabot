@@ -1,6 +1,6 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { Speeds, GeographicCoordinate } from "../../types/protobuf-types";
+import { Speeds } from "../../types/protobuf-types";
 
 class MissionSet {
     private missions: Map<number, Mission>;
