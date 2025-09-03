@@ -79,11 +79,18 @@ function* tile_generator(layerViewDescriptor: LayerViewDescriptor): Generator<Ti
 }
 
 export class HubMapDownloader {
+    /**
+     * This class represents a queue of tiles to download from an online tile server and then upload to the hub.  It also notifies its observers whenever
+     * a tile is completed, for GUI purposes.
+     *
+     * @type {TileDescriptor[]}
+     */
     tileDescriptors: TileDescriptor[] = [];
     running = false;
     completedTiles = 0;
     observer: (hubMapDownloader: HubMapDownloader, error?: string) => void = null;
 
+    /** Clears the download queue. */
     clear() {
         this.tileDescriptors = [];
     }
@@ -115,6 +122,11 @@ export class HubMapDownloader {
         return tileCount;
     }
 
+    /**
+     * Start the download process.  Should only be called internally.
+     *
+     * @returns {*}
+     */
     async _startDownloading() {
         if (this.running) {
             return;
@@ -136,11 +148,11 @@ export class HubMapDownloader {
             );
 
             if (existingTile.ok) {
-                console.log(
+                console.debug(
                     `Already have /maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
                 );
             } else {
-                console.log(`Need to fetch ${tile.url}`);
+                console.debug(`Need to fetch ${tile.url}`);
                 const tileBlob = await fetch(tile.url).then((response) => {
                     return response.blob();
                 });

@@ -27,10 +27,22 @@ interface Props {
     map: Map;
 }
 
+/**
+ * Returns a string with a localized MB count from a number of bytes.  I.e. "2,567 MB"
+ *
+ * @param {number} bytes
+ * @returns {string} The localized MB count, i.e. "2,567 MB"
+ */
 function MBString(bytes: number) {
     return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
 }
 
+/**
+ * The Offline Maps panel under Settings.
+ *
+ * @param {Props} props
+ * @returns {*}
+ */
 export function HubMapPanel(props: Props) {
     const [tileDownloader, setTileDownloader] = useState(hubMapDownloader);
     const [error, setError] = useState<string>(null);
