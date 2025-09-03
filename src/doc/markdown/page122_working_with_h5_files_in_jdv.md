@@ -11,6 +11,8 @@
   - [Positional Data](#positional-data) <br>
   - [IMU Data](#imu-data) <br>
   - [Mission State](#mission-state) <br>
+  - [Task Packets](#task-packets) <br>
+  - [Bot Status](#bot-status) <br>
 <br>
 
 
