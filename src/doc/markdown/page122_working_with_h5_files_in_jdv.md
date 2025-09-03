@@ -1,5 +1,113 @@
-# Working with H5 Log Files in the JDV
+# Key Data
+*Description of the file contents here...*
+<br><br>
 
+- [Sensor Data](#sensor-data) <br>
+  - [Temperature Data](#temperature-data) <br>
+  - [Pressure Data](#pressure-data) <br>
+  - [Salinity Data](#salinity-data) <br>
+- [Vehicle Data](#vehicle-data) <br>
+  - [Positional Data](#positional-data) <br>
+
+
+## **Sensor Data**
+<br>
+
+
+### **Temperature Data**
+- *Description of Temperature fields here* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Description of sensor (Blue Robotics Bar30)*<br>
+
+##### **Data Paths**
+| Data Field | JDV Path                       | HDF5 Log Path                                             | Unit | Frequency |
+|----------- |--------------------------------|-----------------------------------------------------------|------|-----------|
+|**Temperature**|`jaiabot::pressure_temperature` ➜ `temperature`|`/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature`|*°C*|*10 Hz*|
+
+##### **Timestamp Paths**
+| JDV Path                      | HDF5 Log Path                                            |
+|-------------------------------|----------------------------------------------------------|
+|`jaiabot::pressure_temperature` ➜ `_utime_`|`/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/_utime_`|
+<br>
+
+
+### **Pressure Data**
+- *Description of Pressure fields here* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Description of sensor (Blue Robotics Bar30)*<br>
+
+##### **Data Paths**
+| Data Field | JDV Path                       | HDF5 Log Path                                             | Unit | Frequency |
+|----------- |--------------------------------|-----------------------------------------------------------|------|-----------|
+|**Depth**|`jaiabot::pressure_adjusted` ➜ `calculated_depth`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth`|*m*|*10 Hz*|
+|**Pressure**|`jaiabot::pressure_adjusted` ➜ `pressure_adjusted`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_adjusted`|*bar*|*10 Hz*|
+|**Raw Pressure**|`jaiabot::pressure_adjusted` ➜ `pressure_raw`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_raw`|*bar*|*10 Hz*|
+
+##### **Timestamp Paths**
+| JDV Path                      | HDF5 Log Path                                            |
+|-------------------------------|----------------------------------------------------------|
+|`jaiabot::pressure_adjusted` ➜ `_utime_`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/_utime_`|
+<br>
+
+
+### **Salinity Data**
+- *Description of Salinity fields here...* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Description of sensor (Atlas Scientific OEM EC)*<br>
+
+##### **Data Paths**
+| Data Field         | JDV Path                               | HDF5 Log Path                                                     | Unit  | Frequency |
+|--------------------|----------------------------------------|-------------------------------------------------------------------|-------|-----------|
+|**Conductivity**    |`jaiabot::salinity` ➔ `conductivity`    |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity`    |*μS/cm*|*10 Hz*    |
+|**Raw Conductivity**|`jaiabot::salinity` ➔ `conductivity_raw`|`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity_raw`|*μS/cm*|*10 Hz*    |
+|**Salinity**        |`jaiabot::salinity` ➔ `salinity`        |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity`        |*ppt*  |*10 Hz*    |
+|**Raw Salinity**    |`jaiabot::salinity` ➔ `salinity_raw`    |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity_raw`    |*ppt*  |*10 Hz*    |
+
+##### **Timestamp Paths**
+| JDV Path                      | HDF5 Log Path                                            |
+|-------------------------------|----------------------------------------------------------|
+|`jaiabot::salinity` ➔ `_utime_`|`/jaiabot::salinity/jaiabot.protobuf.SalinityData/_utime_`|
+<br>
+
+
+## **Vehicle Data**
+<br>
+
+
+### **Positional Data**
+- *Description of Salinity fields here...* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+
+
+##### **Data Paths**
+| Data Field         | JDV Path                               | HDF5 Log Path                                                     | Unit  | Frequency |
+|--------------------|----------------------------------------|-------------------------------------------------------------------|-------|-----------|
+|**Latitude**|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lat`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat`|*Decimal °*|*5 Hz*|
+|**Longitude**|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lon`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon`|*Decimal °*|*5 Hz*|
+|**Speed Over Ground**|`goby::middleware::groups::gpsd::tpv` ➔ `speed`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/speed`|*m/s*|*5 Hz*|
+
+
+##### **Timestamp Paths**
+| JDV Path                                                     | HDF5 Log Path                                                                                   |
+|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `_utime_`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/_utime_`|
+
+
+<br>
+
+
+
+
+
+
+
+
+
+
+
+
+<!--
+<br><br><br><br><br><br><br><br>
 - [Sensor Data](#sensor-data) <br>
 - [Bot Status](#bot-status) <br>
     - [Sensor Data Found Under Bot Status](#sensor-data-found-under-bot-status)
