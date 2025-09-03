@@ -13,3 +13,5 @@ SUBSYSTEM=="tty", SUBSYSTEMS=="amba", DRIVERS=="uart-pl011", ATTRS{id}=="0024101
 ## Iridium
 KERNEL=="ttyAMA5", SYMLINK+="iridium"
 
+## PAM stack
+SUBSYSTEM=="tty", ATTR{iomem_base}=="0xFE201A00", SYMLINK+="pam-stack"
