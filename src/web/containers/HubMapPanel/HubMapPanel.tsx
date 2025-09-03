@@ -11,7 +11,15 @@ import {
 import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
 import { jaiaAPI, MapsDirectory, Tileset } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
-import { mdiCancel, mdiContentSave, mdiDelete, mdiPlus, mdiUpload } from "@mdi/js";
+import {
+    mdiArrowRight,
+    mdiCancel,
+    mdiContentSave,
+    mdiDelete,
+    mdiPlus,
+    mdiSendVariant,
+    mdiUpload,
+} from "@mdi/js";
 import { hubMapDownloader } from "./HubMapDownloader";
 import { Map } from "ol";
 import { useEffect, useState } from "react";
@@ -27,8 +35,8 @@ interface Props {
     map: Map;
 }
 
-function MBString(bytes: number) {
-    return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+function GBString(bytes: number) {
+    return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 0 }) + " GB";
 }
 
 export function HubMapPanel(props: Props) {
@@ -194,7 +202,7 @@ export function HubMapPanel(props: Props) {
         const estimatedSize = tileCount * 11000;
 
         CustomAlert.confirmAsync(
-            `This will download the visible ${tileLayer.get("title")} tiles.\nApproximate download size: ${MBString(estimatedSize)} in ${tileCount} tiles.`,
+            `This will download the visible ${tileLayer.get("title")} tiles.\nApproximate download size: ${GBString(estimatedSize)} in ${tileCount} tiles.`,
             "Download to Hub",
             "Download Map Tiles",
         ).then((confirmed) => {
@@ -218,27 +226,9 @@ export function HubMapPanel(props: Props) {
         );
     });
 
-    const tileLayerSelectForm = (
-        <FormControl style={{ width: "200pt" }}>
-            <InputLabel id="demo-simple-select-label">Layer</InputLabel>
-            <Select
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                value={selectedOnlineTileLayerIndex}
-                label="Layer"
-                onChange={(evt) => {
-                    setSelectedOnlineTileLayerIndex(Number(evt.target.value));
-                }}
-            >
-                {menuItems}
-            </Select>
-        </FormControl>
-    );
-
     function importTileLayersSection() {
         return (
             <div className="hub-map-section">
-                {tileLayerSelectForm}
                 <Button
                     className="button-jcc"
                     onClick={() => {
@@ -290,7 +280,7 @@ export function HubMapPanel(props: Props) {
                         {tileset.name}
                     </div>
                     <div className="hub-map-layer-size flex-unshrinkable">
-                        ({MBString(tileset.size)})
+                        ({GBString(tileset.size)})
                     </div>
                 </div>
             );
@@ -301,7 +291,7 @@ export function HubMapPanel(props: Props) {
                 <h1>Offline Layers</h1>
                 <div className="hub-map-layer-list">{offlineLayerDivs}</div>
                 <div className="hub-map-disk-space">
-                    Available disk space: {MBString(mapsDirectory.available_disk_bytes)}
+                    Available disk space: {GBString(mapsDirectory.available_disk_bytes)}
                 </div>
                 <Button
                     className="button-jcc danger"
@@ -346,11 +336,48 @@ export function HubMapPanel(props: Props) {
     /////////////////
 
     return (
-        // <div className="hub-map-panel">
-        <div className="hub-map-layout-container">
-            {importSection()}
-            {offlineLayerList()}
+        <div className="offline-maps-container">
+            <div className="geotiff-container">
+                <div className="heading">Upload GeoTIFF to Hub</div>
+                <Icon path={mdiArrowRight}></Icon>
+            </div>
+            <div className="save-tiles-container">
+                <div className="heading">Save Tiles to Hub</div>
+                <div className="layer-selection-container">
+                    <FormControl style={{ width: "200px" }}>
+                        <InputLabel>Layer</InputLabel>
+                        <Select
+                            value={selectedOnlineTileLayerIndex}
+                            onChange={(evt) => {
+                                setSelectedOnlineTileLayerIndex(Number(evt.target.value));
+                            }}
+                            label="Layer"
+                        >
+                            {menuItems}
+                        </Select>
+                    </FormControl>
+                    <Icon path={mdiArrowRight}></Icon>
+                </div>
+            </div>
+            <div className="offline-layers-container">
+                <div className="heading-container">
+                    <div className="heading">Offline Layers</div>
+                    <div className="disk-space">
+                        Available: {GBString(mapsDirectory?.available_disk_bytes)}
+                    </div>
+                </div>
+                <ul>
+                    {mapsDirectory.maps.map((tileset) => {
+                        return (
+                            <li key={tileset.name}>
+                                <div>{tileset.name}</div>
+                                <div className="size">({GBString(tileset.size)})</div>
+                                <Icon path={mdiDelete}></Icon>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
         </div>
-        // </div>
     );
 }

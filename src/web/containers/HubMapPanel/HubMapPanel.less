@@ -1,82 +1,87 @@
 @import "../../style/util.less";
 
-.hub-map-panel {
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 6px;
-
-    border: 2px solid #767d7d;
-    z-index: 100;
-}
-
-.hub-map-section {
-    margin-top: 10pt;
-    margin-bottom: 10pt;
-
-    h1 {
-        font-size: 20pt;
-        margin-bottom: 10pt;
-        margin-top: 10pt;
-    }
-}
-
-.hub-map-layout-container {
-    padding: 6px;
-    background-color: #ffffff;
-}
-
-.hub-map-title {
-    grid-row: 2 / 3;
-
-    font-size: 1.2rem;
-    font-weight: 600;
-
-    align-self: center;
-}
-
-.hub-map-layer-list {
-    max-width: 340pt;
-    background-color: #f0f0f0;
-    margin-top: 10pt;
-    margin-bottom: 10pt;
-}
-
-.hub-map-layer-name {
-    margin: 10pt;
-    max-width: 70%;
-    white-space: nowrap; /*keep text on one line */
-    overflow: hidden; /*prevent text from being shown outside the border */
-    text-overflow: ellipsis; /*cut off text with an ellipsis*/
-}
-
-.hub-map-layer-size {
-    margin: 10pt;
-}
-
-input.checkbox {
-    margin: 10pt;
-}
-
-.danger {
-    color: red;
-}
-
-div.flex-row {
+.offline-maps-container {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    gap: 15px;
 }
 
-div.flex-grow {
-    flex-grow: 1;
+.offline-maps-container .heading {
+    font-weight: 600;
 }
 
-div.flex-shrink {
-    flex-shrink: 1;
+.offline-maps-container svg {
+    width: 30px;
+    height: auto;
 }
 
-div.flex-unshrinkable {
-    flex-shrink: 0;
+.geotiff-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 12px;
+    border: 1px solid #9ca3af;
 }
 
-div.padded {
-    padding: 10pt;
+.save-tiles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    padding: 12px;
+    border: 1px solid #9ca3af;
+}
+
+.layer-selection-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.layer-selection-container svg {
+    margin-top: -6px;
+}
+
+.offline-layers-container {
+    padding: 12px;
+    border: 1px solid #9ca3af;
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.offline-layers-container ul {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.offline-layers-container li {
+    background-color: #e5e7eb;
+    padding: 12px;
+
+    display: grid;
+    grid-template-columns: 192px 30px max-content max-content;
+    column-gap: 15px;
+}
+
+.offline-layers-container li .size {
+    grid-column: 3 / 4;
+}
+
+.offline-layers-container li svg {
+    width: 21px;
+    height: auto;
+}
+
+.offline-layers-container .heading-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.heading-container .disk-space {
+    font-style: italic;
 }
