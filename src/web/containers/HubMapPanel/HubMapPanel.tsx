@@ -62,19 +62,19 @@ export function HubMapPanel(props: Props) {
     }
 
     useEffect(() => {
-        hubMapDownloader.observer = (hubMapDownloader, error) => {
+        hubMapDownloader.subscribe((hubMapDownloader) => {
             if (error) {
                 setError(error);
                 return;
             }
 
             setTileDownloader(hubMapDownloader);
-        };
+        }, "HubMapPanel");
 
         offlineLayerManager.subscribe(refreshMapsDirectory, "HubMapPanel");
 
         return () => {
-            hubMapDownloader.observer = null;
+            hubMapDownloader.unsubscribe("HubMapPanel");
             offlineLayerManager.unsubscribe("HubMapPanel");
         };
     }, []);
@@ -295,7 +295,6 @@ export function HubMapPanel(props: Props) {
                                 } else {
                                     checkedLayers.delete(event.target.value);
                                 }
-                                console.log(checkedLayers);
                                 setCheckedLayers(checkedLayers);
                             }}
                         />

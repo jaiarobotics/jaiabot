@@ -88,7 +88,21 @@ export class HubMapDownloader {
     tileDescriptors: TileDescriptor[] = [];
     running = false;
     completedTiles = 0;
-    observer: (hubMapDownloader: HubMapDownloader, error?: string) => void = null;
+    observers: { [key: string]: (hubMapDownloader: HubMapDownloader) => void } = {};
+
+    subscribe(hook: (hubMapDownloader: HubMapDownloader) => void, hookLabel: string) {
+        this.observers[hookLabel] = hook;
+    }
+
+    unsubscribe(hookLabel: string) {
+        delete this.observers[hookLabel];
+    }
+
+    notify() {
+        Object.keys(this.observers).forEach((hookLabel) => {
+            this.observers[hookLabel](this);
+        });
+    }
 
     /** Clears the download queue. */
     clear() {
@@ -139,7 +153,7 @@ export class HubMapDownloader {
             const tile = this.tileDescriptors.shift();
             if (!tile) break;
 
-            this.observer?.(this);
+            this.notify();
 
             // Do we already have this tile?
             const existingTile = await fetch(
@@ -177,7 +191,7 @@ export class HubMapDownloader {
         }
 
         this.running = false;
-        this.observer?.(this);
+        this.notify();
     }
 }
 
