@@ -142,6 +142,8 @@ export class HubMapDownloader {
      * @returns {*}
      */
     async _startDownloading() {
+        const CONCURRENT_TILES_COUNT = 4;
+
         if (this.running) {
             return;
         }
@@ -150,44 +152,57 @@ export class HubMapDownloader {
         this.completedTiles = 0;
 
         while (true) {
-            const tile = this.tileDescriptors.shift();
-            if (!tile) break;
+            const tiles = this.tileDescriptors.splice(0, CONCURRENT_TILES_COUNT);
+            if (tiles.length == 0) break;
 
             this.notify();
 
-            // Do we already have this tile?
-            const existingTile = await fetch(
-                `/maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
-                { method: "HEAD" },
-            );
-
-            if (existingTile.ok) {
-                console.debug(
-                    `Already have /maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+            async function doTile(tile: TileDescriptor) {
+                console.debug("Entering doTile");
+                // Do we already have this tile?
+                const existingTile = await fetch(
+                    `/maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+                    { method: "HEAD" },
                 );
-            } else {
-                console.debug(`Need to fetch ${tile.url}`);
-                const tileBlob = await fetch(tile.url).then((response) => {
-                    return response.blob();
-                });
-                jaiaAPI
-                    .putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob)
-                    .then(() => {
-                        // If this layer isn't in the list of offline layer titles, add it and refresh.
-                        if (
-                            !(
-                                tile.layer_name in
-                                offlineLayerManager.maps_directory.maps.map(
-                                    (tileset) => tileset.name,
-                                )
-                            )
-                        ) {
-                            offlineLayerManager.refresh();
-                        }
+
+                if (existingTile.ok) {
+                    console.debug(
+                        `Already have /maps/${tile.layer_name}/${tile.zoom}/${tile.x}/${tile.y}`,
+                    );
+                } else {
+                    console.debug(`Need to fetch ${tile.url}`);
+                    const tileBlob = await fetch(tile.url).then((response) => {
+                        return response.blob();
                     });
+                    jaiaAPI
+                        .putOfflineTile(tile.layer_name, tile.zoom, tile.x, tile.y, tileBlob)
+                        .then(() => {
+                            // If this layer isn't in the list of offline layer titles, add it and refresh.
+                            if (
+                                !(
+                                    tile.layer_name in
+                                    offlineLayerManager.maps_directory.maps.map(
+                                        (tileset) => tileset.name,
+                                    )
+                                )
+                            ) {
+                                offlineLayerManager.refresh();
+                            }
+                        });
+                }
+
+                return 1; // Number of tiles
             }
 
-            this.completedTiles += 1;
+            const tileJobs = tiles.map((tile) => {
+                return doTile(tile);
+            });
+
+            await Promise.allSettled(tileJobs)
+                .then((results) => {
+                    this.completedTiles += results.length;
+                })
+                .catch((error) => console.error(error));
         }
 
         this.running = false;
