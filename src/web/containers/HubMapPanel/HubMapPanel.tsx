@@ -270,7 +270,7 @@ export function HubMapPanel(props: Props) {
                     {mapsDirectory?.maps?.map((tileset) => {
                         return (
                             <li key={tileset.name}>
-                                <div>{tileset.name}</div>
+                                <div className="name">{tileset.name}</div>
                                 <div className="size">({MBString(tileset.size)})</div>
                                 <div onClick={() => deleteLayerFromHub(tileset.name)}>
                                     <Icon path={mdiDelete}></Icon>
