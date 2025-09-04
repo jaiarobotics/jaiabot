@@ -145,14 +145,10 @@ jaiabot::apps::MissionManager::MissionManager()
                                           << std::endl;
         });
 
-    if (cfg().has_subscribe_to_hub_on_start())
-    {
-        intervehicle_subscribe(cfg().subscribe_to_hub_on_start());
-    }
-
-    // subscribe for commands when we get a request to subscribe (hub info changed)
+    // subscribe for commands when we get a request to subscribe (from jaiabot_comms_manager)
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
-        [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
+        [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
+        { intervehicle_subscribe(req); });
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
@@ -228,7 +224,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal) {
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
             if (sal.has_salinity())
             {
                 statechart::EvMeasurement ev;
@@ -496,16 +493,12 @@ jaiabot::apps::MissionManager::~MissionManager()
 }
 
 void jaiabot::apps::MissionManager::intervehicle_subscribe(
-    const jaiabot::protobuf::HubInfo& hub_info)
+    const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
 {
-    // set environmental variable for dataoffload
-    setenv("jaia_dataoffload_hub_id", std::to_string(hub_info.hub_id()).c_str(), 1 /*overwrite*/);
+    int hub_modem_id = jaiabot::comms::hub_modem_id(cfg().subnet_mask(), req.link());
 
-    // Update current hub id
-    hub_id_ = hub_info.hub_id();
-
-    glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
-                              << " (modem id " << hub_info.modem_id() << ")" << std::endl;
+    glog.is_verbose() && glog << "Subscribing for Commands from hub on link: "
+                              << jaiabot::protobuf::Link_Name(req.link()) << std::endl;
 
     auto on_command_subscribed =
         [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
@@ -520,7 +513,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     // set command publisher to the hub that triggered this subscribe
     latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
-    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
+    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_modem_id);
 
     auto hub_command_subscriber_group_func =
         [](const protobuf::Command& command) -> goby::middleware::Group
@@ -531,9 +524,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto hub_command_set_link_data =
         [this](protobuf::Command& msg,
-               const goby::middleware::intervehicle::protobuf::Header& header) {
-            jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-        };
+               const goby::middleware::intervehicle::protobuf::Header& header)
+    { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
     goby::middleware::Subscriber<protobuf::Command> command_subscriber{
         latest_command_sub_cfg_,
@@ -542,7 +534,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
         {/*expire func*/},
         hub_command_set_link_data};
 
-    auto command_callback = [this](const protobuf::Command& input_command) {
+    auto command_callback = [this](const protobuf::Command& input_command)
+    {
         if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
         {
             protobuf::Command out_command;
@@ -570,9 +563,8 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     if (cfg().has_contact_update_sub_cfg())
     {
-        glog.is_verbose() && glog << "Subscribing for Contact Updates from hub "
-                                  << hub_info.hub_id() << " (modem id " << hub_info.modem_id()
-                                  << ")" << std::endl;
+        glog.is_verbose() && glog << "Subscribing for Contact Updates from hub on link: "
+                                  << jaiabot::protobuf::Link_Name(req.link()) << std::endl;
 
         auto on_contact_update_subscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
@@ -587,8 +579,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
         // set contact_update publisher to the hub that triggered this subscribe
         latest_contact_update_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
-        latest_contact_update_sub_cfg_.mutable_intervehicle()->add_publisher_id(
-            hub_info.modem_id());
+        latest_contact_update_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_modem_id);
 
         goby::middleware::Subscriber<protobuf::ContactUpdate> contact_update_subscriber{
             latest_contact_update_sub_cfg_, on_contact_update_subscribed};
@@ -800,6 +791,9 @@ void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHea
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    if (command.has_from_hub_id())
+        set_hub_id(command.from_hub_id());
 
     // Make sure the command is not a repeat
     // If it is, then we should not handle the command and exit
@@ -1205,4 +1199,13 @@ void jaiabot::apps::MissionManager::check_forward_progress()
         glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
         fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
     }
+}
+
+void jaiabot::apps::MissionManager::set_hub_id(int hub_id)
+{
+    // Update current hub id
+    hub_id_ = hub_id;
+
+    // set environmental variable for dataoffload
+    setenv("jaia_dataoffload_hub_id", std::to_string(hub_id).c_str(), 1 /*overwrite*/);
 }
