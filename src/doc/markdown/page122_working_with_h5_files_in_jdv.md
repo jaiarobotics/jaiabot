@@ -3,36 +3,48 @@
 <br><br>
 
 ## **Contents**
-- [Sensor Data](#sensor-data) <br>
-  - [Temperature Data](#temperature-data) <br>
-  - [Pressure Data](#pressure-data) <br>
-  - [Salinity Data](#salinity-data) <br>
-  - [pH Data](#ph-data) <br>
-  - [Dissolved Oxygen Data](#dissolved-oxygen-data) <br>
-  - [Fluorometer Data](#fluorometer-data) <br>
-- [Vehicle Data](#vehicle-data) <br>
-  - [Location Data](#location-data) <br>
-  - [IMU Data](#imu-data) <br>
-  - [Mission State](#mission-state) <br>
-  - [Task Packets](#task-packets) <br>
-  - [Bot Status](#bot-status) <br>
+- [Notes](#notes)
+  - [Timestamps](#timestamps)
+  - [Data Paths](#data-paths)
+  - [Example Scripts](#example-scripts)
+- [Sensor Data](#sensor-data)
+  - [Temperature Data](#temperature-data) 
+  - [Pressure Data](#pressure-data)
+  - [Salinity Data](#salinity-data)
+  - [pH Data](#ph-data)
+  - [Dissolved Oxygen Data](#dissolved-oxygen-data)
+  - [Fluorometer Data](#fluorometer-data)
+- [Vehicle Data](#vehicle-data)
+  - [Location Data](#location-data)
+  - [IMU Data](#imu-data)
+  - [Mission State](#mission-state)
+  - [Task Packets](#task-packets)
+  - [Bot Status](#bot-status)
 <br>
 
 
 ## **Notes**
+
 ##### **Timestamps:**
-*Timestamps are logged in Unix Time - the amount of microseconds since 1 January, 1970 - and can be found in the parent group's **\_utime_** field. Because values are measured, messages sent and received, and data logged at different times between sensors and boards, each group has its own utime field. For this reason, it's important to use the specific utime field which corresponds to the daata field of interest.*
+*Timestamps are logged in Unix Time - the amount of microseconds since 1 January, 1970 - and can be found in the parent group's **\_utime_** field. Because values are measured, messages sent and received, and data logged at different times between sensors and boards, each group has its own "_utime_" field. For this reason, it's important to use the specific _utime_ field which corresponds to the data field of interest.*
+
+##### **Data Paths:**
+*The Data Paths listed below include the path a user would follow to find the specific data field via the Jaia Data Visualizer (JDV), as well as in the raw HDF5 log file (e.g. via a custom script).*
+
+##### **Example Scripts:**
+*Internal data analysis scripts exist in our public GitHub Repository. Anyone is able to access these by checking out the following branch, then navigating to `jaiabot/scripts/log-analysis`. In the coming months, these scripts will be merged into our main branch, but will remain in the same file location.*
+
+https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools 
 
 
 ## **Sensor Data**
-*Many of the measurements taken by the JaiaBot's environmental sensors require some form of post-processing in order to be useful. The word **"raw"** in the title of a field denotes that this field records the measurement taken directly from the sensor, before any compensation has been applied.* 
+*Many of the measurements taken by the JaiaBot's environmental sensors undergo some form of post-processing in order to be useful universally. The word **"raw"** in the title of a field denotes that this field records the measurement taken directly from the sensor, before any compensation has been applied.* 
 <br>
 
-*If a data field **does not have** the word **"raw"** in its title, then either no compensation is needed for this field, or the compensation has already been applied to it.*
+*If a data field **does not have** the word **"raw"** in its title, then either no compensation is needed for this field, or a compensation has already been applied to it.*
 <br>
 
 \**We are working to implement compensation models for all sensor data.*\*
-
 
 ### **Temperature Data**
 - *Measured via a **Blue Robotics Bar30***
