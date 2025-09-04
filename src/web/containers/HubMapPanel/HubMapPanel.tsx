@@ -35,14 +35,32 @@ interface Props {
     map: Map;
 }
 
+/**
+ * Returns a string with a localized GB count from a number of bytes.  i.e. "2.6 GB"
+ *
+ * @param {number} bytes
+ * @returns {string} The localized GB count, i.e. "2.6 GB"
+ */
 function GBString(bytes: number) {
     return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
 }
 
+/**
+ * Returns a string with a localized MB count from a number of bytes.  I.e. "2,567 MB"
+ *
+ * @param {number} bytes
+ * @returns {string} The localized MB count, i.e. "2,567 MB"
+ */
 function MBString(bytes: number) {
     return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
 }
 
+/**
+ * The Offline Maps panel under Settings.
+ *
+ * @param {Props} props
+ * @returns {*}
+ */
 export function HubMapPanel(props: Props) {
     const [tileDownloader, setTileDownloader] = useState(hubMapDownloader);
     const [error, setError] = useState<string>(null);
@@ -61,19 +79,19 @@ export function HubMapPanel(props: Props) {
     }
 
     useEffect(() => {
-        hubMapDownloader.observer = (hubMapDownloader, error) => {
+        hubMapDownloader.subscribe((hubMapDownloader) => {
             if (error) {
                 setError(error);
                 return;
             }
 
             setTileDownloader(hubMapDownloader);
-        };
+        }, "HubMapPanel");
 
         offlineLayerManager.subscribe(refreshMapsDirectory, "HubMapPanel");
 
         return () => {
-            hubMapDownloader.observer = null;
+            hubMapDownloader.unsubscribe("HubMapPanel");
             offlineLayerManager.unsubscribe("HubMapPanel");
         };
     }, []);
