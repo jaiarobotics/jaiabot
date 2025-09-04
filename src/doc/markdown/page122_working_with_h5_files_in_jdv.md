@@ -7,8 +7,11 @@
   - [Temperature Data](#temperature-data) <br>
   - [Pressure Data](#pressure-data) <br>
   - [Salinity Data](#salinity-data) <br>
+  - [pH Data](#ph-data) <br>
+  - [Dissolved Oxygen Data](#dissolved-oxygen-data) <br>
+  - [Fluorometer Data](#fluorometer-data) <br>
 - [Vehicle Data](#vehicle-data) <br>
-  - [Positional Data](#positional-data) <br>
+  - [Location Data](#location-data) <br>
   - [IMU Data](#imu-data) <br>
   - [Mission State](#mission-state) <br>
   - [Task Packets](#task-packets) <br>
@@ -42,8 +45,8 @@
 |**Temperature**|*°C*  |*10 Hz*    |`jaiabot::pressure_temperature` ➜ `temperature`|`/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature`|
 
 ##### **Timestamp Paths**
-| Units | JDV Path                      | HDF5 Log Path                                            |
-|-------|-------------------------------|----------------------------------------------------------|
+| Units        | JDV Path                                  | HDF5 Log Path                                                                   |
+|--------------|-------------------------------------------|---------------------------------------------------------------------------------|
 |*Microseconds*|`jaiabot::pressure_temperature` ➜ `_utime_`|`/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/_utime_`|
 <br>
 
@@ -54,15 +57,15 @@
   - https://bluerobotics.com/store/sensors-cameras/sensors/bar-depth-pressure-sensor/
 
 ##### **Data Paths**
-| Data Field     | Unit| Frequency | JDV Path                                         | HDF5 Log Path                                                                       |
-|----------------|-----|-----------|--------------------------------------------------|-------------------------------------------------------------------------------------|
-|**Depth**       |*m*  |*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `calculated_depth` |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth` |
+| Data Field     | Unit | Frequency | JDV Path                                         | HDF5 Log Path                                                                       |
+|----------------|------|-----------|--------------------------------------------------|-------------------------------------------------------------------------------------|
+|**Depth**       |*m*   |*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `calculated_depth` |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth` |
 |**Pressure**    |*mbar*|*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `pressure_adjusted`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_adjusted`|
 |**Raw Pressure**|*mbar*|*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `pressure_raw`     |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_raw`     |
 
 ##### **Timestamp Paths**
-| Unit | JDV Path                               | HDF5 Log Path                                                             |
-|------|----------------------------------------|---------------------------------------------------------------------------|
+| Unit         | JDV Path                               | HDF5 Log Path                                                             |
+|--------------|----------------------------------------|---------------------------------------------------------------------------|
 |*Microseconds*|`jaiabot::pressure_adjusted` ➜ `_utime_`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/_utime_`|
 <br>
 
@@ -84,10 +87,76 @@
 |**Raw Salinity**    |*ppt*  |*10 Hz*    |`jaiabot::salinity` ➔ `salinity_raw`    |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity_raw`    |
 
 ##### **Timestamp Paths**
-| Units | JDV Path                      | HDF5 Log Path                                            |
-|-------|-------------------------------|----------------------------------------------------------|
+| Units        | JDV Path                      | HDF5 Log Path                                            |
+|--------------|-------------------------------|----------------------------------------------------------|
 |*Microseconds*|`jaiabot::salinity` ➔ `_utime_`|`/jaiabot::salinity/jaiabot.protobuf.SalinityData/_utime_`|
 <br>
+
+
+### **pH Data**
+- *Description of pH fields here...* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Measured via an **Atlas Scientific OEM pH** and **Atlas Scientific Industrial pH Probe w/ Temp.***
+  - *Stated Accuracy: ± 0.002*
+  - https://atlas-scientific.com/embedded-solutions/ph-oem-circuit/
+  - https://atlas-scientific.com/probes/industrial-ph-probe/
+
+##### **Data Paths**
+| Data Field         | Unit  | Frequency | JDV Path                               | HDF5 Log Path                                                         |
+|--------------------|-------|-----------|----------------------------------------|-----------------------------------------------------------------------|
+|**pH**              |*pH*   |*10 Hz*    |`jaiabot::ph` ➔ `ph`                    |`/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph`         |
+|**Raw pH**          |*pH*   |*10 Hz*    |`jaiabot::ph` ➔ `ph_raw`                |`/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph_raw`     |
+|**Temperature**     |*°C*   |*10 Hz*    |`jaiabot::ph` ➔ `temperature`           |`/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/temperature`|
+
+##### **Timestamp Paths**
+| Units        | JDV Path                      | HDF5 Log Path                                                     |
+|--------------|-------------------------------|-------------------------------------------------------------------|
+|*Microseconds*|`jaiabot::ph` ➔ `_utime_`      |`/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/_utime_`|
+<br>
+
+
+### **Dissolved Oxygen Data**
+- *Description of DO fields here...* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Measured via an **Atlas Scientific OEM DO** and **Atlas Scientific Industrial DO Probe w/ Temp.***
+  - *Stated Accuracy: ± 0.05 mg/L*
+  - https://atlas-scientific.com/embedded-solutions/do-oem-circuit/
+  - https://atlas-scientific.com/probes/industrial-dissolved-oxygen-probe/
+
+##### **Data Paths**
+| Data Field                               | Unit  | Frequency | JDV Path                                               | HDF5 Log Path                                                                                    |
+|------------------------------------------|-------|-----------|--------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+|**Dissolved Oxygen Solubility**           |*mg/L* |*10 Hz*    |`jaiabot::dissolved_oxygen` ➔ `do_solubility`           |`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/do_solubility`           |
+|**Normalized Dissolved Oxygen Solubility**|*mg/L* |*10 Hz*    |`jaiabot::dissolved_oxygen` ➔ `do_normalized_solubility`|`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/do_normalized_solubility`|
+|**Raw Dissolved Oxygen**                  |*mg/L* |*10 Hz*    |`jaiabot::dissolved_oxygen` ➔ `do_raw`                  |`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/do_raw`                  |
+|**Dissolved Oxygen Saturation**           |*%*    |*10 Hz*    |`jaiabot::dissolved_oxygen` ➔ `do_saturation_percent`   |`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/do_saturation_percent`   |
+|**Temperature**                           |*°C*   |*10 Hz*    |`jaiabot::dissolved_oxygen` ➔ `temperature`             |`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/temperature`             |
+
+##### **Timestamp Paths**
+| Units        | JDV Path                              | HDF5 Log Path                                                                   |
+|--------------|---------------------------------------|---------------------------------------------------------------------------------|
+|*Microseconds*|`jaiabot::dissolved_oxygen` ➔ `_utime_`|`/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/_utime_`|
+<br>
+
+
+### **Fluorometer Data**
+- *Description of Fluorometer fields here...* <br>
+- *Raw vs calculated, compensation equations etc...* <br>
+- *Measured via a **Turner Designs C Fluor**
+  - https://www.turnerdesigns.com/c-fluor-submersible-probes
+
+##### **Data Paths**
+| Data Field       | Unit   | Frequency | JDV Path                                       | HDF5 Log Path                                                                    |
+|------------------|--------|-----------|------------------------------------------------|----------------------------------------------------------------------------------|
+|**Conecntration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration`        |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |
+|**Sensor Voltage**|*V*     |*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration_voltage`|`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration_voltage`|
+
+##### **Timestamp Paths**
+| Units        | JDV Path                         | HDF5 Log Path                                                      |
+|--------------|----------------------------------|--------------------------------------------------------------------|
+|*Microseconds*|`jaiabot::fluorometer` ➔ `_utime_`|`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_`|
+<br>
+
 
 
 ## **Vehicle Data**
@@ -98,18 +167,16 @@
 - *Description of GPS fields here...* <br>
 - *GPS Accuracies, etc...* <br>
 
-
 ##### **Data Paths**
-| Data Field         | Unit  | Frequency | JDV Path                               | HDF5 Log Path                                                     |
-|--------------------|-------|-----------|----------------------------------------|-------------------------------------------------------------------|
-|**Latitude**|*Decimal °*|*5 Hz*|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lat`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat`|
-|**Longitude**|*Decimal °*|*5 Hz*|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lon`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon`|
-|**Speed Over Ground**|*m/s*|*5 Hz*|`goby::middleware::groups::gpsd::tpv` ➔ `speed`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/speed`|
-
+| Data Field          | Unit      | Frequency | JDV Path                                                 | HDF5 Log Path                                                                                        |
+|---------------------|-----------|-----------|----------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+|**Latitude**         |*Decimal °*|*5 Hz*     |`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lat`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat`|
+|**Longitude**        |*Decimal °*|*5 Hz*     |`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `lon`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon`|
+|**Speed Over Ground**|*m/s*      |*5 Hz*     |`goby::middleware::groups::gpsd::tpv` ➔ `speed`           |`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/speed`       |
 
 ##### **Timestamp Paths**
-|Units| JDV Path                                                     | HDF5 Log Path                                                                                   |
-|-----|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Units        | JDV Path                                                     | HDF5 Log Path                                                                                   |
+|--------------|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
 |*Microseconds*|`goby::middleware::groups::gpsd::tpv` ➔ `location` ➔ `_utime_`|`/goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/_utime_`|
 <br>
 
@@ -118,18 +185,16 @@
 - *Description of GPS fields here...* <br>
 - *GPS Accuracies, etc...* <br>
   
-
 ##### **Data Paths**
-| Data Field | Unit | Frequency | JDV Path | HDF5 Log Path |
-|------------|------|-----------|----------|---------------|
-|**Heading**|*Decimal °*|*10 Hz*|`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `heading`|`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/heading`|
-|**Pitch**|*Decimal °*|*10 Hz*|`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `pitch`|`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/pitch`|
-|**Roll**|*Decimal °*|*10 Hz*|`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `roll`|`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/roll`|
-
+| Data Field | Unit      | Frequency | JDV Path                                                               | HDF5 Log Path                                               |
+|------------|-----------|-----------|------------------------------------------------------------------------|-------------------------------------------------------------|
+|**Heading** |*Decimal °*|*10 Hz*    |`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `heading`|`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/heading`|
+|**Pitch**   |*Decimal °*|*10 Hz*    |`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `pitch`  |`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/pitch`  |
+|**Roll**    |*Decimal °*|*10 Hz*    |`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `euler_angles` ➔ `roll`   |`/jaiabot::imu/jaiabot.protobuf.IMUData/euler_angles/roll`   |
 
 ##### **Timestamp Paths**
-|Units|JDV Path|HDF5 Log Path|
-|-----|--------|-------------|
+| Units        | JDV Path                                              | HDF5 Log Path                                  |
+|--------------|-------------------------------------------------------|------------------------------------------------|
 |*Microseconds*|`jaiabot::imu` ➔ `jaiabot.protobuf.IMUData` ➔ `_utime_`|`/jaiabot::imu/jaiabot.protobuf.IMUData/_utime_`|
 <br>
 
@@ -138,16 +203,14 @@
 - *Link to Mission State values breakdowns*
 - *Mission State explanation*
 
-
 ##### **Data Paths**
-| Data Field | Unit | Frequency | JDV Path | HDF5 Log Path |
-|------------|------|-----------|----------|---------------|
-|**Mission State**|*n/a*|*1 Hz*|`jaiabot::mission_report` ➔ `state`|`/jaiabot::mission_report/jaiabot.protobuf.MissionReport/state`|
-
+| Data Field      | Unit | Frequency | JDV Path                          | HDF5 Log Path                                                 |
+|-----------------|------|-----------|-----------------------------------|---------------------------------------------------------------|
+|**Mission State**|*n/a* |*1 Hz*     |`jaiabot::mission_report` ➔ `state`|`/jaiabot::mission_report/jaiabot.protobuf.MissionReport/state`|
 
 ##### **Timestamp Paths**
-|Units|JDV Path|HDF5 Log Path|
-|-----|--------|-------------|
+| Units        | JDV Path                            | HDF5 Log Path                                                   |
+|--------------|-------------------------------------|-----------------------------------------------------------------|
 |*Microseconds*|`jaiabot::mission_report` ➔ `_utime_`|`/jaiabot::mission_report/jaiabot.protobuf.MissionReport/_utime_`|
 <br>
 
@@ -155,28 +218,26 @@
 ### **Task Packets**
 - *Task Packet explanations*
 
-
 ##### **Data Paths**
-| Data Field | Unit | JDV Path | HDF5 Log Path |
-|------------|------|----------|---------------|
-|**Bot ID**|*Integer*|`jaiabot::task_packet;X` ➔ `bot_id`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/bot_id`|
-|**Start Time**|*Microseconds*|`jaiabot::task_packet;X` ➔ `start_time`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/start_time`|
-|**End Time**|*Microseconds*|`jaiabot::task_packet;X` ➔ `end_time`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/end_time`|
-|**Type**|*Integer*|`jaiabot::task_packet;X` ➔ `type`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/type`|
-|**Bottom Dive**|*Boolean*|`jaiabot::task_packet;X` ➔ `dive` ➔ `bottom_dive`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/bottom_dive`|
-|**Bottom Type**|*Boolean*|`jaiabot::task_packet;X` ➔ `dive` ➔ `bottom_type`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/bottom_type`|
-|**Depth Achieved**|*m*|`jaiabot::task_packet;X` ➔ `dive` ➔ `depth_achieved`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/depth_achieved`|
-|**Dive Rate**|*m/s*|`jaiabot::task_packet;X` ➔ `dive` ➔ `dive_rate`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/dive_rate`|
-|**Dive Start Location**|*Lat/Lon*|`jaiabot::task_packet;X` ➔ `dive` ➔ `start_location`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/start_location`|
-|**Drift Duration**|*Seconds*|`jaiabot::task_packet;X` ➔ `drift` ➔ `drift_duration`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/drift_duration`|
-|**Drift Start Location**|*Lat/Lon*|`jaiabot::task_packet;X` ➔ `drift` ➔ `start_location`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/start_location`|
-|**Drift End Location**|*Lat/Lon*|`jaiabot::task_packet;X` ➔ `drift` ➔ `end_location`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/end_location`|
-|**Estimated Drift**|*m*|`jaiabot::task_packet;X` ➔ `drift` ➔ `estimated_drift`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/estimated_drift`|
-
+| Data Field             | Unit         | JDV Path                                             | HDF5 Log Path                                                             |
+|------------------------|--------------|------------------------------------------------------|---------------------------------------------------------------------------|
+|**Bot ID**              |*Integer*     |`jaiabot::task_packet;X` ➔ `bot_id`                   |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/bot_id`               |
+|**Start Time**          |*Microseconds*|`jaiabot::task_packet;X` ➔ `start_time`               |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/start_time`           |
+|**End Time**            |*Microseconds*|`jaiabot::task_packet;X` ➔ `end_time`                 |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/end_time`             |
+|**Type**                |*Integer*     |`jaiabot::task_packet;X` ➔ `type`                     |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/type`                 |
+|**Bottom Dive**         |*Boolean*     |`jaiabot::task_packet;X` ➔ `dive` ➔ `bottom_dive`     |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/bottom_dive`     |
+|**Bottom Type**         |*Boolean*     |`jaiabot::task_packet;X` ➔ `dive` ➔ `bottom_type`     |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/bottom_type`     |
+|**Depth Achieved**      |*m*           |`jaiabot::task_packet;X` ➔ `dive` ➔ `depth_achieved`  |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/depth_achieved`  |
+|**Dive Rate**           |*m/s*         |`jaiabot::task_packet;X` ➔ `dive` ➔ `dive_rate`       |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/dive_rate`       |
+|**Dive Start Location** |*Lat/Lon*     |`jaiabot::task_packet;X` ➔ `dive` ➔ `start_location`  |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/dive/start_location`  |
+|**Drift Duration**      |*Seconds*     |`jaiabot::task_packet;X` ➔ `drift` ➔ `drift_duration` |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/drift_duration` |
+|**Drift Start Location**|*Lat/Lon*     |`jaiabot::task_packet;X` ➔ `drift` ➔ `start_location` |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/start_location` |
+|**Drift End Location**  |*Lat/Lon*     |`jaiabot::task_packet;X` ➔ `drift` ➔ `end_location`   |`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/end_location`   |
+|**Estimated Drift**     |*m*           |`jaiabot::task_packet;X` ➔ `drift` ➔ `estimated_drift`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/drift/estimated_drift`|
 
 ##### **Timestamp Paths**
-|Units|JDV Path|HDF5 Log Path|
-|-----|--------|-------------|
+| Units        | JDV Path                           | HDF5 Log Path                                               |
+|--------------|------------------------------------|-------------------------------------------------------------|
 |*Microseconds*|`jaiabot::task_packet;X` ➔ `_utime_`|`/jaiabot::task_packet;X/jaiabot.protobuf.TaskPacket/_utime_`|
 <br>
 
@@ -184,23 +245,21 @@
 ### **Bot Status**
 - *Bot Status explanations*
   
-
 ##### **Data Paths**
-| Data Field | Unit | Frequency | JDV Path | HDF5 Log Path |
-|------------|------|-----------|----------|---------------|
-|**Battery Charge**|*%*|*1 Hz*|`jaiabot::bot_status;X` ➔ `battery_percent`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/battery_percent`|
-|**Bot ID**|*Integer*|*1 Hz*|`jaiabot::bot_status;X` ➔ `battery_percent`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/bot_id`|
-|**Depth**|*m*|*1 Hz*|`jaiabot::bot_status;X` ➔ `depth`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/depth`|
-|**Latitude**|*Decimal °*|*1 Hz*|`jaiabot::bot_status;X` ➔ `location` ➔ `lat`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lat`|
-|**Longitude**|*Decimal °*|*1 Hz*|`jaiabot::bot_status;X` ➔ `location` ➔ `lon`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lon`|
-|**Mission State**|*n/a*|*1 Hz*|`jaiabot::bot_status;X` ➔ `mission_state`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/mission_state`|
-|**Salinity**|*ppt*|*1 Hz*|`jaiabot::bot_status;X` ➔ `salinity`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/salinity`|
-|**Speed Over Ground**|*m/s*|*1 Hz*|`jaiabot::bot_status;X` ➔ `speed` ➔ `over_ground`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/speed/over_ground`|
-|**Temperature**|*°C*|*1 Hz*|`jaiabot::bot_status;X` ➔ `temperature`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/temperature`|
-
+| Data Field          | Unit      | Frequency | JDV Path                                        | HDF5 Log Path                                                        |
+|---------------------|-----------|-----------|-------------------------------------------------|----------------------------------------------------------------------|
+|**Battery Charge**   |*%*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/battery_percent`  |
+|**Bot ID**           |*Integer*  |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/bot_id`           |
+|**Depth**            |*m*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `depth`                |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/depth`            |
+|**Latitude**         |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lat`     |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lat`     |
+|**Longitude**        |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lon`     |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lon`     |
+|**Mission State**    |*n/a*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `mission_state`        |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/mission_state`    |
+|**Salinity**         |*ppt*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `salinity`             |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/salinity`         |
+|**Speed Over Ground**|*m/s*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `speed` ➔ `over_ground`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/speed/over_ground`|
+|**Temperature**      |*°C*       |*1 Hz*     |`jaiabot::bot_status;X` ➔ `temperature`          |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/temperature`      |
 
 ##### **Timestamp Paths**
-|Units|JDV Path|HDF5 Log Path|
-|-----|--------|-------------|
+| Units        | JDV Path                          | HDF5 Log Path                                             |
+|--------------|-----------------------------------|-----------------------------------------------------------|
 |*Microseconds*|`jaiabot::bot_status;X` ➔ `_utime_`|`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/_utime_`|
 <br>
