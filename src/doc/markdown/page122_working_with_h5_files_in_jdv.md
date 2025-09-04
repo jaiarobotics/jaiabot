@@ -259,6 +259,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 - *Bot Status explanations*
 - *Bot Status fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
   
+  
 ##### **Data Paths**
 | Data Field          | Unit      | Frequency | JDV Path                                        | HDF5 Log Path                                                       |
 |---------------------|-----------|-----------|-------------------------------------------------|---------------------------------------------------------------------|
