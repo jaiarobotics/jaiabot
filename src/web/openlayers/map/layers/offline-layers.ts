@@ -41,26 +41,30 @@ export class OfflineLayerManager {
 
     async refresh() {
         return jaiaAPI.getHubMaps().then((maps_directory) => {
-            if (
-                JSON.stringify(maps_directory?.maps?.map((map) => map.name)) !=
-                JSON.stringify(this.maps_directory?.maps?.map((map) => map.name))
-            ) {
-                const layers = maps_directory.maps.map((tileset) => {
+            const existing_offline_layers_by_name: { [key: string]: TileLayer<XYZ> } =
+                Object.fromEntries(
+                    this.layerGroup.getLayersArray().map((layer) => [layer.get("title"), layer]),
+                );
+
+            const layers = maps_directory.maps.map((map) => {
+                if (map.name in existing_offline_layers_by_name) {
+                    return existing_offline_layers_by_name[map.name];
+                } else {
                     return new TileLayer({
                         properties: {
-                            title: tileset.name,
+                            title: map.name,
                         },
                         opacity: 0.7,
                         zIndex: 20,
+                        visible: false,
                         source: new XYZ({
-                            url: `/maps/${tileset.name}/{z}/{x}/{y}`,
+                            url: `/maps/${map.name}/{z}/{x}/{y}`,
                         }),
                     });
-                });
+                }
+            });
 
-                this.layerGroup.setLayers(new Collection(layers));
-            }
-
+            this.layerGroup.setLayers(new Collection(layers));
             this.maps_directory = maps_directory;
             this.notify();
         });
