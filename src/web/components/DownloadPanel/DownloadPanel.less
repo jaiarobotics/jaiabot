@@ -1,0 +1,69 @@
+.download-panel-outer-container {
+    --toolbar-panels-top: 72px;
+    --toolbar-panels-right: 72px;
+
+    position: absolute;
+    top: var(--toolbar-panels-top);
+    right: var(--toolbar-panels-right);
+
+    max-height: calc(95vh - var(--toolbar-panels-top));
+    min-width: 300px;
+
+    overflow-y: auto;
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #767d7d;
+
+    z-index: 1;
+}
+
+.download-panel-inner-container {
+    --static-elements-total-height: 125px;
+    margin: 8pt;
+    font-size: 1.1rem;
+
+    max-height: calc(95vh - var(--static-elements-total-height));
+    overflow-y: auto;
+}
+
+.download-panel-accordion-inner-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    width: 100%;
+    height: auto;
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 2px 16px;
+    row-gap: 2px;
+}
+
+/* Download Queue CSS */
+.download-queue-inner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 8pt 8pt;
+    padding: 12px;
+    background-color: #767d7d;
+    font-size: 1.1rem;
+    overflow-y: auto;
+}
+
+.download-queue-card {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 9px 12px;
+    background-color: #ffffff;
+}
+
+.download-queue-empty {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
