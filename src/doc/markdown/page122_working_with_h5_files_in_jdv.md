@@ -229,6 +229,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 ### **Task Packets**
 - *Task Packet explanations*
+- *Task Packet fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
 
 ##### **Data Paths**
 | Data Field             | Unit         | JDV Path                                             | HDF5 Log Path                                                             |
@@ -256,19 +257,20 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 ### **Bot Status**
 - *Bot Status explanations*
+- *Bot Status fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
   
 ##### **Data Paths**
-| Data Field          | Unit      | Frequency | JDV Path                                        | HDF5 Log Path                                                        |
-|---------------------|-----------|-----------|-------------------------------------------------|----------------------------------------------------------------------|
-|**Battery Charge**   |*%*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/battery_percent`  |
-|**Bot ID**           |*Integer*  |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/bot_id`           |
-|**Depth**            |*m*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `depth`                |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/depth`            |
-|**Latitude**         |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lat`     |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lat`     |
-|**Longitude**        |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lon`     |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/location/lon`     |
-|**Mission State**    |*n/a*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `mission_state`        |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/mission_state`    |
-|**Salinity**         |*ppt*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `salinity`             |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/salinity`         |
-|**Speed Over Ground**|*m/s*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `speed` ➔ `over_ground`|`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/speed/over_ground`|
-|**Temperature**      |*°C*       |*1 Hz*     |`jaiabot::bot_status;X` ➔ `temperature`          |`/jaiabot::bot_status;14/jaiabot.protobuf.BotStatus/temperature`      |
+| Data Field          | Unit      | Frequency | JDV Path                                        | HDF5 Log Path                                                       |
+|---------------------|-----------|-----------|-------------------------------------------------|---------------------------------------------------------------------|
+|**Battery Charge**   |*%*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/battery_percent`  |
+|**Bot ID**           |*Integer*  |*1 Hz*     |`jaiabot::bot_status;X` ➔ `battery_percent`      |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/bot_id`           |
+|**Depth**            |*m*        |*1 Hz*     |`jaiabot::bot_status;X` ➔ `depth`                |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/depth`            |
+|**Latitude**         |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lat`     |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/location/lat`     |
+|**Longitude**        |*Decimal °*|*1 Hz*     |`jaiabot::bot_status;X` ➔ `location` ➔ `lon`     |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/location/lon`     |
+|**Mission State**    |*n/a*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `mission_state`        |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/mission_state`    |
+|**Salinity**         |*ppt*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `salinity`             |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/salinity`         |
+|**Speed Over Ground**|*m/s*      |*1 Hz*     |`jaiabot::bot_status;X` ➔ `speed` ➔ `over_ground`|`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/speed/over_ground`|
+|**Temperature**      |*°C*       |*1 Hz*     |`jaiabot::bot_status;X` ➔ `temperature`          |`/jaiabot::bot_status;X/jaiabot.protobuf.BotStatus/temperature`      |
 
 ##### **Timestamp Paths**
 | Units        | JDV Path                          | HDF5 Log Path                                             |
