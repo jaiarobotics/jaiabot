@@ -154,7 +154,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ### **Fluorometer Data**
 - *Description of Fluorometer fields here...* <br>
 - *Raw vs calculated, compensation equations etc...* <br>
-- *Measured via a **Turner Designs C Fluor**
+- *Measured via a **Turner Designs C Fluor***
   - https://www.turnerdesigns.com/c-fluor-submersible-probes
 
 ##### **Data Paths**
