@@ -25,6 +25,9 @@
 
 ## **Notes**
 
+##### **Updates:**
+*This file was generated and completed using data from JaiaBot Embedded Version 2.0.0. In the future, data fields and the path to reach them may change. This file will be kept up to date.*
+
 ##### **Timestamps:**
 *Timestamps are logged in Unix Time - the amount of microseconds since 1 January, 1970 - and can be found in the parent group's **\_utime_** field. Because values are measured, messages sent and received, and data logged at different times between sensors and boards, each group has its own "_utime_" field. For this reason, it's important to use the specific _utime_ field which corresponds to the data field of interest.*
 
@@ -258,7 +261,6 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ### **Bot Status**
 - *Bot Status explanations*
 - *Bot Status fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
-  
   
 ##### **Data Paths**
 | Data Field          | Unit      | Frequency | JDV Path                                        | HDF5 Log Path                                                       |
