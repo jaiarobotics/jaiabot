@@ -50,13 +50,13 @@ export default function DataOffloadPanel() {
     return (
         <div className="jaia-panel data-offload-panel">
             <div className="jaia-panel-title">Data Offload</div>
-            <div>
-                <Button onClick={handleDownloadCSV} className="button-jcc">
-                    Download CSV
-                </Button>
-                <Button onClick={handleClickedDownloadKMZ} className="button-jcc">
-                    Download KMZ
-                </Button>
+            <div className="button-row">
+                <button onClick={handleDownloadCSV} aria-label={"download-csv"}>
+                    CSV
+                </button>
+                <button onClick={handleClickedDownloadKMZ} aria-label={"download-kmz"}>
+                    KMZ
+                </button>
             </div>
             <div>
                 <Accordion className="accordion-container">
