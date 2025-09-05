@@ -858,6 +858,8 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
         missionSet.setMissionIDInEditMode(missionID);
     } else {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+        const waypoint = getWaypoint();
+        waypoint.setIsMovable(false);
     }
 
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
