@@ -396,6 +396,12 @@ jaiabot_apps = [
      'template': 'wifi_ufw_update.service.in',
      'runs_on': [Type.BOTH],
      'runs_when': Mode.RUNTIME},
+    {'exe': 'jaiabot_comms_manager',
+     'description': 'JaiaBot Comms Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_COMMS_MANAGER',
+     'runs_on': [Type.BOTH],
+     'wanted_by': 'jaiabot_health.service'},
 
     ## HUB Services ##
     

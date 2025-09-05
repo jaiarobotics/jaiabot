@@ -1,13 +1,15 @@
 from common import is_simulation, is_runtime
 from common import udp
+from common.hub import expected_hubs_from_inventory
 import common.bot
 import netifaces
 import math
 import json
+import ipaddress
 
 subnet_mask=0xFF00
 
-subnet_index={'xbee': 0, 'wifi': 1, 'iridium': 2}
+subnet_index={'xbee': 0, 'wifi': 1, 'iridium': 2, 'hub2hub': 3}
 num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 
 # first id is hub id
@@ -17,16 +19,33 @@ hub_node_id=0
 number_of_hubs_max=31
 number_of_bots_max=151
 
-all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
+default_hub_id=1
 
 # Broadcast is modem id = 0 in Goby, so increment vehicle id by 1 to get base modem id
 def base_modem_id(node_id):
     return node_id + 1
 
 def modem_id(link, node_id):
+    if link == 'hub2hub':
+        raise ValueError("Must use hub2hub_modem_id function for 'hub2hub' link")
     return base_modem_id(node_id) + subnet_index[link]*num_modems_in_subnet
 
+########
+# XBee #
+########
+
+def xbee_mac_slots(node_id):
+    slots = 'slot { src: ' + str(modem_id("xbee", node_id)) + ' slot_seconds: 0.1 }\n'
+    return slots
+
+########
+# Wifi #
+########
+
+all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
+
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
+    # TODO - consolidate with jaia-ip.py logic
     if node_id == hub_node_id:
         return '10.23.' + str(fleet_index) + '.' + str(hub_id + 10)
     else:
@@ -36,8 +55,7 @@ def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
 def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
     wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index, hub_id)
     if is_simulation():
-        # if this computer has an assigned IP address matching the expected runtime IP address, use the standard wifi IP addresses (VirtualBox fleet)
-        
+        # if this computer has an assigned IP address matching the expected runtime IP address, use the standard wifi IP addresses (VirtualBox fleet)        
         if runtime_wifi_ip_addr(this_node_id, fleet_index, hub_id) in all_local_ip_addresses:
             return wifi_ip
         # otherwise use localhost (for standard single machine sim)
@@ -51,23 +69,26 @@ def wifi_remotes(this_node_id, fleet_index, hub_id):
     first_node_id=0
     
     for node_id in range(first_node_id, number_of_bots_max+first_node_id+1):
-        if this_node_id != node_id:
+        # skip self and hub, we'll add the hub in later with wifi_hub_remotes
+        if this_node_id != node_id and node_id != hub_node_id:
             remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
     return remotes
 
 def wifi_hub_remotes(this_node_id, fleet_index):
     hub_eps=''
-    for hub_id in range(0, number_of_hubs_max):
-        hub_eps+='hub_endpoint: { hub_id: ' + str(hub_id) + ' remote { modem_id: ' + str(base_modem_id(hub_node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' } }\n'
+    broadcast_modem_id=0
+    for hub_id in expected_hubs_from_inventory():
+        # use broadcast ID so that UDP driver will transmit to all hubs in use
+        hub_eps+='# hub ' + str(hub_id) + '\nremote { modem_id: ' + str(broadcast_modem_id) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' }\n'
     return hub_eps
 
 def wifi_mac_slots(node_id):
     slots = 'slot { src: ' + str(modem_id("wifi", node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
     return slots
 
-def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(modem_id("xbee", node_id)) + ' slot_seconds: 0.1 }\n'
-    return slots
+###########
+# Iridium #
+###########
 
 def iridium_mac_slots(node_id):
     # SBD is rate 0 in the Goby driver
@@ -117,3 +138,48 @@ def iridium_rockblock_credentials():
         with(open('/etc/jaiabot/iridium.json') as f):            
             j = json.load(f)
             return (j["rockblock"]["username"], j["rockblock"]["password"])
+
+        
+###########
+# Hub2Hub #
+###########
+
+# Still allow hub_id = 0, so increment by 1 to avoid Goby Broadcast ID
+def hub2hub_modem_id(hub_id):
+    return hub_id + 1 + subnet_index['hub2hub']*num_modems_in_subnet
+
+def runtime_hub2hub_ip_addr(hub_id, fleet_index):
+    # TODO - consolidate with jaia-ip.py logic
+    ipv6 = ipaddress.ip_address(f'fd0f:77ac:4fdf:{fleet_index}::')
+    ipv6 += hub_id
+    ipv6 += 0*2**16
+    return str(ipv6)
+
+def has_cloudhub_vpn(fleet_index):
+    cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_index}', 'wg_cloudhub']
+    all_interfaces=netifaces.interfaces()
+    for iface in cloudhub_vpn_iface:
+        if iface in all_interfaces:
+            return True
+    return False
+
+def hub2hub_ip_addr(this_hub_id, hub_id, fleet_index):
+    hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_index)
+    if is_simulation():
+        # use localhost (for standard single machine sim)
+        return "::1"
+    else:
+        return hub2hub_ip
+    
+def hub2hub_remotes(this_hub_id, fleet_index):
+    remotes=''
+    first_hub_id=0
+    
+    for hub_id in range(first_hub_id, number_of_hubs_max):
+        if this_hub_id != hub_id:
+            remotes+='remote { modem_id: ' + str(hub_id + 1) + ' ip: "' + hub2hub_ip_addr(this_hub_id, hub_id, fleet_index)  + '" port: ' + str(udp.hub2hub_udp_port(hub_id)) + ' } \n'
+    return remotes
+
+def hub2hub_mac_slots(hub_id):
+    slots = 'slot { src: ' + str(hub2hub_modem_id(hub_id)) + ' slot_seconds: 0.1 max_frame_bytes: 1000 }\n'
+    return slots

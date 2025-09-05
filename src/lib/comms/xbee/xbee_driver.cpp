@@ -117,13 +117,48 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     hub_xbee_base_modem_id_ = jaiabot::comms::hub_base_modem_id;
     hub_xbee_modem_id_ = jaiabot::comms::hub_modem_id(config_extension().subnet_mask(),
                                                       jaiabot::protobuf::LINK_XBEE);
-
-    // if this is a hub, add itself as the active hub
-    // must happen before startup so the user serial number (ATUH/ATUL) is set correctly
-    if (config_extension().has_hub_id())
+    // if simulation, add XBee to Simulated XBee Network
+    if (is_in_sim)
     {
-        device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
-                         config_extension().hub_id(), config_extension().fleet_id());
+        std::string create_cmd = "CREATE " + driver_cfg_.serial_port().substr(5);
+        int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (fd == -1)
+        {
+            perror("socket");
+            return;
+        }
+
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        strcpy(addr.sun_path, "/tmp/sxbsim.sock");
+
+        const int retries = 5;
+        int retry_count = 0;
+        while (connect(fd, (sockaddr*)&addr, sizeof(addr)) == -1 && retry_count < retries)
+        {
+            if (errno == ENOENT || errno || ECONNREFUSED)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                ++retry_count;
+            }
+            else
+            {
+                perror("connect");
+                close(fd);
+                return;
+            }
+        }
+
+        ssize_t bytes_sent = write(fd, create_cmd.c_str(), create_cmd.size());
+        if (bytes_sent != static_cast<ssize_t>(create_cmd.size())) {
+            perror("write");
+        }
+        
+        char buffer[512];
+        ssize_t bytes_read = read(fd, buffer, sizeof(buffer));
+        // Blocks until response.
+
+        close(fd);
     }
 
     // if simulation, add XBee to Simulated XBee Network
@@ -175,23 +210,6 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
                     network_delay_slots, broadcast_multi_transmits, config_extension().fleet_id(),
                     config_extension().subnet_mask());
-
-    goby::acomms::protobuf::ModemTransmission init_hub_info;
-    auto& hub_info =
-        *init_hub_info.MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
-    if (!read_hub_info_file(hub_info))
-    {
-        glog.is_debug1() && glog << "No valid hub info file yet, will wait for hub to subscribe."
-                                 << std::endl;
-    }
-    else
-    {
-        glog.is_verbose() && glog << "Initializing hub info with: " << hub_info.ShortDebugString()
-                                  << std::endl;
-
-        set_active_hub_peer(hub_info.hub_id());
-        signal_receive(init_hub_info);
-    }
 }
 
 void jaiabot::comms::XBeeDriver::shutdown()
@@ -231,14 +249,8 @@ void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
                                              ->options()
                                              .GetExtension(dccl::field)
                                              .max();
-    if (msg.dest() == hub_xbee_base_modem_id_ && !have_active_hub_)
-    {
-        glog.is_warn() && glog << group(glog_out_group())
-                               << "Cannot send message to hub since we do not yet know which hub "
-                                  "is active (waiting on hub broadcast)"
-                               << std::endl;
-    }
-    else if (!(msg.frame_size() == 0 || msg.frame(0).empty()))
+
+    if (!(msg.frame_size() == 0 || msg.frame(0).empty()))
     {
         next_frame_ += msg.frame_size();
         if (next_frame_ > max_frame_counter)
@@ -375,8 +387,6 @@ void jaiabot::comms::XBeeDriver::serialize_modem_message(
         packet.set_frame_start(in.frame_start());
     if (in.acked_frame_size())
         packet.set_acked_frame(in.acked_frame(0));
-    if (config_extension().has_hub_id())
-        packet.set_hub_id(config_extension().hub_id());
 
     if (in.frame_size())
         packet.set_data(in.frame(0));
@@ -431,9 +441,6 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
         if (packet->has_data())
             out->add_frame(packet->data());
 
-        if (packet->has_hub_id())
-            update_active_hub(packet->hub_id(), out);
-
         return true;
     }
     catch (const std::exception& e)
@@ -441,63 +448,5 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
         glog.is_warn() && glog << group(glog_out_group())
                                << "Cannot parse modem message: " << e.what() << std::endl;
         return false;
-    }
-}
-
-void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
-                                                   goby::acomms::protobuf::ModemTransmission* out)
-{
-    auto& hub_info = *out->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
-    hub_info.set_hub_id(hub_id);
-    hub_info.set_modem_id(hub_xbee_modem_id_);
-
-    if (!have_active_hub_ || active_hub_id_ != hub_id)
-    {
-        glog.is_verbose() && glog << group(glog_in_group())
-                                  << "Updating active hub to hub_id: " << hub_id << std::endl;
-        hub_info.set_changed(true);
-
-        if (!write_hub_info_file(hub_info))
-            glog.is_warn() && glog << "Could not write hub info to: "
-                                   << config_extension().hub_info_location() << std::endl;
-
-        set_active_hub_peer(hub_id);
-    }
-}
-
-bool jaiabot::comms::XBeeDriver::read_hub_info_file(jaiabot::protobuf::HubInfo& hub_info)
-{
-    const char* hub_info_file = config_extension().hub_info_location().c_str();
-    const int read_fd = open(hub_info_file, O_RDONLY);
-    if (read_fd < 0)
-        return false;
-
-    google::protobuf::io::FileInputStream hub_info_is(read_fd);
-    const bool success = google::protobuf::TextFormat::Parse(&hub_info_is, &hub_info);
-    return success;
-}
-
-bool jaiabot::comms::XBeeDriver::write_hub_info_file(const jaiabot::protobuf::HubInfo& hub_info)
-{
-    const char* hub_info_file = config_extension().hub_info_location().c_str();
-    const int write_fd = open(hub_info_file, O_WRONLY | O_TRUNC | O_CREAT, 0600);
-    if (write_fd < 0)
-        return false;
-
-    google::protobuf::io::FileOutputStream hub_info_os(write_fd);
-    const bool success = google::protobuf::TextFormat::Print(hub_info, &hub_info_os);
-    return success;
-}
-
-void jaiabot::comms::XBeeDriver::set_active_hub_peer(int hub_id)
-{
-    active_hub_id_ = hub_id;
-    have_active_hub_ = true;
-
-    bool is_bot = !config_extension().has_hub_id();
-    if (is_bot) // for bots, swap the serial number corresponding to the new active hub
-    {
-        device_.add_peer(std::to_string(hub_xbee_base_modem_id_), jaiabot::comms::NodeType::HUB,
-                         hub_id);
     }
 }
