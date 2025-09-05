@@ -36,23 +36,17 @@ interface Props {
 }
 
 /**
- * Returns a string with a localized GB count from a number of bytes.  i.e. "2.6 GB"
+ * Return a human-readable data size value (i.e. "10.2 GB" or "356.2 MB")
  *
- * @param {number} bytes
- * @returns {string} The localized GB count, i.e. "2.6 GB"
+ * @param {number} bytes Number of bytes.
+ * @returns {string} Human-readable, localized description.
  */
-function GBString(bytes: number) {
-    return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
-}
-
-/**
- * Returns a string with a localized MB count from a number of bytes.  I.e. "2,567 MB"
- *
- * @param {number} bytes
- * @returns {string} The localized MB count, i.e. "2,567 MB"
- */
-function MBString(bytes: number) {
-    return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+function BytesString(bytes: number) {
+    if (bytes < 1e9) {
+        return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+    } else {
+        return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
+    }
 }
 
 /**
@@ -185,7 +179,7 @@ export function HubMapPanel(props: Props) {
         const estimatedSize = tileCount * 11000;
 
         CustomAlert.confirmAsync(
-            `Download visible ${tileLayer.get("title")} tiles.\nApproximate download size: ${GBString(estimatedSize)} (${tileCount} tiles).`,
+            `Download visible ${tileLayer.get("title")} tiles.\nApproximate download size: ${BytesString(estimatedSize)} (${tileCount} tiles).`,
             "Download to Hub",
             "Confirm",
         ).then((confirmed) => {
@@ -263,7 +257,7 @@ export function HubMapPanel(props: Props) {
                 <div className="heading-container">
                     <div className="heading">Offline Layers</div>
                     <div className="disk-space">
-                        Available: {GBString(mapsDirectory?.available_disk_bytes)}
+                        Available: {BytesString(mapsDirectory?.available_disk_bytes)}
                     </div>
                 </div>
                 <ul>
@@ -271,7 +265,7 @@ export function HubMapPanel(props: Props) {
                         return (
                             <li key={tileset.name}>
                                 <div className="name">{tileset.name}</div>
-                                <div className="size">({MBString(tileset.size)})</div>
+                                <div className="size">({BytesString(tileset.size)})</div>
                                 <div onClick={() => deleteLayerFromHub(tileset.name)}>
                                     <Icon path={mdiDelete}></Icon>
                                 </div>
