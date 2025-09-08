@@ -1,39 +1,25 @@
 /**
- * Starts a browser download of a file with string contents
+ * Triggers a browser download of data as a file.
  *
- * @param {string} data Contents written to file
- * @param {string} mimeType Informs the browser of the type of data being sent
- * @param {string} fileName Name given to the downloadable file
- * @returns {void}
+ * @param fileName Name of the downloaded file
+ * @param data Contents of the file (string or BlobPart)
+ * @param mimeType Optional MIME type (default "application/octet-stream")
  */
-export function downloadToFile(data: string, mimeType: string, fileName: string) {
-    const blob = new Blob([data], { type: mimeType });
-
-    let link = window.document.createElement("a");
-    link.href = window.URL.createObjectURL(blob);
-    // Construct filename dynamically and set to link.download
+export function downloadFile(
+    fileName: string,
+    data: string | BlobPart,
+    mimeType = "application/octet-stream",
+): void {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
     link.download = fileName;
+
+    // Append to DOM, trigger click, then clean up
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-}
 
-/**
- * Starts a browser download of a file with binary data contents
- *
- * @param {string} name Name given to the downloadable file
- * @param {BlobPart} data Contents written to file
- * @returns {void}
- */
-export function downloadBlobToFile(name: string, data: BlobPart) {
-    let a = document.createElement("a");
-    if (a.download !== undefined) {
-        a.download = name;
-    }
-    a.href = URL.createObjectURL(
-        new Blob([data], {
-            type: "application/octet-stream",
-        }),
-    );
-    a.dispatchEvent(new MouseEvent("click"));
+    // Release the object URL to avoid memory leaks
+    URL.revokeObjectURL(link.href);
 }

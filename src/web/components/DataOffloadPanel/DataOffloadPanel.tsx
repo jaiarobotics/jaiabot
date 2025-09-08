@@ -3,7 +3,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
 // Utilities
-import { downloadToFile, downloadBlobToFile } from "../../utils/download";
+import { downloadFile } from "../../utils/download";
 import { KMLDocument } from "../../utils/KMZExport";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { getCSV, getCSVFilename } from "../../utils/CSVExport";
@@ -30,7 +30,7 @@ export default function DataOffloadPanel() {
             fileDate = new Date(taskPackets.getTaskPackets()[0].start_time / 1e3);
         }
 
-        downloadBlobToFile(`taskPackets-${fileDate.toISOString()}.kmz`, await kmlDocument.getKMZ());
+        downloadFile(`taskPackets-${fileDate.toISOString()}.kmz`, await kmlDocument.getKMZ());
     };
 
     /**
@@ -41,7 +41,7 @@ export default function DataOffloadPanel() {
      */
     const handleDownloadCSV = async (event: React.MouseEvent<HTMLButtonElement>) => {
         const csvFilename = getCSVFilename(taskPackets.getTaskPackets());
-        downloadToFile(await getCSV(taskPackets.getTaskPackets()), "text/csv", csvFilename);
+        downloadFile(csvFilename, await getCSV(taskPackets.getTaskPackets()), "text/csv");
     };
 
     return (
