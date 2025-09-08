@@ -9,4 +9,5 @@ layersZIndexes.set(LayerTitles.MISSION_LAYER, 4);
 layersZIndexes.set(LayerTitles.RALLY_LAYER, 3);
 layersZIndexes.set(LayerTitles.DIVE_LAYER, 2);
 layersZIndexes.set(LayerTitles.DRIFT_LAYER, 2);
+layersZIndexes.set(LayerTitles.CONTOUR_LAYER, 2);
 layersZIndexes.set(LayerTitles.HUB_COMMS_LAYER, 1);
