@@ -1,13 +1,12 @@
 import DataOffloadQueue from "../DataOffloadQueue/DataOffloadQueue";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
-import { Button } from "@mui/material";
 
 // Utilities
 import { downloadToFile, downloadBlobToFile } from "../../utils/download";
-import { KMLDocument } from "../../shared/KMZExport";
+import { KMLDocument } from "../../utils/KMZExport";
 import { taskPackets } from "../../data/task_packets/task-packets";
-import { getCSV, getCSVFilename } from "../../shared/CSVExport";
+import { getCSV, getCSVFilename } from "../../utils/CSVExport";
 
 import "./DataOffloadPanel.less";
 
@@ -20,7 +19,7 @@ export default function DataOffloadPanel() {
      *
      * @returns {void}
      */
-    const handleClickedDownloadKMZ = async () => {
+    const handleDownloadKMZ = async () => {
         const kmlDocument = new KMLDocument();
 
         kmlDocument.setTaskPackets(taskPackets.getTaskPackets());
@@ -31,9 +30,7 @@ export default function DataOffloadPanel() {
             fileDate = new Date(taskPackets.getTaskPackets()[0].start_time / 1e3);
         }
 
-        const dateString = fileDate.toISOString();
-
-        downloadBlobToFile(`taskPackets-${dateString}.kmz`, await kmlDocument.getKMZ());
+        downloadBlobToFile(`taskPackets-${fileDate.toISOString()}.kmz`, await kmlDocument.getKMZ());
     };
 
     /**
@@ -54,7 +51,7 @@ export default function DataOffloadPanel() {
                 <button onClick={handleDownloadCSV} aria-label={"download-csv"}>
                     CSV
                 </button>
-                <button onClick={handleClickedDownloadKMZ} aria-label={"download-kmz"}>
+                <button onClick={handleDownloadKMZ} aria-label={"download-kmz"}>
                     KMZ
                 </button>
             </div>

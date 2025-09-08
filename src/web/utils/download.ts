@@ -9,7 +9,7 @@
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], { type: mimeType });
 
-    var link = window.document.createElement("a");
+    let link = window.document.createElement("a");
     link.href = window.URL.createObjectURL(blob);
     // Construct filename dynamically and set to link.download
     link.download = fileName;
