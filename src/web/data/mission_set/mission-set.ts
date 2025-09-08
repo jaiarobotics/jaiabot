@@ -1,6 +1,6 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { Speeds, GeographicCoordinate } from "../../types/protobuf-types";
+import { Speeds } from "../../types/protobuf-types";
 
 class MissionSet {
     private missions: Map<number, Mission>;
@@ -14,7 +14,7 @@ class MissionSet {
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
-        this.name = "Default_Mission_Set";
+        this.name = "";
     }
 
     getMissions() {
@@ -140,7 +140,7 @@ class MissionSet {
                 this.addMission(mission);
             });
         }
-
+        this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = targetMissionSet.missionSpeeds;
         this.name = targetMissionSet.name;
         return true;
