@@ -46,23 +46,24 @@ export class OfflineLayerManager {
                     this.layerGroup.getLayersArray().map((layer) => [layer.get("title"), layer]),
                 );
 
-            const layers = maps_directory.maps.map((map) => {
-                if (map.name in existing_offline_layers_by_name) {
-                    return existing_offline_layers_by_name[map.name];
-                } else {
-                    return new TileLayer({
-                        properties: {
-                            title: map.name,
-                        },
-                        opacity: 0.7,
-                        zIndex: 20,
-                        visible: false,
-                        source: new XYZ({
-                            url: `/maps/${map.name}/{z}/{x}/{y}`,
-                        }),
-                    });
-                }
-            });
+            const layers =
+                maps_directory?.maps?.map((map) => {
+                    if (map.name in existing_offline_layers_by_name) {
+                        return existing_offline_layers_by_name[map.name];
+                    } else {
+                        return new TileLayer({
+                            properties: {
+                                title: map.name,
+                            },
+                            opacity: 0.7,
+                            zIndex: 20,
+                            visible: false,
+                            source: new XYZ({
+                                url: `/maps/${map.name}/{z}/{x}/{y}`,
+                            }),
+                        });
+                    }
+                }) ?? [];
 
             this.layerGroup.setLayers(new Collection(layers));
             this.maps_directory = maps_directory;
