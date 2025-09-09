@@ -2,13 +2,14 @@ import JSZip from "jszip";
 
 import { LogTaskPacket } from "./log-messages";
 import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
-import bottomStrikeSvg from "../style/icons/bottomStrike.svg";
-import driftArrow1 from "../style/icons/drift-arrows/drift-arrow-1.svg";
-import driftArrow2 from "../style/icons/drift-arrows/drift-arrow-2.svg";
-import driftArrow3 from "../style/icons/drift-arrows/drift-arrow-3.svg";
-import driftArrow4 from "../style/icons/drift-arrows/drift-arrow-4.svg";
-import driftArrow5 from "../style/icons/drift-arrows/drift-arrow-5.svg";
-import driftArrow6 from "../style/icons/drift-arrows/drift-arrow-6.svg";
+import bottomStrikePng from "./kmz-icons/bottomStrike.png";
+import driftArrow0Png from "./kmz-icons/drift-arrow-0.png";
+import driftArrow1Png from "./kmz-icons/drift-arrow-1.png";
+import driftArrow2Png from "./kmz-icons/drift-arrow-2.png";
+import driftArrow3Png from "./kmz-icons/drift-arrow-3.png";
+import driftArrow4Png from "./kmz-icons/drift-arrow-4.png";
+import driftArrow5Png from "./kmz-icons/drift-arrow-5.png";
+
 /**
  * Generates the KML code for each feature in a task packet
  *
@@ -36,7 +37,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
     const bot_id = taskPacket.bot_id;
 
     // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
-    const diveIconUrl = "files/diveIcon.svg";
+    const diveIconUrl = "files/diveIcon.png";
 
     /**
      * Returns the drift icon index that should be displayed, given a drift speed.
@@ -60,7 +61,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
      */
     function getDriftArrowHeadUrl(drift: DriftPacket) {
         const driftArrowIndex = driftSpeedToBinIndex(drift.estimated_drift?.speed ?? 0.0);
-        return `files/drift-arrow-${driftArrowIndex}.svg`;
+        return `files/drift-arrow-${driftArrowIndex}.png`;
     }
 
     const dive = taskPacket.dive;
@@ -219,21 +220,21 @@ export class KMLDocument {
 
         var filesFolder = zip.folder("files");
 
-        const diveIconBlob = await fetch(bottomStrikeSvg).then((r) => r.blob());
-        filesFolder.file("diveIcon.svg", diveIconBlob);
+        const diveIconBlob = await fetch(bottomStrikePng).then((r) => r.blob());
+        filesFolder.file("diveIcon.png", diveIconBlob);
 
-        const driftArrowSvgs = [
-            driftArrow1,
-            driftArrow2,
-            driftArrow3,
-            driftArrow4,
-            driftArrow5,
-            driftArrow6,
+        const driftArrowPngs = [
+            driftArrow0Png,
+            driftArrow1Png,
+            driftArrow2Png,
+            driftArrow3Png,
+            driftArrow4Png,
+            driftArrow5Png,
         ];
 
-        for (let index = 0; index < driftArrowSvgs.length; index++) {
-            const driftArrowBlob = await fetch(driftArrowSvgs[index]).then((r) => r.blob());
-            filesFolder.file(`drift-arrow-${index}.svg`, driftArrowBlob);
+        for (let index = 0; index < driftArrowPngs.length; index++) {
+            const driftArrowBlob = await fetch(driftArrowPngs[index]).then((r) => r.blob());
+            filesFolder.file(`drift-arrow-${index}.png`, driftArrowBlob);
         }
 
         return await zip.generateAsync({ type: "blob" });
