@@ -91,6 +91,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
          python3-flask,
          python3-protobuf,
          python3-dataclasses-json,
+         python3-rasterio,
          python3-geopandas,
          python3-networkx
 Section: science

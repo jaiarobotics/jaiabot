@@ -3,7 +3,7 @@
 n_bots=4
 n_hubs=1
 warp=5
-comms_mode="x"
+comms_mode="w"
 
 script_dir=$(dirname $0)
 preseedfile=${script_dir}/preseed.goby
