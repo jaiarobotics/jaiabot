@@ -55,7 +55,6 @@ export class OfflineLayerManager {
                             properties: {
                                 title: map.name,
                             },
-                            opacity: 0.7,
                             zIndex: 20,
                             visible: false,
                             source: new XYZ({
