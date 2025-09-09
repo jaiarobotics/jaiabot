@@ -36,7 +36,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
     const bot_id = taskPacket.bot_id;
 
     // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
-    const diveIconUrl = "files/diveIcon.png";
+    const diveIconUrl = "files/diveIcon.svg";
 
     /**
      * Returns the drift icon index that should be displayed, given a drift speed.
@@ -60,7 +60,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
      */
     function getDriftArrowHeadUrl(drift: DriftPacket) {
         const driftArrowIndex = driftSpeedToBinIndex(drift.estimated_drift?.speed ?? 0.0);
-        return `files/drift-arrow-${driftArrowIndex}.png`;
+        return `files/drift-arrow-${driftArrowIndex}.svg`;
     }
 
     const dive = taskPacket.dive;
@@ -220,7 +220,7 @@ export class KMLDocument {
         var filesFolder = zip.folder("files");
 
         const diveIconBlob = await fetch(bottomStrikeSvg).then((r) => r.blob());
-        filesFolder.file("diveIcon.png", diveIconBlob);
+        filesFolder.file("diveIcon.svg", diveIconBlob);
 
         const driftArrowSvgs = [
             driftArrow1,
