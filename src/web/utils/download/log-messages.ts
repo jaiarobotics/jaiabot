@@ -1,4 +1,4 @@
-import { Command, TaskPacket } from "../types/protobuf-types";
+import { Command, TaskPacket } from "../../types/protobuf-types";
 
 /**
  * Messages stored in Jaia .goby and .h5 files that contain a few extra fields

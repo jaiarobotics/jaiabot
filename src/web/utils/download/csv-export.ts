@@ -1,5 +1,5 @@
-import { TaskPacket } from "../types/protobuf-types";
-import { LogTaskPacket } from "./LogMessages";
+import { TaskPacket } from "../../types/protobuf-types";
+import { LogTaskPacket } from "./log-messages";
 
 /**
  * Converts a Unix timestamp (microseconds) to an ISO date string.

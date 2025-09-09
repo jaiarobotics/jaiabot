@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
-import { LogTaskPacket } from "./LogMessages";
-import { DriftPacket, TaskPacket } from "../types/protobuf-types";
+import { LogTaskPacket } from "./log-messages";
+import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
 import bottomStrikeSvg from "../style/icons/bottomStrike.svg";
 import driftArrow1 from "../style/icons/drift-arrows/drift-arrow-1.svg";
 import driftArrow2 from "../style/icons/drift-arrows/drift-arrow-2.svg";

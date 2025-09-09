@@ -3,10 +3,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
 // Utilities
-import { downloadFile } from "../../utils/download";
-import { KMLDocument } from "../../utils/KMZExport";
+import { downloadFile } from "../../utils/download/download";
+import { KMLDocument } from "../../utils/download/kmz-export";
 import { taskPackets } from "../../data/task_packets/task-packets";
-import { getCSV, getCSVFilename } from "../../utils/CSVExport";
+import { getCSV, getCSVFilename } from "../../utils/download/csv-export";
 
 import "./DataOffloadPanel.less";
 
