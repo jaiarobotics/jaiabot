@@ -192,14 +192,5 @@ export default function Map() {
         });
     };
 
-    /**
-     * Checks to see if the selected waypoint is movable
-     *
-     * @returns {boolean} True if the waypoint is movable, false if not
-     */
-    const isWaypointMovable = () => {
-        return jaiaGlobal.getSelectedWaypoint().isMoveable;
-    };
-
     return <div id="map" data-testid="map"></div>;
 }
