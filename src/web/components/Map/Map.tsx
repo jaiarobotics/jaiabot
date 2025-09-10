@@ -3,7 +3,6 @@ import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { missionSet } from "../../data/mission_set/mission-set";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
@@ -15,7 +14,6 @@ import { view } from "../../openlayers/views/view";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
 
 import "./Map.less";
 
@@ -71,7 +69,7 @@ export default function Map() {
             }
         }
 
-        if (isWaypointMovable()) {
+        if (jaiaGlobal.getSelectedWaypoint().isMoveable) {
             handleMoveWaypointClick(event.coordinate);
             return;
         }
@@ -123,6 +121,7 @@ export default function Map() {
             clickedWaypoint: {
                 waypointNum: feature.get("waypointNum"),
                 missionID: feature.get("missionID"),
+                isMoveable: false,
             },
         });
     };
@@ -199,15 +198,7 @@ export default function Map() {
      * @returns {boolean} True if the waypoint is movable, false if not
      */
     const isWaypointMovable = () => {
-        if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
-            const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-            const waypoint = mission.getWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
-
-            if (waypoint.getIsMovable()) {
-                return true;
-            }
-        }
-        return false;
+        return jaiaGlobal.getSelectedWaypoint().isMoveable;
     };
 
     return <div id="map" data-testid="map"></div>;
