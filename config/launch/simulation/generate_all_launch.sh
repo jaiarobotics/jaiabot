@@ -29,9 +29,14 @@ if [ ! -z "$4" ]; then
     n_hubs="$4"
 fi
 
+cat <<EOF > ${launchfile}
+#!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
+
+EOF
 
 if [[ "$comms_mode" == *x* ]]; then
     jaia_comms_mode="xbee"
+    echo "./world_sim.launch" >> ${launchfile}
 fi
 if [[ "$comms_mode" == *w* ]]; then
     jaia_comms_mode="wifi"
@@ -50,14 +55,6 @@ cat <<EOF > ${preseedfile}
 export jaia_mode=simulation
 export jaia_comms_mode=${jaia_comms_mode}
 source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"
-EOF
-
-
-cat <<EOF > ${launchfile}
-#!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
-
-./world_sim.launch
-
 EOF
 
 for i in `seq 1 $((n_hubs))`; do
