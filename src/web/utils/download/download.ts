@@ -9,7 +9,7 @@ export function downloadFile(
     fileName: string,
     data: string | BlobPart,
     mimeType = "application/octet-stream",
-): void {
+) {
     const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
