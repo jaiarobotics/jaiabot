@@ -13,5 +13,6 @@ export function getArcGISSatelliteImageryLayer() {
                 "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community, ESRI",
             attributionsCollapsible: false,
         }),
+        visible: false,
     });
 }
