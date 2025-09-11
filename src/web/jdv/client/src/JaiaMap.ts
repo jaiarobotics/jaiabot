@@ -244,7 +244,6 @@ export default class JaiaMap {
                 new TileLayer({
                     properties: {
                         title: "OpenStreetMap",
-                        type: "base",
                     },
                     zIndex: 1,
                     source: new OSM(),
