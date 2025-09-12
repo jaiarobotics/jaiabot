@@ -2,7 +2,7 @@
 
 ## New Web Directories
 
-## `components`
+## components
 
 #### What lives inside this directory?
 
@@ -12,7 +12,7 @@
   - Button
   - InputElement
 
-## `containers`
+## containers
 
 #### What lives inside this directory?
 
@@ -22,7 +22,7 @@
   - SettingsPanel
   - MissionButtonRow
 
-## `context`
+## context
 
 #### What lives inside this directory?
 
@@ -32,7 +32,7 @@
   - PodContext
   - HubContext
 
-## `utils`
+## utils
 
 #### What lives inside this directory?
 
@@ -41,7 +41,7 @@
 
 # Context Structure
 
-### `GlobalContext`
+### GlobalContext
 
 - Contains general data pertaining to the view state of the interface
 - _Examples:_
@@ -49,16 +49,16 @@
   - `showHubDetails`
   - `hubAccordionStates`
 
-#### `PodContext`
+#### PodContext
 
 - Encapsulates `HubContext` and `BotContext`
 - Provides a location to store pod-wide data
 
-##### `HubContext`
+##### HubContext
 
 - Stores the `PortalHubStatus`
 
-##### `BotContext`
+##### BotContext
 
 - Coming soon
 

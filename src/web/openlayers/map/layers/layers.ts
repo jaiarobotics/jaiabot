@@ -1,7 +1,6 @@
 import VectorSource from "ol/source/Vector";
 import VectorLayer from "ol/layer/Vector";
 import LayerGroup from "ol/layer/Group";
-import { CustomLayerGroupFactory } from "./geotiffs/CustomLayers";
 import { createChartLayerGroup } from "./chart-layers";
 import { createBaseLayerGroup } from "./base-layers";
 import { Graticule } from "ol";
@@ -10,6 +9,7 @@ import * as Style from "ol/style";
 import * as Styles from "../../../shared/Styles";
 import { getBotPathColor } from "../../../shared/BotPathColors";
 import { EventEmitter } from "events";
+import { offlineLayerManager } from "./offline-layers";
 
 export class Layers {
     missionLayerSource = new VectorSource();
@@ -158,23 +158,14 @@ export class Layers {
 
     baseLayerGroup = createBaseLayerGroup();
     chartLayerGroup = createChartLayerGroup();
-    customLayerGroupFactory: CustomLayerGroupFactory;
+    offlineLayerGroup = offlineLayerManager.layerGroup;
     eventEmitter = new EventEmitter();
 
-    customLayerGroupIsReady = (customLayerGroup: LayerGroup) => {
-        this.emit(CustomLayerGroupFactory.customLayerGroupReady, customLayerGroup);
-    };
-
     getAllLayers() {
-        this.customLayerGroupFactory = new CustomLayerGroupFactory();
-        this.customLayerGroupFactory.on(
-            CustomLayerGroupFactory.customLayerGroupReady,
-            this.customLayerGroupIsReady,
-        );
-        this.customLayerGroupFactory.createCustomLayerGroup();
         return [
             this.baseLayerGroup,
             this.chartLayerGroup,
+            this.offlineLayerGroup,
             this.measurementLayerGroup,
             this.graticuleLayer,
             this.missionLayerGroup,

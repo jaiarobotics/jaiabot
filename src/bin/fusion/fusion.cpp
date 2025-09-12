@@ -41,7 +41,6 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -581,26 +580,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.set_pdop(sky.pdop());
             }
         });
-
-    // check for hub ID change and publish request for all intervehicle subscribers to (re)subscribe
-    // as the new hub may not have our subscriptions
-    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
-        [this](
-            const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg) {
-            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission))
-            {
-                const auto& hub_info =
-                    rx_msg.data().GetExtension(jaiabot::protobuf::transmission).hub();
-
-                glog.is_debug1() && glog << hub_info.ShortDebugString() << std::endl;
-
-                if (hub_info.changed())
-                {
-                    interprocess().publish<jaiabot::groups::intervehicle_subscribe_request>(
-                        hub_info);
-                }
-            }
-        });
+ 
     // subscribe for commands from mission manager
     interprocess()
         .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
