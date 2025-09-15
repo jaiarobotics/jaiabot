@@ -4,12 +4,10 @@ import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
-    private isMovable: boolean;
     private task: Task;
 
     constructor() {
         this.task = new Task();
-        this.isMovable = false;
     }
 
     getLocation() {
@@ -18,14 +16,6 @@ export default class Waypoint {
 
     setLocation(location: GeographicCoordinate) {
         this.location = location;
-    }
-
-    getIsMovable() {
-        return this.isMovable;
-    }
-
-    setIsMovable(isMovable: boolean) {
-        this.isMovable = isMovable;
     }
 
     getTask() {

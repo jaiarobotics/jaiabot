@@ -275,7 +275,7 @@ export default function WaypointPanel() {
                 <div className="toggle-row">
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
-                        checked={() => getWaypoint().getIsMovable()}
+                        checked={() => jaiaContext.selectedWaypoint.isMoveable}
                         disabled={() => isDisabled}
                         onClick={() => handleTapToMoveClick()}
                     />
