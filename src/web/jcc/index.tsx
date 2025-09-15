@@ -16,28 +16,35 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
-const statusURL = "http://localhost:40001/jaia/v0/status";
-const taskPacketURL = "http://localhost:40001/jaia/v0/task-packets";
+const STATUS_URL = "http://localhost:40001/jaia/v0/status";
+const TASK_PACKET_URL = "http://localhost:40001/jaia/v0/task-packets";
+const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const statusInterval = setInterval(async () => {
     try {
-        const response = await fetch(statusURL);
+        const response = await fetch(STATUS_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
-            updateBots(json.bots);
-            updateHubs(json.hubs);
-            updateOpenLayers();
+            if (json.messages.error) {
+                handleStatusError(json.messages.error);
+            } else {
+                updateBots(json.bots);
+                updateHubs(json.hubs);
+                updateOpenLayers();
+                updateDisconnectedWarning(false);
+            }
         }
     } catch (error) {
+        updateDisconnectedWarning(true);
         console.error(error);
     }
 }, DATA_MODEL_POLL_TIME);
 
 const taskPacketInterval = setInterval(async () => {
     try {
-        const response = await fetch(taskPacketURL);
+        const response = await fetch(TASK_PACKET_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
@@ -49,6 +56,18 @@ const taskPacketInterval = setInterval(async () => {
         console.error(error);
     }
 }, TASK_PACKET_POLL_TIME);
+
+/**
+ * Displays the warning coming from the server
+ *
+ * @param {string} error Error message from the web server
+ * @returns {void}
+ */
+function handleStatusError(error: string) {
+    if (error === HUB_CONNECTION_ERROR) {
+        updateDisconnectedWarning(true);
+    }
+}
 
 /**
  * Moves Bot data from the server to the client-side data model
@@ -97,6 +116,21 @@ function updateOpenLayers() {
 function updateTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+}
+
+/**
+ * Displays a warning to the operator when the connection to the Hub drops
+ *
+ * @param {boolean} isDisconnected State of client to server connection
+ * @returns {void}
+ */
+function updateDisconnectedWarning(isDisconnected: boolean) {
+    const connectionWarning = document.getElementById("connection-warning");
+    if (isDisconnected) {
+        connectionWarning.style.visibility = "visible";
+    } else {
+        connectionWarning.style.visibility = "hidden";
+    }
 }
 
 let element = document.getElementById("root");
