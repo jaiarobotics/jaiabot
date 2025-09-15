@@ -116,14 +116,20 @@ export default function Map() {
      * @returns {void}
      */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_WAYPOINT,
-            clickedWaypoint: {
-                waypointNum: feature.get("waypointNum"),
-                missionID: feature.get("missionID"),
-                isMoveable: false,
-            },
-        });
+        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+        if (
+            feature.get("missionID") != selectedWaypoint.missionID ||
+            feature.get("waypointNum") != selectedWaypoint.waypointNum
+        ) {
+            jaiaDispatch({
+                type: JaiaActions.CLICKED_WAYPOINT,
+                clickedWaypoint: {
+                    waypointNum: feature.get("waypointNum"),
+                    missionID: feature.get("missionID"),
+                    isMoveable: false,
+                },
+            });
+        }
     };
 
     /**

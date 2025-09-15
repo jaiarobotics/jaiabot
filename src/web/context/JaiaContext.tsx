@@ -31,7 +31,6 @@ import {
     TaskType,
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
-import { compareWaypoints } from "../utils/comparisons";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -881,7 +880,6 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
 function handleClickedTapToMove(mutableState: JaiaContextType) {
     mutableState.selectedWaypoint.isMoveable = !mutableState.selectedWaypoint.isMoveable;
     jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     return mutableState;
 }
 
