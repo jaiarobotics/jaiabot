@@ -90,24 +90,6 @@ export default function SystemButton(props: Props) {
         }
     };
 
-    /**
-     * Provides the CommandType for a bot based on system button type
-     *
-     * @returns {CommandType} Command that maps to the button
-     */
-    const getBotCommandType = () => {
-        if (props.node instanceof Bot) {
-            switch (props.type) {
-                case SystemButtonTypes.SHUTDOWN:
-                    return CommandType.SHUTDOWN;
-                case SystemButtonTypes.REBOOT:
-                    return CommandType.REBOOT_COMPUTER;
-                case SystemButtonTypes.RESTART_SERVICES:
-                    return CommandType.RESTART_ALL_SERVICES;
-            }
-        }
-    };
-
     const botCommandMap: Record<SystemButtonTypes, CommandType> = {
         [SystemButtonTypes.SHUTDOWN]: CommandType.SHUTDOWN,
         [SystemButtonTypes.REBOOT]: CommandType.REBOOT_COMPUTER,
