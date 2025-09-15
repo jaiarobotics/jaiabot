@@ -168,7 +168,6 @@ def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
     values = [b.depth for b in bottomDives]
     minValue = min(values)
     maxValue = max(values)
-    print(f"minValue: {minValue}    maxValue: {maxValue}")
 
     if minValue == maxValue:
         logging.warning('No contours to display, because all dives reach the same depth')
