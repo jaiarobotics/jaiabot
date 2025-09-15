@@ -8,18 +8,19 @@ import { Button } from "@mui/material";
 import { mdiPower, mdiRestart, mdiRestartAlert } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import Hub from "../../data/hubs/hub";
 import { SystemButtonTypes } from "../../types/jaia-system-types";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 interface Props {
-    bot: Bot;
+    node: Bot | Hub;
     type: SystemButtonTypes;
 }
 
 /**
- * Produces a system button for an individual Bot (Shutdown, Reboot, Restart Services).
+ * Produces a system button for an individual Bot or Hub (Shutdown, Reboot, Restart Services).
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SystemButton(props: Props) {
@@ -46,6 +47,7 @@ export default function SystemButton(props: Props) {
      * @returns {string} Aria label for the button
      */
     const getAriaLabel = () => {
+        //TODO form end of message based on node
         switch (props.type) {
             case SystemButtonTypes.SHUTDOWN:
                 return "shutdown-individual-bot";
@@ -94,6 +96,7 @@ export default function SystemButton(props: Props) {
      * @returns {CommandType} Command that maps to the button
      */
     const getCommandType = () => {
+        //TODO CommandType & HubCommandType have these commands.. find best syntax to use
         switch (props.type) {
             case SystemButtonTypes.SHUTDOWN:
                 return CommandType.SHUTDOWN;
@@ -110,6 +113,7 @@ export default function SystemButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        //TODO need to investigate what will disable hub commands and decide on strategy
         if (!isCommandAvailable(getCommandType(), props.bot.getMissionStatus().missionState)) {
             return DisabledCodes.MISSION_STATE;
         }
@@ -124,6 +128,7 @@ export default function SystemButton(props: Props) {
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
+        //TODO need to send bot or hub commnads depending on node
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const command: Command = {
