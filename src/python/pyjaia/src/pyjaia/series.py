@@ -33,7 +33,7 @@ class Series:
         self.hovertext = {}
 
     @staticmethod
-    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=set(), name="Untitled") -> "Series":
+    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=None, name="Untitled") -> "Series":
         """Load a Series object from a Jaia HDF5 log and a path.
 
         Args:
@@ -55,12 +55,13 @@ class Series:
                     `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state` will match the path
                     `jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state`
         """
+        invalid_values = invalid_values or set()
+
         series = Series(name)
 
         series.utime = []
         series.y_values = []
         series.hovertext = {}
-
 
         # If this path contains a semi-colon-delimited integer, we want to use a fuzzy search in case that part is different in this log file
         #   For example, the path 
