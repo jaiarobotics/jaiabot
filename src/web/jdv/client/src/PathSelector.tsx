@@ -1,6 +1,6 @@
-import { mdiArrowLeft } from "@mdi/js";
+import { mdiArrowLeft, mdiMagnify } from "@mdi/js";
 import React from "react";
-import { LogApi } from "./LogApi";
+import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "./LogApi";
 import Icon from "@mdi/react";
 
 interface PathSelectorProps {
@@ -13,9 +13,15 @@ interface PathSelectorState {
     logs: string[];
     chosen_path: string;
     next_path_segments: string[];
+    series_descriptors: SeriesDescriptor[];
+    search_results: SeriesDescriptor[];    
 }
 
-// Dropdown menu showing all of the available logs to choose from
+
+/**
+ * A selection dialog for choosing a path from a set of logs.
+ *
+ */
 export default class PathSelector extends React.Component {
     props: PathSelectorProps;
     state: PathSelectorState;
@@ -27,37 +33,142 @@ export default class PathSelector extends React.Component {
             logs: props.logs,
             chosen_path: "",
             next_path_segments: [],
+            series_descriptors: [],
+            search_results: [],
         };
     }
 
+    load_series_descriptors() {
+        LogApi.getAllSeriesDescriptors(this.state.logs).then((series_descriptors) => {
+            this.setState({ series_descriptors: series_descriptors });
+        });
+    }
+
     componentDidMount() {
+        this.load_series_descriptors()
         this.update_path_options(true);
+    }
+
+    
+    /**
+     * Update search results section to a given query.
+     *
+     * @param {string} query 
+     */
+    search(query: string){
+        function filter(series_descriptor: SeriesDescriptor): boolean {
+            return SeriesDescriptor_matchesString(series_descriptor, query);
+        }
+
+        function match_score(series_descriptor: SeriesDescriptor): number {
+            let score = 0;
+            const name = series_descriptor.name.toLowerCase();
+            const path = series_descriptor.path.toLowerCase();
+            const q = query.toLowerCase();
+
+            if (name === q) {
+                score += 100;
+            } else if (name.startsWith(q)) {
+                score += 50;
+            } else if (name.includes(q)) {
+                score += 10;
+            }
+
+            if (path === q) {
+                score += 80;
+            } else if (path.startsWith(q)) {
+                score += 40;
+            } else if (path.includes(q)) {
+                score += 8;
+            }
+
+            if (series_descriptor.description !== null) {
+                score += 1
+                if (series_descriptor.description.includes(q)) {
+                    score += 4;
+                }
+            }
+
+            return score;
+        }
+
+        this.setState({search_results: this.state.series_descriptors.filter(filter).sort((a, b) => match_score(b) - match_score(a))}); // Descending
+    }
+
+    renderSearchBar() {
+        return (
+            <div className="section">
+                <Icon
+                    path={mdiMagnify}
+                    size={1}
+                    style={{ verticalAlign: "middle" }}
+                ></Icon>
+                <input
+                    className="padded"
+                    type="text"
+                    placeholder="Search"
+                    onChange={(e) => {this.search(e.target.value)}}
+                ></input>
+            </div>
+        )
+    }
+
+    renderSearchResults() {
+        const resultsRows = this.state.search_results.map((series_descriptor, index) => {
+            return (
+                <div
+                    key={index}
+                    className="padded listItem vertical flexbox"
+                    onClick={() => {this.props.didSelectPath(series_descriptor.path)}}
+                >
+                    <div><b>{series_descriptor.name}</b></div>
+                    {series_descriptor.description && <div style={{fontSize: "smaller"}}>{series_descriptor.description}</div>}
+                    <div style={{fontSize: "smaller", color: "gray", fontStyle: "italic"}}>{series_descriptor.path}</div>
+                </div>
+            );
+        });
+
+        return (
+            <div className="section">
+                <div className="list">{resultsRows}</div>
+            </div>
+            )
+    }
+
+    
+    /** Unused for now */
+    renderPathBrowser() {
+        return [
+        <div className="section">
+            <div className="horizontal flexbox">
+                <button
+                    className="padded button"
+                    title="Back"
+                    onClick={this.backClicked.bind(this)}
+                >
+                    <Icon
+                        path={mdiArrowLeft}
+                        size={1}
+                        style={{ verticalAlign: "middle" }}
+                    ></Icon>
+                </button>
+                <div className="path padded">{this.state.chosen_path}</div>
+            </div>
+        </div>,
+
+        <div className="section">
+            <div className="list">{this.nextPathSegmentRows()}</div>
+        </div>
+        ]
     }
 
     render() {
         return (
             <div className="centered dialog vertical flexbox">
                 <div className="dialogHeader">Add Series</div>
-                <div className="section">
-                    <div className="horizontal flexbox">
-                        <button
-                            className="padded button"
-                            title="Back"
-                            onClick={this.backClicked.bind(this)}
-                        >
-                            <Icon
-                                path={mdiArrowLeft}
-                                size={1}
-                                style={{ verticalAlign: "middle" }}
-                            ></Icon>
-                        </button>
-                        <div className="path padded">{this.state.chosen_path}</div>
-                    </div>
-                </div>
+                {this.renderSearchBar()}
 
-                <div className="section">
-                    <div className="list">{this.nextPathSegmentRows()}</div>
-                </div>
+                {this.renderSearchResults()}
 
                 <div className="buttonSection section">
                     <button className="padded" onClick={this.cancelClicked.bind(this)}>

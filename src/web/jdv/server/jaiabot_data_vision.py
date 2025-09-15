@@ -66,6 +66,13 @@ def getFields():
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogStore.getFields(log_names, root_path))
 
+
+@app.route('/all-series-descriptors', methods=['GET'])
+def getAllSeriesDescriptors():
+    log_names = parseFilenames(request.args.get('log'))
+    return JSONResponse([series.to_dict() for series in jaialogStore.getAllSeriesDescriptors(log_names)])
+
+
 @app.route('/series', methods=['GET'])
 def getSeries():
     log_names = parseFilenames(request.args.get('log'))
