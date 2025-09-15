@@ -8,6 +8,7 @@ export enum LayerTitles {
     MISSION_LAYER = "mission-layer",
     DIVE_LAYER = "dive-layer",
     DRIFT_LAYER = "drift-layer",
+    CONTOUR_LAYER = "contour-layer",
     RALLY_LAYER = "rally-layer",
     MEASURE_LAYER = "measure-layer",
 }
