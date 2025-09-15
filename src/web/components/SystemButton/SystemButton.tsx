@@ -117,7 +117,7 @@ export default function SystemButton(props: Props) {
         if (props.node instanceof Hub) {
             switch (props.type) {
                 case SystemButtonTypes.SHUTDOWN:
-                    return HubCommandType.SHUTDOWN_COMPUTER; //TODO check command
+                    return HubCommandType.SHUTDOWN_COMPUTER;
                 case SystemButtonTypes.REBOOT:
                     return HubCommandType.REBOOT_COMPUTER;
                 case SystemButtonTypes.RESTART_SERVICES:

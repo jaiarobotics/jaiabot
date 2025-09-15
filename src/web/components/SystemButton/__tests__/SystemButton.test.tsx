@@ -49,7 +49,7 @@ const testCases: TestParams[] = [
 test.each(testCases)(
     "Click system button in enabled state",
     async ({ type, ariaLabel, buttonText }) => {
-        render(<SystemButton bot={bots.getBot(1)} type={type} />);
+        render(<SystemButton node={bots.getBot(1)} type={type} />);
         const button = screen.getByLabelText(ariaLabel);
         await userEvent.click(button);
         expect(screen.getByText("Confirm"));
@@ -59,7 +59,7 @@ test.each(testCases)(
 );
 
 test.each(testCases)("Click system button in enabled state", async ({ type, ariaLabel }) => {
-    render(<SystemButton bot={bots.getBot(2)} type={type} />);
+    render(<SystemButton node={bots.getBot(2)} type={type} />);
     const button = screen.getByLabelText(ariaLabel);
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
@@ -67,7 +67,7 @@ test.each(testCases)("Click system button in enabled state", async ({ type, aria
 });
 
 test.each(testCases)("Click the Cancel button", async ({ type, ariaLabel }) => {
-    render(<SystemButton bot={bots.getBot(1)} type={type} />);
+    render(<SystemButton node={bots.getBot(1)} type={type} />);
     const button = screen.getByLabelText(ariaLabel);
     await userEvent.click(button);
     const cancelButton = screen.getByText("Cancel");
@@ -76,7 +76,7 @@ test.each(testCases)("Click the Cancel button", async ({ type, ariaLabel }) => {
 });
 
 test.each(testCases)("Click the confirm button", async ({ type, ariaLabel, buttonText }) => {
-    render(<SystemButton bot={bots.getBot(1)} type={type} />);
+    render(<SystemButton node={bots.getBot(1)} type={type} />);
     const button = screen.getByLabelText(ariaLabel);
     await userEvent.click(button);
     // getAllByText captures tooltip and button
@@ -86,7 +86,7 @@ test.each(testCases)("Click the confirm button", async ({ type, ariaLabel, butto
 });
 
 test.each(testCases)("Click the Close button", async ({ type, ariaLabel }) => {
-    render(<SystemButton bot={bots.getBot(2)} type={type} />);
+    render(<SystemButton node={bots.getBot(2)} type={type} />);
     const button = screen.getByLabelText(ariaLabel);
     await userEvent.click(button);
     const closeButton = screen.getByText("Close");
