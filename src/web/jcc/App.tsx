@@ -37,6 +37,7 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
             </JaiaContextProvider>
+            <div id="connection-warning">Connection to Hub Dropped</div>
         </div>
     );
 }
