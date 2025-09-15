@@ -48,7 +48,7 @@ export function SystemDialog(props: DialogProps) {
         if (props.disabledCode === DisabledCodes.NONE) {
             return "";
         }
-        //TODO need to customize message based on node
+        // note: alert dialogs are only used for bot buttons
         const endMsg = "command cannot be sent because the Bot needs to be stopped.";
         switch (props.systemButton) {
             case SystemButtonTypes.SHUTDOWN:
