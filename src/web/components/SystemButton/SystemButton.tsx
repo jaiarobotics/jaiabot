@@ -108,24 +108,38 @@ export default function SystemButton(props: Props) {
         }
     };
 
-    /**
-     * Provides the HubCommandType for a hub based on system button type
-     *
-     * @returns {HubCommandType} Command that maps to the button
-     */
-    const getHubCommandType = () => {
-        if (props.node instanceof Hub) {
-            switch (props.type) {
-                case SystemButtonTypes.SHUTDOWN:
-                    return HubCommandType.SHUTDOWN_COMPUTER;
-                case SystemButtonTypes.REBOOT:
-                    return HubCommandType.REBOOT_COMPUTER;
-                case SystemButtonTypes.RESTART_SERVICES:
-                    return HubCommandType.RESTART_ALL_SERVICES;
-            }
-        }
+    const botCommandMap: Record<SystemButtonTypes, CommandType> = {
+        [SystemButtonTypes.SHUTDOWN]: CommandType.SHUTDOWN,
+        [SystemButtonTypes.REBOOT]: CommandType.REBOOT_COMPUTER,
+        [SystemButtonTypes.RESTART_SERVICES]: CommandType.RESTART_ALL_SERVICES,
     };
 
+    const hubCommandMap: Record<SystemButtonTypes, HubCommandType> = {
+        [SystemButtonTypes.SHUTDOWN]: HubCommandType.SHUTDOWN_COMPUTER,
+        [SystemButtonTypes.REBOOT]: HubCommandType.REBOOT_COMPUTER,
+        [SystemButtonTypes.RESTART_SERVICES]: HubCommandType.RESTART_ALL_SERVICES,
+    };
+
+    /**
+     * Provides the CommandType or HubCommandType for a bot or hub based on system button type
+     *
+     * @returns {CommandType} Command that maps to the button
+     *
+     * @notes Function is overloaded to satsify type checking downstream
+     *
+     */
+    function getCommandType(node: Bot, type: SystemButtonTypes): CommandType;
+    function getCommandType(node: Hub, type: SystemButtonTypes): HubCommandType;
+    function getCommandType(
+        node: Bot | Hub,
+        type: SystemButtonTypes,
+    ): CommandType | HubCommandType {
+        if (node instanceof Bot) {
+            return botCommandMap[type];
+        } else {
+            return hubCommandMap[type];
+        }
+    }
     /**
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
@@ -136,7 +150,10 @@ export default function SystemButton(props: Props) {
             return DisabledCodes.NONE;
         } else if (props.node instanceof Bot) {
             if (
-                !isCommandAvailable(getBotCommandType(), props.node.getMissionStatus().missionState)
+                !isCommandAvailable(
+                    getCommandType(props.node, props.type),
+                    props.node.getMissionStatus().missionState,
+                )
             ) {
                 return DisabledCodes.MISSION_STATE;
             }
@@ -151,20 +168,19 @@ export default function SystemButton(props: Props) {
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
-        if (dialogAction === DialogActions.CONFIRMED) {
-            if (props.node instanceof Bot) {
-                const botCommand: Command = {
-                    bot_id: props.node.getBotID(),
-                    type: getBotCommandType(),
-                };
-                sendBotCommand(botCommand);
-            } else if (props.node instanceof Hub) {
-                const hubCommand: CommandForHub = {
-                    hub_id: props.node.getHubID(),
-                    type: getHubCommandType(),
-                };
-                sendHubCommand(hubCommand);
-            }
+
+        if (dialogAction !== DialogActions.CONFIRMED) return;
+
+        if (props.node instanceof Bot) {
+            sendBotCommand({
+                bot_id: props.node.getBotID(),
+                type: getCommandType(props.node, props.type), // returns CommandType
+            });
+        } else if (props.node instanceof Hub) {
+            sendHubCommand({
+                hub_id: props.node.getHubID(),
+                type: getCommandType(props.node, props.type), // returns HubCommandType
+            });
         }
     };
 
