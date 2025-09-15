@@ -118,8 +118,8 @@ export default function Map() {
     const handleWaypointClick = (feature: Feature<Geometry>) => {
         const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
         if (
-            feature.get("missionID") != selectedWaypoint.missionID ||
-            feature.get("waypointNum") != selectedWaypoint.waypointNum
+            feature.get("missionID") !== selectedWaypoint.missionID ||
+            feature.get("waypointNum") !== selectedWaypoint.waypointNum
         ) {
             jaiaDispatch({
                 type: JaiaActions.CLICKED_WAYPOINT,
