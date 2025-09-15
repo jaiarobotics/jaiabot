@@ -1,8 +1,6 @@
 import * as ReactDOM from "react-dom/client";
 import App from "./App";
 
-import { fromLonLat } from "ol/proj";
-
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { taskPackets } from "../data/task_packets/task-packets";
@@ -12,6 +10,7 @@ import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../openlayers/layers/vector/drift-layer";
+import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
 
@@ -116,6 +115,7 @@ function updateOpenLayers() {
 function updateTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    contourLayer.updateFeatures();
 }
 
 /**
