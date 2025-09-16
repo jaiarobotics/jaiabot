@@ -1,9 +1,9 @@
 /**
- * Triggers a browser download of data as a file.
+ * Triggers a browser download of data as a file
  *
- * @param fileName Name of the downloaded file
- * @param data Contents of the file (string or BlobPart)
- * @param mimeType Optional MIME type (default "application/octet-stream")
+ * @param {string} fileName Name of the downloaded file
+ * @param {string | BlobPart} data Contents of the file
+ * @param {string} mimeType Optional MIME type (default "application/octet-stream")
  * @returns {void}
  */
 export function downloadFile(

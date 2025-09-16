@@ -15,7 +15,7 @@ import "./DataOffloadPanel.less";
  */
 export default function DataOffloadPanel() {
     /**
-     * Prepares a KML document for download
+     * Initiates KMZ download of task packet data
      *
      * @returns {void}
      */
@@ -25,8 +25,7 @@ export default function DataOffloadPanel() {
     };
 
     /**
-     * Event handler for the CSV dowload button.
-     * Creates the CSV file and initiates the download.
+     * Initiates CSV download of task packet data
      *
      * @returns {void}
      */
