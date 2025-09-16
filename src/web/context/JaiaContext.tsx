@@ -31,7 +31,6 @@ import {
     TaskType,
 } from "../types/protobuf-types";
 import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
-import { compareWaypoints } from "../utils/comparisons";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -480,7 +479,11 @@ function handleAddWaypoint(mutableState: JaiaContextType, location: GeographicCo
 function handleDeleteWaypoint(mutableState: JaiaContextType) {
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
-    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+    jaiaGlobal.setSelectedWaypoint({
+        waypointNum: UNASSIGNED_ID,
+        missionID: UNASSIGNED_ID,
+        isMoveable: false,
+    });
 
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.NONE;
@@ -858,8 +861,7 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
         missionSet.setMissionIDInEditMode(missionID);
     } else {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        const waypoint = getWaypoint();
-        waypoint.setIsMovable(false);
+        resetSelectedWaypoint(mutableState);
     }
 
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
@@ -876,8 +878,8 @@ function handleClickedEditMission(mutableState: JaiaContextType, missionID: numb
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedTapToMove(mutableState: JaiaContextType) {
-    const waypoint = getWaypoint();
-    waypoint.setIsMovable(!waypoint.getIsMovable());
+    mutableState.selectedWaypoint.isMoveable = !mutableState.selectedWaypoint.isMoveable;
+    jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
     return mutableState;
 }
 
@@ -935,11 +937,6 @@ function handleClickedButton(mutableState: JaiaContextType, type: ButtonTypes, n
  * @returns {JaiaContextType} Updated mutable state object
  */
 function handleClickedWaypoint(mutableState: JaiaContextType, clickedWaypoint: SelectedWaypoint) {
-    const previousWaypoint = getWaypoint();
-    if (previousWaypoint && !compareWaypoints(jaiaGlobal.getSelectedWaypoint(), clickedWaypoint)) {
-        previousWaypoint.setIsMovable(false);
-    }
-
     jaiaGlobal.setSelectedWaypoint(clickedWaypoint);
 
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -1064,13 +1061,11 @@ function getWaypoint() {
  * @returns {void}
  */
 function resetSelectedWaypoint(mutableState: JaiaContextType) {
-    const waypoint = getWaypoint();
-
-    if (waypoint) {
-        waypoint.setIsMovable(false);
-    }
-
-    jaiaGlobal.setSelectedWaypoint({ waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID });
+    jaiaGlobal.setSelectedWaypoint({
+        waypointNum: UNASSIGNED_ID,
+        missionID: UNASSIGNED_ID,
+        isMoveable: false,
+    });
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }
 
