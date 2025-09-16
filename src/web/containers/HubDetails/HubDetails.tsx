@@ -1,7 +1,8 @@
 // React -- Jaia
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { JaiaActions } from "../../context/jaia-actions";
 import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/JaiaContext";
+import SystemButton from "../../components/SystemButton/SystemButton";
 
 // Utilities
 import {
@@ -17,7 +18,6 @@ import { SystemButtonTypes } from "../../types/jaia-system-types";
 
 // Styles
 import Button from "@mui/material/Button";
-import SystemButton from "../../components/SystemButton/SystemButton";
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
