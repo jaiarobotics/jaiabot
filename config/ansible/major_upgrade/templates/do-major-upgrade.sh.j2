@@ -26,6 +26,8 @@ if [ "${rootfstype}" = "overlay" ]; then
     pivot_root ${old_ro_rootfs_mountpoint} ${old_ro_rootfs_mountpoint}/oldroot
     for i in dev proc sys run boot/firmware var/log media/root-rw; do mount --move /oldroot/$i /$i; done
     systemctl daemon-reload
+    cd /
+    umount -l /oldroot
 else
     ## AWS AMI
     mount $(blkid -L overlay) ${old_rw_overlay_mountpoint}
@@ -41,6 +43,7 @@ mv /etc/overlayroot.conf /etc/overlayroot.conf.bak
 ###############################
 
 rm -rf ${new_ro_rootfs_mountpoint}/*
+sync ${new_ro_rootfs_mountpoint}
 tar --xattrs --xattrs-include="*" -xz -f {{ rootfs_filename }} -C ${new_ro_rootfs_mountpoint}
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then

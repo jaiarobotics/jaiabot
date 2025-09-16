@@ -5,14 +5,28 @@
 
 - name: Download the upgrade image boot fs using wget
   get_url:
-    url: {{ upgrade_boot_url }}
-    dest: {{ upgrade_dir }}
-    checksum: {{ major_upgrade_bootfs_checksum }}
+    url: "{{ upgrade_boot_url }}"
+    dest: "{{ upgrade_dir }}"
+    checksum: "{{ major_upgrade_bootfs_checksum }}"
+    force: true
+  environment:
+    TMPDIR: "{{ upgrade_tmp_dir }}"
   throttle: 1
+  register: download_result
+  until: download_result is success
+  retries: 3
+  delay: 10
     
 - name: Download the upgrade image rootfs using wget
   get_url:
-    url: {{ upgrade_rootfs_url }}
-    dest: {{ upgrade_dir }}
-    checksum: {{ major_upgrade_rootfs_checksum }}
+    url: "{{ upgrade_rootfs_url }}"
+    dest: "{{ upgrade_dir }}"
+    checksum: "{{ major_upgrade_rootfs_checksum }}"
+    force: true
+  environment:
+    TMPDIR: "{{ upgrade_tmp_dir }}"
   throttle: 1
+  register: download_result
+  until: download_result is success
+  retries: 3
+  delay: 10
