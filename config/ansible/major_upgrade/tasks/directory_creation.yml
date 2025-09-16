@@ -13,3 +13,9 @@
   file:
     path: '{{ upgrade_tmp_dir }}'
     state: directory
+    mode: '1777'
+
+- name: Set ansible_remote_tmp directory
+  set_fact:
+    ansible_remote_tmp: "{{ upgrade_tmp_dir }}"
+
