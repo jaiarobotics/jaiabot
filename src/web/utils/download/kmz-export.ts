@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 
 import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
+import { timestampToISOString } from "../conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../constants";
 
 import diveMarker from "./kmz-icons/dive-marker.png";
@@ -24,6 +25,19 @@ function getDriftArrow(driftPacket: DriftPacket) {
     let driftIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
     driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
     return `${`files/drift-arrow-${driftIntensity}.png`}`;
+}
+
+/**
+ * Produces a filename to use for the KMZ file of task packets. The filename includes
+ * the date of the first task packet's start time.
+ *
+ * @param {TaskPacket[]} taskPackets Task packets to include in the KMZ file
+ * @returns {string} A filename in the format `taskPackets-[date].kmz`
+ */
+export function getKMZFilename(taskPackets: TaskPacket[]) {
+    const timestamp = taskPackets[0]?.start_time;
+    const fileDate = timestamp ? timestampToISOString(timestamp) : new Date().toISOString();
+    return `task-packets-${fileDate}.kmz`;
 }
 
 /**

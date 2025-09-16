@@ -1,18 +1,5 @@
 import { TaskPacket } from "../../types/protobuf-types";
-
-/**
- * Converts a Unix timestamp (microseconds) to an ISO date string
- *
- * @param {number} tMicroseconds Unix timestamp in microseconds since Unix epoch
- * @returns {string} Date string in ISO date format
- */
-function getISOString(tMicroseconds: number) {
-    if (!tMicroseconds) {
-        return "";
-    }
-
-    return new Date(tMicroseconds / 1000).toISOString();
-}
+import { timestampToISOString } from "../conversions";
 
 /**
  * Produces a filename to use for the CSV file of task packets. The filename includes
@@ -22,9 +9,9 @@ function getISOString(tMicroseconds: number) {
  * @returns {string} A filename in the format `taskPackets-[date].csv`
  */
 export function getCSVFilename(taskPackets: TaskPacket[]) {
-    const fileDate = taskPackets[0]?.start_time;
-    const fileDateString = fileDate ? getISOString(fileDate) : new Date().toISOString();
-    return `taskPackets-${fileDateString}.csv`;
+    const timestamp = taskPackets[0]?.start_time;
+    const fileDate = timestamp ? timestampToISOString(timestamp) : new Date().toISOString();
+    return `task-packets-${fileDate}.csv`;
 }
 
 /**
@@ -46,7 +33,7 @@ export async function getCSV(taskPackets: TaskPacket[]) {
             taskPacket.type.toString() ?? "",
             startLocation.lat?.toString() ?? "",
             startLocation.lon?.toString() ?? "",
-            getISOString(taskPacket.start_time),
+            timestampToISOString(taskPacket.start_time),
             String(taskPacket.dive?.bottom_dive ?? false),
             taskPacket.dive?.depth_achieved?.toFixed(3) ?? "",
             taskPacket.drift?.estimated_drift?.speed?.toFixed(3) ?? "",
