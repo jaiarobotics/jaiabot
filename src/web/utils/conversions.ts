@@ -11,3 +11,17 @@ export function microsecondsToSeconds(microseconds: number) {
 export function degreesToRadians(degrees: number) {
     return (degrees * Math.PI) / 180;
 }
+
+/**
+ * Converts a Unix timestamp (microseconds) to an ISO date string
+ *
+ * @param {number} tMicroseconds Unix timestamp in microseconds since Unix epoch
+ * @returns {string} Date string in ISO date format
+ */
+export function timestampToISOString(tMicroseconds: number) {
+    if (!tMicroseconds) {
+        return "";
+    }
+
+    return new Date(tMicroseconds / 1000).toISOString();
+}
