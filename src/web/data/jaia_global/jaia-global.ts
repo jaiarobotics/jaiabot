@@ -33,7 +33,11 @@ class JaiaGlobal {
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
-        this.selectedWaypoint = { waypointNum: UNASSIGNED_ID, missionID: UNASSIGNED_ID };
+        this.selectedWaypoint = {
+            waypointNum: UNASSIGNED_ID,
+            missionID: UNASSIGNED_ID,
+            isMoveable: false,
+        };
         this.selectedTaskPacket = {
             botID: UNASSIGNED_ID,
             startTime: 0,

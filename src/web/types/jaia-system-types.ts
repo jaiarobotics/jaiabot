@@ -21,6 +21,7 @@ export interface SelectedNode {
 export interface SelectedWaypoint {
     waypointNum: number;
     missionID: number;
+    isMoveable: boolean;
 }
 
 export interface SelectedRallyPoint {
