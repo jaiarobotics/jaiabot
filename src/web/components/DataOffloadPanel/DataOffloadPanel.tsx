@@ -46,16 +46,14 @@ export default function DataOffloadPanel() {
                     KMZ
                 </button>
             </div>
-            <div>
-                <Accordion className="accordion-container">
-                    <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
-                        Progress Queue
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <DataOffloadQueue />
-                    </AccordionDetails>
-                </Accordion>
-            </div>
+            <Accordion className="accordion-container">
+                <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
+                    Progress Queue
+                </AccordionSummary>
+                <AccordionDetails>
+                    <DataOffloadQueue />
+                </AccordionDetails>
+            </Accordion>
         </div>
     );
 }
