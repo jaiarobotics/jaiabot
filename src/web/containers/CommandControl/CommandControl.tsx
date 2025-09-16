@@ -24,6 +24,8 @@ import { BotListPanel } from "../BotListPanel/BotListPanel";
 import { Interactions } from "../../openlayers/map/interactions";
 import { GlobalActions } from "../../context/Global/GlobalActions";
 import { SettingsPanel } from "../SettingsPanel/SettingsPanel";
+import Map from "ol/Map";
+import { OSM } from "ol/source";
 import { RallyPointPanel } from "../RallyPointPanel/RallyPointPanel";
 import { TaskPacketPanel } from "../TaskPacketPanel/TaskPacketPanel";
 import { SurveyExclusions } from "../../missions/survey/survey-exclusions";
@@ -31,7 +33,6 @@ import { LoadMissionPanel } from "../LoadMissionPanel/LoadMissionPanel";
 import { SaveMissionPanel } from "../SaveMissionPanel/SaveMissionPanel";
 import { GoalSettingsPanel } from "../GoalSettings/GoalSettings";
 import { Save, GlobalSettings } from "../../missions/settings";
-import { CustomLayerGroupFactory } from "../../openlayers/map/layers/geotiffs/CustomLayers";
 import { MissionLibraryLocalStorage } from "../../utils/mission-library";
 import { playDisconnectReconnectSounds } from "../../style/audio/disconnect-sounds";
 import { error, success, warning, info } from "../../notifications/notifications";
@@ -115,6 +116,7 @@ import {
     mdiMagnifyMinusOutline,
     mdiRotate3dVariant,
     mdiDownloadMultiple,
+    mdiFileImport,
 } from "@mdi/js";
 import "./CommandControl.less";
 
@@ -122,6 +124,8 @@ import "./CommandControl.less";
 import cloneDeep from "lodash.clonedeep";
 import { HelpWindow } from "../HelpWindow/HelpWindow";
 import DepthContourPlot3D from "../DepthContourPlot3D/DepthContourPlot3D";
+import { offlineLayerManager } from "../../openlayers/map/layers/offline-layers";
+import { HubMapPanel } from "../HubMapPanel/HubMapPanel";
 
 const rallyIcon = require("../../shared/rally.svg") as string;
 
@@ -151,6 +155,7 @@ export enum PanelType {
     TASK_PACKET = "TASK_PACKET",
     SETTINGS = "SETTINGS",
     CONTACT_INFO = "CONTACT_INFO",
+    HUB_MAPS = "HUB_MAPS",
 }
 
 export enum Mode {
@@ -447,9 +452,6 @@ export default class CommandControl extends React.Component {
 
         // Map initializations
         map = createMap();
-        layers.on(CustomLayerGroupFactory.customLayerGroupReady, (customLayerGroup: LayerGroup) => {
-            map.getLayers().insertAt(2, customLayerGroup);
-        });
         this.interactions = new Interactions(this, map);
         map.addInteraction(this.interactions.pointerInteraction);
         map.addInteraction(this.interactions.translateInteraction);
@@ -731,15 +733,22 @@ export default class CommandControl extends React.Component {
     }
 
     setupMapLayersPanel() {
-        const mapLayersPanel = document.getElementById("mapLayers");
+        function renderPanel() {
+            const mapLayersPanel = document.getElementById("mapLayers");
 
-        if (mapLayersPanel == null) {
-            // Panel may not be visible, therefore the element is not present at the moment
-            return;
+            if (mapLayersPanel == null) {
+                // Panel may not be visible, therefore the element is not present at the moment
+                return;
+            }
+
+            OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
+            mapLayersPanel.addEventListener("click", handleLayerSwitcherClick);
         }
 
-        OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
-        mapLayersPanel.addEventListener("click", handleLayerSwitcherClick);
+        renderPanel();
+
+        // Add a listener to update the OlLayerSwitcher whenever the list of offline layers changes
+        offlineLayerManager.subscribe(renderPanel, "renderPanel");
 
         function handleLayerSwitcherClick(event: Event) {
             let targetElement = event.target as HTMLElement;
@@ -3811,6 +3820,7 @@ export default class CommandControl extends React.Component {
             </div>
         );
     }
+
     //
     // Render Helper Methods and Panels (End)
     //
@@ -4283,6 +4293,10 @@ export default class CommandControl extends React.Component {
                         zoomToPod={this.zoomToPod.bind(this)}
                     />
                 );
+                break;
+
+            case PanelType.HUB_MAPS:
+                visiblePanelElement = <HubMapPanel map={map} />;
                 break;
         }
 

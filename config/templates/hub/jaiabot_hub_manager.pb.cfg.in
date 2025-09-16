@@ -52,9 +52,20 @@ task_packet_buffer {
     }
 }
 
-expected_bots {
-    $expected_bots
+hub2hub_buffer
+{
+    ack_required: true
+    blackout_time: 0
+    max_queue: 10
+    newest_first: false
+    ttl: 600
+    value_base: 1
 }
+
+expected_hubs {
+    $expected_hubs
+}
+
 data_offload_script: "jaiahub-dataoffload.sh"
 log_staging_dir: "$bot_log_staging_dir"
 log_offload_dir: "$hub_log_offload_dir"

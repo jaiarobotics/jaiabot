@@ -37,11 +37,6 @@ const mockProps1: Props = {
 // Mock JaiaAPI, replace the hit method on the jaiaAPI instance
 jest.mock("../../../utils/jaia-api", () => require("../../../tests/__mocks__/jaiaAPI.mock.ts"));
 
-// Mock the CustomLayers, replace  createCustomLayerGroup
-jest.mock("../../../openlayers/map/layers/geotiffs/CustomLayers", () =>
-    require("../../../tests/__mocks__/customLayers.mock.ts"),
-);
-
 describe("JaiaAbout integration tests", () => {
     test("JaiaAbout panel opens when Jaia info button is clicked", async () => {
         await act(async () => {

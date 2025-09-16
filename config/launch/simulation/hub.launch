@@ -16,6 +16,7 @@ goby_logger <(../../gen/hub.py goby_logger)
 jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -vvv
 jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
 jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
+jaiabot_comms_manager <(../../gen/hub.py jaiabot_comms_manager)
 
 # Uncomment the following 2 lines to use opencpn
 # goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
