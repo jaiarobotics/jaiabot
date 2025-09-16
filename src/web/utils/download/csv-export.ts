@@ -15,6 +15,19 @@ function getISOString(tMicroseconds: number) {
 }
 
 /**
+ * Produces a filename to use for the CSV file of task packets. The filename includes
+ * the date of the first task packet's start time.
+ *
+ * @param {TaskPacket[]} taskPackets Task packets to include in the CSV file
+ * @returns {string} A filename in the format `taskPackets-[date].csv`
+ */
+export function getCSVFilename(taskPackets: TaskPacket[]) {
+    const fileDate = taskPackets[0]?.start_time;
+    const fileDateString = fileDate ? getISOString(fileDate) : new Date().toISOString();
+    return `taskPackets-${fileDateString}.csv`;
+}
+
+/**
  * Converts an array of task packets into a CSV file
  *
  * @param {TaskPacket[]} taskPackets Included in CSV file
@@ -47,17 +60,4 @@ export async function getCSV(taskPackets: TaskPacket[]) {
     }
 
     return csvText;
-}
-
-/**
- * Produces a filename to use for the CSV file of task packets. The filename includes
- * the date of the first task packet's start time.
- *
- * @param {TaskPacket[]} taskPackets Task packets to include in the CSV file
- * @returns {string} A filename in the format `taskPackets-[date].csv`
- */
-export function getCSVFilename(taskPackets: TaskPacket[]) {
-    const fileDate = taskPackets[0]?.start_time;
-    const fileDateString = fileDate ? getISOString(fileDate) : new Date().toISOString();
-    return `taskPackets-${fileDateString}.csv`;
 }
