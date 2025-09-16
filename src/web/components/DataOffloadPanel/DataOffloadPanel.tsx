@@ -4,9 +4,9 @@ import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
 // Utilities
 import { downloadFile } from "../../utils/download/download";
-import { KMLDocument } from "../../utils/download/kmz-export";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { getCSV, getCSVFilename } from "../../utils/download/csv-export";
+import { getKMZ } from "../../utils/download/kmz-export";
 
 import "./DataOffloadPanel.less";
 
@@ -20,17 +20,16 @@ export default function DataOffloadPanel() {
      * @returns {void}
      */
     const handleDownloadKMZ = async () => {
-        const kmlDocument = new KMLDocument();
-
-        kmlDocument.setTaskPackets(taskPackets.getTaskPackets());
-
         let fileDate = new Date();
         // Use the date of the first task packet, if present
-        if (taskPackets.getTaskPackets()[0]?.start_time !== undefined) {
+        if (taskPackets.getTaskPackets()[0]?.start_time) {
             fileDate = new Date(taskPackets.getTaskPackets()[0].start_time / 1e3);
         }
 
-        downloadFile(`taskPackets-${fileDate.toISOString()}.kmz`, await kmlDocument.getKMZ());
+        downloadFile(
+            `taskPackets-${fileDate.toISOString()}.kmz`,
+            await getKMZ(taskPackets.getTaskPackets()),
+        );
     };
 
     /**
@@ -39,7 +38,7 @@ export default function DataOffloadPanel() {
      *
      * @returns {void}
      */
-    const handleDownloadCSV = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleDownloadCSV = async () => {
         const csvFilename = getCSVFilename(taskPackets.getTaskPackets());
         downloadFile(csvFilename, await getCSV(taskPackets.getTaskPackets()), "text/csv");
     };

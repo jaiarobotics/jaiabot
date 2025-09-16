@@ -4,6 +4,7 @@
  * @param fileName Name of the downloaded file
  * @param data Contents of the file (string or BlobPart)
  * @param mimeType Optional MIME type (default "application/octet-stream")
+ * @returns {void}
  */
 export function downloadFile(
     fileName: string,

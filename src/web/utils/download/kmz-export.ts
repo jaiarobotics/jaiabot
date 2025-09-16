@@ -1,81 +1,61 @@
 import JSZip from "jszip";
 
-import { LogTaskPacket } from "./log-messages";
 import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
-import bottomStrikePng from "./kmz-icons/bottomStrike.png";
-import driftArrow0Png from "./kmz-icons/drift-arrow-0.png";
-import driftArrow1Png from "./kmz-icons/drift-arrow-1.png";
-import driftArrow2Png from "./kmz-icons/drift-arrow-2.png";
-import driftArrow3Png from "./kmz-icons/drift-arrow-3.png";
-import driftArrow4Png from "./kmz-icons/drift-arrow-4.png";
-import driftArrow5Png from "./kmz-icons/drift-arrow-5.png";
+import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../constants";
+
+import diveMarker from "./kmz-icons/dive-marker.png";
+import driftArrow0 from "./kmz-icons/drift-arrow-0.png";
+import driftArrow1 from "./kmz-icons/drift-arrow-1.png";
+import driftArrow2 from "./kmz-icons/drift-arrow-2.png";
+import driftArrow3 from "./kmz-icons/drift-arrow-3.png";
+import driftArrow4 from "./kmz-icons/drift-arrow-4.png";
+import driftArrow5 from "./kmz-icons/drift-arrow-5.png";
+
+// We omit the file:// so that the KMZ can be opened properly in Google Earth
+const DIVE_MARKER_URL = "files/dive-marker.png";
 
 /**
- * Generates the KML code for each feature in a task packet
+ * Produces the path to the correct drift icon based on drift speed
  *
- * @param {TaskPacket | LogTaskPacket} taskPacket The task packet to process into KML features
- * @returns {Promise<string[]>} A promise for an array of strings for each KML feature in `taskPacket`
+ * @param {DriftPacket} driftPacket Contains drift speed
+ * @returns {string} Path to drift icon
  */
-async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket) {
+function getDriftArrow(driftPacket: DriftPacket) {
+    let driftIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
+    driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
+    return `${`files/drift-arrow-${driftIntensity}.png`}`;
+}
+
+/**
+ * Generates the KML code for a task packet
+ *
+ * @param {TaskPacket} taskPacket Task packet to process into KML placemarks
+ * @returns {Promise<string[]>} A promise for an array of each KML placemark in a task packet
+ */
+function taskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
     let placemarks = [];
-
-    if ("_scheme_" in taskPacket && taskPacket._scheme_ !== 1) {
-        return [];
-    }
-
     const formatter = new Intl.DateTimeFormat("en-US", {
         dateStyle: "medium",
         timeStyle: "medium",
     });
 
-    let startTimeString = "Unknown";
-    if (taskPacket.start_time !== undefined) {
+    let startTimeString = "N/A";
+    if (taskPacket.start_time) {
         const startTime = new Date(taskPacket.start_time / 1e3);
         startTimeString = formatter.format(startTime);
     }
 
-    const bot_id = taskPacket.bot_id;
-
-    // We omit the file:// here, so that the KMZ can be opened properly in Google Earth
-    const diveIconUrl = "files/diveIcon.png";
-
-    /**
-     * Returns the drift icon index that should be displayed, given a drift speed.
-     *
-     * @param {number} driftSpeed Speed of the drift, in m/s
-     * @returns {number} Index into Styles.driftArrowPngs, of the icon sthat should represent this drift
-     */
-    function driftSpeedToBinIndex(driftSpeed: number) {
-        // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
-        // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
-        if (driftSpeed == null) return 0;
-
-        const binValueIncrement = 0.5;
-        return Math.floor(driftSpeed / binValueIncrement);
-    }
-    /**
-     * Returns the path to the appropriate embedded drift arrow icon PNG file
-     *
-     * @param {DriftPacket} drift packet whose speed will be used to find the appropriate icon
-     * @returns {string} path to the embedded drift arrow icon file
-     */
-    function getDriftArrowHeadUrl(drift: DriftPacket) {
-        const driftArrowIndex = driftSpeedToBinIndex(drift.estimated_drift?.speed ?? 0.0);
-        return `files/drift-arrow-${driftArrowIndex}.png`;
-    }
-
     const dive = taskPacket.dive;
-    if (dive != null && dive.depth_achieved != 0) {
+    if (dive && dive.depth_achieved !== 0) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`;
-        let depthMeasurementString = ``;
-
-        for (let i = 0; i < dive.measurement?.length; i++) {
-            depthMeasurementString += `
-                    Index: ${i + 1} <br />
-                    Mean-Depth: ${dive.measurement?.at(i)?.mean_depth?.toFixed(2)} m <br />
-                    Mean-Temperature: ${dive.measurement?.at(i)?.mean_temperature?.toFixed(2)} Celsius <br />
-                    Mean-Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
-                `;
+        let depthMeasurements = ``;
+        for (let i = 0; i < dive.measurement.length; i++) {
+            depthMeasurements += `
+                Index: ${i + 1} <br />
+                Mean-Depth: ${dive.measurement.at(i)?.mean_depth?.toFixed(2)} m <br />
+                Mean-Temperature: ${dive.measurement.at(i)?.mean_temperature?.toFixed(2)} Celsius <br />
+                Mean-Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
+            `;
         }
 
         placemarks.push(`
@@ -83,15 +63,15 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
                 <name>${depthString}</name>
                 <description>
                     <h2>Dive</h2>
-                    Bot-ID: ${bot_id}<br />
+                    Bot-ID: ${taskPacket.bot_id}<br />
                     Start: ${startTimeString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
-                    Duration-to-GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
-                    Unpowered-Rise-Rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
-                    Powered-Rise-Rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                    Duration-to-GPS: ${dive.duration_to_acquire_gps.toFixed(2)} s<br />
+                    Unpowered-Rise-Rate: ${dive?.unpowered_rise_rate?.toFixed(2)} m/s<br />
+                    Powered-Rise-Rate: ${dive?.powered_rise_rate?.toFixed(2)} m/s<br />
                     Bottom-Type: ${dive.bottom_type} <br />
-                    ${depthMeasurementString}
+                    ${depthMeasurements}
                 </description>
                 <Point>
                     <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
@@ -99,7 +79,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
                 <Style>
                     <IconStyle id="mystyle">
                     <Icon>
-                        <href>${diveIconUrl}</href>
+                        <href>${DIVE_MARKER_URL}</href>
                         <scale>0.5</scale>
                     </Icon>
                     </IconStyle>
@@ -109,20 +89,18 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
     }
 
     const drift = taskPacket.drift;
-    if (drift != null && drift.drift_duration != 0) {
-        const DEG = Math.PI / 180.0;
-        const speedString = `${drift.estimated_drift.speed?.toFixed(2)} m/s`;
+    if (drift && drift.drift_duration !== 0) {
+        const speedString = `${drift.estimated_drift.speed.toFixed(2)} m/s`;
         const heading = drift.estimated_drift.heading ?? 0.0;
-        const driftArrowIndex = driftSpeedToBinIndex(drift.estimated_drift.speed) ?? 0;
 
         const driftDescription = `
             <h2>Drift</h2>
-            Bot-ID: ${bot_id}<br />
+            Bot-ID: ${taskPacket.bot_id}<br />
             Start: ${startTimeString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
-            Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
-            Significant-Wave-Height: ${drift.significant_wave_height?.toFixed(2)} m<br />
+            Heading: ${drift.estimated_drift.heading.toFixed(2)} deg<br />
+            Significant-Wave-Height: ${drift.significant_wave_height.toFixed(2)} m<br />
             Wave-Period: N/A<br />
         `;
 
@@ -140,7 +118,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
                     <scale>1.0</scale>                   <!-- float -->
                     <heading>${heading}</heading>               <!-- float -->
                     <Icon>
-                        <href>${getDriftArrowHeadUrl(drift)}</href>
+                        <href>${getDriftArrow(drift)}</href>
                     </Icon>
                     <hotSpot x="0.5"  y="0.5"
                         xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
@@ -154,89 +132,52 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
 }
 
 /**
- * A KML/KMZ document
+ * Returns a KML string representing the KML document
  *
- * @class KMLDocument
- * @typedef {KMLDocument}
+ * @returns {Promise<string>} the KML document as a string
  */
-export class KMLDocument {
-    #taskPackets: (TaskPacket | LogTaskPacket)[];
+function getKML(taskPackets: TaskPacket[]) {
+    let placemarks = "";
 
-    constructor() {
-        this.#taskPackets = [];
+    for (const taskPacket of taskPackets) {
+        const taskPacketKML = taskPacketToKMLPlacemarks(taskPacket);
+        placemarks += taskPacketKML;
     }
 
-    /**
-     * Sets the task packets for the KML document
-     *
-     * @param {(TaskPacket | LogTaskPacket)[]} taskPackets Task packets to be used in KML document
-     * @returns {void}
-     */
-    setTaskPackets(taskPackets: (TaskPacket | LogTaskPacket)[]) {
-        this.#taskPackets = taskPackets;
+    return `<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
+            <Document>
+                ${placemarks}
+            </Document>
+        </kml>`;
+}
+
+/**
+ * Returns a Blob representing the KML document as a KMZ file
+ *
+ * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
+ */
+export async function getKMZ(taskPackets: TaskPacket[]) {
+    const kml = getKML(taskPackets);
+    const zip = new JSZip();
+    zip.file("doc.kml", kml);
+
+    const filesFolder = zip.folder("files");
+    const diveMarkerBlob = await fetch(diveMarker).then((res) => res.blob());
+    filesFolder.file("dive-marker.png", diveMarkerBlob);
+
+    const driftArrows = [
+        driftArrow0,
+        driftArrow1,
+        driftArrow2,
+        driftArrow3,
+        driftArrow4,
+        driftArrow5,
+    ];
+
+    for (let index = 0; index < driftArrows.length; index++) {
+        const driftArrowBlob = await fetch(driftArrows[index]).then((res) => res.blob());
+        filesFolder.file(`drift-arrow-${index}.png`, driftArrowBlob);
     }
 
-    /**
-     * Gets the array of task packets used in the KML
-     *
-     * @returns {(TaskPacket | LogTaskPacket)[]} The array of task packets used in the KML
-     */
-    getTaskPackets() {
-        return this.#taskPackets;
-    }
-
-    /**
-     * Returns a KML string representing the KML document
-     *
-     * @returns {Promise<string>} the KML document as a string
-     */
-    async getKML() {
-        let placemarksKML = "";
-
-        for (const taskPacket of this.#taskPackets) {
-            const taskPacketKML = await taskPacketToKMLPlacemarks(taskPacket);
-            placemarksKML += taskPacketKML;
-        }
-
-        return `
-            <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
-                <Document>
-                    ${placemarksKML}
-                </Document>
-            </kml>
-            `;
-    }
-
-    /**
-     * Returns a Blob representing the KML document as a KMZ file
-     *
-     * @returns {Promise<Blob>} A promise for a Blob containing the KMZ file
-     */
-    async getKMZ() {
-        const kmlFileString = await this.getKML();
-
-        var zip = new JSZip();
-        zip.file("doc.kml", kmlFileString);
-
-        var filesFolder = zip.folder("files");
-
-        const diveIconBlob = await fetch(bottomStrikePng).then((r) => r.blob());
-        filesFolder.file("diveIcon.png", diveIconBlob);
-
-        const driftArrowPngs = [
-            driftArrow0Png,
-            driftArrow1Png,
-            driftArrow2Png,
-            driftArrow3Png,
-            driftArrow4Png,
-            driftArrow5Png,
-        ];
-
-        for (let index = 0; index < driftArrowPngs.length; index++) {
-            const driftArrowBlob = await fetch(driftArrowPngs[index]).then((r) => r.blob());
-            filesFolder.file(`drift-arrow-${index}.png`, driftArrowBlob);
-        }
-
-        return await zip.generateAsync({ type: "blob" });
-    }
+    return await zip.generateAsync({ type: "blob" });
 }
