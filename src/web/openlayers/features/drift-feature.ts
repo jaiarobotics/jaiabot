@@ -10,6 +10,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
 import { degreesToRadians } from "../../utils/conversions";
+import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
 
 import driftMarker1 from "../../style/icons/drift-arrows/drift-arrow-1.svg";
 import driftMarker2 from "../../style/icons/drift-arrows/drift-arrow-2.svg";
@@ -22,8 +23,6 @@ enum TaskPacketColors {
     LIGHT = "white",
     DARK = "black",
 }
-
-const DRIFT_INTENSITY_INTERVAL = 0.5; // m/s
 
 let taskPacketColor = TaskPacketColors.LIGHT;
 
@@ -79,22 +78,21 @@ function generateDriftStyle(taskPacket: TaskPacket) {
  * @returns {string} Drift icon SVG
  */
 function getIconSource(driftPacket: DriftPacket) {
-    const drfitIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
+    let driftIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
+    driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
 
-    switch (drfitIntensity) {
+    switch (driftIntensity) {
         case 0:
             return driftMarker1;
         case 1:
-            return driftMarker1;
-        case 2:
             return driftMarker2;
-        case 3:
+        case 2:
             return driftMarker3;
-        case 4:
+        case 3:
             return driftMarker4;
-        case 5:
+        case 4:
             return driftMarker5;
-        case 6:
+        case 5:
             return driftMarker6;
     }
 }
