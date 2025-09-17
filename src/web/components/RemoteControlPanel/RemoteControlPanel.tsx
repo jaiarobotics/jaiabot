@@ -230,7 +230,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 <div className="remote-control-panel">
                     <AnalogStick
                         analogStickType={AnalogStickTypes.SINGLE}
-                        handleAnalogStickMove={handleAnalogStickMove}
+                        handleAnalogStickMove={(event) =>
+                            handleAnalogStickMove(event, AnalogStickTypes.SINGLE)
+                        }
                         onAnalogStickStop={onAnalogStickStop}
                     />
                     {RCSelectMenu}
@@ -241,13 +243,17 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 <div className="remote-control-panel">
                     <AnalogStick
                         analogStickType={AnalogStickTypes.LEFT}
-                        handleAnalogStickMove={handleAnalogStickMove}
+                        handleAnalogStickMove={(event) =>
+                            handleAnalogStickMove(event, AnalogStickTypes.LEFT)
+                        }
                         onAnalogStickStop={onAnalogStickStop}
                     />
                     {RCSelectMenu}
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
-                        handleAnalogStickMove={handleAnalogStickMove}
+                        handleAnalogStickMove={(event) =>
+                            handleAnalogStickMove(event, AnalogStickTypes.RIGHT)
+                        }
                         onAnalogStickStop={onAnalogStickStop}
                     />
                 </div>

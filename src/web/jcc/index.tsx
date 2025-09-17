@@ -15,8 +15,8 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
-const STATUS_URL = "http://localhost:40001/jaia/v0/status";
-const TASK_PACKET_URL = "http://localhost:40001/jaia/v0/task-packets";
+const STATUS_URL = "/jaia/v0/status";
+const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const statusInterval = setInterval(async () => {
