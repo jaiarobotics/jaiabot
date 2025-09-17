@@ -254,10 +254,13 @@ export default function BotDetails() {
                                     </AccordionSummary>
 
                                     <AccordionDetails className="accordion-details-buttons advanced-commands">
-                                        <SystemButton bot={bot} type={SystemButtonTypes.SHUTDOWN} />
-                                        <SystemButton bot={bot} type={SystemButtonTypes.REBOOT} />
                                         <SystemButton
-                                            bot={bot}
+                                            node={bot}
+                                            type={SystemButtonTypes.SHUTDOWN}
+                                        />
+                                        <SystemButton node={bot} type={SystemButtonTypes.REBOOT} />
+                                        <SystemButton
+                                            node={bot}
                                             type={SystemButtonTypes.RESTART_SERVICES}
                                         />
                                     </AccordionDetails>

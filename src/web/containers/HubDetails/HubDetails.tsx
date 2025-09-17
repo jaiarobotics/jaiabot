@@ -1,7 +1,8 @@
 // React -- Jaia
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { JaiaActions } from "../../context/jaia-actions";
 import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/JaiaContext";
+import SystemButton from "../../components/SystemButton/SystemButton";
 
 // Utilities
 import {
@@ -13,6 +14,7 @@ import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
+import { SystemButtonTypes } from "../../types/jaia-system-types";
 
 // Styles
 import Button from "@mui/material/Button";
@@ -23,14 +25,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import { ThemeProvider } from "@mui/material";
 import { Icon } from "@mdi/react";
-import {
-    mdiPower,
-    mdiRestart,
-    mdiRestartAlert,
-    mdiChartLine,
-    mdiWifiCog,
-    mdiWrenchCog,
-} from "@mdi/js";
+import { mdiChartLine, mdiWifiCog, mdiWrenchCog } from "@mdi/js";
 
 import "./HubDetails.less";
 
@@ -245,15 +240,9 @@ export default function HubDetails() {
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails className="accordion-details-buttons">
-                            <Button className="jaia-button">
-                                <Icon path={mdiPower} title="Shutdown" />
-                            </Button>
-                            <Button className="jaia-button">
-                                <Icon path={mdiRestartAlert} title="Reboot" />
-                            </Button>
-                            <Button className="jaia-button">
-                                <Icon path={mdiRestart} title="Restart Services" />
-                            </Button>
+                            <SystemButton node={hub} type={SystemButtonTypes.SHUTDOWN} />
+                            <SystemButton node={hub} type={SystemButtonTypes.REBOOT} />
+                            <SystemButton node={hub} type={SystemButtonTypes.RESTART_SERVICES} />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>

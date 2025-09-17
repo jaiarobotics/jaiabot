@@ -8,18 +8,31 @@ import { Button } from "@mui/material";
 import { mdiPower, mdiRestart, mdiRestartAlert } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import Hub from "../../data/hubs/hub";
 import { SystemButtonTypes } from "../../types/jaia-system-types";
-import { Command, CommandType } from "../../types/protobuf-types";
+import { CommandType, HubCommandType } from "../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, sendBotCommand, sendHubCommand } from "../../utils/commands";
 
 interface Props {
-    bot: Bot;
+    node: Bot | Hub;
     type: SystemButtonTypes;
 }
 
+const botCommands: Map<SystemButtonTypes, CommandType> = new Map([
+    [SystemButtonTypes.SHUTDOWN, CommandType.SHUTDOWN],
+    [SystemButtonTypes.REBOOT, CommandType.REBOOT_COMPUTER],
+    [SystemButtonTypes.RESTART_SERVICES, CommandType.RESTART_ALL_SERVICES],
+]);
+
+const hubCommands: Map<SystemButtonTypes, HubCommandType> = new Map([
+    [SystemButtonTypes.SHUTDOWN, HubCommandType.SHUTDOWN_COMPUTER],
+    [SystemButtonTypes.REBOOT, HubCommandType.REBOOT_COMPUTER],
+    [SystemButtonTypes.RESTART_SERVICES, HubCommandType.RESTART_ALL_SERVICES],
+]);
+
 /**
- * Produces a system button for an individual Bot (Shutdown, Reboot, Restart Services).
+ * Produces a system button for an individual Bot or Hub (Shutdown, Reboot, Restart Services).
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SystemButton(props: Props) {
@@ -46,13 +59,14 @@ export default function SystemButton(props: Props) {
      * @returns {string} Aria label for the button
      */
     const getAriaLabel = () => {
+        const node = props.node instanceof Bot ? "individual-bot" : "hub";
         switch (props.type) {
             case SystemButtonTypes.SHUTDOWN:
-                return "shutdown-individual-bot";
+                return "shutdown-" + node;
             case SystemButtonTypes.REBOOT:
-                return "reboot-individual-bot";
+                return "reboot-" + node;
             case SystemButtonTypes.RESTART_SERVICES:
-                return "restart-services-individual-bot";
+                return "restart-services-" + node;
         }
     };
 
@@ -89,28 +103,39 @@ export default function SystemButton(props: Props) {
     };
 
     /**
-     * Provides the CommandType based on system button type
+     * Provides the CommandType or HubCommandType for a Bot or Hub based on system button type
      *
-     * @returns {CommandType} Command that maps to the button
+     * @param {Bot | Hub} node Type of node for which the button applies
+     * @param {SystemButtonTypes} type Button to produce
+     * @returns {CommandType | HubCommandType} Command that maps to the button type
+     *
+     * @notes
+     * Function is overloaded to satsify type checking downstream
      */
-    const getCommandType = () => {
-        switch (props.type) {
-            case SystemButtonTypes.SHUTDOWN:
-                return CommandType.SHUTDOWN;
-            case SystemButtonTypes.REBOOT:
-                return CommandType.REBOOT_COMPUTER;
-            case SystemButtonTypes.RESTART_SERVICES:
-                return CommandType.RESTART_ALL_SERVICES;
+    function getCommandType(node: Bot, type: SystemButtonTypes): CommandType;
+    function getCommandType(node: Hub, type: SystemButtonTypes): HubCommandType;
+    function getCommandType(node: Bot | Hub, type: SystemButtonTypes) {
+        if (node instanceof Bot) {
+            return botCommands.get(type);
+        } else {
+            return hubCommands.get(type);
         }
-    };
-
+    }
     /**
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (!isCommandAvailable(getCommandType(), props.bot.getMissionStatus().missionState)) {
+        if (props.node instanceof Hub) {
+            return DisabledCodes.NONE;
+        }
+        if (
+            !isCommandAvailable(
+                getCommandType(props.node, props.type),
+                props.node.getMissionStatus().missionState,
+            )
+        ) {
             return DisabledCodes.MISSION_STATE;
         }
         return DisabledCodes.NONE;
@@ -125,12 +150,18 @@ export default function SystemButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
-        if (dialogAction === DialogActions.CONFIRMED) {
-            const command: Command = {
-                bot_id: props.bot.getBotID(),
-                type: getCommandType(),
-            };
-            sendBotCommand(command);
+        if (dialogAction !== DialogActions.CONFIRMED) return;
+
+        if (props.node instanceof Bot) {
+            sendBotCommand({
+                bot_id: props.node.getBotID(),
+                type: getCommandType(props.node, props.type),
+            });
+        } else if (props.node instanceof Hub) {
+            sendHubCommand({
+                hub_id: props.node.getHubID(),
+                type: getCommandType(props.node, props.type),
+            });
         }
     };
 

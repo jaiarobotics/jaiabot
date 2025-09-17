@@ -48,7 +48,7 @@ export function SystemDialog(props: DialogProps) {
         if (props.disabledCode === DisabledCodes.NONE) {
             return "";
         }
-
+        // Note: alert dialogs are only used for Bot buttons
         const endMsg = "command cannot be sent because the Bot needs to be stopped.";
         switch (props.systemButton) {
             case SystemButtonTypes.SHUTDOWN:
@@ -65,7 +65,7 @@ export function SystemDialog(props: DialogProps) {
     }
 
     return (
-        <div>
+        <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className={getClassName()}>
                     <Title disabledCode={props.disabledCode} />
