@@ -68,16 +68,12 @@ export default class PathSelector extends React.Component {
 
             if (name === q) {
                 score += 100;
-            } else if (name.startsWith(q)) {
-                score += 50;
             } else if (name.includes(q)) {
                 score += 10;
             }
 
             if (path === q) {
                 score += 80;
-            } else if (path.startsWith(q)) {
-                score += 40;
             } else if (path.includes(q)) {
                 score += 8;
             }

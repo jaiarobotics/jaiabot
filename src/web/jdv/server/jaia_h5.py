@@ -17,24 +17,6 @@ from dataclasses_json import dataclass_json
 l = logging.getLogger('jaia_h5')
 
 
-def get_title_from_path(path: str):
-    components = path.split('/')
-    if len(components) < 2:
-        l.warning(f'Not enough components in path: {path}')
-        return ''
-
-    components = components[1:]
-
-    message_type_components = components[0].split('.')
-
-    if len(message_type_components) < 1:
-        l.warning(f'Invalid path: {path}')
-        return ''
-
-    components[0] = components[0].split('.')[-1]
-    return '/'.join(components)
-
-
 # This lock is locked whenever a thread is checking to open an h5 file, potentially doing some goby -> h5 conversions
 # It is used because we don't want multiple python "threads" (they're not really threads but behave that way) to 
 # run goby log convert on the same log at the same time.
@@ -161,9 +143,14 @@ class JaiaH5FileSet:
                 return
 
             path_descriptor = path_descriptors.get_by_path(path)
-            name = path_descriptor.name if path_descriptor is not None else get_title_from_path(path)
-            description = path_descriptor.description if path_descriptor is not None else ''
-            seriesDescriptors.add(SeriesDescriptor(name=name, path=path, description=description))
+
+            series_descriptor = SeriesDescriptor(
+                name=path_descriptor.name,
+                path=path,
+                description=path_descriptor.description,
+            )
+
+            seriesDescriptors.add(series_descriptor)
 
         for h5_file in self.h5Files:
             h5_file.visititems(visit_path)
@@ -314,8 +301,8 @@ class JaiaH5FileSet:
         # Get the series from the logs
         for path in paths:
             l.info(f"Loading path: {path}")
-            series_descriptor = path_descriptors.get_by_path(path)
-            invalid_values = series_descriptor.invalid_values
+            path_descriptor = path_descriptors.get_by_path(path)
+            invalid_values = path_descriptor.invalid_values
 
             series = Series()
 
@@ -329,16 +316,15 @@ class JaiaH5FileSet:
 
             series.sort()
 
-            title = get_title_from_path(path)
-            y_axis_title = title
-            units = series_descriptor.units
+            y_axis_title = path_descriptor.name
+            units = path_descriptor.units
 
             if units is not None:
                 y_axis_title += f'\n({units})'
 
             series_list.append({
                 'path': path,
-                'title': title,
+                'title': path_descriptor.name,
                 'y_axis_title': y_axis_title,
                 '_utime_': series.utime,
                 'series_y': series.y_values,

@@ -71,7 +71,7 @@ export interface SeriesDescriptor {
 
 export function SeriesDescriptor_matchesString(seriesDescriptor: SeriesDescriptor, query: string): boolean {
     const lowerQuery = query.toLowerCase();
-    return seriesDescriptor.name.toLowerCase().includes(lowerQuery) || seriesDescriptor.path.toLowerCase().includes(lowerQuery) || seriesDescriptor.description.toLowerCase().includes(lowerQuery);
+    return seriesDescriptor.name.toLowerCase().includes(lowerQuery) || seriesDescriptor.path.toLowerCase().includes(lowerQuery) || seriesDescriptor.description?.toLowerCase()?.includes(lowerQuery);
 }
 
 
