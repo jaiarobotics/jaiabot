@@ -18,6 +18,40 @@ interface PathSelectorState {
 }
 
 
+function get_recent_series_descriptors(): SeriesDescriptor[] {
+    const recent_series = localStorage.getItem("recent_series");
+    if (recent_series == null) {
+        return [];
+    }
+
+    try {
+        const recent_series_list: SeriesDescriptor[] = JSON.parse(recent_series);
+        return recent_series_list;
+    } catch (e) {
+        console.error("Error parsing recent series from local storage:", e);
+        return [];
+    }
+}
+
+
+function push_series_to_recents(series_descriptor: SeriesDescriptor) {
+    let recent_series = get_recent_series_descriptors();
+
+    // Remove any existing entry for this series
+    recent_series = recent_series.filter((sd) => sd.path !== series_descriptor.path);
+
+    // Add to the front
+    recent_series.unshift(series_descriptor);
+
+    // Limit to 20 entries
+    if (recent_series.length > 20) {
+        recent_series = recent_series.slice(0, 20);
+    }
+
+    localStorage.setItem("recent_series", JSON.stringify(recent_series));
+}
+
+
 /**
  * A selection dialog for choosing a path from a set of logs.
  *
@@ -46,6 +80,7 @@ export default class PathSelector extends React.Component {
 
     componentDidMount() {
         this.load_series_descriptors()
+        this.search(""); // Load recents
         this.update_path_options(true);
     }
 
@@ -56,6 +91,12 @@ export default class PathSelector extends React.Component {
      * @param {string} query 
      */
     search(query: string){
+        // If query string is empty, then default to the recents list
+        if (query === "") {
+            this.setState({search_results: get_recent_series_descriptors()});
+            return;
+        }
+
         function filter(series_descriptor: SeriesDescriptor): boolean {
             return SeriesDescriptor_matchesString(series_descriptor, query);
         }
@@ -110,12 +151,17 @@ export default class PathSelector extends React.Component {
     }
 
     renderSearchResults() {
+        function clicked_series(series_descriptor: SeriesDescriptor) {
+            push_series_to_recents(series_descriptor);
+            this.props.didSelectPath(series_descriptor.path);
+        }
+
         const resultsRows = this.state.search_results.map((series_descriptor, index) => {
             return (
                 <div
                     key={index}
                     className="padded listItem vertical flexbox"
-                    onClick={() => {this.props.didSelectPath(series_descriptor.path)}}
+                    onClick={clicked_series.bind(this, series_descriptor)}
                 >
                     <div><b>{series_descriptor.name}</b></div>
                     {series_descriptor.description && <div style={{fontSize: "smaller"}}>{series_descriptor.description}</div>}
