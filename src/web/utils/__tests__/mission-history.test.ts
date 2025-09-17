@@ -15,6 +15,7 @@ test("exercise histroy buffer", () => {
     // Initialize a history buffer
     let missionHistory = createHistory();
     expect(missionHistory.index).toBe(UNASSIGNED_ID);
+    expect(missionHistory.head).toBe(0);
     expect(missionHistory.size).toBe(0);
     expect(getPresent(missionHistory)).toBeUndefined();
     // Verify Undo and Redo on empty history work
@@ -30,6 +31,9 @@ test("exercise histroy buffer", () => {
     mission1.setMissionID(1);
     pushHistory(missionHistory, { mission: mission1, description: "1st push" });
     expect(missionHistory.size).toBe(1);
+    expect(missionHistory.head).toBe(0);
+    expect(missionHistory.index).toBe(0);
+
     expect(getPresent(missionHistory).description).toBe("1st push");
     expect(getPresent(missionHistory).mission.getMissionID()).toBe(1);
     expect(peekUndoDescription(missionHistory)).toBe("1st push");
@@ -89,6 +93,7 @@ test("exercise histroy buffer", () => {
     expect(getPresent(missionHistory).mission.getMissionID()).toBe(MAX_MISSION_HISTORY + 1);
     expect(missionHistory.size).toBe(MAX_MISSION_HISTORY);
     expect(missionHistory.index).toBe(0);
+    expect(missionHistory.head).toBe(1);
     expect(peekUndoDescription(missionHistory)).toBe("Last Push");
 
     // Undo and verify circular behavior
