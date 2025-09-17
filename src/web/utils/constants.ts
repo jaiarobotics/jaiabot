@@ -25,3 +25,4 @@ export const HUB_COMMS_INNER_RADIUS = 250; // meters
 export const HUB_COMMS_OUTER_RADIUS = 500; // meters
 export const MDI_BUTTON_SIZE = 1.3;
 export const KILOMETER_FACTOR = 1000;
+export const MAX_MISSION_HISTORY = 10;
