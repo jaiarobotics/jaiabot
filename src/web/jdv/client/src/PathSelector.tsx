@@ -10,12 +10,18 @@ interface PathSelectorProps {
 }
 
 interface PathSelectorState {
+    // General state
     logs: string[];
-    chosen_path: string;
-    next_path_segments: string[];
+    mode: "search" | "browse";
+
+    // Search state
     series_descriptors: SeriesDescriptor[];
     search_text: string;
     search_results: SeriesDescriptor[];    
+
+    // Path browser state
+    chosen_path: string;
+    next_path_segments: string[];
 }
 
 
@@ -66,6 +72,7 @@ export default class PathSelector extends React.Component {
 
         this.state = {
             logs: props.logs,
+            mode: "search",
             chosen_path: "",
             next_path_segments: [],
             series_descriptors: [],
@@ -83,7 +90,7 @@ export default class PathSelector extends React.Component {
     componentDidMount() {
         this.load_series_descriptors()
         this.search(""); // Load recents
-        this.update_path_options(true);
+        this.updatePathOptions(true);
     }
 
     
@@ -192,55 +199,17 @@ export default class PathSelector extends React.Component {
             )
     }
 
-    
-    /** Unused for now */
-    renderPathBrowser() {
-        return [
-        <div className="section">
-            <div className="horizontal flexbox">
-                <button
-                    className="padded button"
-                    title="Back"
-                    onClick={this.backClicked.bind(this)}
-                >
-                    <Icon
-                        path={mdiArrowLeft}
-                        size={1}
-                        style={{ verticalAlign: "middle" }}
-                    ></Icon>
-                </button>
-                <div className="path padded">{this.state.chosen_path}</div>
-            </div>
-        </div>,
 
-        <div className="section">
-            <div className="list">{this.nextPathSegmentRows()}</div>
-        </div>
+    renderSearch() {
+        return [
+            this.renderSearchBar(),
+            this.renderSearchResults()
         ]
     }
 
-    render() {
-        return (
-            <div className="centered dialog vertical flexbox">
-                <div className="dialogHeader">Add Series</div>
-                {this.renderSearchBar()}
-
-                {this.renderSearchResults()}
-
-                <div className="buttonSection section">
-                    <button className="padded" onClick={this.cancelClicked.bind(this)}>
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    cancelClicked(evt: Event) {
-        this.props.didCancel?.();
-    }
-
-    update_path_options(shouldAutoselect: boolean) {
+    
+    ////////////// Path Browser ///////////////
+    updatePathOptions(shouldAutoselect: boolean) {
         // Clear options
         this.setState({ next_path_segments: [] });
 
@@ -263,7 +232,7 @@ export default class PathSelector extends React.Component {
                 // Reset the selector
                 this.setState(
                     { chosen_path: "" },
-                    this.update_path_options.bind(this, shouldAutoselect),
+                    this.updatePathOptions.bind(this, shouldAutoselect),
                 );
 
                 return;
@@ -274,7 +243,7 @@ export default class PathSelector extends React.Component {
                 let chosen_path = this.state.chosen_path + "/" + paths[0];
                 this.setState(
                     { chosen_path },
-                    this.update_path_options.bind(this, shouldAutoselect),
+                    this.updatePathOptions.bind(this, shouldAutoselect),
                 );
                 return;
             }
@@ -286,7 +255,7 @@ export default class PathSelector extends React.Component {
 
     didSelectPathSegmentRow(nextPathSegment: string) {
         let chosen_path = this.state.chosen_path + "/" + nextPathSegment;
-        this.setState({ chosen_path: chosen_path }, this.update_path_options.bind(this, true));
+        this.setState({ chosen_path: chosen_path }, this.updatePathOptions.bind(this, true));
     }
 
     nextPathSegmentRows() {
@@ -313,6 +282,72 @@ export default class PathSelector extends React.Component {
             chosen_path = chosen_path.substring(0, location);
         }
 
-        this.setState({ chosen_path }, this.update_path_options.bind(this, false));
+        this.setState({ chosen_path }, this.updatePathOptions.bind(this, false));
     }
+
+
+    renderPathBrowser() {
+        return [
+        <div className="section">
+            <div className="horizontal flexbox">
+                <button
+                    className="padded button"
+                    title="Back"
+                    onClick={this.backClicked.bind(this)}
+                >
+                    <Icon
+                        path={mdiArrowLeft}
+                        size={1}
+                        style={{ verticalAlign: "middle" }}
+                    ></Icon>
+                </button>
+                <div className="path padded">{this.state.chosen_path}</div>
+            </div>
+        </div>,
+
+        <div className="section">
+            <div className="list">{this.nextPathSegmentRows()}</div>
+        </div>
+        ]
+    }
+
+    /////////////// Render ///////////////
+    renderModeSelector() {
+        const searchClass = this.state.mode == "search" ? "padded button selected" : "padded button";
+        const browseClass = this.state.mode == "browse" ? "padded button selected" : "padded button";
+
+        return (
+            <div className="section horizontal flexbox">
+                <button className={searchClass} onClick={() => { this.setState({ mode: "search" }) }}>
+                    Search
+                </button>
+                <button className={browseClass} onClick={() => { this.setState({ mode: "browse" }) }}>
+                    Browse
+                </button>
+            </div>
+        )
+    }
+    
+    render() {
+        const contents = this.state.mode == "search" ? this.renderSearch() : this.renderPathBrowser();
+        
+        return (
+            <div className="centered dialog vertical flexbox">
+                <div className="dialogHeader">Add Series</div>
+                {this.renderModeSelector()}
+                {contents}
+
+                <div className="buttonSection section">
+                    <button className="padded" onClick={this.cancelClicked.bind(this)}>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    cancelClicked(evt: Event) {
+        this.props.didCancel?.();
+    }
+
 }
