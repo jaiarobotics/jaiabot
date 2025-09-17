@@ -1,4 +1,4 @@
-import { mdiArrowLeft, mdiMagnify } from "@mdi/js";
+import { mdiArrowLeft, mdiDelete, mdiMagnify } from "@mdi/js";
 import React from "react";
 import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "./LogApi";
 import Icon from "@mdi/react";
@@ -14,6 +14,7 @@ interface PathSelectorState {
     chosen_path: string;
     next_path_segments: string[];
     series_descriptors: SeriesDescriptor[];
+    search_text: string;
     search_results: SeriesDescriptor[];    
 }
 
@@ -68,6 +69,7 @@ export default class PathSelector extends React.Component {
             chosen_path: "",
             next_path_segments: [],
             series_descriptors: [],
+            search_text: "",
             search_results: [],
         };
     }
@@ -91,6 +93,8 @@ export default class PathSelector extends React.Component {
      * @param {string} query 
      */
     search(query: string){
+        this.setState({search_text: query});
+
         // If query string is empty, then default to the recents list
         if (query === "") {
             this.setState({search_results: get_recent_series_descriptors()});
@@ -144,8 +148,19 @@ export default class PathSelector extends React.Component {
                     className="padded"
                     type="text"
                     placeholder="Search"
-                    onChange={(e) => {this.search(e.target.value)}}
-                ></input>
+                    defaultValue={""}
+                    value={this.state.search_text}
+                    onChange={(e) => {
+                        this.search(e.target.value)
+                    }} />
+                <button
+                    className="padded button"
+                    title="Clear"
+                    onClick={(e) => {
+                        this.search("")
+                    }}
+                >⨉
+                </button>
             </div>
         )
     }
