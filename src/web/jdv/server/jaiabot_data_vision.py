@@ -5,7 +5,7 @@ from flask import *
 import simplejson as json
 import logging
 import os
-import math
+import sys
 
 import jaialog_store
 import moos_messages
@@ -45,7 +45,8 @@ app = Flask(__name__)
 @app.errorhandler(Exception)
 def handle_http_exception(e):
     l.error(f'Exception: {traceback.format_exc()}')
-    return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}")
+    _, _, tb = sys.exc_info()
+    return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}\n{traceback.extract_tb(tb)[-1].filename} line {traceback.extract_tb(tb)[-1].lineno}")
 
 
 @app.route('/<path>', methods=['GET'])
