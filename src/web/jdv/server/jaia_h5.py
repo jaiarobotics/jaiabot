@@ -207,7 +207,10 @@ class JaiaH5FileSet:
 
             thisSeries = []
 
-            desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
+            try:
+                desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
+            except Exception as e:
+                l.debug(f'Could not load desired heading series from {log.filename}: {e}')
 
             for i, lat in enumerate(lat_series.y_values):
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])

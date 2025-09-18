@@ -87,21 +87,17 @@ class Series:
             try:
                 _utime__array = log[get_root_item_path(path, '_utime_')]
                 _scheme__array = log[get_root_item_path(path, '_scheme_')]
-                path_array = log[path]
+            except KeyError as e:
+                msg = f'Could not load _utime_ or _scheme_ arrays for path {path} in file {log.filename}: {e}'
+                logging.warning(msg)
+                raise Exception(msg)
 
-                s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-                s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
+            path_array = log[path]
 
-                series.utime, schemes, series.y_values = zip(*s)
-            except (ValueError, KeyError) as e:
-                logging.warning(f'Exception: {e} {__file__} {e.__traceback__.tb_lineno}')
-                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
-                series.utime = []
-                series.schemes = []
-                series.y_values = []
-                series.hovertext = {}
+            s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+            s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
-                return
+            series.utime, schemes, series.y_values = zip(*s)
 
             series.hovertext = h5_get_enum_map(log[path]) or {}
 
