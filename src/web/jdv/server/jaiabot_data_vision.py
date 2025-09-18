@@ -44,7 +44,8 @@ app = Flask(__name__)
 """Error handling:  if an exception occurs during any of these requests, return a JSON error response"""
 @app.errorhandler(Exception)
 def handle_http_exception(e):
-    return JSONErrorResponse(traceback.format_exc())
+    l.error(f'Exception: {traceback.format_exc()}')
+    return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}")
 
 
 @app.route('/<path>', methods=['GET'])
