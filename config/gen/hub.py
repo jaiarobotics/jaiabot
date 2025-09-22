@@ -27,10 +27,17 @@ try:
     user_role=os.environ['jaia_user_role'].upper()
 except:
     user_role='USER'
-==== BASE ====
-    
-log_file_dir = common.jaia_log_dir + '/hub'
-==== BASE ====
+
+try:
+    cloudhub_type=os.environ['jaia_cloudhub_type'].upper()
+except:
+    cloudhub_type='SECONDARY'
+
+is_cloudhub = hub_index == cloudhub_index
+if not is_cloudhub:
+    cloudhub_type=''
+
+log_file_dir = common.jaia_log_dir + '/hub/'  + str(hub_index)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir
 
