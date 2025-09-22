@@ -20,17 +20,17 @@ l = logging.getLogger('task_packet_database')
 
 
 class TaskPacketDatabase:
-    taskpacket_files_path: str
-    database_path: str
+    taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
+    database_path: str= "/var/log/jaiabot/db"
 
     task_packets_version = random.sample(range(2**31), 1)[0]
 
     db: sqlite3.Connection
     _lock: threading.Lock
 
-    def __init__(self, taskpacket_files_path: str="/var/log/jaiabot/bot_offload/", database_path: str="/var/log/jaiabot/db"):
-        self.taskpacket_files_path = taskpacket_files_path
-        self.database_path = database_path
+    def __init__(self, taskpacket_files_path: str=None, database_path: str=None):
+        self.taskpacket_files_path = taskpacket_files_path or self.taskpacket_files_path
+        self.database_path = database_path or self.database_path
         self._lock = threading.Lock()
 
         self.db = self._create_or_open_db()

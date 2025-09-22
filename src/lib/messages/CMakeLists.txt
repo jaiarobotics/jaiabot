@@ -39,7 +39,6 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   hub.proto
   dive_debug.proto
   xbee_extensions.proto
-  modem_message_extensions.proto
   simulator.proto
   echo.proto
   tsys01.proto
@@ -50,6 +49,7 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   link.proto
   udp_driver.proto
   link_config.proto
+  comms.proto
   ${SENSOR_MESSAGES}
 )
 
@@ -106,7 +106,6 @@ function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
     )
 endfunction()
 
-
 if(NOT CMAKE_CROSSCOMPILING)
   # This list of all DCCL messages used on intervehicle comms with the latest hash ("dccl -a -H") is simply
   # to ensure that CMake checks that we don't accidentally change the DCCL message without updating PROJECT_INTERVEHICLE_API_VERSION if necessary.
@@ -115,8 +114,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x4b0807c9f059bcdf")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xce048a7bf557d5eb")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xd6cdaf32db2fd089")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xbec17c6d0c0fcead")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x14ebbe8ed8aed722")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
 endif()

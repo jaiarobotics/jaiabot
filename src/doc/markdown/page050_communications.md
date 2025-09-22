@@ -5,6 +5,16 @@ The Jaia bots and hubs communicate using several types of wireless radio:
 - 802.11 Wifi (Internet Protocol): "WIFI"
 - XBee radio (XBP9X-DMUS-001 or XBP9B-DMSTB002): "XBEE"
 - Iridium satellite Short Burst Data (SBD): "IRIDIUM"
+- Wireguard CloudHub VPN (Internet Protocol): "HUB2HUB" [for communication between the hubs only]
+
+These comms links can be visualized as:
+
+![](../figures/multihub-layout.png)
+
+Not all fleets will have all communications links. The minimum for a functioning system is currently:
+- Physical hub with XBee or
+- CloudHub with Iridium
+
 
 Depending on the fleet hardware configuration and deployment needs, one or more of these links can be enabled to be used simultaneously for operational communications (BotStatus, Command, etc.). For data offload, only the WIFI link is used.
 
@@ -120,20 +130,22 @@ ACKS are implemented by sending an XBeePacket with `type = ACK` set and the appr
 
 ## Multiple hub support
 
-Jaia fleets can support multiple hubs within a fleet, but only one hub may be used at a time (unless the hubs are separated by enough physical distance that XBee communications are impossible between the hubs and bots within the subfleet). Multiple hubs are only supported during real (runtime) operations using XBee communications -- simulation still only supports one hub using UDPDriver.
+Jaia fleets can support multiple hubs within a fleet (either physical Hubs or a CloudHub). For physical hubs, this is managed using the *same* physical XBee serial ID for all hubs, and the same Goby modem_id.
 
-Hubs are identical (same IP addressing, same Wifi SSID) except for a unique `hub_id`. In addition to the analogous `ModemTransmission` fields, the XBeePacket includes a field for the `hub_id` to be set. When the bots receive a new `hub_id`, this triggers a (re)subscribe for any intervehicle subscriptions from the hub (e.g., Command) so that the new hub receives these subscriptions. This means that no subscriptions are sent until the first message from a hub (typically the hub's subscriptions to BotStatus, etc.) is received. The XBeeDriver also updates which XBee serial_number to use for sending messages to the hub.
+The single modem id `1` is used for all hubs. Thus, within a given subfleet, modem id `1` is always the hub, and modem ids `2` to `N+2` are used for all the bots 0 to N.
 
-At this time the single modem id `1` is used for all hubs. Thus, within a given subfleet, modem id `1` is always the hub, and modem ids `2` to `N+2` are used for all the bots 0 to N.
+The following sequence diagram illustrates this process by using the example of hub0 and hub1 being used together in the same fleet. hub1 is turned on (or the bots come into range of hub1) at some later time.
 
-The following sequence diagram illustrates this process by using the example of hub0 being replaced during operations by hub1 (such as due to failure of hub0). The same concept applies if hub1 was used from the start. 
-
-The intervehicle subscriptions are set up when hub0 sends its subscriptiosn, and then re-sent after hub1 sents its subscriptions. If both hubs were used simultaenously (which they should not), the bots would alternate sending messages to hub0 and hub1 (based on which hub was received from last).
-
+The bots will re-subscribe regularly (currently every 60 seconds on XBee), which ensures that a Hub that is present later (or reboots) will always get the subscriptions after no more time has passed than the re-subscription interval.
 
 ![Multi Hub Sequence Diagram](../figures/multihub-sequence.png)
 
-For log analysis purposes, the current hub in use by a given bot can always be determined by the `hub_id` present within the `HubInfo` protobuf message sent on the `jaiabot::intervehicle_subscribe_request` group.
+
+### Hub2Hub Comms
+
+The HUB2HUB link provides UDP messaging between hubs using the CloudHub VPN. This uses the same Goby intervehicle comms as the Bot/Hub communication, and uses the same driver as the WIFI link.
+
+At this time, a single message (`jaiabot::protobuf::Hub2HubData`) is used on this communications link. Each hub subscribes to all the other hubs defined in the `/etc/jaiabot/inventory.yml`, and resubscribes regularly in the event of a hub reboot or later power-on of a hub.
 
 
 ## Iridium
@@ -142,7 +154,7 @@ Iridium satellite communications provides global coverage using the Short Burst 
 
 Iridium SBD is inherently asymmetric: The bots are equipped with a modem (Iridium 9603) that is referred to by Iridium as an "ISU" (Iridium Subscriber Unit). This device uses a Hayes-type protocol (AT messages) over serial and is managed by the Goby3 DRIVER_IRIDIUM driver.
 
-The hub is virtualized (CloudHub: see [Cloud Computing](page56_cloud.md)) and runs effectively a TCP client/server pair for inbound/outbound communications using Iridium's "DirectIP" protocol from to and from their servers. This is a binary protocol unrelated to the Hayes protocol on the bot side and is managed by the Goby3 DRIVER_IRIDIUM_SHORE driver.
+The hub is virtualized (CloudHub: see [Cloud Computing](page056_cloud.md)) and runs effectively a TCP client/server pair for inbound/outbound communications using Iridium's "DirectIP" protocol from to and from their servers. This is a binary protocol unrelated to the Hayes protocol on the bot side and is managed by the Goby3 DRIVER_IRIDIUM_SHORE driver.
 
 Some more terminology:
 

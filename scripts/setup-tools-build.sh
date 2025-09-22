@@ -15,7 +15,7 @@ sudo apt-get -y update
 # Install the required dependencies
 sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf python3-netifaces python3-dev gdal-bin
 # Install the build tools necessary
-sudo apt-get -y install cmake g++ npm clang-format clang graphviz doxygen
+sudo apt-get -y install cmake g++ npm clang-format clang graphviz doxygen libstdc++14-dev
 # Install Arduino command line interface for local compilation of ino files into hex
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \
     arduino-cli config init --overwrite && \

@@ -244,7 +244,6 @@ export default class JaiaMap {
                 new TileLayer({
                     properties: {
                         title: "OpenStreetMap",
-                        type: "base",
                     },
                     zIndex: 1,
                     source: new OSM(),
@@ -359,6 +358,17 @@ export default class JaiaMap {
         this.timeRange = null;
         this.botIdToMapSeries = botIdToMapSeries;
         this.updatePath();
+    }
+
+    /**
+     * Set the time range for displayed map features, i.e. bot paths and task packets.
+     *
+     * @param {?number[]} [timeRange]
+     */
+    setTimeRange(timeRange?: number[]) {
+        this.timeRange = timeRange;
+        this.updatePath();
+        this.updateTaskAnnotations();
     }
 
     /**
@@ -654,6 +664,15 @@ export default class JaiaMap {
         for (const task_packet of this.task_packets ?? []) {
             // Discard the lower-precision DCCL task packets
             if (task_packet._scheme_ == 2) {
+                continue;
+            }
+
+            // Discard if outside timeRange
+            if (
+                this.timeRange &&
+                (task_packet.start_time < this.timeRange[0] ||
+                    task_packet.start_time > this.timeRange[1])
+            ) {
                 continue;
             }
 

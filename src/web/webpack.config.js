@@ -91,12 +91,6 @@ module.exports = (env, argv) => {
     const jccConfig = {
         entry: {
             client: path.resolve(__dirname, "jcc/index.js"),
-            customLayerRasterWorker: [
-                path.resolve(
-                    __dirname,
-                    "openlayers/map/layers/geotiffs/CustomLayerRasterWorker.ts",
-                ),
-            ],
         },
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
