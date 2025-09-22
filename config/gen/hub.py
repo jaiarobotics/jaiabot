@@ -27,17 +27,10 @@ try:
     user_role=os.environ['jaia_user_role'].upper()
 except:
     user_role='USER'
-
-try:
-    cloudhub_type=os.environ['jaia_cloudhub_type'].upper()
-except:
-    cloudhub_type='SECONDARY'
-
-is_cloudhub = hub_index == cloudhub_index
-if not is_cloudhub:
-    cloudhub_type=''
+==== BASE ====
     
 log_file_dir = common.jaia_log_dir + '/hub'
+==== BASE ====
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir
 
@@ -69,7 +62,8 @@ verbosities = \
   'goby_opencpn_interface':    { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_terminate':            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_simulator':         { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_simulator':         { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_comms_manager':        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -102,7 +96,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
-                                            xbee_hub_id='hub_id: ' + str(hub_index),
+                                            is_in_sim=is_simulation(),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
@@ -111,15 +105,15 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
 
 if common.CommsMode.WIFI in common.jaia_comms_modes:
     link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
-                                            subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.modem_id("wifi",node_id),
-                                            local_port=common.udp.wifi_udp_port(node_id, hub_index),
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
-                                            hub_endpoints='',
-                                            wifi_hub_id='hub_id: ' + str(hub_index),
-                                            mac_slots=common.comms.wifi_mac_slots(node_id),
-                                            sub_buffer=sub_buffer_config,
-                                            ack_timeout=ack_timeout)
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.modem_id("wifi",node_id),
+                                             local_port=common.udp.wifi_udp_port(node_id, hub_index),
+                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, hub_index),
+                                             hub_endpoints='',
+                                             mac_slots=common.comms.wifi_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=ack_timeout,
+                                             ipv6='')
 
 if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
 
@@ -153,6 +147,29 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
                                              rockblock=rockblock,
                                              directip=directip)
 
+subscribes_block=''
+
+if common.comms.has_cloudhub_vpn(fleet_index):
+    subscribes_block+='''subscribe {
+    link: LINK_HUB2HUB
+    subscribe_on_start: true
+    resubscribe: true
+    resubscribe_interval: 60
+}\n'''
+
+    # Hub2Hub comms
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,
+                                             modem_id=common.comms.hub2hub_modem_id(hub_index),
+                                             local_port=common.udp.hub2hub_udp_port(hub_index),
+                                             remotes=common.comms.hub2hub_remotes(hub_index, fleet_index),
+                                             hub_endpoints='',
+                                             mac_slots=common.comms.hub2hub_mac_slots(hub_index),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=ack_timeout,
+                                             ipv6='ipv6: true')
+
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 liaison_bind_addr='0.0.0.0'
 if common.is_vfleet or is_cloudhub:
@@ -162,7 +179,7 @@ if common.app == 'gobyd':
     if cloudhub_type == 'SECONDARY':
         required_clients=''
     else:
-        required_clients='required_client: "goby_intervehicle_portal"'
+        required_clients='required_client: "goby_intervehicle_portal" required_client: "jaiabot_comms_manager"'
 
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
@@ -170,17 +187,9 @@ if common.app == 'gobyd':
                                      link_block=link_block,
                                      required_clients=required_clients))
 elif common.app == 'goby_intervehicle_portal':
-    persist_subscriptions = 'persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'
-
-    # don't persist subscriptions on Cloudhub to reduce unnecessary Iridium usage for bots that aren't in use
-    # this means that if Cloudhub is restarted, the bots will also need to be restarted, but that should cause little issue for normal operations
-    if is_cloudhub:
-        persist_subscriptions = ''
-    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     persist_subscriptions=persist_subscriptions,
                                      link_block=link_block))
 elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
@@ -254,7 +263,7 @@ elif common.app == 'jaiabot_hub_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      hub_id=hub_index,
-                                     expected_bots=common.hub.expected_bots_from_inventory(),
+                                     expected_hubs=f"id: {common.hub.expected_hubs_from_inventory()}",
                                      fleet_id=fleet_index,
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      hub_log_offload_dir=common.hub_log_offload_dir,
@@ -282,6 +291,11 @@ elif common.app == 'jaiabot_metadata':
                                      is_simulation=str(is_simulation()).lower(),
                                      node_id=f'hub_id: {hub_index}',
                                      fleet_id=fleet_index))
+elif common.app == 'jaiabot_comms_manager':
+    print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     subscribes=subscribes_block))
 elif common.app == 'gpsd':
     # Run for forwarding contacts
     devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])

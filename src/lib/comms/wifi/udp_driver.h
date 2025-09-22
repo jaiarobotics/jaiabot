@@ -99,10 +99,6 @@ class UDPDriver : public goby::acomms::ModemDriverBase
         return driver_cfg_.GetExtension(jaiabot::udp::protobuf::config);
     }
 
-    // for multihub
-    void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* msg);
-    void set_active_hub_peer(int hub_id);
-
   private:
     goby::acomms::protobuf::DriverConfig driver_cfg_;
     boost::asio::io_context io_context_;
@@ -121,12 +117,6 @@ class UDPDriver : public goby::acomms::ModemDriverBase
 
     std::uint32_t next_frame_{0};
 
-    bool have_active_hub_{false};
-    int active_hub_id_{-1};
-    int hub_wifi_base_modem_id_{-1};
-    int hub_wifi_modem_id_{-1};
-    // maps hub ID to endpoint
-    std::map<int, jaiabot::udp::protobuf::Config::EndPoint> hub_endpoints_;
 };
 } // namespace comms
 } // namespace jaiabot

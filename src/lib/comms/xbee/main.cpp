@@ -74,7 +74,6 @@ int main(int argc, char* argv[])
     cfg_hub.set_serial_baud(9600);
     auto& xbee_hub = *cfg_hub.MutableExtension(xbee::protobuf::config);
     xbee_hub.set_fleet_id(fleet);
-    xbee_hub.set_hub_id(4); // some arbitrary hub id
 
     cfg_bot.set_modem_id(2);
     cfg_bot.set_serial_port("/tmp/xbeebot0"); // MUST update for actual hardware
@@ -82,7 +81,6 @@ int main(int argc, char* argv[])
     auto& xbee_bot = *cfg_bot.MutableExtension(xbee::protobuf::config);
     xbee_bot.set_fleet_id(fleet);
     xbee_bot = xbee_hub;
-    xbee_bot.clear_hub_id();
 
     std::vector<int> tests_to_run({4, 7});
 

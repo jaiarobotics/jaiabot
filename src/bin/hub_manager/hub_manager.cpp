@@ -47,6 +47,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -80,6 +81,7 @@ class HubManager : public ApplicationBase
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
 
     void intervehicle_subscribe(int bot_id, std::set<jaiabot::protobuf::Link> links);
+    void hub2hub_subscribe(int other_hub_id);
 
     void update_vfleet_shutdown_time()
     {
@@ -99,6 +101,8 @@ class HubManager : public ApplicationBase
     }
 
     void start_dataoffload(int bot_id);
+
+    void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -162,13 +166,6 @@ jaiabot::apps::HubManager::HubManager()
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
 
-    auto add_expected_bot_id = [this](int id) {
-        managed_bot_ids_.insert(id);
-        latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(id);
-    };
-
-    for (auto id : cfg().expected_bots().id()) add_expected_bot_id(id);
-
     for (auto contact_gps : cfg().contact_gps())
     {
         contact_gps_.insert(std::make_pair(contact_gps.gpsd_device(),
@@ -212,8 +209,6 @@ jaiabot::apps::HubManager::HubManager()
 
     for (auto link : cfg().link_to_subscribe_on())
         links_to_subscribe_on_.insert(static_cast<jaiabot::protobuf::Link>(link));
-
-    for (auto id : managed_bot_ids_) intervehicle_subscribe(id, links_to_subscribe_on_);
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
@@ -311,8 +306,21 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
+
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
+        {
+            if (req.link() == jaiabot::protobuf::LINK_HUB2HUB)
+            {
+                // subscribe to other hubs
+                for (int other_hub_id : cfg().expected_hubs().id())
+                {
+                    if (other_hub_id != cfg().hub_id())
+                        hub2hub_subscribe(other_hub_id);
+                }
+            }
         });
 
     if (is_virtualhub_)
@@ -390,14 +398,16 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::BotStatus& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg;
             *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
                 jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
 
+==== BASE ====
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+==== BASE ====
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
@@ -413,14 +423,17 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::TaskPacket& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg;
             *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
                 jaiabot::comms::buffer_for_link(cfg().task_packet_buffer(), link);
 
+==== BASE ====
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
+                cfg().task_packet_sub_cfg();
+==== BASE ====
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
             goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(
@@ -431,18 +444,15 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
             glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
             intervehicle().subscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
-                [this](const jaiabot::protobuf::TaskPacket& task_packet) {
-                    handle_task_packet(task_packet);
-                },
-                subscriber);
+                [this](const jaiabot::protobuf::TaskPacket& task_packet)
+                { handle_task_packet(task_packet); }, subscriber);
         }
 
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::Engineering& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
             goby::middleware::protobuf::TransporterConfig subscriber_cfg;
             *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
@@ -459,7 +469,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
             intervehicle()
                 .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                    [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
+                    [this](const jaiabot::protobuf::Engineering& input_engineering_status)
+                    {
                         glog.is_debug1() && glog << "Received input_engineering_status: "
                                                  << input_engineering_status.ShortDebugString()
                                                  << std::endl;
@@ -479,6 +490,31 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                     subscriber);
         }
     }
+}
+
+void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
+{
+    goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+    *subscriber_cfg.mutable_intervehicle()->mutable_buffer() = cfg().hub2hub_buffer();
+    auto publisher_modem_id = jaiabot::comms::hub_modem_id(
+        cfg().subnet_mask(), jaiabot::protobuf::LINK_HUB2HUB, other_hub_id);
+    subscriber_cfg.mutable_intervehicle()->add_publisher_id(publisher_modem_id);
+
+    goby::middleware::Subscriber<jaiabot::protobuf::Hub2HubData> subscriber(
+        subscriber_cfg,
+        intervehicle::default_subscriber_group_func<jaiabot::protobuf::Hub2HubData>);
+
+    glog.is_debug1() && glog << "Subscribing to hub2hub_data from hub: " << other_hub_id
+                             << std::endl;
+
+    intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
+        [this](const jaiabot::protobuf::Hub2HubData& data)
+        {
+            glog.is_verbose() && glog << "Received Hub2Hub data: " << data.ShortDebugString()
+                                      << std::endl;
+            interprocess().publish<jaiabot::groups::hub2hub_data>(data);
+        },
+        subscriber);
 }
 
 void jaiabot::apps::HubManager::loop()
@@ -596,6 +632,11 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
+
+    // republish for other hubs
+    jaiabot::protobuf::Hub2HubData hub2hub_data;
+    *hub2hub_data.mutable_bot_status() = dccl_nav;
+    publish_hub2hub_data(&hub2hub_data);
 
     goby::middleware::frontseat::protobuf::NodeStatus node_status;
 
@@ -783,6 +824,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
     using protobuf::Command;
     auto command = input_command;
+    command.set_from_hub_id(cfg().hub_id());
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
@@ -973,7 +1015,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]() {
+    auto offload_func = [this, offload_command]()
+    {
         // reset data offload global variables
         offload_complete_ = false;
         offload_success_ = false;
@@ -1057,4 +1100,12 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     };
 
     offload_thread_.reset(new std::thread(offload_func));
+}
+
+void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)
+{
+    hub2hub_data->set_hub_id(cfg().hub_id());
+    hub2hub_data->set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    intervehicle().publish<jaiabot::groups::hub2hub_data>(
+        *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
 }

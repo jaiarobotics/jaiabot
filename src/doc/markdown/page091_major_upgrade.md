@@ -6,7 +6,7 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ### Ensure the Hub has a valid Fleet Configuration
 
-If this fleet was generated prior to fleet configuration files (this includes most 1.y fleets), one will need to be created for the current fleet. This can be done using `jaia admin fleet create` as described in the [Embedded Board Deployment](page25_embedded_setup.md) document.
+If this fleet was generated prior to fleet configuration files (this includes most 1.y fleets), one will need to be created for the current fleet. This can be done using `jaia admin fleet create` as described in the [Embedded Board Deployment](page025_embedded_setup.md) document.
 
 This fleet configuration must then be embedded in the upgrade image (see the next step).
 
@@ -55,7 +55,7 @@ To upgrade multiple Hubs, you will need to re-run this command (with the update 
 
 ## Major upgrade design
 
-The major upgrade extracts a new filesystem image and configures it, much like a generating a new bot or hub as described in the [Embedded Board Deployment](page25_embedded_setup.md) document. This means that the state of the previous installation filesystem is largely irrelevant.
+The major upgrade extracts a new filesystem image and configures it, much like a generating a new bot or hub as described in the [Embedded Board Deployment](page025_embedded_setup.md) document. This means that the state of the previous installation filesystem is largely irrelevant.
 
 The first part of the upgrade is handled by Ansible and the second part is handled by a shell script on each machine.
 
