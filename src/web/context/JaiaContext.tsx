@@ -7,6 +7,7 @@ import { missionSet } from "../data/mission_set/mission-set";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { missionsManager } from "../data/missions_manager/missions-manager";
+import HistoryBuffer from "../utils/history-buffer";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
@@ -30,7 +31,7 @@ import {
     TaskPacket,
     TaskType,
 } from "../types/protobuf-types";
-import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
+import { DATA_MODEL_POLL_TIME, MAX_MISSION_HISTORY, UNASSIGNED_ID } from "../utils/constants";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -58,6 +59,7 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
+    missionHistory: HistoryBuffer<Map<number, Mission>>;
     taskPackets: TaskPacket[];
 
     selectedNode: SelectedNode;
@@ -134,6 +136,199 @@ const defaultMapLayerAccordionStates = {
 export const JaiaContext = createContext<JaiaContextType>(null);
 export const JaiaDispatchContext = createContext(null);
 
+/*
+ TODO: put everything in single file for now, suggest breaking things up later
+        * Move types to types/context-types
+        * Move shared types into a JaiaTypes.ts file.
+        * Move history helpers (wrapHandler, handleAction, trackedActions) into a separate file.
+        * Group and move other handlers to separate files
+*/
+
+// Map of actions tracked by history with action descriptions
+const trackedActions: Map<JaiaActions, (action: JaiaAction) => string> = new Map([
+    [JaiaActions.ADD_MISSION, (action: JaiaAction) => "Add Mission"],
+    [JaiaActions.DELETE_MISSION, (action: JaiaAction) => "Delete Mission " + action.missionID],
+    [
+        JaiaActions.DUPLICATE_MISSION,
+        (action: JaiaAction) => "Duplicate Mission " + action.missionID,
+    ],
+    [JaiaActions.DELETE_ALL_MISSIONS, (action: JaiaAction) => "Delete All Missions"],
+    [
+        JaiaActions.LOAD_MISSION_SET,
+        (action: JaiaAction) => "Load Mission Set " + action.missionSetName,
+    ],
+    [JaiaActions.ADD_WAYPOINT, (action: JaiaAction) => "Add Waypoint"],
+    [JaiaActions.DELETE_WAYPOINT, (action: JaiaAction) => "Delete Waypoint "],
+    [JaiaActions.MOVE_WAYPOINT, (action: JaiaAction) => "Move Waypoint"],
+    [JaiaActions.SELECT_TASK, (action: JaiaAction) => "Select Task " + action.taskType],
+    [JaiaActions.CHANGE_TASK_PARAMETER, (action: JaiaAction) => "Change Task Parameter"],
+    [JaiaActions.TOGGLE_BOTTOM_DIVE, (action: JaiaAction) => "Toggle Bottom Dive"],
+]);
+
+// Provides description for an action
+export function getActionDescription(action: JaiaAction) {
+    const fn = trackedActions.get(action.type);
+    return fn ? fn(action) : "";
+}
+
+// Check if an action is history-tracked
+export function isHistoryTracked(action: JaiaAction) {
+    return trackedActions.has(action.type);
+}
+
+type HandlerFn = (mutableState: JaiaContextType, ...args: any[]) => JaiaContextType;
+
+// Map of handlers for Actions
+const handlers: Map<JaiaActions, HandlerFn> = new Map([
+    [JaiaActions.INIT, (mutableState) => handleInit(mutableState)],
+    [JaiaActions.POLL_DATA_MODEL, (mutableState) => handlePollDataModel(mutableState)],
+
+    [JaiaActions.ADD_MISSION, (mutableState) => handleAddMission(mutableState)],
+    [
+        JaiaActions.DELETE_MISSION,
+        (mutableState, action: JaiaAction) => handleDeleteMission(mutableState, action.missionID),
+    ],
+    [
+        JaiaActions.DUPLICATE_MISSION,
+        (mutableState, action: JaiaAction) =>
+            handleDuplicateMission(mutableState, action.missionID),
+    ],
+    [JaiaActions.DELETE_ALL_MISSIONS, (mutableState) => handleDeleteAllMissions(mutableState)],
+    [
+        JaiaActions.ASSIGN_MISSION,
+        (mutableState, action: JaiaAction) =>
+            handleAssignMission(mutableState, action.botID, action.missionID),
+    ],
+    [JaiaActions.AUTO_ASSIGN_MISSIONS, (mutableState) => handleAutoAssignMissions(mutableState)],
+    [
+        JaiaActions.CHANGE_MISSION_SPEEDS,
+        (mutableState, action: JaiaAction) =>
+            handleChangeMissionSpeeds(mutableState, action.missionSpeeds),
+    ],
+    [
+        JaiaActions.LOAD_MISSION_SET,
+        (mutableState, action: JaiaAction) =>
+            handleLoadMissionSet(mutableState, action.missionSetName),
+    ],
+
+    [
+        JaiaActions.ADD_WAYPOINT,
+        (mutableState, action: JaiaAction) => handleAddWaypoint(mutableState, action.location),
+    ],
+    [JaiaActions.DELETE_WAYPOINT, (mutableState) => handleDeleteWaypoint(mutableState)],
+    [
+        JaiaActions.MOVE_WAYPOINT,
+        (mutableState, action: JaiaAction) => handleMoveWaypoint(mutableState, action.location),
+    ],
+
+    [
+        JaiaActions.SELECT_TASK,
+        (mutableState, action: JaiaAction) => handleSelectTask(mutableState, action.taskType),
+    ],
+    [
+        JaiaActions.CHANGE_TASK_PARAMETER,
+        (mutableState, action: JaiaAction) =>
+            handleChangeTaskParameter(mutableState, action.taskParameterPair),
+    ],
+    [JaiaActions.TOGGLE_BOTTOM_DIVE, (mutableState) => handleToggleBottomDive(mutableState)],
+
+    [
+        JaiaActions.ADD_RALLY_POINT,
+        (mutableState, action: JaiaAction) => handleAddRallyPoint(mutableState, action.location),
+    ],
+    [JaiaActions.DELETE_RALLY_POINT, (mutableState) => handleDeleteRallyPoint(mutableState)],
+    [JaiaActions.SEND_RALLY_MISSION, (mutableState) => handleSendRallyMission(mutableState)],
+
+    [
+        JaiaActions.SENT_COMMAND,
+        (mutableState, action: JaiaAction) => handleSentCommand(mutableState, action.command),
+    ],
+
+    [JaiaActions.CLOSED_DETAILS, (mutableState) => handleClosedDetails(mutableState)],
+    [
+        JaiaActions.CLOSED_WAYPOINT_PANEL,
+        (mutableState, action: JaiaAction) =>
+            handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint),
+    ],
+    [
+        JaiaActions.CLOSED_TASK_PACKET_PANEL,
+        (mutableState, action: JaiaAction) =>
+            handleClosedTaskPacketPanel(mutableState, action.panelAction),
+    ],
+    [JaiaActions.CLOSED_RALLY_PANEL, (mutableState) => handleClosedRallyPanel(mutableState)],
+
+    [
+        JaiaActions.CLICKED_NODE,
+        (mutableState, action: JaiaAction) => handleClickedNode(mutableState, action.clickedNode),
+    ],
+    [
+        JaiaActions.CLICKED_HUB_ACCORDION,
+        (mutableState, action: JaiaAction) =>
+            handleClickedHubAccordion(mutableState, action.hubAccordionName),
+    ],
+    [
+        JaiaActions.CLICKED_BOT_ACCORDION,
+        (mutableState, action: JaiaAction) =>
+            handleClickedBotAccordion(mutableState, action.botAccordionName),
+    ],
+    [
+        JaiaActions.CLICKED_MAP_LAYERS_ACCORDION,
+        (mutableState, action: JaiaAction) =>
+            handleClickedMapLayersAccordion(mutableState, action.mapLayerAccordionName),
+    ],
+    [
+        JaiaActions.CLICKED_MISSION_ACCORDION,
+        (mutableState, action: JaiaAction) =>
+            handleClickedMissionAccordion(
+                mutableState,
+                action.missionID,
+                action.isMissionAccordionExpanded,
+            ),
+    ],
+    [
+        JaiaActions.CLICKED_EDIT_MISSION,
+        (mutableState, action: JaiaAction) =>
+            handleClickedEditMission(mutableState, action.missionID),
+    ],
+    [JaiaActions.CLICKED_TAP_TO_MOVE, (mutableState) => handleClickedTapToMove(mutableState)],
+    [
+        JaiaActions.CLICKED_BUTTON,
+        (mutableState, action: JaiaAction) =>
+            handleClickedButton(mutableState, action.buttonType, action.buttonName),
+    ],
+    [
+        JaiaActions.CLICKED_WAYPOINT,
+        (mutableState, action: JaiaAction) =>
+            handleClickedWaypoint(mutableState, action.clickedWaypoint),
+    ],
+    [
+        JaiaActions.CLICKED_RALLY_POINT,
+        (mutableState, action: JaiaAction) => handleClickedRallyPoint(mutableState, action.rallyID),
+    ],
+    [
+        JaiaActions.CLICKED_TASK_PACKET,
+        (mutableState, action: JaiaAction) =>
+            handleClickedTaskPacket(mutableState, action.clickedTaskPacket),
+    ],
+]);
+
+// Handle actions and track history if needed
+function handleAction(mutableState: JaiaContextType, action: JaiaAction, ...args: any[]) {
+    const handler = handlers.get(action.type);
+    if (!handler) return mutableState; // fallback for unhandled actions
+
+    // If the action is history-tracked, save current state first
+    if (isHistoryTracked(action)) {
+        mutableState.missionHistory.push(
+            cloneDeep(mutableState.missions),
+            getActionDescription(action),
+        );
+    }
+
+    // Call the actual handler
+    return handler(mutableState, action, ...args);
+}
+
 /**
  * Updates JaiaContext
  *
@@ -143,118 +338,7 @@ export const JaiaDispatchContext = createContext(null);
  */
 function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     let mutableState = { ...state };
-    switch (action.type) {
-        case JaiaActions.INIT:
-            return handleInit(mutableState);
-
-        case JaiaActions.POLL_DATA_MODEL:
-            return handlePollDataModel(mutableState);
-
-        case JaiaActions.ADD_MISSION:
-            return handleAddMission(mutableState);
-
-        case JaiaActions.DELETE_MISSION:
-            return handleDeleteMission(mutableState, action.missionID);
-
-        case JaiaActions.DUPLICATE_MISSION:
-            return handleDuplicateMission(mutableState, action.missionID);
-
-        case JaiaActions.DELETE_ALL_MISSIONS:
-            return handleDeleteAllMissions(mutableState);
-
-        case JaiaActions.ASSIGN_MISSION:
-            return handleAssignMission(mutableState, action.botID, action.missionID);
-
-        case JaiaActions.AUTO_ASSIGN_MISSIONS:
-            return handleAutoAssignMissions(mutableState);
-
-        case JaiaActions.CHANGE_MISSION_SPEEDS:
-            return handleChangeMissionSpeeds(mutableState, action.missionSpeeds);
-
-        case JaiaActions.LOAD_MISSION_SET:
-            return handleLoadMissionSet(mutableState, action.missionSetName);
-        case JaiaActions.ADD_WAYPOINT:
-            return handleAddWaypoint(mutableState, action.location);
-
-        case JaiaActions.DELETE_WAYPOINT:
-            return handleDeleteWaypoint(mutableState);
-
-        case JaiaActions.MOVE_WAYPOINT:
-            return handleMoveWaypoint(mutableState, action.location);
-
-        case JaiaActions.SELECT_TASK:
-            return handleSelectTask(mutableState, action.taskType);
-
-        case JaiaActions.CHANGE_TASK_PARAMETER:
-            return handleChangeTaskParameter(mutableState, action.taskParameterPair);
-
-        case JaiaActions.TOGGLE_BOTTOM_DIVE:
-            return handleToggleBottomDive(mutableState);
-
-        case JaiaActions.ADD_RALLY_POINT:
-            return handleAddRallyPoint(mutableState, action.location);
-
-        case JaiaActions.DELETE_RALLY_POINT:
-            return handleDeleteRallyPoint(mutableState);
-
-        case JaiaActions.SEND_RALLY_MISSION:
-            return handleSendRallyMission(mutableState);
-
-        case JaiaActions.SENT_COMMAND:
-            return handleSentCommand(mutableState, action.command);
-
-        case JaiaActions.CLOSED_DETAILS:
-            return handleClosedDetails(mutableState);
-
-        case JaiaActions.CLOSED_WAYPOINT_PANEL:
-            return handleClosedWaypointPanel(mutableState, action.panelAction, action.waypoint);
-
-        case JaiaActions.CLOSED_TASK_PACKET_PANEL:
-            return handleClosedTaskPacketPanel(mutableState, action.panelAction);
-
-        case JaiaActions.CLOSED_RALLY_PANEL:
-            return handleClosedRallyPanel(mutableState);
-
-        case JaiaActions.CLICKED_NODE:
-            return handleClickedNode(mutableState, action.clickedNode);
-
-        case JaiaActions.CLICKED_HUB_ACCORDION:
-            return handleClickedHubAccordion(mutableState, action.hubAccordionName);
-
-        case JaiaActions.CLICKED_BOT_ACCORDION:
-            return handleClickedBotAccordion(mutableState, action.botAccordionName);
-
-        case JaiaActions.CLICKED_MAP_LAYERS_ACCORDION:
-            return handleClickedMapLayersAccordion(mutableState, action.mapLayerAccordionName);
-
-        case JaiaActions.CLICKED_MISSION_ACCORDION:
-            return handleClickedMissionAccordion(
-                mutableState,
-                action.missionID,
-                action.isMissionAccordionExpanded,
-            );
-
-        case JaiaActions.CLICKED_EDIT_MISSION:
-            return handleClickedEditMission(mutableState, action.missionID);
-
-        case JaiaActions.CLICKED_TAP_TO_MOVE:
-            return handleClickedTapToMove(mutableState);
-
-        case JaiaActions.CLICKED_BUTTON:
-            return handleClickedButton(mutableState, action.buttonType, action.buttonName);
-
-        case JaiaActions.CLICKED_WAYPOINT:
-            return handleClickedWaypoint(mutableState, action.clickedWaypoint);
-
-        case JaiaActions.CLICKED_RALLY_POINT:
-            return handleClickedRallyPoint(mutableState, action.rallyID);
-
-        case JaiaActions.CLICKED_TASK_PACKET:
-            return handleClickedTaskPacket(mutableState, action.clickedTaskPacket);
-
-        default:
-            return state;
-    }
+    return handleAction(mutableState, action);
 }
 
 /**
@@ -268,6 +352,10 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
+    mutableState.missionHistory = new HistoryBuffer<Map<number, Mission>>(
+        cloneDeep(missionSet.getMissions()),
+        MAX_MISSION_HISTORY,
+    );
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
