@@ -182,7 +182,6 @@ type HandlerFn = (mutableState: JaiaContextType, ...args: any[]) => JaiaContextT
 const handlers: Map<JaiaActions, HandlerFn> = new Map([
     [JaiaActions.INIT, (mutableState) => handleInit(mutableState)],
     [JaiaActions.POLL_DATA_MODEL, (mutableState) => handlePollDataModel(mutableState)],
-
     [JaiaActions.ADD_MISSION, (mutableState) => handleAddMission(mutableState)],
     [
         JaiaActions.DELETE_MISSION,
@@ -210,7 +209,6 @@ const handlers: Map<JaiaActions, HandlerFn> = new Map([
         (mutableState, action: JaiaAction) =>
             handleLoadMissionSet(mutableState, action.missionSetName),
     ],
-
     [
         JaiaActions.ADD_WAYPOINT,
         (mutableState, action: JaiaAction) => handleAddWaypoint(mutableState, action.location),
@@ -231,19 +229,16 @@ const handlers: Map<JaiaActions, HandlerFn> = new Map([
             handleChangeTaskParameter(mutableState, action.taskParameterPair),
     ],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, (mutableState) => handleToggleBottomDive(mutableState)],
-
     [
         JaiaActions.ADD_RALLY_POINT,
         (mutableState, action: JaiaAction) => handleAddRallyPoint(mutableState, action.location),
     ],
     [JaiaActions.DELETE_RALLY_POINT, (mutableState) => handleDeleteRallyPoint(mutableState)],
     [JaiaActions.SEND_RALLY_MISSION, (mutableState) => handleSendRallyMission(mutableState)],
-
     [
         JaiaActions.SENT_COMMAND,
         (mutableState, action: JaiaAction) => handleSentCommand(mutableState, action.command),
     ],
-
     [JaiaActions.CLOSED_DETAILS, (mutableState) => handleClosedDetails(mutableState)],
     [
         JaiaActions.CLOSED_WAYPOINT_PANEL,
@@ -256,7 +251,6 @@ const handlers: Map<JaiaActions, HandlerFn> = new Map([
             handleClosedTaskPacketPanel(mutableState, action.panelAction),
     ],
     [JaiaActions.CLOSED_RALLY_PANEL, (mutableState) => handleClosedRallyPanel(mutableState)],
-
     [
         JaiaActions.CLICKED_NODE,
         (mutableState, action: JaiaAction) => handleClickedNode(mutableState, action.clickedNode),
