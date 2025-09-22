@@ -3,6 +3,9 @@
 set -x
 set -e -u
 
+script_path="$(realpath "$0")"
+script_dir="$(dirname "$script_path")"
+
 old_ro_rootfs_mountpoint="/media/root-ro"
 old_rw_overlay_mountpoint="/media/root-rw"
 
@@ -14,34 +17,63 @@ boot_mountpoint="/boot/firmware"
 rootfstype=$(findmnt -n -o fstype /)
 
 if [ "${rootfstype}" = "overlay" ]; then
-    ## in place major upgrade
-    
-    ###############################
-    # Live pivot onto underlay FS #
-    ###############################
+    # first time through the script when upgrading "normal" overlayfs system
 
+
+    ## in place major upgrade:
+    ## - disable overlay,
+    ## - schedule script to run on the underlay using systemd, and
+    ## - reboot
+    
     mount -o remount,rw ${old_ro_rootfs_mountpoint}
-    mkdir -p ${old_ro_rootfs_mountpoint}/oldroot
-    mount --make-rprivate /
-    pivot_root ${old_ro_rootfs_mountpoint} ${old_ro_rootfs_mountpoint}/oldroot
-    for i in dev proc sys run boot/firmware var/log media/root-rw; do mount --move /oldroot/$i /$i; done
-    systemctl daemon-reload
+
+    ###############################
+    # Schedule script to run on boot into underlay
+    ###############################
+    cat <<EOF > ${old_ro_rootfs_mountpoint}/etc/systemd/system/do_major_upgrade.service
+[Unit]
+Description=Run do-major-upgrade on boot
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${script_path}
+StandardOutput=append:${script_dir}/major_upgrade_final.log
+StandardError=append:${script_dir}/major_upgrade_final.log
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    # enable systemd job in read-only rootfs
+    overlayroot-chroot systemctl enable do_major_upgrade.service
+    # disable jaiabot service in read-only rootfs to reduce startup churn
+    overlayroot-chroot systemctl disable jaiabot.service
+    # disable JCU so that UI doesn't refresh until upgrade is complete
+    overlayroot-chroot systemctl disable jaiabot_goby_liaison_standalone.service
+    # Backup/remove rootfs overlayconf file (so system boots into underlay)
+    overlayroot-chroot mv /etc/overlayroot.conf /etc/overlayroot.conf.bak
+    # reboot into underlay
+    systemctl reboot --force
+    exit 0
 else
-    ## AWS AMI
+    ## second time through when booted on formerly read-only underlay OR
+    ## for AWS AMI
     mount $(blkid -L overlay) ${old_rw_overlay_mountpoint}
 fi
 
-###############################
-# Backup/remove rootfs overlayconf file (so if extraction step fails or is interrupted, will still boot into old underlay).
-###############################
-mv /etc/overlayroot.conf /etc/overlayroot.conf.bak
 
 ###############################
 # Extract new rootfs
 ###############################
 
+# delete everything that was on this old overlay
 rm -rf ${new_ro_rootfs_mountpoint}/*
-tar --xattrs --xattrs-include="*" -xz -f {{ rootfs_filename }} -C ${new_ro_rootfs_mountpoint}
+sync ${new_ro_rootfs_mountpoint}
+
+# untar the new rootfs
+tar --xattrs --xattrs-include="*" -xz -f {{ rootfs_filename }} -C ${new_ro_rootfs_mountpoint} --warning=no-timestamp
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
     ## in place major upgrade
@@ -96,7 +128,6 @@ btrfs filesystem label ${new_ro_rootfs_mountpoint} "rootfs"
 
 ###############################
 # Clean up
-
 ###############################
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
