@@ -1,5 +1,6 @@
 export default class HistoryBuffer<T> {
     private buffer: Array<{ value: T; description: string } | undefined>;
+    private initialValue: T;
     private index: number;
     private head: number;
     private size: number;
@@ -9,6 +10,7 @@ export default class HistoryBuffer<T> {
         private readonly capacity: number = 10,
     ) {
         this.buffer = new Array(capacity);
+        this.initialValue = initialValue;
         const entry = { value: initialValue, description: "Initial state" };
         this.buffer[0] = entry;
         this.index = 0;
@@ -17,13 +19,15 @@ export default class HistoryBuffer<T> {
     }
 
     /** Clear the entire history */
-    reset(initialValue: T) {
+    reset(initialValue?: T) {
         this.buffer.fill(undefined);
-        const entry = { value: initialValue, description: "Initial state" };
+        this.initialValue = initialValue ?? this.initialValue;
+        const entry = { value: this.initialValue, description: "Initial state" };
         this.buffer[0] = entry;
         this.index = 0;
         this.head = 0;
         this.size = 1;
+        return this.getPresent();
     }
 
     /** Push a new value onto the history buffer */

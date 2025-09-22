@@ -59,4 +59,10 @@ test("exercise histroy buffer", () => {
     expect(testHistory.peekUndoDescription()).toBe("Push " + maxBuffer);
     expect(testHistory.peekRedoDescription()).toBe("Last Push");
     expect(testHistory.canRedo()).toBe(true);
+
+    // Reset and verify initial value
+    expect(testHistory.reset()).toBe(0);
+
+    // Reset with new initial value
+    expect(testHistory.reset(99)).toBe(99);
 });

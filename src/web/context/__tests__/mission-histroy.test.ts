@@ -1,5 +1,5 @@
-import { getActionDescription } from "../../../context/mission-history";
-import { JaiaActions } from "../../../context/jaia-actions";
+import { getActionDescription } from "../mission-history";
+import { JaiaActions } from "../jaia-actions";
 test("getActionDescription returns correct descriptions", () => {
     expect(getActionDescription({ type: JaiaActions.ADD_MISSION })).toBe("Add Mission");
     expect(getActionDescription({ type: JaiaActions.DELETE_MISSION, missionID: 3 })).toBe(
