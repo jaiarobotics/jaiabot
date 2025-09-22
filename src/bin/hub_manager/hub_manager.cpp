@@ -405,9 +405,6 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
             *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
                 jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
 
-==== BASE ====
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-==== BASE ====
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
@@ -430,10 +427,6 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
             *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
                 jaiabot::comms::buffer_for_link(cfg().task_packet_buffer(), link);
 
-==== BASE ====
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().task_packet_sub_cfg();
-==== BASE ====
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
             goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(

@@ -170,6 +170,4 @@ The figure below diagrams the flow for messages between the bots and hubs using 
 
 ![Iridium Multiplexing layout](../figures/iridium-server.png)
 
-==== BASE ====
-For log analysis purposes, the current hub in use by a given bot can always be determined by the `hub_id` present within the `HubInfo` protobuf message sent on the `jaiabot::intervehicle_subscribe_request` group.
-==== BASE ====
+Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 
