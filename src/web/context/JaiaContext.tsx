@@ -237,12 +237,25 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
     // If this action is history-tracked, push a snapshot of current missions
     if (config.tracked) {
-        const description = action.type.replace(/_/g, " ");
+        const description = getActionDescription(action.type);
         mutableState.missionHistory.push(mutableState.missions, description);
     }
 
     // Call the handler
     return config.handler(mutableState, action);
+}
+
+/**
+ * Provides more readable version of an Action type
+ * @param {JaiaActions} action type of action to translate
+ * @returns {string} pretty version of type
+ */
+function getActionDescription(action: JaiaActions) {
+    return action
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 }
 
 /**
@@ -968,11 +981,17 @@ function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaActi
 
 function handleClickedUndo(mutableState: JaiaContextType) {
     console.log("handleClickedUndo");
+    missionSet.setMissions(cloneDeep(mutableState.missionHistory.undo()));
+    mutableState.missions = missionSet.getMissions();
+    syncOpenLayers();
     return mutableState;
 }
 
 function handleClickedRedo(mutableState: JaiaContextType) {
     console.log("handleClickedRedo");
+    missionSet.setMissions(cloneDeep(mutableState.missionHistory.redo()));
+    mutableState.missions = missionSet.getMissions();
+    syncOpenLayers();
     return mutableState;
 }
 
