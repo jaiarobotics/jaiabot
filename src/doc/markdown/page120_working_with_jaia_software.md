@@ -71,6 +71,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 ## Windows/Linux/Mac
 
+### Using the JCC
 1. Launch the JCC web interface.
     ```
     cd src/web
@@ -108,7 +109,21 @@ The JaiaBot project supports Ubuntu 24.04.
         ```
         http://XXX.XXX.XX.X:40001/
         ```
-
+### Using the JDV
+1. Launch the JDV web interface.
+    ```
+    cd src/web/jdv
+    ```
+    To view the logs for the bot
+    ```
+    ./run.sh -d ~/jaia-logs/bot/[bot number]
+    ```
+    To view the log for the hub
+    ```
+    ./run.sh -d ~/jaia-logs/hub/1
+    ```
+    Expected output: 
+    A link that you can put in your browser to access the interface
 ### Stopping the Simulator
 
 In any terminals that are running the web and simulator, type CTRL+C. 
