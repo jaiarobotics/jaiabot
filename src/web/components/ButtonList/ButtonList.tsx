@@ -13,7 +13,15 @@ import { ButtonListTypes } from "../../types/jaia-system-types";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
-import { mdiCog, mdiHelp, mdiProgressDownload, mdiRuler, mdiViewList } from "@mdi/js";
+import {
+    mdiCog,
+    mdiHelp,
+    mdiProgressDownload,
+    mdiRuler,
+    mdiViewList,
+    mdiArrowULeftTop,
+    mdiArrowURightTop,
+} from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
@@ -50,6 +58,14 @@ export default function ButtonList(props: Props) {
         });
     };
 
+    const handleUndoClick = () => {
+        jaiaDisaptch({ type: JaiaActions.CLICKED_UNDO });
+    };
+
+    const handleRedoClick = () => {
+        jaiaDisaptch({ type: JaiaActions.CLICKED_REDO });
+    };
+
     /**
      * Provides the class name to style the button based on its selection state
      *
@@ -70,7 +86,28 @@ export default function ButtonList(props: Props) {
                 <StopAllBotsButton bots={jaiaContext.bots} />
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <DataOffloadAllButton bots={jaiaContext.bots} />
-                <Button className="jaia-button"></Button>
+                <Button
+                    id="undo"
+                    className="jaia-button"
+                    disabled={!jaiaContext.missionHistory.canUndo()}
+                    onClick={() => handleUndoClick()}
+                >
+                    <Icon
+                        path={mdiArrowULeftTop}
+                        title={"Undo " + jaiaContext.missionHistory.peekUndoDescription()}
+                    />
+                </Button>
+                <Button
+                    id="redo"
+                    className="jaia-button"
+                    disabled={!jaiaContext.missionHistory.canRedo()}
+                    onClick={() => handleRedoClick()}
+                >
+                    <Icon
+                        path={mdiArrowURightTop}
+                        title={"Redo " + jaiaContext.missionHistory.peekRedoDescription()}
+                    />
+                </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.HELP_PANEL)}
                     aria-label="help-window"

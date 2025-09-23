@@ -140,8 +140,6 @@ export const JaiaDispatchContext = createContext(null);
 /*
  TODO: put everything in single file for now, suggest breaking things up later
         * Move types to types/context-types
-        * DONE Make all handlers have the same signature  (mutableState: JaiaContextType, action: JaiaAction) => JaiaContextType;
-            * simplifies handlers Map syntax making it easier to read and maintaine
         * Group and move other handlers to separate files
 */
 
@@ -154,6 +152,7 @@ type ActionConfig = {
     tracked: boolean; // trueif action should be tracked in history for undo/redo
 };
 
+// Map of handlers and whether they are tracked for JaiaActions
 export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     // Data Model actions
     [JaiaActions.INIT, { handler: handleInit, tracked: false }],
@@ -214,6 +213,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CLICKED_WAYPOINT, { handler: handleClickedWaypoint, tracked: false }],
     [JaiaActions.CLICKED_RALLY_POINT, { handler: handleClickedRallyPoint, tracked: false }],
     [JaiaActions.CLICKED_TASK_PACKET, { handler: handleClickedTaskPacket, tracked: false }],
+
+    // History Actions
+    [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],
+    [JaiaActions.CLICKED_REDO, { handler: handleClickedRedo, tracked: false }],
 ]);
 
 /**
@@ -960,6 +963,16 @@ function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaActi
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    return mutableState;
+}
+
+function handleClickedUndo(mutableState: JaiaContextType) {
+    console.log("handleClickedUndo");
+    return mutableState;
+}
+
+function handleClickedRedo(mutableState: JaiaContextType) {
+    console.log("handleClickedRedo");
     return mutableState;
 }
 
