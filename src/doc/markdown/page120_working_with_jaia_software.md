@@ -71,7 +71,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 ## Windows/Linux/Mac
 
-### Using the JCC
+## Using the JCC
 1. Launch the JCC web interface.
     ```
     cd src/web
@@ -109,7 +109,7 @@ The JaiaBot project supports Ubuntu 24.04.
         ```
         http://XXX.XXX.XX.X:40001/
         ```
-### Using the JDV
+## Using the JDV
 1. Launch the JDV web interface.
     ```
     cd src/web/jdv
