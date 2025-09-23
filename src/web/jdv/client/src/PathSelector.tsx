@@ -164,6 +164,7 @@ export default class PathSelector extends React.Component {
             }
 
             for (const keyword_entry of this.state.series_descriptor_keyword_index) {
+                // TODO: Use a binary search here since the index is sorted
                 if (keyword_entry.keyword === query_part) {
                     results[keyword_entry.series_descriptor.path] = (results[keyword_entry.series_descriptor.path] || 0) + 2 * keyword_entry.score;
                 }
@@ -191,7 +192,6 @@ export default class PathSelector extends React.Component {
                     className="padded"
                     type="text"
                     placeholder="Search"
-                    defaultValue={""}
                     value={this.state.search_text}
                     onChange={(e) => {
                         this.search(e.target.value)
