@@ -237,10 +237,10 @@ export default class PathSelector extends React.Component {
 
 
     renderSearch() {
-        return [
-            this.renderSearchBar(),
-            this.renderSearchResults()
-        ]
+        return <div>
+            {this.renderSearchBar()}
+            {this.renderSearchResults()}
+        </div>
     }
 
     
