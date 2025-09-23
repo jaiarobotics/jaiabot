@@ -10,8 +10,7 @@ link {
             $remotes
             $hub_endpoints
             max_frame_size: 1400
-            $wifi_hub_id
-            subnet_mask: $subnet_mask
+            $ipv6
         }
     }
     mac { 

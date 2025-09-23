@@ -15,16 +15,14 @@ def gpsd_port(hub_id):
         default_gpsd_port=2947
         return default_gpsd_port
 
-def expected_bots_from_inventory():
-    if is_simulation():
-        return ''
-
+def expected_hubs_from_inventory():
     try:
         with open('/etc/jaiabot/inventory.yml', 'r') as file:
             data = yaml.safe_load(file)            
-            bots = data.get("bots", {}).get("hosts", {}).keys()
-            bot_ids = [int(bot.split('-')[0][3:]) for bot in bots]
-            return f"id: {bot_ids}"        
+            hubs = data.get("hubs", {}).get("hosts", {}).keys()
+            hub_ids = [int(hub.split('-')[0][3:]) for hub in hubs]
+            return hub_ids
     except FileNotFoundError:
-        return ''
+        default_hub_id = 1
+        return [default_hub_id]
     

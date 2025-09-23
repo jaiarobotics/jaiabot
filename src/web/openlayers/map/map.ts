@@ -8,7 +8,7 @@ const equirectangular = "EPSG:4326";
 const mercator = "EPSG:3857";
 
 export function createMap() {
-    return new ol.Map({
+    const map = new ol.Map({
         layers: layers.getAllLayers(),
         controls: [
             new Control.Zoom(),
@@ -31,4 +31,6 @@ export function createMap() {
         maxTilesLoading: 64,
         moveTolerance: 20,
     });
+
+    return map;
 }

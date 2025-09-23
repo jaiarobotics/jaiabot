@@ -5,6 +5,9 @@
 
 [kill=SIGTERM] gpsd $(../../gen/bot.py gpsd)
 
+# only run Iridium sim if it's enabled in jaia_comms_mode
+[kill=SIGTERM] /bin/bash -c "echo $jaia_comms_mode | grep -q iridium && exec goby_launch -P -L -p bot${jaia_bot_index}_iridium iridium/bot-sim.launch || sleep infinity"
+
 # start the Goby processes
 gobyd <(../../gen/bot.py gobyd)
 [env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/bot.py goby_intervehicle_portal)
@@ -17,6 +20,7 @@ goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 jaiabot_sensors <(../../gen/bot.py jaiabot_sensors)
+jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
 
 # vehicle MOOS components
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
