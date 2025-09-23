@@ -6,15 +6,15 @@
 # only run Iridium sim if it's enabled in jaia_comms_mode
 [kill=SIGTERM] /bin/bash -c "echo $jaia_comms_mode | grep -q iridium && exec goby_launch -P -L -p hub${jaia_hub_index}_iridium iridium/hub-sim.launch || sleep infinity"
 
-gobyd <(../../gen/hub.py gobyd) -vvv -n
-[env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/hub.py goby_intervehicle_portal) -vvv -n
+gobyd <(../../gen/hub.py gobyd)
+[env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/hub.py goby_intervehicle_portal)
 [env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison <(../../gen/hub.py goby_liaison)
 jaiabot_simulator <(../../gen/hub.py jaiabot_simulator)
 goby_gps <(../../gen/hub.py goby_gps)
 goby_logger <(../../gen/hub.py goby_logger)
 
-jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -vvv
-jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
+jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager)
+jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal)
 jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 jaiabot_comms_manager <(../../gen/hub.py jaiabot_comms_manager)
 
