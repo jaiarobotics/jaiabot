@@ -31,7 +31,7 @@ import {
     TaskPacket,
     TaskType,
 } from "../types/protobuf-types";
-import { DATA_MODEL_POLL_TIME, MAX_MISSION_HISTORY, UNASSIGNED_ID } from "../utils/constants";
+import { DATA_MODEL_POLL_TIME, MAX_HISTORY, UNASSIGNED_ID } from "../utils/constants";
 import { MapModes } from "../types/openlayers-types";
 import { MapFeatureTypes } from "../types/openlayers-types";
 import {
@@ -60,9 +60,27 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
-    missionHistory: HistoryBuffer<Map<number, Mission>>;
+    stateHistory: HistoryBuffer<JaiaHistoryType>;
     taskPackets: TaskPacket[];
 
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedRallyPoint: SelectedRallyPoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    mapMode: MapModes;
+}
+
+// Subset of JaiaContextType for storing state history
+export interface JaiaHistoryType {
+    missions: Map<number, Mission>;
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
     selectedRallyPoint: SelectedRallyPoint;
@@ -238,10 +256,10 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     // Call the handler
     mutableState = config.handler(mutableState, action);
 
-    // If this action is history-tracked, push a snapshot of current missions
     if (config.tracked) {
         const description = getActionDescription(action.type);
-        mutableState.missionHistory.push(cloneDeep(mutableState.missions), description);
+        const snapshot = captureSnapshot(mutableState);
+        mutableState.stateHistory.push(snapshot, description);
     }
     return mutableState;
 }
@@ -257,10 +275,6 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
-    mutableState.missionHistory = new HistoryBuffer<Map<number, Mission>>(
-        cloneDeep(missionSet.getMissions()),
-        MAX_MISSION_HISTORY,
-    );
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
@@ -274,6 +288,8 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
+    const initialState = captureSnapshot(mutableState);
+    mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
 
     return mutableState;
 }
@@ -969,13 +985,23 @@ function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaActi
 
 function handleClickedUndo(mutableState: JaiaContextType) {
     console.log("handleClickedUndo");
-    const recoveredMissionState = cloneDeep(mutableState.missionHistory.undo());
-    missionSet.setMissions(recoveredMissionState);
-    mutableState.missions = missionSet.getMissions();
-    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
+
+    // Get the previous snapshot from history
+    const snapshot = mutableState.stateHistory.undo();
+    if (!snapshot) {
+        console.warn("No undo available");
+        return mutableState;
+    }
+
+    // Restore snapshot into mutableState
+    mutableState = restoreSnapshot(mutableState, snapshot);
+
+    // Update missionSet to match restored state
+    missionSet.setMissions(mutableState.missions);
+    missionSet.setMissionIDInEditMode(mutableState.missionIDInEditMode);
+
     resetSelectedWaypoint(mutableState);
-    // mutableState.visiblePanel = ButtonNames.NONE;
+    //TODO check for other items in the data model that will need to be restored
 
     syncOpenLayers();
     return mutableState;
@@ -983,18 +1009,27 @@ function handleClickedUndo(mutableState: JaiaContextType) {
 
 function handleClickedRedo(mutableState: JaiaContextType) {
     console.log("handleClickedRedo");
-    const recoveredMissionState = cloneDeep(mutableState.missionHistory.redo());
-    missionSet.setMissions(recoveredMissionState);
-    mutableState.missions = missionSet.getMissions();
-    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
+
+    // Get the next snapshot from history
+    const snapshot = mutableState.stateHistory.redo();
+    if (!snapshot) {
+        console.warn("No redo available");
+        return mutableState;
+    }
+
+    // Restore snapshot into mutableState
+    mutableState = restoreSnapshot(mutableState, snapshot);
+
+    // Update missionSet to match restored state
+    missionSet.setMissions(mutableState.missions);
+    missionSet.setMissionIDInEditMode(mutableState.missionIDInEditMode);
+
     resetSelectedWaypoint(mutableState);
-    // mutableState.visiblePanel = ButtonNames.NONE;
+    //TODO check for other items in the data model that will need to be restored
 
     syncOpenLayers();
     return mutableState;
 }
-
 export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
     const [state, dispatch] = useReducer(jaiaReducer, null);
 
@@ -1106,4 +1141,33 @@ function getActionDescription(action: JaiaActions) {
         .split("_")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
+}
+function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
+    const snapshot: JaiaHistoryType = {
+        missions: state.missions,
+        selectedNode: state.selectedNode,
+        selectedWaypoint: state.selectedWaypoint,
+        selectedRallyPoint: state.selectedRallyPoint,
+        selectedTaskPacket: state.selectedTaskPacket,
+        visibleDetails: state.visibleDetails,
+        visiblePanel: state.visiblePanel,
+        hubAccordionStates: state.hubAccordionStates,
+        botAccordionStates: state.botAccordionStates,
+        mapLayerAccordionStates: state.mapLayerAccordionStates,
+        missionAccordionStates: state.missionAccordionStates,
+        missionIDInEditMode: state.missionIDInEditMode,
+        missionSpeeds: state.missionSpeeds,
+        mapMode: state.mapMode,
+    };
+
+    return cloneDeep(snapshot);
+}
+
+function restoreSnapshot(
+    mutableState: JaiaContextType,
+    snapshot: JaiaHistoryType,
+): JaiaContextType {
+    const snapshotCopy = cloneDeep(snapshot);
+    Object.assign(mutableState, snapshotCopy);
+    return mutableState;
 }

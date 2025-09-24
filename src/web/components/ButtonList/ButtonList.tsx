@@ -89,23 +89,23 @@ export default function ButtonList(props: Props) {
                 <Button
                     id="undo"
                     className="jaia-button"
-                    disabled={!jaiaContext.missionHistory.canUndo()}
+                    disabled={!jaiaContext.stateHistory.canUndo()}
                     onClick={() => handleUndoClick()}
                 >
                     <Icon
                         path={mdiArrowULeftTop}
-                        title={"Undo " + jaiaContext.missionHistory.peekUndoDescription()}
+                        title={"Undo " + jaiaContext.stateHistory.peekUndoDescription()}
                     />
                 </Button>
                 <Button
                     id="redo"
                     className="jaia-button"
-                    disabled={!jaiaContext.missionHistory.canRedo()}
+                    disabled={!jaiaContext.stateHistory.canRedo()}
                     onClick={() => handleRedoClick()}
                 >
                     <Icon
                         path={mdiArrowURightTop}
-                        title={"Redo " + jaiaContext.missionHistory.peekRedoDescription()}
+                        title={"Redo " + jaiaContext.stateHistory.peekRedoDescription()}
                     />
                 </Button>
                 <Button
