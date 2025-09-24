@@ -1202,4 +1202,5 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
 
     // TODO, look for things not tracked in state that could be out of sync
     // examples missionSetName, nextMissionID, everything in missionsManager
+    // some of these are likely causing crashes
 }
