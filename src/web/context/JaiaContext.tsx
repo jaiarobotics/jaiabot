@@ -984,8 +984,6 @@ function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaActi
 }
 
 function handleClickedUndo(mutableState: JaiaContextType) {
-    console.log("handleClickedUndo");
-
     // Get the previous snapshot from history
     const snapshot = mutableState.stateHistory.undo();
     if (!snapshot) {
@@ -995,21 +993,12 @@ function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState
     mutableState = restoreSnapshot(mutableState, snapshot);
-
-    // Update missionSet to match restored state
-    missionSet.setMissions(mutableState.missions);
-    missionSet.setMissionIDInEditMode(mutableState.missionIDInEditMode);
-
-    resetSelectedWaypoint(mutableState);
-    //TODO check for other items in the data model that will need to be restored
-
+    updateDataFromSnapshot(snapshot);
     syncOpenLayers();
     return mutableState;
 }
 
 function handleClickedRedo(mutableState: JaiaContextType) {
-    console.log("handleClickedRedo");
-
     // Get the next snapshot from history
     const snapshot = mutableState.stateHistory.redo();
     if (!snapshot) {
@@ -1019,17 +1008,12 @@ function handleClickedRedo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState
     mutableState = restoreSnapshot(mutableState, snapshot);
-
-    // Update missionSet to match restored state
-    missionSet.setMissions(mutableState.missions);
-    missionSet.setMissionIDInEditMode(mutableState.missionIDInEditMode);
-
-    resetSelectedWaypoint(mutableState);
-    //TODO check for other items in the data model that will need to be restored
+    updateDataFromSnapshot(snapshot);
 
     syncOpenLayers();
     return mutableState;
 }
+
 export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
     const [state, dispatch] = useReducer(jaiaReducer, null);
 
@@ -1170,4 +1154,19 @@ function restoreSnapshot(
     const snapshotCopy = cloneDeep(snapshot);
     Object.assign(mutableState, snapshotCopy);
     return mutableState;
+}
+
+function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
+    // Update missionSet
+    missionSet.setMissions(snapshot.missions);
+    missionSet.setMissionIDInEditMode(snapshot.missionIDInEditMode);
+    missionSet.setMissionSpeeds(snapshot.missionSpeeds);
+
+    // Update jaiaGlobal
+    jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
+    jaiaGlobal.setSelectedNode(snapshot.selectedNode);
+    jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
+
+    // TODO, look for things not tracked in state that could be out of sync
+    // examples missionSetName, nextMissionID, everything in missionsManager
 }
