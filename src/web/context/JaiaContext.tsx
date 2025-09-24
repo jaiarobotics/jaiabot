@@ -54,7 +54,6 @@ import {
     ButtonTypes,
     PanelActions,
 } from "../types/context-types";
-import { truncate } from "lodash";
 
 export interface JaiaContextType {
     bots: Map<number, Bot>;
@@ -159,6 +158,7 @@ export const JaiaDispatchContext = createContext(null);
  TODO: put everything in single file for now, suggest breaking things up later
         * Move types to types/context-types
         * Group and move other handlers to separate files
+        * Move support functions to other files or group with handlers
 */
 
 // Standard profile for action handling functions
@@ -166,8 +166,8 @@ type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaCon
 
 // Configuration for handling JaiaActions
 type ActionConfig = {
-    handler: HandlerFn; // name of handler function
-    tracked: boolean; // trueif action should be tracked in history for undo/redo
+    handler: HandlerFn;
+    tracked: boolean;
 };
 
 // Map of handlers and whether they are tracked for JaiaActions
@@ -267,6 +267,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 /**
  * Puts Context in sync with the data model from the start and initializes UI properties.
  * Without this call, the references to the objects in the data model could be obsolete.
+ * Creates initial value for state history
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -983,6 +984,11 @@ function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaActi
     return mutableState;
 }
 
+/**
+ * Pulls previous state from history and updates current state and data model
+ * @param {JaiaContextType} mutableState current state to be updated
+ * @returns {JaiaContextType} updated copy of state
+ */
 function handleClickedUndo(mutableState: JaiaContextType) {
     // Get the previous snapshot from history
     const snapshot = mutableState.stateHistory.undo();
@@ -993,11 +999,17 @@ function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState
     mutableState = restoreSnapshot(mutableState, snapshot);
+    // sync data model with restored state
     updateDataFromSnapshot(snapshot);
     syncOpenLayers();
     return mutableState;
 }
 
+/**
+ * Pulls next state from history and updates current state and data model
+ * @param {JaiaContextType} mutableState current state to be updated
+ * @returns {JaiaContextType} updated copy of state
+ */
 function handleClickedRedo(mutableState: JaiaContextType) {
     // Get the next snapshot from history
     const snapshot = mutableState.stateHistory.redo();
@@ -1008,6 +1020,7 @@ function handleClickedRedo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState
     mutableState = restoreSnapshot(mutableState, snapshot);
+    // sync data model with restored state
     updateDataFromSnapshot(snapshot);
 
     syncOpenLayers();
@@ -1126,6 +1139,14 @@ function getActionDescription(action: JaiaActions) {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 }
+
+/**
+ * Captures a snapshot of the current state to store in history buffer
+ * @param {JaiaContextType} state current state
+ * @returns {JaiaHistoryType} snapshot of state data to put on buffer
+ *
+ * @notes Uses cloneDeep so history is isolated from future state changes
+ */
 function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
     const snapshot: JaiaHistoryType = {
         missions: state.missions,
@@ -1147,6 +1168,14 @@ function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
     return cloneDeep(snapshot);
 }
 
+/**
+ * Restores the application state from a snapshot stored in history
+ * @param {JaiaContextType} mutableState current state to be updated
+ * @param {JaiaHistoryType} snapshot snapshot of state from history
+ * @returns {JaiaContextType} updates state with values from history
+ *
+ * @notes Uses cloneDeep so history is isolated from future state changes
+ */
 function restoreSnapshot(
     mutableState: JaiaContextType,
     snapshot: JaiaHistoryType,
@@ -1156,6 +1185,10 @@ function restoreSnapshot(
     return mutableState;
 }
 
+/**
+ * Syncs the data model with values from a history snapshot
+ * @param {JaiaHistoryType} snapshot snapshot of state from history
+ */
 function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     // Update missionSet
     missionSet.setMissions(snapshot.missions);
