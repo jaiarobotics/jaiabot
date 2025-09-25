@@ -21,7 +21,7 @@ popd > /dev/null
 # Build JCC and JED clients
 # Install pre-requisites
 ./install_dependencies.sh ./
-
+export jaia_mode=simulation
 
 # Set up pre-commit hooks
 pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null

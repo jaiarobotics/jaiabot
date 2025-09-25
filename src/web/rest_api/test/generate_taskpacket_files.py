@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from sys import argv
+import os
 import json
 from random import uniform, sample
 from datetime import datetime
@@ -15,7 +16,11 @@ lon_range = [-71.272681, -71.372681]
 depth_wavelength = 0.001
 max_age_seconds = 28 * 24 * 60 * 60
 
-dir = '/var/log/jaiabot/bot_offload/'
+dir = (
+    os.path.expanduser("~/jaia-logs/bot_offload/")
+    if os.environ.get("jaia_mode") == "simulation"
+    else "/var/log/jaiabot/bot_offload/"
+)
 
 
 for i in range(taskpacket_files):

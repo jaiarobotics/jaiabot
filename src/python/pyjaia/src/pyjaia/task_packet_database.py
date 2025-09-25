@@ -20,8 +20,12 @@ l = logging.getLogger('task_packet_database')
 
 
 class TaskPacketDatabase:
-    taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
-    database_path: str= "/var/log/jaiabot/db"
+    if os.environ.get("jaia_mode") == "simulation":
+        taskpacket_files_path: str = os.path.expanduser("~/jaia-logs/bot_offload/")
+        database_path: str = os.path.expanduser("~/jaia-logs/db")
+    else:
+        taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
+        database_path: str = "/var/log/jaiabot/db"
 
     task_packets_version = random.sample(range(2**31), 1)[0]
 

@@ -10,6 +10,7 @@ from google.protobuf.json_format import ParseDict, MessageToDict
 from google.protobuf.message import Message
 import threading
 import logging
+import os
 import bisect
 import glob
 import json
@@ -37,7 +38,11 @@ class Data:
     task_packet_database = TaskPacketDatabase()
 
     # Path to the .taskpacket files
-    task_packet_files_path = "/var/log/jaiabot/bot_offload"
+    if os.environ.get("jaia_mode") == "simulation":
+        task_packet_files_path = os.path.expanduser("~/jaia-logs/bot_offload")
+    else:
+        task_packet_files_path = "/var/log/jaiabot/bot_offload"
+
     task_packet_loaded_filenames: Set[str] = set()
 
     def __init__(self) -> None:

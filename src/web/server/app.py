@@ -294,8 +294,13 @@ def get_bot_paths():
 
 
 ###### Offline maps
+map_tile_path = (
+    os.path.expanduser("~/jaia-logs/lib/maps/")
+    if os.environ.get("jaia_mode") == "simulation"
+    else "/var/log/jaiabot/lib/maps/"
+)
 
-map_tile_server = MapTileServer("/var/log/jaiabot/lib/maps/")
+map_tile_server = MapTileServer(map_tile_path)
 
 @app.route('/maps/', methods=['GET'])
 def get_maps():
