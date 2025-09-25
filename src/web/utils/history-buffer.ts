@@ -5,6 +5,11 @@ export default class HistoryBuffer<T> {
     private head: number;
     private size: number;
 
+    /** Creates a history buffer
+     *
+     * @param {T} initialValue initial state of history buffer
+     * @param {number} capacity maximum number of entries in history buffer
+     */
     constructor(
         initialValue: T,
         private readonly capacity: number = 10,
@@ -18,7 +23,11 @@ export default class HistoryBuffer<T> {
         this.size = 1;
     }
 
-    /** Clear the entire history */
+    /**
+     * Clear the entire history
+     * @param {T} initialValue Optional new initial value, will use original if not provided
+     * @returns {T} current value of history buffer (initialValue)
+     */
     reset(initialValue?: T) {
         this.buffer.fill(undefined);
         this.initialValue = initialValue ?? this.initialValue;
@@ -29,8 +38,14 @@ export default class HistoryBuffer<T> {
         this.size = 1;
         return this.getPresent();
     }
-
-    /** Push a new value onto the history buffer */
+    /**
+     * Push a new value onto the history buffer
+     * @param {T} value New state to push onto history buffer
+     * @param {string} description Description of action creating new state
+     *
+     * @notes Provide value should be cloned if mutable to prevent
+     *        corruption of history
+     */
     push(value: T, description: string) {
         const entry = { value, description };
 
@@ -42,21 +57,26 @@ export default class HistoryBuffer<T> {
         }
 
         if (this.size < this.capacity) {
-            // buffer not full yet
+            // Buffer not full yet
             const pos = (this.head + this.size) % this.capacity;
             this.buffer[pos] = entry;
             this.index = pos;
             this.size++;
         } else {
-            // buffer full, overwrite oldest
+            // Buffer full, overwrite oldest
             this.head = (this.head + 1) % this.capacity;
             const pos = (this.head + this.size - 1) % this.capacity;
             this.buffer[pos] = entry;
             this.index = pos;
         }
     }
-
-    /** Undo: move back in history and return the previous value */
+    /**
+     * Move back in history and return the previous value
+     * @returns {T} Previous state
+     *
+     * @notes Returned value should be cloned if mutable to prevent
+     *        corruption of history
+     */
     undo() {
         if (this.canUndo()) {
             this.index = (this.index - 1 + this.capacity) % this.capacity;
@@ -64,7 +84,13 @@ export default class HistoryBuffer<T> {
         }
     }
 
-    /** Redo: move forward in history and return the next value */
+    /**
+     * Move forward in history and return the next value
+     * @returns {T} Next state
+     *
+     * @notes Returned value should be cloned if mutable to prevent
+     *        corruption of history
+     */
     redo() {
         if (this.canRedo()) {
             this.index = (this.index + 1) % this.capacity;
@@ -72,29 +98,47 @@ export default class HistoryBuffer<T> {
         }
     }
 
-    /** Return the current value without changing history */
+    /**
+     * Returns current state
+     * @returns {T} Current state
+     *
+     * @notes Returned value should be cloned if mutable to prevent
+     *        corruption of history
+     */
     getPresent() {
         return this.buffer[this.index].value;
     }
 
-    /** Description of the last action for undo button tooltip */
+    /**
+     * Provides description of the last action for undo button tooltip
+     * @returns {string} Description of action to be undone
+     */
     peekUndoDescription() {
         return this.canUndo() ? this.buffer[this.index].description : undefined;
     }
 
-    /** Description of the next action for redo button tooltip */
+    /**
+     * Provides description of the next action for redo button tooltip
+     * @returns {string} Description of action to be redone
+     */
     peekRedoDescription() {
         if (!this.canRedo()) return undefined;
         const nextIndex = (this.index + 1) % this.capacity;
         return this.buffer[nextIndex]?.description;
     }
 
-    /** Can we perform an undo? */
+    /**
+     * Checks if there is anything to undo
+     * @returns {boolean} True if undo can be performed
+     */
     canUndo() {
         return this.index !== this.head;
     }
 
-    /** Can we perform a redo? */
+    /**
+     * Checks if there is anything to redo
+     * @returns {boolean} True if redo can be performed
+     */
     canRedo() {
         const tail = (this.head + this.size - 1) % this.capacity;
         return this.size > 0 && this.index !== tail;

@@ -60,6 +60,10 @@ test("exercise histroy buffer", () => {
     expect(testHistory.peekRedoDescription()).toBe("Last Push");
     expect(testHistory.canRedo()).toBe(true);
 
+    // Push new state and verify nothing to redo
+    testHistory.push(99, "New Last Push");
+    expect(testHistory.canRedo()).toBe(false);
+
     // Reset and verify initial value
     expect(testHistory.reset()).toBe(0);
 
