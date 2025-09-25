@@ -16,6 +16,9 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 
 import "./Map.less";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { UNASSIGNED_ID } from "../../utils/constants";
+import { missionSet } from "../../data/mission_set/mission-set";
 
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -74,7 +77,14 @@ export default function Map() {
             return;
         }
 
-        handleAddWaypointClick(event.coordinate);
+        // Prevent generating false ADD_WAYPOINT actions
+        if (
+            (jaiaGlobal.getSelectedNode().type === NodeTypes.BOT &&
+                missionsManager.getMissionID(jaiaGlobal.getSelectedNode().id) === UNASSIGNED_ID) ||
+            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID
+        ) {
+            handleAddWaypointClick(event.coordinate);
+        }
     };
 
     /**
