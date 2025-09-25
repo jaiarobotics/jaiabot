@@ -129,6 +129,7 @@ interface JaiaHistoryType {
     // items not tracked in context needed for state
     nextMissionID: number;
     missionSetName: string;
+    missionAssignments: Map<number, number>;
 }
 
 const defaultHubAccordionStates: HubAccordionStates = {
@@ -185,9 +186,9 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.DELETE_MISSION, { handler: handleDeleteMission, tracked: true }],
     [JaiaActions.DUPLICATE_MISSION, { handler: handleDuplicateMission, tracked: true }],
     [JaiaActions.DELETE_ALL_MISSIONS, { handler: handleDeleteAllMissions, tracked: true }],
-    [JaiaActions.ASSIGN_MISSION, { handler: handleAssignMission, tracked: false }],
-    [JaiaActions.AUTO_ASSIGN_MISSIONS, { handler: handleAutoAssignMissions, tracked: false }],
-    [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: false }],
+    [JaiaActions.ASSIGN_MISSION, { handler: handleAssignMission, tracked: true }],
+    [JaiaActions.AUTO_ASSIGN_MISSIONS, { handler: handleAutoAssignMissions, tracked: true }],
+    [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: true }],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
 
     // Waypoint & Task Actions
@@ -1165,6 +1166,7 @@ function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
         mapMode: state.mapMode,
         nextMissionID: missionSet.getNextMissionID(),
         missionSetName: missionSet.getName(),
+        missionAssignments: cloneDeep(missionsManager.getMissionAssignments()),
     };
 
     return cloneDeep(snapshot);
@@ -1201,13 +1203,11 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     missionSet.setNextMissionID(snapshot.nextMissionID);
     missionSet.setName(snapshot.missionSetName);
 
+    // Update missionsManager
+    missionsManager.setAssignments(cloneDeep(snapshot.missionAssignments));
+
     // Update jaiaGlobal
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
     jaiaGlobal.setSelectedNode(snapshot.selectedNode);
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
-
-    // TODO, look for things not tracked in state that could be out of sync
-    // examples  everything in missionsManager
-    // some of these are likely causing crashes
-    // undo on delete mission breaks add mission state.missions out of sync with missionSet
 }
