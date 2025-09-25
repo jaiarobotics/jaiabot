@@ -1166,7 +1166,7 @@ function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
         mapMode: state.mapMode,
         nextMissionID: missionSet.getNextMissionID(),
         missionSetName: missionSet.getName(),
-        missionAssignments: cloneDeep(missionsManager.getMissionAssignments()),
+        missionAssignments: missionsManager.getMissionAssignments(),
     };
 
     return cloneDeep(snapshot);
