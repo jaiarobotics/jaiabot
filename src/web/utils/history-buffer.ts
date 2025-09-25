@@ -33,6 +33,14 @@ export default class HistoryBuffer<T> {
     /** Push a new value onto the history buffer */
     push(value: T, description: string) {
         const entry = { value, description };
+
+        // Trim redo path if we've undone some entries
+        const tail = (this.head + this.size - 1) % this.capacity;
+        if (this.index !== tail) {
+            this.size =
+                (this.index - this.head + 1 + this.capacity) % this.capacity || this.capacity;
+        }
+
         if (this.size < this.capacity) {
             // buffer not full yet
             const pos = (this.head + this.size) % this.capacity;

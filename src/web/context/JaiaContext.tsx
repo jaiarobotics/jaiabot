@@ -77,24 +77,6 @@ export interface JaiaContextType {
     mapMode: MapModes;
 }
 
-// Subset of JaiaContextType for storing state history
-export interface JaiaHistoryType {
-    missions: Map<number, Mission>;
-    selectedNode: SelectedNode;
-    selectedWaypoint: SelectedWaypoint;
-    selectedRallyPoint: SelectedRallyPoint;
-    selectedTaskPacket: SelectedTaskPacket;
-    visibleDetails: NodeTypes;
-    visiblePanel: ButtonNames;
-    hubAccordionStates: HubAccordionStates;
-    botAccordionStates: BotAccordionStates;
-    mapLayerAccordionStates: MapLayerAccordionStates;
-    missionAccordionStates: { [missionID: number]: boolean };
-    missionIDInEditMode: number;
-    missionSpeeds: Speeds;
-    mapMode: MapModes;
-}
-
 export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
@@ -125,6 +107,28 @@ export interface JaiaAction {
 
 interface JaiaContextProviderProps {
     children: ReactNode;
+}
+
+// Snapshot of state for storing state history
+interface JaiaHistoryType {
+    // items from JaiaContext
+    missions: Map<number, Mission>;
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedRallyPoint: SelectedRallyPoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    mapMode: MapModes;
+    // items not tracked in context needed for state
+    nextMissionID: number;
+    missionSetName: string;
 }
 
 const defaultHubAccordionStates: HubAccordionStates = {
@@ -997,10 +1001,8 @@ function handleClickedUndo(mutableState: JaiaContextType) {
         return mutableState;
     }
 
-    // Restore snapshot into mutableState
+    // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
-    // sync data model with restored state
-    updateDataFromSnapshot(snapshot);
     syncOpenLayers();
     return mutableState;
 }
@@ -1020,8 +1022,6 @@ function handleClickedRedo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState
     mutableState = restoreSnapshot(mutableState, snapshot);
-    // sync data model with restored state
-    updateDataFromSnapshot(snapshot);
 
     syncOpenLayers();
     return mutableState;
@@ -1141,7 +1141,7 @@ function getActionDescription(action: JaiaActions) {
 }
 
 /**
- * Captures a snapshot of the current state to store in history buffer
+ * Captures a snapshot of the current state and other data to store in history buffer
  * @param {JaiaContextType} state current state
  * @returns {JaiaHistoryType} snapshot of state data to put on buffer
  *
@@ -1163,6 +1163,8 @@ function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
         missionIDInEditMode: state.missionIDInEditMode,
         missionSpeeds: state.missionSpeeds,
         mapMode: state.mapMode,
+        nextMissionID: missionSet.getNextMissionID(),
+        missionSetName: missionSet.getName(),
     };
 
     return cloneDeep(snapshot);
@@ -1170,18 +1172,20 @@ function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
 
 /**
  * Restores the application state from a snapshot stored in history
+ * and makes a call to update the data model from the snapshot
  * @param {JaiaContextType} mutableState current state to be updated
  * @param {JaiaHistoryType} snapshot snapshot of state from history
  * @returns {JaiaContextType} updates state with values from history
  *
  * @notes Uses cloneDeep so history is isolated from future state changes
  */
-function restoreSnapshot(
-    mutableState: JaiaContextType,
-    snapshot: JaiaHistoryType,
-): JaiaContextType {
+function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaHistoryType) {
+    // clone snapshot to isolate from history
     const snapshotCopy = cloneDeep(snapshot);
+    // restore state from snapshot
     Object.assign(mutableState, snapshotCopy);
+    // sync data model with restored state
+    updateDataFromSnapshot(snapshotCopy);
     return mutableState;
 }
 
@@ -1194,6 +1198,8 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     missionSet.setMissions(snapshot.missions);
     missionSet.setMissionIDInEditMode(snapshot.missionIDInEditMode);
     missionSet.setMissionSpeeds(snapshot.missionSpeeds);
+    missionSet.setNextMissionID(snapshot.nextMissionID);
+    missionSet.setName(snapshot.missionSetName);
 
     // Update jaiaGlobal
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
@@ -1201,6 +1207,7 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
 
     // TODO, look for things not tracked in state that could be out of sync
-    // examples missionSetName, nextMissionID, everything in missionsManager
+    // examples  everything in missionsManager
     // some of these are likely causing crashes
+    // undo on delete mission breaks add mission state.missions out of sync with missionSet
 }
