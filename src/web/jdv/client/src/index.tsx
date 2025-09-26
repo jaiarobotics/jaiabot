@@ -32,6 +32,9 @@ import "./styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "./shared/CustomAlert";
 
 import "./index.css";
+import { binarySearch } from "ol/array";
+import { bisect } from "./bisect";
+import { start } from "repl";
 
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
@@ -91,6 +94,7 @@ class LogApp extends React.Component {
     state: State;
     map: JaiaMap;
     plot_div_element: any;
+    _visible_time_range: number[];
 
     constructor(props: LogAppProps) {
         super(props);
@@ -116,6 +120,8 @@ class LogApp extends React.Component {
             isBusy: false,
             customAlert: null,
         };
+
+        this._visible_time_range = [0, 2 ** 60] // Include every data point
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
             if (props == null) {
@@ -460,17 +466,58 @@ class LogApp extends React.Component {
             });
     }
 
-    get_plot_range() {
-        let plotlyElement = this.plot_div_element as any;
-        const range = plotlyElement.layout?.xaxis?.range;
-        if (range == null) {
-            return [0, 2 ** 60];
-        } else {
-            return range.map(ISODateToMicros);
+    _refreshPlotData() {
+        const MAX_DATA_POINTS = 400
+
+        let update: any = {
+            x: [],
+            y: [],
+            hovertext: [],
+            mode: [],
+            customdata: []
         }
+
+        for (let [plot_index, series] of this.state.plots.entries()) {
+            // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
+            // This greatly improves GUI responsiveness.
+            const start_data_index = bisect(series._utime_, t => this._visible_time_range[0] - t)?.index ?? 0
+            const end_data_index = bisect(series._utime_, t => this._visible_time_range[1] - t)?.index ?? series._utime_.length
+            const data_index_step = Math.max(1, (end_data_index - start_data_index) / MAX_DATA_POINTS)
+
+            let x_values = []
+            let customdata = []
+            let y_values = []
+            for (let data_index = start_data_index; data_index < end_data_index; data_index += data_index_step) {
+                const data_index_int = Math.round(data_index)
+                customdata.push(series._utime_[data_index_int])
+                x_values.push(new Date(series._utime_[data_index_int] / 1e3))
+                y_values.push(series.series_y[data_index_int])
+            }
+
+            let hovertext = y_values.map((y) => series.hovertext?.[y]);
+            let mode = (data_index_step > 1) ? "markers" : "lines+markers" // Use lines and markers to indicate that we've got full resolution
+
+            update.x.push(x_values)
+            update.y.push(y_values)
+            update.hovertext.push(hovertext)
+            update.customdata.push(customdata)
+            update.mode.push(mode)
+        }
+
+        Plotly.restyle("plot", update)
     }
 
+
+    setVisibleTimeRange(timeRange?: number[]) {
+        this._visible_time_range = timeRange ?? [0, Number.MAX_SAFE_INTEGER]
+        this.map.setTimeRange(this._visible_time_range)
+        this._refreshPlotData()
+    }
+
+
     refreshPlots() {
+        const plot_time_range = this._visible_time_range
+
         if (this.state.plots.length == 0) {
             Plotly.purge(this.plot_div_element);
             return;
@@ -480,12 +527,6 @@ class LogApp extends React.Component {
         var layout: any = { showlegend: false };
 
         for (let [plot_index, series] of this.state.plots.entries()) {
-            // Plot the data in series_list
-            let dates = series._utime_.map((utime) => new Date(utime / 1e3));
-            // Keep the original utime for internal use
-            let x_utime = series._utime_;
-            let hovertext = series.series_y.map((y) => series.hovertext?.[y]);
-
             // Set the y-axis for this plot
             function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
                 // Get components that include the splitChars
@@ -544,14 +585,13 @@ class LogApp extends React.Component {
 
             let trace: Plotly.Data = {
                 name: series.title,
-                x: dates,
-                y: series.series_y,
+                x: [new Date()],
+                y: [0.0],
                 xaxis: "x",
                 yaxis: yaxis,
-                hovertext: hovertext,
+                hovertext: [],
                 type: "scatter",
                 mode: "lines+markers",
-                customdata: x_utime,
             };
 
             data.push(trace);
@@ -568,8 +608,7 @@ class LogApp extends React.Component {
         }
 
         Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
-            // Apply plot range to map path
-            this.map.setTimeRange(this.get_plot_range());
+            this._refreshPlotData()
 
             // Setup the triggers
             let self = this;
@@ -590,21 +629,14 @@ class LogApp extends React.Component {
                 function (eventdata: Plotly.PlotRelayoutEvent) {
                     // When autorange, zoom out to the whole set of points
                     if (eventdata["xaxis.autorange"]) {
-                        self.map.setTimeRange(null);
+                        self.setVisibleTimeRange(null)
                         return;
                     }
 
-                    console.debug(`Plot relayout with eventdata:`);
-                    console.debug(eventdata);
+                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
+                    const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"])) ?? Number.MAX_SAFE_INTEGER;
 
-                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"]));
-                    const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"]));
-
-                    if (t0 == null || t1 == null) {
-                        self.map.setTimeRange(null);
-                    } else {
-                        self.map.setTimeRange([t0, t1]);
-                    }
+                    self.setVisibleTimeRange([t0, t1])
                 },
             );
         });
@@ -616,8 +648,7 @@ class LogApp extends React.Component {
                 className="padded"
                 disabled={this.state.chosenLogs.length == 0}
                 onClick={() => {
-                    const t_range = this.get_plot_range();
-                    this.open_moos_messages(t_range);
+                    this.open_moos_messages(this._visible_time_range);
                 }}
             >
                 Download MOOS Messages...
@@ -671,7 +702,7 @@ class LogApp extends React.Component {
                         className="plotButton"
                         disabled={this.state.plots.length == 0}
                         onClick={() => {
-                            downloadCSV(this.state.plots, this.get_plot_range());
+                            downloadCSV(this.state.plots, this._visible_time_range);
                         }}
                     >
                         <Icon
