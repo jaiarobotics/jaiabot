@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 double loop_freq = 10;
 
 jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
-    : zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>(loop_freq * si::hertz)
+    : zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 

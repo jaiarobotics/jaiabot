@@ -15,10 +15,11 @@ import datetime
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
 parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
-parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
+parser.add_argument('-rp', '--send_port', metavar='send_port', default=20400, type=int, help='port to receive orientation data')
+parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=20004, type=int, help='port to receive orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-
+parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 50, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
