@@ -1,4 +1,4 @@
-from common import is_simulation, is_runtime
+from common import is_simulation
 from common import comms
 
 # Dictionary of base ports for each type
