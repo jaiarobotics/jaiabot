@@ -38,7 +38,7 @@ export default function RemoteControlButton(props: Props) {
     const getClassName = () => {
         let className = "jaia-button";
 
-        if (props.bot.getMode() === BotModes.REMOTE_CONTROL) {
+        if (rcEnabled) {
             className += " rc-active";
             return className;
         }
