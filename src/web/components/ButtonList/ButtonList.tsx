@@ -78,6 +78,20 @@ export default function ButtonList(props: Props) {
         }
         return "jaia-button";
     };
+    /**
+     * Provides the class name to style the undo button
+     *
+     * @returns {void}
+     */
+    const getUndoClassName = () =>
+        jaiaContext.stateHistory.canUndo() ? "jaia-button" : "jaia-button disabled";
+    /**
+     * Provides the class name to style the redo button
+     *
+     * @returns {void}
+     */
+    const getRedoClassName = () =>
+        jaiaContext.stateHistory.canRedo() ? "jaia-button" : "jaia-button disabled";
 
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
@@ -88,7 +102,7 @@ export default function ButtonList(props: Props) {
                 <DataOffloadAllButton bots={jaiaContext.bots} />
                 <Button
                     id="undo"
-                    className="jaia-button"
+                    className={getUndoClassName()}
                     disabled={!jaiaContext.stateHistory.canUndo()}
                     onClick={() => handleUndoClick()}
                 >
@@ -99,7 +113,7 @@ export default function ButtonList(props: Props) {
                 </Button>
                 <Button
                     id="redo"
-                    className="jaia-button"
+                    className={getRedoClassName()}
                     disabled={!jaiaContext.stateHistory.canRedo()}
                     onClick={() => handleRedoClick()}
                 >
