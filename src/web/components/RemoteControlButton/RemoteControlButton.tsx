@@ -80,26 +80,14 @@ export default function RemoteControlButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            if (!rcEnabled) {
-                const enterRCCommand = getEnterRCCommand(props.bot);
-                const response = await sendBotCommand(enterRCCommand);
-                if (response && response.status === "ok") {
-                    jaiaDispatch({
-                        type: JaiaActions.SENT_COMMAND,
-                        botID: props.bot.getBotID(),
-                        command: enterRCCommand,
-                    });
-                }
-            } else {
-                const exitRCCommand = getExitRCCommand(props.bot);
-                const response = await sendBotCommand(exitRCCommand);
-                if (response && response.status === "ok") {
-                    jaiaDispatch({
-                        type: JaiaActions.SENT_COMMAND,
-                        botID: props.bot.getBotID(),
-                        command: exitRCCommand,
-                    });
-                }
+            const command = !rcEnabled ? getEnterRCCommand(props.bot) : getExitRCCommand(props.bot);
+            const response = await sendBotCommand(command);
+            if (response && response.status === "ok") {
+                jaiaDispatch({
+                    type: JaiaActions.SENT_COMMAND,
+                    botID: props.bot.getBotID(),
+                    command: command,
+                });
             }
         }
     };
