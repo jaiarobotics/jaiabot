@@ -71,7 +71,7 @@ function Title(props: TitleProps) {
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
-    if (props.disabledCode === DisabledCodes.NONE) {
+    if (props.disabledCode !== DisabledCodes.MISSION_STATE) {
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>

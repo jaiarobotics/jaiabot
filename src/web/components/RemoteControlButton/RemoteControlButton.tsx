@@ -54,6 +54,9 @@ export default function RemoteControlButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        if (props.bot.getMode() === BotModes.REMOTE_CONTROL) {
+            return DisabledCodes.EXIT_RC;
+        }
         if (
             !isCommandAvailable(
                 CommandType.REMOTE_CONTROL_TASK,
@@ -75,14 +78,26 @@ export default function RemoteControlButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const enterRCCommand = getEnterRCCommand(props.bot);
-            const response = await sendBotCommand(enterRCCommand);
-            if (response && response.status === "ok") {
-                jaiaDispatch({
-                    type: JaiaActions.SENT_COMMAND,
-                    botID: props.bot.getBotID(),
-                    command: enterRCCommand,
-                });
+            if (props.bot.getMode() !== BotModes.REMOTE_CONTROL) {
+                const enterRCCommand = getEnterRCCommand(props.bot);
+                const response = await sendBotCommand(enterRCCommand);
+                if (response && response.status === "ok") {
+                    jaiaDispatch({
+                        type: JaiaActions.SENT_COMMAND,
+                        botID: props.bot.getBotID(),
+                        command: enterRCCommand,
+                    });
+                }
+            } else {
+                const exitRCCommand = getExitRCCommand(props.bot);
+                const response = await sendBotCommand(exitRCCommand);
+                if (response && response.status === "ok") {
+                    jaiaDispatch({
+                        type: JaiaActions.SENT_COMMAND,
+                        botID: props.bot.getBotID(),
+                        command: exitRCCommand,
+                    });
+                }
             }
         }
     };
@@ -132,4 +147,18 @@ function getEnterRCCommand(bot: Bot) {
     };
 
     return enterRCCommand;
+}
+
+/**
+ * Packages the Bot data into a command to Exit RC mode
+ *
+ * @param {Bot} bot Provides the ID
+ * @returns {Command} Command to enter RC mode
+ */
+function getExitRCCommand(bot: Bot) {
+    const stopCommand: Command = {
+        bot_id: bot.getBotID(),
+        type: CommandType.STOP,
+    };
+    return stopCommand;
 }
