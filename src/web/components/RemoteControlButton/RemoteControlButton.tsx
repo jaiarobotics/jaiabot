@@ -6,12 +6,15 @@ import { DisabledCodes } from "./remote-control-messages";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
+import { BotModes } from "../../types/jaia-system-types";
 import { Command, CommandType, MissionStart, MovementType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+
+import "./RemoteControlButton.less";
 
 interface Props {
     bot: Bot;
@@ -32,6 +35,11 @@ export default function RemoteControlButton(props: Props) {
      */
     const getClassName = () => {
         let className = "jaia-button";
+
+        if (props.bot.getMode() === BotModes.REMOTE_CONTROL) {
+            className += " rc-active";
+            return className;
+        }
 
         if (getDisabledCode() !== DisabledCodes.NONE) {
             className += " disabled";
