@@ -28,6 +28,8 @@ export default function RemoteControlButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
+    const rcEnabled = props.bot.getMode() === BotModes.REMOTE_CONTROL;
+
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
      *
@@ -54,7 +56,7 @@ export default function RemoteControlButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (props.bot.getMode() === BotModes.REMOTE_CONTROL) {
+        if (rcEnabled) {
             return DisabledCodes.EXIT_RC;
         }
         if (
@@ -106,10 +108,13 @@ export default function RemoteControlButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"enter-remote-control"}
+                aria-label={!rcEnabled ? "enter-remote-control" : "exit-remote-control"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <img src={rcModeIcon} title="Enter Remote Control"></img>
+                <img
+                    src={rcModeIcon}
+                    title={!rcEnabled ? "Enter Remote Control" : "Exit Remote Control"}
+                ></img>
             </Button>
             <RemoteControlDialog
                 isVisible={isDialogVisible}

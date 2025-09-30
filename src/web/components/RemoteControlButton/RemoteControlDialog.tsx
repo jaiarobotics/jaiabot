@@ -72,6 +72,8 @@ function Title(props: TitleProps) {
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.disabledCode !== DisabledCodes.MISSION_STATE) {
+        const confirmText =
+            props.disabledCode === DisabledCodes.EXIT_RC ? "Exit RC Mode" : "Enter RC Mode";
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
@@ -81,7 +83,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Enter RC Mode
+                    {confirmText}
                 </button>
             </div>
         );
