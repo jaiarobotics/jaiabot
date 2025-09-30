@@ -80,7 +80,7 @@ export default function RemoteControlButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            if (props.bot.getMode() !== BotModes.REMOTE_CONTROL) {
+            if (!rcEnabled) {
                 const enterRCCommand = getEnterRCCommand(props.bot);
                 const response = await sendBotCommand(enterRCCommand);
                 if (response && response.status === "ok") {
