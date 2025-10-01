@@ -183,6 +183,14 @@ export default class PathSelector extends React.Component {
     }
 
     renderSearchBar() {
+        const doLiveSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+            this.search(e.target.value);
+        };
+
+        const doClearSearchBar = (e: React.MouseEvent<HTMLButtonElement>) => {
+            this.search("");
+        };
+
         return (
             <div className="section">
                 <Icon path={mdiMagnify} size={1} style={{ verticalAlign: "middle" }}></Icon>
@@ -191,17 +199,9 @@ export default class PathSelector extends React.Component {
                     type="text"
                     placeholder="Search"
                     value={this.state.search_text}
-                    onChange={(e) => {
-                        this.search(e.target.value);
-                    }}
+                    onChange={doLiveSearch}
                 />
-                <button
-                    className="padded button"
-                    title="Clear"
-                    onClick={(e) => {
-                        this.search("");
-                    }}
-                >
+                <button className="padded button" title="Clear" onClick={doClearSearchBar}>
                     ⨉
                 </button>
             </div>
