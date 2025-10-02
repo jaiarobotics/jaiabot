@@ -96,7 +96,7 @@ export async function isControllingClient() {
     const status = await jaiaAPI.getStatus();
     const controllingID = status.controllingClientId;
 
-    if (controllingID === jaiaAPI.getClientId()) {
+    if (controllingID === jaiaAPI.getClientId() || controllingID === null) {
         return true;
     }
 
