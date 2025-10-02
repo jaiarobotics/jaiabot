@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { StopAllBotsDialog, DialogActions } from "./StopAllBotsDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { StopAllBotsDialog } from "./StopAllBotsDialog";
 import { DisabledCodes } from "../StopButton/stop-messages";
 
 import { Icon } from "@mdi/react";
@@ -11,8 +12,9 @@ import { mdiStop } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
@@ -32,6 +34,7 @@ export default function StopAllBotsButton(props: Props) {
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
     );
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Loops through the connected Bots and categorizes them based on their
@@ -62,9 +65,15 @@ export default function StopAllBotsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = () => {
-        setIsDialogVisible(true);
-        groupBotsByReadyState();
+    const handleClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+            groupBotsByReadyState();
+        }
     };
 
     /**
@@ -92,6 +101,22 @@ export default function StopAllBotsButton(props: Props) {
             }
         }
     };
+
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
@@ -107,6 +132,7 @@ export default function StopAllBotsButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
