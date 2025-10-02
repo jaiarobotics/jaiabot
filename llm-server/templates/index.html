@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RAG Query Interface</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>RAG Query Interface</h1>
+
+        {% if rebuilding %}
+        <div class="status">
+            ⚡ Refreshing embeddings... please wait.
+        </div>
+        {% endif %}
+
+        <form method="post">
+            <input type="text" name="query" placeholder="Type your question here..." required>
+            <button type="submit">Ask</button>
+        </form>
+
+        {% if answer %}
+        <div class="result">
+            <h2>Query:</h2>
+            <p>{{ query }}</p>
+            <h2>Answer:</h2>
+            <p>{{ answer }}</p>
+            <h2>Sources:</h2>
+            <ul>
+            {% for s in sources %}
+                <li>{{ s }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

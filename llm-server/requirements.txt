@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+chromadb
+pydantic
+watchdog
+unstructured[all-docs]
+unstructured[pdf]
