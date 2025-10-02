@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { StopDialog, DialogActions } from "./StopDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { StopDialog } from "./StopDialog";
 import { DisabledCodes } from "./stop-messages";
 
 import { Icon } from "@mdi/react";
@@ -12,8 +13,9 @@ import { mdiStop } from "@mdi/js";
 import Bot from "../../data/bots/bot";
 
 import { Command, CommandType } from "../../types/protobuf-types";
+import { DialogActions } from "../../types/context-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 interface Props {
     bot: Bot;
@@ -26,6 +28,7 @@ interface Props {
 export default function StopButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -52,6 +55,21 @@ export default function StopButton(props: Props) {
             return DisabledCodes.MISSION_STATE;
         }
         return DisabledCodes.NONE;
+    };
+
+    /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
     };
 
     /**
@@ -82,12 +100,27 @@ export default function StopButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"stop-individual-bot"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={onButtonClick}
             >
                 <Icon path={mdiStop} size={MDI_BUTTON_SIZE} title="Stop Mission" />
             </Button>
@@ -96,6 +129,7 @@ export default function StopButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
