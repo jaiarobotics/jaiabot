@@ -33,7 +33,13 @@ export function RemoteControlDialog(props: DialogProps) {
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
+        let className = "jaia-dialog";
+
+        if (props.disabledCode === DisabledCodes.MISSION_STATE) {
+            className += " alert";
+        }
+
+        return className;
     };
 
     if (!props.isVisible) {
@@ -58,11 +64,11 @@ export function RemoteControlDialog(props: DialogProps) {
  * being sent the title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
-    if (props.disabledCode === DisabledCodes.NONE) {
-        return <h1>Confirm</h1>;
+    if (props.disabledCode === DisabledCodes.MISSION_STATE) {
+        return <h1>Alert</h1>;
     }
 
-    return <h1>Alert</h1>;
+    return <h1>Confirm</h1>;
 }
 
 /**
@@ -71,7 +77,15 @@ function Title(props: TitleProps) {
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
+    let confirmText = "";
+
     if (props.disabledCode === DisabledCodes.NONE) {
+        confirmText = "Enter RC Mode";
+    } else if (props.disabledCode === DisabledCodes.NONE__EXIT_RC) {
+        confirmText = "Exit RC Mode";
+    }
+
+    if (props.disabledCode !== DisabledCodes.MISSION_STATE) {
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
@@ -81,7 +95,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    Enter RC Mode
+                    {confirmText}
                 </button>
             </div>
         );
