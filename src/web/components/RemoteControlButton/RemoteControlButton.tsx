@@ -6,12 +6,15 @@ import { DisabledCodes } from "./remote-control-messages";
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
+import { BotModes } from "../../types/jaia-system-types";
 import { Command, CommandType, MissionStart, MovementType } from "../../types/protobuf-types";
 import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+
+import "./RemoteControlButton.less";
 
 interface Props {
     bot: Bot;
@@ -25,6 +28,8 @@ export default function RemoteControlButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
+    const rcActive = props.bot.getMode() === BotModes.REMOTE_CONTROL;
+
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
      *
@@ -32,6 +37,11 @@ export default function RemoteControlButton(props: Props) {
      */
     const getClassName = () => {
         let className = "jaia-button";
+
+        if (rcActive) {
+            className += " rc-active";
+            return className;
+        }
 
         if (getDisabledCode() !== DisabledCodes.NONE) {
             className += " disabled";
@@ -46,6 +56,10 @@ export default function RemoteControlButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        if (rcActive) {
+            return DisabledCodes.NONE__EXIT_RC;
+        }
+
         if (
             !isCommandAvailable(
                 CommandType.REMOTE_CONTROL_TASK,
@@ -54,6 +68,7 @@ export default function RemoteControlButton(props: Props) {
         ) {
             return DisabledCodes.MISSION_STATE;
         }
+
         return DisabledCodes.NONE;
     };
 
@@ -67,13 +82,13 @@ export default function RemoteControlButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const enterRCCommand = getEnterRCCommand(props.bot);
-            const response = await sendBotCommand(enterRCCommand);
+            const command = rcActive ? getExitRCCommand(props.bot) : getEnterRCCommand(props.bot);
+            const response = await sendBotCommand(command);
             if (response && response.status === "ok") {
                 jaiaDispatch({
                     type: JaiaActions.SENT_COMMAND,
                     botID: props.bot.getBotID(),
-                    command: enterRCCommand,
+                    command: command,
                 });
             }
         }
@@ -83,10 +98,13 @@ export default function RemoteControlButton(props: Props) {
         <div>
             <Button
                 className={getClassName()}
-                aria-label={"enter-remote-control"}
+                aria-label={rcActive ? "exit-remote-control" : "enter-remote-control"}
                 onClick={() => setIsDialogVisible(true)}
             >
-                <img src={rcModeIcon} title="Enter Remote Control"></img>
+                <img
+                    src={rcModeIcon}
+                    title={rcActive ? "Exit Remote Control" : "Enter Remote Control"}
+                ></img>
             </Button>
             <RemoteControlDialog
                 isVisible={isDialogVisible}
@@ -124,4 +142,18 @@ function getEnterRCCommand(bot: Bot) {
     };
 
     return enterRCCommand;
+}
+
+/**
+ * Packages the Bot data into a command to exit RC mode
+ *
+ * @param {Bot} bot Provides the ID
+ * @returns {Command} Command to exit RC mode
+ */
+function getExitRCCommand(bot: Bot) {
+    const stopCommand: Command = {
+        bot_id: bot.getBotID(),
+        type: CommandType.STOP,
+    };
+    return stopCommand;
 }
