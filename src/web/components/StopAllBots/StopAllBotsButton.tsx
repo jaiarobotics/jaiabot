@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { StopAllBotsDialog, DialogActions } from "./StopAllBotsDialog";
 import { DisabledCodes } from "../StopButton/stop-messages";
@@ -25,6 +27,7 @@ type DisabledCodeGroup = [DisabledCodes, number[]];
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StopAllBotsButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
@@ -70,7 +73,7 @@ export default function StopAllBotsButton(props: Props) {
      * @param {DialogActions} dialogAction The operators action on the dialog box
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
@@ -79,11 +82,16 @@ export default function StopAllBotsButton(props: Props) {
                     bot_id: botID,
                     type: CommandType.STOP,
                 };
-                sendBotCommand(stopCommand);
+                const response = await sendBotCommand(stopCommand);
+                if (response && response.status === "ok") {
+                    jaiaDispatch({
+                        type: JaiaActions.SENT_COMMAND,
+                        command: stopCommand,
+                    });
+                }
             }
         }
     };
-
     return (
         <div>
             <Button
