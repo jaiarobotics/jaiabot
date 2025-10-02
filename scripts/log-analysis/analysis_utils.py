@@ -9,6 +9,7 @@ import plotly.io as pio
 
 from pathlib import Path
 from contextlib import contextmanager
+from functools import reduce
 
 ### DATA ACQUISITION ###
 def get_current_data(file: h5py.File):
@@ -25,7 +26,7 @@ def get_RPM_data(file: h5py.File):
     rpm = np.array(file["/jaiabot::motor_status/jaiabot.protobuf.Motor/rpm"])
     
     df = pd.DataFrame({'utime': utime, 'rpm': rpm})
-    df.attrs["file_name"] = file.filename
+    df.attrs["file_name"] = file.filename 
 
     return df
 
@@ -39,18 +40,24 @@ def get_speedOverGround_data(file: h5py.File):
     return df
 
 def get_ph_data(file: h5py.File):
-    utime = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/_utime_"])
-    ph = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph"])
-    temperature = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/temperature"])
-    
-    df = pd.DataFrame({'utime': utime, 'pH': ph, 'pH Temperature': temperature})
-    df.attrs["file_name"] = file.filename
+    try:
+        utime = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/_utime_"])
+        ph = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/ph"])
+        ph_temperature = np.array(file["/jaiabot::ph/jaiabot.sensor.protobuf.AtlasScientificOEMpH/temperature"])
+        
+        df = pd.DataFrame({'utime': utime, 'pH': ph, 'pH Temperature': ph_temperature})
+        df.attrs["file_name"] = file.filename
+
+    except:
+        print(f"No PH data found for {file.filename}")
+        df = pd.DataFrame()
 
     return df
 
 def get_ec_data(file: h5py.File):
-    utime = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/_utime_"])
-    ec = np.array(file["/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/conductivity"])
+    utime = np.array(file["/jaiabot::salinity/jaiabot.protobuf.SalinityData/_utime_"])
+    ec = np.array(file["/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity"])
+    salinity = np.array(file["/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity"])
     
     df = pd.DataFrame({'utime': utime, 'EC': ec})
     df.attrs["file_name"] = file.filename
@@ -58,31 +65,36 @@ def get_ec_data(file: h5py.File):
     return df
 
 def get_do_data(file: h5py.File):
-    utime = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/_utime_"])
-    do = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/dissolved_oxygen"])
-    temperature = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/temperature"])
+    try:
+        utime = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/_utime_"])
+        do = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/dissolved_oxygen"])
+        do_temperature = np.array(file["/jaiabot::dissolved_oxygen/jaiabot.sensor.protobuf.AtlasScientificOEMDO/temperature"])
 
-    df = pd.DataFrame({'utime': utime, 'DO': do, 'DO Temperature': temperature})
-    df.attrs["file_name"] = file.filename
+        df = pd.DataFrame({'utime': utime, 'DO': do, 'DO Temperature': do_temperature})
+        df.attrs["file_name"] = file.filename
+
+    except:
+        print(f"No DO data found for {file.filename}")
+        df = pd.DataFrame()
 
     return df
 
 def get_bar30_data(file: h5py.File):
     depth_utime = np.array(file["/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/_utime_"])
     calculated_depth = np.array(file["/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth"])
-    df_calculated = pd.DataFrame({'utime': depth_utime, 'Depth': calculated_depth})
+    df_calculated = pd.DataFrame({'utime': depth_utime, 'Calculated Depth': calculated_depth})
 
     raw_utime = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/_utime_"])
     pressure_raw = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/pressure_raw"])
     temperature = np.array(file["/jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature"])
-    df_raw = pd.DataFrame({'utime': raw_utime, 'Bar30 Temperature': temperature})
+    df_raw = pd.DataFrame({'utime': raw_utime, 'Bar30 Temperature': temperature, 'Raw Pressure': pressure_raw})
 
     df = combine_data([df_calculated, df_raw])
     df.attrs["file_name"] = file.filename
 
     return df
 
-def get_taskpacket_data(file: h5py.File):
+def get_task_packet_data(file: h5py.File):
     # Pattern to match full path and extract task_id
     pattern = re.compile(r"jaiabot::task_packet;(\d+)/jaiabot\.protobuf\.TaskPacket/_utime_")
 
@@ -141,13 +153,35 @@ def get_taskpacket_data(file: h5py.File):
 
     return df
     
+def get_battery_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::battery/jaiabot.protobuf.BatteryData/_utime_"])
+    battery_percentage = np.array(file["/jaiabot::battery/jaiabot.protobuf.BatteryData/percentage"])
+    
+    df = pd.DataFrame({'utime': utime, 'Battery Percentage': battery_percentage})
+    df.attrs["file_name"] = file.filename
+
+    return df
 
 def get_fluor_data(file: h5py.File):
-    utime = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
-    # concentration = np.array(file["/jaiabot::concentration/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
-    concentration = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
+    try:
+        utime = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_"])
+        concentration = np.array(file["/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration"])
 
-    df = pd.DataFrame({'utime': utime, 'Fluorometer Concentration': concentration})
+        df = pd.DataFrame({'utime': utime, 'Fluorometer Concentration': concentration})
+    except:
+        print(f"No fluorometer data found for {file.filename}")
+        df = pd.DataFrame()
+
+    df.attrs["file_name"] = file.filename
+
+    return df
+
+
+def get_mission_state_data(file: h5py.File):
+    utime = np.array(file["/jaiabot::mission_report/jaiabot.protobuf.MissionReport/_utime_"])
+    mission_state = np.array(file["/jaiabot::mission_report/jaiabot.protobuf.MissionReport/state"])
+    
+    df = pd.DataFrame({'utime': utime, 'Mission State': mission_state})
     df.attrs["file_name"] = file.filename
 
     return df
@@ -370,62 +404,54 @@ def plot_series_x_datetime(df: pd.DataFrame,
 
 ### DATA CLEANING ###
 
-# Combine dataframes based on utime column, forward-filling missing values.
-def combine_data(dataframes: list[pd.DataFrame], 
-                join_type: str = 'outer',
-                drop_duplicates: bool = False) -> pd.DataFrame:
+def combine_data(dataframes: list[pd.DataFrame],
+                 ffill: bool = False,
+                 bfill: bool = False,
+                 interpolate: bool = False) -> pd.DataFrame:
     """
-    Combines multiple pandas DataFrames based on utime column, forward-filling missing values.
-    
+    Combine multiple DataFrames based on 'utime', forward-filling missing values.
+
     Args:
-        dataframes: List of pandas DataFrames, each containing a 'utime' column
-        join_type: Type of join operation ('outer', 'inner', 'left', 'right')
-        drop_duplicates: Whether to remove duplicate rows
-    
+        dataframes: List of pandas DataFrames, each containing a 'utime' column.
+        ffill: Forward-fill missing values.
+        bfill: Back-fill missing values.
+        interpolate: Interpolate missing values.
+
     Returns:
-        Combined DataFrame aligned on utime with forward-filled values
+        Combined DataFrame aligned on 'utime' with forward-filled values.
     """
-    # Input validation
     if not dataframes:
         raise ValueError("No DataFrames provided")
     
-    # Verify each DataFrame has a utime column
+    # Ensure all DataFrames have 'utime' as datetime
     for i, df in enumerate(dataframes):
         if 'utime' not in df.columns:
             raise ValueError(f"DataFrame at index {i} is missing 'utime' column")
     
-    # Find the DataFrame with the longest time series
-    longest_df = max(dataframes, key=len)
-    target_utimes = longest_df['utime']
+    # Merge all DataFrames on 'utime' using outer join
+    merged = reduce(lambda left, right: pd.merge(left, right, on='utime', how='outer'), dataframes)
     
-    # Prepare DataFrames for merging
-    aligned_dfs = []
-    for df in dataframes:
-        # Set utime as index for proper alignment
-        df = df.set_index('utime')
-        
-        # Reindex to match target utimes and forward fill
-        aligned_df = df.reindex(target_utimes, method='ffill')
-        
-        # Reset index to keep utime as a column
-        aligned_df = aligned_df.reset_index()
-        aligned_dfs.append(aligned_df)
+    # Sort chronologically and forward-fill missing values
+    merged = merged.sort_values('utime').reset_index(drop=True)
+    if ffill:
+        merged = merged.ffill()
+    if bfill:
+        merged = merged.bfill()
+    if interpolate:
+        merged = merged.interpolate()
     
-    # Combine DataFrames side by side, keeping only one utime column
-    result = aligned_dfs[0]
-    for df in aligned_dfs[1:]:
-        raw_file = df.attrs.get("file_name", "")
-        match = re.search(r'(bot\d+_fleet\d+)', raw_file)
-        suffix = match.group(1) if match else "df"
-        
-        result = pd.merge(result, df.drop('utime', axis=1), 
-                         left_index=True, right_index=True,
-                         how=join_type, suffixes=('', f'_{suffix}'))
     
-    if drop_duplicates:
-        result.drop_duplicates(inplace=True)
     
-    return result
+    return merged
+
+def generate_datetime_column(dataframes: pd.DataFrame):
+    dataframes['datetime'] = pd.to_datetime(dataframes['utime'], unit='us')
+
+    cols = dataframes.columns.tolist()
+    cols[0], cols[-1] = cols[-1], cols[0]  # swap first and last
+    dataframes = dataframes[cols]
+    
+    return dataframes
 
 def filter_by_mission_state(dataframes: list[pd.DataFrame],
                             states: list[int]):
