@@ -86,7 +86,6 @@ export default function StopAllBotsButton(props: Props) {
                 if (response && response.status === "ok") {
                     jaiaDispatch({
                         type: JaiaActions.SENT_COMMAND,
-                        botID: props.bots.get(botID),
                         command: stopCommand,
                     });
                 }
