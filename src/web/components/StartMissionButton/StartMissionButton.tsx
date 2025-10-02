@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { StartMissionDialog, DialogActions } from "./StartMissionDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { StartMissionDialog } from "./StartMissionDialog";
 import { DisabledCodes } from "./start-mission-messages";
 
 import { Icon } from "@mdi/react";
@@ -12,7 +13,8 @@ import Bot from "../../data/bots/bot";
 import Mission from "../../data/mission_set/mission";
 
 import { Command, CommandType } from "../../types/protobuf-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { DialogActions } from "../../types/context-types";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -36,6 +38,7 @@ interface Props {
 export default function StartMissionButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -85,6 +88,21 @@ export default function StartMissionButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -106,12 +124,27 @@ export default function StartMissionButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"start-mission-individual-bot"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => onButtonClick()}
             >
                 <Icon path={mdiPlay} size={MDI_BUTTON_SIZE} title="Start Mission" />
             </Button>
@@ -120,6 +153,7 @@ export default function StartMissionButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
