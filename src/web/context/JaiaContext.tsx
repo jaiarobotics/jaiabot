@@ -292,6 +292,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.botAccordionStates = defaultBotAccordionStates;
     mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
     mutableState.missionAccordionStates = {};
+    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
     const initialState = captureSnapshot(mutableState);
