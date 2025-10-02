@@ -1,4 +1,5 @@
 import { DisabledCodes } from "../ActivateButton/activate-messages";
+import { DialogActions } from "../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -15,12 +16,6 @@ interface ButtonRowProps {
     botReadyStates: Map<DisabledCodes, number[]>;
     onClose: (dialogAction: DialogActions) => void;
 }
-
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
-}
-
 /**
  * Produces the dialog box that appears when clicking on the activate all button.
  * This dialog will be a confirmation if at least one Bot can accept the command.
