@@ -286,6 +286,7 @@ function handleInit(mutableState: JaiaContextType) {
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
+    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     mutableState.visibleDetails = NodeTypes.NONE;
     mutableState.visiblePanel = ButtonNames.NONE;
     mutableState.hubAccordionStates = defaultHubAccordionStates;
