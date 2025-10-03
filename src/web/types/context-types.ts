@@ -68,6 +68,29 @@ export interface JaiaAction {
     missionSetName?: string;
 }
 
+// Snapshot of state for storing state history
+export interface JaiaHistoryType {
+    // items from JaiaContext
+    missions: Map<number, Mission>;
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedRallyPoint: SelectedRallyPoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    mapMode: MapModes;
+    // items not tracked in context needed for state
+    nextMissionID: number;
+    missionSetName: string;
+    missionAssignments: Map<number, number>;
+}
+
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
@@ -147,27 +170,4 @@ export enum PanelActions {
     CANCEL = 1,
     DONE = 2,
     CLOSE = 3,
-}
-
-// Snapshot of state for storing state history
-export interface JaiaHistoryType {
-    // items from JaiaContext
-    missions: Map<number, Mission>;
-    selectedNode: SelectedNode;
-    selectedWaypoint: SelectedWaypoint;
-    selectedRallyPoint: SelectedRallyPoint;
-    selectedTaskPacket: SelectedTaskPacket;
-    visibleDetails: NodeTypes;
-    visiblePanel: ButtonNames;
-    hubAccordionStates: HubAccordionStates;
-    botAccordionStates: BotAccordionStates;
-    mapLayerAccordionStates: MapLayerAccordionStates;
-    missionAccordionStates: { [missionID: number]: boolean };
-    missionIDInEditMode: number;
-    missionSpeeds: Speeds;
-    mapMode: MapModes;
-    // items not tracked in context needed for state
-    nextMissionID: number;
-    missionSetName: string;
-    missionAssignments: Map<number, number>;
 }
