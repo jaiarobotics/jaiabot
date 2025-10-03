@@ -26,6 +26,7 @@ export const JaiaDispatchContext = createContext(null);
 function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     let mutableState = { ...state };
 
+    // Get handler info from config map
     const config = actionConfigs.get(action.type);
     if (!config) {
         console.warn(`No handler for action type: ${action.type}`);
