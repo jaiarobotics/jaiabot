@@ -57,6 +57,7 @@ interface State {
     t: number | null; // Currently selected time
     tMin: number | null; // Minimum time for these logs
     tMax: number | null; // Maximum time for these logs
+    plotMode: string | null; // Mode for lines and/or markers (null means automatic depending on zoom level)
 
     // Modal busy indicator
     isBusy: boolean;
@@ -78,6 +79,7 @@ export class App extends React.Component {
             isSelectingLogs: false,
             chosenLogs: [],
             plots: [],
+            plotMode: null,
             layerSwitcherVisible: false,
             measureResultVisible: false,
             measureMagnitude: "",
@@ -441,7 +443,15 @@ export class App extends React.Component {
         this.setState({ plots });
     }
 
+    setPlotMode(plotMode: string | null) {
+        this.setState({ plotMode }, () => {
+            this._refreshPlotData();
+        });
+    }
+
     _refreshPlotData() {
+        if (this.state.plots.length == 0) return;
+
         const MAX_DATA_POINTS = 400;
 
         let update: any = {
@@ -480,15 +490,14 @@ export class App extends React.Component {
             }
 
             let hovertext = y_values.map((y) => series.hovertext?.[y]);
-            let mode = data_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
+            const auto_mode = data_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
 
             update.x.push(x_values);
             update.y.push(y_values);
             update.hovertext.push(hovertext);
             update.customdata.push(customdata);
-            update.mode.push(mode);
+            update.mode.push(this.state.plotMode == "auto" ? auto_mode : this.state.plotMode);
         }
-
         Plotly.restyle("plot", update);
     }
 

@@ -1,0 +1,17 @@
+.plotButton {
+    vertical-align: middle;
+    width: auto;
+    padding: 8pt;
+    border: none;
+    border-radius: 4pt;
+    background-color: #0000;
+}
+
+.plotButton:hover {
+    background-color: lightgray;
+}
+
+.plotButtonBar {
+    background-color: #f0f0f0;
+    margin: 4pt;
+}

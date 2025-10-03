@@ -275,19 +275,6 @@ td.dataKey {
     margin: 10pt;
 }
 
-.plotButton {
-    vertical-align: middle;
-    width: auto;
-    padding: 20pt;
-    border: none;
-    border-radius: 4pt;
-    background-color: #0000;
-}
-
-.plotButton:hover {
-    background-color: lightgray;
-}
-
 .button {
     vertical-align: middle;
     width: auto;
@@ -302,10 +289,6 @@ td.dataKey {
 
 .deleteButtonSection {
     justify-content: space-evenly;
-}
-
-.plotButtonBar {
-    margin: 4pt;
 }
 
 .rightJustify {

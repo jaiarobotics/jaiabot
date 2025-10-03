@@ -19,8 +19,11 @@ import { OpenPlotSet } from "./OpenPlotSet";
 import { DataTable } from "./DataTable";
 import { CustomAlert } from "../shared/CustomAlert";
 
+import "./Plots.css";
+
 export interface PlotsDelegate {
     setPlots: (plots: Plot[]) => void;
+    setPlotMode: (plotMode: string | null) => void;
     setPaths: (paths: string[]) => void;
 }
 
@@ -71,7 +74,7 @@ export function Plots(props: PlotsProps) {
 
     if (props.chosenLogs.length > 0) {
         actionBar = (
-            <div className="plotButtonBar">
+            <div className="plotButtonBar rounded margin padding">
                 <button
                     title="Add Plot"
                     className="plotButton"
@@ -113,6 +116,18 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
+                <select
+                    name="mode"
+                    id="modeSelect"
+                    onChange={(e) => {
+                        props.delegate.setPlotMode(e.target.value);
+                    }}
+                >
+                    <option value="lines">Lines</option>
+                    <option value="markers">Markers</option>
+                    <option value="lines+markers">Lines & Markers</option>
+                    <option value="auto">Auto</option>
+                </select>
             </div>
         );
     } else {
