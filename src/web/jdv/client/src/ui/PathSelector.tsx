@@ -1,6 +1,6 @@
 import { mdiArrowLeft } from "@mdi/js";
 import React from "react";
-import { LogApi } from "./LogApi";
+import { LogApi } from "../model/LogApi";
 import Icon from "@mdi/react";
 
 interface PathSelectorProps {

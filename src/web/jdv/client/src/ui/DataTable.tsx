@@ -1,6 +1,6 @@
 import React from "react";
-import { Plot } from "./Plot";
-import { bisect } from "./bisect";
+import { Plot } from "../model/Plot";
+import { bisect } from "../tools/bisect";
 
 type PlotList = Plot[];
 

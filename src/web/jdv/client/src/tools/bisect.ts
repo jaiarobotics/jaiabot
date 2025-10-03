@@ -5,7 +5,7 @@ class BisectResult<T> {
 
 /**
  * Find an insertion point in a sorted array, using a binary search.
- * 
+ *
  * @param sorted_array Sorted array of values.
  * @param f A function of a value x in the array, returning <0 if the value of interest is less than x, and >0 if it's greater than x.
  * @returns A BisectResult containing the index and value whish is just less than or equal to the desired value (where f(v) == 0)
