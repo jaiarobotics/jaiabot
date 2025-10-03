@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { StartAllMissionsDialog, DialogActions } from "./StartAllMissionsDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { StartAllMissionsDialog } from "./StartAllMissionsDialog";
 import { DisabledCodes } from "../StartMissionButton/start-mission-messages";
 
 import { Icon } from "@mdi/react";
@@ -15,8 +16,8 @@ import Mission from "../../data/mission_set/mission";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { Command, CommandType } from "../../types/protobuf-types";
-import { ButtonNames, ButtonTypes } from "../../types/context-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { ButtonNames, ButtonTypes, DialogActions } from "../../types/context-types";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import {
     MDI_BUTTON_SIZE,
@@ -42,6 +43,7 @@ export default function StartAllMissionsButton(props: Props) {
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
     );
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Loops through the connected Bots and categorizes them based on their
@@ -81,14 +83,20 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = () => {
-        setIsDialogVisible(true);
-        groupBotsByReadyState();
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_BUTTON,
-            buttonType: ButtonTypes.COMMAND,
-            buttonName: ButtonNames.START_ALL_MISSIONS,
-        });
+    const handleClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+            groupBotsByReadyState();
+            jaiaDispatch({
+                type: JaiaActions.CLICKED_BUTTON,
+                buttonType: ButtonTypes.COMMAND,
+                buttonName: ButtonNames.START_ALL_MISSIONS,
+            });
+        }
     };
 
     /**
@@ -116,6 +124,22 @@ export default function StartAllMissionsButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+            groupBotsByReadyState();
+        }
+    };
+
     return (
         <div>
             <Button
@@ -131,6 +155,7 @@ export default function StartAllMissionsButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
