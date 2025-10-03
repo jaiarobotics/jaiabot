@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { DataOffloadDialog, DialogActions } from "./DataOffloadDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { DataOffloadDialog } from "./DataOffloadDialog";
 import { DisabledCodes } from "./data-offload-messages";
 
 import { Icon } from "@mdi/react";
@@ -8,9 +9,10 @@ import { Button } from "@mui/material";
 import { mdiDownload } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 interface Props {
     bot: Bot;
@@ -22,6 +24,7 @@ interface Props {
  */
 export default function DataOffloadButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -59,6 +62,21 @@ export default function DataOffloadButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -79,12 +97,27 @@ export default function DataOffloadButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"data-offload-individual-bot"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => onButtonClick()}
             >
                 <Icon path={mdiDownload} size={MDI_BUTTON_SIZE} title="Data Offload" />
             </Button>
@@ -93,6 +126,7 @@ export default function DataOffloadButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
