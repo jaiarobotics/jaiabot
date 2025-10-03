@@ -1,27 +1,14 @@
-import {
-    mdiClose,
-    mdiContentSave,
-    mdiDownload,
-    mdiUpload,
-    mdiFolderOpen,
-    mdiPlus,
-    mdiTrashCan,
-    mdiRuler,
-} from "@mdi/js";
+import { mdiDownload, mdiUpload, mdiTrashCan, mdiRuler } from "@mdi/js";
 import Icon from "@mdi/react";
 import React from "react";
 
 import JaiaMap from "./JaiaMap";
 import LogSelector from "./LogSelector";
-import PathSelector from "./PathSelector";
 import TimeSlider from "./TimeSlider";
+import { Plots } from "./Plots";
 
 import { createMeasureInteraction } from "../tools/interactions";
-import { DataTable } from "./DataTable";
-import { downloadCSV } from "../tools/DownloadCSV";
 import { LogApi } from "../model/LogApi";
-import { OpenPlotSet } from "./OpenPlotSet";
-import { PlotProfiles } from "../model/PlotProfiles";
 import { Plot } from "../model/Plot";
 import { Draw } from "ol/interaction";
 
@@ -71,12 +58,6 @@ interface State {
     tMin: number | null; // Minimum time for these logs
     tMax: number | null; // Maximum time for these logs
 
-    // Plot selection
-    isPathSelectorDisplayed: boolean;
-
-    // Plot sets
-    isOpenPlotSetDisplayed: boolean;
-
     // Modal busy indicator
     isBusy: boolean;
 
@@ -105,12 +86,6 @@ export class App extends React.Component {
             t: null, // Currently selected time
             tMin: null, // Minimum time for these logs
             tMax: null, // Maximum time for these logs
-
-            // Plot selection
-            isPathSelectorDisplayed: false,
-
-            // Plot sets
-            isOpenPlotSetDisplayed: false,
             isBusy: false,
             customAlert: null,
         };
@@ -158,7 +133,13 @@ export class App extends React.Component {
                 </div>
 
                 <div className="bottomPane flexbox horizontal">
-                    {this.plotSection()}
+                    <Plots
+                        chosenLogs={this.state.chosenLogs}
+                        plots={this.state.plots}
+                        t={this.state.t}
+                        delegate={this}
+                        visibleTimeRange={this._visible_time_range}
+                    />
 
                     <div id="mapPane">
                         <div className="openlayers-map" id="openlayers-map"></div>
@@ -435,7 +416,7 @@ export class App extends React.Component {
      *
      * @param {string[]} pathArray An array of paths that the user selected.
      */
-    didSelectPaths(pathArray: string[]) {
+    setPaths(pathArray: string[]) {
         console.debug(`Selected paths: ${pathArray}`);
 
         this.setState({ isPathSelectorDisplayed: false });
@@ -454,6 +435,10 @@ export class App extends React.Component {
             .finally(() => {
                 this.stopBusyIndicator();
             });
+    }
+
+    setPlots(plots: Plot[]) {
+        this.setState({ plots });
     }
 
     _refreshPlotData() {
@@ -658,196 +643,5 @@ export class App extends React.Component {
 
     open_moos_messages(time_range: number[]) {
         LogApi.getMOOS(this.state.chosenLogs, time_range);
-    }
-
-    // Plot Section
-
-    plotSection() {
-        var actionBar: JSX.Element | null;
-
-        if (this.state.chosenLogs.length > 0) {
-            actionBar = (
-                <div className="plotButtonBar">
-                    <button
-                        title="Add Plot"
-                        className="plotButton"
-                        onClick={this.addPlotClicked.bind(this)}
-                    >
-                        <Icon path={mdiPlus} size={1} style={{ verticalAlign: "middle" }}></Icon>
-                    </button>
-                    <button
-                        title="Load Plot Set"
-                        className="plotButton"
-                        onClick={this.loadPlotSetClicked.bind(this)}
-                    >
-                        <Icon
-                            path={mdiFolderOpen}
-                            size={1}
-                            style={{ verticalAlign: "middle" }}
-                        ></Icon>
-                    </button>
-                    <button
-                        title="Save Plot Set"
-                        className="plotButton"
-                        onClick={this.savePlotSetClicked.bind(this)}
-                    >
-                        <Icon
-                            path={mdiContentSave}
-                            size={1}
-                            style={{ verticalAlign: "middle" }}
-                        ></Icon>
-                    </button>
-                    <button
-                        title="Download CSV"
-                        className="plotButton"
-                        disabled={this.state.plots.length == 0}
-                        onClick={() => {
-                            downloadCSV(this.state.plots, this._visible_time_range);
-                        }}
-                    >
-                        <Icon
-                            path={mdiDownload}
-                            size={1}
-                            style={{ verticalAlign: "middle" }}
-                        ></Icon>
-                        CSV
-                    </button>
-                    <button
-                        title="Clear Plots"
-                        className="plotButton"
-                        onClick={this.clearPlotsClicked.bind(this)}
-                    >
-                        <Icon
-                            path={mdiTrashCan}
-                            size={1}
-                            style={{ verticalAlign: "middle" }}
-                        ></Icon>
-                    </button>
-                </div>
-            );
-        } else {
-            actionBar = null;
-        }
-
-        var pathSelector: JSX.Element | null;
-        if (this.state.isPathSelectorDisplayed) {
-            pathSelector = (
-                <PathSelector
-                    logs={this.state.chosenLogs}
-                    key={this.state.chosenLogs.join(",")}
-                    didSelectPath={(path: string) => {
-                        this.didSelectPaths([path]);
-                    }}
-                    didCancel={() => {
-                        this.setState({ isPathSelectorDisplayed: false });
-                    }}
-                />
-            );
-        } else {
-            pathSelector = null;
-        }
-
-        let deleteButtons = this.state.plots.map((plot, plotIndex) => {
-            return (
-                <button
-                    title="Clear Plots"
-                    className="plotButton"
-                    onClick={this.deletePlotClicked.bind(this, plotIndex)}
-                    key={plotIndex + "-deleteButton"}
-                >
-                    <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
-                </button>
-            );
-        });
-
-        var openPlotSet: JSX.Element | null;
-
-        openPlotSet = this.state.isOpenPlotSetDisplayed ? (
-            <OpenPlotSet
-                didSelectPlotSet={this.didOpenPlotSet.bind(this)}
-                didClose={() => {
-                    this.setState({ isOpenPlotSetDisplayed: false });
-                }}
-            />
-        ) : null;
-
-        let noSelectedSeriesMessage: React.JSX.Element = null;
-        if (this.state.chosenLogs.length > 0 && this.state.plots.length == 0) {
-            noSelectedSeriesMessage = (
-                <div className="no-selected-series-message">
-                    No data series selected to plot yet.
-                    <br />
-                    To plot or export data as CSV, please select one or more series using the{" "}
-                    <Icon
-                        path={mdiPlus}
-                        size={1}
-                        className="button"
-                        style={{ verticalAlign: "middle", backgroundColor: "lightgray" }}
-                    ></Icon>{" "}
-                    button above.
-                </div>
-            );
-        }
-
-        return (
-            <div className="plotcontainer">
-                <h2>Plots</h2>
-                {actionBar} {pathSelector}
-                <div className="horizontal flexbox">
-                    <div id="plot" className="plot">
-                        {noSelectedSeriesMessage}
-                    </div>
-                    <div className="vertical flexbox deleteButtonSection">{deleteButtons}</div>
-                </div>
-                {DataTable(this.state.plots, this.state.t)}
-                {openPlotSet}
-            </div>
-        );
-    }
-
-    addPlotClicked() {
-        this.setState({ isPathSelectorDisplayed: true });
-    }
-
-    clearPlotsClicked() {
-        this.setState({ plots: [] });
-    }
-
-    deletePlotClicked(plotIndex: number) {
-        let { plots } = this.state;
-        let newPlots = plots.filter((value, index) => {
-            return index != plotIndex;
-        });
-        this.setState({ plots: newPlots });
-    }
-
-    loadPlotSetClicked() {
-        this.setState({ isOpenPlotSetDisplayed: true });
-    }
-
-    didOpenPlotSet(plotSet: string[]) {
-        this.didSelectPaths(plotSet);
-    }
-
-    async savePlotSetClicked() {
-        const plotSetName = prompt("Please name this plot set");
-
-        if (plotSetName == null) {
-            // User clicked Cancel
-            return;
-        }
-
-        if (PlotProfiles.exists(plotSetName)) {
-            if (
-                !(await CustomAlert.confirmAsync(
-                    `Are you sure you want to overwrite plot set named \"${plotSetName}?`,
-                    "Overwrite Plot Set",
-                ))
-            )
-                return;
-        }
-
-        let pathNames = this.state.plots.map((series) => series.path);
-        PlotProfiles.save_profile(plotSetName, pathNames);
     }
 }
