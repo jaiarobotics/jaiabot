@@ -36,10 +36,10 @@ def wifi_udp_port(node_id, hub_id=-1):
         return base_ports["wifi_udp"]
 
 def hub2hub_udp_port(hub_id):
-    return base_ports["hub2hub_udp"] + hub_id if is_simulation() else base_ports["hub2hub_udp"]
+    return base_ports["hub2hub_udp"] + (hub_id if is_simulation() else 0)
 
 def bar30_cpp_udp_port(node_id):
-    return base_ports["bar30_cpp"] + node_id if is_simulation() else base_ports["bar30_cpp"]
+    return base_ports["bar30_cpp"] + (node_id if is_simulation() else 0)
 
 def bar30_py_udp_port(node_id):
     return base_ports["bar30_py"] + node_id if is_simulation() else static_ports["bar30_py_runtime"]
