@@ -1,11 +1,8 @@
 import React, { useContext } from "react";
 import { JaiaActions } from "../../context/jaia-actions";
-import {
-    JaiaContext,
-    JaiaContextType,
-    JaiaDispatchContext,
-    JaiaAction,
-} from "../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaAction } from "../../types/context-types";
+import { JaiaContextType } from "../../types/context-types";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";

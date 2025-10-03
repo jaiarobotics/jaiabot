@@ -1,7 +1,8 @@
 // React -- Jaia
 import { useContext, useEffect } from "react";
 import { JaiaActions } from "../../context/jaia-actions";
-import { JaiaContext, JaiaDispatchContext, JaiaAction } from "../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaAction } from "../../types/context-types";
 import SystemButton from "../../components/SystemButton/SystemButton";
 
 // Utilities

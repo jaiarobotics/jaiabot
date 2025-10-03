@@ -1,4 +1,4 @@
-import { actionConfigs } from "../JaiaContext";
+import { actionConfigs } from "../../types/context-types";
 import { JaiaActions } from "../jaia-actions";
 
 describe("actionConfigs map completeness", () => {
@@ -14,3 +14,5 @@ describe("actionConfigs map completeness", () => {
         expect(missingActions).toEqual([]);
     });
 });
+
+test("Check initial state for completness", () => {});
