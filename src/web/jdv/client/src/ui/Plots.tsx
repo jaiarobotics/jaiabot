@@ -185,7 +185,7 @@ export function Plots(props: PlotsProps) {
     }
 
     return (
-        <div className="plotcontainer">
+        <div className="plotcontainer rounded shadowed margin padding">
             <h2>Plots</h2>
             {actionBar} {pathSelector}
             <div className="horizontal flexbox">

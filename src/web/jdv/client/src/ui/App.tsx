@@ -141,7 +141,7 @@ export class App extends React.Component {
                         visibleTimeRange={this._visible_time_range}
                     />
 
-                    <div id="mapPane">
+                    <div id="mapPane" className="rounded clipped shadowed margin">
                         <div className="openlayers-map" id="openlayers-map"></div>
 
                         <div id="mapControls">

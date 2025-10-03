@@ -21,7 +21,8 @@
 }
 
 .plotcontainer {
-    overflow: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     flex: 1 1 50%;
 }
 
@@ -456,4 +457,28 @@ div.busy-overlay {
 img.busy-icon {
     width: 150pt;
     height: 150pt;
+}
+
+.rounded {
+    border-radius: 4pt;
+}
+
+.shadowed {
+    box-shadow: 2pt 2pt 10pt darkgray;
+}
+
+.margin {
+    margin: 8pt;
+}
+
+.padding {
+    padding: 8pt;
+}
+
+h2 {
+    margin: auto;
+}
+
+.clipped {
+    overflow: hidden;
 }
