@@ -107,6 +107,7 @@ export default function ActivateAllButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             setIsDialogVisible(true);
+            groupBotsByReadyState();
         }
     };
 

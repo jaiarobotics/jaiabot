@@ -114,6 +114,7 @@ export default function StopAllBotsButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             setIsDialogVisible(true);
+            groupBotsByReadyState();
         }
     };
 
