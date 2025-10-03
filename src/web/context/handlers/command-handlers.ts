@@ -36,7 +36,7 @@ export function handleSentCommand(mutableState: JaiaContextType, action: JaiaAct
  * @param {Command} command Provides access to the Bot and movement type
  * @returns {void}
  */
-export function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Command) {
+function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Command) {
     const bot = bots.getBot(command.bot_id);
     const movement = command.plan.movement;
     if (movement === MovementType.TRANSIT) {

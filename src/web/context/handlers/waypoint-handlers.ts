@@ -134,7 +134,7 @@ export function handleToggleBottomDive(mutableState: JaiaContextType) {
  *
  * @returns {Waypoint} Access to Waypoint modifiers
  */
-export function getWaypoint() {
+function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
 
