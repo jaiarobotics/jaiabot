@@ -121,7 +121,7 @@ class LogApp extends React.Component {
             customAlert: null,
         };
 
-        this._visible_time_range = [0, 2 ** 60] // Include every data point
+        this._visible_time_range = [0, 2 ** 60]; // Include every data point
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
             if (props == null) {
@@ -467,56 +467,64 @@ class LogApp extends React.Component {
     }
 
     _refreshPlotData() {
-        const MAX_DATA_POINTS = 400
+        const MAX_DATA_POINTS = 400;
 
         let update: any = {
             x: [],
             y: [],
             hovertext: [],
             mode: [],
-            customdata: []
-        }
+            customdata: [],
+        };
 
         for (let [plot_index, series] of this.state.plots.entries()) {
             // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
             // This greatly improves GUI responsiveness.
-            const start_data_index = bisect(series._utime_, t => this._visible_time_range[0] - t)?.index ?? 0
-            const end_data_index = bisect(series._utime_, t => this._visible_time_range[1] - t)?.index ?? series._utime_.length
-            const data_index_step = Math.max(1, (end_data_index - start_data_index) / MAX_DATA_POINTS)
+            const start_data_index =
+                bisect(series._utime_, (t) => this._visible_time_range[0] - t)?.index ?? 0;
+            const end_data_index =
+                bisect(series._utime_, (t) => this._visible_time_range[1] - t)?.index ??
+                series._utime_.length;
+            const data_index_step = Math.max(
+                1,
+                (end_data_index - start_data_index) / MAX_DATA_POINTS,
+            );
 
-            let x_values = []
-            let customdata = []
-            let y_values = []
-            for (let data_index = start_data_index; data_index < end_data_index; data_index += data_index_step) {
-                const data_index_int = Math.round(data_index)
-                customdata.push(series._utime_[data_index_int])
-                x_values.push(new Date(series._utime_[data_index_int] / 1e3))
-                y_values.push(series.series_y[data_index_int])
+            let x_values = [];
+            let customdata = [];
+            let y_values = [];
+            for (
+                let data_index = start_data_index;
+                data_index < end_data_index;
+                data_index += data_index_step
+            ) {
+                const data_index_int = Math.round(data_index);
+                customdata.push(series._utime_[data_index_int]);
+                x_values.push(new Date(series._utime_[data_index_int] / 1e3));
+                y_values.push(series.series_y[data_index_int]);
             }
 
             let hovertext = y_values.map((y) => series.hovertext?.[y]);
-            let mode = (data_index_step > 1) ? "markers" : "lines+markers" // Use lines and markers to indicate that we've got full resolution
+            let mode = data_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
 
-            update.x.push(x_values)
-            update.y.push(y_values)
-            update.hovertext.push(hovertext)
-            update.customdata.push(customdata)
-            update.mode.push(mode)
+            update.x.push(x_values);
+            update.y.push(y_values);
+            update.hovertext.push(hovertext);
+            update.customdata.push(customdata);
+            update.mode.push(mode);
         }
 
-        Plotly.restyle("plot", update)
+        Plotly.restyle("plot", update);
     }
-
 
     setVisibleTimeRange(timeRange?: number[]) {
-        this._visible_time_range = timeRange ?? [0, Number.MAX_SAFE_INTEGER]
-        this.map.setTimeRange(this._visible_time_range)
-        this._refreshPlotData()
+        this._visible_time_range = timeRange ?? [0, Number.MAX_SAFE_INTEGER];
+        this.map.setTimeRange(this._visible_time_range);
+        this._refreshPlotData();
     }
 
-
     refreshPlots() {
-        const plot_time_range = this._visible_time_range
+        const plot_time_range = this._visible_time_range;
 
         if (this.state.plots.length == 0) {
             Plotly.purge(this.plot_div_element);
@@ -608,7 +616,7 @@ class LogApp extends React.Component {
         }
 
         Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
-            this._refreshPlotData()
+            this._refreshPlotData();
 
             // Setup the triggers
             let self = this;
@@ -629,14 +637,16 @@ class LogApp extends React.Component {
                 function (eventdata: Plotly.PlotRelayoutEvent) {
                     // When autorange, zoom out to the whole set of points
                     if (eventdata["xaxis.autorange"]) {
-                        self.setVisibleTimeRange(null)
+                        self.setVisibleTimeRange(null);
                         return;
                     }
 
                     const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
-                    const t1 = ISODateToMicros(String(eventdata["xaxis.range[1]"])) ?? Number.MAX_SAFE_INTEGER;
+                    const t1 =
+                        ISODateToMicros(String(eventdata["xaxis.range[1]"])) ??
+                        Number.MAX_SAFE_INTEGER;
 
-                    self.setVisibleTimeRange([t0, t1])
+                    self.setVisibleTimeRange([t0, t1]);
                 },
             );
         });
