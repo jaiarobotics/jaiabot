@@ -149,30 +149,7 @@ export enum PanelActions {
     CLOSE = 3,
 }
 
-export const defaultHubAccordionStates: HubAccordionStates = {
-    quickLook: false,
-    commands: false,
-    links: false,
-};
-export const defaultBotAccordionStates: BotAccordionStates = {
-    quickLook: false,
-    commands: false,
-    advancedCommands: false,
-    health: false,
-    data: false,
-    gps: false,
-    imu: false,
-    sensor: false,
-};
-
-export const defaultMapLayerAccordionStates = {
-    baseMaps: false,
-    bathymetry: false,
-    measurements: false,
-    mission: false,
-};
 // Snapshot of state for storing state history
-
 export interface JaiaHistoryType {
     // items from JaiaContext
     missions: Map<number, Mission>;

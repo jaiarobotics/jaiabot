@@ -1,9 +1,8 @@
 import {
     JaiaContextType,
     ButtonNames,
-    defaultHubAccordionStates,
-    defaultBotAccordionStates,
-    defaultMapLayerAccordionStates,
+    HubAccordionStates,
+    BotAccordionStates,
 } from "../../types/context-types";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
@@ -62,3 +61,27 @@ export function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }
+
+export const defaultHubAccordionStates: HubAccordionStates = {
+    quickLook: false,
+    commands: false,
+    links: false,
+};
+
+export const defaultBotAccordionStates: BotAccordionStates = {
+    quickLook: false,
+    commands: false,
+    advancedCommands: false,
+    health: false,
+    data: false,
+    gps: false,
+    imu: false,
+    sensor: false,
+};
+
+export const defaultMapLayerAccordionStates = {
+    baseMaps: false,
+    bathymetry: false,
+    measurements: false,
+    mission: false,
+};
