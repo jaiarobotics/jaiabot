@@ -85,17 +85,18 @@ export enum JaiaActions {
     CLICKED_TASK_PACKET = "CLICKED_TASK_PACKET",
     CLICKED_UNDO = "CLICKED_UNDO",
     CLICKED_REDO = "CLICKED_REDO",
-} // Standard profile for action handling functions
+}
 
-export type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType;
+// Standard profile for action handling functions
+type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType;
+
 // Configuration for handling JaiaActions
-
-export type ActionConfig = {
+type ActionConfig = {
     handler: HandlerFn;
     tracked: boolean;
 };
-// Map of handlers and whether they are tracked for JaiaActions
 
+// Map of handlers and whether they are tracked for JaiaActions
 export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     // Data Model actions
     [JaiaActions.INIT, { handler: handleInit, tracked: false }],

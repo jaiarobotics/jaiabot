@@ -14,32 +14,32 @@ import { syncOpenLayers } from "../JaiaContext";
  * @param {JaiaAction} action including location Where to add the rally point
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleAddRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
     rallyLayer.addRallyPoint(action.location);
     handleMapModeChange(MapModes.DEFAULT);
     mutableState.mapMode = jaiaGlobal.getMapMode();
     return mutableState;
-} /**
+}
+
+/**
  * Makes call to delete a rally point from the rally layer
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
     rallyLayer.deleteRallyPoint(mutableState.selectedRallyPoint.id);
     mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
     mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
+
 /**
  * Performs cleanup after Bots being transit to rally point
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleSendRallyMission(mutableState: JaiaContextType) {
     missionsManager.unassignAll();
     mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };

@@ -18,7 +18,6 @@ import { cloneDeep } from "lodash";
  * @notes
  * Implement auto scroll to bottom of missions panel
  */
-
 export function handleAddMission(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const newMission = new Mission();
@@ -31,14 +30,15 @@ export function handleAddMission(mutableState: JaiaContextType) {
     syncOpenLayers();
 
     return mutableState;
-} /**
+}
+
+/**
  * Makes a call to remove a mission and its assignment
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action including missionID of mission to delete
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.deleteMission(action.missionID);
     missionsManager.removeAssignment(action.missionID);
@@ -47,6 +47,7 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
 
     return mutableState;
 }
+
 /**
  * Makes a call to duplicate a mission
  *
@@ -54,7 +55,6 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
  * @param {JaiaAction} action including missionID of mission to duplicate
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleDuplicateMission(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 
@@ -70,13 +70,13 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
 
     return mutableState;
 }
+
 /**
  * Makes a call to remove all missions and assignments
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleDeleteAllMissions(mutableState: JaiaContextType) {
     missionSet.deleteAllMissions();
     missionsManager.clear();
@@ -87,6 +87,7 @@ export function handleDeleteAllMissions(mutableState: JaiaContextType) {
 
     return mutableState;
 }
+
 /**
  * Makes a call to assign a Bot to a mission
  *
@@ -94,7 +95,6 @@ export function handleDeleteAllMissions(mutableState: JaiaContextType) {
  * @param {JaiaAction} action including botID and missionID to assign
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleAssignMission(mutableState: JaiaContextType, action: JaiaAction) {
     missionsManager.assign(action.botID, action.missionID);
 
@@ -102,13 +102,13 @@ export function handleAssignMission(mutableState: JaiaContextType, action: JaiaA
 
     return mutableState;
 }
+
 /**
  * Makes a call to auto assign Bots to missions
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleAutoAssignMissions(mutableState: JaiaContextType) {
     missionsManager.autoAssign();
 
@@ -116,6 +116,7 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
 
     return mutableState;
 }
+
 /**
  * Makes a call update the mission speeds
  *
@@ -123,12 +124,12 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * @param {JaiaAction} action including missionSpeeds
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.setMissionSpeeds(action.missionSpeeds);
     mutableState.missionSpeeds = action.missionSpeeds;
     return mutableState;
 }
+
 /**
  * Loads a mission set from local storage
  *
@@ -136,7 +137,6 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * @param {JaiaAction} action including missionSetName
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.loadFromLocalStorage(action.missionSetName);
     missionsManager.unassignAll();

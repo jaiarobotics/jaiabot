@@ -13,7 +13,6 @@ import { UNASSIGNED_ID } from "../../utils/constants";
  * @param {JaiaAction} action including command of Command sent to Bot
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleSentCommand(mutableState: JaiaContextType, action: JaiaAction) {
     const bot = bots.getBot(action.command.bot_id);
 
@@ -28,14 +27,15 @@ export function handleSentCommand(mutableState: JaiaContextType, action: JaiaAct
             bot.setMode(BotModes.MISSION);
     }
     return mutableState;
-} /**
+}
+
+/**
  * Sets the mode of the Bot and turns off edit mode for the mission underway
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {Command} command Provides access to the Bot and movement type
  * @returns {void}
  */
-
 export function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Command) {
     const bot = bots.getBot(command.bot_id);
     const movement = command.plan.movement;

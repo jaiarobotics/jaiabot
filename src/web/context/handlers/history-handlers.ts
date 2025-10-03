@@ -45,10 +45,59 @@ export function handleClickedRedo(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Saves a snapshot of the updated App state to the history buffer
+ * @param {JaiaContextType} mutableState updated state to be captured
+ * @param actionType type of action that created the updated state
+ */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
     const description = getActionDescription(actionType);
     const snapshot = captureSnapshot(mutableState);
     mutableState.stateHistory.push(snapshot, description);
+}
+
+/**
+ * Provides more readable version of an Action type
+ * @param {JaiaActions} action type of action to translate
+ * @returns {string} pretty version of type
+ */
+function getActionDescription(action: JaiaActions) {
+    return action
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+}
+
+/**
+ * Captures a snapshot of the current state and other data to store in history buffer
+ * @param {JaiaContextType} state current state
+ * @returns {JaiaHistoryType} snapshot of state data to put on buffer
+ *
+ * @notes Uses cloneDeep so history is isolated from future state changes
+ */
+export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
+    const snapshot: JaiaHistoryType = {
+        missions: state.missions,
+        selectedNode: state.selectedNode,
+        selectedWaypoint: state.selectedWaypoint,
+        selectedRallyPoint: state.selectedRallyPoint,
+        selectedTaskPacket: state.selectedTaskPacket,
+        visibleDetails: state.visibleDetails,
+        visiblePanel: state.visiblePanel,
+        hubAccordionStates: state.hubAccordionStates,
+        botAccordionStates: state.botAccordionStates,
+        mapLayerAccordionStates: state.mapLayerAccordionStates,
+        missionAccordionStates: state.missionAccordionStates,
+        missionIDInEditMode: state.missionIDInEditMode,
+        missionSpeeds: state.missionSpeeds,
+        mapMode: state.mapMode,
+        nextMissionID: missionSet.getNextMissionID(),
+        missionSetName: missionSet.getName(),
+        missionAssignments: missionsManager.getMissionAssignments(),
+    };
+
+    return cloneDeep(snapshot);
 }
 
 /**
@@ -89,48 +138,4 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
     jaiaGlobal.setSelectedNode(snapshot.selectedNode);
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
-}
-
-/**
- * Captures a snapshot of the current state and other data to store in history buffer
- * @param {JaiaContextType} state current state
- * @returns {JaiaHistoryType} snapshot of state data to put on buffer
- *
- * @notes Uses cloneDeep so history is isolated from future state changes
- */
-export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
-    const snapshot: JaiaHistoryType = {
-        missions: state.missions,
-        selectedNode: state.selectedNode,
-        selectedWaypoint: state.selectedWaypoint,
-        selectedRallyPoint: state.selectedRallyPoint,
-        selectedTaskPacket: state.selectedTaskPacket,
-        visibleDetails: state.visibleDetails,
-        visiblePanel: state.visiblePanel,
-        hubAccordionStates: state.hubAccordionStates,
-        botAccordionStates: state.botAccordionStates,
-        mapLayerAccordionStates: state.mapLayerAccordionStates,
-        missionAccordionStates: state.missionAccordionStates,
-        missionIDInEditMode: state.missionIDInEditMode,
-        missionSpeeds: state.missionSpeeds,
-        mapMode: state.mapMode,
-        nextMissionID: missionSet.getNextMissionID(),
-        missionSetName: missionSet.getName(),
-        missionAssignments: missionsManager.getMissionAssignments(),
-    };
-
-    return cloneDeep(snapshot);
-}
-
-/**
- * Provides more readable version of an Action type
- * @param {JaiaActions} action type of action to translate
- * @returns {string} pretty version of type
- */
-function getActionDescription(action: JaiaActions) {
-    return action
-        .toLowerCase()
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
 }

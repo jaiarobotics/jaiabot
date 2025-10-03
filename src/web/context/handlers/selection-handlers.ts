@@ -23,7 +23,6 @@ import { resetSelectedWaypoint } from "./waypoint-handlers";
  * This function calls jaiaGlobal.setSelectedNode to make sure the
  * data used by OpenLayers is in sync with JaiaContext
  */
-
 export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode(action.clickedNode);
     const selectedNode = jaiaGlobal.getSelectedNode();
@@ -34,18 +33,20 @@ export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAct
     syncOpenLayers();
 
     return mutableState;
-} /**
+}
+
+/**
  * Handles a click to the tap to move toggle
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedTapToMove(mutableState: JaiaContextType) {
     mutableState.selectedWaypoint.isMoveable = !mutableState.selectedWaypoint.isMoveable;
     jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
     return mutableState;
 }
+
 /**
  * Sets the map mode and visible panel based on the button clicked and the state
  * of the application
@@ -54,7 +55,6 @@ export function handleClickedTapToMove(mutableState: JaiaContextType) {
  * @param {JaiaAction} action including buttonType and buttonName of panel the button
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedButton(mutableState: JaiaContextType, action: JaiaAction) {
     let mapMode = MapModes.DEFAULT;
     let visiblePanel = ButtonNames.NONE;
@@ -98,6 +98,7 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
 }
+
 /**
  * Opens panel for the selected waypoint
  *
@@ -105,7 +106,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
  * @param {JaiaAction} action including clickedWaypoint
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
 
@@ -116,6 +116,7 @@ export function handleClickedWaypoint(mutableState: JaiaContextType, action: Jai
 
     return mutableState;
 }
+
 /**
  * Handles a click on a mission edit mode toggle
  *
@@ -123,7 +124,6 @@ export function handleClickedWaypoint(mutableState: JaiaContextType, action: Jai
  * @param {JaiaAction} action including missionID of the mission associated with the toggle
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedEditMission(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.missionID !== missionSet.getMissionIDInEditMode()) {
         missionSet.setMissionIDInEditMode(action.missionID);
@@ -139,6 +139,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
 
     return mutableState;
 }
+
 /**
  * Opens panel for the selected rally point
  *
@@ -146,7 +147,6 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
  * @param {JaiaAction} action including rallyID Identifies which rally point was clicked by operator
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
     mutableState.selectedRallyPoint = {
         id: action.rallyID,
@@ -155,13 +155,13 @@ export function handleClickedRallyPoint(mutableState: JaiaContextType, action: J
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
 }
+
 /** Opens panel for the selected task packet
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action including clickedTaskPacket
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaAction) {
     const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
 

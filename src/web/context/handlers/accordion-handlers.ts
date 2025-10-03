@@ -13,7 +13,6 @@ import {
  * @param  {JaiaAction} action including hubAccordionName of Accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedHubAccordion(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.hubAccordionName) throw new Error("Invalid accordionName");
 
@@ -30,14 +29,15 @@ export function handleClickedHubAccordion(mutableState: JaiaContextType, action:
             break;
     }
     return mutableState;
-} /**
+}
+
+/**
  * Opens and closes the Bot details accordions
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action including botAccordionName of accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedBotAccordion(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.botAccordionName) throw new Error("Invalid accordionName");
 
@@ -70,6 +70,7 @@ export function handleClickedBotAccordion(mutableState: JaiaContextType, action:
     }
     return mutableState;
 }
+
 /**
  * Opens and closes the map layer group accordions
  *
@@ -77,7 +78,6 @@ export function handleClickedBotAccordion(mutableState: JaiaContextType, action:
  * @param {JaiaAction} action including mapLayerAccordionName of accordion to open or close
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedMapLayersAccordion(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.mapLayerAccordionName) throw new Error("Invalid accordionName");
 
@@ -98,6 +98,7 @@ export function handleClickedMapLayersAccordion(mutableState: JaiaContextType, a
     }
     return mutableState;
 }
+
 /**
  * Updates the missionAccordionStates object based on the provided missionID and
  * expand/collapse state
@@ -106,7 +107,6 @@ export function handleClickedMapLayersAccordion(mutableState: JaiaContextType, a
  * @param {JaiaAction} action including missionID and isMissionAccordionExpanded of accordion to modify
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClickedMissionAccordion(mutableState: JaiaContextType, action: JaiaAction) {
     mutableState.missionAccordionStates[action.missionID] = action.isMissionAccordionExpanded;
     return mutableState;

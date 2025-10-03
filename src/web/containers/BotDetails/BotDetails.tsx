@@ -4,8 +4,7 @@ import React, { useContext, useEffect } from "react";
 import HealthRow from "../../components/HealthRow/HealthRow";
 import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaAction } from "../../types/context-types";
-import { JaiaContextType } from "../../types/context-types";
+import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import StopButton from "../../components/StopButton/StopButton";

@@ -1,3 +1,4 @@
+import { JaiaActions } from "../context/jaia-actions";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
@@ -14,8 +15,8 @@ import {
 } from "./jaia-system-types";
 import { MapModes } from "./openlayers-types";
 import { TaskPacket, Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
-import { JaiaActions } from "../context/jaia-actions";
 
+// Type used to captue the JCC context
 export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
@@ -38,6 +39,7 @@ export interface JaiaContextType {
     mapMode: MapModes;
 }
 
+// Type used for actions dispatched to the context provider
 export interface JaiaAction {
     type: JaiaActions;
     botID?: number;

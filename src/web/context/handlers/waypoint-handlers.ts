@@ -14,7 +14,6 @@ import { UNASSIGNED_ID } from "../../utils/constants";
  * @param {JaiaAction} action including location with Lat/lon of the click
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
@@ -39,13 +38,14 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     missionLayer.updateFeatures();
 
     return mutableState;
-} /**
+}
+
+/**
  * Makes call to remove a waypoint from a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
@@ -62,6 +62,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
 
     return mutableState;
 }
+
 /**
  * Makes the calls to move a waypoint to a user set location
  *
@@ -69,7 +70,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @param {JaiaAction} action including location New location of the waypoint
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, action.location);
@@ -78,6 +78,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
 
     return mutableState;
 }
+
 /**
  * Updates the task associated with a waypoint based on the operator's selection
  *
@@ -85,7 +86,6 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
  * @param {JaiaAction} action including taskType Name of the task selected
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleSelectTask(mutableState: JaiaContextType, action: JaiaAction) {
     const task = getWaypoint().getTask();
 
@@ -97,6 +97,7 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
 
     return mutableState;
 }
+
 /**
  * Makes call to update the parameters of a task based on user input
  *
@@ -104,19 +105,18 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
  * @param {JaiaAction} action including taskParameterPair with name of input and its value
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleChangeTaskParameter(mutableState: JaiaContextType, action: JaiaAction) {
     const task = getWaypoint().getTask();
     task.setParameter(action.taskParameterPair);
     return mutableState;
 }
+
 /**
  * Makes call to update the dive parameters based on the toggle state
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleToggleBottomDive(mutableState: JaiaContextType) {
     const task = getWaypoint().getTask();
 
@@ -128,12 +128,12 @@ export function handleToggleBottomDive(mutableState: JaiaContextType) {
 
     return mutableState;
 }
+
 /**
  * Retrieves the Waypoint object connected to the currently selected waypoint
  *
  * @returns {Waypoint} Access to Waypoint modifiers
  */
-
 export function getWaypoint() {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
@@ -142,13 +142,13 @@ export function getWaypoint() {
         return mission.getWaypoint(selectedWaypoint.waypointNum);
     }
 }
+
 /**
  * Sets the selected waypoint to its default settings
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {void}
  */
-
 export function resetSelectedWaypoint(mutableState: JaiaContextType) {
     jaiaGlobal.setSelectedWaypoint({
         waypointNum: UNASSIGNED_ID,

@@ -16,11 +16,12 @@ import { resetSelectedWaypoint } from "./waypoint-handlers";
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClosedDetails(mutableState: JaiaContextType) {
     mutableState.visibleDetails = NodeTypes.NONE;
     return mutableState;
-} /**
+}
+
+/**
  * Handles cleanup when a waypoint panel closes. If the operator selects
  * cancel, the waypoint data reverts to its state when the panel opened.
  *
@@ -32,7 +33,6 @@ export function handleClosedDetails(mutableState: JaiaContextType) {
  * When the waypoint is passed through the dispatch function it is serialized. To restore
  * its methods, we use Object.setPrototypeOf.
  */
-
 export function handleClosedWaypointPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.panelAction === PanelActions.CANCEL) {
         const originalWaypoint = Object.setPrototypeOf(action.waypoint, Waypoint.prototype);
@@ -46,6 +46,7 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
     mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
+
 /**
  * Handles cleanup when the task packet panel closes
  *
@@ -53,7 +54,6 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
  * @param {JaiaAction} action including panelAction
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.panelAction === PanelActions.CLOSE) {
         mutableState.visiblePanel = ButtonNames.NONE;
@@ -71,13 +71,13 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
     driftLayer.updateFeatures();
     return mutableState;
 }
+
 /**
  * Closes the rally panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleClosedRallyPanel(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
     mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };

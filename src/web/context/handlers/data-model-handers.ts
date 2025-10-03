@@ -25,7 +25,6 @@ import { JaiaHistoryType } from "../../types/context-types";
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
@@ -49,13 +48,14 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
 
     return mutableState;
-} /**
+}
+
+/**
  * Saves the latest data from incoming Bot and Hub status messages to state
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-
 export function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
