@@ -32,17 +32,6 @@ const APP_NAME = "Jaia Data Vision";
 
 const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" });
 
-/**
- * Convert from an ISO date string to UNIX timestamp in microseconds.
- *
- * @param {string} iso_date_string The date string to convert, in ISO date format.
- * @returns {number} The UNIX timestamp in microseconds, or `null` if the conversion could not be made.
- */
-function ISODateToMicros(iso_date_string: string) {
-    const millis = Date.parse(iso_date_string);
-    return isNaN(millis) ? null : millis * 1e3;
-}
-
 interface AppProps {}
 
 interface State {
@@ -57,6 +46,7 @@ interface State {
     t: number | null; // Currently selected time
     tMin: number | null; // Minimum time for these logs
     tMax: number | null; // Maximum time for these logs
+    visibleTimeRange: number[]; // Time range visible on plots and map
     plotMode: string | null; // Mode for lines and/or markers (null means automatic depending on zoom level)
 
     // Modal busy indicator
@@ -70,7 +60,6 @@ export class App extends React.Component {
     state: State;
     map: JaiaMap;
     plot_div_element: any;
-    _visible_time_range: number[];
 
     constructor(props: AppProps) {
         super(props);
@@ -88,11 +77,10 @@ export class App extends React.Component {
             t: null, // Currently selected time
             tMin: null, // Minimum time for these logs
             tMax: null, // Maximum time for these logs
+            visibleTimeRange: [0, 2 ** 60], // Include every data point
             isBusy: false,
             customAlert: null,
         };
-
-        this._visible_time_range = [0, 2 ** 60]; // Include every data point
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
             if (props == null) {
@@ -140,7 +128,8 @@ export class App extends React.Component {
                         plots={this.state.plots}
                         t={this.state.t}
                         delegate={this}
-                        visibleTimeRange={this._visible_time_range}
+                        visibleTimeRange={this.state.visibleTimeRange}
+                        plotMode={this.state.plotMode}
                     />
 
                     <div id="mapPane" className="rounded clipped shadowed margin">
@@ -221,7 +210,6 @@ export class App extends React.Component {
                     tMin={this.state.tMin}
                     tMax={this.state.tMax}
                     onValueChanged={(t) => {
-                        this.map.updateToTimestamp(t);
                         this.setState({ t: t });
                     }}
                 ></TimeSlider>
@@ -359,11 +347,12 @@ export class App extends React.Component {
             }
         }
 
-        if (
-            this.state.chosenLogs !== prevState.chosenLogs ||
-            this.state.plots !== prevState.plots
-        ) {
-            this.refreshPlots();
+        if (this.state.visibleTimeRange !== prevState.visibleTimeRange) {
+            this.map.setTimeRange(this.state.visibleTimeRange);
+        }
+
+        if (this.state.t !== prevState.t) {
+            this.map.updateToTimestamp(this.state.t);
         }
     }
 
@@ -444,196 +433,15 @@ export class App extends React.Component {
     }
 
     setPlotMode(plotMode: string | null) {
-        this.setState({ plotMode }, () => {
-            this._refreshPlotData();
-        });
-    }
-
-    _refreshPlotData() {
-        if (this.state.plots.length == 0) return;
-
-        const MAX_DATA_POINTS = 400;
-
-        let update: any = {
-            x: [],
-            y: [],
-            hovertext: [],
-            mode: [],
-            customdata: [],
-        };
-
-        for (let [plot_index, series] of this.state.plots.entries()) {
-            // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
-            // This greatly improves GUI responsiveness.
-            const start_data_index =
-                bisect(series._utime_, (t) => this._visible_time_range[0] - t)?.index ?? 0;
-            const end_data_index =
-                bisect(series._utime_, (t) => this._visible_time_range[1] - t)?.index ??
-                series._utime_.length;
-            const data_index_step = Math.max(
-                1,
-                (end_data_index - start_data_index) / MAX_DATA_POINTS,
-            );
-
-            let x_values = [];
-            let customdata = [];
-            let y_values = [];
-            for (
-                let data_index = start_data_index;
-                data_index < end_data_index;
-                data_index += data_index_step
-            ) {
-                const data_index_int = Math.round(data_index);
-                customdata.push(series._utime_[data_index_int]);
-                x_values.push(new Date(series._utime_[data_index_int] / 1e3));
-                y_values.push(series.series_y[data_index_int]);
-            }
-
-            let hovertext = y_values.map((y) => series.hovertext?.[y]);
-            const auto_mode = data_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
-
-            update.x.push(x_values);
-            update.y.push(y_values);
-            update.hovertext.push(hovertext);
-            update.customdata.push(customdata);
-            update.mode.push(this.state.plotMode == "auto" ? auto_mode : this.state.plotMode);
-        }
-        Plotly.restyle("plot", update);
+        this.setState({ plotMode });
     }
 
     setVisibleTimeRange(timeRange?: number[]) {
-        this._visible_time_range = timeRange ?? [0, Number.MAX_SAFE_INTEGER];
-        this.map.setTimeRange(this._visible_time_range);
-        this._refreshPlotData();
+        this.setState({ visibleTimeRange: timeRange ?? [0, Number.MAX_SAFE_INTEGER] });
     }
 
-    refreshPlots() {
-        const plot_time_range = this._visible_time_range;
-
-        if (this.state.plots.length == 0) {
-            Plotly.purge(this.plot_div_element);
-            return;
-        }
-
-        var data: Plotly.Data[] = [];
-        var layout: any = { showlegend: false };
-
-        for (let [plot_index, series] of this.state.plots.entries()) {
-            // Set the y-axis for this plot
-            function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
-                // Get components that include the splitChars
-                var components: string[] = [];
-                var newComponent = true;
-
-                for (let characterIndex = 0; characterIndex < text.length; characterIndex++) {
-                    if (newComponent) {
-                        components.push("");
-                    }
-
-                    const c = text[characterIndex];
-                    components[components.length - 1] = components[components.length - 1].concat(c);
-
-                    if (splitChars.includes(c)) {
-                        newComponent = true;
-                    } else {
-                        newComponent = false;
-                    }
-                }
-
-                // Concat the components, with <br> if necessary
-                var lines: string[] = [];
-                var line = "";
-
-                for (const component of components) {
-                    if (component.length > maxLength) {
-                        if (line.length > 0) {
-                            lines.push(line);
-                        }
-                        lines.push(component);
-                        continue;
-                    }
-
-                    if (line.length + component.length > maxLength) {
-                        lines.push(line);
-                        line = component;
-                        continue;
-                    }
-
-                    line = line.concat(component);
-                }
-
-                if (line.length > 0) {
-                    lines.push(line);
-                }
-
-                return lines.join("<br>");
-            }
-
-            const y_axis_title = wrapLines(series.y_axis_title.replaceAll("\n", "<br>"));
-            layout["yaxis" + (plot_index + 1)] = { title: y_axis_title };
-
-            // Add to the data array
-            let yaxis = "y" + (plot_index + 1);
-
-            let trace: Plotly.Data = {
-                name: series.title,
-                x: [new Date()],
-                y: [0.0],
-                xaxis: "x",
-                yaxis: yaxis,
-                hovertext: [],
-                type: "scatter",
-                mode: "lines+markers",
-            };
-
-            data.push(trace);
-        }
-
-        layout.grid = { rows: data.length, columns: 1, pattern: "coupled" };
-
-        layout.height = data.length * 300 + 1; // in pixels
-
-        // Preserve current x axis range
-        const current_layout_xaxis = this.plot_div_element.layout?.xaxis;
-        if (current_layout_xaxis != null) {
-            layout.xaxis = current_layout_xaxis;
-        }
-
-        Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
-            this._refreshPlotData();
-
-            // Setup the triggers
-            let self = this;
-            this.plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
-                let pointIndex = data.points[0].pointIndex;
-                let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
-                self.map.updateToTimestamp(timestamp_utime);
-                self.setState({ t: timestamp_utime });
-            });
-
-            this.plot_div_element.on("plotly_unhover", function (data: Plotly.PlotHoverEvent) {
-                self.map.updateToTimestamp(null);
-            });
-
-            // Zooming into plots
-            this.plot_div_element.on(
-                "plotly_relayout",
-                function (eventdata: Plotly.PlotRelayoutEvent) {
-                    // When autorange, zoom out to the whole set of points
-                    if (eventdata["xaxis.autorange"]) {
-                        self.setVisibleTimeRange(null);
-                        return;
-                    }
-
-                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
-                    const t1 =
-                        ISODateToMicros(String(eventdata["xaxis.range[1]"])) ??
-                        Number.MAX_SAFE_INTEGER;
-
-                    self.setVisibleTimeRange([t0, t1]);
-                },
-            );
-        });
+    setTime(t: number | null) {
+        this.setState({ t });
     }
 
     moosMessagesButton() {
@@ -642,7 +450,7 @@ export class App extends React.Component {
                 className="padded"
                 disabled={this.state.chosenLogs.length == 0}
                 onClick={() => {
-                    this.open_moos_messages(this._visible_time_range);
+                    this.open_moos_messages(this.state.visibleTimeRange);
                 }}
             >
                 Download MOOS Messages...
