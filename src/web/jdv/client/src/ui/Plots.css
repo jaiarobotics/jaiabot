@@ -14,4 +14,9 @@
 .plotButtonBar {
     background-color: #f0f0f0;
     margin: 4pt;
+
+    label {
+        padding-left: 1em;
+        padding-right: 1em;
+    }
 }
