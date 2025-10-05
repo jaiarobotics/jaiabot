@@ -468,8 +468,8 @@ export class App extends React.Component {
             const start_data_index =
                 bisect(series._utime_, (t) => this._visible_time_range[0] - t)?.index ?? 0;
             const end_data_index =
-                bisect(series._utime_, (t) => this._visible_time_range[1] - t)?.index ??
-                series._utime_.length;
+                (bisect(series._utime_, (t) => this._visible_time_range[1] - t)?.index ??
+                    series._utime_.length - 1) + 1;
             const data_index_step = Math.max(
                 1,
                 (end_data_index - start_data_index) / MAX_DATA_POINTS,
@@ -480,7 +480,7 @@ export class App extends React.Component {
             let y_values = [];
             for (
                 let data_index = start_data_index;
-                data_index < end_data_index;
+                data_index <= end_data_index;
                 data_index += data_index_step
             ) {
                 const data_index_int = Math.round(data_index);
