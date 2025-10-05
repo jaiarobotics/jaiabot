@@ -602,37 +602,36 @@ export class App extends React.Component {
         Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
             this._refreshPlotData();
 
-            // Setup the triggers
-            let self = this;
-            this.plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
+            const onHoverOrClickEvent = (data: Plotly.PlotHoverEvent | Plotly.PlotMouseEvent) => {
                 let pointIndex = data.points[0].pointIndex;
                 let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
-                self.map.updateToTimestamp(timestamp_utime);
-                self.setState({ t: timestamp_utime });
-            });
+                this.map.updateToTimestamp(timestamp_utime);
+                this.setState({ t: timestamp_utime });
+            };
 
-            this.plot_div_element.on("plotly_unhover", function (data: Plotly.PlotHoverEvent) {
-                self.map.updateToTimestamp(null);
-            });
+            this.plot_div_element.on("plotly_hover", onHoverOrClickEvent);
+            this.plot_div_element.on("plotly_click", onHoverOrClickEvent);
+
+            const onUnhoverEvent = (data: Plotly.PlotHoverEvent) => {
+                this.map.updateToTimestamp(null);
+            };
+
+            this.plot_div_element.on("plotly_unhover", onUnhoverEvent);
 
             // Zooming into plots
-            this.plot_div_element.on(
-                "plotly_relayout",
-                function (eventdata: Plotly.PlotRelayoutEvent) {
-                    // When autorange, zoom out to the whole set of points
-                    if (eventdata["xaxis.autorange"]) {
-                        self.setVisibleTimeRange(null);
-                        return;
-                    }
+            this.plot_div_element.on("plotly_relayout", (eventdata: Plotly.PlotRelayoutEvent) => {
+                // When autorange, zoom out to the whole set of points
+                if (eventdata["xaxis.autorange"]) {
+                    this.setVisibleTimeRange(null);
+                    return;
+                }
 
-                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
-                    const t1 =
-                        ISODateToMicros(String(eventdata["xaxis.range[1]"])) ??
-                        Number.MAX_SAFE_INTEGER;
+                const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
+                const t1 =
+                    ISODateToMicros(String(eventdata["xaxis.range[1]"])) ?? Number.MAX_SAFE_INTEGER;
 
-                    self.setVisibleTimeRange([t0, t1]);
-                },
-            );
+                this.setVisibleTimeRange([t0, t1]);
+            });
         });
     }
 
