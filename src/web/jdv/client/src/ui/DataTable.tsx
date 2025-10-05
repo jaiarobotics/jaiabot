@@ -1,6 +1,7 @@
 import React from "react";
 import { Plot } from "../model/Plot";
 import { bisect } from "../tools/bisect";
+import "./DataTable.css";
 
 type PlotList = Plot[];
 
@@ -49,7 +50,7 @@ export function DataTable(props: DataTableProps) {
     );
 
     return (
-        <div className="dataTable">
+        <div className="dataTable shadowed rounded padded">
             <table>
                 {headerRow}
                 {dataRows}

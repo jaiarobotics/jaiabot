@@ -311,6 +311,7 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
+                <label>Chart Style:</label>
                 <select
                     name="mode"
                     id="modeSelect"
