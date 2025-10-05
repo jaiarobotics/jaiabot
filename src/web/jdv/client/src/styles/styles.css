@@ -256,19 +256,6 @@ li::marker {
     margin: 10pt;
 }
 
-.dataTable {
-    width: 100%;
-}
-
-.dataTable > table {
-    width: 100%;
-    padding: 10pt;
-}
-
-td.dataKey {
-    width: 30%;
-}
-
 .appName {
     display: inline-block;
     vertical-align: text-bottom;

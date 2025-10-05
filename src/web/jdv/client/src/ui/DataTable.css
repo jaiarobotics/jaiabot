@@ -1,0 +1,16 @@
+.dataTable {
+    margin: 10pt 0pt 0pt 0pt;
+}
+
+.dataTable > table {
+    width: 100%;
+    padding: 10pt;
+}
+
+td.dataKey {
+    width: 50%;
+}
+
+table > thead {
+    background-color: aliceblue;
+}
