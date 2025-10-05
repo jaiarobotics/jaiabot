@@ -7,8 +7,9 @@
     padding: 10pt;
 }
 
-td.dataKey {
+.dataTable td {
     width: 50%;
+    overflow-wrap: anywhere;
 }
 
 table > thead {
