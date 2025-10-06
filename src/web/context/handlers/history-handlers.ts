@@ -141,7 +141,7 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     missionSet.setName(snapshot.missionSetName);
 
     // Update missionsManager
-    missionsManager.setAssignments(cloneDeep(snapshot.missionAssignments));
+    missionsManager.setAssignments(snapshot.missionAssignments);
 
     // Update jaiaGlobal
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
