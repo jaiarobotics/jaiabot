@@ -4,7 +4,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 
 import RallyButton from "../RallyButton/RallyButton";
 import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
-import StopAllBotsButton from "../StopAllBots/StopAllBotsButton";
+import StopAllBotsButton from "../StopAllBotsButton/StopAllBotsButton";
 import DataOffloadAllButton from "../DataOfffloadAllButton/DataOffloadAllButton";
 import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
 
