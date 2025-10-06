@@ -163,7 +163,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ##### **Data Paths**
 | Data Field       | Unit   | Frequency | JDV Path                                       | HDF5 Log Path                                                                    |
 |------------------|--------|-----------|------------------------------------------------|----------------------------------------------------------------------------------|
-|**Conecntration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration`        |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |
+|**Concentration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration`        |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |
 |**Sensor Voltage**|*V*     |*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration_voltage`|`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration_voltage`|
 
 ##### **Timestamp Paths**
