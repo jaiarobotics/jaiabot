@@ -12,7 +12,7 @@ import Bot from "../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
-import { isCommandAvailable, sendBotCommand, isControllingClient } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { DialogActions } from "../../types/context-types";
 
