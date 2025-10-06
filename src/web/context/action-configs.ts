@@ -1,15 +1,7 @@
 import { JaiaContextType, JaiaAction } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 
-import {
-    handleClickedHubAccordion,
-    handleClickedBotAccordion,
-    handleClickedMapLayersAccordion,
-    handleClickedMissionAccordion,
-} from "./handlers/accordion-handlers";
-import { handleSentCommand } from "./handlers/command-handlers";
 import { handleInit, handlePollDataModel } from "./handlers/data-model-handers";
-import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 import {
     handleAddMission,
     handleDeleteMission,
@@ -21,16 +13,31 @@ import {
     handleLoadMissionSet,
 } from "./handlers/mission-handlers";
 import {
+    handleAddWaypoint,
+    handleDeleteWaypoint,
+    handleMoveWaypoint,
+    handleSelectTask,
+    handleChangeTaskParameter,
+    handleToggleBottomDive,
+} from "./handlers/waypoint-handlers";
+import {
+    handleAddRallyPoint,
+    handleDeleteRallyPoint,
+    handleSendRallyMission,
+} from "./handlers/rally-point-handlers";
+import { handleSentCommand } from "./handlers/command-handlers";
+import {
     handleClosedRallyPanel,
     handleClosedDetails,
     handleClosedWaypointPanel,
     handleClosedTaskPacketPanel,
 } from "./handlers/panel-handlers";
 import {
-    handleAddRallyPoint,
-    handleDeleteRallyPoint,
-    handleSendRallyMission,
-} from "./handlers/rally-point-handlers";
+    handleClickedHubAccordion,
+    handleClickedBotAccordion,
+    handleClickedMapLayersAccordion,
+    handleClickedMissionAccordion,
+} from "./handlers/accordion-handlers";
 import {
     handleClickedNode,
     handleClickedEditMission,
@@ -40,14 +47,7 @@ import {
     handleClickedRallyPoint,
     handleClickedTaskPacket,
 } from "./handlers/selection-handlers";
-import {
-    handleAddWaypoint,
-    handleDeleteWaypoint,
-    handleMoveWaypoint,
-    handleSelectTask,
-    handleChangeTaskParameter,
-    handleToggleBottomDive,
-} from "./handlers/waypoint-handlers";
+import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 
 // Standard profile for action handling functions
 export type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
