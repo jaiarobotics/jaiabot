@@ -158,7 +158,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 - *Description of Fluorometer fields here...* <br>
 - *Raw vs calculated, compensation equations etc...* <br>
 - *Measured via a **Turner Designs C Fluor***
-  - https://www.turnerdesigns.com/c-fluor-submersible-probes
+  - http://docs.turnerdesigns.com/t2/doc/spec-guides/998-2125.pdf
 
 ##### **Data Paths**
 | Data Field       | Unit   | Frequency | JDV Path                                       | HDF5 Log Path                                                                    |
