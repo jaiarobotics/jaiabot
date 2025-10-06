@@ -1,12 +1,12 @@
-import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
+import Waypoint from "../../data/waypoints/waypoint";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
-import Waypoint from "../../data/waypoints/waypoint";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
+import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { resetSelectedWaypoint } from "./waypoint-handlers";
 

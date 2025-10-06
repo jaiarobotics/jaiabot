@@ -1,13 +1,14 @@
-import { JaiaAction, JaiaContextType } from "../../types/context-types";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { cloneDeep } from "lodash";
+
 import Mission from "../../data/mission_set/mission";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "../JaiaContext";
-import { cloneDeep } from "lodash";
 
 /**
  * Makes a call to add a new, default mission to the data model

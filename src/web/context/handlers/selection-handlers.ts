@@ -1,7 +1,4 @@
-import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { syncOpenLayers } from "../JaiaContext";
-
 import { missionSet } from "../../data/mission_set/mission-set";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
@@ -9,7 +6,9 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
+import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { syncOpenLayers } from "../JaiaContext";
 import { resetSelectedWaypoint } from "./waypoint-handlers";
 
 /**

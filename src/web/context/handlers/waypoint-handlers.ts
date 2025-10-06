@@ -1,10 +1,10 @@
-import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import Mission from "../../data/mission_set/mission";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 /**

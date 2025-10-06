@@ -1,8 +1,8 @@
-import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { bots } from "../../data/bots/bots";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { BotModes } from "../../types/jaia-system-types";
+import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { Command, CommandType, MovementType } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 

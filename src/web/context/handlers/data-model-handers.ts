@@ -3,6 +3,7 @@ import {
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
+    JaiaHistoryType,
 } from "../../types/context-types";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
@@ -11,10 +12,33 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
+import { captureSnapshot } from "./history-handlers";
 import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
 import HistoryBuffer from "../../utils/history-buffer";
-import { captureSnapshot } from "./history-handlers";
-import { JaiaHistoryType } from "../../types/context-types";
+
+export const defaultHubAccordionStates: HubAccordionStates = {
+    quickLook: false,
+    commands: false,
+    links: false,
+};
+
+export const defaultBotAccordionStates: BotAccordionStates = {
+    quickLook: false,
+    commands: false,
+    advancedCommands: false,
+    health: false,
+    data: false,
+    gps: false,
+    imu: false,
+    sensor: false,
+};
+
+export const defaultMapLayerAccordionStates = {
+    baseMaps: false,
+    bathymetry: false,
+    measurements: false,
+    mission: false,
+};
 
 /**
  * Puts Context in sync with the data model from the start and initializes UI properties.
@@ -43,6 +67,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
     mutableState.mapMode = MapModes.DEFAULT;
+
     const initialState = captureSnapshot(mutableState);
     mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
 
@@ -61,27 +86,3 @@ export function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }
-
-export const defaultHubAccordionStates: HubAccordionStates = {
-    quickLook: false,
-    commands: false,
-    links: false,
-};
-
-export const defaultBotAccordionStates: BotAccordionStates = {
-    quickLook: false,
-    commands: false,
-    advancedCommands: false,
-    health: false,
-    data: false,
-    gps: false,
-    imu: false,
-    sensor: false,
-};
-
-export const defaultMapLayerAccordionStates = {
-    baseMaps: false,
-    bathymetry: false,
-    measurements: false,
-    mission: false,
-};
