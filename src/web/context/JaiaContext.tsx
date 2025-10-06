@@ -6,7 +6,8 @@ import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 import { DATA_MODEL_POLL_TIME } from "../utils/constants";
 import { JaiaAction, JaiaContextType } from "../types/context-types";
-import { JaiaActions, actionConfigs } from "./jaia-actions";
+import { JaiaActions } from "./jaia-actions";
+import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
 
 interface JaiaContextProviderProps {
