@@ -219,35 +219,77 @@ export function Plots(props: PlotsProps) {
             customdata: [],
         };
 
+        const getIndexRange = (series: Plot, t_start: number, t_end: number, increment: number) => {
+            const start_index_raw = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+            const end_index_raw =
+                bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
+            return [
+                start_index_raw - (start_index_raw % increment),
+                Math.min(
+                    end_index_raw - (end_index_raw % increment) + increment,
+                    series._utime_.length,
+                ),
+            ];
+        };
+
         for (let [plot_index, series] of plots.entries()) {
             // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
             // This greatly improves GUI responsiveness.
-            const start_data_index =
-                bisect(series._utime_, (t) => visibleTimeRange[0] - t)?.index ?? 0;
-            const end_data_index =
-                bisect(series._utime_, (t) => visibleTimeRange[1] - t)?.index ??
-                series._utime_.length;
-            const data_index_step = Math.max(
-                1,
-                (end_data_index - start_data_index) / MAX_DATA_POINTS,
+            const utime = series._utime_;
+            const num_points = utime.length;
+            const min_utime = utime[0];
+            const max_utime = utime[num_points - 1];
+            const series_duration = max_utime - min_utime;
+            const visible_duration = Math.min(
+                visibleTimeRange[1] - visibleTimeRange[0],
+                series_duration,
+            );
+
+            const num_visible_points_estimate = Math.ceil(
+                (num_points * visible_duration) / series_duration,
+            );
+
+            const inside_index_step = Math.ceil(num_visible_points_estimate / 400);
+            const [inside_index_min, inside_index_max] = getIndexRange(
+                series,
+                visibleTimeRange[0],
+                visibleTimeRange[1],
+                inside_index_step,
+            );
+
+            const outside_index_step = inside_index_step * 4;
+            const outside_time_min = visibleTimeRange[0] - visible_duration;
+            const outside_time_max = visibleTimeRange[1] + visible_duration;
+            const [outside_index_min, outside_index_max] = getIndexRange(
+                series,
+                outside_time_min,
+                outside_time_max,
+                outside_index_step,
             );
 
             let x_values = [];
             let customdata = [];
             let y_values = [];
-            for (
-                let data_index = start_data_index;
-                data_index < end_data_index;
-                data_index += data_index_step
-            ) {
-                const data_index_int = Math.round(data_index);
-                customdata.push(series._utime_[data_index_int]);
-                x_values.push(new Date(series._utime_[data_index_int] / 1e3));
-                y_values.push(series.series_y[data_index_int]);
+
+            let data_index = outside_index_min;
+
+            while (data_index < outside_index_max) {
+                customdata.push(series._utime_[data_index]);
+                x_values.push(new Date(series._utime_[data_index] / 1e3));
+                y_values.push(series.series_y[data_index]);
+
+                if (
+                    data_index + inside_index_step > inside_index_min &&
+                    data_index < inside_index_max
+                ) {
+                    data_index += inside_index_step;
+                } else {
+                    data_index += outside_index_step;
+                }
             }
 
             let hovertext = y_values.map((y) => series.hovertext?.[y]);
-            const auto_mode = data_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
+            const auto_mode = inside_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
 
             update.x.push(x_values);
             update.y.push(y_values);
