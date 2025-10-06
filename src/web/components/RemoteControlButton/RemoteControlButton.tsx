@@ -1,14 +1,16 @@
 import { useContext, useState } from "react";
 
-import { RemoteControlDialog, DialogActions } from "./RemoteControlDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { RemoteControlDialog } from "./RemoteControlDialog";
 import { DisabledCodes } from "./remote-control-messages";
 
 import { Button } from "@mui/material";
 
 import Bot from "../../data/bots/bot";
 import { BotModes } from "../../types/jaia-system-types";
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType, MissionStart, MovementType } from "../../types/protobuf-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 import rcModeIcon from "../../style/icons/controller.svg";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
@@ -27,6 +29,7 @@ interface Props {
 export default function RemoteControlButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     const rcActive = props.bot.getMode() === BotModes.REMOTE_CONTROL;
 
@@ -73,6 +76,21 @@ export default function RemoteControlButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -94,6 +112,21 @@ export default function RemoteControlButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
@@ -111,6 +144,7 @@ export default function RemoteControlButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
