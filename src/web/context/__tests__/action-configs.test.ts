@@ -1,4 +1,5 @@
-import { JaiaActions, actionConfigs } from "../jaia-actions";
+import { JaiaActions } from "../jaia-actions";
+import { actionConfigs } from "../action-configs";
 
 describe("actionConfigs map completeness", () => {
     test("should have a config for every JaiaAction", () => {
