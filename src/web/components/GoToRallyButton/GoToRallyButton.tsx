@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { GoToRallyDialog, DialogActions } from "./GoToRallyDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { GoToRallyDialog } from "./GoToRallyDialog";
 import { DisabledCodes } from "./go-to-rally-messages";
 
 import { Icon } from "@mdi/react";
@@ -10,6 +11,7 @@ import { Button } from "@mui/material";
 import { mdiPlay } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import { DialogActions } from "../../types/context-types";
 
 import { SelectedRallyPoint } from "../../types/jaia-system-types";
 import {
@@ -20,7 +22,7 @@ import {
     Speeds,
 } from "../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 
@@ -42,6 +44,7 @@ export default function GoToRallyButton(props: Props) {
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
     );
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Loops through the connected Bots and categorizes them based on their
@@ -79,14 +82,20 @@ export default function GoToRallyButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = () => {
-        setIsDialogVisible(true);
-        groupBotsByReadyState();
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_BUTTON,
-            buttonType: ButtonTypes.COMMAND,
-            buttonName: ButtonNames.GO_TO_RALLY,
-        });
+    const handleClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+            groupBotsByReadyState();
+            jaiaDispatch({
+                type: JaiaActions.CLICKED_BUTTON,
+                buttonType: ButtonTypes.COMMAND,
+                buttonName: ButtonNames.GO_TO_RALLY,
+            });
+        }
     };
 
     /**
@@ -105,6 +114,22 @@ export default function GoToRallyButton(props: Props) {
                     jaiaDispatch({ type: JaiaActions.SEND_RALLY_MISSION });
                 }
             }
+        }
+    };
+
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+            groupBotsByReadyState();
         }
     };
 
@@ -146,6 +171,7 @@ export default function GoToRallyButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }

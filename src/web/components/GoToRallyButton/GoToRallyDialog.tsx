@@ -1,4 +1,5 @@
 import { DisabledCodes } from "./go-to-rally-messages";
+import { DialogActions } from "../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -14,11 +15,6 @@ interface TitleProps {
 interface ButtonRowProps {
     botReadyStates: Map<DisabledCodes, number[]>;
     onClose: (dialogAction: DialogActions) => void;
-}
-
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
 }
 
 /**
