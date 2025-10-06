@@ -68,9 +68,9 @@ export interface JaiaAction {
     missionSetName?: string;
 }
 
-// Snapshot of state for storing state history
+// Snapshot of app state for storing history
 export interface JaiaHistoryType {
-    // items from JaiaContext
+    // Items from JaiaContext
     missions: Map<number, Mission>;
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -85,7 +85,7 @@ export interface JaiaHistoryType {
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
     mapMode: MapModes;
-    // items not tracked in context needed for state
+    // Items not tracked in JaiaContext needed for snapshot
     nextMissionID: number;
     missionSetName: string;
     missionAssignments: Map<number, number>;

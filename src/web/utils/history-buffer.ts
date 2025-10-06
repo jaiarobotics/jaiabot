@@ -7,8 +7,8 @@ export default class HistoryBuffer<T> {
 
     /** Creates a history buffer
      *
-     * @param {T} initialValue initial state of history buffer
-     * @param {number} capacity maximum number of entries in history buffer
+     * @param {T} initialValue Initial state of history buffer
+     * @param {number} capacity Maximum number of entries in history buffer
      */
     constructor(
         initialValue: T,
@@ -16,7 +16,7 @@ export default class HistoryBuffer<T> {
     ) {
         this.buffer = new Array(capacity);
         this.initialValue = initialValue;
-        const entry = { value: initialValue, description: "Initial state" };
+        const entry = { value: initialValue, description: "Initial State" };
         this.buffer[0] = entry;
         this.index = 0;
         this.head = 0;
@@ -24,14 +24,15 @@ export default class HistoryBuffer<T> {
     }
 
     /**
-     * Clear the entire history
-     * @param {T} initialValue Optional new initial value, will use original if not provided
+     * Clears the entire history
+     *
+     * @param {T} initialValue New initial value, will use original if not provided
      * @returns {T} current value of history buffer (initialValue)
      */
     reset(initialValue?: T) {
         this.buffer.fill(undefined);
         this.initialValue = initialValue ?? this.initialValue;
-        const entry = { value: this.initialValue, description: "Initial state" };
+        const entry = { value: this.initialValue, description: "Initial State" };
         this.buffer[0] = entry;
         this.index = 0;
         this.head = 0;
@@ -40,11 +41,12 @@ export default class HistoryBuffer<T> {
     }
     /**
      * Push a new value onto the history buffer
+     *
      * @param {T} value New state to push onto history buffer
      * @param {string} description Description of action creating new state
      *
-     * @notes Provide value should be cloned if mutable to prevent
-     *        corruption of history
+     * @notes
+     * Provided value should be cloned if mutable to prevent corruption of history
      */
     push(value: T, description: string) {
         const entry = { value, description };
@@ -70,12 +72,14 @@ export default class HistoryBuffer<T> {
             this.index = pos;
         }
     }
+
     /**
      * Move back in history and return the previous value
+     *
      * @returns {T} Previous state
      *
-     * @notes Returned value should be cloned if mutable to prevent
-     *        corruption of history
+     * @notes
+     * Returned value should be cloned if mutable to prevent corruption of history
      */
     undo() {
         if (this.canUndo()) {
@@ -86,10 +90,11 @@ export default class HistoryBuffer<T> {
 
     /**
      * Move forward in history and return the next value
+     *
      * @returns {T} Next state
      *
-     * @notes Returned value should be cloned if mutable to prevent
-     *        corruption of history
+     * @notes
+     * Returned value should be cloned if mutable to prevent corruption of history
      */
     redo() {
         if (this.canRedo()) {
@@ -100,10 +105,11 @@ export default class HistoryBuffer<T> {
 
     /**
      * Returns current state
+     *
      * @returns {T} Current state
      *
-     * @notes Returned value should be cloned if mutable to prevent
-     *        corruption of history
+     * @notes
+     * Returned value should be cloned if mutable to prevent corruption of history
      */
     getPresent() {
         return this.buffer[this.index].value;
@@ -111,6 +117,7 @@ export default class HistoryBuffer<T> {
 
     /**
      * Provides description of the last action for undo button tooltip
+     *
      * @returns {string} Description of action to be undone
      */
     peekUndoDescription() {
@@ -119,6 +126,7 @@ export default class HistoryBuffer<T> {
 
     /**
      * Provides description of the next action for redo button tooltip
+     *
      * @returns {string} Description of action to be redone
      */
     peekRedoDescription() {
@@ -129,6 +137,7 @@ export default class HistoryBuffer<T> {
 
     /**
      * Checks if there is anything to undo
+     *
      * @returns {boolean} True if undo can be performed
      */
     canUndo() {
@@ -137,6 +146,7 @@ export default class HistoryBuffer<T> {
 
     /**
      * Checks if there is anything to redo
+     *
      * @returns {boolean} True if redo can be performed
      */
     canRedo() {
