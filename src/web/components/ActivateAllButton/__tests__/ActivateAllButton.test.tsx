@@ -50,6 +50,15 @@ originalModule.jaiaAPI.hit = jest
     .fn()
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
 
+// Place user in control by default
+jest.mock("../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../utils/commands");
+    return {
+        ...originalModule,
+        isControllingClient: jest.fn(() => true),
+    };
+});
+
 test("Click activate all button with two Bots in pre-deployment idle", async () => {
     // Set up data model
     bots.setBot(botStatusMock1);

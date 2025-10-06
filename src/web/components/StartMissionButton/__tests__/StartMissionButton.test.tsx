@@ -12,6 +12,15 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import { MissionState } from "../../../types/protobuf-types";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 
+// Place user in control by default
+jest.mock("../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../utils/commands");
+    return {
+        ...originalModule,
+        isControllingClient: jest.fn(() => true),
+    };
+});
+
 const mockBotStatus1: PortalBotStatus = {
     bot_id: 1,
     portalStatusAge: 40_000_000, // microseconds

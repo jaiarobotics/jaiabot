@@ -26,6 +26,15 @@ originalModule.jaiaAPI.hit = jest
     .fn()
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
 
+// Place user in control by default
+jest.mock("../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../utils/commands");
+    return {
+        ...originalModule,
+        isControllingClient: jest.fn(() => true),
+    };
+});
+
 test("Click next task button in enabled state", async () => {
     render(<NextTaskButton bot={bots.getBot(1)} />);
     const button = screen.getByRole("button", { name: "next-task" });

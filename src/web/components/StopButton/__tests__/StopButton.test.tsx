@@ -8,6 +8,15 @@ import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { MissionState } from "../../../types/protobuf-types";
 
+// Place user in control by default
+jest.mock("../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../utils/commands");
+    return {
+        ...originalModule,
+        isControllingClient: jest.fn(() => true),
+    };
+});
+
 interface TestParams {
     missionState: MissionState;
     buttonAvailable: boolean;
