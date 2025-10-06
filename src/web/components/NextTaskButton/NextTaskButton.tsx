@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { NextTaskDialog, DialogActions } from "./NextTaskDialog";
+import TakeControlDialog from "../TakeControlDialog/TakeControlDialog";
+import { NextTaskDialog } from "./NextTaskDialog";
 import { DisabledCodes } from "./next-task-messages";
 
 import { Icon } from "@mdi/react";
@@ -8,9 +9,10 @@ import { Button } from "@mui/material";
 import { mdiSkipNext } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
+import { DialogActions } from "../../types/context-types";
 import { Command, CommandType } from "../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
-import { isCommandAvailable, sendBotCommand } from "../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../utils/commands";
 
 interface Props {
     bot: Bot;
@@ -22,6 +24,7 @@ interface Props {
  */
 export default function NextTaskButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -51,6 +54,21 @@ export default function NextTaskButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const onButtonClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -68,12 +86,27 @@ export default function NextTaskButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the take control dialog. If control is taken, the command
+     * dialog will appear.
+     *
+     * @param {DialogActions} dialogAction The action taken by the operator
+     * @returns {void}
+     */
+    const onTakeControlClose = (dialogAction: DialogActions) => {
+        setIsTakeControlVisible(false);
+
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setIsDialogVisible(true);
+        }
+    };
+
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"next-task"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => onButtonClick()}
             >
                 <Icon path={mdiSkipNext} size={MDI_BUTTON_SIZE} title="Next Task" />
             </Button>
@@ -82,6 +115,7 @@ export default function NextTaskButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
+            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
         </div>
     );
 }
