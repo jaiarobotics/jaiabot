@@ -1,5 +1,6 @@
 import { JaiaContextType, JaiaAction } from "../types/context-types";
 import { handleInit, handlePollDataModel } from "./handlers/data-model-handers";
+import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 import {
     handleAddMission,
     handleDeleteMission,
@@ -45,7 +46,6 @@ import {
     handleClickedTaskPacket,
     handleClickedRallyPoint,
 } from "./handlers/selection-handlers";
-import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 
 export enum JaiaActions {
     INIT = "INIT",
