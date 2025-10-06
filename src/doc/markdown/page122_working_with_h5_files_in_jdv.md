@@ -35,7 +35,7 @@
 *The Data Paths listed below include the path a user would follow to find the specific data field via the Jaia Data Visualizer (JDV), as well as in the raw HDF5 log file (e.g. via a custom script).*
 
 ##### **Example Scripts:**
-*Internal data analysis scripts exist in our public GitHub Repository. Anyone is able to access these by checking out the following branch, then navigating to `jaiabot/scripts/log-analysis`. In the coming months, these scripts will be merged into our main branch, but will remain in the same file location.*
+*Internal data analysis scripts can be found in our public GitHub Repository. Anyone is able to access these by checking out the following branch, then navigating to `jaiabot/scripts/log-analysis`. In the coming months, these scripts will be merged into our main branch, but will remain in the same file location.*
 
 https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools 
 
