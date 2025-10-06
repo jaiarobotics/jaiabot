@@ -84,6 +84,7 @@ export function Plots(props: PlotsProps) {
 
         if (plots.length == 0) {
             Plotly.purge(plot_div_element);
+            props.delegate.setVisibleTimeRange(null);
             return;
         }
 
