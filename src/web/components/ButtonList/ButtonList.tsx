@@ -101,7 +101,6 @@ export default function ButtonList(props: Props) {
                 <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
                 <DataOffloadAllButton bots={jaiaContext.bots} />
                 <Button
-                    id="undo"
                     className={getUndoClassName()}
                     disabled={!jaiaContext.stateHistory.canUndo()}
                     onClick={() => handleUndoClick()}
@@ -112,7 +111,6 @@ export default function ButtonList(props: Props) {
                     />
                 </Button>
                 <Button
-                    id="redo"
                     className={getRedoClassName()}
                     disabled={!jaiaContext.stateHistory.canRedo()}
                     onClick={() => handleRedoClick()}
