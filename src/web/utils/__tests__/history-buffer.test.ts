@@ -19,7 +19,7 @@ test("exercise histroy buffer", () => {
     expect(testHistory.canUndo()).toBe(true);
     expect(testHistory.canRedo()).toBe(false);
     expect(testHistory.peekUndoDescription()).toBe("1st push");
-    expect(testHistory.peekRedoDescription()).toBeUndefined();
+    expect(testHistory.peekRedoDescription()).toBe("");
 
     // Push a 2nd value onto buffer
     testHistory.push(2, "2nd push");
@@ -37,7 +37,7 @@ test("exercise histroy buffer", () => {
     // Use redo to get 2nd value
     expect(testHistory.redo()).toBe(2);
     expect(testHistory.peekUndoDescription()).toBe("2nd push");
-    expect(testHistory.peekRedoDescription()).toBeUndefined();
+    expect(testHistory.peekRedoDescription()).toBe("");
     expect(testHistory.canUndo()).toBe(true);
     expect(testHistory.canRedo()).toBe(false);
 

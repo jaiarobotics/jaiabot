@@ -121,7 +121,7 @@ export default class HistoryBuffer<T> {
      * @returns {string} Description of action to be undone
      */
     peekUndoDescription() {
-        return this.canUndo() ? this.buffer[this.index].description : undefined;
+        return this.canUndo() ? this.buffer[this.index].description : "";
     }
 
     /**
@@ -130,7 +130,7 @@ export default class HistoryBuffer<T> {
      * @returns {string} Description of action to be redone
      */
     peekRedoDescription() {
-        if (!this.canRedo()) return undefined;
+        if (!this.canRedo()) return "";
         const nextIndex = (this.index + 1) % this.capacity;
         return this.buffer[nextIndex]?.description;
     }
@@ -151,6 +151,6 @@ export default class HistoryBuffer<T> {
      */
     canRedo() {
         const tail = (this.head + this.size - 1) % this.capacity;
-        return this.size > 0 && this.index !== tail;
+        return this.index !== tail;
     }
 }
