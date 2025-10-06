@@ -72,8 +72,8 @@ export default function DataOffloadAllButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 
@@ -108,8 +108,8 @@ export default function DataOffloadAllButton(props: Props) {
         setIsTakeControlVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 

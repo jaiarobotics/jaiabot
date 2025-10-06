@@ -70,8 +70,8 @@ export default function ActivateAllButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 
@@ -106,8 +106,8 @@ export default function ActivateAllButton(props: Props) {
         setIsTakeControlVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 

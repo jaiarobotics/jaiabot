@@ -71,8 +71,8 @@ export default function StopAllBotsButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 
@@ -113,8 +113,8 @@ export default function StopAllBotsButton(props: Props) {
         setIsTakeControlVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 

@@ -88,8 +88,8 @@ export default function GoToRallyButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
             jaiaDispatch({
                 type: JaiaActions.CLICKED_BUTTON,
                 buttonType: ButtonTypes.COMMAND,
@@ -128,8 +128,8 @@ export default function GoToRallyButton(props: Props) {
         setIsTakeControlVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
             groupBotsByReadyState();
+            setIsDialogVisible(true);
         }
     };
 
