@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { SystemDialog, DialogActions } from "./SystemDialog";
+import { SystemDialog } from "./SystemDialog";
 import { DisabledCodes } from "./system-messages";
 
 import { Icon } from "@mdi/react";
@@ -9,6 +9,7 @@ import { mdiPower, mdiRestart, mdiRestartAlert } from "@mdi/js";
 
 import Bot from "../../data/bots/bot";
 import Hub from "../../data/hubs/hub";
+import { DialogActions } from "../../types/context-types";
 import { SystemButtonTypes } from "../../types/jaia-system-types";
 import { CommandType, HubCommandType } from "../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";

@@ -1,5 +1,6 @@
 import { SystemButtonTypes } from "../../types/jaia-system-types";
 import { DisabledCodes } from "./system-messages";
+import { DialogActions } from "../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -16,11 +17,6 @@ interface ButtonRowProps {
     disabledCode: DisabledCodes;
     onClose: (dialogAction: DialogActions) => void;
     systemButton: SystemButtonTypes;
-}
-
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
 }
 
 /**

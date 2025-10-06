@@ -1,4 +1,5 @@
 import { DisabledCodes, messages } from "./delete-mission-messages";
+import { DialogActions } from "../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -16,12 +17,6 @@ interface ButtonRowProps {
     onClose: (dialogAction: DialogActions) => void;
     deleteAll: boolean;
 }
-
-export enum DialogActions {
-    NONE = 0,
-    CONFIRMED = 1,
-}
-
 /**
  * Produces the dialog box that appears when clicking on a delete mission
  * or delete all missions button. This dialog will be an alert if the command

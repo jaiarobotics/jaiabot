@@ -3,8 +3,9 @@ import { useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import { DeleteMissionDialog, DialogActions } from "./DeleteMissionDialog";
+import { DeleteMissionDialog } from "./DeleteMissionDialog";
 import { DisabledCodes } from "./delete-mission-messages";
+import { DialogActions } from "../../types/context-types";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
