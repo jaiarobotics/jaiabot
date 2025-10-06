@@ -58,10 +58,18 @@ export default function ButtonList(props: Props) {
         });
     };
 
+    /**
+     * Dispatches action to Undo history
+     * @returns {void}
+     */
     const handleUndoClick = () => {
         jaiaDisaptch({ type: JaiaActions.CLICKED_UNDO });
     };
 
+    /**
+     * Dispatches action to Redo history
+     * @returns {void}
+     */
     const handleRedoClick = () => {
         jaiaDisaptch({ type: JaiaActions.CLICKED_REDO });
     };
