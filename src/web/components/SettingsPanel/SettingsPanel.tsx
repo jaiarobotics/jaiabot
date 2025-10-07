@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 
-import Button from "@mui/material/Button";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
+import ScanForBot from "../ScanForBot/ScanForBot";
 import LayerSwitcherMenu from "../../containers/LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -82,6 +82,7 @@ export default function SettingsPanel() {
                             >
                                 Jaia Engineering & Debug
                             </button>
+                            <ScanForBot />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
