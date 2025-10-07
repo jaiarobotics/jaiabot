@@ -452,3 +452,7 @@ h2 {
 .clipped {
     overflow: hidden;
 }
+
+button.selected {
+    background-color: darkgray;
+}

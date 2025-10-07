@@ -45,6 +45,49 @@ interface GetLogsResponse {
     logs: Log[];
 }
 
+/**
+ * Descriptor for a data series
+ *
+ */
+export interface SeriesDescriptor {
+    /**
+     * Human-readable name of the series
+     * */
+    name: string;
+
+    /**
+     * HDF path of the series
+     */
+    path: string;
+
+    /**
+     * Description of the series
+     */
+    description: string;
+
+    /**
+     * Units of the series
+     */
+    units: string;
+
+    /**
+     * Frequency the series is sampled at
+     */
+    frequency: number;
+}
+
+export function SeriesDescriptor_matchesString(
+    seriesDescriptor: SeriesDescriptor,
+    query: string,
+): boolean {
+    const lowerQuery = query.toLowerCase();
+    return (
+        seriesDescriptor.name.toLowerCase().includes(lowerQuery) ||
+        seriesDescriptor.path.toLowerCase().includes(lowerQuery) ||
+        seriesDescriptor.description?.toLowerCase()?.includes(lowerQuery)
+    );
+}
+
 export class LogApi {
     /**
      * Perform GET request
@@ -150,10 +193,13 @@ export class LogApi {
      * @param {string} root_path Path of the root path to look for child paths
      * @returns {Promise<string[]>}
      */
-    static getPaths(logs: string[], root_path: string) {
+    static getPaths(logs: string[], root_path: string = null) {
         var url = new URL("paths", window.location.origin);
         url.searchParams.append("log", logs.join(","));
-        url.searchParams.append("root_path", root_path);
+
+        if (root_path !== null) {
+            url.searchParams.append("root_path", root_path);
+        }
 
         return this.getJSON(url.toString()) as Promise<string[]>;
     }
@@ -279,5 +325,12 @@ export class LogApi {
      */
     static async postConvertIfNeeded(logs: string[]) {
         return (await this.post("convert-if-needed", logs)) as ConvertStatus;
+    }
+
+    static async getAllSeriesDescriptors(logs: string[]) {
+        var url = new URL("all-series-descriptors", window.location.origin);
+        url.searchParams.append("log", logs.join(","));
+
+        return (await this.getJSON(url.toString())) as SeriesDescriptor[];
     }
 }

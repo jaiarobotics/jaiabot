@@ -11,6 +11,11 @@ class BisectResult<T> {
  * @returns A BisectResult containing the index and value which is just less than or equal to the desired value (where f(v) == 0)
  */
 export function bisect<T>(sorted_array: T[], f: (t: T) => number): BisectResult<T> | null {
+    // Empty array
+    if (sorted_array.length == 0) {
+        return null;
+    }
+
     let start = 0,
         end = sorted_array.length - 1;
 
