@@ -7,7 +7,6 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
  *
  * @returns {void}
  */
-
 export function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
