@@ -101,16 +101,15 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ##### **Data Paths**
 | Data Field         | Unit  | Frequency | JDV Path                               | HDF5 Log Path                                                     |
 |--------------------|-------|-----------|----------------------------------------|-------------------------------------------------------------------|
-|**Conductivity**    |*μS/cm*|*10 Hz*    |`jaiabot::salinity` ➔ `conductivity`    |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity`    |
-|**Raw Conductivity**|*μS/cm*|*10 Hz*    |`jaiabot::salinity` ➔ `conductivity_raw`|`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity_raw`|
-|**Salinity**        |*ppt*  |*10 Hz*    |`jaiabot::salinity` ➔ `salinity`        |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity`        |
-|**Raw Salinity**    |*ppt*  |*10 Hz*    |`jaiabot::salinity` ➔ `salinity_raw`    |`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity_raw`    |
+|**Conductivity**    |*μS/cm*|*10 Hz*    |`jaiabot::salinity` ➔ `conductivity`    |*HYDRO/PAM:*`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity`<br>*BIO:*`/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/conductivity`|
+|**Raw Conductivity**|*μS/cm*|*10 Hz*    |`jaiabot::salinity` ➔ `conductivity_raw`|*HYDRO/PAM:*`/jaiabot::salinity/jaiabot.protobuf.SalinityData/conductivity_raw`<br>*BIO:*`/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/conductivity_raw`|
+|**Salinity**        |*ppt*  |*10 Hz*    |`jaiabot::salinity` ➔ `salinity`        |*HYDRO/PAM:*`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity`<br>*BIO:*`/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/salinity`|
+|**Raw Salinity**    |*ppt*  |*10 Hz*    |`jaiabot::salinity` ➔ `salinity_raw`    |*HYDRO/PAM:*`/jaiabot::salinity/jaiabot.protobuf.SalinityData/salinity_raw`<br>*BIO:*`/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/salinity_raw`|
 
 ##### **Timestamp Paths**
 | Units        | JDV Path                      | HDF5 Log Path                                            |
 |--------------|-------------------------------|----------------------------------------------------------|
-|*Microseconds*|`jaiabot::salinity` ➔ `_utime_`|`/jaiabot::salinity/jaiabot.protobuf.SalinityData/_utime_`|
-<br>
+|*Microseconds*|`jaiabot::salinity` ➔ `_utime_`|*HYDRO/PAM:*`/jaiabot::salinity/jaiabot.protobuf.SalinityData/_utime_`<br>*BIO:*`/jaiabot::salinity/jaiabot.sensor.protobuf.AtlasScientificOEMEC/_utime_`|
 
 
 ### **pH Data**
