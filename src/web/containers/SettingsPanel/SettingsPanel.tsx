@@ -30,6 +30,7 @@ import { Icon } from "@mdi/react";
 import { mdiSendVariant } from "@mdi/js";
 
 import "./SettingsPanel.less";
+import { HubMapPanel } from "../HubMapPanel/HubMapPanel";
 
 interface Props {
     taskPacketsTimeline: { [key: string]: string | boolean };
@@ -62,6 +63,7 @@ enum AccordionTabs {
     MapLayers = "MAP_LAYERS",
     Engineering = "ENGINEERING",
     Simulation = "SIMULATION",
+    OfflineMaps = "OFFLINE_MAPS",
 }
 
 /**
@@ -310,6 +312,24 @@ export function SettingsPanel(props: Props) {
                                     api={props.api}
                                 />
                             </div>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
+                <ThemeProvider theme={accordionTheme}>
+                    <Accordion
+                        expanded={isOpenAccordionTab(AccordionTabs.OfflineMaps)}
+                        onChange={() => handleAccordionTabClick(AccordionTabs.OfflineMaps)}
+                        className="accordionContainer"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Offline Maps</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails className="settings-accordion-inner-container">
+                            <HubMapPanel map={props.map} />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
