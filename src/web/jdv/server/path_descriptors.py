@@ -140,14 +140,14 @@ path_descriptors = [
         path_suffix='SalinityData/conductivity',
         units='μS/cm',
         frequency=10,
-        description='Conductivity adjusted to a 25 °C standard.'
+        description='Specific conductivity - conductivity adjusted to a 25 °C standard.'
     ),
     PathDescriptor(
         name='Conductivity',
         path_suffix='AtlasScientificOEMEC/conductivity',
         units='μS/cm',
         frequency=10,
-        description='Conductivity adjusted to a 25 °C standard.'
+        description='Specific conductivity - conductivity adjusted to a 25 °C standard.'
     ),
     PathDescriptor(
         name='Raw Conductivity',
@@ -261,6 +261,34 @@ path_descriptors = [
         frequency=10,
         description='Raw voltage reported by the analog fluorometer sensor.'
     ), 
+    PathDescriptor(
+        name='Latitude',
+        path_suffix='TimePositionVelocity/location/lat',
+        units='°',
+        frequency=5,
+        description='Latitude reported by the JaiaBot GPS receiver.',
+    ),
+    PathDescriptor(
+        name='Longitude',
+        path_suffix='TimePositionVelocity/location/lon',
+        units='°',
+        frequency=5,
+        description='Longitude reported by the JaiaBot GPS receiver.',
+    ),
+    PathDescriptor(
+        name='Latitude (Node Status)',
+        path_suffix='NodeStatus/global_fix/lat',
+        units='°',
+        frequency=5,
+        description='A subset of GPS latitude points, filtering out points with low certainty.',
+    ),
+    PathDescriptor(
+        name='Longitude (Node Status)',
+        path_suffix='NodeStatus/global_fix/lon',
+        units='°',
+        frequency=5,
+        description='A subset of GPS longitude points, filtering out points with low certainty.',
+    ),
 ]
 
 
