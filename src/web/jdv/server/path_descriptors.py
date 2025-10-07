@@ -10,6 +10,7 @@ class PathDescriptor:
     name: str
     path_suffix: str
     units: str
+    frequency: float | None = None
     description: str | None = None
     path_regex: str | None = None  # Optional regex to match paths
     invalid_values: set = None # Set of values to treat as invalid
@@ -122,6 +123,7 @@ path_descriptors = [
         name='Conductivity',
         path_suffix='AtlasScientificOEMEC/conductivity',
         units='μS/cm',
+        frequency=10,
         description='Conductivity adjusted to a 25 °C standard.'
     ),
     PathDescriptor(

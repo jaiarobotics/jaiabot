@@ -45,15 +45,13 @@ interface GetLogsResponse {
     logs: Log[];
 }
 
-
-
 /**
  * Descriptor for a data series
  *
  */
 export interface SeriesDescriptor {
-    /** 
-     * Human-readable name of the series 
+    /**
+     * Human-readable name of the series
      * */
     name: string;
 
@@ -66,14 +64,29 @@ export interface SeriesDescriptor {
      * Description of the series
      */
     description: string;
+
+    /**
+     * Units of the series
+     */
+    units: string;
+
+    /**
+     * Frequency the series is sampled at
+     */
+    frequency: number;
 }
 
-
-export function SeriesDescriptor_matchesString(seriesDescriptor: SeriesDescriptor, query: string): boolean {
+export function SeriesDescriptor_matchesString(
+    seriesDescriptor: SeriesDescriptor,
+    query: string,
+): boolean {
     const lowerQuery = query.toLowerCase();
-    return seriesDescriptor.name.toLowerCase().includes(lowerQuery) || seriesDescriptor.path.toLowerCase().includes(lowerQuery) || seriesDescriptor.description?.toLowerCase()?.includes(lowerQuery);
+    return (
+        seriesDescriptor.name.toLowerCase().includes(lowerQuery) ||
+        seriesDescriptor.path.toLowerCase().includes(lowerQuery) ||
+        seriesDescriptor.description?.toLowerCase()?.includes(lowerQuery)
+    );
 }
-
 
 export class LogApi {
     /**
@@ -180,7 +193,7 @@ export class LogApi {
      * @param {string} root_path Path of the root path to look for child paths
      * @returns {Promise<string[]>}
      */
-    static getPaths(logs: string[], root_path: string=null) {
+    static getPaths(logs: string[], root_path: string = null) {
         var url = new URL("paths", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 

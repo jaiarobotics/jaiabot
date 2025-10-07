@@ -132,6 +132,8 @@ class JaiaH5FileSet:
             name: str
             path: str
             description: str
+            units: str
+            frequency: float
 
             def __hash__(self):
                 return hash((self.name, self.path, self.description))
@@ -148,6 +150,8 @@ class JaiaH5FileSet:
                 name=path_descriptor.name,
                 path=path,
                 description=path_descriptor.description,
+                units=path_descriptor.units,
+                frequency=path_descriptor.frequency,
             )
 
             seriesDescriptors.add(series_descriptor)

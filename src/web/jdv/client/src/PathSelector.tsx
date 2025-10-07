@@ -221,12 +221,29 @@ export default class PathSelector extends React.Component {
                     className="padded listItem vertical flexbox"
                     onClick={clicked_series.bind(this, series_descriptor)}
                 >
-                    <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.3em" }}>
                         <b>{series_descriptor.name}</b>
+                        {series_descriptor.units && (
+                            <span
+                                style={{ fontSize: "smaller", color: "gray", fontStyle: "italic" }}
+                            >
+                                {series_descriptor.units}
+                            </span>
+                        )}
                     </div>
-                    {series_descriptor.description && (
-                        <div style={{ fontSize: "smaller" }}>{series_descriptor.description}</div>
-                    )}
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.3em" }}>
+                        {series_descriptor.description && (
+                            <div style={{ fontSize: "smaller" }}>
+                                {series_descriptor.description}
+                            </div>
+                        )}
+                        {series_descriptor.frequency && (
+                            <span style={{ fontSize: "smaller", fontStyle: "italic" }}>
+                                {series_descriptor.frequency} Hz
+                            </span>
+                        )}
+                    </div>
+
                     <div style={{ fontSize: "smaller", color: "gray", fontStyle: "italic" }}>
                         {series_descriptor.path}
                     </div>
