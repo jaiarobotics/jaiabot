@@ -1,6 +1,9 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../context/JaiaContext";
+import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { sendHubCommand } from "../../utils/commands";
+import { CommandForHub, HubCommandType } from "../../types/protobuf-types";
 import "./ScanForBot.less";
 
 /**
@@ -18,6 +21,45 @@ export default function ScanForBot() {
      */
     const handleMenuSelection = (evt: SelectChangeEvent) => {
         setSelectedBotID(evt.target.value);
+    };
+
+    /**
+     * Forms the scan for Bot command to be issued by the Hub
+     *
+     * @param {number} botID Which Bot to scan for
+     * @returns {void}
+     */
+    const sendScanForBot = (botID: number) => {
+        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+
+        if (!hub) {
+            return;
+        }
+
+        const command: CommandForHub = {
+            hub_id: hub.getHubID(),
+            type: HubCommandType.SCAN_FOR_BOTS,
+            scan_for_bot_id: botID,
+        };
+
+        sendHubCommand(command);
+    };
+
+    /**
+     * Sends the scan for Bot command for each Bot in the Hub's radio file
+     *
+     * @returns {void}
+     */
+    const sendScanForBots = () => {
+        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+
+        if (!hub) {
+            return;
+        }
+
+        for (const botID of hub.getBotIDsInRadioFile()) {
+            sendScanForBot(botID);
+        }
     };
 
     return (
@@ -41,8 +83,8 @@ export default function ScanForBot() {
                     </Select>
                 </FormControl>
             </div>
-            <button>Scan For Bot</button>
-            <button>Scan For All Bots</button>
+            <button onClick={() => sendScanForBot(Number(selectedBotID))}>Scan For Bot</button>
+            <button onClick={() => sendScanForBots()}>Scan For All Bots</button>
         </div>
     );
 }
