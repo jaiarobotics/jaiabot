@@ -4,6 +4,7 @@ import { JaiaContext } from "../../context/JaiaContext";
 import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { sendHubCommand } from "../../utils/commands";
 import { CommandForHub, HubCommandType } from "../../types/protobuf-types";
+import { success } from "../../utils/notifications";
 import "./ScanForBot.less";
 
 /**
@@ -29,7 +30,7 @@ export default function ScanForBot() {
      * @param {number} botID Which Bot to scan for
      * @returns {void}
      */
-    const sendScanForBot = (botID: number) => {
+    const sendScanForBot = async (botID: number) => {
         const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
         if (!hub) {
@@ -42,7 +43,11 @@ export default function ScanForBot() {
             scan_for_bot_id: botID,
         };
 
-        sendHubCommand(command);
+        const res = await sendHubCommand(command);
+
+        if (res && res.status === "ok") {
+            success(`Scanning for Bot ${botID}`);
+        }
     };
 
     /**
@@ -53,7 +58,7 @@ export default function ScanForBot() {
     const sendScanForBots = () => {
         const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
-        if (!hub) {
+        if (!hub || !hub.getBotIDsInRadioFile()) {
             return;
         }
 
@@ -83,8 +88,15 @@ export default function ScanForBot() {
                     </Select>
                 </FormControl>
             </div>
-            <button onClick={() => sendScanForBot(Number(selectedBotID))}>Scan For Bot</button>
-            <button onClick={() => sendScanForBots()}>Scan For All Bots</button>
+            <button
+                className="engineering-button"
+                onClick={() => sendScanForBot(Number(selectedBotID))}
+            >
+                Scan For Bot
+            </button>
+            <button className="engineering-button" onClick={() => sendScanForBots()}>
+                Scan For All Bots
+            </button>
         </div>
     );
 }
