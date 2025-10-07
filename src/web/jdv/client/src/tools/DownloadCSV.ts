@@ -1,4 +1,4 @@
-import { Plot } from "./Plot";
+import { Plot } from "../model/Plot";
 
 export function downloadCSV(plots: Plot[], tRange: number[]) {
     var csvText = "";
