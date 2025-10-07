@@ -60,6 +60,7 @@ export default function ButtonList(props: Props) {
 
     /**
      * Dispatches action to Undo history
+     *
      * @returns {void}
      */
     const handleUndoClick = () => {
@@ -68,6 +69,7 @@ export default function ButtonList(props: Props) {
 
     /**
      * Dispatches action to Redo history
+     *
      * @returns {void}
      */
     const handleRedoClick = () => {

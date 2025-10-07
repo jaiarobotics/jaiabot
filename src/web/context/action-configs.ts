@@ -50,13 +50,13 @@ import {
 import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 
 // Standard profile for action handling functions
-export type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
-export type ActionConfig = {
+type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
+type ActionConfig = {
     handler: HandlerFn;
     tracked: boolean;
 };
-// Map of handlers and whether they are tracked for JaiaActions
 
+// Map of handlers and whether they are tracked for JaiaActions
 export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     // Data Model actions
     [JaiaActions.INIT, { handler: handleInit, tracked: false }],
