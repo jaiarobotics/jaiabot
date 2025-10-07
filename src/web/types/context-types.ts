@@ -1,3 +1,96 @@
+import { JaiaActions } from "../context/jaia-actions";
+import Bot from "../data/bots/bot";
+import Hub from "../data/hubs/hub";
+import Mission from "../data/mission_set/mission";
+import Waypoint from "../data/waypoints/waypoint";
+import HistoryBuffer from "../utils/history-buffer";
+
+import {
+    SelectedNode,
+    SelectedWaypoint,
+    SelectedRallyPoint,
+    SelectedTaskPacket,
+    NodeTypes,
+    TaskParameterPair,
+} from "./jaia-system-types";
+import { MapModes } from "./openlayers-types";
+import { TaskPacket, Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+
+// Type used to captue the JCC context
+export interface JaiaContextType {
+    bots: Map<number, Bot>;
+    hubs: Map<number, Hub>;
+    missions: Map<number, Mission>;
+    stateHistory: HistoryBuffer<JaiaHistoryType>;
+    taskPackets: TaskPacket[];
+
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedRallyPoint: SelectedRallyPoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    mapMode: MapModes;
+}
+
+// Type used for actions dispatched to the context provider
+export interface JaiaAction {
+    type: JaiaActions;
+    botID?: number;
+    missionID?: number;
+    rallyID?: number;
+
+    clickedNode?: SelectedNode;
+    clickedWaypoint?: SelectedWaypoint;
+    clickedTaskPacket?: SelectedTaskPacket;
+
+    waypoint?: Waypoint;
+    location?: GeographicCoordinate;
+    taskType?: TaskType;
+    taskParameterPair?: TaskParameterPair;
+
+    hubAccordionName?: HubAccordionNames;
+    botAccordionName?: BotAccordionNames;
+    mapLayerAccordionName?: MapLayerAccordionNames;
+    panelAction?: PanelActions;
+    buttonType?: ButtonTypes;
+    buttonName?: ButtonNames;
+    isMissionAccordionExpanded?: boolean;
+
+    command?: Command;
+    missionSpeeds?: Speeds;
+    missionSetName?: string;
+}
+
+// Snapshot of app state for storing history
+export interface JaiaHistoryType {
+    // Items from JaiaContext
+    missions: Map<number, Mission>;
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedRallyPoint: SelectedRallyPoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+    missionIDInEditMode: number;
+    missionSpeeds: Speeds;
+    mapMode: MapModes;
+    // Items not tracked in JaiaContext needed for snapshot
+    nextMissionID: number;
+    missionSetName: string;
+    missionAssignments: Map<number, number>;
+}
+
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
