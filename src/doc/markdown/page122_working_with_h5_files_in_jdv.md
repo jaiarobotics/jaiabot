@@ -86,8 +86,10 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Salinity Data**
-- *Description of Salinity fields here...* <br>
-- *Raw vs calculated, compensation equations etc...* <br>
+- ***Conductivity*** - *Specific conductivity, the conductivity compensated to a 25 °C standard* <br>
+- ***Raw Conductivity*** - *The conductivity as reported by the conductivity sensor* <br>
+- ***Salinity*** - *Salinity compensated for temperature and pressure* <br>
+- ***Raw Salinity*** - *The salinity as reported by the conductivity sensor* <br>
 - *Measured via an **Atlas Scientific OEM-EC** and **Mini-Conductivity Probe K 1.0***
   - *Stated Accuracy: ± 2%*
   - https://atlas-scientific.com/embedded-solutions/conductivity-oem-circuit/
@@ -109,8 +111,9 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **pH Data**
-- *Description of pH fields here...* <br>
-- *Raw vs calculated, compensation equations etc...* <br>
+- ***pH*** - *pH compensated to a 25 °C standard* <br>
+- ***Raw pH*** - *The pH as reported by the pH sensor* <br>
+- ***Temperature*** - *The temperature reported by the temperature sensor inside of the pH probe* <br>
 - *Measured via an **Atlas Scientific OEM pH** and **Atlas Scientific Industrial pH Probe w/ Temp.***
   - *Stated Accuracy: ± 0.002*
   - https://atlas-scientific.com/embedded-solutions/ph-oem-circuit/
@@ -131,8 +134,11 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Dissolved Oxygen Data**
-- *Description of DO fields here...* <br>
-- *Raw vs calculated, compensation equations etc...* <br>
+- ***Dissolved Oxygen Solubility*** - *Dissolved oxygen solubility (mg/L) at current temperature (C), salinity (ppt), and pressure (mmhg)* <br>
+- ***Normalized Dissolved Oxygen Solubility*** - *Dissolved oxygen solubility at 0 salinity (ppt), same temperature (C) and pressure (mmhg), scaled by observed saturation* <br>
+- ***Raw Dissolved Oxygen*** - *The dissolved oxygen as reported by the dissolved oxygen sensor* <br>
+- ***Dissolved Oxygen Saturation*** - *Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg)* <br>
+- ***Temperature*** - *The temperature as reported by the dissolved oxygen sensor* <br>
 - *Measured via an **Atlas Scientific OEM DO** and **Atlas Scientific Industrial DO Probe w/ Temp.***
   - *Stated Accuracy: ± 0.05 mg/L*
   - https://atlas-scientific.com/embedded-solutions/do-oem-circuit/
@@ -155,8 +161,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Fluorometer Data**
-- *Description of Fluorometer fields here...* <br>
-- *Raw vs calculated, compensation equations etc...* <br>
+- ***Concentration*** - *The concentration of a fluorophore reported by the fluorometer* <br>
+- ***Sensor Voltage*** - *The raw voltage reported by the fluorometer, before a calibration coefficient or offset have been applied* <br>
 - *Measured via a **Turner Designs C Fluor***
   - http://docs.turnerdesigns.com/t2/doc/spec-guides/998-2125.pdf
 
@@ -179,8 +185,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Location Data**
-- *Description of GPS fields here...* <br>
-- *GPS Accuracies, etc...* <br>
+- ***Latitude/Longitude*** - *Accuracy of ~3 m (radius)* <br>
+- ***Speed Over Ground*** - *GPS speed of the JaiaBot* <br>
 
 ##### **Data Paths**
 | Data Field          | Unit      | Frequency | JDV Path                                                 | HDF5 Log Path                                                                                        |
@@ -197,8 +203,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **IMU Data**
-- *Description of GPS fields here...* <br>
-- *GPS Accuracies, etc...* <br>
+- ***Heading/Pitch/Roll*** - *Three degrees of rotation the IMU reports* <br>
   
 ##### **Data Paths**
 | Data Field | Unit      | Frequency | JDV Path                                                               | HDF5 Log Path                                               |
@@ -215,8 +220,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Mission State** 
-- *Link to Mission State values breakdowns*
-- *Mission State explanation*
+- ***Mission State*** - *The different states that the JaiaBot uses to complete the mission at hand* <br>
+- https://github.com/jaiarobotics/jaiabot/blob/2.y/src/doc/markdown/page041_hdf5.md
 
 ##### **Data Paths**
 | Data Field      | Unit | Frequency | JDV Path                          | HDF5 Log Path                                                 |
@@ -231,8 +236,9 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Task Packets**
-- *Task Packet explanations*
-- *Task Packet fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
+- *Task Packets are reported from the JaiaBot to the Hub whenever a dive or drift task are completed* <br>
+- *Task packets contain data about the specific task, including its start and end point/time, and some key characteristics of the task.* <br>
+- *Task Packet fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.* <br>
 
 ##### **Data Paths**
 | Data Field             | Unit         | JDV Path                                             | HDF5 Log Path                                                             |
@@ -259,7 +265,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Bot Status**
-- *Bot Status explanations*
+- *Bot Status messages contain key information about the JaiaBot and its sensors throughout the mission. The information is pulled from other sources and automatically downsamples to 1 Hz.*
 - *Bot Status fields contain an API reference number (integer) which may change depending on the version of embedded software that the JaiaBot is running on when the log is created. Below, this reference number is denoted with 'X'. A regex pattern should be used to future-proof any custom scripts.*
   
 ##### **Data Paths**
