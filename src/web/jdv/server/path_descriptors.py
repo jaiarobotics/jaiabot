@@ -20,67 +20,73 @@ path_descriptors = [
         name='Mission State',
         path_suffix='BotStatus/mission_state',
         units='',
-        description='Active state of the Jaiabot mission manager.',
+        description='Active state of the JaiaBot mission manager.',
+    ),
+    PathDescriptor(
+        name='Bot ID',
+        path_suffix='BotStatus/bot_id',
+        units='',
+        description='Bot ID of the JaiaBot.',
     ),
     PathDescriptor(
         name='Temperature',
         path_suffix='BotStatus/temperature',
         units='°C',
-        description='Temperature reported by the Jaiabot internal temperature sensor.',
+        description='Temperature reported by the JaiaBot temperature sensor.',
     ),
     PathDescriptor(
         name='Depth',
         path_suffix='BotStatus/depth',
         units='m',
-        description='Depth below the water surface reported by the Jaiabot depth sensor.',
+        description='Depth below the water surface reported by the JaiaBot pressure sensor.',
     ),
     PathDescriptor(
         name='Latitude',
         path_suffix='BotStatus/location/lat',
         units='°',
-        description='Latitude reported by the Jaiabot GPS receiver.',
+        description='Latitude reported by the JaiaBot GPS receiver.',
     ),
     PathDescriptor(
         name='Longitude',
         path_suffix='BotStatus/location/lon',
         units='°',
-        description='Longitude reported by the Jaiabot GPS receiver.',
+        description='Longitude reported by the JaiaBot GPS receiver.',
     ),
     PathDescriptor(
         name='Course Over Ground',
         path_suffix='/attitude/course_over_ground',
         units='°',
-        description='Course over ground reported by the Jaiabot GPS receiver.',
+        description='Course over ground reported by the JaiaBot GPS receiver.',
     ),
     PathDescriptor(
         name='Heading',
         path_suffix='/attitude/heading',
         units='°',
-        description='Heading reported by the Jaiabot compass.',
+        description='Heading reported by the JaiaBot compass.',
     ),
     PathDescriptor(
         name='Pitch',
         path_suffix='/attitude/pitch',
         units='°',
-        description='Pitch reported by the Jaiabot IMU.',
+        description='Pitch reported by the JaiaBot IMU.',
     ),
     PathDescriptor(
         name='Roll',
         path_suffix='/attitude/roll',
         units='°',
-        description='Roll reported by the Jaiabot IMU.',
+        description='Roll reported by the JaiaBot IMU.',
     ),
     PathDescriptor(
         name='Speed (over water)',
         path_suffix='BotStatus/speed/over_water',
         units='m/s',
-        description='Speed through the water reported by the Jaiabot speed sensor.',
+        description='Speed through the water reported by the JaiaBot speed sensor.',
     ),
     PathDescriptor(
         name='Speed (over ground)',
         path_suffix='BotStatus/speed/over_ground',
         units='m/s',
-        description='Speed over ground reported by the Jaiabot GPS receiver.',
+        description='Speed over ground reported by the JaiaBot GPS receiver.',
     ),
     PathDescriptor(
         name='Control surfaces timeout',
@@ -92,13 +98,13 @@ path_descriptors = [
         name='Raw Pressure',
         path_suffix='PressureTemperatureData/pressure_raw',
         units='dbar',
-        description='Pressure as reported directly from the sensor.'
+        description='Uncompensated water pressure as reported directly from the sensor.'
     ),
     PathDescriptor(
         name='Adjusted Pressure',
         path_suffix='PressureAdjustedData/pressure_adjusted',
         units='dbar',
-        description='Adjusted pressure.'
+        description='Water pressure adjusted for atmospheric pressure.'
     ),
     PathDescriptor(
         name='Calculated Depth',
@@ -106,6 +112,114 @@ path_descriptors = [
         units='m',
         description='Calculated depth.'
     ),
+    PathDescriptor(
+        name='Conductivity',
+        path_suffix='SalinityData/conductivity',
+        units='μS/cm',
+        description='Conductivity adjusted to a 25 °C standard.'
+    ),
+    PathDescriptor(
+        name='Conductivity',
+        path_suffix='AtlasScientificOEMEC/conductivity',
+        units='μS/cm',
+        description='Conductivity adjusted to a 25 °C standard.'
+    ),
+    PathDescriptor(
+        name='Raw Conductivity',
+        path_suffix='SalinityData/conductivity_raw',
+        units='μS/cm',
+        description='Raw conductivity as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='Raw Conductivity',
+        path_suffix='AtlasScientificOEMEC/conductivity_raw',
+        units='μS/cm',
+        description='Raw conductivity as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='Salinity',
+        path_suffix='SalinityData/salinity',
+        units='ppt',
+        description='Salinity adjusted for conductivity (μS/cm), temperature (°C), and pressure (dbar).'
+    ),
+    PathDescriptor(
+        name='Salinity',
+        path_suffix='AtlasScientificOEMEC/salinity',
+        units='ppt',
+        description='Salinity adjusted for conductivity (μS/cm), temperature (°C), and pressure (dbar).'
+    ),
+    PathDescriptor(
+        name='Raw Salinity',
+        path_suffix='SalinityData/salinity_raw',
+        units='ppt',
+        description='Raw salinity as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='Raw Salinity',
+        path_suffix='AtlasScientificOEMEC/salinity_raw',
+        units='ppt',
+        description='Raw salinity as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='pH',
+        path_suffix='AtlasScientificOEMpH/ph',
+        units='pH',
+        description='pH adjusted for temperature (°C).'
+    ),
+    PathDescriptor(
+        name='Raw pH',
+        path_suffix='AtlasScientificOEMpH/ph_raw',
+        units='pH',
+        description='Raw pH as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='Temperature (pH Probe)',
+        path_suffix='AtlasScientificOEMpH/temperature',
+        units='°C',
+        description='Temperature as reported by the pH probe.'
+    ),
+    PathDescriptor(
+        name='Dissolved Oxygen Solubility',
+        path_suffix='AtlasScientificOEMDO/do_solubility',
+        units='mg/L',
+        description='DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg).'
+    ),
+    PathDescriptor(
+        name='Normalized Dissolved Oxygen Solubility',
+        path_suffix='AtlasScientificOEMDO/do_normalized_solubility',
+        units='mg/L',
+        description='Dissolved Oxygen Solubility at 0 salinity (ppt), current temperature (C), and pressure (mmhg), scaled by observed saturation.'
+    ),
+    PathDescriptor(
+        name='Raw Dissolved Oxygen',
+        path_suffix='AtlasScientificOEMDO/do_raw',
+        units='mg/L',
+        description='Dissolved oxygen as reported directly from the sensor.'
+    ),
+    PathDescriptor(
+        name='Dissolved Oxygen Saturation',
+        path_suffix='AtlasScientificOEMDO/do_saturation_percent',
+        units='%',
+        description='Measured DO / DO Solubility at current temperature (C), salinity (ppt), and pressure (mmhg).'
+    ),
+    PathDescriptor(
+        name='Temperature (Dissolved Oxygen)',
+        path_suffix='AtlasScientificOEMDO/temperature',
+        units='°C',
+        description='Temperature as reported by the dissolved oxygen sensor.'
+    ),
+    PathDescriptor(
+        name='Fluorometer Concentration',
+        path_suffix='fluorometer/concentration',
+        units='See fluorometer spec. sheet.',
+        description='Concentration as reported by the fluorometer.'
+    ),
+    PathDescriptor(
+        name='Fluorometer Concentration Voltage',
+        path_suffix='fluorometer/concentration_voltage',
+        units='V',
+        description='Raw voltage reported by the analog fluorometer sensor.'
+    ), 
 ]
 
 
