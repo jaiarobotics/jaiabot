@@ -185,10 +185,6 @@ export function Plots(props: PlotsProps) {
                 props.delegate.setTime(timestamp_utime);
             });
 
-            plot_div_element.on("plotly_unhover", function (data: Plotly.PlotHoverEvent) {
-                props.delegate.setTime(null);
-            });
-
             // Zooming into plots
             plot_div_element.on("plotly_relayout", function (eventdata: Plotly.PlotRelayoutEvent) {
                 // When autorange, zoom out to the whole set of points

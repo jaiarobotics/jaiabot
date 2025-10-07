@@ -5,13 +5,33 @@
 .dataTable > table {
     width: 100%;
     padding: 10pt;
+    border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .dataTable td {
     width: 50%;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+}
+
+.dataTable td::-webkit-scrollbar {
+    height: 8px;
+}
+
+.dataTable td::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+}
+
+.dataTable td::-webkit-scrollbar-track {
+    background-color: transparent;
 }
 
 table > thead {
+    text-align: left;
     background-color: aliceblue;
 }
