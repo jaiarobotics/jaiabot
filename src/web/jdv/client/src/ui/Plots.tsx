@@ -14,7 +14,7 @@ const Plotly = require("plotly.js-dist");
 
 import { downloadCSV } from "../tools/DownloadCSV";
 import { bisect } from "../tools/bisect";
-import { ISODateToMicros } from "../tools/date";
+import { ISODateToMicros, microsToDate } from "../tools/date";
 import { Plot } from "../model/Plot";
 import { PlotProfiles } from "../model/PlotProfiles";
 
@@ -45,6 +45,7 @@ export interface PlotsProps {
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
+    const [shouldUseAllData, setShouldUseAllData] = React.useState(false);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -234,6 +235,17 @@ export function Plots(props: PlotsProps) {
         };
 
         for (let [plot_index, series] of plots.entries()) {
+            if (shouldUseAllData) {
+                update.x.push(series._utime_.map((t_micros) => microsToDate(t_micros)));
+                update.y.push(series.series_y);
+                update.hovertext.push(series.hovertext);
+                update.customdata.push(series._utime_);
+
+                const auto_mode = "lines+markers";
+                update.mode.push(plotMode == "auto" ? auto_mode : plotMode);
+                continue;
+            }
+
             // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
             // This greatly improves GUI responsiveness.
             const utime = series._utime_;
@@ -276,7 +288,7 @@ export function Plots(props: PlotsProps) {
 
             while (data_index < outside_index_max) {
                 customdata.push(series._utime_[data_index]);
-                x_values.push(new Date(series._utime_[data_index] / 1e3));
+                x_values.push(microsToDate(series._utime_[data_index]));
                 y_values.push(series.series_y[data_index]);
 
                 if (
@@ -306,6 +318,7 @@ export function Plots(props: PlotsProps) {
         props.plots,
         props.visibleTimeRange,
         props.plotMode,
+        shouldUseAllData,
     ]);
 
     var actionBar: JSX.Element | null;
@@ -354,19 +367,31 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
-                <label>Chart Style:</label>
-                <select
-                    name="mode"
-                    id="modeSelect"
-                    onChange={(e) => {
-                        props.delegate.setPlotMode(e.target.value);
-                    }}
-                >
-                    <option value="lines">Lines</option>
-                    <option value="markers">Markers</option>
-                    <option value="lines+markers">Lines & Markers</option>
-                    <option value="auto">Auto</option>
-                </select>
+                <div>
+                    <label>Chart Style:</label>
+                    <select
+                        name="mode"
+                        id="modeSelect"
+                        onChange={(e) => {
+                            props.delegate.setPlotMode(e.target.value);
+                        }}
+                    >
+                        <option value="lines">Lines</option>
+                        <option value="markers">Markers</option>
+                        <option value="lines+markers">Lines & Markers</option>
+                        <option value="auto">Auto</option>
+                    </select>
+                </div>
+                <div>
+                    <label>All Data</label>
+                    <input
+                        type="checkbox"
+                        value={Number(shouldUseAllData)}
+                        onChange={(e) => {
+                            setShouldUseAllData(e.target.checked);
+                        }}
+                    ></input>
+                </div>
             </div>
         );
     } else {

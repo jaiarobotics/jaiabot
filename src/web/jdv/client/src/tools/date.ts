@@ -8,3 +8,13 @@ export function ISODateToMicros(iso_date_string: string) {
     const millis = Date.parse(iso_date_string);
     return isNaN(millis) ? null : millis * 1e3;
 }
+
+/**
+ * Convert from Unix microseconds to Date object
+ *
+ * @param {number} t_micros Time in microseconds since Unix epoch
+ * @returns {Date} The Date object
+ */
+export function microsToDate(t_micros: number) {
+    return new Date(t_micros / 1e3);
+}
