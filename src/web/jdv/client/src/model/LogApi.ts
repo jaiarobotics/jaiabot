@@ -1,9 +1,9 @@
-import { LogCommand, LogTaskPacket } from "./shared/LogMessages";
+import { LogCommand, LogTaskPacket } from "../shared/LogMessages";
 import { Log } from "./Log";
 import download from "downloadjs";
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
-import { CustomAlert } from "./shared/CustomAlert";
+import { CustomAlert } from "../shared/CustomAlert";
 
 export type ActiveGoals = {
     [key: string]: {

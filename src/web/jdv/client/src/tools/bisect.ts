@@ -3,7 +3,13 @@ class BisectResult<T> {
     value: T;
 }
 
-// Performs a binary search on a sorted array, using a function f to determine ordering
+/**
+ * Find an insertion point in a sorted array, using a binary search.
+ *
+ * @param sorted_array Sorted array of values.
+ * @param f A function of a value x in the array, returning <0 if the value of interest is less than x, and >0 if it's greater than x.
+ * @returns A BisectResult containing the index and value which is just less than or equal to the desired value (where f(v) == 0)
+ */
 export function bisect<T>(sorted_array: T[], f: (t: T) => number): BisectResult<T> | null {
     // Empty array
     if (sorted_array.length == 0) {

@@ -1,11 +1,17 @@
 import React from "react";
-import { Plot } from "./Plot";
-import { bisect } from "./bisect";
+import { Plot } from "../model/Plot";
+import { bisect } from "../tools/bisect";
+import "./DataTable.css";
 
 type PlotList = Plot[];
 
-export function DataTable(plots: PlotList, timestamp_micros: number) {
-    if (plots.length == 0) return null;
+export interface DataTableProps {
+    plots: PlotList;
+    timestamp_micros: number;
+}
+
+export function DataTable(props: DataTableProps) {
+    if (props.plots.length == 0) return null;
 
     const headerRow = (
         <thead>
@@ -18,9 +24,9 @@ export function DataTable(plots: PlotList, timestamp_micros: number) {
 
     const dataRows = (
         <tbody>
-            {plots.map((plot, plotIndex) => {
+            {props.plots.map((plot, plotIndex) => {
                 const index = bisect(plot._utime_, (_utime_) => {
-                    return timestamp_micros - _utime_;
+                    return props.timestamp_micros - _utime_;
                 })?.index;
 
                 const value = plot.series_y[index];
@@ -44,7 +50,7 @@ export function DataTable(plots: PlotList, timestamp_micros: number) {
     );
 
     return (
-        <div className="dataTable">
+        <div className="dataTable shadowed rounded padded">
             <table>
                 {headerRow}
                 {dataRows}

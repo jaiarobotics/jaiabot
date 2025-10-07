@@ -15,12 +15,12 @@ import { Style } from "ol/style";
 import KML, { IconUrlFunction } from "ol/format/KML.js";
 import { Attribution, ScaleLine } from "ol/control";
 
-import * as Styles from "./shared/Styles";
-import * as Popup from "./shared/Popup";
-import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from "./shared/Contours";
-import { GeographicCoordinate } from "./shared/JAIAProtobuf";
-import { createMissionFeatures } from "./shared/MissionFeatures";
-import { PortalBotStatus } from "./shared/PortalStatus";
+import * as Styles from "../shared/Styles";
+import * as Popup from "../shared/Popup";
+import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from "../shared/Contours";
+import { GeographicCoordinate } from "../shared/JAIAProtobuf";
+import { createMissionFeatures } from "../shared/MissionFeatures";
+import { PortalBotStatus } from "../shared/PortalStatus";
 import OlLayerSwitcher from "ol-layerswitcher";
 import {
     createBotCourseOverGroundFeature,
@@ -28,26 +28,26 @@ import {
     createBotDesiredHeadingFeature,
     createBotHeadingFeature,
     botPopupHTML,
-} from "./shared/BotFeature";
-import { createDivePacketFeature, createDriftPacketFeature } from "./shared/TaskPacketFeatures";
-import * as Layers from "./shared/Layers";
+} from "../shared/BotFeature";
+import { createDivePacketFeature, createDriftPacketFeature } from "../shared/TaskPacketFeatures";
+import * as Layers from "../shared/Layers";
 import SourceXYZ from "ol/source/XYZ";
-import { bisect } from "./bisect";
-import { downloadBlobToFile, downloadToFile } from "./shared/Utilities";
+import { bisect } from "../tools/bisect";
+import { downloadBlobToFile, downloadToFile } from "../shared/Utilities";
 
 import Layer from "ol/layer/Layer";
 import { Coordinate } from "ol/coordinate";
-import { LogTaskPacket, LogCommand } from "./shared/LogMessages";
-import { KMLDocument } from "./shared/KMZExport";
+import { LogTaskPacket, LogCommand } from "../shared/LogMessages";
+import { KMLDocument } from "../shared/KMZExport";
 import OpenFileDialog from "./OpenFileDialog";
 
 import { Buffer } from "buffer";
 import JSZip from "jszip";
 
-import "./styles/JaiaMap.css";
-import { CustomAlert } from "./shared/CustomAlert";
+import "../styles/JaiaMap.css";
+import { CustomAlert } from "../shared/CustomAlert";
 
-import { getBotPathColor } from "./shared/BotPathColors";
+import { getBotPathColor } from "../shared/BotPathColors";
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {

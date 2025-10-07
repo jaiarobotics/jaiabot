@@ -1,6 +1,6 @@
 import { mdiArrowLeft, mdiDelete, mdiMagnify } from "@mdi/js";
 import React from "react";
-import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "./LogApi";
+import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "../model/LogApi";
 import Icon from "@mdi/react";
 
 interface KeywordIndexEntry {
