@@ -5,6 +5,11 @@ class BisectResult<T> {
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 export function bisect<T>(sorted_array: T[], f: (t: T) => number): BisectResult<T> | null {
+    // Empty array
+    if (sorted_array.length == 0) {
+        return null;
+    }
+
     let start = 0,
         end = sorted_array.length - 1;
 
