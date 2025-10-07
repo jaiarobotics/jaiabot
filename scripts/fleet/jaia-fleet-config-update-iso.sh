@@ -54,5 +54,5 @@ rsync -a ${iso_mountdir}/ ${iso_contents_dir}/
 sudo cp ${fleet_cfg} ${iso_contents_dir}/major_upgrade/fleet${fleet_id}.cfg
 
 cd ${iso_contents_dir}
-genisoimage -quiet -V updates -r -o ${output_iso} .
+genisoimage -quiet -V updates -r -m rr_moved -o ${output_iso} .
 echo "New ISO successfully written to ${output_iso}"

@@ -156,6 +156,13 @@ def main():
         else:
             print("WARNING: No vpn_tmp key provided")
 
+        if 'comms' in fleet_cfg_json:
+            # generate iridium config
+            if 'iridiumSbd' in fleet_cfg_json['comms']:
+                iridium_cfg = bootdir + '/jaiabot/init/iridium.json'
+                with open(iridium_cfg, "w") as f:
+                    json.dump(fleet_cfg_json['comms']['iridiumSbd'], f)
+
     if type == 'hub':
         key_found=False
         if 'hub' in fleet_cfg_json['ssh']:

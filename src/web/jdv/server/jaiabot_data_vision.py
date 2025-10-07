@@ -5,7 +5,7 @@ from flask import *
 import simplejson as json
 import logging
 import os
-import math
+import sys
 
 import jaialog_store
 import moos_messages
@@ -13,6 +13,10 @@ import pyjaia.contours
 import pyjaia.drift_interpolation
 
 from pathlib import *
+import traceback
+
+
+l = logging.getLogger(os.path.basename(__file__))
 
 
 # Parsing the arguments
@@ -30,15 +34,29 @@ def JSONResponse(obj):
 
 def JSONErrorResponse(msg):
     obj = {"error": msg}
+    l.error(msg)
     return JSONResponse(obj)
 
 # The flask app
 
 app = Flask(__name__)
 
+"""Error handling:  if an exception occurs during any of these requests, return a JSON error response"""
+@app.errorhandler(Exception)
+def handle_http_exception(e):
+    l.error(f'Exception: {traceback.format_exc()}')
+    _, _, tb = sys.exc_info()
+    return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}\n{traceback.extract_tb(tb)[-1].filename} line {traceback.extract_tb(tb)[-1].lineno}")
+
+
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
-    return send_from_directory(root, path)
+    try:
+        return send_from_directory(root, path)
+    except Exception as e:
+        l.error(e)
+        l.error(locals())
+        return Response(status=404)
 
 @app.route('/', methods=['GET'])
 def getRoot():
@@ -66,24 +84,24 @@ def getFields():
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogStore.getFields(log_names, root_path))
 
+
+@app.route('/all-series-descriptors', methods=['GET'])
+def getAllSeriesDescriptors():
+    log_names = parseFilenames(request.args.get('log'))
+    return JSONResponse([series.to_dict() for series in jaialogStore.getAllSeriesDescriptors(log_names)])
+
+
 @app.route('/series', methods=['GET'])
 def getSeries():
     log_names = parseFilenames(request.args.get('log'))
     series_names = request.args.get('path')
-
-    try:
-        series = jaialogStore.getSeries(log_names, series_names)
-        return JSONResponse(series)
-    except Exception as e:
-        return JSONErrorResponse(str(e))
+    series = jaialogStore.getSeries(log_names, series_names)
+    return JSONResponse(series)
 
 @app.route('/map', methods=['GET'])
 def getMap():
     log_names = parseFilenames(request.args.get('log'))
-    try:
-        return JSONResponse(jaialogStore.getMap(log_names))
-    except Exception as e:
-        return JSONErrorResponse(str(e))
+    return JSONResponse(jaialogStore.getMap(log_names))
 
 
 @app.route('/commands', methods=['GET'])
@@ -184,7 +202,7 @@ if __name__ == '__main__':
     # Setup logging module
     logLevel = logging.getLevelName(args.logLevel.upper())
     print(f'==> Logging level: {args.logLevel.upper()}')
-    logging.getLogger('root').setLevel(logLevel)
+    l.setLevel(logLevel)
     logging.getLogger('werkzeug').setLevel('WARN')
 
     ####### Static files
@@ -195,8 +213,8 @@ if __name__ == '__main__':
     jaialogStore = jaialog_store.JaialogStore(args.directory)
 
     # Print the URL for browser access
-    logging.info(f'Jaiabot Logs directory:           {os.path.abspath(args.directory)}')
-    logging.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
-    logging.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
+    l.info(f'Jaiabot Logs directory:           {os.path.abspath(args.directory)}')
+    l.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
+    l.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
 
     app.run(host='0::0', port=args.port, debug=True)

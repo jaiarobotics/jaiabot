@@ -206,6 +206,7 @@ set(scripts_to_install
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
+  system/jaia_iridium_tunnel.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
@@ -236,7 +237,7 @@ foreach(app_target ${PROJECT_APP_LIST})
 endforeach()
 
 if(export_goby_interfaces)
-  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (2.y)?
+  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
   set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")

@@ -102,6 +102,8 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
 constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
                                                  goby::middleware::Group::broadcast_group};
 
+constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data", jaiabot::INTERVEHICLE_API_VERSION};
+
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
 
