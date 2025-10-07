@@ -79,3 +79,8 @@ img.busy-icon {
     width: 150pt;
     height: 150pt;
 }
+
+
+button.selected {
+    background-color: darkgray;
+}

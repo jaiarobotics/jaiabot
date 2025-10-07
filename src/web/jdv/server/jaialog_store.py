@@ -21,6 +21,7 @@ from dataclasses_json import dataclass_json
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
+import path_descriptors
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
@@ -38,26 +39,6 @@ def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
     for item in matching_items:
         yield item
 
-
-# Path descriptions
-
-try:
-    path_descriptions = json.load(open('jaiabot_paths.json'))
-except FileNotFoundError:
-    path_descriptions = {}
-
-
-def jaia_get_description(path):
-    for description in path_descriptions:
-        if 'path' in description:
-            if description['path'] == path:
-                return description
-        
-        if 'path_regex' in description:
-            if re.match(description['path_regex'], path):
-                return description
-    
-    return None
 
 def get_title_from_path(path):
     components = path.split('/')
@@ -229,11 +210,18 @@ class JaialogStore:
         }
 
 
-    def getFields(self, log_names: List[str], root_path='/'):
+    def getFields(self, log_names: List[str], root_path=None):
         '''Get a list of the fields below a root path in a set of logs'''
         h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
         h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
         return h5_files.fields(root_path=root_path)
+
+
+    def getAllSeriesDescriptors(self, log_names: List[str]):
+        '''Get a list of all series descriptors in a set of logs'''
+        h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
+        h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+        return h5_files.getAllSeriesDescriptors()
 
 
     def getSeries(self, log_names: List[str], paths: List[str]):
