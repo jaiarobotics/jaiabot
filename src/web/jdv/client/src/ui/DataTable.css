@@ -15,20 +15,9 @@
     overflow-x: scroll;
     overflow-y: hidden;
     scrollbar-gutter: stable;
+    scrollbar-width: auto;
+    scrollbar-color: #ccc transparent;
     box-sizing: border-box;
-}
-
-.dataTable td::-webkit-scrollbar {
-    height: 8px;
-}
-
-.dataTable td::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 4px;
-}
-
-.dataTable td::-webkit-scrollbar-track {
-    background-color: transparent;
 }
 
 table > thead {
