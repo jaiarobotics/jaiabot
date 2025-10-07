@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+import Button from "@mui/material/Button";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
@@ -74,7 +75,14 @@ export default function SettingsPanel() {
                         >
                             <Typography>Engineering</Typography>
                         </AccordionSummary>
-                        <AccordionDetails></AccordionDetails>
+                        <AccordionDetails className="engineering-accordion-details">
+                            <button
+                                className="engineering-button"
+                                onClick={() => window.open("/jed/")}
+                            >
+                                Jaia Engineering & Debug
+                            </button>
+                        </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
             </div>
