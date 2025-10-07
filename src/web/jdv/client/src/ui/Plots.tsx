@@ -23,6 +23,8 @@ import { OpenPlotSet } from "./OpenPlotSet";
 import { DataTable } from "./DataTable";
 import { CustomAlert } from "../shared/CustomAlert";
 
+import { Switch } from "@mui/material";
+
 import "./Plots.css";
 
 export interface PlotsDelegate {
@@ -45,7 +47,7 @@ export interface PlotsProps {
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
-    const [shouldUseAllData, setShouldUseAllData] = React.useState(false);
+    const [shouldUseAllData, setShouldUseAllData] = React.useState(true);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -262,7 +264,7 @@ export function Plots(props: PlotsProps) {
                 (num_points * visible_duration) / series_duration,
             );
 
-            const inside_index_step = Math.ceil(num_visible_points_estimate / 400);
+            const inside_index_step = Math.ceil(num_visible_points_estimate / MAX_DATA_POINTS);
             const [inside_index_min, inside_index_max] = getIndexRange(
                 series,
                 visibleTimeRange[0],
@@ -383,14 +385,11 @@ export function Plots(props: PlotsProps) {
                     </select>
                 </div>
                 <div>
-                    <label>All Data</label>
-                    <input
-                        type="checkbox"
-                        value={Number(shouldUseAllData)}
-                        onChange={(e) => {
-                            setShouldUseAllData(e.target.checked);
-                        }}
-                    ></input>
+                    <label>Downsample Data:</label>
+                    <Switch
+                        checked={!shouldUseAllData}
+                        onChange={(_, checked) => setShouldUseAllData(!checked)}
+                    />
                 </div>
             </div>
         );
