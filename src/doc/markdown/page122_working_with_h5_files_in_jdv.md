@@ -69,7 +69,7 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ### **Pressure Data**
 - ***Depth*** - *The depth of the vehicle, adjusting for surface pressure* <br>
 - ***Pressure*** - *The current pressure experienced by the vehicle, minus the pressure at the surface* <br>
-- ***Raw Pressure - *The pressure reading as it comes from the Bar 30 pressure sensor* <br>
+- ***Raw Pressure*** - *The pressure reading as it comes from the Bar 30 pressure sensor* <br>
 - *Measured via a **Blue Robotics Bar30***
   - *Stated Accuracy: ± 200 mbar*
   - https://bluerobotics.com/store/sensors-cameras/sensors/bar-depth-pressure-sensor/
