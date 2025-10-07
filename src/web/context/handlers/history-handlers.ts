@@ -1,5 +1,5 @@
 import { JaiaActions } from "../jaia-actions";
-import { syncOpenLayers } from "../JaiaContext";
+import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaiaHistoryType } from "../../types/context-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";

@@ -1,5 +1,5 @@
 export default class HistoryBuffer<T> {
-    private buffer: Array<{ value: T; description: string } | undefined>;
+    private buffer: Array<{ value: T; description: string }>;
     private initialValue: T;
     private index: number;
     private head: number;
@@ -30,7 +30,6 @@ export default class HistoryBuffer<T> {
      * @returns {T} current value of history buffer (initialValue)
      */
     reset(initialValue?: T) {
-        this.buffer.fill(undefined);
         this.initialValue = initialValue ?? this.initialValue;
         const entry = { value: this.initialValue, description: "Initial State" };
         this.buffer[0] = entry;

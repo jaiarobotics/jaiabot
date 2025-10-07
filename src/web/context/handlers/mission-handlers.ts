@@ -8,7 +8,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { syncOpenLayers } from "../JaiaContext";
+import { syncOpenLayers } from "./handler-utils";
 
 /**
  * Makes a call to add a new, default mission to the data model

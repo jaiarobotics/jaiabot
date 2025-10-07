@@ -1,9 +1,5 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
-import { botLayer } from "../openlayers/layers/vector/bot-layer";
-import { hubLayer } from "../openlayers/layers/vector/hub-layer";
-import { missionLayer } from "../openlayers/layers/vector/mission-layer";
-
 import { DATA_MODEL_POLL_TIME } from "../utils/constants";
 import { JaiaAction, JaiaContextType } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
@@ -81,15 +77,4 @@ export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
  */
 function pollDataModel(dispatch: React.Dispatch<JaiaAction>) {
     return setInterval(() => dispatch({ type: JaiaActions.POLL_DATA_MODEL }), DATA_MODEL_POLL_TIME);
-}
-
-/**
- * Repaints the map layers using the latest data
- *
- * @returns {void}
- */
-export function syncOpenLayers() {
-    botLayer.updateFeatures();
-    hubLayer.updateFeatures();
-    missionLayer.updateFeatures();
 }

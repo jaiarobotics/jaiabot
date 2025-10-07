@@ -8,7 +8,7 @@ import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
 import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { syncOpenLayers } from "../JaiaContext";
+import { syncOpenLayers } from "./handler-utils";
 import { resetSelectedWaypoint } from "./waypoint-handlers";
 
 /**
