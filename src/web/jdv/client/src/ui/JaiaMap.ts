@@ -386,6 +386,8 @@ export default class JaiaMap {
 
     updatePath() {
         let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER];
+        this.tMin = null;
+        this.tMax = null;
 
         // OpenLayers
         this.botPathVectorSource.clear();
