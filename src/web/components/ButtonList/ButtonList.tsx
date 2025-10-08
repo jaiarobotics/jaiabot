@@ -2,11 +2,11 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import RallyButton from "../RallyButton/RallyButton";
-import ActivateAllButton from "../ActivateAllButton/ActivateAllButton";
-import StopAllBotsButton from "../StopAllBotsButton/StopAllBotsButton";
-import DataOffloadAllButton from "../DataOfffloadAllButton/DataOffloadAllButton";
-import StartAllMissionsButton from "../StartAllMissionsButton/StartAllMissionsButton";
+import RallyButton from "../__buttons__/RallyButton/RallyButton";
+import ActivateAllButton from "../__buttons__/ActivateAllButton/ActivateAllButton";
+import StopAllBotsButton from "../__buttons__/StopAllBotsButton/StopAllBotsButton";
+import DataOffloadAllButton from "../__buttons__/DataOfffloadAllButton/DataOffloadAllButton";
+import StartAllMissionsButton from "../__buttons__/StartAllMissionsButton/StartAllMissionsButton";
 
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { ButtonListTypes } from "../../types/jaia-system-types";

@@ -2,7 +2,7 @@ import React, { useContext, useEffect } from "react";
 
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
-import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
+import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 import {
     JaiaContext,
     JaiaContextType,
@@ -11,13 +11,13 @@ import {
 } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import StopButton from "../../components/StopButton/StopButton";
-import SystemButton from "../../components/SystemButton/SystemButton";
-import ActivateButton from "../../components/ActivateButton/ActivateButton";
-import NextTaskButton from "../../components/NextTaskButton/NextTaskButton";
-import DataOffloadButton from "../../components/DataOffloadButton/DataOffloadButton";
-import StartMissionButton from "../../components/StartMissionButton/StartMissionButton";
-import RemoteControlButton from "../../components/RemoteControlButton/RemoteControlButton";
+import StopButton from "../../components/__buttons__/StopButton/StopButton";
+import SystemButton from "../../components/__buttons__/SystemButton/SystemButton";
+import ActivateButton from "../../components/__buttons__/ActivateButton/ActivateButton";
+import NextTaskButton from "../../components/__buttons__/NextTaskButton/NextTaskButton";
+import DataOffloadButton from "../../components/__buttons__/DataOffloadButton/DataOffloadButton";
+import StartMissionButton from "../../components/__buttons__/StartMissionButton/StartMissionButton";
+import RemoteControlButton from "../../components/__buttons__/RemoteControlButton/RemoteControlButton";
 
 import { MissionStatus, SystemButtonTypes } from "../../types/jaia-system-types";
 import { BotAccordionNames } from "../../types/context-types";

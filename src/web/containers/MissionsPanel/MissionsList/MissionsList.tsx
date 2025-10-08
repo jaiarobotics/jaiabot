@@ -5,7 +5,7 @@ import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import MissionAssignMenu from "../../../components/MissionAssignMenu/MissionAssignMenu";
-import DeleteMissionButton from "../../../components/DeleteMissionButton/DeleteMissionButton";
+import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
