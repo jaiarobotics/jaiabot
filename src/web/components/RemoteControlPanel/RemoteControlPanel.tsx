@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
+import TaskParameters from "../TaskParameters/TaskParameters";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Engineering } from "../../types/protobuf-types";
@@ -10,6 +11,7 @@ import { sendEngineeringCommand } from "../../utils/commands";
 import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
+import Task from "../../data/tasks/task";
 
 interface RemoteControlPanelProps {
     botID: number;
@@ -213,6 +215,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
+    const getRCDiveTask = () => {
+        const rcTask: Task = new Task();
+        return rcTask;
+    };
+
     const RCSelectMenu = (
         <SelectMenu
             controlType={controlType}
@@ -259,6 +266,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 </div>
             );
         case ControlTypes.DIVE:
-            return <div className="remote-control-panel">{RCSelectMenu}</div>;
+            return (
+                <div className="remote-control-panel">
+                    {RCSelectMenu}
+                    <div className="task-parameters-container">
+                        <TaskParameters task={getRCDiveTask()} isDisabled={false} />
+                    </div>
+                </div>
+            );
     }
 }
