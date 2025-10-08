@@ -124,6 +124,30 @@ class MissionsManager {
         this.botsToMissions.clear();
         this.missionsToBots.clear();
     }
+
+    /**
+     * Provides the map of missions to Bots
+     *
+     * @returns {Map<number, number>} Maps missions to Bots
+     */
+    getMissionAssignments() {
+        return this.missionsToBots;
+    }
+
+    /**
+     * Updates the missionToBots and botsToMissions maps
+     *
+     * @param {Map<number, number>} missionAssignments New assignment information
+     * @returns {void}
+     */
+    setAssignments(missionAssignments: Map<number, number>) {
+        this.missionsToBots = missionAssignments;
+        // rebuild botsToMissions from missionsToBots
+        this.botsToMissions.clear();
+        this.missionsToBots.forEach((botID, missionID) => {
+            this.botsToMissions.set(botID, missionID);
+        });
+    }
 }
 
 export const missionsManager = new MissionsManager();

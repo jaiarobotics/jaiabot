@@ -3,12 +3,8 @@ import React, { useContext, useEffect } from "react";
 // Jaia Imports
 import HealthRow from "../../components/HealthRow/HealthRow";
 import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
-import {
-    JaiaContext,
-    JaiaContextType,
-    JaiaDispatchContext,
-    JaiaAction,
-} from "../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import StopButton from "../../components/__buttons__/StopButton/StopButton";
