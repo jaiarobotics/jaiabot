@@ -10,7 +10,8 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "../../../../types/protobuf-types";
 import Mission from "../../../../data/mission_set/mission";
-import { DisabledCodes, messages } from "../delete-mission-messages";
+import { messages } from "../delete-mission-messages";
+import { DisabledCodes } from "../../disabled-codes";
 
 const botStatusMock: PortalBotStatus = {
     bot_id: 1,

@@ -45,14 +45,14 @@ const botStatusMock6: PortalBotStatus = {
 };
 
 // Mock Jaia API
-const originalModule = jest.requireActual("../../../utils/jaia-api");
+const originalModule = jest.requireActual("../../../../utils/jaia-api");
 originalModule.jaiaAPI.hit = jest
     .fn()
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
 
 // Place user in control by default
-jest.mock("../../../utils/commands", () => {
-    const originalModule = jest.requireActual("../../../utils/commands");
+jest.mock("../../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../../utils/commands");
     return {
         ...originalModule,
         isControllingClient: jest.fn(() => true),

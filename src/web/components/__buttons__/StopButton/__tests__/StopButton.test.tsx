@@ -2,15 +2,16 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import StopButton from "../StopButton";
-import { DisabledCodes, messages } from "../stop-messages";
+import { messages } from "../stop-messages";
+import { DisabledCodes } from "../../disabled-codes";
 
 import { bots } from "../../../../data/bots/bots";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "../../../../types/protobuf-types";
 
 // Place user in control by default
-jest.mock("../../../utils/commands", () => {
-    const originalModule = jest.requireActual("../../../utils/commands");
+jest.mock("../../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../../utils/commands");
     return {
         ...originalModule,
         isControllingClient: jest.fn(() => true),

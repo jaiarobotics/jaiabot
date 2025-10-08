@@ -61,7 +61,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
     const generateSubMessage = (disabledCode: DisabledCodes) => {
         const botIDs = props.botReadyStates.get(disabledCode);
 
-        if (botIDs.length === 0) {
+        if (!botIDs || botIDs.length === 0) {
             return "";
         }
 
@@ -91,7 +91,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
             case DisabledCodes.MISSION_STATE:
                 subMessage += `because ${botIDs.length > 1 ? "they need to be activated to receive a mission." : "it needs to be activated to receive a mission."}`;
                 break;
-            case DisabledCodes.NO_MISSION_ASSIGNED:
+            case DisabledCodes.NO_MISSION:
                 subMessage += `because ${botIDs.length > 1 ? "they do not have an assigned mission." : "it does not have an assigned mission."}`;
                 break;
             case DisabledCodes.DOWNLOAD_QUEUE:

@@ -9,8 +9,8 @@ import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "../../../../types/protobuf-types";
 
 // Place user in control by default
-jest.mock("../../../utils/commands", () => {
-    const originalModule = jest.requireActual("../../../utils/commands");
+jest.mock("../../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../../utils/commands");
     return {
         ...originalModule,
         isControllingClient: jest.fn(() => true),
@@ -50,7 +50,7 @@ bots.setBot(botStatusMock2);
 bots.setBot(botStatusMock3);
 
 // Mock Jaia API
-const originalModule = jest.requireActual("../../../utils/jaia-api");
+const originalModule = jest.requireActual("../../../../utils/jaia-api");
 originalModule.jaiaAPI.hit = jest
     .fn()
     .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });

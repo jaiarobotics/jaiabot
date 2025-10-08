@@ -63,7 +63,7 @@ export default function StartAllMissionsButton(props: Props) {
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else if (isMissionUnassigned(botID)) {
-                updatedBotReadyStates.get(DisabledCodes.NO_MISSION_ASSIGNED).push(botID);
+                updatedBotReadyStates.get(DisabledCodes.NO_MISSION).push(botID);
             }
 
             // Download queue
@@ -159,7 +159,7 @@ function initBotReadyStates() {
         [DisabledCodes.NONE, []],
         [DisabledCodes.NO_COMMS, []],
         [DisabledCodes.MISSION_STATE, []],
-        [DisabledCodes.NO_MISSION_ASSIGNED, []],
+        [DisabledCodes.NO_MISSION, []],
         [DisabledCodes.DOWNLOAD_QUEUE, []],
         [DisabledCodes.LOW_BATTERY, []],
     ];

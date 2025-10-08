@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import StartMissionButton from "../StartMissionButton";
-import { DisabledCodes, messages } from "../start-mission-messages";
+import { messages } from "../start-mission-messages";
+import { DisabledCodes } from "../../disabled-codes";
 
 import Mission from "../../../../data/mission_set/mission";
 import { bots } from "../../../../data/bots/bots";
@@ -13,8 +14,8 @@ import { MissionState } from "../../../../types/protobuf-types";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 
 // Place user in control by default
-jest.mock("../../../utils/commands", () => {
-    const originalModule = jest.requireActual("../../../utils/commands");
+jest.mock("../../../../utils/commands", () => {
+    const originalModule = jest.requireActual("../../../../utils/commands");
     return {
         ...originalModule,
         isControllingClient: jest.fn(() => true),
@@ -92,7 +93,7 @@ test("Button click with Bot not assigned to mission", async () => {
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
-    expect(screen.getByText(messages.get(DisabledCodes.NO_MISSION_ASSIGNED)));
+    expect(screen.getByText(messages.get(DisabledCodes.NO_MISSION)));
     expect(screen.getByText("Close"));
 });
 
