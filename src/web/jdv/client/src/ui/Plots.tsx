@@ -186,11 +186,11 @@ export function Plots(props: PlotsProps) {
             });
 
 
-	    plot_div_element.on("plotly_click", function (data) {
-  		let pointIndex = data.points[0].pointIndex;
-  		let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
-  		props.delegate.setTime(timestamp_utime);
-	    });
+	    	plot_div_element.on("plotly_click", function (data) {
+  				let pointIndex = data.points[0].pointIndex;
+  				let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
+  				props.delegate.setTime(timestamp_utime);
+	    	});
 
             // Zooming into plots
             plot_div_element.on("plotly_relayout", function (eventdata: Plotly.PlotRelayoutEvent) {
