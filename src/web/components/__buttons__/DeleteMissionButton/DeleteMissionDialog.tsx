@@ -1,5 +1,6 @@
-import { DisabledCodes, messages } from "./delete-mission-messages";
+import { messages } from "./delete-mission-messages";
 import { DialogActions } from "../../../types/context-types";
+import { DisabledCodes } from "../disabled-codes";
 
 interface DialogProps {
     isVisible: boolean;

@@ -1,7 +1,8 @@
 import { useState } from "react";
 
+import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { SystemDialog } from "./SystemDialog";
-import { DisabledCodes } from "./system-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -13,7 +14,12 @@ import { DialogActions } from "../../../types/context-types";
 import { SystemButtonTypes } from "../../../types/jaia-system-types";
 import { CommandType, HubCommandType } from "../../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { isCommandAvailable, sendBotCommand, sendHubCommand } from "../../../utils/commands";
+import {
+    isCommandAvailable,
+    isControllingClient,
+    sendBotCommand,
+    sendHubCommand,
+} from "../../../utils/commands";
 
 interface Props {
     node: Bot | Hub;
@@ -38,6 +44,7 @@ const hubCommands: Map<SystemButtonTypes, HubCommandType> = new Map([
  */
 export default function SystemButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -143,6 +150,21 @@ export default function SystemButton(props: Props) {
     };
 
     /**
+     * Determines what dialog to display on click (take control or activate)
+     *
+     * @returns {void}
+     */
+    const handleClick = async () => {
+        const hasControl = await isControllingClient();
+
+        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+            setIsTakeControlVisible(true);
+        } else {
+            setIsDialogVisible(true);
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -171,7 +193,7 @@ export default function SystemButton(props: Props) {
             <Button
                 className={getClassName()}
                 aria-label={getAriaLabel()}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => handleClick()}
             >
                 <Icon path={getIconPath()} size={MDI_BUTTON_SIZE} title={getIconTitle()} />
             </Button>
@@ -180,6 +202,11 @@ export default function SystemButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
                 systemButton={props.type}
+            />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
             />
         </div>
     );

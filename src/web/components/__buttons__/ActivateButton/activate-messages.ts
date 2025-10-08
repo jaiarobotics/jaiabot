@@ -1,8 +1,4 @@
-export enum DisabledCodes {
-    NONE = 1,
-    NO_COMMS = 2,
-    MISSION_STATE = 3,
-}
+import { DisabledCodes } from "../disabled-codes";
 
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NONE, ""],

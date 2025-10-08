@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { RemoteControlDialog } from "./RemoteControlDialog";
-import { DisabledCodes } from "./remote-control-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Button } from "@mui/material";
 
@@ -80,7 +80,7 @@ export default function RemoteControlButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const handleClick = async () => {
         const hasControl = await isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
@@ -112,27 +112,12 @@ export default function RemoteControlButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={rcActive ? "exit-remote-control" : "enter-remote-control"}
-                onClick={() => setIsDialogVisible(true)}
+                onClick={() => handleClick()}
             >
                 <img
                     src={rcModeIcon}
@@ -144,7 +129,11 @@ export default function RemoteControlButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+            />
         </div>
     );
 }

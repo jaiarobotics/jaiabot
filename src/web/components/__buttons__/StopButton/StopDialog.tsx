@@ -1,4 +1,5 @@
-import { DisabledCodes, messages } from "./stop-messages";
+import { messages } from "./stop-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {

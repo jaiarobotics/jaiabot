@@ -1,9 +1,8 @@
 import { useState } from "react";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
-// import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { DataOffloadDialog } from "./DataOffloadDialog";
-import { DisabledCodes } from "./data-offload-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -67,7 +66,7 @@ export default function DataOffloadButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const handleClick = async () => {
         const hasControl = await isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
@@ -98,27 +97,12 @@ export default function DataOffloadButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"data-offload-individual-bot"}
-                onClick={() => onButtonClick()}
+                onClick={() => handleClick()}
             >
                 <Icon path={mdiDownload} size={MDI_BUTTON_SIZE} title="Data Offload" />
             </Button>
@@ -127,7 +111,11 @@ export default function DataOffloadButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+            />
         </div>
     );
 }

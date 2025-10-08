@@ -4,7 +4,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { StartMissionDialog } from "./StartMissionDialog";
-import { DisabledCodes } from "./start-mission-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -75,7 +75,7 @@ export default function StartMissionButton(props: Props) {
         }
 
         if (missionsManager.getMissionID(props.bot.getBotID()) === UNASSIGNED_ID) {
-            return DisabledCodes.NO_MISSION_ASSIGNED;
+            return DisabledCodes.NO_MISSION;
         }
 
         // Download queue check
@@ -92,7 +92,7 @@ export default function StartMissionButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const handleClick = async () => {
         const hasControl = await isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
@@ -124,27 +124,12 @@ export default function StartMissionButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"start-mission-individual-bot"}
-                onClick={() => onButtonClick()}
+                onClick={() => handleClick()}
             >
                 <Icon path={mdiPlay} size={MDI_BUTTON_SIZE} title="Start Mission" />
             </Button>
@@ -153,7 +138,11 @@ export default function StartMissionButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+            />
         </div>
     );
 }

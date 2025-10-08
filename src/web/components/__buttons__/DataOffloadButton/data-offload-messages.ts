@@ -1,10 +1,4 @@
-export enum DisabledCodes {
-    NONE = 1,
-    NO_COMMS = 2,
-    MISSION_STATE = 3,
-    WIFI_QUALITY = 4,
-    DOWNLOAD_QUEUE = 5,
-}
+import { DisabledCodes } from "../disabled-codes";
 
 export const messages = new Map<DisabledCodes, string>([
     [DisabledCodes.NONE, ""],

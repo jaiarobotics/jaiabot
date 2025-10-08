@@ -1,4 +1,5 @@
-import { DisabledCodes, messages } from "./remote-control-messages";
+import { messages } from "./remote-control-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {

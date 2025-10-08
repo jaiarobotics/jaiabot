@@ -1,4 +1,4 @@
-import { DisabledCodes } from "../DataOffloadButton/data-offload-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {

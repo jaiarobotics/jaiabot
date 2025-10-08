@@ -4,7 +4,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { StartAllMissionsDialog } from "./StartAllMissionsDialog";
-import { DisabledCodes } from "../StartMissionButton/start-mission-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -124,22 +124,6 @@ export default function StartAllMissionsButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            groupBotsByReadyState();
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
@@ -155,7 +139,12 @@ export default function StartAllMissionsButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+                groupBotsByReadyState={groupBotsByReadyState}
+            />
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import { SystemButtonTypes } from "../../../types/jaia-system-types";
-import { DisabledCodes } from "./system-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {

@@ -4,7 +4,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import { DeleteMissionDialog } from "./DeleteMissionDialog";
-import { DisabledCodes } from "./delete-mission-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 import { Icon } from "@mdi/react";

@@ -1,9 +1,10 @@
-import { DialogActions } from "../../types/context-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 
 interface Props {
     isVisible: boolean;
-    onClose?: (dialogAction: DialogActions) => void;
+    setIsTakeControlVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsDialogVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    groupBotsByReadyState?: () => void;
 }
 
 /**
@@ -18,7 +19,13 @@ export default function TakeControlDialog(props: Props) {
      */
     const handleTakeControlClick = () => {
         jaiaAPI.takeControl();
-        props.onClose(DialogActions.CONFIRMED);
+
+        if (props.groupBotsByReadyState) {
+            props.groupBotsByReadyState();
+        }
+
+        props.setIsTakeControlVisible(false);
+        props.setIsDialogVisible(true);
     };
 
     if (props.isVisible) {
@@ -31,7 +38,7 @@ export default function TakeControlDialog(props: Props) {
                         <div className="dialog-button-row">
                             <button
                                 className="dialog-button"
-                                onClick={() => props.onClose(DialogActions.NONE)}
+                                onClick={() => props.setIsTakeControlVisible(false)}
                             >
                                 Cancel
                             </button>

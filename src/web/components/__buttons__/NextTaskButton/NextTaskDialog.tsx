@@ -1,4 +1,5 @@
-import { DisabledCodes, messages } from "./next-task-messages";
+import { messages } from "./next-task-messages";
+import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {

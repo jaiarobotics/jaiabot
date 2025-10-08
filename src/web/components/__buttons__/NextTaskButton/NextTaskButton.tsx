@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { NextTaskDialog } from "./NextTaskDialog";
-import { DisabledCodes } from "./next-task-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -58,7 +58,7 @@ export default function NextTaskButton(props: Props) {
      *
      * @returns {void}
      */
-    const onButtonClick = async () => {
+    const handleClick = async () => {
         const hasControl = await isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
@@ -86,27 +86,12 @@ export default function NextTaskButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
                 className={getClassName()}
                 aria-label={"next-task"}
-                onClick={() => onButtonClick()}
+                onClick={() => handleClick()}
             >
                 <Icon path={mdiSkipNext} size={MDI_BUTTON_SIZE} title="Next Task" />
             </Button>
@@ -115,7 +100,11 @@ export default function NextTaskButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+            />
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { GoToRallyDialog } from "./GoToRallyDialog";
-import { DisabledCodes } from "./go-to-rally-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -22,13 +22,9 @@ import {
     Speeds,
 } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
+import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { microsecondsToSeconds } from "../../../utils/conversions";
-import {
-    MDI_BUTTON_SIZE,
-    MIN_BATTERY_PERCENT,
-    NO_COMMS_STATUS_AGE,
-} from "../../../utils/constants";
+import { isCommsDropped, isCritiallyLowBattery } from "../button-utils";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -122,22 +118,6 @@ export default function GoToRallyButton(props: Props) {
     };
 
     /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            groupBotsByReadyState();
-            setIsDialogVisible(true);
-        }
-    };
-
-    /**
      * Creates the command to send a Bot to the selected rally point
      *
      * @param {number} botID Which Bot will receive the command
@@ -175,7 +155,12 @@ export default function GoToRallyButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+                groupBotsByReadyState={groupBotsByReadyState}
+            />
         </div>
     );
 }
@@ -194,24 +179,4 @@ function initBotReadyStates() {
         [DisabledCodes.LOW_BATTERY, []],
     ];
     return botReadyStates;
-}
-
-/**
- * Checks the supplied status age against the no comms threshold
- *
- * @param {number} statusAge Bot's status age in microseconds
- * @returns {boolean} True if the Bot does not have comms with the Hub
- */
-function isCommsDropped(statusAge: number) {
-    return microsecondsToSeconds(statusAge) > NO_COMMS_STATUS_AGE;
-}
-
-/**
- * Checks whether the supplied battery percent is below the min threshold
- *
- * @param {number} batteryPercent Bot's battery percent
- * @returns {boolean} True if the Bots battery is below the min threshold
- */
-function isCritiallyLowBattery(batteryPercent: number) {
-    return batteryPercent < MIN_BATTERY_PERCENT;
 }

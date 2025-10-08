@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
 import { ActivateAllDialog } from "./ActivateAllDialog";
-import { DisabledCodes } from "../ActivateButton/activate-messages";
+import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -10,8 +10,8 @@ import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 
-import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../../utils/constants";
-import { microsecondsToSeconds } from "../../../utils/conversions";
+import { isCommsDropped } from "../button-utils";
+import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
@@ -59,8 +59,7 @@ export default function ActivateAllButton(props: Props) {
     };
 
     /**
-     * Triggers the state to open the alert/confirm dialog box with the Bots
-     * categorized to produce the correct alert/confirm message
+     * Determines what dialog to display on click (take control or activate)
      *
      * @returns {void}
      */
@@ -95,22 +94,6 @@ export default function ActivateAllButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the take control dialog. If control is taken, the command
-     * dialog will appear.
-     *
-     * @param {DialogActions} dialogAction The action taken by the operator
-     * @returns {void}
-     */
-    const onTakeControlClose = (dialogAction: DialogActions) => {
-        setIsTakeControlVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            groupBotsByReadyState();
-            setIsDialogVisible(true);
-        }
-    };
-
     return (
         <div>
             <Button
@@ -130,7 +113,12 @@ export default function ActivateAllButton(props: Props) {
                 numBots={props.bots.size}
                 onClose={onDialogClose}
             />
-            <TakeControlDialog isVisible={isTakeControlVisible} onClose={onTakeControlClose} />
+            <TakeControlDialog
+                isVisible={isTakeControlVisible}
+                setIsTakeControlVisible={setIsTakeControlVisible}
+                setIsDialogVisible={setIsDialogVisible}
+                groupBotsByReadyState={groupBotsByReadyState}
+            />
         </div>
     );
 }
@@ -147,14 +135,4 @@ function initBotReadyStates() {
         [DisabledCodes.MISSION_STATE, []],
     ];
     return botReadyStates;
-}
-
-/**
- * Checks the supplied status age against the no comms threshold
- *
- * @param {number} statusAge Bot's status age in microseconds
- * @returns {boolean} True if the Bot does not have comms with the Hub
- */
-function isCommsDropped(statusAge: number) {
-    return microsecondsToSeconds(statusAge) > NO_COMMS_STATUS_AGE;
 }
