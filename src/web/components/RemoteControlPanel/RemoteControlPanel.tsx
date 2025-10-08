@@ -5,6 +5,7 @@ import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystic
 import TaskParameters from "../TaskParameters/TaskParameters";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
+import { Output } from "./Output/Output";
 import { Engineering } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
@@ -221,9 +222,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     const RCSelectMenu = (
-        <SelectMenu
-            controlType={controlType}
-            handleMenuSelection={handleMenuSelection}
+        <SelectMenu controlType={controlType} handleMenuSelection={handleMenuSelection} />
+    );
+
+    const RCOutput = (
+        <Output
             throttleDirection={throttleDirection}
             throttleMagnitude={throttleMagnitude}
             rudderDirection={rudderDirection}
@@ -242,7 +245,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         }
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {RCSelectMenu}
+                    <div className="rc-dashboard">
+                        {RCSelectMenu}
+                        {RCOutput}
+                    </div>
                 </div>
             );
         case ControlTypes.DUAL:
@@ -255,7 +261,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         }
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {RCSelectMenu}
+                    <div className="rc-dashboard">
+                        {RCSelectMenu}
+                        {RCOutput}
+                    </div>
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
                         handleAnalogStickMove={(event) =>
@@ -268,6 +277,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DIVE:
             return (
                 <div className="remote-control-panel">
+                    <div className="rc-dashboard"></div>
                     {RCSelectMenu}
                     <div className="task-parameters-container">
                         <TaskParameters task={getRCDiveTask()} isDisabled={false} />
