@@ -13,6 +13,9 @@ import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
 import Task from "../../data/tasks/task";
+import { Button } from "@mui/material";
+import { Icon } from "@mdi/react";
+import { mdiPlay } from "@mdi/js";
 
 interface RemoteControlPanelProps {
     botID: number;
@@ -281,6 +284,15 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                     {RCSelectMenu}
                     <div className="task-parameters-container">
                         <TaskParameters task={getRCDiveTask()} isDisabled={false} />
+                        <div className="rc-labels-right">
+                            <Button
+                                className={`button-jcc button-rc-dive ${false ? "inactive" : ""}`}
+                                disabled={false}
+                                //onClick={() => this.handleDiveButtonClick()}
+                            >
+                                <Icon path={mdiPlay} title="Run Mission" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             );
