@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Output } from "./Output/Output";
-import { DiveCommand, DiveParameters } from "./DiveControls/DiveControls";
+import { RCDiveCommand, RCDiveControls, RCDiveProps } from "./DiveControls/DiveControls";
+
 import { Engineering, TaskType } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
@@ -44,12 +45,17 @@ const RC_COMMAND_TIMEOUT = 500; // milliseconds
  * Creates panel with analog sticks to manually control a Bot
  */
 export default function RemoteControlPanel(props: RemoteControlPanelProps) {
+    const defaultParams = jaiaGlobal.getDefaultTaskParameters();
+
     const [controlType, setControlType] = useState(ControlTypes.DUAL);
     const [throttleDirection, setThrottleDirection] = useState("");
     const [rudderDirection, setRudderDirection] = useState("");
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
     const [rudderMagnitude, setRudderMagnitude] = useState(0);
-
+    const [rcDiveParameters, setRCDiveParameters] = useState<RCDiveProps>({
+        ...defaultParams.dive,
+        ...defaultParams.drift,
+    });
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
         const rcCommandInterval = setInterval(() => {
@@ -272,16 +278,16 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <div className="remote-control-panel">
                     <div>
-                        <DiveParameters
-                            max_depth={50}
-                            depth_interval={10}
-                            hold_time={30}
-                            drift_time={5}
+                        <RCDiveControls
+                            {...rcDiveParameters}
+                            onChange={(updated) =>
+                                setRCDiveParameters((prev) => ({ ...prev, ...updated }))
+                            }
                         />
                     </div>
                     <div className="rc-dashboard">
                         {RCSelectMenu}
-                        {DiveCommand}
+                        {RCDiveCommand}
                     </div>
                 </div>
             );
