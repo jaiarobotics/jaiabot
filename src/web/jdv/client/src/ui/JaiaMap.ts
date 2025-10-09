@@ -357,7 +357,9 @@ export default class JaiaMap {
     setMapDict(botIdToMapSeries: { [key: string]: number[][] }) {
         this.timeRange = null;
         this.botIdToMapSeries = botIdToMapSeries;
+        this.timestamp = null;
         this.updatePath();
+        this.updateBotMarkers();
     }
 
     /**
