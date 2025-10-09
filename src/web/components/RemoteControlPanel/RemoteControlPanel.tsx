@@ -56,6 +56,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         ...defaultParams.dive,
         ...defaultParams.drift,
     });
+
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
         const rcCommandInterval = setInterval(() => {
