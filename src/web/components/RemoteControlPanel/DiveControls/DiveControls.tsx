@@ -1,35 +1,39 @@
-import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import { formatNumericalInput } from "../../../utils/input";
 import { Button } from "@mui/material";
 import { Icon } from "@mdi/react";
 import { mdiPlay } from "@mdi/js";
 
-export interface RCDiveProps {
+export interface RCDiveParameters {
     max_depth?: number;
     depth_interval?: number;
     hold_time?: number;
     drift_time?: number;
-    onChange?: (updated: Partial<RCDiveProps>) => void;
 }
 
+interface RCDiveProps {
+    rcDiveParameters: RCDiveParameters;
+    onChange: (name: string, value: number) => void;
+}
+
+/**
+ * Creates set of inputs for RC dives
+ */
 export function RCDiveControls(props: RCDiveProps) {
-    const onParameterChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = evt.target;
-        if (props.onChange) {
-            props.onChange({ [name]: Number(value) });
-        }
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        props.onChange?.(e.target.name, +e.target.value);
     };
+
     return (
         <div className="rc-dive-info">
             <div>Max Depth</div>
             <input
                 name="max_depth"
                 type="number"
-                value={formatNumericalInput(props.max_depth)}
+                value={formatNumericalInput(props.rcDiveParameters.max_depth)}
                 className="jaia-input"
                 autoComplete="off"
                 disabled={false}
-                onChange={onParameterChange}
+                onChange={handleInputChange}
             />
             <div className="units">m</div>
 
@@ -37,11 +41,11 @@ export function RCDiveControls(props: RCDiveProps) {
             <input
                 name="depth_interval"
                 type="number"
-                value={formatNumericalInput(props.depth_interval)}
+                value={formatNumericalInput(props.rcDiveParameters.depth_interval)}
                 className="jaia-input"
                 autoComplete="off"
                 disabled={false}
-                onChange={onParameterChange}
+                onChange={handleInputChange}
             />
             <div className="units">m</div>
 
@@ -49,11 +53,11 @@ export function RCDiveControls(props: RCDiveProps) {
             <input
                 name="hold_time"
                 type="number"
-                value={formatNumericalInput(props.hold_time)}
+                value={formatNumericalInput(props.rcDiveParameters.hold_time)}
                 className="jaia-input"
                 autoComplete="off"
                 disabled={false}
-                onChange={onParameterChange}
+                onChange={handleInputChange}
             />
             <div className="units">s</div>
 
@@ -61,11 +65,11 @@ export function RCDiveControls(props: RCDiveProps) {
             <input
                 name="drift_time"
                 type="number"
-                value={formatNumericalInput(props.drift_time)}
+                value={formatNumericalInput(props.rcDiveParameters.drift_time)}
                 className="jaia-input"
                 autoComplete="off"
                 disabled={false}
-                onChange={onParameterChange}
+                onChange={handleInputChange}
             />
             <div className="units">s</div>
         </div>

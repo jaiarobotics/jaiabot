@@ -5,9 +5,9 @@ import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystic
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Output } from "./Output/Output";
-import { RCDiveCommand, RCDiveControls, RCDiveProps } from "./DiveControls/DiveControls";
+import { RCDiveCommand, RCDiveControls, RCDiveParameters } from "./DiveControls/DiveControls";
 
-import { Engineering, TaskType } from "../../types/protobuf-types";
+import { Engineering } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
 import { SelectChangeEvent } from "@mui/material";
@@ -42,7 +42,7 @@ const rudderPercentages = new Map<number, number>([
 const RC_COMMAND_TIMEOUT = 500; // milliseconds
 
 /**
- * Creates panel with analog sticks to manually control a Bot
+ * Creates panel to manually control a Bot
  */
 export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const defaultParams = jaiaGlobal.getDefaultTaskParameters();
@@ -52,7 +52,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const [rudderDirection, setRudderDirection] = useState("");
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
     const [rudderMagnitude, setRudderMagnitude] = useState(0);
-    const [rcDiveParameters, setRCDiveParameters] = useState<RCDiveProps>({
+    const [rcDiveParameters, setRCDiveParameters] = useState<RCDiveParameters>({
         ...defaultParams.dive,
         ...defaultParams.drift,
     });
@@ -221,6 +221,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
+    const handleRCDiveChange = (name: string, value: number) => {
+        setRCDiveParameters((prev) => ({ ...prev, [name]: value }));
+    };
+
     const RCSelectMenu = (
         <SelectMenu controlType={controlType} handleMenuSelection={handleMenuSelection} />
     );
@@ -279,10 +283,8 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 <div className="remote-control-panel">
                     <div>
                         <RCDiveControls
-                            {...rcDiveParameters}
-                            onChange={(updated) =>
-                                setRCDiveParameters((prev) => ({ ...prev, ...updated }))
-                            }
+                            rcDiveParameters={rcDiveParameters}
+                            onChange={handleRCDiveChange}
                         />
                     </div>
                     <div className="rc-dashboard">
