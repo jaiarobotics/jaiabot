@@ -1,6 +1,6 @@
 import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
 
-interface RcOutputProps {
+interface Props {
     throttleDirection: string;
     throttleMagnitude: number;
     rudderDirection: string;
@@ -10,7 +10,7 @@ interface RcOutputProps {
 /**
  * Allows the operator to switch between single and dual analog sticks
  */
-export function Output(props: RcOutputProps) {
+export function Output(props: Props) {
     return (
         <div>
             <div className="rc-output">

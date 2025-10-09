@@ -66,6 +66,7 @@
 
 .rc-output {
     display: grid;
+    align-self: start;
     grid-template-columns: max-content 1fr;
     column-gap: 45px;
     row-gap: 6px;
@@ -73,4 +74,28 @@
     border-radius: 3px;
     padding: 6px 12px;
     color: #ffffff;
+}
+
+.rc-dive-info {
+    display: grid;
+    grid-template-columns: max-content min-content min-content;
+    gap: 6px;
+    align-items: center;
+    border: 3px solid white;
+    border-radius: 4px;
+    padding: 8px;
+    color: #ffffff;
+}
+
+.rc-dive-control {
+    display: grid;
+    align-self: start;
+    justify-items: start;
+    grid-template-columns: max-content 1fr;
+    gap: 45px;
+    color: #ffffff;
+}
+
+.rc-dive-control .label {
+    padding-left: 12px;
 }

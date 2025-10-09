@@ -2,20 +2,16 @@ import { useState, useEffect } from "react";
 
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
-import TaskParameters from "../TaskParameters/TaskParameters";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Output } from "./Output/Output";
-import { Engineering } from "../../types/protobuf-types";
+import { DiveCommand, DiveParameters } from "./DiveControls/DiveControls";
+import { Engineering, TaskType } from "../../types/protobuf-types";
 import { sendEngineeringCommand } from "../../utils/commands";
 
 import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
-import Task from "../../data/tasks/task";
-import { Button } from "@mui/material";
-import { Icon } from "@mdi/react";
-import { mdiPlay } from "@mdi/js";
 
 interface RemoteControlPanelProps {
     botID: number;
@@ -219,11 +215,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
-    const getRCDiveTask = () => {
-        const rcTask: Task = new Task();
-        return rcTask;
-    };
-
     const RCSelectMenu = (
         <SelectMenu controlType={controlType} handleMenuSelection={handleMenuSelection} />
     );
@@ -280,19 +271,17 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DIVE:
             return (
                 <div className="remote-control-panel">
-                    <div className="rc-dashboard"></div>
-                    {RCSelectMenu}
-                    <div className="task-parameters-container">
-                        <TaskParameters task={getRCDiveTask()} isDisabled={false} />
-                        <div className="rc-labels-right">
-                            <Button
-                                className={`button-jcc button-rc-dive ${false ? "inactive" : ""}`}
-                                disabled={false}
-                                //onClick={() => this.handleDiveButtonClick()}
-                            >
-                                <Icon path={mdiPlay} title="Run Mission" />
-                            </Button>
-                        </div>
+                    <div>
+                        <DiveParameters
+                            max_depth={50}
+                            depth_interval={10}
+                            hold_time={30}
+                            drift_time={5}
+                        />
+                    </div>
+                    <div className="rc-dashboard">
+                        {RCSelectMenu}
+                        {DiveCommand}
                     </div>
                 </div>
             );
