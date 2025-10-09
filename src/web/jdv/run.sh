@@ -5,6 +5,8 @@ set -e
 # Kill all descendants if we exit or are killed
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
+JAIA_DIR="$(pwd)/../../../"
+
 # Install the dependency packages
 ../install_dependencies.sh ../
 
