@@ -2,7 +2,7 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import GoToRallyButton from "../GoToRallyButton/GoToRallyButton";
+import GoToRallyButton from "../__buttons__/GoToRallyButton/GoToRallyButton";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
