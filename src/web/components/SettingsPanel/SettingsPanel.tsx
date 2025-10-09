@@ -12,6 +12,7 @@ import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
+import Engineering from "../Engineering/Engineering";
 
 /**
  * Contains general configurations for the JCC and Jaia System
@@ -83,6 +84,7 @@ export default function SettingsPanel() {
                             >
                                 Jaia Engineering & Debug
                             </button>
+                            <Engineering />
                             <QueryBotStatus />
                             <ScanForBot />
                         </AccordionDetails>
