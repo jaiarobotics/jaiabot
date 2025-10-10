@@ -104,6 +104,10 @@ class Bots {
             bot.setStatusAge(botStatus.portalStatusAge);
         }
 
+        if (botStatus.engineering) {
+            bot.setEngineering(botStatus.engineering);
+        }
+
         // MissionStatus
         let missionStatus: MissionStatus = {};
 

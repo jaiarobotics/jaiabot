@@ -2,6 +2,7 @@ import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import {
     BotType,
+    Engineering,
     Error,
     GeographicCoordinate,
     HealthState,
@@ -21,6 +22,7 @@ export default class Bot {
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private statusAge: number;
+    private engineering: Engineering;
     private mode: BotModes;
 
     constructor() {
@@ -115,6 +117,14 @@ export default class Bot {
     // microseconds
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    getEngineering() {
+        return this.engineering;
+    }
+
+    setEngineering(engineering: Engineering) {
+        this.engineering = engineering;
     }
 
     getMode() {
