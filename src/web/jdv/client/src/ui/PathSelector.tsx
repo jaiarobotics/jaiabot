@@ -1,6 +1,6 @@
 import { mdiArrowLeft, mdiDelete, mdiMagnify } from "@mdi/js";
 import React from "react";
-import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "./LogApi";
+import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "../model/LogApi";
 import Icon from "@mdi/react";
 
 interface KeywordIndexEntry {
@@ -21,16 +21,15 @@ interface PathSelectorState {
     mode: "search" | "browse";
 
     // Search state
-    series_descriptors: {[path: string]: SeriesDescriptor};
+    series_descriptors: { [path: string]: SeriesDescriptor };
     series_descriptor_keyword_index: KeywordIndexEntry[];
     search_text: string;
-    search_results: SeriesDescriptor[];    
+    search_results: SeriesDescriptor[];
 
     // Path browser state
     chosen_path: string;
     next_path_segments: string[];
 }
-
 
 function get_recent_series_descriptors(): SeriesDescriptor[] {
     const recent_series = localStorage.getItem("recent_series");
@@ -46,7 +45,6 @@ function get_recent_series_descriptors(): SeriesDescriptor[] {
         return [];
     }
 }
-
 
 function push_series_to_recents(series_descriptor: SeriesDescriptor) {
     let recent_series = get_recent_series_descriptors();
@@ -64,7 +62,6 @@ function push_series_to_recents(series_descriptor: SeriesDescriptor) {
 
     localStorage.setItem("recent_series", JSON.stringify(recent_series));
 }
-
 
 /**
  * A selection dialog for choosing a path from a set of logs.
@@ -91,7 +88,7 @@ export default class PathSelector extends React.Component {
 
     load_series_descriptors() {
         LogApi.getAllSeriesDescriptors(this.state.logs).then((series_descriptors) => {
-            let series_descriptors_map: {[path: string]: SeriesDescriptor} = {};
+            let series_descriptors_map: { [path: string]: SeriesDescriptor } = {};
             for (const sd of series_descriptors) {
                 series_descriptors_map[sd.path] = sd;
             }
@@ -101,23 +98,26 @@ export default class PathSelector extends React.Component {
 
             // Pre-calculate keyword scores
             for (const series_descriptor of series_descriptors) {
-                let keyword_scores: {[keyword: string]: number} = {};
+                let keyword_scores: { [keyword: string]: number } = {};
 
                 for (const name_part of series_descriptor.name.split(" ")) {
                     if (name_part.length > 1) {
-                        keyword_scores[name_part.toLowerCase()] = (keyword_scores[name_part.toLowerCase()] || 0) + 3;
+                        keyword_scores[name_part.toLowerCase()] =
+                            (keyword_scores[name_part.toLowerCase()] || 0) + 3;
                     }
                 }
 
                 for (const desc_part of series_descriptor.description?.split(" ") || []) {
                     if (desc_part.length > 1) {
-                        keyword_scores[desc_part.toLowerCase()] = (keyword_scores[desc_part.toLowerCase()] || 0) + 2;
+                        keyword_scores[desc_part.toLowerCase()] =
+                            (keyword_scores[desc_part.toLowerCase()] || 0) + 2;
                     }
                 }
 
                 for (const path_part of series_descriptor.path.split("/")) {
                     if (path_part.length > 1) {
-                        keyword_scores[path_part.toLowerCase()] = (keyword_scores[path_part.toLowerCase()] || 0) + 1;
+                        keyword_scores[path_part.toLowerCase()] =
+                            (keyword_scores[path_part.toLowerCase()] || 0) + 1;
                     }
                 }
 
@@ -130,33 +130,32 @@ export default class PathSelector extends React.Component {
                 }
             }
 
-            series_descriptor_keyword_index.sort((a, b) => (b.keyword < a.keyword) ? 1 : -1); // Descending
+            series_descriptor_keyword_index.sort((a, b) => (b.keyword < a.keyword ? 1 : -1)); // Descending
             this.setState({ series_descriptor_keyword_index });
         });
     }
 
     componentDidMount() {
-        this.load_series_descriptors()
+        this.load_series_descriptors();
         this.search(""); // Load recents
         this.updatePathOptions(true);
     }
 
-    
     /**
      * Update search results section to a given query.
      *
-     * @param {string} query 
+     * @param {string} query
      */
-    search(query: string){
-        this.setState({search_text: query});
+    search(query: string) {
+        this.setState({ search_text: query });
 
         // If query string is empty, then default to the recents list
         if (query === "") {
-            this.setState({search_results: get_recent_series_descriptors()});
+            this.setState({ search_results: get_recent_series_descriptors() });
             return;
         }
 
-        let results: {[path: string]: number} = {};
+        let results: { [path: string]: number } = {};
 
         for (const query_part of query.toLowerCase().split(" ")) {
             if (query_part.length < 2) {
@@ -165,47 +164,48 @@ export default class PathSelector extends React.Component {
 
             for (const keyword_entry of this.state.series_descriptor_keyword_index) {
                 if (keyword_entry.keyword === query_part) {
-                    results[keyword_entry.series_descriptor.path] = (results[keyword_entry.series_descriptor.path] || 0) + 2 * keyword_entry.score;
-                }
-                else if (keyword_entry.keyword.startsWith(query_part)) {
-                    results[keyword_entry.series_descriptor.path] = (results[keyword_entry.series_descriptor.path] || 0) + keyword_entry.score;
+                    results[keyword_entry.series_descriptor.path] =
+                        (results[keyword_entry.series_descriptor.path] || 0) +
+                        2 * keyword_entry.score;
+                } else if (keyword_entry.keyword.startsWith(query_part)) {
+                    results[keyword_entry.series_descriptor.path] =
+                        (results[keyword_entry.series_descriptor.path] || 0) + keyword_entry.score;
                 }
             }
         }
 
         const search_results_paths = Object.keys(results).sort((a, b) => results[b] - results[a]); // Descending
-        const search_results = search_results_paths.map((path) => this.state.series_descriptors[path])
+        const search_results = search_results_paths.map(
+            (path) => this.state.series_descriptors[path],
+        );
 
-        this.setState({search_results}); // Descending
+        this.setState({ search_results }); // Descending
     }
 
     renderSearchBar() {
+        const doLiveSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+            this.search(e.target.value);
+        };
+
+        const doClearSearchBar = (e: React.MouseEvent<HTMLButtonElement>) => {
+            this.search("");
+        };
+
         return (
             <div className="section">
-                <Icon
-                    path={mdiMagnify}
-                    size={1}
-                    style={{ verticalAlign: "middle" }}
-                ></Icon>
+                <Icon path={mdiMagnify} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 <input
                     className="padded"
                     type="text"
                     placeholder="Search"
-                    defaultValue={""}
                     value={this.state.search_text}
-                    onChange={(e) => {
-                        this.search(e.target.value)
-                    }} />
-                <button
-                    className="padded button"
-                    title="Clear"
-                    onClick={(e) => {
-                        this.search("")
-                    }}
-                >⨉
+                    onChange={doLiveSearch}
+                />
+                <button className="padded button" title="Clear" onClick={doClearSearchBar}>
+                    ⨉
                 </button>
             </div>
-        )
+        );
     }
 
     renderSearchResults() {
@@ -221,9 +221,32 @@ export default class PathSelector extends React.Component {
                     className="padded listItem vertical flexbox"
                     onClick={clicked_series.bind(this, series_descriptor)}
                 >
-                    <div><b>{series_descriptor.name}</b></div>
-                    {series_descriptor.description && <div style={{fontSize: "smaller"}}>{series_descriptor.description}</div>}
-                    <div style={{fontSize: "smaller", color: "gray", fontStyle: "italic"}}>{series_descriptor.path}</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.3em" }}>
+                        <b>{series_descriptor.name}</b>
+                        {series_descriptor.units && (
+                            <span
+                                style={{ fontSize: "smaller", color: "gray", fontStyle: "italic" }}
+                            >
+                                {series_descriptor.units}
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.3em" }}>
+                        {series_descriptor.description && (
+                            <div style={{ fontSize: "smaller" }}>
+                                {series_descriptor.description}
+                            </div>
+                        )}
+                        {series_descriptor.frequency && (
+                            <span style={{ fontSize: "smaller", fontStyle: "italic" }}>
+                                {series_descriptor.frequency} Hz
+                            </span>
+                        )}
+                    </div>
+
+                    <div style={{ fontSize: "smaller", color: "gray", fontStyle: "italic" }}>
+                        {series_descriptor.path}
+                    </div>
                 </div>
             );
         });
@@ -232,18 +255,18 @@ export default class PathSelector extends React.Component {
             <div className="section">
                 <div className="list">{resultsRows}</div>
             </div>
-            )
+        );
     }
-
 
     renderSearch() {
-        return [
-            this.renderSearchBar(),
-            this.renderSearchResults()
-        ]
+        return (
+            <div>
+                {this.renderSearchBar()}
+                {this.renderSearchResults()}
+            </div>
+        );
     }
 
-    
     ////////////// Path Browser ///////////////
     updatePathOptions(shouldAutoselect: boolean) {
         // Clear options
@@ -277,10 +300,7 @@ export default class PathSelector extends React.Component {
             // Only one option, so select it and go to the nexxt level
             if (shouldAutoselect && paths.length == 1) {
                 let chosen_path = this.state.chosen_path + "/" + paths[0];
-                this.setState(
-                    { chosen_path },
-                    this.updatePathOptions.bind(this, shouldAutoselect),
-                );
+                this.setState({ chosen_path }, this.updatePathOptions.bind(this, shouldAutoselect));
                 return;
             }
 
@@ -321,52 +341,64 @@ export default class PathSelector extends React.Component {
         this.setState({ chosen_path }, this.updatePathOptions.bind(this, false));
     }
 
-
     renderPathBrowser() {
         return [
-        <div className="section">
-            <div className="horizontal flexbox">
-                <button
-                    className="padded button"
-                    title="Back"
-                    onClick={this.backClicked.bind(this)}
-                >
-                    <Icon
-                        path={mdiArrowLeft}
-                        size={1}
-                        style={{ verticalAlign: "middle" }}
-                    ></Icon>
-                </button>
-                <div className="path padded">{this.state.chosen_path}</div>
-            </div>
-        </div>,
+            <div className="section">
+                <div className="horizontal flexbox">
+                    <button
+                        className="padded button"
+                        title="Back"
+                        onClick={this.backClicked.bind(this)}
+                    >
+                        <Icon
+                            path={mdiArrowLeft}
+                            size={1}
+                            style={{ verticalAlign: "middle" }}
+                        ></Icon>
+                    </button>
+                    <div className="path padded">{this.state.chosen_path}</div>
+                </div>
+            </div>,
 
-        <div className="section">
-            <div className="list">{this.nextPathSegmentRows()}</div>
-        </div>
-        ]
+            <div className="section">
+                <div className="list">{this.nextPathSegmentRows()}</div>
+            </div>,
+        ];
     }
 
     /////////////// Render ///////////////
     renderModeSelector() {
-        const searchClass = this.state.mode == "search" ? "padded button selected" : "padded button";
-        const browseClass = this.state.mode == "browse" ? "padded button selected" : "padded button";
+        const searchClass =
+            this.state.mode == "search" ? "padded button selected" : "padded button";
+        const browseClass =
+            this.state.mode == "browse" ? "padded button selected" : "padded button";
 
         return (
             <div className="section horizontal flexbox">
-                <button className={searchClass} onClick={() => { this.setState({ mode: "search" }) }}>
+                <button
+                    className={searchClass}
+                    onClick={() => {
+                        this.setState({ mode: "search" });
+                    }}
+                >
                     Search
                 </button>
-                <button className={browseClass} onClick={() => { this.setState({ mode: "browse" }) }}>
+                <button
+                    className={browseClass}
+                    onClick={() => {
+                        this.setState({ mode: "browse" });
+                    }}
+                >
                     Browse
                 </button>
             </div>
-        )
+        );
     }
-    
+
     render() {
-        const contents = this.state.mode == "search" ? this.renderSearch() : this.renderPathBrowser();
-        
+        const contents =
+            this.state.mode == "search" ? this.renderSearch() : this.renderPathBrowser();
+
         return (
             <div className="centered dialog vertical flexbox">
                 <div className="dialogHeader">Add Series</div>
@@ -385,5 +417,4 @@ export default class PathSelector extends React.Component {
     cancelClicked(evt: Event) {
         this.props.didCancel?.();
     }
-
 }

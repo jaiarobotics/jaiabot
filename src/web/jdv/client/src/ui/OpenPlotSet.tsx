@@ -1,6 +1,6 @@
 import { mdiTrashCan } from "@mdi/js";
 import React from "react";
-import { Profile, ProfileLibrary, PlotProfiles } from "./PlotProfiles";
+import { Profile, ProfileLibrary, PlotProfiles } from "../model/PlotProfiles";
 import Icon from "@mdi/react";
 
 interface OpenPlotSetProps {

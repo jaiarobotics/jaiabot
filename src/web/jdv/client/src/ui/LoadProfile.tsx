@@ -1,6 +1,6 @@
 import React = require("react");
 
-import { PlotProfiles } from "./PlotProfiles";
+import { PlotProfiles } from "../model/PlotProfiles";
 
 type PlotSet = string[];
 

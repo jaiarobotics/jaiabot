@@ -2,7 +2,7 @@ import { Map } from "ol";
 import { Draw } from "ol/interaction";
 import { DrawEvent } from "ol/interaction/Draw";
 import { Vector } from "ol/source";
-import { formatLength } from "./shared/Utilities";
+import { formatLength } from "../shared/Utilities";
 import * as Style from "ol/style";
 
 export function createMeasureInteraction(

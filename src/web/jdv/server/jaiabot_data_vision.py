@@ -16,7 +16,7 @@ from pathlib import *
 import traceback
 
 
-l = logging.getLogger(__file__)
+l = logging.getLogger(os.path.basename(__file__))
 
 
 # Parsing the arguments
@@ -51,7 +51,12 @@ def handle_http_exception(e):
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
-    return send_from_directory(root, path)
+    try:
+        return send_from_directory(root, path)
+    except Exception as e:
+        l.error(e)
+        l.error(locals())
+        return Response(status=404)
 
 @app.route('/', methods=['GET'])
 def getRoot():
