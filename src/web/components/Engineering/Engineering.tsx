@@ -1,18 +1,36 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
+import Bot from "../../data/bots/bot";
 import { JaiaContext } from "../../context/JaiaContext";
 import { BotStatusRate, Engineering } from "../../types/protobuf-types";
+import { jaiaAPI } from "../../utils/jaia-api";
 import "../../style/stylesheets/engineering.less";
 
-interface BotRequirmentProps {
+interface BotRequirementsSectionProps {
+    visibleBotRequirements: number[];
+    bots: Map<Number, Bot>;
+}
+
+interface BotRequirmentsTableProps {
     engineering: Engineering;
-    isVisible: boolean;
+}
+
+enum EngineeringInputs {
+    BOT_STATUS_RATE = "update-status-rate",
+    TRANSIT_HDOP_REQ = "update-transit-hdop",
+    TRANSIT_PDOP_REQ = "update-transit-pdop",
+    AFTER_DIVE_HDOP_REQ = "update-after-dive-hdop",
+    AFTER_DIVE_PDOP_REQ = "update-after-dive-pdop",
+    TRANSIT_GPS_FIX_CHECKS = "update-transit-gps-fix-checks",
+    TRANSIT_GPS_DEGRADED_FIX_CHECKS = "update-transit-gps-degraded-fix-checks",
+    AFTER_DIVE_GPS_FIX_CHECKS = "update-after-dive-gps-fix-checks",
+    RF_DISABLE_TIMEOUT = "update-rf-disable-time",
 }
 
 export default function Engineering() {
     const jaiaContext = useContext(JaiaContext);
     const [selectedBotID, setSelectedBotID] = useState("");
-    const [showBotRequirements, setShowBotRequirments] = useState(true);
+    const [visibleBotRequirements, setVisibleBotRequirements] = useState([]);
 
     /**
      * Updates state with the selected Bot ID
@@ -24,14 +42,62 @@ export default function Engineering() {
         setSelectedBotID(evt.target.value);
     };
 
-    const handleQuerySelectedStatusClick = () => {
-        setShowBotRequirments(!showBotRequirements);
+    const handleQuerySelectedStatusClick = async (botID: number) => {
+        const engineeringCommand: Engineering = {
+            bot_id: botID,
+            query_engineering_status: true,
+        };
+        const res = await jaiaAPI.postEngineering(engineeringCommand);
+        if (res && res.status === "ok") {
+            if (!visibleBotRequirements.includes(botID)) {
+                const updatedVisibleBotRequirements = visibleBotRequirements.concat(botID);
+                updatedVisibleBotRequirements.sort((a, b) => a - b);
+                setVisibleBotRequirements(updatedVisibleBotRequirements);
+            }
+        }
     };
 
     const handleUpdateSelectedBotClick = (botID: number) => {
-        const engineeringCommand: Engineering = {
+        const engineeringUpdate: Engineering = {
             bot_id: botID,
+            bot_status_rate:
+                `BotStatusRate_${document.getElementById(EngineeringInputs.BOT_STATUS_RATE)}` as BotStatusRate,
+            gps_requirements: {
+                transit_hdop_req: Number(
+                    document.getElementById(EngineeringInputs.TRANSIT_HDOP_REQ),
+                ),
+                transit_pdop_req: Number(
+                    document.getElementById(EngineeringInputs.TRANSIT_PDOP_REQ),
+                ),
+                after_dive_hdop_req: Number(
+                    document.getElementById(EngineeringInputs.AFTER_DIVE_HDOP_REQ),
+                ),
+                after_dive_pdop_req: Number(
+                    document.getElementById(EngineeringInputs.AFTER_DIVE_PDOP_REQ),
+                ),
+                transit_gps_fix_checks: Number(
+                    document.getElementById(EngineeringInputs.TRANSIT_GPS_FIX_CHECKS),
+                ),
+                transit_gps_degraded_fix_checks: Number(
+                    document.getElementById(EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS),
+                ),
+                after_dive_gps_fix_checks: Number(
+                    document.getElementById(EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS),
+                ),
+            },
+            rf_disable_options: {
+                rf_disable_timeout_mins: Number(
+                    document.getElementById(EngineeringInputs.RF_DISABLE_TIMEOUT),
+                ),
+            },
         };
+        jaiaAPI.postEngineeringPanel(engineeringUpdate);
+    };
+
+    const handleUpdateAllBotsClick = () => {
+        for (const botID of jaiaContext.bots.keys()) {
+            handleUpdateSelectedBotClick(botID);
+        }
     };
 
     return (
@@ -54,12 +120,18 @@ export default function Engineering() {
                     </Select>
                 </FormControl>
             </div>
-            <button className="engineering-button" onClick={() => handleQuerySelectedStatusClick()}>
+            <BotRequirementsSection
+                visibleBotRequirements={visibleBotRequirements}
+                bots={jaiaContext.bots}
+            />
+            <button
+                className="engineering-button"
+                onClick={() => handleQuerySelectedStatusClick(Number(selectedBotID))}
+            >
                 Query Selected Status
             </button>
             <BotRequirementsTable
                 engineering={jaiaContext.bots.get(Number(selectedBotID)).getEngineering()}
-                isVisible={showBotRequirements}
             />
             <button className="engineering-button" onClick={() => console.log("")}>
                 Query All Statuses
@@ -67,17 +139,36 @@ export default function Engineering() {
             <button className="engineering-button" onClick={() => console.log("")}>
                 Chain Gains
             </button>
-            <button className="engineering-button" onClick={() => console.log("")}>
+            <button
+                className="engineering-button"
+                onClick={() => handleUpdateSelectedBotClick(Number(selectedBotID))}
+            >
                 Updated Selected Bot
             </button>
-            <button className="engineering-button" onClick={() => console.log("")}>
+            <button className="engineering-button" onClick={() => handleUpdateAllBotsClick()}>
                 Updated All Bots
             </button>
         </div>
     );
 }
 
-function BotRequirementsTable(props: BotRequirmentProps) {
+function BotRequirementsSection(props: BotRequirementsSectionProps) {
+    if (props.visibleBotRequirements.length === 0) {
+        return;
+    }
+
+    return (
+        <div>
+            {props.visibleBotRequirements.map((botID) => {
+                return (
+                    <BotRequirementsTable engineering={props.bots.get(botID).getEngineering()} />
+                );
+            })}
+        </div>
+    );
+}
+
+function BotRequirementsTable(props: BotRequirmentsTableProps) {
     const formatBotStatusRates = () => {
         return Object.keys(BotStatusRate).map((rate, index) => {
             const splitRate = rate.split("_");
@@ -90,7 +181,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
         });
     };
 
-    if (!props.engineering || !props.isVisible) {
+    if (!props.engineering) {
         return;
     }
 
@@ -145,14 +236,16 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                     <tr>
                         <td>Update Status Rate</td>
                         <td>
-                            <select id="update-status-rate">{formatBotStatusRates()}</select>
+                            <select id={EngineeringInputs.BOT_STATUS_RATE}>
+                                {formatBotStatusRates()}
+                            </select>
                         </td>
                     </tr>
                     <tr>
                         <td>Update RF Disable Time Mins</td>
                         <td>
                             <input
-                                id="update-rf-disable-time"
+                                id={EngineeringInputs.RF_DISABLE_TIMEOUT}
                                 type="number"
                                 defaultValue={
                                     props.engineering.rf_disable_options.rf_disable_timeout_mins ??
@@ -165,7 +258,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update Transit HDOP</td>
                         <td>
                             <input
-                                id="update-transit-hdop"
+                                id={EngineeringInputs.TRANSIT_HDOP_REQ}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.transit_hdop_req ?? "-"
@@ -177,7 +270,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update Transit PDOP</td>
                         <td>
                             <input
-                                id="update-transit-pdop"
+                                id={EngineeringInputs.TRANSIT_PDOP_REQ}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.transit_pdop_req ?? "-"
@@ -189,7 +282,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update After Dive HDOP</td>
                         <td>
                             <input
-                                id="update-after-dive-hdop"
+                                id={EngineeringInputs.AFTER_DIVE_HDOP_REQ}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.after_dive_hdop_req ?? "-"
@@ -201,7 +294,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update After Dive PDOP</td>
                         <td>
                             <input
-                                id="update-after-dive-pdop"
+                                id={EngineeringInputs.AFTER_DIVE_PDOP_REQ}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.after_dive_pdop_req ?? "-"
@@ -213,7 +306,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update Transit GPS Checks</td>
                         <td>
                             <input
-                                id="update-transit-gps-checks"
+                                id={EngineeringInputs.TRANSIT_GPS_FIX_CHECKS}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.transit_gps_fix_checks ?? "-"
@@ -225,7 +318,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update Degraded GPS Checks</td>
                         <td>
                             <input
-                                id="update-degraded-gps-checks"
+                                id={EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements
@@ -238,7 +331,7 @@ function BotRequirementsTable(props: BotRequirmentProps) {
                         <td>Update After Dive GPS Checks</td>
                         <td>
                             <input
-                                id="update-after-dive-gps-checks"
+                                id={EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS}
                                 type="number"
                                 defaultValue={
                                     props.engineering.gps_requirements.after_dive_gps_fix_checks ??
