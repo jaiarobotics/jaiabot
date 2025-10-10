@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import Bot from "../../data/bots/bot";
 import { JaiaContext } from "../../context/JaiaContext";
-import { BotStatusRate, Engineering } from "../../types/protobuf-types";
+import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import "../../style/stylesheets/engineering.less";
 
@@ -12,6 +12,10 @@ interface BotRequirementsSectionProps {
 }
 
 interface BotRequirmentsTableProps {
+    engineering: Engineering;
+}
+
+interface PIDGainsProps {
     engineering: Engineering;
 }
 
@@ -26,6 +30,17 @@ enum EngineeringInputs {
     AFTER_DIVE_GPS_FIX_CHECKS = "update-after-dive-gps-fix-checks",
     RF_DISABLE_TIMEOUT = "update-rf-disable-time",
 }
+
+const pidTypes: (keyof PIDControl)[] = [
+    "speed",
+    "heading",
+    "roll",
+    "pitch",
+    "depth",
+    "heading_constant",
+];
+
+const pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
 
 export default function Engineering() {
     const jaiaContext = useContext(JaiaContext);
@@ -106,6 +121,33 @@ export default function Engineering() {
         }
     };
 
+    const handleChangeGainsClick = () => {
+        const pidControl: PIDControl = {};
+        for (const pidType of pidTypes) {
+            const pidSettings: PIDSettings = {};
+            for (const pidGain of pidGains) {
+                pidSettings[pidGain] = Number(document.getElementById(`${pidType}_${pidGain}`));
+            }
+            (pidControl[pidType] as PIDSettings) = pidSettings;
+        }
+
+        const engineeringCommand: Engineering = {
+            bot_id: Number(selectedBotID),
+            pid_control: pidControl,
+        };
+
+        jaiaAPI.postEngineeringPanel(engineeringCommand);
+    };
+
+    const getEngineeringData = (botID?: number) => {
+        if (botID) {
+            return jaiaContext.bots.get(botID).getEngineering();
+        }
+
+        const firstBotID = jaiaContext.bots.keys().next().value;
+        return jaiaContext.bots.get(firstBotID).getEngineering();
+    };
+
     return (
         <div className="engineering-container">
             <div className="bot-select-container">
@@ -136,15 +178,14 @@ export default function Engineering() {
             >
                 Query Selected Status
             </button>
-            <BotRequirementsTable
-                engineering={jaiaContext.bots.get(Number(selectedBotID)).getEngineering()}
-            />
             <button className="engineering-button" onClick={() => handleQueryAllStatusesClick()}>
                 Query All Statuses
             </button>
-            <button className="engineering-button" onClick={() => console.log("")}>
+            <PIDGainsTable engineering={getEngineeringData(Number(selectedBotID))} />
+            <button className="engineering-button" onClick={() => handleChangeGainsClick()}>
                 Chain Gains
             </button>
+            <BotRequirementsTable engineering={getEngineeringData(Number(selectedBotID))} />
             <button
                 className="engineering-button"
                 onClick={() => handleUpdateSelectedBotClick(Number(selectedBotID))}
@@ -349,5 +390,47 @@ function BotRequirementsTable(props: BotRequirmentsTableProps) {
                 </tbody>
             </table>
         </div>
+    );
+}
+
+function PIDGainsTable(props: PIDGainsProps) {
+    if (!props.engineering) {
+        return;
+    }
+
+    return (
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Kp</th>
+                    <th>Ki</th>
+                    <th>Kd</th>
+                </tr>
+            </thead>
+            <tbody>
+                {pidTypes.map((pidType) => {
+                    return (
+                        <tr>
+                            <td>{pidType}</td>
+                            {pidGains.map((pidGain) => {
+                                const pidTypeGain = pidType + "-" + pidGain;
+                                const pidSettings = props.engineering.pid_control?.[
+                                    pidType
+                                ] as PIDSettings;
+                                return (
+                                    <td>
+                                        <input
+                                            id={pidTypeGain}
+                                            defaultValue={pidSettings?.[pidGain] ?? "-"}
+                                        />
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
     );
 }
