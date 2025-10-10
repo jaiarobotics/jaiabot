@@ -57,6 +57,12 @@ export default function Engineering() {
         }
     };
 
+    const handleQueryAllStatusesClick = async () => {
+        for (const botID of jaiaContext.bots.keys()) {
+            const res = await handleQuerySelectedStatusClick(botID);
+        }
+    };
+
     const handleUpdateSelectedBotClick = (botID: number) => {
         const engineeringUpdate: Engineering = {
             bot_id: botID,
@@ -133,7 +139,7 @@ export default function Engineering() {
             <BotRequirementsTable
                 engineering={jaiaContext.bots.get(Number(selectedBotID)).getEngineering()}
             />
-            <button className="engineering-button" onClick={() => console.log("")}>
+            <button className="engineering-button" onClick={() => handleQueryAllStatusesClick()}>
                 Query All Statuses
             </button>
             <button className="engineering-button" onClick={() => console.log("")}>
