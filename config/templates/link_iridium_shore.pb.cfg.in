@@ -1,0 +1,28 @@
+link {
+    modem_id: $modem_id
+    subnet_mask: $subnet_mask
+    driver { 
+        driver_type: DRIVER_IRIDIUM_SHORE
+        [goby.acomms.iridium.protobuf.shore_config] {  
+
+            device: DEVICE_IRIDIUM_9602_9603
+            sbd_type: $sbd_type
+            $rockblock 
+            $directip
+
+            $modem_imei_map
+
+            ipv6: true
+    }
+
+        
+    }
+    mac { 
+        type: MAC_FIXED_DECENTRALIZED
+        $mac_slots
+    }
+
+    ack_timeout: $ack_timeout
+    # read from _sub_buffer.pb.cfg.in
+    $sub_buffer
+}

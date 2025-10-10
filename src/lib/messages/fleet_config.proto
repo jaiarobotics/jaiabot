@@ -20,11 +20,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
 
-
 syntax = "proto2";
 
 package jaiabot.protobuf;
-
 
 message FleetConfig
 {
@@ -85,4 +83,34 @@ message FleetConfig
         repeated Debconf debconf = 3;
     }
     repeated DebconfOverride debconf_override = 8;
+
+
+    message Communications
+    {
+        message IridiumSBD
+        {
+            message BotToIMEI
+            {
+                required int32 id = 1;
+                required string imei = 2;
+            }
+            repeated BotToIMEI bot = 1;
+            // Matches enum in Goby driver
+            enum SBDType
+            {
+                SBD_DIRECTIP = 1;
+                SBD_ROCKBLOCK = 2;
+            }
+            required SBDType sbd_type = 2;
+            message RockBLOCKParams
+            {
+                required string username = 1;
+                required string password = 2;
+            }
+            optional RockBLOCKParams rockblock = 3;
+        }
+        optional IridiumSBD iridium_sbd = 1;
+    }
+    optional Communications comms = 9;
+
 }

@@ -5,7 +5,6 @@ export function getArcGISSatelliteImageryLayer() {
     return new TileLayer({
         properties: {
             title: "ArcGIS Satellite Imagery",
-            type: "base",
         },
         zIndex: 1,
         source: new SourceXYZ({
@@ -14,5 +13,6 @@ export function getArcGISSatelliteImageryLayer() {
                 "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community, ESRI",
             attributionsCollapsible: false,
         }),
+        visible: false,
     });
 }

@@ -22,19 +22,6 @@ message Config
     optional bool ipv6 = 4 [default = false];
 
     repeated uint32 additional_application_ack_modem_id = 21;
-
-    // Jaia additions
-    optional int32 hub_id = 30
-        [(goby.field).description =
-             "If this node is a hub, set its hub_id here."];
-    required uint32 subnet_mask = 31;
-
-    message HubEndPoints
-    {
-        required int32 hub_id = 1;
-        required EndPoint remote = 2;
-    }
-    repeated HubEndPoints hub_endpoint = 32;
 }
 
 extend goby.acomms.protobuf.DriverConfig
