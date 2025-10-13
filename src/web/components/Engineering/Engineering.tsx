@@ -1,22 +1,11 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
-import Bot from "../../data/bots/bot";
 import { JaiaContext } from "../../context/JaiaContext";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
 import "../../style/stylesheets/engineering.less";
 
-interface BotRequirementsSectionProps {
-    visibleBotRequirements: number[];
-    bots: Map<Number, Bot>;
-}
-
-interface PIDTableProps {
-    visibleBotRequirements: number[];
-    engineering: Engineering;
-}
-
-interface BotRequirementsTableProps {
+interface Props {
     engineering: Engineering;
 }
 
@@ -49,7 +38,6 @@ const pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
 export default function Engineering() {
     const jaiaContext = useContext(JaiaContext);
     const [selectedBotID, setSelectedBotID] = useState("");
-    const [visibleBotRequirements, setVisibleBotRequirements] = useState([]);
 
     /**
      * Updates state with the selected Bot ID
@@ -79,24 +67,6 @@ export default function Engineering() {
         };
 
         const res = await jaiaAPI.postEngineering(engineeringCommand);
-        if (res && res.status === "ok") {
-            if (!visibleBotRequirements.includes(botID)) {
-                const updatedVisibleBotRequirements = visibleBotRequirements.concat(botID);
-                updatedVisibleBotRequirements.sort((a, b) => a - b);
-                setVisibleBotRequirements(updatedVisibleBotRequirements);
-            }
-        }
-    };
-
-    /**
-     * Loops through all connected Bots querying for engineering status
-     *
-     * @returns {void}
-     */
-    const handleQueryAllStatusesClick = async () => {
-        for (const botID of jaiaContext.bots.keys()) {
-            const res = await handleQuerySelectedStatusClick(botID);
-        }
     };
 
     /**
@@ -106,6 +76,11 @@ export default function Engineering() {
      * @returns {void}
      */
     const handleUpdateSelectedBotClick = (botID: number) => {
+        // Prevents new configs from being sent without input elements visible
+        if (!botID || !document.getElementById(EngineeringInputs.BOT_STATUS_RATE)) {
+            return;
+        }
+
         const engineeringUpdate: Engineering = {
             bot_id: botID,
             bot_status_rate:
@@ -138,6 +113,7 @@ export default function Engineering() {
                     getEngineeringInputValue(EngineeringInputs.RF_DISABLE_TIMEOUT),
                 ),
             },
+            pid_control: packagePIDValues(),
         };
         jaiaAPI.takeControl().then(() => jaiaAPI.postEngineeringPanel(engineeringUpdate));
     };
@@ -154,11 +130,11 @@ export default function Engineering() {
     };
 
     /**
-     * Submits the updated PID values to the selected Bot
+     * Takes the PID input values and formats them into the PIDControl message
      *
-     * @returns {void}
+     * @returns {PIDControl} PID values formatted for the engineering command message
      */
-    const handleChangeGainsClick = () => {
+    const packagePIDValues = () => {
         const pidControl: PIDControl = {};
         for (const pidType of pidTypes) {
             const pidSettings: PIDSettings = {};
@@ -168,29 +144,7 @@ export default function Engineering() {
             }
             (pidControl[pidType] as PIDSettings) = pidSettings;
         }
-
-        const engineeringCommand: Engineering = {
-            bot_id: Number(selectedBotID),
-            pid_control: pidControl,
-        };
-
-        jaiaAPI.takeControl().then(() => jaiaAPI.postEngineeringPanel(engineeringCommand));
-    };
-
-    /**
-     * Queries the provided Bot for engineering data. If no Bot ID is
-     * provided, the first Bot's data will be returned.
-     *
-     * @param {number} botID Which Bot to query for engineering data
-     * @returns {Engineering} Engineering status for provided Bot or the first Bot
-     */
-    const getEngineeringData = (botID?: number) => {
-        if (botID) {
-            return jaiaContext.bots.get(botID).getEngineering();
-        }
-
-        const firstBotID = jaiaContext.bots.keys().next().value;
-        return jaiaContext.bots.get(firstBotID).getEngineering();
+        return pidControl;
     };
 
     /**
@@ -201,6 +155,11 @@ export default function Engineering() {
      */
     const getEngineeringInputValue = (inputID: EngineeringInputs) => {
         const input = document.getElementById(inputID) as HTMLInputElement;
+
+        if (!input) {
+            return "";
+        }
+
         return input.value;
     };
 
@@ -230,20 +189,12 @@ export default function Engineering() {
             >
                 Query Selected Status
             </button>
-            <BotRequirementsSection
-                visibleBotRequirements={visibleBotRequirements}
-                bots={jaiaContext.bots}
+            <BotRequirementsTable
+                engineering={jaiaContext.bots.get(Number(selectedBotID))?.getEngineering()}
             />
-            <button className="engineering-button" onClick={() => handleQueryAllStatusesClick()}>
-                Query All Statuses
-            </button>
             <PIDGainsTable
-                visibleBotRequirements={visibleBotRequirements}
-                engineering={getEngineeringData(Number(selectedBotID))}
+                engineering={jaiaContext.bots.get(Number(selectedBotID))?.getEngineering()}
             />
-            <button className="engineering-button" onClick={() => handleChangeGainsClick()}>
-                Chain Gains
-            </button>
             <button
                 className="engineering-button"
                 onClick={() => handleUpdateSelectedBotClick(Number(selectedBotID))}
@@ -258,28 +209,9 @@ export default function Engineering() {
 }
 
 /**
- * Contains the BotRequirementsTables for the queried Bots
- */
-function BotRequirementsSection(props: BotRequirementsSectionProps) {
-    if (props.visibleBotRequirements.length === 0) {
-        return;
-    }
-
-    return (
-        <div>
-            {props.visibleBotRequirements.map((botID) => {
-                return (
-                    <BotRequirementsTable engineering={props.bots.get(botID).getEngineering()} />
-                );
-            })}
-        </div>
-    );
-}
-
-/**
  * Generates the table to allow an operator to update low-level engineering configs
  */
-function BotRequirementsTable(props: BotRequirementsTableProps) {
+function BotRequirementsTable(props: Props) {
     /**
      * Creates a map of option elements for the menu of BotStatus update rates
      *
@@ -469,8 +401,8 @@ function BotRequirementsTable(props: BotRequirementsTableProps) {
 /**
  * Generates the table to allow an operator to update PID values
  */
-function PIDGainsTable(props: PIDTableProps) {
-    if (props.visibleBotRequirements.length === 0 || !props.engineering) {
+function PIDGainsTable(props: Props) {
+    if (!props.engineering) {
         return;
     }
 
