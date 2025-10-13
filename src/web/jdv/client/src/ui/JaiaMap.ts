@@ -357,7 +357,9 @@ export default class JaiaMap {
     setMapDict(botIdToMapSeries: { [key: string]: number[][] }) {
         this.timeRange = null;
         this.botIdToMapSeries = botIdToMapSeries;
+        this.timestamp = null;
         this.updatePath();
+        this.updateBotMarkers();
     }
 
     /**
@@ -386,6 +388,8 @@ export default class JaiaMap {
 
     updatePath() {
         let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER];
+        this.tMin = null;
+        this.tMax = null;
 
         // OpenLayers
         this.botPathVectorSource.clear();

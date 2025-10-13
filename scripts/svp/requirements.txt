@@ -1,0 +1,5 @@
+gsw
+numpy
+pandas
+scipy
+h5py
