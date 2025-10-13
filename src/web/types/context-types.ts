@@ -156,6 +156,7 @@ export const enum ButtonNames {
     MISSIONS_PANEL = "missions_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",
+    SURVEY_TOOL = "survey_tool",
     START_ALL_MISSIONS = "start_all_missions",
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",

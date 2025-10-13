@@ -74,6 +74,14 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
                 mapMode = MapModes.MEASURE;
                 visiblePanel = action.buttonName;
             }
+
+            if (
+                action.buttonName === ButtonNames.SURVEY_TOOL &&
+                mutableState.visiblePanel !== action.buttonName
+            ) {
+                mapMode = MapModes.SURVEY;
+                visiblePanel = action.buttonName;
+            }
             break;
         case ButtonTypes.PANEL:
             if (mutableState.visiblePanel !== action.buttonName) {
