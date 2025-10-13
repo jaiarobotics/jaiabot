@@ -401,7 +401,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     }
 
     // Adjust rudder to help stabilize roll
-    if (_rudder_is_using_pid_ && !bot_rolled_over_)
+    if (_rudder_is_using_pid_)
     { 
         if (actual_roll_ > target_roll_ + 180.0)
         {
@@ -497,7 +497,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     control_surfaces.set_timeout(static_cast<goby::time::SITime>(timeout_).value());
     control_surfaces.set_port_elevator(port_elevator_);
     control_surfaces.set_stbd_elevator(stbd_elevator_);
-    control_surfaces.set_rudder(std::min(std::max(rudder_ + rudder_delta_, -100.0), 100.0));
+    control_surfaces.set_rudder(std::min(std::max(rudder_ + rudder_delta_, -100.0f), 100.0f));
     control_surfaces.set_motor(throttle_);
     control_surfaces.set_led_switch_on(led_switch_on);
 
@@ -633,6 +633,25 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
             glog.is_verbose() && glog << "heading_ tune: " << heading.kp() << std::endl;
         }
     }
+
+    // Rudder Roll Stabilization
+    if (command.has_rudder_roll_stabilization())
+    {
+        auto rudder_roll_stabilization = command.rudder_roll_stabilization();
+
+        if (rudder_roll_stabilization.has_target())
+        {
+            toggleRudderPid(true);
+            target_heading_ = rudder_roll_stabilization.target();
+        }
+
+        if (rudder_roll_stabilization.has_kp())
+        {
+            rudder_roll_stabilization_pid_->tune(rudder_roll_stabilization.kp(), rudder_roll_stabilization.ki(), rudder_roll_stabilization.kd());
+            glog.is_verbose() && glog << "rudder_roll_stabilization_pid_ tune: " << rudder_roll_stabilization.kp() << std::endl;
+        }
+    }
+    
     // Heading Constant
     if (command.has_heading_constant())
     {
