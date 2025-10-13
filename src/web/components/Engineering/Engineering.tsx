@@ -419,7 +419,7 @@ function PIDGainsTable(props: Props) {
             <tbody>
                 {pidTypes.map((pidType) => {
                     return (
-                        <tr>
+                        <tr key={pidType}>
                             <td>{pidType}</td>
                             {pidGains.map((pidGain) => {
                                 const pidTypeGain = pidType + "-" + pidGain;
@@ -427,7 +427,7 @@ function PIDGainsTable(props: Props) {
                                     pidType
                                 ] as PIDSettings;
                                 return (
-                                    <td>
+                                    <td key={pidGain}>
                                         <input
                                             id={pidTypeGain}
                                             defaultValue={pidSettings?.[pidGain] ?? "-"}
