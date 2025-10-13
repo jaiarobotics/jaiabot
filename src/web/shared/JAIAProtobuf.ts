@@ -1116,6 +1116,7 @@ export interface PIDControl {
     depth?: PIDSettings;
     led_switch_on?: boolean;
     heading_constant?: PIDSettings;
+    rudder_roll_stabilization?: PIDSettings;
 }
 
 export enum BotStatusRate {

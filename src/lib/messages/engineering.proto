@@ -61,6 +61,8 @@ message PIDControl {
     optional bool led_switch_on = 13;
 
     optional PIDSettings heading_constant = 14;
+
+    optional PIDSettings rudder_roll_stabilization = 15;
 }
 
 enum BotStatusRate

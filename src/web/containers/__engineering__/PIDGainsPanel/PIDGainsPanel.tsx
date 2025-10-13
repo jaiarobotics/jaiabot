@@ -25,6 +25,7 @@ let pidTypes: (keyof PIDControl)[] = [
     "pitch",
     "depth",
     "heading_constant",
+    "rudder_roll_stabilization",
 ];
 let pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
 

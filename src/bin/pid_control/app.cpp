@@ -42,6 +42,7 @@ namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
 bool led_switch_on = true;
+float DEG_TO_RAD = M_PI / 180.0;
 
 int main(int argc, char* argv[])
 {
@@ -125,6 +126,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     throttle_depth_pid_->set_direction(E_PID_REVERSE);
     throttle_depth_pid_->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BUOYANCY);
 
+    // Rudder PID to adjust heading
     if (cfg().has_heading_pid_gains())
     {
         auto& gains = cfg().heading_pid_gains();
@@ -137,6 +139,19 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     heading_pid_->set_limits(-100.0, 100.0);
     heading_pid_->set_auto();
+
+    // Rudder PID to help stabilize roll
+    if (cfg().has_rudder_roll_stabilization_pid_gains())
+    {
+        auto& gains = cfg().rudder_roll_stabilization_pid_gains();
+        rudder_roll_stabilization_pid_ = new Pid(&actual_roll_, &rudder_delta_, &target_roll_, gains.kp(), gains.ki(), gains.kd());
+    }
+    else
+    {
+        rudder_roll_stabilization_pid_ = new Pid(&actual_roll_, &rudder_delta_, &target_roll_, 0.7, 0.005, 0.2);
+    }
+    rudder_roll_stabilization_pid_->set_limits(-10.0, 10.0); // TODO: Limits may need tuning, but starting low just to be safe
+    rudder_roll_stabilization_pid_->set_auto();
 
     if (cfg().has_heading_constant_pid_gains())
     {
@@ -297,7 +312,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
                 }
                 else
                 {
-                    speed_multiplier = cos(heading_error_deg * M_PI / 180.0);
+                    speed_multiplier = cos(heading_error_deg * DEG_TO_RAD);
                 }
             }
             else
@@ -385,6 +400,39 @@ void jaiabot::apps::BotPidControl::publish_low_control()
                                  << ", is_heading_constant = " << is_heading_constant_ << std::endl;
     }
 
+    // Adjust rudder to help stabilize roll
+    if (_rudder_is_using_pid_ && !bot_rolled_over_)
+    { 
+        if (actual_roll_ > target_roll_ + 180.0)
+        {
+            actual_roll_ -= 360.0;
+        }
+        if (actual_roll_ < target_roll_ - 180.0)
+        {
+            actual_roll_ += 360.0;
+        }
+
+        if (actual_heading_ > target_heading_ + 180.0)
+        {
+            actual_heading_ -= 360.0;
+        }
+        if (actual_heading_ < target_heading_ - 180.0)
+        {
+            actual_heading_ += 360.0;
+        }
+
+        if (!is_heading_constant_)
+        {
+            if (rudder_roll_stabilization_pid_->need_compute())
+            {
+                rudder_roll_stabilization_pid_->compute();
+            }
+        }
+
+        glog.is_debug2() && glog << group("main") << ", rudder_delta = " << rudder_delta_
+                                 << ", total rudder = " << rudder_ + rudder_delta_ << std::endl;
+    }
+    
     // Roll/Pitch PID
     if (_elevator_is_using_pid_)
     {
@@ -449,7 +497,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     control_surfaces.set_timeout(static_cast<goby::time::SITime>(timeout_).value());
     control_surfaces.set_port_elevator(port_elevator_);
     control_surfaces.set_stbd_elevator(stbd_elevator_);
-    control_surfaces.set_rudder(rudder_);
+    control_surfaces.set_rudder(std::min(std::max(rudder_ + rudder_delta_, -100.0), 100.0));
     control_surfaces.set_motor(throttle_);
     control_surfaces.set_led_switch_on(led_switch_on);
 
@@ -485,6 +533,10 @@ void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled,
     if (enabled != _rudder_is_using_pid_)
     {
         heading_pid_->reset_iterm();
+        if (rudder_roll_stabilization_pid_)
+        {
+            rudder_roll_stabilization_pid_->reset_iterm();
+        }
     }
     _rudder_is_using_pid_ = enabled;
     is_heading_constant_ = is_heading_constant;
@@ -801,6 +853,7 @@ void jaiabot::apps::BotPidControl::publish_engineering_status()
     copy_pid(throttle_speed_pid_, pid_control_status.mutable_speed());
     copy_pid(throttle_depth_pid_, pid_control_status.mutable_depth());
     copy_pid(heading_pid_, pid_control_status.mutable_heading());
+    copy_pid(rudder_roll_stabilization_pid_, pid_control_status.mutable_rudder_roll_stabilization());
     copy_pid(pitch_pid_, pid_control_status.mutable_pitch());
     copy_pid(roll_pid_, pid_control_status.mutable_roll());
     copy_pid(heading_constant_pid_, pid_control_status.mutable_heading_constant());
