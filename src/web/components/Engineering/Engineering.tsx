@@ -11,7 +11,12 @@ interface BotRequirementsSectionProps {
     bots: Map<Number, Bot>;
 }
 
-interface Props {
+interface PIDTableProps {
+    visibleBotRequirements: number[];
+    engineering: Engineering;
+}
+
+interface BotRequirementsTableProps {
     engineering: Engineering;
 }
 
@@ -214,7 +219,10 @@ export default function Engineering() {
             <button className="engineering-button" onClick={() => handleQueryAllStatusesClick()}>
                 Query All Statuses
             </button>
-            <PIDGainsTable engineering={getEngineeringData(Number(selectedBotID))} />
+            <PIDGainsTable
+                visibleBotRequirements={visibleBotRequirements}
+                engineering={getEngineeringData(Number(selectedBotID))}
+            />
             <button className="engineering-button" onClick={() => handleChangeGainsClick()}>
                 Chain Gains
             </button>
@@ -253,7 +261,7 @@ function BotRequirementsSection(props: BotRequirementsSectionProps) {
 /**
  * Generates the table to allow an operator to update low-level engineering configs
  */
-function BotRequirementsTable(props: Props) {
+function BotRequirementsTable(props: BotRequirementsTableProps) {
     /**
      * Creates a map of option elements for the menu of BotStatus update rates
      *
@@ -276,171 +284,161 @@ function BotRequirementsTable(props: Props) {
     }
 
     return (
-        <div>
-            <h3>Requirments</h3>
-            <table>
-                <tbody>
-                    <tr>
-                        <td>Current Status Rate</td>
-                        <td>{props.engineering.bot_status_rate ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current RF Disable Time Mins</td>
-                        <td>
-                            {props.engineering.rf_disable_options.rf_disable_timeout_mins ?? "-"}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Current Transit HDOP</td>
-                        <td>{props.engineering.gps_requirements.transit_hdop_req ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current Transit PDOP</td>
-                        <td>{props.engineering.gps_requirements.transit_pdop_req ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current After Dive HDOP</td>
-                        <td>{props.engineering.gps_requirements.after_dive_hdop_req ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current After Dive PDOP</td>
-                        <td>{props.engineering.gps_requirements.after_dive_pdop_req ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current Transit GPS Checks</td>
-                        <td>{props.engineering.gps_requirements.transit_gps_fix_checks ?? "-"}</td>
-                    </tr>
-                    <tr>
-                        <td>Current Degraded GPS Checks</td>
-                        <td>
-                            {props.engineering.gps_requirements.transit_gps_degraded_fix_checks ??
-                                "-"}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Current After Dive GPS Checks</td>
-                        <td>
-                            {props.engineering.gps_requirements.after_dive_gps_fix_checks ?? "-"}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update Status Rate</td>
-                        <td>
-                            <select id={EngineeringInputs.BOT_STATUS_RATE}>
-                                {formatBotStatusRates()}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update RF Disable Time Mins</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.RF_DISABLE_TIMEOUT}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.rf_disable_options.rf_disable_timeout_mins ??
-                                    "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update Transit HDOP</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.TRANSIT_HDOP_REQ}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.transit_hdop_req ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update Transit PDOP</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.TRANSIT_PDOP_REQ}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.transit_pdop_req ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update After Dive HDOP</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.AFTER_DIVE_HDOP_REQ}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.after_dive_hdop_req ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update After Dive PDOP</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.AFTER_DIVE_PDOP_REQ}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.after_dive_pdop_req ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update Transit GPS Checks</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.TRANSIT_GPS_FIX_CHECKS}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.transit_gps_fix_checks ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update Degraded GPS Checks</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements
-                                        .transit_gps_degraded_fix_checks ?? "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Update After Dive GPS Checks</td>
-                        <td>
-                            <input
-                                id={EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS}
-                                type="number"
-                                defaultValue={
-                                    props.engineering.gps_requirements.after_dive_gps_fix_checks ??
-                                    "-"
-                                }
-                            />
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Current Status Rate</td>
+                    <td>{props.engineering.bot_status_rate ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current RF Disable Time Mins</td>
+                    <td>{props.engineering.rf_disable_options.rf_disable_timeout_mins ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current Transit HDOP</td>
+                    <td>{props.engineering.gps_requirements.transit_hdop_req ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current Transit PDOP</td>
+                    <td>{props.engineering.gps_requirements.transit_pdop_req ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current After Dive HDOP</td>
+                    <td>{props.engineering.gps_requirements.after_dive_hdop_req ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current After Dive PDOP</td>
+                    <td>{props.engineering.gps_requirements.after_dive_pdop_req ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current Transit GPS Checks</td>
+                    <td>{props.engineering.gps_requirements.transit_gps_fix_checks ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Current Degraded GPS Checks</td>
+                    <td>
+                        {props.engineering.gps_requirements.transit_gps_degraded_fix_checks ?? "-"}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Current After Dive GPS Checks</td>
+                    <td>{props.engineering.gps_requirements.after_dive_gps_fix_checks ?? "-"}</td>
+                </tr>
+                <tr>
+                    <td>Update Status Rate</td>
+                    <td>
+                        <select id={EngineeringInputs.BOT_STATUS_RATE}>
+                            {formatBotStatusRates()}
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update RF Disable Time Mins</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.RF_DISABLE_TIMEOUT}
+                            type="number"
+                            defaultValue={
+                                props.engineering.rf_disable_options.rf_disable_timeout_mins ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update Transit HDOP</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.TRANSIT_HDOP_REQ}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.transit_hdop_req ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update Transit PDOP</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.TRANSIT_PDOP_REQ}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.transit_pdop_req ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update After Dive HDOP</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.AFTER_DIVE_HDOP_REQ}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.after_dive_hdop_req ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update After Dive PDOP</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.AFTER_DIVE_PDOP_REQ}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.after_dive_pdop_req ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update Transit GPS Checks</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.TRANSIT_GPS_FIX_CHECKS}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.transit_gps_fix_checks ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update Degraded GPS Checks</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements
+                                    .transit_gps_degraded_fix_checks ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update After Dive GPS Checks</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS}
+                            type="number"
+                            defaultValue={
+                                props.engineering.gps_requirements.after_dive_gps_fix_checks ?? "-"
+                            }
+                        />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     );
 }
 
 /**
  * Generates the table to allow an operator to update PID values
  */
-function PIDGainsTable(props: Props) {
-    if (!props.engineering) {
+function PIDGainsTable(props: PIDTableProps) {
+    if (props.visibleBotRequirements.length === 0 || !props.engineering) {
         return;
     }
 
