@@ -23,7 +23,7 @@ export default function SettingsPanel() {
 
     useEffect(() => {
         addDropdownListener("accordion-container", "settings-accordions-container");
-    });
+    }, []);
 
     /**
      * Switches the track pod functionality on/off based on the toggle state
@@ -70,7 +70,7 @@ export default function SettingsPanel() {
                         </AccordionDetails>
                     </Accordion>
 
-                    <Accordion className="accordion-container">
+                    <Accordion className="accordion-container-engineering">
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
                             className="accordion-summary"

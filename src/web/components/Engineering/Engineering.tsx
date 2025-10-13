@@ -201,16 +201,16 @@ export default function Engineering() {
                     </Select>
                 </FormControl>
             </div>
-            <BotRequirementsSection
-                visibleBotRequirements={visibleBotRequirements}
-                bots={jaiaContext.bots}
-            />
             <button
                 className="engineering-button"
                 onClick={() => handleQuerySelectedStatusClick(Number(selectedBotID))}
             >
                 Query Selected Status
             </button>
+            <BotRequirementsSection
+                visibleBotRequirements={visibleBotRequirements}
+                bots={jaiaContext.bots}
+            />
             <button className="engineering-button" onClick={() => handleQueryAllStatusesClick()}>
                 Query All Statuses
             </button>
@@ -218,7 +218,6 @@ export default function Engineering() {
             <button className="engineering-button" onClick={() => handleChangeGainsClick()}>
                 Chain Gains
             </button>
-            <BotRequirementsTable engineering={getEngineeringData(Number(selectedBotID))} />
             <button
                 className="engineering-button"
                 onClick={() => handleUpdateSelectedBotClick(Number(selectedBotID))}
