@@ -313,10 +313,10 @@ struct MissionManagerStateMachine
         {
             // use recovery location for datum
             auto lat_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
+                                  ? plan.goal(0).location().lat_with_units()
                                   : plan.recovery().location().lat_with_units();
             auto lon_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
+                                  ? plan.goal(0).location().lon_with_units()
                                   : plan.recovery().location().lon_with_units();
 
             // set the local datum origin to the first goal
