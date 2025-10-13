@@ -68,10 +68,16 @@ export default function Engineering() {
      * @returns {void}
      */
     const handleQuerySelectedStatusClick = async (botID: number) => {
+        const takeControl = await jaiaAPI.takeControl();
+        if (!takeControl) {
+            return;
+        }
+
         const engineeringCommand: Engineering = {
             bot_id: botID,
             query_engineering_status: true,
         };
+
         const res = await jaiaAPI.postEngineering(engineeringCommand);
         if (res && res.status === "ok") {
             if (!visibleBotRequirements.includes(botID)) {
@@ -103,37 +109,37 @@ export default function Engineering() {
         const engineeringUpdate: Engineering = {
             bot_id: botID,
             bot_status_rate:
-                `BotStatusRate_${document.getElementById(EngineeringInputs.BOT_STATUS_RATE)}` as BotStatusRate,
+                `BotStatusRate_${getEngineeringInputValue(EngineeringInputs.BOT_STATUS_RATE)}` as BotStatusRate,
             gps_requirements: {
                 transit_hdop_req: Number(
-                    document.getElementById(EngineeringInputs.TRANSIT_HDOP_REQ),
+                    getEngineeringInputValue(EngineeringInputs.TRANSIT_HDOP_REQ),
                 ),
                 transit_pdop_req: Number(
-                    document.getElementById(EngineeringInputs.TRANSIT_PDOP_REQ),
+                    getEngineeringInputValue(EngineeringInputs.TRANSIT_PDOP_REQ),
                 ),
                 after_dive_hdop_req: Number(
-                    document.getElementById(EngineeringInputs.AFTER_DIVE_HDOP_REQ),
+                    getEngineeringInputValue(EngineeringInputs.AFTER_DIVE_HDOP_REQ),
                 ),
                 after_dive_pdop_req: Number(
-                    document.getElementById(EngineeringInputs.AFTER_DIVE_PDOP_REQ),
+                    getEngineeringInputValue(EngineeringInputs.AFTER_DIVE_PDOP_REQ),
                 ),
                 transit_gps_fix_checks: Number(
-                    document.getElementById(EngineeringInputs.TRANSIT_GPS_FIX_CHECKS),
+                    getEngineeringInputValue(EngineeringInputs.TRANSIT_GPS_FIX_CHECKS),
                 ),
                 transit_gps_degraded_fix_checks: Number(
-                    document.getElementById(EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS),
+                    getEngineeringInputValue(EngineeringInputs.TRANSIT_GPS_DEGRADED_FIX_CHECKS),
                 ),
                 after_dive_gps_fix_checks: Number(
-                    document.getElementById(EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS),
+                    getEngineeringInputValue(EngineeringInputs.AFTER_DIVE_GPS_FIX_CHECKS),
                 ),
             },
             rf_disable_options: {
                 rf_disable_timeout_mins: Number(
-                    document.getElementById(EngineeringInputs.RF_DISABLE_TIMEOUT),
+                    getEngineeringInputValue(EngineeringInputs.RF_DISABLE_TIMEOUT),
                 ),
             },
         };
-        jaiaAPI.postEngineeringPanel(engineeringUpdate);
+        jaiaAPI.takeControl().then(() => jaiaAPI.postEngineeringPanel(engineeringUpdate));
     };
 
     /**
@@ -157,7 +163,8 @@ export default function Engineering() {
         for (const pidType of pidTypes) {
             const pidSettings: PIDSettings = {};
             for (const pidGain of pidGains) {
-                pidSettings[pidGain] = Number(document.getElementById(`${pidType}_${pidGain}`));
+                const input = document.getElementById(`${pidType}-${pidGain}`) as HTMLInputElement;
+                pidSettings[pidGain] = Number(input.value);
             }
             (pidControl[pidType] as PIDSettings) = pidSettings;
         }
@@ -167,7 +174,7 @@ export default function Engineering() {
             pid_control: pidControl,
         };
 
-        jaiaAPI.postEngineeringPanel(engineeringCommand);
+        jaiaAPI.takeControl().then(() => jaiaAPI.postEngineeringPanel(engineeringCommand));
     };
 
     /**
@@ -184,6 +191,17 @@ export default function Engineering() {
 
         const firstBotID = jaiaContext.bots.keys().next().value;
         return jaiaContext.bots.get(firstBotID).getEngineering();
+    };
+
+    /**
+     * Looks up an input element by ID and returns its value
+     *
+     * @param {EngineeringInputs} inputID Which input element to retrieve
+     * @returns {string} The value of the input element
+     */
+    const getEngineeringInputValue = (inputID: EngineeringInputs) => {
+        const input = document.getElementById(inputID) as HTMLInputElement;
+        return input.value;
     };
 
     return (
@@ -267,16 +285,30 @@ function BotRequirementsTable(props: BotRequirementsTableProps) {
      *
      * @returns {HTMLElement[]} Dropdown options for the BotStatus update rate
      */
-    const formatBotStatusRates = () => {
+    const generateBotStatusRateOptions = () => {
         return Object.keys(BotStatusRate).map((rate, index) => {
-            const splitRate = rate.split("_");
-            const displayRate = splitRate[1] + "_" + splitRate[2];
+            const displayRate = formatBotStatusRate(rate);
             return (
-                <option value={index} key={index}>
+                <option value={displayRate} key={index}>
                     {displayRate}
                 </option>
             );
         });
+    };
+
+    /**
+     * Parses the BotStatusRate into its numerical value and units
+     *
+     * @param {string} rate BotStatusRate value
+     * @returns {string} The numerical value and units of the status rate
+     */
+    const formatBotStatusRate = (rate: string) => {
+        if (!rate) {
+            return "-";
+        }
+
+        const splitRate = rate.split("_");
+        return splitRate[1] + "_" + splitRate[2];
     };
 
     if (!props.engineering) {
@@ -288,7 +320,7 @@ function BotRequirementsTable(props: BotRequirementsTableProps) {
             <tbody>
                 <tr>
                     <td>Current Status Rate</td>
-                    <td>{props.engineering.bot_status_rate ?? "-"}</td>
+                    <td>{formatBotStatusRate(props.engineering.bot_status_rate)}</td>
                 </tr>
                 <tr>
                     <td>Current RF Disable Time Mins</td>
@@ -328,7 +360,7 @@ function BotRequirementsTable(props: BotRequirementsTableProps) {
                     <td>Update Status Rate</td>
                     <td>
                         <select id={EngineeringInputs.BOT_STATUS_RATE}>
-                            {formatBotStatusRates()}
+                            {generateBotStatusRateOptions()}
                         </select>
                     </td>
                 </tr>
