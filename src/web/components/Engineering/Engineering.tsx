@@ -2,8 +2,8 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import Bot from "../../data/bots/bot";
 import { JaiaContext } from "../../context/JaiaContext";
-import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
 import "../../style/stylesheets/engineering.less";
 
 interface BotRequirementsSectionProps {
@@ -11,11 +11,7 @@ interface BotRequirementsSectionProps {
     bots: Map<Number, Bot>;
 }
 
-interface BotRequirmentsTableProps {
-    engineering: Engineering;
-}
-
-interface PIDGainsProps {
+interface Props {
     engineering: Engineering;
 }
 
@@ -42,6 +38,9 @@ const pidTypes: (keyof PIDControl)[] = [
 
 const pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
 
+/**
+ * Produces the engineering section in the JCC to update low-level controls
+ */
 export default function Engineering() {
     const jaiaContext = useContext(JaiaContext);
     const [selectedBotID, setSelectedBotID] = useState("");
@@ -57,6 +56,12 @@ export default function Engineering() {
         setSelectedBotID(evt.target.value);
     };
 
+    /**
+     * Submits command to query engineering status
+     *
+     * @param {number} botID Bot of interest
+     * @returns {void}
+     */
     const handleQuerySelectedStatusClick = async (botID: number) => {
         const engineeringCommand: Engineering = {
             bot_id: botID,
@@ -72,12 +77,23 @@ export default function Engineering() {
         }
     };
 
+    /**
+     * Loops through all connected Bots querying for engineering status
+     *
+     * @returns {void}
+     */
     const handleQueryAllStatusesClick = async () => {
         for (const botID of jaiaContext.bots.keys()) {
             const res = await handleQuerySelectedStatusClick(botID);
         }
     };
 
+    /**
+     * Submits an updated engineering configuration for the provided Bot
+     *
+     * @param {number} botID Which Bot to configure
+     * @returns {void}
+     */
     const handleUpdateSelectedBotClick = (botID: number) => {
         const engineeringUpdate: Engineering = {
             bot_id: botID,
@@ -115,12 +131,22 @@ export default function Engineering() {
         jaiaAPI.postEngineeringPanel(engineeringUpdate);
     };
 
+    /**
+     * Loops through all connected Bots submitting engineering configuration
+     *
+     * @returns {void}
+     */
     const handleUpdateAllBotsClick = () => {
         for (const botID of jaiaContext.bots.keys()) {
             handleUpdateSelectedBotClick(botID);
         }
     };
 
+    /**
+     * Submits the updated PID values to the selected Bot
+     *
+     * @returns {void}
+     */
     const handleChangeGainsClick = () => {
         const pidControl: PIDControl = {};
         for (const pidType of pidTypes) {
@@ -139,6 +165,13 @@ export default function Engineering() {
         jaiaAPI.postEngineeringPanel(engineeringCommand);
     };
 
+    /**
+     * Queries the provided Bot for engineering data. If no Bot ID is
+     * provided, the first Bot's data will be returned.
+     *
+     * @param {number} botID Which Bot to query for engineering data
+     * @returns {Engineering} Engineering status for provided Bot or the first Bot
+     */
     const getEngineeringData = (botID?: number) => {
         if (botID) {
             return jaiaContext.bots.get(botID).getEngineering();
@@ -199,6 +232,9 @@ export default function Engineering() {
     );
 }
 
+/**
+ * Contains the BotRequirementsTables for the queried Bots
+ */
 function BotRequirementsSection(props: BotRequirementsSectionProps) {
     if (props.visibleBotRequirements.length === 0) {
         return;
@@ -215,7 +251,15 @@ function BotRequirementsSection(props: BotRequirementsSectionProps) {
     );
 }
 
-function BotRequirementsTable(props: BotRequirmentsTableProps) {
+/**
+ * Generates the table to allow an operator to update low-level engineering configs
+ */
+function BotRequirementsTable(props: Props) {
+    /**
+     * Creates a map of option elements for the menu of BotStatus update rates
+     *
+     * @returns {HTMLElement[]} Dropdown options for the BotStatus update rate
+     */
     const formatBotStatusRates = () => {
         return Object.keys(BotStatusRate).map((rate, index) => {
             const splitRate = rate.split("_");
@@ -393,7 +437,10 @@ function BotRequirementsTable(props: BotRequirmentsTableProps) {
     );
 }
 
-function PIDGainsTable(props: PIDGainsProps) {
+/**
+ * Generates the table to allow an operator to update PID values
+ */
+function PIDGainsTable(props: Props) {
     if (!props.engineering) {
         return;
     }
