@@ -150,8 +150,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     {
         rudder_roll_stabilization_pid_ = new Pid(&actual_roll_, &rudder_delta_, &target_roll_, 0.7, 0.005, 0.2);
     }
-    rudder_roll_stabilization_pid_->set_limits(-10.0, 10.0); // TODO: Limits may need tuning, but starting low just to be safe
     rudder_roll_stabilization_pid_->set_auto();
+    rudder_roll_stabilization_pid_->set_direction(E_PID_REVERSE);
+    rudder_roll_stabilization_pid_->set_limits(-35.0, 35.0); // TODO: Limits may need tuning, but starting low just to be safe
+    
 
     if (cfg().has_heading_constant_pid_gains())
     {
