@@ -313,10 +313,10 @@ struct MissionManagerStateMachine
         {
             // use recovery location for datum
             auto lat_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
+                                  ? plan.goal(0).location().lat_with_units()
                                   : plan.recovery().location().lat_with_units();
             auto lon_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
+                                  ? plan.goal(0).location().lon_with_units()
                                   : plan.recovery().location().lon_with_units();
 
             // set the local datum origin to the first goal
@@ -828,8 +828,7 @@ struct InMission
                         goby::glog << group("goal")
                                    << "CONSTANT_HEADING was the last goal. Proceeding to recovery."
                                    << std::endl;
-                    set_mission_complete();
-                    goal_index_ = RECOVERY_GOAL_INDEX;
+                    set_goal_index_to_final_goal();
                 }
                 // Stop after handling the first CONSTANT_HEADING
                 return;
@@ -840,9 +839,7 @@ struct InMission
         goby::glog.is_warn() &&
             goby::glog << group("goal") << "No CONSTANT_HEADING task found from goal index "
                        << goal_index_ << " onward. Proceeding to recovery." << std::endl;
-
-        set_mission_complete();
-        goal_index_ = RECOVERY_GOAL_INDEX;
+        set_goal_index_to_final_goal();
     }
     void set_goal_index_to_recovery()
     {
@@ -859,6 +856,13 @@ struct InMission
 
     bool use_heading_constant_pid() const { return use_heading_constant_pid_; }
 
+    void set_is_echo_recording(const bool& is_echo_recording)
+    {
+        is_echo_recording_ = is_echo_recording;
+    }
+
+    bool is_echo_recording() const { return is_echo_recording_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
         boost::statechart::transition<EvRecovered, PostDeployment>,
@@ -870,6 +874,7 @@ struct InMission
     int repeat_index_{0};
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};
+    bool is_echo_recording_{false};
 };
 
 namespace inmission
@@ -1388,6 +1393,7 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
 
         if (start_echo_sensor)
         {
+            this->template context<InMission>().set_is_echo_recording(start_echo_sensor);
             // Start echo recording
             auto echo_command = EchoCommand();
             echo_command.set_type(EchoCommand::CMD_START);
@@ -1441,8 +1447,8 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
             this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-            // Is this an echo task?
-            bool stop_echo_sensor = this->template context<Task>().current_task()->start_echo();
+            // Is echo recording?
+            bool stop_echo_sensor = this->template context<InMission>().is_echo_recording();
 
             if (stop_echo_sensor)
             {

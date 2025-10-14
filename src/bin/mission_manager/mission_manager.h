@@ -10,7 +10,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 
 #include "machine_common.h"
 #include <bits/stdc++.h>
@@ -50,10 +50,11 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     double deg2rad(const double& deg);
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
-    void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
+    void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     void check_forward_progress();
     void publish_mission_report(protobuf::MissionState state);
+    void set_hub_id(int hub_id);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

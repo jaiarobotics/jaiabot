@@ -58,7 +58,6 @@
 #include <goby/util/protobuf/io.h> // for operator<<
 
 #include "jaiabot/comms/comms.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -74,9 +73,6 @@ void jaiabot::comms::UDPDriver::startup(const goby::acomms::protobuf::DriverConf
 {
     driver_cfg_ = cfg;
 
-    hub_wifi_base_modem_id_ = jaiabot::comms::hub_base_modem_id;
-    hub_wifi_modem_id_ = jaiabot::comms::hub_modem_id(config_extension().subnet_mask(),
-                                                      jaiabot::protobuf::LINK_WIFI);
 
     modem_start(driver_cfg_, false);
 
@@ -89,10 +85,7 @@ void jaiabot::comms::UDPDriver::startup(const goby::acomms::protobuf::DriverConf
 
     receivers_.clear();
     for (const auto& remote : config_extension().remote()) { update_remote(remote); }
-
-    for (const auto& hub_ep : config_extension().hub_endpoint())
-    { hub_endpoints_.insert(std::make_pair(hub_ep.hub_id(), hub_ep.remote())); }
-
+    
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
     // allow application acks for additional modem ids (for spoofing another ID)
@@ -149,12 +142,6 @@ void jaiabot::comms::UDPDriver::handle_initiate_transmission(
         msg.set_max_frame_bytes(config_extension().max_frame_size());
     signal_data_request(&msg);
 
-    if (config_extension().has_hub_id())
-    {
-        auto& hub_info = *msg.MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
-        hub_info.set_hub_id(config_extension().hub_id());
-    }
-
     glog.is(DEBUG1) && glog << group(glog_out_group())
                             << "After modification, initiating transmission with " << msg
                             << std::endl;
@@ -186,10 +173,6 @@ void jaiabot::comms::UDPDriver::receive_message(
             ack.add_acked_frame(i);
         start_send(ack);
     }
-
-    // check/set hub info
-    if (msg.GetExtension(jaiabot::protobuf::transmission).hub().has_hub_id())
-        update_active_hub(msg.GetExtension(jaiabot::protobuf::transmission).hub().hub_id(), &msg);
 
     signal_receive(msg);
 }
@@ -285,40 +268,3 @@ void jaiabot::comms::UDPDriver::report(goby::acomms::protobuf::ModemReport* repo
     report->set_link_quality(goby::acomms::protobuf::ModemReport::QUALITY_UNKNOWN);
 }
 
-void jaiabot::comms::UDPDriver::update_active_hub(int hub_id,
-                                                  goby::acomms::protobuf::ModemTransmission* msg)
-{
-    auto& hub_info = *msg->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
-    hub_info.set_hub_id(hub_id);
-    hub_info.set_modem_id(hub_wifi_modem_id_);
-
-    if (!have_active_hub_ || active_hub_id_ != hub_id)
-    {
-        glog.is_verbose() && glog << group(glog_in_group())
-                                  << "Updating active hub to hub_id: " << hub_id << std::endl;
-        hub_info.set_changed(true);
-        set_active_hub_peer(hub_id);
-    }
-}
-
-void jaiabot::comms::UDPDriver::set_active_hub_peer(int hub_id)
-{
-    active_hub_id_ = hub_id;
-    have_active_hub_ = true;
-
-    bool is_bot = !config_extension().has_hub_id();
-    if (is_bot) // for bots, swap the IP address corresponding to the new active hub
-    {
-        if (hub_endpoints_.count(hub_id))
-        {
-            update_remote(hub_endpoints_.at(hub_id), true /* clear existing */);
-            glog.is_verbose() && glog << group(glog_in_group()) << "Set hub endpoint to: "
-                                      << hub_endpoints_.at(hub_id).ShortDebugString() << std::endl;
-        }
-        else
-        {
-            glog.is_warn() && glog << group(glog_in_group())
-                                   << "No hub_endpoint configured for hub: " << hub_id << std::endl;
-        }
-    }
-}

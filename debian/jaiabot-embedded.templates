@@ -127,7 +127,7 @@ Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as he
 
 Template: jaiabot-embedded/comms_links
 Type: multiselect
-Choices: xbee, wifi
+Choices: xbee, wifi, iridium
 Default: xbee
 Description: Which comms links to activate?
 

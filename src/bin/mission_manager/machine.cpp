@@ -442,11 +442,13 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
+    boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     // Is this an echo task?
-    bool start_echo_sensor = context<Task>().current_task()->start_echo();
+    bool start_echo_sensor = current_task ? current_task->start_echo() : false;
 
     if (start_echo_sensor)
     {
+        context<InMission>().set_is_echo_recording(start_echo_sensor);
         // Start echo recording
         auto echo_command = EchoCommand();
         echo_command.set_type(EchoCommand::CMD_START);
@@ -486,8 +488,8 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-    // Is this an echo task?
-    bool stop_echo_sensor = context<Task>().current_task()->start_echo();
+    // Is echo recording?
+    bool stop_echo_sensor = context<InMission>().is_echo_recording();
 
     if (stop_echo_sensor)
     {
@@ -495,7 +497,7 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         auto echo_command = EchoCommand();
         echo_command.set_type(EchoCommand::CMD_STOP);
         this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
-    }
+    }   
 }
 
 // Task::Dive::DivePrep
