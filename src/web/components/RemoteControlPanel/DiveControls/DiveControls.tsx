@@ -10,15 +10,21 @@ export interface RCDiveParameters {
     drift_time?: number;
 }
 
-interface RCDiveProps {
+interface DiveInputsProps {
     rcDiveParameters: RCDiveParameters;
     onChange: (name: string, value: number) => void;
+}
+
+interface DiveCommandProps {
+    rcDiveParameters: RCDiveParameters;
+    botId: number;
+    handleRCDiveCommand: () => void;
 }
 
 /**
  * Creates set of inputs for RC dives
  */
-export function RCDiveControls(props: RCDiveProps) {
+export function DiveInputs(props: DiveInputsProps) {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         props.onChange?.(e.target.name, +e.target.value);
     };
@@ -76,15 +82,17 @@ export function RCDiveControls(props: RCDiveProps) {
     );
 }
 
-export const RCDiveCommand = (
-    <div className="rc-dive-control">
-        <div className="label">Send Dive Command:</div>
-        <Button
-            className={`jaia-button ${false ? "disabled" : ""}`}
-            disabled={false}
-            //onClick={() => this.handleDiveButtonClick()}
-        >
-            <Icon path={mdiPlay} title="Send Dive Command" />
-        </Button>
-    </div>
-);
+export function DiveCommand(props: DiveCommandProps) {
+    return (
+        <div className="rc-dive-control">
+            <div className="label">Send Dive Command:</div>
+            <Button
+                className={`jaia-button ${false ? "disabled" : ""}`}
+                disabled={false}
+                onClick={() => props.handleRCDiveCommand()}
+            >
+                <Icon path={mdiPlay} title="Send Dive Command" />
+            </Button>
+        </div>
+    );
+}
