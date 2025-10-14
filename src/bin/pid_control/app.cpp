@@ -288,6 +288,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
     glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
     glog.is_debug3() && glog << heading_pid_->description() << endl;
+    glog.is_debug3() && glog << rudder_roll_stabilization_pid_->description() << endl;
     glog.is_debug3() && glog << heading_constant_pid_->description() << endl;
     glog.is_debug3() && glog << roll_pid_->description() << endl;
     glog.is_debug3() && glog << pitch_pid_->description() << endl;
@@ -431,8 +432,7 @@ void jaiabot::apps::BotPidControl::publish_low_control()
             }
         }
 
-        glog.is_debug2() && glog << group("main") << ", rudder_delta = " << rudder_delta_
-                                 << ", total rudder = " << rudder_ + rudder_delta_ << std::endl;
+        glog.is_warn() && glog << "rudder_delta = " << rudder_delta_ << ", total rudder = " << rudder_ + rudder_delta_ << std::endl;
     }
     
     // Roll/Pitch PID
