@@ -9,6 +9,7 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -148,4 +149,15 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     missionLayer.updateFeatures();
     return mutableState;
+}
+
+export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
+    gridPlan.setState(action.gridPlanningState);
+    mutableState.gridPlanningState = action.gridPlanningState;
+    return mutableState;
+}
+
+export function resetGridPlan(mutableState: JaiaContextType) {
+    gridPlan.setState(GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION);
+    mutableState.gridPlanningState = GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION;
 }

@@ -14,11 +14,13 @@ import { view } from "../../openlayers/views/view";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
+
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { missionSet } from "../../data/mission_set/mission-set";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 import "./Map.less";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { UNASSIGNED_ID } from "../../utils/constants";
-import { missionSet } from "../../data/mission_set/mission-set";
 
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -43,6 +45,9 @@ export default function Map() {
                 return;
             case MapModes.MEASURE:
                 // Measurement clicks handled by measure layer (src/web/openlayers/layers)
+                return;
+            case MapModes.SURVEY_PLANNING:
+                handleSurveyPlanningClick();
                 return;
         }
 
@@ -98,6 +103,24 @@ export default function Map() {
         jaiaDispatch({
             type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    const handleSurveyPlanningClick = () => {
+        let nextState: GridPlanningStates;
+
+        switch (gridPlan.getState()) {
+            case GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION:
+                nextState = GridPlanningStates.WAITING_FOR_MISSION_END_LOCATION;
+                break;
+            case GridPlanningStates.WAITING_FOR_MISSION_END_LOCATION:
+                nextState = GridPlanningStates.WAITING_FOR_GRID_DRAWING;
+                break;
+        }
+
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_GRID_PLANNING_STATE,
+            gridPlanningState: nextState,
         });
     };
 

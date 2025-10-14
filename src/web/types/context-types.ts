@@ -1,4 +1,5 @@
 import { JaiaActions } from "../context/jaia-actions";
+import { GridPlanningStates } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
@@ -21,8 +22,8 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
-    stateHistory: HistoryBuffer<JaiaHistoryType>;
     taskPackets: TaskPacket[];
+    stateHistory: HistoryBuffer<JaiaHistoryType>;
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -36,7 +37,9 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
+
     mapMode: MapModes;
+    gridPlanningState: GridPlanningStates;
 }
 
 // Type used for actions dispatched to the context provider
@@ -66,6 +69,7 @@ export interface JaiaAction {
     command?: Command;
     missionSpeeds?: Speeds;
     missionSetName?: string;
+    gridPlanningState?: GridPlanningStates;
 }
 
 // Snapshot of app state for storing history

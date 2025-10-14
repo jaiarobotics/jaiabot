@@ -28,5 +28,5 @@ export enum MapModes {
     DEFAULT = "DEFAULT",
     RALLY = "RALLY",
     MEASURE = "MEASURE",
-    SURVEY = "SURVEY",
+    SURVEY_PLANNING = "SURVEY_PLANNING",
 }
