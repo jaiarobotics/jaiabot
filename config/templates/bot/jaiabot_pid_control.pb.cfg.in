@@ -11,4 +11,7 @@ use_throttle_table_for_speed: true
 throttle_table { speed: 0 throttle: 0 }
 throttle_table { speed: 5 throttle: 100 }
 
+rudder_roll_stabilization_min: -40
+rudder_roll_stabilization_max: 40
+
 $jaiabot_driver_arduino_bounds
