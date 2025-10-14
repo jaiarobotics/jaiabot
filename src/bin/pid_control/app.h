@@ -78,6 +78,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     bool _rudder_is_using_pid_ = false;
     bool is_heading_constant_ = false;
     void toggleRudderPid(const bool enabled, const bool is_heading_constant = false);
+    bool _rudder_is_using_roll_stabilization_ = false;
+    void toggleRudderRollStabilization(const bool enabled);
     Pid* heading_pid_;
     Pid* heading_constant_pid_;
     Pid* rudder_roll_stabilization_pid_;

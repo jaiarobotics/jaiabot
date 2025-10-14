@@ -415,8 +415,17 @@ void jaiabot::apps::BotPidControl::publish_low_control()
     }
 
     // Adjust rudder to help stabilize roll
-    if (_rudder_is_using_pid_)
-    { 
+    if (_rudder_is_using_pid_ || _rudder_is_using_roll_stabilization_)
+    {
+        if (_rudder_is_using_roll_stabilization_)
+        {
+            toggleRudderRollStabilization(true);
+        }
+        else
+        {
+            toggleRudderRollStabilization(false);
+        }
+
         if (actual_roll_ > target_roll_ + 180.0)
         {
             actual_roll_ -= 360.0;
@@ -557,6 +566,16 @@ void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled,
                              << ", is_heading_constant_: " << is_heading_constant_ << std::endl;
 }
 
+void jaiabot::apps::BotPidControl::toggleRudderRollStabilization(const bool enabled)
+{
+    if (enabled != _rudder_is_using_roll_stabilization_)
+    {
+        rudder_roll_stabilization_pid_->reset_iterm();
+    }
+    _rudder_is_using_roll_stabilization_ = enabled;
+    glog.is_debug2() && glog << group("main") << "_rudder_is_using_roll_stabilization_: " << _rudder_is_using_roll_stabilization_ << std::endl;
+}
+
 void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled)
 {
     if (enabled != _elevator_is_using_pid_)
@@ -628,6 +647,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
     {
         rudder_ = command.rudder();
         toggleRudderPid(false);
+        toggleRudderRollStabilization(true);
     }
     // Heading
     if (command.has_heading())
@@ -637,6 +657,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
         if (heading.has_target())
         {
             toggleRudderPid(true);
+            toggleRudderRollStabilization(true);
             target_heading_ = heading.target();
         }
 
@@ -655,6 +676,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
         if (rudder_roll_stabilization.has_target())
         {
             toggleRudderPid(true);
+            toggleRudderRollStabilization(true);
             target_heading_ = rudder_roll_stabilization.target();
         }
 
@@ -673,6 +695,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
         if (heading_constant.has_target())
         {
             toggleRudderPid(true, true);
+            toggleRudderRollStabilization(true);
             target_heading_ = heading_constant.target();
         }
 
@@ -757,6 +780,7 @@ void jaiabot::apps::BotPidControl::handle_command(
             setThrottleMode(MANUAL);
             rudder_ = 0.0;
             toggleRudderPid(false);
+            toggleRudderRollStabilization(false);
             break;
         case jaiabot::protobuf::SETPOINT_IVP_HELM: handle_helm_course(command); break;
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
@@ -777,6 +801,7 @@ void jaiabot::apps::BotPidControl::handle_command(
     if (_throttleMode_ == PID_DEPTH)
     {
         toggleRudderPid(false);
+        toggleRudderRollStabilization(false);
         rudder_ = 0;
     }
 
@@ -790,6 +815,7 @@ void jaiabot::apps::BotPidControl::handle_helm_course(
     if (desired_course.has_heading())
     {
         toggleRudderPid(true, command.is_helm_constant_course());
+        toggleRudderRollStabilization(true);
         target_heading_ = desired_course.heading();
     }
     if (desired_course.has_speed())
@@ -814,6 +840,7 @@ void jaiabot::apps::BotPidControl::handle_helm_course(
 void jaiabot::apps::BotPidControl::handle_remote_control(
     const jaiabot::protobuf::RemoteControl& remote_control)
 {
+    toggleRudderRollStabilization(true);
     if (remote_control.has_heading())
     {
         toggleRudderPid(true);
@@ -848,6 +875,7 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(
     // Set rudder to center
     rudder_ = 0.0;
     toggleRudderPid(false);
+    toggleRudderRollStabilization(false);
 }
 
 void jaiabot::apps::BotPidControl::handle_powered_ascent(
@@ -906,4 +934,5 @@ void jaiabot::apps::BotPidControl::all_stop()
 
     rudder_ = 0.0;
     toggleRudderPid(false);
+    toggleRudderRollStabilization(false);
 }
