@@ -153,15 +153,16 @@ jaiabot::apps::BotPidControl::BotPidControl()
     rudder_roll_stabilization_pid_->set_auto();
     rudder_roll_stabilization_pid_->set_direction(E_PID_REVERSE);
     
-    // Set limits for rudder roll stabilization based on config file values
-    glog.is_warn() && glog << "rudder_roll_stabilization_min = " << cfg().rudder_roll_stabilization_min() << ", rudder_roll_stabilization_max = " << cfg().rudder_roll_stabilization_max() << endl;
-    if (cfg().has_rudder_roll_stabilization_min() && cfg().has_rudder_roll_stabilization_max())
+    // Set limits for rudder roll stabilization based on config file values, or +/- 35 by default
+    
+    if (cfg().has_rudder_roll_stabilization_bounds())
     {
-        rudder_roll_stabilization_pid_->set_limits(cfg().rudder_roll_stabilization_min(), cfg().rudder_roll_stabilization_max());
+        glog.is_warn() && glog << "rudder_roll_stabilization_min = " << cfg().rudder_roll_stabilization_bounds().min() << ", rudder_roll_stabilization_max = " << cfg().rudder_roll_stabilization_bounds().max() << endl;
+        rudder_roll_stabilization_pid_->set_limits(cfg().rudder_roll_stabilization_bounds().min(), cfg().rudder_roll_stabilization_bounds().max());
     }
     else
     {
-        rudder_roll_stabilization_pid_->set_limits(-35.0, 35.0); // TODO: Limits may need tuning, but starting low just to be safe
+        rudder_roll_stabilization_pid_->set_limits(-35.0, 35.0);
     }
     
 

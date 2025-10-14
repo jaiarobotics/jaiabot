@@ -27,11 +27,18 @@ message BotPidControl
         required double Kd = 3;
     };
 
+    message RudderRollStabilizationBounds
+    {
+        required double min = 1;
+        required double max = 2;
+    }
+
     optional PIDGains throttle_speed_pid_gains = 30;
     optional PIDGains throttle_depth_pid_gains = 40;
     optional PIDGains heading_pid_gains = 50;
     optional PIDGains heading_constant_pid_gains = 51;
     optional PIDGains rudder_roll_stabilization_pid_gains = 52;
+    optional RudderRollStabilizationBounds rudder_roll_stabilization_bounds = 53;
     optional PIDGains roll_pid_gains = 60;
     optional PIDGains pitch_pid_gains = 70;
 
