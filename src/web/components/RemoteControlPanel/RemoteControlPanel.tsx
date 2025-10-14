@@ -15,7 +15,7 @@ import {
     DriftParameters,
 } from "../../types/protobuf-types";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
-
+import { error, success } from "../../utils/notifications";
 import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
@@ -241,7 +241,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         setRCDiveParameters((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleRCDiveCommand = () => {
+    const handleRCDiveCommand = async () => {
         const diveParameters: DiveParameters = {
             max_depth: rcDiveParameters.max_depth,
             depth_interval: rcDiveParameters.depth_interval,
@@ -260,7 +260,12 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 surface_drift: driftParameters,
             },
         };
-        sendBotCommand(rcDiveCommand);
+        const res = await sendBotCommand(rcDiveCommand);
+        if (res.message) {
+            error("Unable to post RC dive command");
+        } else {
+            success("Beginning RC dive");
+        }
     };
 
     const RCSelectMenu = (
