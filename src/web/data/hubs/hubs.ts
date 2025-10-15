@@ -102,6 +102,10 @@ class Hubs {
             hub.setBotOffload(hubStatus.bot_offload);
         }
 
+        if (hubStatus.bot_ids_in_radio_file) {
+            hub.setBotIDsInRadioFile(hubStatus.bot_ids_in_radio_file);
+        }
+
         // HubSensors
         // GPS
         if (hubStatus.location?.lat) {
