@@ -14,6 +14,14 @@ def wifi_udp_port(node_id, hub_id = -1):
     else:
         return 31000
 
+
+def hub2hub_udp_port(hub_id):
+    if is_simulation():
+        return 32000 + hub_id
+    else:
+        return 32000
+    
+
 def bar30_cpp_udp_port(node_id):
     if is_simulation():
         return 20100 + node_id

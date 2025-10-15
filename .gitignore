@@ -1,7 +1,9 @@
 build/*
 config/launch/simulation/all.launch
+config/launch/simulation/preseed.goby
 __pycache__
 .vscode
+*.egg-info/
 
 # === private files ===
 

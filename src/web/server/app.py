@@ -12,7 +12,8 @@ from http import HTTPStatus
 # Internal Imports
 import jaia_portal
 import missions
-from geotiffs import GeoTiffs
+from map_tile_server import MapTileServer
+from map_tile_server.mime_types import *
 
 def parseDate(date):
     if date is None or date == '':
@@ -34,6 +35,7 @@ parser.add_argument("-r", dest='read_only', action='store_true', help="start a r
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
+parser.add_argument("-m", dest='mapDirectory', type=str, default='~/maps/', help="Directory to find offline map sets")
 args = parser.parse_args()
 
 # Setup logging module
@@ -291,18 +293,97 @@ def get_bot_paths():
     return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
-####### GeoTIFF files
+###### Offline maps
 
-geoTiff_root = '/usr/share/jaiabot/overlays'
+map_tile_server = MapTileServer("/var/log/jaiabot/lib/maps/")
 
-@app.route('/geoTiffs/<path>', methods=['GET'])
-def getGeoTiffFile(path):
-    return send_from_directory(geoTiff_root, path)
+@app.route('/maps/', methods=['GET'])
+def get_maps():
+    """Get a list of the available map sets.
+    """
+    return Response(response=json.dumps(map_tile_server.get_maps()),
+                        status=HTTPStatus.OK,
+                        mimetype=MIME_TYPE_JSON)
 
-@app.route('/geoTiffs', methods=['GET'])
-def listGeoTiffFiles():
-    geoTiffs = GeoTiffs(geoTiff_root)
-    return JSONResponse(obj=geoTiffs.list())
+
+@app.route('/maps/<map_name>/<z>/<x>/<y>', methods=['GET', 'PUT', 'HEAD'])
+def map_tile(map_name: str, z: str, x: str, y: str):
+    """Get or put a map tile.
+
+    Args:
+        map_name (str): Name of the map tileset.
+        z (str): Zoom level of the tile.
+        x (str): X index of the tile.
+        y (str): Y index of the tile.
+
+    Returns:
+        Response: Status of 200 OK if the operation was successful.  Status of 404 Not Found if the tile doesn't exist on the hub.
+
+    Note:
+        A HEAD request can be performed to find out if a tile already exists, without transferring the tile's contents.
+    """
+
+    method = request.method
+    if method in {'HEAD', 'GET'}:
+        tile_data = map_tile_server.get_tile(map_name, int(z), int(x), int(y))
+    
+        if tile_data is None:
+            return Response(status=HTTPStatus.NOT_FOUND)
+    
+    if method == 'GET':
+        return Response(tile_data, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+
+    elif method == 'HEAD':
+        return Response(None, status=HTTPStatus.OK, mimetype=MIME_TYPE_PNG)
+
+    elif request.method == 'PUT':
+        map_tile_server.put_tile(map_name, z, x, y, request.data)
+        return Response(status=HTTPStatus.OK)
+
+
+@app.route('/maps/<map_name>/geotiff', methods=['PUT'])
+def put_map_geotiff(map_name: str):
+    """Put a geotiff file into a tile server map
+
+    Args:
+        map_name (str): Name of the target map
+    """
+
+    try:
+        map_tile_server.put_map_geotiff(map_name, request.data)
+        return Response(status=HTTPStatus.OK)
+    except Exception as e:
+        print(e)
+        print('Failed!')
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
+
+@app.route('/maps/<map_name>/geotiffchunk/<chunk_index>', methods=['PUT'])
+def put_map_geotiff_chunk(map_name: str, chunk_index: int):
+    """Put a geotiff file chunk into a tile server map.  A chunk size of zero means the geotiff is fully uploaded.
+
+    Args:
+        map_name (str): Name of the target map
+    """
+
+    try:
+        map_tile_server.put_map_geotiff_chunk(map_name, chunk_index, request.data)
+        return Response(status=HTTPStatus.OK)
+    except Exception as e:
+        print(e)
+        print('Failed!')
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
+
+@app.route('/maps/<map_name>', methods=['DELETE'])
+def delete_map(map_name: str):
+    """Delete an offline map layer
+
+    Args:
+        map_name (str): Name of the offline hub map layer to delete.
+    """
+    map_tile_server.delete_map(map_name)
+    return Response(status=HTTPStatus.OK)
 
 
 if __name__ == '__main__':

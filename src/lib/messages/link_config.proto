@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+import "goby/acomms/protobuf/buffer.proto";
+import "jaiabot/messages/link.proto";
+
+package jaiabot.protobuf;
+
+message LinkAwareBufferConfig
+{
+    required goby.acomms.protobuf.DynamicBufferConfig buffer_base = 1;
+
+    message LinkBufferConfig
+    {
+        required Link link = 1;
+        required goby.acomms.protobuf.DynamicBufferConfig buffer = 2;
+    }
+    repeated LinkBufferConfig buffer_override = 2;
+}

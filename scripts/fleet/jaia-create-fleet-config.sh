@@ -314,6 +314,10 @@ BEGIN {
     if ($2 ~ /\/(bot_id|hub_id|type|fleet_id|mode|debconf_state_common|debconf_state_hub|debconf_state_bot|warp)/) next;
 
     # Print debconf entry
+
+    # Remove spaces from value
+    gsub(" ", "", $4);
+
     printf "debconf {\n";
     printf "  key: \"%s\"\n", $2;
     printf "  type: %s\n", toupper($3);
@@ -370,6 +374,48 @@ while : ; do
     done
 
 done
+
+echo "######################################################"
+echo "## Communications Configuration                     ##"
+echo "######################################################"
+
+echo "comms {" >> $out
+
+if grep -q iridium $out; then
+    echo "######################################################"
+    echo "## Iridium SBD Configuration                        ##"
+    echo "######################################################"
+
+    echo "  iridium_sbd {" >> $out
+    for BOT_ID_QUOTED in ${BOT_IDS}
+    do
+        BOT_ID=$(eval echo ${BOT_ID_QUOTED})
+        run_wt_inputbox "Fleet Configuration" "Enter Iridium IMEI for Bot ${BOT_ID}"
+        IMEI=$WT_TEXT
+        echo "    bot { id: $BOT_ID imei: \"$IMEI\" }" >> $out
+    done
+
+    SERVICE_TYPES=("SBD_DIRECTIP" "SBD_ROCKBLOCK")
+    run_wt_menu "Fleet Configuration" "Which Iridium shore service does this fleet use (MetOcean is SBD_DIRECTIP)?" "${SERVICE_TYPES[@]}"
+    [ $? -eq 0 ] || exit 1
+    SERVICE_TYPE="$WT_CHOICE"
+
+    echo "    sbd_type: $SERVICE_TYPE" >> $out
+    
+    if [[ "$SERVICE_TYPE" == "SBD_ROCKBLOCK" ]]; then
+        run_wt_inputbox "Fleet Configuration" "Enter RockBLOCK portal username"
+        ROCKBLOCK_USERNAME=$WT_TEXT
+
+        run_wt_inputbox "Fleet Configuration" "Enter RockBLOCK portal password"
+        ROCKBLOCK_PASSWORD=$WT_TEXT
+
+        echo "    rockblock { username: \"$ROCKBLOCK_USERNAME\" password: \"$ROCKBLOCK_PASSWORD\" }" >> $out
+    fi
+
+    echo "  }" >> $out
+fi
+
+echo "}" >> $out
 
 echo "######################################################"
 echo "## Validate fleet configuration                     ##"
