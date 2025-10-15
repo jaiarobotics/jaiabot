@@ -50,23 +50,6 @@ export default function ScanForBot() {
     };
 
     /**
-     * Sends the scan for Bot command for each Bot in the Hub's radio file
-     *
-     * @returns {void}
-     */
-    const sendScanForBots = () => {
-        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
-
-        if (!hub || !hub.getBotIDsInRadioFile()) {
-            return;
-        }
-
-        for (const botID of hub.getBotIDsInRadioFile()) {
-            sendScanForBot(botID);
-        }
-    };
-
-    /**
      * Loops through the connected Bots and creates dropdown options
      *
      * @returns {<MenuItem />[]} Array of dropdown option for the select menu
@@ -101,9 +84,6 @@ export default function ScanForBot() {
                 onClick={() => sendScanForBot(Number(selectedBotID))}
             >
                 Scan For Bot
-            </button>
-            <button className="engineering-button" onClick={() => sendScanForBots()}>
-                Scan For All Bots
             </button>
         </div>
     );
