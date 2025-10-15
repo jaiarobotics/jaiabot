@@ -1,5 +1,3 @@
-import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
-
 interface Props {
     throttleDirection: string;
     throttleMagnitude: number;

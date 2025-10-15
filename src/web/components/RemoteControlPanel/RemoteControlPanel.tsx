@@ -239,6 +239,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
+    /**
+     * Updates RC dive parameters in state
+     *
+     * @param {string} name Dive parameter changed
+     * @param {number} value Updated dive parameter
+     * @returns {void}
+     */
     const handleRCDiveChange = (name: string, value: number) => {
         let mutableDiveParameters = { ...rcDiveParameters };
         switch (name) {
@@ -260,6 +267,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         setRCDiveParameters(mutableDiveParameters);
     };
 
+    /**
+     * Packages and sends the RC dive command to the Bot
+     *
+     * @returns {void}
+     */
     const handleRCDiveCommand = async () => {
         const diveParameters: DiveParameters = {
             max_depth: rcDiveParameters.max_depth,
@@ -281,7 +293,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         };
         const res = await sendBotCommand(rcDiveCommand);
         if (res.message) {
-            error("Unable to post RC dive command");
+            error("Unable to send RC dive command");
         } else {
             success("Beginning RC dive");
         }
@@ -291,20 +303,12 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         <SelectMenu controlType={controlType} handleMenuSelection={handleMenuSelection} />
     );
 
-    const RCOutput = (
+    const RCDashboard = (
         <Dashboard
             throttleDirection={throttleDirection}
             throttleMagnitude={throttleMagnitude}
             rudderDirection={rudderDirection}
             rudderMagnitude={rudderMagnitude}
-        />
-    );
-
-    const RCDiveCommand = (
-        <DiveCommand
-            rcDiveParameters={rcDiveParameters}
-            botId={props.botID}
-            handleRCDiveCommand={handleRCDiveCommand}
         />
     );
 
@@ -321,7 +325,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                     />
                     <div className="rc-dashboard">
                         {RCSelectMenu}
-                        {RCOutput}
+                        {RCDashboard}
                     </div>
                 </div>
             );
@@ -337,7 +341,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                     />
                     <div className="rc-dashboard">
                         {RCSelectMenu}
-                        {RCOutput}
+                        {RCDashboard}
                     </div>
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
@@ -350,14 +354,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             );
         case ControlTypes.DIVE:
             return (
-                <div className="remote-control-panel">
-                    <div>
-                        <DiveInputs
-                            rcDiveParameters={rcDiveParameters}
-                            onChange={handleRCDiveChange}
-                        />
-                    </div>
-                    <div className="rc-dashboard">
+                <div className="remote-control-panel dive">
+                    <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
+                    <div className="rc-dashboard dive">
                         {RCSelectMenu}
                         <DiveCommand
                             rcDiveParameters={rcDiveParameters}

@@ -16,6 +16,10 @@
     border-top: 6px solid #ffffff;
 }
 
+.remote-control-panel.dive {
+    grid-template-columns: 1fr 1fr;
+}
+
 .analog-stick {
     display: flex;
     flex-direction: column;
@@ -35,6 +39,10 @@
     min-width: 330px;
 
     font-size: 1.2rem;
+}
+
+.rc-dashboard.dive {
+    gap: 27px;
 }
 
 .rc-select-menu {
@@ -76,26 +84,21 @@
     color: #ffffff;
 }
 
-.rc-dive-info {
+.rc-dive-inputs {
     display: grid;
     grid-template-columns: max-content min-content min-content;
     gap: 6px;
     align-items: center;
-    border: 3px solid white;
-    border-radius: 4px;
-    padding: 8px;
+    border: 1px solid white;
+    border-radius: 3px;
+    padding: 9px;
     color: #ffffff;
 }
 
 .rc-dive-control {
-    display: grid;
-    align-self: start;
-    justify-items: start;
-    grid-template-columns: max-content 1fr;
-    gap: 45px;
+    display: flex;
+    align-items: center;
+    gap: 27px;
+    margin-left: 12px;
     color: #ffffff;
-}
-
-.rc-dive-control .label {
-    padding-left: 12px;
 }

@@ -30,7 +30,7 @@ export function DiveInputs(props: DiveInputsProps) {
     };
 
     return (
-        <div className="rc-dive-info">
+        <div className="rc-dive-inputs">
             <div>Max Depth</div>
             <input
                 name="max_depth"
@@ -38,7 +38,6 @@ export function DiveInputs(props: DiveInputsProps) {
                 value={formatNumericalInput(props.rcDiveParameters.max_depth)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={false}
                 onChange={handleInputChange}
             />
             <div className="units">m</div>
@@ -50,7 +49,6 @@ export function DiveInputs(props: DiveInputsProps) {
                 value={formatNumericalInput(props.rcDiveParameters.depth_interval)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={false}
                 onChange={handleInputChange}
             />
             <div className="units">m</div>
@@ -62,7 +60,6 @@ export function DiveInputs(props: DiveInputsProps) {
                 value={formatNumericalInput(props.rcDiveParameters.hold_time)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={false}
                 onChange={handleInputChange}
             />
             <div className="units">s</div>
@@ -74,7 +71,6 @@ export function DiveInputs(props: DiveInputsProps) {
                 value={formatNumericalInput(props.rcDiveParameters.drift_time)}
                 className="jaia-input"
                 autoComplete="off"
-                disabled={false}
                 onChange={handleInputChange}
             />
             <div className="units">s</div>
@@ -85,7 +81,7 @@ export function DiveInputs(props: DiveInputsProps) {
 export function DiveCommand(props: DiveCommandProps) {
     return (
         <div className="rc-dive-control">
-            <div className="label">Send Dive Command:</div>
+            <div>Send Dive Command:</div>
             <Button
                 className={`jaia-button ${false ? "disabled" : ""}`}
                 disabled={false}
