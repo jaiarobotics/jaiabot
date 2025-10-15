@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../context/JaiaContext";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { success } from "../../utils/notifications";
 import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
 import "../../style/stylesheets/engineering.less";
 
@@ -67,6 +68,9 @@ export default function Engineering() {
         };
 
         const res = await jaiaAPI.postEngineering(engineeringCommand);
+        if (res && res.status === "ok") {
+            success(`Querying status for Bot ${botID}`);
+        }
     };
 
     /**
@@ -75,7 +79,7 @@ export default function Engineering() {
      * @param {number} botID Which Bot to configure
      * @returns {void}
      */
-    const handleUpdateSelectedBotClick = (botID: number) => {
+    const handleUpdateSelectedBotClick = async (botID: number) => {
         // Prevents new configs from being sent without input elements visible
         if (!botID || !document.getElementById(EngineeringInputs.BOT_STATUS_RATE)) {
             return;
@@ -115,7 +119,14 @@ export default function Engineering() {
             },
             pid_control: packagePIDValues(),
         };
-        jaiaAPI.takeControl().then(() => jaiaAPI.postEngineeringPanel(engineeringUpdate));
+
+        const takeControlRes = await jaiaAPI.takeControl();
+        if (takeControlRes && takeControlRes.status === "ok") {
+            const commandRes = await jaiaAPI.postEngineeringPanel(engineeringUpdate);
+            if (commandRes && commandRes.status === "ok") {
+                success(`Submitted update for Bot ${botID}`);
+            }
+        }
     };
 
     /**
