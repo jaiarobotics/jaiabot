@@ -33,7 +33,7 @@ const pidTypes: (keyof PIDControl)[] = [
 const pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
 
 /**
- * Produces the engineering section in the JCC to update low-level controls
+ * Produces the engineering section in the JCC Settings to update low-level controls
  */
 export default function Engineering() {
     const jaiaContext = useContext(JaiaContext);

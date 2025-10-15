@@ -66,6 +66,22 @@ export default function ScanForBot() {
         }
     };
 
+    /**
+     * Loops through the connected Bots and creates dropdown options
+     *
+     * @returns {<MenuItem />[]} Array of dropdown option for the select menu
+     */
+    const generateBotMenuItems = () => {
+        return Array.from(jaiaContext.bots.values()).map((bot) => {
+            const botID = bot.getBotID();
+            return (
+                <MenuItem key={botID} value={botID}>
+                    {botID}
+                </MenuItem>
+            );
+        });
+    };
+
     return (
         <div className="engineering-container">
             <div className="heading">Scan For Bot</div>
@@ -76,14 +92,7 @@ export default function ScanForBot() {
                         onChange={(evt: SelectChangeEvent) => handleMenuSelection(evt)}
                         value={selectedBotID}
                     >
-                        {Array.from(jaiaContext.bots.values()).map((bot) => {
-                            const botID = bot.getBotID();
-                            return (
-                                <MenuItem key={botID} value={botID}>
-                                    {botID}
-                                </MenuItem>
-                            );
-                        })}
+                        {generateBotMenuItems()}
                     </Select>
                 </FormControl>
             </div>

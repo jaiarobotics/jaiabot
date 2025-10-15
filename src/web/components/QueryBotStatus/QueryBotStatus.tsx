@@ -44,6 +44,22 @@ export default function QueryBotStatus() {
         }
     };
 
+    /**
+     * Loops through the connected Bots and creates dropdown options
+     *
+     * @returns {<MenuItem />[]} Array of dropdown options for the select menu
+     */
+    const generateBotMenuItems = () => {
+        return Array.from(jaiaContext.bots.values()).map((bot) => {
+            const botID = bot.getBotID();
+            return (
+                <MenuItem key={botID} value={botID}>
+                    {botID}
+                </MenuItem>
+            );
+        });
+    };
+
     return (
         <div className="engineering-container">
             <div className="heading">Query Bot Status</div>
@@ -54,14 +70,7 @@ export default function QueryBotStatus() {
                         onChange={(evt: SelectChangeEvent) => handleMenuSelection(evt)}
                         value={selectedBotID}
                     >
-                        {Array.from(jaiaContext.bots.values()).map((bot) => {
-                            const botID = bot.getBotID();
-                            return (
-                                <MenuItem key={botID} value={botID}>
-                                    {botID}
-                                </MenuItem>
-                            );
-                        })}
+                        {generateBotMenuItems()}
                     </Select>
                 </FormControl>
             </div>

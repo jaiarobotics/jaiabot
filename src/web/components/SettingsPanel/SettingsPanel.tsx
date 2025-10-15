@@ -39,6 +39,15 @@ export default function SettingsPanel() {
         setIsTrackingPod(!isTrackingPod);
     };
 
+    /**
+     * Opens Jaia Engineering & Debug in a separate tab
+     *
+     * @returns {void}
+     */
+    const handleJEDClick = () => {
+        window.open("/jed/");
+    };
+
     return (
         <div className="jaia-panel settings-panel">
             <div className="jaia-panel-title">Settings</div>
@@ -78,10 +87,7 @@ export default function SettingsPanel() {
                             <Typography>Engineering</Typography>
                         </AccordionSummary>
                         <AccordionDetails className="engineering-accordion-details">
-                            <button
-                                className="engineering-button"
-                                onClick={() => window.open("/jed/")}
-                            >
+                            <button className="engineering-button" onClick={() => handleJEDClick()}>
                                 Jaia Engineering & Debug
                             </button>
                             <Engineering />
