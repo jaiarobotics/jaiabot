@@ -8,7 +8,7 @@ import {
     Typography,
     CircularProgress,
 } from "@mui/material";
-import OpenFileDialog from "../../jdv/client/src/OpenFileDialog";
+import OpenFileDialog from "../../jdv/client/src/ui/OpenFileDialog";
 import { jaiaAPI, MapsDirectory, Tileset } from "../../utils/jaia-api";
 import Icon from "@mdi/react";
 import {
