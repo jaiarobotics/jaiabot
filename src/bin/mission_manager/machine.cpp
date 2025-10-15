@@ -525,10 +525,6 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
 
     dive_prep_timeout_ = start_timeout + dive_prep_duration;
 
-    // This makes sure we capture the pressure before the dive begins
-    // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
     if (cfg().has_start_camera_command())
     {
         interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
@@ -567,35 +563,13 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
     }
 }
 
-/**
- * @brief Check the pitch to determine if the bot is in it's veritical position.
- * It it is then we should exit DivePrep and begin our powered descent.
- * 
- * @param EvVehiclePitch 
- */
-void jaiabot::statechart::inmission::underway::task::dive::DivePrep::pitch(const EvVehiclePitch& ev)
+void jaiabot::statechart::inmission::underway::task::dive::DivePrep::motor_stopped(const EvMotorStopped& ev)
 {
-    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
-
-    // If we are vertical then change to powered descent state
-    if (std::abs(ev.pitch.value()) > cfg().pitch_to_determine_dive_prep_vertical())
+    if (ev.is_motor_stopped) 
     {
-        // Check to see if we have reached the number of checks and the min check time
-        // has been reach to determine if a bot is vertical
-        if ((pitch_angle_check_incr_ >= (cfg().pitch_angle_checks() - 1)) &&
-            ((now - last_pitch_dive_time_) >=
-             static_cast<decltype(now)>(cfg().pitch_angle_min_check_time_with_units())))
-        {
-            glog.is_warn() && glog << "DivePrep::pitch Bot is vertical!"
-                                   << "\npost_event(EvDivePrepComplete());" << std::endl;
-            post_event(EvDivePrepComplete());
-        }
-        pitch_angle_check_incr_++;
-    }
-    else
-    {
-        last_pitch_dive_time_ = now;
-        pitch_angle_check_incr_ = 0;
+        glog.is_debug2() && glog << "DivePrep::motor_stopped Motor is stopped!"
+                                 << "\npost_event(EvDivePrepComplete());" << std::endl;
+        post_event(EvDivePrepComplete());
     }
 }
 
@@ -604,6 +578,10 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_timeout_seconds = cfg().detect_bottom_logic_init_timeout();

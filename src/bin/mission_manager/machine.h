@@ -136,6 +136,11 @@ struct EvVehiclePitch : boost::statechart::event<EvVehiclePitch>
     boost::units::quantity<boost::units::degree::plane_angle> pitch;
 };
 
+struct EvMotorStopped : boost::statechart::event<EvMotorStopped>
+{
+    bool is_motor_stopped;
+};
+
 STATECHART_EVENT(EvResumeMovement)
 struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
 {
@@ -1660,12 +1665,12 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
     ~DivePrep();
 
     void loop(const EvLoop&);
-    void pitch(const EvVehiclePitch& ev);
+    void motor_stopped(const EvMotorStopped& ev);
 
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvLoop, DivePrep, &DivePrep::loop>,
         boost::statechart::transition<EvDivePrepComplete, PoweredDescent>,
-        boost::statechart::in_state_reaction<EvVehiclePitch, DivePrep, &DivePrep::pitch>>;
+        boost::statechart::in_state_reaction<EvMotorStopped, DivePrep, &DivePrep::motor_stopped>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
