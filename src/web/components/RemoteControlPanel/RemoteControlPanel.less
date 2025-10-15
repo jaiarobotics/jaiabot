@@ -16,6 +16,11 @@
     border-top: 6px solid #ffffff;
 }
 
+.remote-control-panel.dive {
+    grid-template-columns: 420px 420px;
+    justify-content: center;
+}
+
 .analog-stick {
     display: flex;
     flex-direction: column;
@@ -35,6 +40,10 @@
     min-width: 330px;
 
     font-size: 1.2rem;
+}
+
+.rc-dashboard.dive {
+    gap: 27px;
 }
 
 .rc-select-menu {
@@ -66,11 +75,31 @@
 
 .rc-output {
     display: grid;
+    align-self: start;
     grid-template-columns: max-content 1fr;
     column-gap: 45px;
     row-gap: 6px;
     border: 1px solid #ffffff;
     border-radius: 3px;
     padding: 6px 12px;
+    color: #ffffff;
+}
+
+.rc-dive-inputs {
+    display: grid;
+    grid-template-columns: max-content min-content min-content;
+    gap: 6px;
+    align-items: center;
+    border: 1px solid white;
+    border-radius: 3px;
+    padding: 9px;
+    color: #ffffff;
+}
+
+.rc-dive-control {
+    display: flex;
+    align-items: center;
+    gap: 27px;
+    margin-left: 12px;
     color: #ffffff;
 }
