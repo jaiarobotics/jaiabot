@@ -1,0 +1,25 @@
+link {
+    modem_id: $modem_id
+    subnet_mask: $subnet_mask
+    driver {
+        driver_type: DRIVER_IRIDIUM  
+        connection_type: CONNECTION_SERIAL
+        serial_port: "$serial_port"
+        serial_baud: 19200
+        [goby.acomms.iridium.protobuf.config] {
+            config: "+CGSN"        # Report IMEI
+            config: "+CGMM"        # Request Model Identifier
+            config: "+CGMI"        # Request Manufacturer Identification
+            config: "Q0"           # quiet mode off  (Modem returns result codes)
+            config: "+CIER=1,1,1"  # Automatic notification of service availability
+        }
+    }
+    mac { 
+        type: MAC_FIXED_DECENTRALIZED
+        $mac_slots
+    }
+
+    ack_timeout: $ack_timeout
+    # read from _sub_buffer.pb.cfg.in
+    $sub_buffer
+}

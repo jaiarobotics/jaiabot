@@ -104,11 +104,7 @@ class XBeeDevice
     uint16_t max_payload_size;
 
     // Adding a peer to the lookup table
-    void add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id, int fleet_id);
-    void add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id)
-    {
-        add_peer(node_id, type, bot_or_hub_id, fleet_id_);
-    }
+    void add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id);
 
     // Get Diagnostics
     void send_diagnostic_commands();

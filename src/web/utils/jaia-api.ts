@@ -23,6 +23,18 @@ export interface JaiaResponse<T> {
     result?: T;
 }
 
+export interface Tileset {
+    name: string;
+    size: number;
+    tile_count: number;
+}
+
+export interface MapsDirectory {
+    maps: Tileset[];
+    available_disk_bytes: number;
+    total_disk_bytes: number;
+}
+
 export class JaiaAPI {
     clientId: string;
     url: string;
@@ -247,6 +259,39 @@ export class JaiaAPI {
                     logResReqError("getDriftMap", err);
                 });
         }
+    }
+
+    async getHubMaps() {
+        return this.get("maps/").then((response) => {
+            return response as Promise<MapsDirectory>;
+        });
+    }
+
+    async putOfflineTile(map_name: string, zoom: number, x: number, y: number, data: Blob) {
+        return fetch(`maps/${map_name}/${zoom}/${x}/${y}`, {
+            method: "PUT",
+            body: data,
+        });
+    }
+
+    async putOfflineGeoTiff(map_name: string, data: BodyInit) {
+        return fetch(`maps/${map_name}/geotiff`, {
+            method: "PUT",
+            body: data,
+        });
+    }
+
+    async putOfflineGeoTiffChunk(map_name: string, chunk_index: number, chunk: BodyInit) {
+        return fetch(`maps/${map_name}/geotiffchunk/${chunk_index}`, {
+            method: "PUT",
+            body: chunk,
+        });
+    }
+
+    async deleteHubMap(map_name: string) {
+        return fetch(`maps/${map_name}`, {
+            method: "DELETE",
+        });
     }
 
     allStop() {

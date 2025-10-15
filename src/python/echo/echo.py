@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
 try:
-    uart = serial.Serial("/dev/ttyAMA3", 115200)
+    uart = serial.Serial("/dev/pam-stack", 115200)
     physical_device_available = True
 except ModuleNotFoundError:
     log.warning('ModuleNotFoundError, so physical device not available')

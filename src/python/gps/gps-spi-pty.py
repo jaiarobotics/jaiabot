@@ -38,7 +38,7 @@ systemd.daemon.notify("READY=1")
 SPI = spidev.SpiDev()
 def connect_spi():
     SPI.open(1, 1)
-    SPI.max_speed_hz = 5000000
+    SPI.max_speed_hz = 1000000
     SPI.mode = 0
 
     # Enable the UBX protocol
