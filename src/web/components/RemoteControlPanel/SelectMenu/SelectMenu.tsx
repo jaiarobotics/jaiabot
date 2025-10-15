@@ -3,10 +3,6 @@ import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from 
 interface SelectMenuProps {
     controlType: ControlTypes;
     handleMenuSelection: (event: SelectChangeEvent) => void;
-    throttleDirection: string;
-    throttleMagnitude: number;
-    rudderDirection: string;
-    rudderMagnitude: number;
 }
 
 // Use string values for MUI compatibility
@@ -44,30 +40,16 @@ const theme = createTheme({
 export function SelectMenu(props: SelectMenuProps) {
     return (
         <ThemeProvider theme={theme}>
-            <div className="rc-dashboard">
-                <div className="rc-select-menu">
-                    <div className="label">Control:</div>
-                    <Select
-                        value={props.controlType.toString()}
-                        onChange={(event: SelectChangeEvent) => props.handleMenuSelection(event)}
-                    >
-                        <MenuItem value={ControlTypes.SINGLE}>Single</MenuItem>
-                        <MenuItem value={ControlTypes.DUAL}>Dual</MenuItem>
-                        <MenuItem value={ControlTypes.DIVE}>Dive</MenuItem>
-                    </Select>
-                </div>
-                <div className="rc-output">
-                    <div>Throttle Direction:</div>
-                    <div>{props.throttleDirection}</div>
-                    <div>Throttle:</div>
-                    <div>{props.throttleMagnitude}</div>
-                </div>
-                <div className="rc-output">
-                    <div>Rudder Direction:</div>
-                    <div>{props.rudderDirection}</div>
-                    <div>Rudder:</div>
-                    <div>{props.rudderMagnitude}</div>
-                </div>
+            <div className="rc-select-menu">
+                <div className="label">Control:</div>
+                <Select
+                    value={props.controlType.toString()}
+                    onChange={(event: SelectChangeEvent) => props.handleMenuSelection(event)}
+                >
+                    <MenuItem value={ControlTypes.SINGLE}>Single</MenuItem>
+                    <MenuItem value={ControlTypes.DUAL}>Dual</MenuItem>
+                    <MenuItem value={ControlTypes.DIVE}>Dive</MenuItem>
+                </Select>
             </div>
         </ThemeProvider>
     );
