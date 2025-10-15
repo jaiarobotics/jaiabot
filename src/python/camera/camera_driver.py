@@ -70,6 +70,9 @@ class Camera:
     def do_command(self, command: CameraCommand):
         log.info(f'Doing command: {command}')
 
+        if command.datetime != None:
+            os.system(f'sudo date --set "{command.datetime}"')
+
         if command.type == CameraCommand.CameraCommandType.START_IMAGES:
             self.image_capture_interval = command.image_capture_interval
             

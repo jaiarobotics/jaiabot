@@ -2,6 +2,7 @@
 
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
+#include <ctime>
 
 #include "machine.h"
 #include "mission_manager.h"
@@ -531,7 +532,12 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
 
     if (cfg().has_start_camera_command())
     {
-        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+        auto start_camera_command = cfg().start_camera_command();
+        time_t timestamp;
+        time(&timestamp);
+        start_camera_command.set_datetime(ctime(&timestamp));
+        glog.is_warn() && glog << "Setting datetime: " << start_camera_command.datetime() << std::endl;
+        interprocess().publish<jaiabot::groups::camera>(start_camera_command);
     }
 
     loop(EvLoop());
