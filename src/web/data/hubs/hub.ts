@@ -19,6 +19,7 @@ export default class Hub {
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
+    private botIDsInRadioFile: number[];
 
     constructor() {
         // Init base sensors
@@ -99,5 +100,13 @@ export default class Hub {
 
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    getBotIDsInRadioFile() {
+        return this.botIDsInRadioFile;
+    }
+
+    setBotIDsInRadioFile(botIDsInRadioFile: number[]) {
+        this.botIDsInRadioFile = botIDsInRadioFile;
     }
 }

@@ -5,11 +5,14 @@ import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/
 import { ThemeProvider } from "@emotion/react";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
+import ScanForBot from "../ScanForBot/ScanForBot";
+import QueryBotStatus from "../QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "../../containers/LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
+import Engineering from "../Engineering/Engineering";
 
 /**
  * Contains general configurations for the JCC and Jaia System
@@ -20,7 +23,7 @@ export default function SettingsPanel() {
 
     useEffect(() => {
         addDropdownListener("accordion-container", "settings-accordions-container");
-    });
+    }, []);
 
     /**
      * Switches the track pod functionality on/off based on the toggle state
@@ -34,6 +37,15 @@ export default function SettingsPanel() {
             trackPod.startTracking();
         }
         setIsTrackingPod(!isTrackingPod);
+    };
+
+    /**
+     * Opens Jaia Engineering & Debug in a separate tab
+     *
+     * @returns {void}
+     */
+    const handleJEDClick = () => {
+        window.open("/jed/");
     };
 
     return (
@@ -67,14 +79,21 @@ export default function SettingsPanel() {
                         </AccordionDetails>
                     </Accordion>
 
-                    <Accordion className="accordion-container">
+                    <Accordion className="accordion-container-engineering">
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
                             className="accordion-summary"
                         >
                             <Typography>Engineering</Typography>
                         </AccordionSummary>
-                        <AccordionDetails></AccordionDetails>
+                        <AccordionDetails className="engineering-accordion-details">
+                            <button className="engineering-button" onClick={() => handleJEDClick()}>
+                                Jaia Engineering & Debug
+                            </button>
+                            <Engineering />
+                            <QueryBotStatus />
+                            <ScanForBot />
+                        </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
             </div>
