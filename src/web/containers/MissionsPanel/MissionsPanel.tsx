@@ -3,7 +3,7 @@ import { useContext } from "react";
 
 // Jaia
 import MissionsList from "./MissionsList/MissionsList";
-import DeleteMissionButton from "../../components/DeleteMissionButton/DeleteMissionButton";
+import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 import MissionSpeedSliders from "../../components/MissionSpeedSliders/MissionSpeedSliders";
 import MissionSetStorageButton from "../../components/MissionSetStorage/MissionSetStorageButton";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
