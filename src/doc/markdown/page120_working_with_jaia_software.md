@@ -1,18 +1,27 @@
 # Working With Jaia Software
 
 ### Table of Contents:
+- [Working With Jaia Software](#working-with-jaia-software)
+    - [Table of Contents:](#table-of-contents)
 - [Setting Up the Operating System](#setting-up-the-operating-system)
-    - [Windows](#windows)
-    - [Mac](#mac)
-    - [Linux](#linux)
+  - [Windows](#windows)
+  - [Mac](#mac)
+  - [Linux](#linux)
 - [Preparing the Workspace](#preparing-the-workspace)
 - [Launching the Simulator](#launching-the-simulator)
+  - [Windows/Linux/Mac](#windowslinuxmac)
+    - [Using the JCC](#using-the-jcc)
     - [Stopping the Simulator](#stopping-the-simulator)
     - [Troubleshooting the Simulator](#troubleshooting-the-simulator)
-- [Modifying the Code](#modifying-code)
-    - [Creating an SSH Key Pair (MacBooks)](#creating-an-ssh-key-macbooks)
-- [Deploying the Code](#deploying-code)
-    - [Debugging Deployment Issues](#debugging)
+    - [Troubleshooting with MacBooks](#troubleshooting-with-macbooks)
+- [Inspecting the Data logs](#inspecting-the-data-logs)
+  - [Windows/Mac/Linux](#windowsmaclinux)
+    - [Using the JDV](#using-the-jdv)
+    - [Stopping the JDV](#stopping-the-jdv)
+- [Modifying Code](#modifying-code)
+- [Creating an SSH Key (MacBooks)](#creating-an-ssh-key-macbooks)
+- [Deploying Code](#deploying-code)
+    - [Debugging](#debugging)
 
 If you experience any errors, please visit the troubleshooting section. If that does not resolve the problem, create an issue on GitHub.
 
@@ -71,6 +80,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 ## Windows/Linux/Mac
 
+### Using the JCC
 1. Launch the JCC web interface.
     ```
     cd src/web
@@ -113,6 +123,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 In any terminals that are running the web and simulator, type CTRL+C. 
 
+
 ### Troubleshooting the Simulator
 * To kill all processes, `cd` into `jaiabot/scripts`, run the kill command, and relaunch the simulator. 
     ```
@@ -141,6 +152,34 @@ In any terminals that are running the web and simulator, type CTRL+C.
 ### Troubleshooting with MacBooks
 
 * Purge Multipass in terminal if there's no space on disk or memory.
+
+# Inspecting the Data logs
+
+## Windows/Mac/Linux
+
+### Using the JDV
+1. Launch the JDV web interface.
+    ```
+    cd src/web/jdv
+    ```
+    ```
+    ./run.sh -d ~/jaia-logs/bot_offload
+    ```
+2. Open Chrome and go to this address for the JDV:
+    
+    * Windows/Linux  
+        ```
+        http://localhost:40011/
+        ```
+    * Mac - Open Multipass and find your Private IP address associated with the Ubuntu environment.   
+        ```
+        http://XXX.XXX.XX.X:40011/
+        ```
+
+    #### Note: You can only run the JDV in one terminal at a time 
+
+### Stopping the JDV
+* In the terminal running the JDV, type CTRL+C. 
 
 <br>
 <a id="sshkey"></a>

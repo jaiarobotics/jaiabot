@@ -33,10 +33,10 @@ def serial_camera_port(bot_id: int):
         bot_id (int): The bot id.
 
     Returns:
-        str: Path to the serial port, i.e. "/dev/ttyAMA3"
+        str: Path to the serial port, i.e. "/dev/rpicam"
     """
     if is_simulation():
         return f"/tmp/bot{bot_id}_camera_0"
     else:
-        return '/dev/ttyAMA3'
+        return '/dev/rpicam'
 

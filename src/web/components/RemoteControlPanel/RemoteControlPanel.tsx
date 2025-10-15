@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
-
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
-import { Engineering } from "../../types/protobuf-types";
-import { sendEngineeringCommand } from "../../utils/commands";
+import { Dashboard } from "./Dashboard/Dashboard";
+import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
 
+import {
+    CommandType,
+    Engineering,
+    TaskType,
+    DiveParameters,
+    DriftParameters,
+} from "../../types/protobuf-types";
+import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
+import { error, success } from "../../utils/notifications";
 import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
@@ -39,25 +48,42 @@ const rudderPercentages = new Map<number, number>([
 const RC_COMMAND_TIMEOUT = 500; // milliseconds
 
 /**
- * Creates panel with analog sticks to manually control a Bot
+ * Creates panel to manually control a Bot
  */
 export default function RemoteControlPanel(props: RemoteControlPanelProps) {
+    const defaultParams = jaiaGlobal.getDefaultTaskParameters();
+
     const [controlType, setControlType] = useState(ControlTypes.DUAL);
     const [throttleDirection, setThrottleDirection] = useState("");
     const [rudderDirection, setRudderDirection] = useState("");
     const [throttleMagnitude, setThrottleMagnitude] = useState(0);
     const [rudderMagnitude, setRudderMagnitude] = useState(0);
+    const [rcDiveParameters, setRCDiveParameters] = useState<RCDiveParameters>({
+        ...defaultParams.dive,
+        ...defaultParams.drift,
+    });
 
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
         const rcCommandInterval = setInterval(() => {
-            sendEngineeringCommand(packageCommand());
+            handleRCInterval();
         }, RC_COMMAND_TIMEOUT);
 
         return () => {
             clearInterval(rcCommandInterval);
         };
     }, [throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
+
+    /**
+     * Sends RC commands periodically unless in dive mode.
+     *
+     * @returns {void}
+     */
+    const handleRCInterval = () => {
+        if (controlType !== ControlTypes.DIVE) {
+            sendEngineeringCommand(packageCommand());
+        }
+    };
 
     /**
      * Updates throttle and rudder values when the analog stick moves
@@ -213,10 +239,72 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return command;
     };
 
+    /**
+     * Updates RC dive parameters in state
+     *
+     * @param {string} name Dive parameter changed
+     * @param {number} value Updated dive parameter
+     * @returns {void}
+     */
+    const handleRCDiveChange = (name: string, value: number) => {
+        let mutableDiveParameters = { ...rcDiveParameters };
+        switch (name) {
+            case "max_depth":
+                mutableDiveParameters.max_depth = value;
+                break;
+            case "depth_interval":
+                mutableDiveParameters.depth_interval = value;
+                break;
+            case "hold_time":
+                mutableDiveParameters.hold_time = value;
+                break;
+            case "drift_time":
+                mutableDiveParameters.drift_time = value;
+                break;
+            default:
+                console.log("Recieved invalid RC dive input name");
+        }
+        setRCDiveParameters(mutableDiveParameters);
+    };
+
+    /**
+     * Packages and sends the RC dive command to the Bot
+     *
+     * @returns {void}
+     */
+    const handleRCDiveCommand = async () => {
+        const diveParameters: DiveParameters = {
+            max_depth: rcDiveParameters.max_depth,
+            depth_interval: rcDiveParameters.depth_interval,
+            hold_time: rcDiveParameters.hold_time,
+            bottom_dive: false,
+        };
+
+        const driftParameters: DriftParameters = { drift_time: rcDiveParameters.drift_time };
+
+        const rcDiveCommand = {
+            bot_id: props.botID,
+            type: CommandType.REMOTE_CONTROL_TASK,
+            rc_task: {
+                type: TaskType.DIVE,
+                dive: diveParameters,
+                surface_drift: driftParameters,
+            },
+        };
+        const res = await sendBotCommand(rcDiveCommand);
+        if (res.message) {
+            error("Unable to send RC dive command");
+        } else {
+            success("Beginning RC dive");
+        }
+    };
+
     const RCSelectMenu = (
-        <SelectMenu
-            controlType={controlType}
-            handleMenuSelection={handleMenuSelection}
+        <SelectMenu controlType={controlType} handleMenuSelection={handleMenuSelection} />
+    );
+
+    const RCDashboard = (
+        <Dashboard
             throttleDirection={throttleDirection}
             throttleMagnitude={throttleMagnitude}
             rudderDirection={rudderDirection}
@@ -235,7 +323,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         }
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {RCSelectMenu}
+                    <div className="rc-dashboard">
+                        {RCSelectMenu}
+                        {RCDashboard}
+                    </div>
                 </div>
             );
         case ControlTypes.DUAL:
@@ -248,7 +339,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         }
                         onAnalogStickStop={onAnalogStickStop}
                     />
-                    {RCSelectMenu}
+                    <div className="rc-dashboard">
+                        {RCSelectMenu}
+                        {RCDashboard}
+                    </div>
                     <AnalogStick
                         analogStickType={AnalogStickTypes.RIGHT}
                         handleAnalogStickMove={(event) =>
@@ -259,6 +353,18 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 </div>
             );
         case ControlTypes.DIVE:
-            return <div className="remote-control-panel">{RCSelectMenu}</div>;
+            return (
+                <div className="remote-control-panel dive">
+                    <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
+                    <div className="rc-dashboard dive">
+                        {RCSelectMenu}
+                        <DiveCommand
+                            rcDiveParameters={rcDiveParameters}
+                            botId={props.botID}
+                            handleRCDiveCommand={handleRCDiveCommand}
+                        />
+                    </div>
+                </div>
+            );
     }
 }

@@ -4,49 +4,17 @@ from objects import jaialog_get_object_list
 from pyjaia.series import *
 from pyjaia.h5_tools import *
 from threading import Lock
+import path_descriptors
 
 import h5py
 import logging
 import os
 import re
-import json
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 
 
-try:
-    path_descriptions = json.load(open('jaiabot_paths.json'))
-except FileNotFoundError:
-    path_descriptions = {}
-
-
-def jaia_get_description(path):
-    for description in path_descriptions:
-        if 'path' in description:
-            if description['path'] == path:
-                return description
-        
-        if 'path_regex' in description:
-            if re.match(description['path_regex'], path):
-                return description
-    
-    return None
-
-
-def get_title_from_path(path: str):
-    components = path.split('/')
-    if len(components) < 2:
-        logging.warning(f'Not enough components in path: {path}')
-        return ''
-
-    components = components[1:]
-
-    message_type_components = components[0].split('.')
-
-    if len(message_type_components) < 1:
-        logging.warning(f'Invalid path: {path}')
-        return ''
-
-    components[0] = components[0].split('.')[-1]
-    return '/'.join(components)
+l = logging.getLogger('jaia_h5')
 
 
 # This lock is locked whenever a thread is checking to open an h5 file, potentially doing some goby -> h5 conversions
@@ -78,7 +46,7 @@ class JaiaH5FileSet:
             end = h5File[UTIME_PATH][-1]
             return int(end - start)
         except (OSError, KeyError) as e:
-            logging.debug(e)
+            l.debug(e)
             return None
 
     def _getH5Files(self, shouldConvertGoby: bool):
@@ -92,7 +60,7 @@ class JaiaH5FileSet:
                     try:
                         h5Files.append(h5py.File(h5FileName))
                     except (BlockingIOError, OSError) as e:
-                        logging.debug(f'While trying to open {h5FileName}, exception occured: {e}')
+                        l.debug(f'While trying to open {h5FileName}, exception occured: {e}')
                     continue
 
                 # h5 file doesn't exist
@@ -108,11 +76,11 @@ class JaiaH5FileSet:
                 if gobyPath.is_file():
                     # convert goby file to h5 file
                     cmd = f'nice -n 10 goby log convert --input_file {gobyPath} --output_file {h5Path} --format HDF5'
-                    logging.info(cmd)
+                    l.info(cmd)
                     os.system(cmd)
                 else:
                     # Can't find goby file, so exception
-                    logging.error(f'Cannot find "{h5Path}" or "{gobyPath}"')
+                    l.error(f'Cannot find "{h5Path}" or "{gobyPath}"')
                     e = FileNotFoundError()
                     e.filename = h5Path
                     e.filename2 = gobyPath
@@ -122,7 +90,7 @@ class JaiaH5FileSet:
                 try:
                     h5Files.append(h5py.File(h5FileName))
                 except (OSError) as e:
-                    logging.debug(f'{e}: while opening {h5FileName}')
+                    l.debug(f'{e}: while opening {h5FileName}')
                     continue
 
         self.h5Files = h5Files
@@ -131,13 +99,13 @@ class JaiaH5FileSet:
         '''Returns a list of the available data fields below a root_path'''
         fields: AbstractSet[str] = set()
 
-        if root_path is None or root_path == '' or root_path == '/':
+        if root_path is None or root_path == '':
             root_path = '/'
         else:
             # h5py doesn't like initial slashes, unless it's the root path
             root_path = root_path.lstrip('/')
 
-        print(root_path)
+        l.info(f'Getting fields below root path: {root_path}')
 
         for h5_file in self.h5Files:
             try:
@@ -150,6 +118,49 @@ class JaiaH5FileSet:
         series.sort()
 
         return series
+    
+    def getAllSeriesDescriptors(self):
+        """Get the full paths of all (non-metadata) datasets in the set of h5 files.
+
+        Returns:
+            list[SeriesDescriptor]: List of SeriesDescriptors.
+        """
+
+        @dataclass_json
+        @dataclass
+        class SeriesDescriptor:
+            name: str
+            path: str
+            description: str
+            units: str
+            frequency: float
+
+            def __hash__(self):
+                return hash((self.name, self.path, self.description))
+
+        seriesDescriptors: AbstractSet[SeriesDescriptor] = set()
+
+        def visit_path(path: str, object):
+            if path[-1] == '_' or type(object) != h5py.Dataset:
+                return
+
+            path_descriptor = path_descriptors.get_by_path(path)
+
+            series_descriptor = SeriesDescriptor(
+                name=path_descriptor.name,
+                path=path,
+                description=path_descriptor.description,
+                units=path_descriptor.units,
+                frequency=path_descriptor.frequency,
+            )
+
+            seriesDescriptors.add(series_descriptor)
+
+        for h5_file in self.h5Files:
+            h5_file.visititems(visit_path)
+
+        return list(seriesDescriptors)
+
 
     def commands(self):
         # A dictionary mapping bot_id to an array of mission dictionaries
@@ -200,7 +211,10 @@ class JaiaH5FileSet:
 
             thisSeries = []
 
-            desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
+            try:
+                desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
+            except Exception as e:
+                l.debug(f'Could not load desired heading series from {log.filename}: {e}')
 
             for i, lat in enumerate(lat_series.y_values):
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
@@ -285,40 +299,39 @@ class JaiaH5FileSet:
         Returns:
             List[Dict]: A list of dictionaries containing the dataset arrays.
         """
-        logging.info(f'Loading from paths: {paths}')
-        logging.info(f'Loading from files: {self.h5Filenames}')
+        l.info(f'Loading from paths: {paths}')
+        l.info(f'Loading from files: {self.h5Filenames}')
         series_list = []
 
         paths = [path.lstrip('/') for path in paths.split(',')]
 
         # Get the series from the logs
         for path in paths:
-            logging.info(f"Loading path: {path}")
-            series_description = jaia_get_description(path) or {}
-            invalid_values = set(series_description.get('invalid_values', []))
+            l.info(f"Loading path: {path}")
+            path_descriptor = path_descriptors.get_by_path(path)
+            invalid_values = path_descriptor.invalid_values
 
             series = Series()
 
             for log in self.h5Files:
-                logging.info(f'  Loading from: {log.filename}')
+                l.info(f'  Loading from: {log.filename}')
                 try:
                     series = series.extend(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
                 except Exception as e:
-                    logging.warn(e)
+                    l.warn(e)
                     continue
 
             series.sort()
 
-            title = get_title_from_path(path)
-            y_axis_title = title
-            units = series_description.get('units')
+            y_axis_title = path_descriptor.name
+            units = path_descriptor.units
 
             if units is not None:
                 y_axis_title += f'\n({units})'
 
             series_list.append({
                 'path': path,
-                'title': title,
+                'title': path_descriptor.name,
                 'y_axis_title': y_axis_title,
                 '_utime_': series.utime,
                 'series_y': series.y_values,

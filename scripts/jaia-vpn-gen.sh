@@ -90,7 +90,7 @@ EOF
     fi
 fi
 
-sudo grep -q "${CLIENT_IP}" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
+sudo grep -q "${CLIENT_IP}/128" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
 
 cat <<EOF | sudo tee -a /etc/wireguard/${WG_SERVER_PROFILE}.conf
 # BEGIN PEER ${NODE_TYPE} ${NODE_ID}: CONFIGURED BY vpn_gen.sh

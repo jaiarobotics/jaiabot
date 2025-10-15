@@ -1,55 +1,19 @@
 #!/bin/bash
 set -u -e
 
+SCRIPT_PATH=$(dirname "$0")
+source ${SCRIPT_PATH}/includes/aws_run.sh
+
 # Check if necessary parameters are provided
 if (( "$#" != 1 )); then
     echo "Usage: $0 vpc.conf"
     exit 1
 fi
 
-handle_failure() {
-    echo "FAILURE"
-    exit 1
-}
-trap handle_failure ERR
-
-# Runs an AWS command, optionally displays the output if DEBUG=true, and returns a jq filter if set
-function run() {
-    # $1: jq filter
-    # ${@:2}: AWS CLI command
-    
-    # Execute the AWS CLI command and capture the output
-    local aws_command_output
-    echo "" >&2
-    aws_command_output=$(set -x; "${@:2}" --output json)
-    result=$?
-
-    if [[ "$DEBUG" = "true" ]]; then
-        # Display the full output in compact form
-        echo "$aws_command_output" | jq -c . >&2
-    fi
-
-    if [ ! -z "$1" ]; then
-       # Apply the jq filter and return the result
-       local filtered_output
-       filtered_output=$(echo "$aws_command_output" | jq -r "$1")
-       echo "$filtered_output"
-    fi
-
-    if [[ "$result" = "0" ]]; then
-        echo "OK" >&2
-    fi
-    echo "" >&2
-    
-    return $result
-}
-
-
 set -a
 source $1
 set +a
 
-SCRIPT_PATH=$(dirname "$0")
 IP_PY=$(realpath "${SCRIPT_PATH}/../../../scripts/jaia-ip.py")
 JCC_HUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ipv6)
 
@@ -213,25 +177,33 @@ mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
 
-FLEET_CONFIG=${USER_DATA_FIRST_BOOT_DIR}/fleet${FLEET_ID}.cfg
-perm_ssh_keys=$(echo "${SSH_PUBKEYS}" | sed 's/^/permanent_authorized_keys: "/' | sed 's/$/"/')
-cat <<EOF > ${FLEET_CONFIG}
-fleet: ${FLEET_ID}
-hubs: [ ${CLOUDHUB_ID} ]
-ssh {
-${perm_ssh_keys}
-}
-wlan_password: "dummy"
-service_vpn_enabled: false
-debconf {
-  key: "jaiabot-embedded/comms_links"
-  type: MULTISELECT
-  value: "wifi"
-}
-EOF
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
 USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
+# Append SSH keys to user data script so they get installed
+cat <<EOFF >> ${USER_DATA_SCRIPT}
+## Install SSH keys
+PRESEED_DIR="/boot/firmware/jaiabot/init"
+mount -o remount,rw /boot/firmware
+cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID})
+EOF
+
+cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub)
+EOF
+EOFF
+
+# Install Iridium configuration if it exists
+if [ -e ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/iridium.json ]; then 
+cat <<EOFF >> ${USER_DATA_SCRIPT}
+## Install Iridium config
+cat <<EOF > \${PRESEED_DIR}/iridium.json
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/iridium.json)
+EOF
+EOFF
+fi 
 
 USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
