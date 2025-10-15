@@ -4,7 +4,7 @@ import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystic
 
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
-import { Output } from "./Output/Output";
+import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
 
 import {
@@ -66,7 +66,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
         const rcCommandInterval = setInterval(() => {
-            handleRcInterval();
+            handleRCInterval();
         }, RC_COMMAND_TIMEOUT);
 
         return () => {
@@ -76,8 +76,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
 
     /**
      * Sends RC commands periodically unless in dive mode.
+     *
+     * @returns {void}
      */
-    const handleRcInterval = () => {
+    const handleRCInterval = () => {
         if (controlType !== ControlTypes.DIVE) {
             sendEngineeringCommand(packageCommand());
         }
@@ -238,7 +240,24 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     const handleRCDiveChange = (name: string, value: number) => {
-        setRCDiveParameters((prev) => ({ ...prev, [name]: value }));
+        let mutableDiveParameters = { ...rcDiveParameters };
+        switch (name) {
+            case "max_depth":
+                mutableDiveParameters.max_depth = value;
+                break;
+            case "depth_interval":
+                mutableDiveParameters.depth_interval = value;
+                break;
+            case "hold_time":
+                mutableDiveParameters.hold_time = value;
+                break;
+            case "drift_time":
+                mutableDiveParameters.drift_time = value;
+                break;
+            default:
+                console.log("Recieved invalid RC dive input name");
+        }
+        setRCDiveParameters(mutableDiveParameters);
     };
 
     const handleRCDiveCommand = async () => {
@@ -273,16 +292,12 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     );
 
     const RCOutput = (
-        <Output
+        <Dashboard
             throttleDirection={throttleDirection}
             throttleMagnitude={throttleMagnitude}
             rudderDirection={rudderDirection}
             rudderMagnitude={rudderMagnitude}
         />
-    );
-
-    const RCDiveInputs = (
-        <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
     );
 
     const RCDiveCommand = (
@@ -336,10 +351,19 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DIVE:
             return (
                 <div className="remote-control-panel">
-                    <div>{RCDiveInputs}</div>
+                    <div>
+                        <DiveInputs
+                            rcDiveParameters={rcDiveParameters}
+                            onChange={handleRCDiveChange}
+                        />
+                    </div>
                     <div className="rc-dashboard">
                         {RCSelectMenu}
-                        {RCDiveCommand}
+                        <DiveCommand
+                            rcDiveParameters={rcDiveParameters}
+                            botId={props.botID}
+                            handleRCDiveCommand={handleRCDiveCommand}
+                        />
                     </div>
                 </div>
             );

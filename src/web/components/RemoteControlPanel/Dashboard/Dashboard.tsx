@@ -8,9 +8,9 @@ interface Props {
 }
 
 /**
- * Allows the operator to switch between single and dual analog sticks
+ * Dashboard of RC control data
  */
-export function Output(props: Props) {
+export function Dashboard(props: Props) {
     return (
         <div>
             <div className="rc-output">

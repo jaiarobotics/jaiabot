@@ -26,7 +26,7 @@ interface DiveCommandProps {
  */
 export function DiveInputs(props: DiveInputsProps) {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        props.onChange?.(e.target.name, +e.target.value);
+        props.onChange(e.target.name, Number(e.target.value));
     };
 
     return (
