@@ -94,4 +94,18 @@ def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):
                                       file_log=file_log,
                                       simulation=simulation_block)
 
-camera_type = os.getenv('jaia_camera_type', default='NO_CAMERA')
+class CameraPositions(Enum):
+     AFT = "aft"
+     FORE = "fore"
+     OUTWARD = 'outward'
+     NO_CAMERA = "none"
+
+jaia_camera_positions=[]
+modes=os.environ['jaia_camera_positions']
+if modes:
+    for mode in modes.split(","):
+        jaia_camera_positions.append(CameraPositions(mode))
+
+camera_avaialble = False
+if CameraPositions.NO_CAMERA.value not in jaia_camera_positions:
+    camera_avaialble = True

@@ -64,6 +64,7 @@ parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsy
 parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
 parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
+parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 
 args=parser.parse_args()
 
@@ -253,6 +254,8 @@ if cloudhub_type == CloudHubType.PRIMARY:
     cloudhub_type_str='primary'
 elif cloudhub_type == CloudHubType.SECONDARY:
     cloudhub_type_str='secondary'
+
+camera_positions_in_use = args.camera_positions
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -277,6 +280,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_rf_encryption_password={args.rf_encryption_password}; ' +
                'export jaia_comms_mode=' + ','.join(link for link in comms_links_in_use) + '; ' +
                'export jaia_cloudhub_type=' + cloudhub_type_str + '; ' +
+               'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -472,13 +476,6 @@ jaiabot_apps = [
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
      'runs_on': [Type.BOT],
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_driver_camera',
-     'description': 'JaiaBot Driver Camera',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
-     'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
@@ -677,6 +674,18 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_tsys01)
+
+if 'none' not in camera_positions_in_use:
+    jaiabot_apps_camera = [
+        {'exe': 'jaiabot_driver_camera',
+        'description': 'JaiaBot Driver Camera',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_camera)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

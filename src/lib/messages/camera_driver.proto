@@ -2,6 +2,13 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
+enum CameraType {
+    AFT = 0;
+    FORE = 1;
+    OUTWARD = 2;
+    NO_CAMERA = 3;
+}
+
 message CameraCommand
 {
     // A unique id for this CameraCommand, used by CameraResponse to ack or respond
