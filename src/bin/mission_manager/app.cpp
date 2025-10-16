@@ -311,6 +311,7 @@ jaiabot::apps::MissionManager::MissionManager()
                     auto pitch = imu_data.euler_angles().pitch_with_units();
                     statechart::EvVehiclePitch ev;
                     ev.pitch = pitch;
+                    machine_->set_latest_pitch(pitch);
                     machine_->process_event(ev);
                     fwd_progress_data_.latest_pitch = pitch;
                 }

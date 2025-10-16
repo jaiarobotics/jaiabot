@@ -381,7 +381,7 @@ struct MissionManagerStateMachine
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
 
-    void set_start_of_dive_pressure(double pitch)
+    void calculate_start_of_dive_pressure(const boost::units::quantity<boost::units::degree::plane_angle>& pitch)
     {
         constexpr double pa_to_bar = 1.0/100000.0; // Pa to bar conversion
         constexpr double density = 1025; // kg/m^3
@@ -479,6 +479,12 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_latest_pitch(const boost::units::quantity<boost::units::degree::plane_angle>& latest_pitch)
+    {
+        latest_pitch_ = latest_pitch;
+    }
+    const boost::units::quantity<boost::units::degree::plane_angle>& latest_pitch() { return latest_pitch_; }
+
     void set_latest_max_acceleration(
         const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration)
     {
@@ -560,6 +566,7 @@ struct MissionManagerStateMachine
     // at the equator or the poles
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
+    boost::units::quantity<boost::units::degree::plane_angle> latest_pitch_{0 * boost::units::degree::degrees};
     bool rf_disable_{false};
     // IMUData.max_acceleration, to characterize the bottom type
     boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{

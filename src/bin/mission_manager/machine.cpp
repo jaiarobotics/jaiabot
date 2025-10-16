@@ -580,8 +580,8 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
 {
     // This makes sure we capture the pressure before the dive begins
     // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
+    this->machine().calculate_start_of_dive_pressure(this->machine().latest_pitch());
+    
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
