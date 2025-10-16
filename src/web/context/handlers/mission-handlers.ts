@@ -158,6 +158,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 }
 
 export function resetGridPlan(mutableState: JaiaContextType) {
-    gridPlan.setState(GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION);
-    mutableState.gridPlanningState = GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION;
+    gridPlan.setState(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
+    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
 }

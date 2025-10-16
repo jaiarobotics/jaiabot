@@ -10,14 +10,12 @@ export default function SurveyPlanner(props: Props) {
     const jaiaContext = useContext(JaiaContext);
 
     switch (jaiaContext.gridPlanningState) {
-        case GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION:
+        case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
-        case GridPlanningStates.WAITING_FOR_MISSION_END_LOCATION:
+        case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
             return <RequestEndMissionLocation />;
-        case GridPlanningStates.WAITING_FOR_GRID_DRAWING:
+        case GridPlanningStates.ACCEPTING_GRID_DRAWING:
             return <GridConfigs />;
-        case GridPlanningStates.WAITING_FOR_APPROVAL:
-            return;
         case GridPlanningStates.APPROVED:
             return;
     }

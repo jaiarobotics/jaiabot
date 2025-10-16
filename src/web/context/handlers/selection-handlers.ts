@@ -102,7 +102,7 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         resetSelectedWaypoint(mutableState);
     }
 
-    if (mutableState.gridPlanningState !== GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION) {
+    if (mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
         resetGridPlan(mutableState);
     }
 

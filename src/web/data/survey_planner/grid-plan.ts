@@ -2,10 +2,10 @@ import Task from "../tasks/task";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
-    WAITING_FOR_MISSION_START_LOCATION = 1,
-    WAITING_FOR_MISSION_END_LOCATION = 2,
-    WAITING_FOR_GRID_DRAWING = 3,
-    WAITING_FOR_APPROVAL = 4,
+    ACCEPTING_MISSION_START_LOCATION = 1,
+    ACCEPTING_MISSION_END_LOCATION = 2,
+    ACCEPTING_GRID_DRAWING = 3,
+    ACCEPTING_TASK = 4,
     APPROVED = 5,
 }
 
@@ -35,7 +35,7 @@ export class GridPlan {
     private state: GridPlanningStates;
 
     constructor() {
-        this.state = GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION;
+        this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
     }
 
     getGridPlanDetails() {

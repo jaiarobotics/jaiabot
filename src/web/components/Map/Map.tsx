@@ -11,6 +11,7 @@ import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
@@ -110,14 +111,14 @@ export default function Map() {
         let nextState: GridPlanningStates;
 
         switch (gridPlan.getState()) {
-            case GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION:
-                nextState = GridPlanningStates.WAITING_FOR_MISSION_END_LOCATION;
+            case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
+                nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
-            case GridPlanningStates.WAITING_FOR_MISSION_END_LOCATION:
-                nextState = GridPlanningStates.WAITING_FOR_GRID_DRAWING;
+            case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                map.addInteraction(gridLayer.createDrawInteraction());
                 break;
         }
-
         jaiaDispatch({
             type: JaiaActions.CHANGE_GRID_PLANNING_STATE,
             gridPlanningState: nextState,

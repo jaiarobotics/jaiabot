@@ -72,7 +72,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
 
     mutableState.mapMode = MapModes.DEFAULT;
-    mutableState.gridPlanningState = GridPlanningStates.WAITING_FOR_MISSION_START_LOCATION;
+    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
 
     const initialState = captureSnapshot(mutableState);
     mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
