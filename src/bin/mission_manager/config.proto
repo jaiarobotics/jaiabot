@@ -243,4 +243,12 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
+    
+    // The distance from the pressure sensor to the waterline
+    optional double pressure_sensor_to_waterline = 92 
+        [default = 0.4572, (dccl.field).units = { base_dimensions: "L" }];
+
+    // The distance from the pressure sensor to the end of the tail
+    optional double pressure_sensor_to_tail = 93
+        [default = 0.3683, (dccl.field).units = { base_dimensions: "L" }];
 }

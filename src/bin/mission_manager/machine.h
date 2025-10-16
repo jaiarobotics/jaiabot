@@ -27,6 +27,7 @@
 #include <fstream>
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
+#include <cmath>
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -380,9 +381,14 @@ struct MissionManagerStateMachine
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
 
-    void set_start_of_dive_pressure(double start_of_dive_pressure)
+    void set_start_of_dive_pressure(float pitch)
     {
-        start_of_dive_pressure_ = start_of_dive_pressure;
+        constexpr double bar_to_pa = 100000; // Pa to bar conversion
+        constexpr double density = 1025; // kg/m^3
+        constexpr double gravity = 9.81; // m/s^2
+        double depth = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180); // m
+
+        start_of_dive_pressure_ = density * gravity * depth * bar_to_pa;
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
 
@@ -1633,7 +1639,8 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
 
     void set_current_depth(const boost::units::quantity<boost::units::si::length>& current_depth)
     {
-        current_depth_ = current_depth;
+        boost::units::quantity<boost::units::si::length> pressure_sensor_to_tail = cfg().pressure_sensor_to_tail() * boost::units::si::meters; 
+        current_depth_ = current_depth + pressure_sensor_to_tail;
     }
 
     const boost::units::quantity<boost::units::si::length> current_depth()
