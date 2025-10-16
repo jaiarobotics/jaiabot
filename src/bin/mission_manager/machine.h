@@ -381,14 +381,14 @@ struct MissionManagerStateMachine
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
 
-    void set_start_of_dive_pressure(float pitch)
+    void set_start_of_dive_pressure(double pitch)
     {
-        constexpr double bar_to_pa = 100000; // Pa to bar conversion
+        constexpr double pa_to_bar = 1.0/100000.0; // Pa to bar conversion
         constexpr double density = 1025; // kg/m^3
         constexpr double gravity = 9.81; // m/s^2
-        double depth = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180); // m
+        double depth = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180.0); // m
 
-        start_of_dive_pressure_ = density * gravity * depth * bar_to_pa;
+        start_of_dive_pressure_ = density * gravity * depth * pa_to_bar;
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
 
