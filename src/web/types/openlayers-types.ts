@@ -6,6 +6,7 @@ export enum LayerTitles {
     HUB_LAYER = "hub-layer",
     HUB_COMMS_LAYER = "hub-comms-layer",
     MISSION_LAYER = "mission-layer",
+    GRID_LAYER = "grid-layer",
     DIVE_LAYER = "dive-layer",
     DRIFT_LAYER = "drift-layer",
     CONTOUR_LAYER = "contour-layer",

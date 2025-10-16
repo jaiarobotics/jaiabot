@@ -4,6 +4,7 @@ import { Coordinate } from "ol/coordinate";
 
 // Jaia
 import { layers } from "../layers/layers";
+import { gridLayer } from "../layers/vector/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
 import { controls } from "../controls/controls";
 import { view } from "../views/view";
@@ -64,6 +65,11 @@ export function handleMapModeChange(mapMode: MapModes) {
     if (mapMode !== MapModes.MEASURE) {
         map.removeInteraction(measureLayer.getDraw());
         measureLayer.clearDrawInteraction();
+    }
+
+    if (mapMode !== MapModes.SURVEY_PLANNING) {
+        map.removeInteraction(gridLayer.getDraw());
+        gridLayer.getVectorLayer().getSource().clear();
     }
 
     jaiaGlobal.setMapMode(mapMode);

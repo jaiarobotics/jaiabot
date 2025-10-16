@@ -7,6 +7,7 @@ import { noaaENCLayer } from "./tile/noaa-enc-layer";
 import { botLayer } from "./vector/bot-layer";
 import { hubLayer } from "./vector/hub-layer";
 import { missionLayer } from "./vector/mission-layer";
+import { gridLayer } from "./vector/grid-layer";
 import { rallyLayer } from "./vector/rally-layer";
 import { diveLayer } from "./vector/dive-layer";
 import { driftLayer } from "./vector/drift-layer";
@@ -29,6 +30,7 @@ class Layers {
         this.layers.set(LayerTitles.BOT_LAYER, botLayer.getVectorLayer());
         this.layers.set(LayerTitles.HUB_LAYER, hubLayer.getVectorLayer());
         this.layers.set(LayerTitles.MISSION_LAYER, missionLayer.getVectorLayer());
+        this.layers.set(LayerTitles.GRID_LAYER, gridLayer.getVectorLayer());
         this.layers.set(LayerTitles.RALLY_LAYER, rallyLayer.getVectorLayer());
         this.layers.set(LayerTitles.DIVE_LAYER, diveLayer.getVectorLayer());
         this.layers.set(LayerTitles.DRIFT_LAYER, driftLayer.getVectorLayer());
