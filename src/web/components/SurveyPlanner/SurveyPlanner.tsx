@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { JaiaContext } from "../../context/JaiaContext";
+import "./SurveyPlanner.less";
 
 interface Props {
     gridPlanDetails: GridPlanDetails;
@@ -23,24 +24,20 @@ export default function SurveyPlanner(props: Props) {
 
 function RequestStartMissionLocation() {
     return (
-        <div className="jaia-panel">
+        <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
-            <div>
-                <div>Select a mission start point on the map</div>
-                <button>Use previous</button>
-            </div>
+            <div className="progress-line"></div>
+            <div className="survey-location-page">Set mission start on map</div>
         </div>
     );
 }
 
 function RequestEndMissionLocation() {
     return (
-        <div className="jaia-panel">
+        <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
-            <div>
-                <div>Select a mission end point on the map</div>
-                <button>Use previous</button>
-            </div>
+            <div className="progress-line"></div>
+            <div className="survey-location-page">Set mission end on map</div>
         </div>
     );
 }
