@@ -89,6 +89,7 @@ class Camera:
                 '--codec', 'h264',
                 '--inline',
                 '--signal',
+                '--timeout', '0',
                 '--output', '-',
             ]
 
