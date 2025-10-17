@@ -7,3 +7,11 @@ sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIEgYJNPbL
 ## YUBIKEY 3 19377746 ##
 sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAILWQpc0cmWaXvwti8SdvLALbddQeeteUkkEUn4pMfmW1AAAABHNzaDo= azuread\jasonwebster@LAPTOP-8NTK57VT
 
+## YUBIKEY 4 26102776 ##
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIO+kWrYWj6jxgChGWGewaUgwLVYtPH9KfW11Qh3Z6SguAAAABHNzaDo= nick.marshall@jaia.tech
+
+## YUBIKEY 5 26102919 ##
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAILnZcXd1MoZv4e4AdWYOTH746Y31C86dRMX6M/ZDDUo2AAAABHNzaDo= michael.twomey@jaia.tech
+
+## YUBIKEY 6 26102551 ##
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAINSfaU/fVGOg9SU8/tWtjKqjkjclMePVoKijU8qY5wPVAAAABHNzaDo= mark.milligan@jaia.tech
