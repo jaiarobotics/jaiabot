@@ -2,6 +2,7 @@ import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { formatNumericalInput } from "../../utils/input";
 import "./SurveyPlanner.less";
 
 interface Props {
@@ -74,7 +75,7 @@ function GridConfigs(props: Props) {
                 gridPlan.setPointSpacing(input);
                 break;
         }
-        gridLayer.updateFeatures();
+        gridLayer.drawGrid();
     };
 
     return (
@@ -85,7 +86,8 @@ function GridConfigs(props: Props) {
             <div className="input-grid">
                 <div>Number of Lanes:</div>
                 <input
-                    value={numOfLanes}
+                    type="number"
+                    value={formatNumericalInput(numOfLanes)}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
                     }
@@ -93,7 +95,8 @@ function GridConfigs(props: Props) {
                 <div>Lane Spacing:</div>
                 <div className="input-group">
                     <input
-                        value={laneSpacing}
+                        type="number"
+                        value={formatNumericalInput(laneSpacing)}
                         onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                             handleInputChange(evt.target.value, GridInputs.LANE_SPACING)
                         }
@@ -104,7 +107,8 @@ function GridConfigs(props: Props) {
                 <div>Point Spacing:</div>
                 <div className="input-group">
                     <input
-                        value={pointSpacing}
+                        type="number"
+                        value={formatNumericalInput(pointSpacing)}
                         onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                             handleInputChange(evt.target.value, GridInputs.POINT_SPACING)
                         }

@@ -69,7 +69,7 @@ export function handleMapModeChange(mapMode: MapModes) {
 
     if (mapMode !== MapModes.SURVEY_PLANNING) {
         map.removeInteraction(gridLayer.getDraw());
-        gridLayer.getVectorLayer().getSource().clear();
+        gridLayer.resetGrid();
     }
 
     jaiaGlobal.setMapMode(mapMode);

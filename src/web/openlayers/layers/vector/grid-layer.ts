@@ -1,3 +1,7 @@
+import * as turf from "@turf/turf";
+import { Units } from "@turf/helpers";
+import { Feature as TurfFeature, LineString as TurfLineString } from "geojson";
+
 import BaseEvent from "ol/events/Event";
 import VectorSource from "ol/source/Vector";
 import { Draw } from "ol/interaction";
@@ -10,13 +14,16 @@ import { Stroke, Style } from "ol/style";
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { LayerTitles } from "../../../types/openlayers-types";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { layersZIndexes } from "../zindex";
-import { generateSurveyLine } from "../../features/survey-line";
+import { generateSurveyLane } from "../../features/survey-lane";
+
+const units: Units = "meters";
+const options = { units: units };
 
 class GridLayer extends JaiaVectorLayer {
     private draw: Draw;
     private drawSource: VectorSource;
+    private centerLine: TurfFeature<TurfLineString>;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
@@ -46,24 +53,14 @@ class GridLayer extends JaiaVectorLayer {
             const feature = event.feature as Feature<LineString>;
             const startLocation3857 = feature.getGeometry().getFirstCoordinate();
             const startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
-            const startLocation: GeographicCoordinate = {
-                lat: startLocation4326[1],
-                lon: startLocation4326[0],
-            };
-
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
                 const currentLocation3857 = feature.getGeometry().getLastCoordinate();
                 const currentLocation4326 = toLonLat([
                     currentLocation3857[0],
                     currentLocation3857[1],
                 ]);
-                const currentLocation: GeographicCoordinate = {
-                    lat: currentLocation4326[1],
-                    lon: currentLocation4326[0],
-                };
-                const surveyLine = generateSurveyLine(startLocation, currentLocation);
-                this.getVectorLayer().getSource().clear();
-                this.getVectorLayer().getSource().addFeature(surveyLine);
+                this.centerLine = turf.lineString([startLocation4326, currentLocation4326]);
+                this.drawGrid();
             });
         });
 
@@ -72,6 +69,47 @@ class GridLayer extends JaiaVectorLayer {
         });
 
         return this.draw;
+    }
+
+    drawGrid() {
+        if (!this.centerLine) {
+            return;
+        }
+
+        this.getVectorLayer().getSource().clear();
+
+        let distFromCenter = 0;
+        if (gridPlan.getNumOfLanes() % 2 === 0) {
+            distFromCenter = gridPlan.getLaneSpacing() / 2;
+        }
+
+        for (let i = 0; i < gridPlan.getNumOfLanes(); i++) {
+            const offsetLine = turf.lineOffset(this.centerLine, distFromCenter, options);
+            const coordinates = offsetLine.geometry.coordinates;
+            const startLocation = { lat: coordinates[0][1], lon: coordinates[0][0] };
+            const endLocation = { lat: coordinates[1][1], lon: coordinates[1][0] };
+            const laneFeature = generateSurveyLane(startLocation, endLocation);
+            this.getVectorLayer().getSource().addFeature(laneFeature);
+
+            // For grids with even number of lanes, increase distance every two lanes
+            // from the start
+            if (gridPlan.getNumOfLanes() % 2 === 0 && i % 2 === 1) {
+                distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
+            }
+
+            // For grids with odd number of lanes, increase distance every two lanes
+            // after creation of the middle lane
+            if (gridPlan.getNumOfLanes() % 2 !== 0 && i % 2 === 0) {
+                distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
+            }
+
+            distFromCenter *= -1;
+        }
+    }
+
+    resetGrid() {
+        this.getVectorLayer().getSource().clear();
+        this.centerLine = undefined;
     }
 }
 

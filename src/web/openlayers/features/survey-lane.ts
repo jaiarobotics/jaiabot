@@ -4,7 +4,7 @@ import { LineString } from "ol/geom";
 import { view } from "../views/view";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
-export function generateSurveyLine(
+export function generateSurveyLane(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
 ) {
