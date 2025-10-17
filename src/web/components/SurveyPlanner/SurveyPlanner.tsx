@@ -44,9 +44,29 @@ function RequestEndMissionLocation() {
 
 function GridConfigs() {
     return (
-        <div className="jaia-panel">
+        <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
-            <div>CONFIG</div>
+            <div className="progress-line"></div>
+            <div className="survey-location-page">Drag to create the grid</div>
+            <div className="input-grid">
+                <div>Number of Lanes:</div>
+                <input />
+                <div>Lane Spacing:</div>
+                <div className="input-group">
+                    <input />
+                    <div className="units">m</div>
+                </div>
+
+                <div>Point Spacing:</div>
+                <div className="input-group">
+                    <input />
+                    <div className="units">m</div>
+                </div>
+            </div>
+            <div className="button-row">
+                <button>Clear Grid</button>
+                <button>Set Task</button>
+            </div>
         </div>
     );
 }
