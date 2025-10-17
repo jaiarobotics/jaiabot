@@ -2,17 +2,17 @@ import BaseEvent from "ol/events/Event";
 import VectorSource from "ol/source/Vector";
 import { Draw } from "ol/interaction";
 import { DrawEvent } from "ol/interaction/Draw";
-("");
+import { Feature } from "ol";
+import { LineString } from "ol/geom";
+import { toLonLat } from "ol/proj";
+import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
+import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { LayerTitles } from "../../../types/openlayers-types";
-import { layersZIndexes } from "../zindex";
-import { LineString } from "ol/geom";
-import { Feature } from "ol";
-import { toLonLat } from "ol/proj";
-import { generateSurveyLine } from "../../features/survey-line";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
-import { Stroke, Style } from "ol/style";
+import { layersZIndexes } from "../zindex";
+import { generateSurveyLine } from "../../features/survey-line";
 
 class GridLayer extends JaiaVectorLayer {
     private draw: Draw;
@@ -22,6 +22,8 @@ class GridLayer extends JaiaVectorLayer {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
         this.drawSource = new VectorSource();
     }
+
+    override updateFeatures() {}
 
     getDraw() {
         return this.draw;

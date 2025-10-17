@@ -1,10 +1,17 @@
-import { useContext } from "react";
-import { GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import "./SurveyPlanner.less";
 
 interface Props {
     gridPlanDetails: GridPlanDetails;
+}
+
+enum GridInputs {
+    NUM_OF_LANES = 1,
+    LANE_SPACING = 2,
+    POINT_SPACING = 3,
 }
 
 export default function SurveyPlanner(props: Props) {
@@ -16,7 +23,7 @@ export default function SurveyPlanner(props: Props) {
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
             return <RequestEndMissionLocation />;
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
-            return <GridConfigs />;
+            return <GridConfigs gridPlanDetails={props.gridPlanDetails} />;
         case GridPlanningStates.APPROVED:
             return;
     }
@@ -42,7 +49,34 @@ function RequestEndMissionLocation() {
     );
 }
 
-function GridConfigs() {
+function GridConfigs(props: Props) {
+    const [numOfLanes, setNumOfLanes] = useState(props.gridPlanDetails.numOfLanes);
+    const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
+    const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
+
+    const handleInputChange = (value: string, inputType: GridInputs) => {
+        let input = Number(value);
+        if (isNaN(input)) {
+            input = 0;
+        }
+
+        switch (inputType) {
+            case GridInputs.NUM_OF_LANES:
+                setNumOfLanes(input);
+                gridPlan.setNumOfLanes(input);
+                break;
+            case GridInputs.LANE_SPACING:
+                setLaneSpacing(input);
+                gridPlan.setLaneSpacing(input);
+                break;
+            case GridInputs.POINT_SPACING:
+                setPointSpacing(input);
+                gridPlan.setPointSpacing(input);
+                break;
+        }
+        gridLayer.updateFeatures();
+    };
+
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
@@ -50,16 +84,31 @@ function GridConfigs() {
             <div className="survey-location-page">Drag to create the grid</div>
             <div className="input-grid">
                 <div>Number of Lanes:</div>
-                <input />
+                <input
+                    value={numOfLanes}
+                    onChange={(evt: ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
+                    }
+                />
                 <div>Lane Spacing:</div>
                 <div className="input-group">
-                    <input />
+                    <input
+                        value={laneSpacing}
+                        onChange={(evt: ChangeEvent<HTMLInputElement>) =>
+                            handleInputChange(evt.target.value, GridInputs.LANE_SPACING)
+                        }
+                    />
                     <div className="units">m</div>
                 </div>
 
                 <div>Point Spacing:</div>
                 <div className="input-group">
-                    <input />
+                    <input
+                        value={pointSpacing}
+                        onChange={(evt: ChangeEvent<HTMLInputElement>) =>
+                            handleInputChange(evt.target.value, GridInputs.POINT_SPACING)
+                        }
+                    />
                     <div className="units">m</div>
                 </div>
             </div>

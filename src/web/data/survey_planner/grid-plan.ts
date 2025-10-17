@@ -36,6 +36,9 @@ export class GridPlan {
 
     constructor() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
+        this.numOfLanes = 5;
+        this.laneSpacing = 10;
+        this.pointSpacing = 10;
     }
 
     getGridPlanDetails() {
@@ -52,6 +55,30 @@ export class GridPlan {
             state: this.state,
         };
         return gridPlanDetails;
+    }
+
+    getNumOfLanes() {
+        return this.numOfLanes;
+    }
+
+    setNumOfLanes(numOfLanes: number) {
+        this.numOfLanes = numOfLanes;
+    }
+
+    getLaneSpacing() {
+        return this.laneSpacing;
+    }
+
+    setLaneSpacing(laneSpacing: number) {
+        this.laneSpacing = laneSpacing;
+    }
+
+    getPointSpacing() {
+        return this.pointSpacing;
+    }
+
+    setPointSpacing(pointSpacing: number) {
+        this.pointSpacing = pointSpacing;
     }
 
     getState() {
