@@ -13,7 +13,7 @@ def filter_jaiabot_data(input_path, output_dir):
         with h5py.File(output_path, "w") as dst:
             found_any = False
             for key in src.keys():
-                if key in ["jaiabot::imu", "jaiabot::pressure_adjusted", "jaiabot::bot_status;14"]:
+                if key in ["jaiabot::imu", "jaiabot::pressure_adjusted", "jaiabot::bot_status;14", "jaiabot::mission_dive", "jaiabot::task_packet;14"]:
                     print(f"  → Copying dataset: {key}")
                     src.copy(key, dst)
                     found_any = True
