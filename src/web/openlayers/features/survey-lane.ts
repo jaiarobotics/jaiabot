@@ -1,6 +1,7 @@
 import { Feature } from "ol";
+import { Coordinate } from "ol/coordinate";
 import { fromLonLat } from "ol/proj";
-import { LineString } from "ol/geom";
+import { LineString, Point } from "ol/geom";
 import { view } from "../views/view";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
@@ -20,5 +21,18 @@ export function generateSurveyLane(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
+    return feature;
+}
+
+export function generateSurveyWaypoint(location: GeographicCoordinate) {
+    if (!location) {
+        return new Feature();
+    }
+
+    const coordinate: Coordinate = [location.lon, location.lat];
+    const feature = new Feature({
+        geometry: new Point(fromLonLat(coordinate, view.getProjection())),
+    });
+
     return feature;
 }

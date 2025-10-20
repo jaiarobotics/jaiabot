@@ -15,7 +15,8 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
-import { generateSurveyLane } from "../../features/survey-lane";
+import { generateSurveyLane, generateSurveyWaypoint } from "../../features/survey-lane";
+import { Console } from "console";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -104,6 +105,17 @@ class GridLayer extends JaiaVectorLayer {
             }
 
             distFromCenter *= -1;
+
+            // Points
+            const lineDist = turf.length(offsetLine, options);
+            for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
+                const coordinates = turf.along(offsetLine, dist, options).geometry.coordinates;
+                const waypointFeature = generateSurveyWaypoint({
+                    lat: coordinates[1],
+                    lon: coordinates[0],
+                });
+                this.getVectorLayer().getSource().addFeature(waypointFeature);
+            }
         }
     }
 
