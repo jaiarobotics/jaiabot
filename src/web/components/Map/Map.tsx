@@ -22,6 +22,7 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 import "./Map.less";
+import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -48,7 +49,7 @@ export default function Map() {
                 // Measurement clicks handled by measure layer (src/web/openlayers/layers)
                 return;
             case MapModes.SURVEY_PLANNING:
-                handleSurveyPlanningClick();
+                handleSurveyPlanningClick(event.coordinate);
                 return;
         }
 
@@ -107,16 +108,28 @@ export default function Map() {
         });
     };
 
-    const handleSurveyPlanningClick = () => {
+    const handleSurveyPlanningClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const location = { lon: lonLat[0], lat: lonLat[1] };
         let nextState: GridPlanningStates;
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
+                gridPlan.setMissionStart(location);
+                gridLayer
+                    .getVectorLayer()
+                    .getSource()
+                    .addFeature(generateSurveyEndpoint(location, true));
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
-                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                gridPlan.setMissionEnd(location);
+                gridLayer
+                    .getVectorLayer()
+                    .getSource()
+                    .addFeature(generateSurveyEndpoint(location, false));
                 map.addInteraction(gridLayer.createDrawInteraction());
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
         }
         jaiaDispatch({

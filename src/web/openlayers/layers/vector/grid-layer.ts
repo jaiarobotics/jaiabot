@@ -15,7 +15,8 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
-import { generateSurveyLane, generateSurveyWaypoint } from "../../features/survey-lane";
+import { generateSurveyLane, generateSurveyWaypoint } from "../../features/survey/survey-lane";
+import { generateSurveyEndpoint } from "../../features/survey/survey-endpoints";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -115,12 +116,22 @@ class GridLayer extends JaiaVectorLayer {
         }
     }
 
+    createGridEndPoints() {
+        this.getVectorLayer()
+            .getSource()
+            .addFeature(generateSurveyEndpoint(gridPlan.getMissionStart(), true));
+        this.getVectorLayer()
+            .getSource()
+            .addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
+    }
+
     drawGrid() {
         if (!this.centerLine) {
             return;
         }
 
         this.getVectorLayer().getSource().clear();
+        this.createGridEndPoints();
         this.createGridLanes();
     }
 

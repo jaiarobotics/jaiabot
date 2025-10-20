@@ -2,8 +2,8 @@ import { Feature } from "ol";
 import { Coordinate } from "ol/coordinate";
 import { fromLonLat } from "ol/proj";
 import { LineString, Point } from "ol/geom";
-import { view } from "../views/view";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { view } from "../../views/view";
+import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 export function generateSurveyLane(
     startLocation: GeographicCoordinate,

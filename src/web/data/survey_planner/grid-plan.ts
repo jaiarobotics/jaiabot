@@ -57,6 +57,22 @@ export class GridPlan {
         return gridPlanDetails;
     }
 
+    getMissionStart() {
+        return this.missionStart;
+    }
+
+    setMissionStart(start: GeographicCoordinate) {
+        this.missionStart = start;
+    }
+
+    getMissionEnd() {
+        return this.missionEnd;
+    }
+
+    setMissionEnd(end: GeographicCoordinate) {
+        this.missionEnd = end;
+    }
+
     getNumOfLanes() {
         return this.numOfLanes;
     }
