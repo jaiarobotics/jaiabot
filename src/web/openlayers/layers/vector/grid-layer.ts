@@ -16,7 +16,6 @@ import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { generateSurveyLane, generateSurveyWaypoint } from "../../features/survey-lane";
-import { Console } from "console";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -72,13 +71,7 @@ class GridLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
-    drawGrid() {
-        if (!this.centerLine) {
-            return;
-        }
-
-        this.getVectorLayer().getSource().clear();
-
+    createGridLanes() {
         let distFromCenter = 0;
         if (gridPlan.getNumOfLanes() % 2 === 0) {
             distFromCenter = gridPlan.getLaneSpacing() / 2;
@@ -104,19 +97,31 @@ class GridLayer extends JaiaVectorLayer {
                 distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
             }
 
-            distFromCenter *= -1;
+            this.createGridPoints(offsetLine);
 
-            // Points
-            const lineDist = turf.length(offsetLine, options);
-            for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
-                const coordinates = turf.along(offsetLine, dist, options).geometry.coordinates;
-                const waypointFeature = generateSurveyWaypoint({
-                    lat: coordinates[1],
-                    lon: coordinates[0],
-                });
-                this.getVectorLayer().getSource().addFeature(waypointFeature);
-            }
+            distFromCenter *= -1;
         }
+    }
+
+    createGridPoints(lane: TurfFeature<TurfLineString>) {
+        const lineDist = turf.length(lane, options);
+        for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
+            const coordinates = turf.along(lane, dist, options).geometry.coordinates;
+            const waypointFeature = generateSurveyWaypoint({
+                lat: coordinates[1],
+                lon: coordinates[0],
+            });
+            this.getVectorLayer().getSource().addFeature(waypointFeature);
+        }
+    }
+
+    drawGrid() {
+        if (!this.centerLine) {
+            return;
+        }
+
+        this.getVectorLayer().getSource().clear();
+        this.createGridLanes();
     }
 
     resetGrid() {
