@@ -11,7 +11,7 @@ import Waypoint from "../../data/waypoints/waypoint";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { validateCoordinate } from "../../utils/input";
+import { formatTaskMenuItem, validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
@@ -119,29 +119,6 @@ export default function WaypointPanel() {
     };
 
     /**
-     * Converts a TaskType to a UI friendly string
-     *
-     * @param {TaskType} taskType Task name to be formatted
-     * @returns {string} Name of the task
-     */
-    const formatMenuItemText = (taskType: TaskType) => {
-        switch (taskType) {
-            case TaskType.NONE:
-                return "None";
-            case TaskType.DIVE:
-                return "Dive";
-            case TaskType.SURFACE_DRIFT:
-                return "Surface Drift";
-            case TaskType.STATION_KEEP:
-                return "Station Keep";
-            case TaskType.CONSTANT_HEADING:
-                return "Constant Heading";
-            default:
-                return "";
-        }
-    };
-
-    /**
      * Dispatches action to delete a waypoint
      *
      * @returns {void}
@@ -181,7 +158,11 @@ export default function WaypointPanel() {
      */
     const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
         const selectedTaskType = evt.target.value;
-        jaiaDispatch({ type: JaiaActions.SELECT_TASK, taskType: selectedTaskType });
+        jaiaDispatch({
+            type: JaiaActions.SELECT_TASK,
+            task: getWaypoint().getTask(),
+            taskType: selectedTaskType,
+        });
     };
 
     /**
@@ -313,19 +294,19 @@ export default function WaypointPanel() {
                         disabled={isDisabled}
                     >
                         <MenuItem value={TaskType.NONE}>
-                            {formatMenuItemText(TaskType.NONE)}
+                            {formatTaskMenuItem(TaskType.NONE)}
                         </MenuItem>
                         <MenuItem value={TaskType.DIVE}>
-                            {formatMenuItemText(TaskType.DIVE)}
+                            {formatTaskMenuItem(TaskType.DIVE)}
                         </MenuItem>
                         <MenuItem value={TaskType.SURFACE_DRIFT}>
-                            {formatMenuItemText(TaskType.SURFACE_DRIFT)}
+                            {formatTaskMenuItem(TaskType.SURFACE_DRIFT)}
                         </MenuItem>
                         <MenuItem value={TaskType.CONSTANT_HEADING}>
-                            {formatMenuItemText(TaskType.CONSTANT_HEADING)}
+                            {formatTaskMenuItem(TaskType.CONSTANT_HEADING)}
                         </MenuItem>
                         <MenuItem value={TaskType.STATION_KEEP}>
-                            {formatMenuItemText(TaskType.STATION_KEEP)}
+                            {formatTaskMenuItem(TaskType.STATION_KEEP)}
                         </MenuItem>
                     </Select>
                 </FormControl>

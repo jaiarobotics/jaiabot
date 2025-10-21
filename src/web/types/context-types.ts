@@ -4,8 +4,8 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
+import Task from "../data/tasks/task";
 import HistoryBuffer from "../utils/history-buffer";
-
 import {
     SelectedNode,
     SelectedWaypoint,
@@ -55,6 +55,7 @@ export interface JaiaAction {
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
+    task?: Task;
     taskType?: TaskType;
     taskParameterPair?: TaskParameterPair;
 

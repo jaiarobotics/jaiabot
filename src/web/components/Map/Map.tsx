@@ -136,7 +136,7 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_TASK;
         }
         jaiaDispatch({
-            type: JaiaActions.CHANGE_GRID_PLANNING_STATE,
+            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: nextState,
         });
     };

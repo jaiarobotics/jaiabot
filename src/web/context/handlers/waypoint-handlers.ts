@@ -87,10 +87,8 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleSelectTask(mutableState: JaiaContextType, action: JaiaAction) {
-    const task = getWaypoint().getTask();
-
-    if (task) {
-        task.setType(action.taskType);
+    if (action.task) {
+        action.task.setType(action.taskType);
     }
 
     missionLayer.updateFeatures();
@@ -106,8 +104,7 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskParameter(mutableState: JaiaContextType, action: JaiaAction) {
-    const task = getWaypoint().getTask();
-    task.setParameter(action.taskParameterPair);
+    action.task.setParameter(action.taskParameterPair);
     return mutableState;
 }
 
@@ -117,30 +114,14 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-export function handleToggleBottomDive(mutableState: JaiaContextType) {
-    const task = getWaypoint().getTask();
-
-    if (task.getIsBottomDive()) {
-        task.setIsBottomDive(false);
+export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.task.getIsBottomDive()) {
+        action.task.setIsBottomDive(false);
     } else {
-        task.setIsBottomDive(true);
+        action.task.setIsBottomDive(true);
     }
 
     return mutableState;
-}
-
-/**
- * Retrieves the Waypoint object connected to the currently selected waypoint
- *
- * @returns {Waypoint} Access to Waypoint modifiers
- */
-function getWaypoint() {
-    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    const mission = missionSet.getMission(selectedWaypoint.missionID);
-
-    if (mission) {
-        return mission.getWaypoint(selectedWaypoint.waypointNum);
-    }
 }
 
 /**

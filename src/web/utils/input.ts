@@ -1,5 +1,6 @@
 import { NO_CONSTRAINT } from "./constants";
 import { MAX_LAT, MIN_LAT, MAX_LON, MIN_LON } from "./constants";
+import { TaskType } from "../types/protobuf-types";
 
 /**
  * Removes leading zero from numerical input. For example,
@@ -58,4 +59,27 @@ export function validateCoordinate(lat: string, lon: string) {
     }
 
     return [lat, lon];
+}
+
+/**
+ * Converts a TaskType to a UI friendly string
+ *
+ * @param {TaskType} taskType Task name to be formatted
+ * @returns {string} Name of the task
+ */
+export function formatTaskMenuItem(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.NONE:
+            return "None";
+        case TaskType.DIVE:
+            return "Dive";
+        case TaskType.SURFACE_DRIFT:
+            return "Surface Drift";
+        case TaskType.STATION_KEEP:
+            return "Station Keep";
+        case TaskType.CONSTANT_HEADING:
+            return "Constant Heading";
+        default:
+            return "";
+    }
 }

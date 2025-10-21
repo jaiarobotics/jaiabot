@@ -1,6 +1,5 @@
 import Task from "../tasks/task";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import { Feature as TurfFeature, LineString as TurfLineString, Position } from "geojson";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -32,6 +31,7 @@ export class GridPlan {
         this.numOfLanes = 5;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
+        this.surveyTask = new Task();
     }
 
     getGridPlanDetails() {
@@ -83,6 +83,14 @@ export class GridPlan {
 
     setPointSpacing(pointSpacing: number) {
         this.pointSpacing = pointSpacing;
+    }
+
+    getSurveyTask() {
+        return this.surveyTask;
+    }
+
+    setSurveyTask(surveyTask: Task) {
+        this.surveyTask = surveyTask;
     }
 
     getState() {
