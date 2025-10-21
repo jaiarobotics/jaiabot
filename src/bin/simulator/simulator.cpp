@@ -54,6 +54,8 @@
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
+using jaiabot::protobuf::GPSNoise;
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
@@ -107,6 +109,7 @@ class SimulatorTranslation : public goby::moos::Translator
     std::default_random_engine generator_;
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
+    std::normal_distribution<double> gps_noise_distribution_{0.0, 1.0};
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
     int time_out_sky_{200};
 
@@ -171,6 +174,17 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
       salinity_distribution_(0, sim_cfg_.salinity_stdev())
 
 {
+
+    if (sim_cfg_.has_gps_noise())
+    {
+        const double lateral_stdev = sim_cfg_.gps_noise().lateral_r95() / 2.4477;  // R95 to 1 sigma
+        gps_noise_distribution_ = std::normal_distribution<double>(0.0, lateral_stdev);
+    }
+    else
+    {
+        gps_noise_distribution_ = std::normal_distribution<double>(0.0, 0.0);
+    }
+
     if (sim_cfg_.is_bot_sim())
     {
         interprocess().subscribe<goby::middleware::groups::datum_update>(
@@ -299,8 +313,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     auto& moos_buffer = moos().buffer();
 
-    auto x = moos_buffer["NAV_X"].GetDouble() * si::meters;
-    auto y = moos_buffer["NAV_Y"].GetDouble() * si::meters;
+    auto x = (moos_buffer["NAV_X"].GetDouble() + gps_noise_distribution_(generator_)) * si::meters;
+    auto y = (moos_buffer["NAV_Y"].GetDouble() + gps_noise_distribution_(generator_)) * si::meters;
     auto depth = moos_buffer["NAV_DEPTH"].GetDouble() * si::meters;
 
     // very simple vertical depth simulation assuming perfect controller

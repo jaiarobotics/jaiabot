@@ -29,6 +29,7 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/simulator.proto";
 
 package jaiabot.config;
 
@@ -116,6 +117,8 @@ message Simulator
     optional string hub_gpsd_device = 43;
 
     optional ArduinoSimThread arduino_config = 60;
+
+    optional jaiabot.protobuf.GPSNoise gps_noise = 70;
 }
 
 message ArduinoSimThread

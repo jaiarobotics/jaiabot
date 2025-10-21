@@ -25,6 +25,16 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message GPSNoise 
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double lateral_r95 = 1
+        [(dccl.field) = { units { derived_dimensions: "length" } }];
+}
+
 message SimulatorCommand
 {
     option (dccl.msg) = {
@@ -46,5 +56,6 @@ message SimulatorCommand
     {
         GPSDropOut gps_dropout = 1;
         StopForwardProgress stop_forward_progress = 2;
+        GPSNoise gps_noise = 3;
     }
 }
