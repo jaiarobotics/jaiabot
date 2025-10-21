@@ -15,8 +15,7 @@ import subprocess
 import signal
 
 
-CAMERA_DRIVER_VERSION = 1
-PROCESS_TIMEOUT = 10
+CAMERA_DRIVER_VERSION = 2
 
 def parse_args():
     parser = argparse.ArgumentParser(description='JaiaBot Camera Driver')
@@ -81,6 +80,7 @@ class Camera:
             self.image_capture_interval = None
                     
         elif command.type == CameraCommand.CameraCommandType.START_VIDEO:
+            # Start recording video with MP4 output. Timeout of 0 prevents the process from exiting after its 4 second default. 
             video_cmd = [
                 "rpicam-vid",
                 "--codec", "libav",
@@ -88,10 +88,10 @@ class Camera:
                 "--timeout", "0",
                 "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
-
             self.rpicam_proc = subprocess.Popen(video_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
         elif command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
+            # Check if we have an rpicam-vid process running before we try to kill it, otherwise we end up corrupting video files
             if self.rpicam_proc and self.rpicam_proc.poll() is None:
                 self.rpicam_proc.send_signal(signal.SIGINT)
                 try:
