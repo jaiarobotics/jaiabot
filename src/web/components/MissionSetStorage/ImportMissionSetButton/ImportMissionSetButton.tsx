@@ -2,8 +2,6 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { DialogActions } from "../../../types/context-types";
-import { listSavedMissionSets } from "../../../utils/local-storage";
-import { DisabledCodes } from "./import-messages";
 import { ImportMissionSetDialog } from "./ImportMissionSetDialog";
 
 interface Props {
@@ -18,16 +16,6 @@ interface Props {
 export default function ImportMissionSetButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
-
-    /**
-     * Checks the mission set and applies the appropriate disable code
-     *
-     * @returns {DisabledCodes} The applicable disabled code based on the mission set conditions
-     */
-    const getDisabledCode = () => {
-        if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
-        return DisabledCodes.NONE;
-    };
 
     /**
      * Displays dialog before importing the mission set
@@ -54,15 +42,10 @@ export default function ImportMissionSetButton(props: Props) {
 
     return (
         <div>
-            <button aria-label={"load-mission-set"} onClick={() => onButtonClick()}>
-                Load
+            <button aria-label={"import-mission-set"} onClick={() => onButtonClick()}>
+                Import
             </button>
-            <ImportMissionSetDialog
-                isVisible={isDialogVisible}
-                disabledCode={getDisabledCode()}
-                saveName={props.saveName}
-                onClose={onDialogClose}
-            />
+            <ImportMissionSetDialog isVisible={isDialogVisible} onClose={onDialogClose} />
         </div>
     );
 }
