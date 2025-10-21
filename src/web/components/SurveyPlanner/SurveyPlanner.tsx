@@ -57,8 +57,9 @@ function GridConfigs(props: Props) {
 
     const handleInputChange = (value: string, inputType: GridInputs) => {
         let input = Number(value);
-        if (isNaN(input)) {
-            input = 0;
+
+        if (isNaN(input) || input === 0) {
+            input = 1;
         }
 
         switch (inputType) {
@@ -75,7 +76,7 @@ function GridConfigs(props: Props) {
                 gridPlan.setPointSpacing(input);
                 break;
         }
-        gridLayer.drawGrid();
+        gridLayer.createGrid();
     };
 
     return (

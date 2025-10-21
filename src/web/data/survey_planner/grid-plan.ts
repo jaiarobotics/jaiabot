@@ -1,5 +1,6 @@
 import Task from "../tasks/task";
 import { GeographicCoordinate } from "../../types/protobuf-types";
+import { Feature as TurfFeature, LineString as TurfLineString, Position } from "geojson";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -10,28 +11,21 @@ export enum GridPlanningStates {
 }
 
 export interface GridPlanDetails {
-    missionStart: GeographicCoordinate;
-    missionEnd: GeographicCoordinate;
-    gridStart: GeographicCoordinate;
-    gridEnd: GeographicCoordinate;
     numOfLanes: number;
     laneSpacing: number;
     pointSpacing: number;
     surveyTask: Task;
-    endTask: Task;
     state: GridPlanningStates;
 }
 
 export class GridPlan {
     private missionStart: GeographicCoordinate;
     private missionEnd: GeographicCoordinate;
-    private gridStart: GeographicCoordinate;
-    private gridEnd: GeographicCoordinate;
     private numOfLanes: number;
     private laneSpacing: number;
     private pointSpacing: number;
     private surveyTask: Task;
-    private endTask: Task;
+    private lanes: TurfFeature<TurfLineString>[];
     private state: GridPlanningStates;
 
     constructor() {
@@ -39,19 +33,15 @@ export class GridPlan {
         this.numOfLanes = 5;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
+        this.lanes = [];
     }
 
     getGridPlanDetails() {
         const gridPlanDetails: GridPlanDetails = {
-            missionStart: this.missionStart,
-            missionEnd: this.missionEnd,
-            gridStart: this.gridStart,
-            gridEnd: this.gridEnd,
             numOfLanes: this.numOfLanes,
             laneSpacing: this.laneSpacing,
             pointSpacing: this.pointSpacing,
             surveyTask: this.surveyTask,
-            endTask: this.endTask,
             state: this.state,
         };
         return gridPlanDetails;
@@ -95,6 +85,14 @@ export class GridPlan {
 
     setPointSpacing(pointSpacing: number) {
         this.pointSpacing = pointSpacing;
+    }
+
+    getLanes() {
+        return this.lanes;
+    }
+
+    setLanes(lanes: TurfFeature<TurfLineString>[]) {
+        this.lanes = lanes;
     }
 
     getState() {

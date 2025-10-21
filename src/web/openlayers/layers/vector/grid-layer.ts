@@ -61,7 +61,7 @@ class GridLayer extends JaiaVectorLayer {
                     currentLocation3857[1],
                 ]);
                 this.centerLine = turf.lineString([startLocation4326, currentLocation4326]);
-                this.drawGrid();
+                this.createGrid();
             });
         });
 
@@ -72,7 +72,13 @@ class GridLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
-    createGridLanes() {
+    createGrid() {
+        if (!this.centerLine) {
+            return;
+        }
+
+        this.getVectorLayer().getSource().clear();
+
         let distFromCenter = 0;
         if (gridPlan.getNumOfLanes() % 2 === 0) {
             distFromCenter = gridPlan.getLaneSpacing() / 2;
@@ -80,11 +86,15 @@ class GridLayer extends JaiaVectorLayer {
 
         for (let i = 0; i < gridPlan.getNumOfLanes(); i++) {
             const offsetLine = turf.lineOffset(this.centerLine, distFromCenter, options);
+
             const coordinates = offsetLine.geometry.coordinates;
             const startLocation = { lat: coordinates[0][1], lon: coordinates[0][0] };
             const endLocation = { lat: coordinates[1][1], lon: coordinates[1][0] };
+
             const laneFeature = generateSurveyLane(startLocation, endLocation);
             this.getVectorLayer().getSource().addFeature(laneFeature);
+
+            this.createGridPoints(offsetLine);
 
             // For grids with even number of lanes, increase distance every two lanes
             // from the start
@@ -98,14 +108,15 @@ class GridLayer extends JaiaVectorLayer {
                 distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
             }
 
-            this.createGridPoints(offsetLine);
-
             distFromCenter *= -1;
         }
+
+        this.createGridEndPoints();
     }
 
     createGridPoints(lane: TurfFeature<TurfLineString>) {
         const lineDist = turf.length(lane, options);
+        console.log(gridPlan.getPointSpacing());
         for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
             const coordinates = turf.along(lane, dist, options).geometry.coordinates;
             const waypointFeature = generateSurveyWaypoint({
@@ -123,16 +134,6 @@ class GridLayer extends JaiaVectorLayer {
         this.getVectorLayer()
             .getSource()
             .addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
-    }
-
-    drawGrid() {
-        if (!this.centerLine) {
-            return;
-        }
-
-        this.getVectorLayer().getSource().clear();
-        this.createGridEndPoints();
-        this.createGridLanes();
     }
 
     resetGrid() {
