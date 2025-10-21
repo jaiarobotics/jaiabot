@@ -5,6 +5,8 @@ import { listSavedMissionSets } from "../../utils/local-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
+import ImportMissionSetButton from "./ImportMissionSetButton/ImportMissionSetButton";
+import ExportMissionSetButton from "./ExportMissionSetButton/ExportMissionSetButton";
 
 import "./MissionSetStorage.less";
 
@@ -96,6 +98,12 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <SaveMissionSetButton saveName={saveName} />
                         <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
                     </div>
+                    <div className="line-break"></div>
+                    <div className="button-row">
+                        <ImportMissionSetButton onClose={props.onClose} />
+                        <ExportMissionSetButton saveName={saveName} />
+                    </div>
+                    <div className="line-break"></div>
                     <button onClick={() => handleCloseButtonClick()}>Close</button>
                 </div>
             </div>

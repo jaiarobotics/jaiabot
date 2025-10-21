@@ -5,7 +5,6 @@ import { DialogActions } from "../../../types/context-types";
 import { ImportMissionSetDialog } from "./ImportMissionSetDialog";
 
 interface Props {
-    saveName: string;
     onClose: () => void;
 }
 
@@ -35,7 +34,8 @@ export default function ImportMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            jaiaDispatch({ type: JaiaActions.LOAD_MISSION_SET, missionSetName: props.saveName });
+            //jaiaDispatch({ type: JaiaActions.LOAD_MISSION_SET, missionSetName: props.saveName });
+            console.log("Import Missions Set Action");
             props.onClose();
         }
     };
