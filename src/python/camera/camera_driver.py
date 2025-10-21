@@ -16,7 +16,7 @@ import signal
 
 
 CAMERA_DRIVER_VERSION = 1
-
+PROCESS_TIMEOUT = 10
 
 def parse_args():
     parser = argparse.ArgumentParser(description='JaiaBot Camera Driver')
@@ -70,7 +70,7 @@ class Camera:
     def do_command(self, command: CameraCommand):
         log.info(f'Doing command: {command}')
 
-        if command.datetime != None:
+        if hasattr(command, "datetime"):
             os.system(f'sudo date --set "{command.datetime}"')
 
         if command.type == CameraCommand.CameraCommandType.START_IMAGES:
@@ -79,57 +79,26 @@ class Camera:
 
         elif command.type == CameraCommand.CameraCommandType.STOP_IMAGES:
             self.image_capture_interval = None
-            
-
+                    
         elif command.type == CameraCommand.CameraCommandType.START_VIDEO:
-            output_path = f'{self.output_dir}/video-{now_string()}.mp4'
-
-            rpicam_cmd = [
-                'rpicam-vid',
-                '--codec', 'h264',
-                '--inline',
-                '--signal',
-                '--timeout', '0',
-                '--output', '-',
+            video_cmd = [
+                "rpicam-vid",
+                "--codec", "libav",
+                "--libav-format", "mp4",
+                "--timeout", "0",
+                "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
 
-            ffmpeg_cmd = [
-                'ffmpeg',
-                '-y',
-                '-i', 'pipe:0',
-                '-c:v', 'copy',
-                output_path
-            ]
+            self.rpicam_proc = subprocess.Popen(video_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
-            # Start rpicam-vid (producing raw h264 to stdout)
-            self.rpicam_proc = subprocess.Popen(rpicam_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            # Start ffmpeg (consuming from rpicam-vid)
-            self.ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=self.rpicam_proc.stdout, stderr=subprocess.PIPE)
-
-        
         elif command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
-            log.info('Sending SIGINT to rpicam-vid')
-            log.info('Stopping video recording')
-
-            try:
+            if self.rpicam_proc and self.rpicam_proc.poll() is None:
                 self.rpicam_proc.send_signal(signal.SIGINT)
-                self.rpicam_proc.wait(timeout=30)
-            except Exception as e:
-                log.warning(f'Error stopping rpicam-vid: {e}')
-                self.rpicam_proc.terminate()
-
-            try:
-                out, err = self.ffmpeg_proc.communicate(timeout=10)
-                log.info(f'ffmpeg output: {out}')
-                log.info(f'ffmpeg error: {err}')
-            except Exception as e:
-                log.warning(f'Error waiting for ffmpeg to finish: {e}')
-                self.ffmpeg_proc.terminate()
-
-            log.info('Done')
-
-            
+                try:
+                    self.rpicam_proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.rpicam_proc.kill()
+        
         else:
             log.warning(f'Unknown CameraCommand.type: {command.type}')
 
@@ -140,7 +109,6 @@ class Camera:
             if t - self.last_image_capture > self.image_capture_interval:
                 self.last_image_capture = t
                 os.system(f'rpicam-still --timeout 1 --output {self.output_dir}/image-{now_string()}.jpg')
-
 
 def main():
     if args.simulate:
