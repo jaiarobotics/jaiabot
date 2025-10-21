@@ -100,8 +100,8 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     </div>
                     <div className="line-break"></div>
                     <div className="button-row">
-                        <ImportMissionSetButton onClose={props.onClose} />
                         <ExportMissionSetButton saveName={saveName} />
+                        <ImportMissionSetButton onClose={props.onClose} />
                     </div>
                     <div className="line-break"></div>
                     <button onClick={() => handleCloseButtonClick()}>Close</button>
