@@ -1,6 +1,6 @@
 import * as turf from "@turf/turf";
 import { Units } from "@turf/helpers";
-import { Feature as TurfFeature, LineString as TurfLineString } from "geojson";
+import { Position, Feature as TurfFeature, LineString as TurfLineString } from "geojson";
 
 import BaseEvent from "ol/events/Event";
 import VectorSource from "ol/source/Vector";
@@ -12,11 +12,14 @@ import { toLonLat } from "ol/proj";
 import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
+import Mission from "../../../data/mission_set/mission";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
+import { MissionSet } from "../../../data/mission_set/mission-set";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { generateSurveyLane, generateSurveyWaypoint } from "../../features/survey/survey-lane";
 import { generateSurveyEndpoint } from "../../features/survey/survey-endpoints";
+import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -24,11 +27,13 @@ const options = { units: units };
 class GridLayer extends JaiaVectorLayer {
     private draw: Draw;
     private drawSource: VectorSource;
+    private layerSource: VectorSource;
     private centerLine: TurfFeature<TurfLineString>;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
         this.drawSource = new VectorSource();
+        this.layerSource = this.getVectorLayer().getSource();
     }
 
     override updateFeatures() {}
@@ -72,12 +77,14 @@ class GridLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
-    createGrid() {
+    createGrid(saveLanes?: boolean) {
         if (!this.centerLine) {
             return;
         }
 
-        this.getVectorLayer().getSource().clear();
+        const lanes = [];
+
+        this.layerSource.clear();
 
         let distFromCenter = 0;
         if (gridPlan.getNumOfLanes() % 2 === 0) {
@@ -92,7 +99,7 @@ class GridLayer extends JaiaVectorLayer {
             const endLocation = { lat: coordinates[1][1], lon: coordinates[1][0] };
 
             const laneFeature = generateSurveyLane(startLocation, endLocation);
-            this.getVectorLayer().getSource().addFeature(laneFeature);
+            this.layerSource.addFeature(laneFeature);
 
             this.createGridPoints(offsetLine);
 
@@ -109,31 +116,63 @@ class GridLayer extends JaiaVectorLayer {
             }
 
             distFromCenter *= -1;
+
+            if (saveLanes) {
+                lanes.push(offsetLine);
+            }
         }
 
         this.createGridEndPoints();
+        return lanes;
     }
 
     createGridPoints(lane: TurfFeature<TurfLineString>) {
+        const points: Position[] = [];
         const lineDist = turf.length(lane, options);
-        console.log(gridPlan.getPointSpacing());
         for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
             const coordinates = turf.along(lane, dist, options).geometry.coordinates;
             const waypointFeature = generateSurveyWaypoint({
                 lat: coordinates[1],
                 lon: coordinates[0],
             });
-            this.getVectorLayer().getSource().addFeature(waypointFeature);
+            this.layerSource.addFeature(waypointFeature);
+            points.push(coordinates);
         }
+        return points;
     }
 
     createGridEndPoints() {
-        this.getVectorLayer()
-            .getSource()
-            .addFeature(generateSurveyEndpoint(gridPlan.getMissionStart(), true));
-        this.getVectorLayer()
-            .getSource()
-            .addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
+        this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionStart(), true));
+        this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
+    }
+
+    finalizeGrid() {
+        const lanes = this.createGrid(true);
+        this.layerSource.clear();
+        this.createGridEndPoints();
+
+        const surveyMissionSet = new MissionSet();
+
+        for (const lane of lanes) {
+            const points = this.createGridPoints(lane);
+            const startPoint = points[0];
+            const endPoint = points[points.length - 1];
+            const laneStart: GeographicCoordinate = { lat: startPoint[1], lon: startPoint[0] };
+            const laneEnd: GeographicCoordinate = { lat: endPoint[1], lon: endPoint[0] };
+            const startLine = generateSurveyLane(gridPlan.getMissionStart(), laneStart);
+            const endLine = generateSurveyLane(gridPlan.getMissionEnd(), laneEnd);
+            const surveyLane = generateSurveyLane(laneStart, laneEnd);
+            this.layerSource.addFeature(surveyLane);
+            this.layerSource.addFeature(startLine);
+            this.layerSource.addFeature(endLine);
+            const mission = new Mission();
+            mission.addWaypoint(gridPlan.getMissionStart());
+            for (const point of points) {
+                mission.addWaypoint({ lat: point[1], lon: point[0] });
+            }
+            mission.addWaypoint(gridPlan.getMissionEnd());
+            surveyMissionSet.addMission(mission);
+        }
     }
 
     resetGrid() {

@@ -2,7 +2,7 @@ import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 
-class MissionSet {
+export class MissionSet {
     private missions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;

@@ -4,7 +4,9 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
@@ -154,6 +156,12 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
     mutableState.gridPlanningState = action.gridPlanningState;
+
+    if (action.gridPlanningState === GridPlanningStates.ACCEPTING_TASK) {
+        map.removeInteraction(gridLayer.getDraw());
+        gridLayer.finalizeGrid();
+    }
+
     return mutableState;
 }
 

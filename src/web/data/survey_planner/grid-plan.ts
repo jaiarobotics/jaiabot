@@ -25,7 +25,6 @@ export class GridPlan {
     private laneSpacing: number;
     private pointSpacing: number;
     private surveyTask: Task;
-    private lanes: TurfFeature<TurfLineString>[];
     private state: GridPlanningStates;
 
     constructor() {
@@ -33,7 +32,6 @@ export class GridPlan {
         this.numOfLanes = 5;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
-        this.lanes = [];
     }
 
     getGridPlanDetails() {
@@ -85,14 +83,6 @@ export class GridPlan {
 
     setPointSpacing(pointSpacing: number) {
         this.pointSpacing = pointSpacing;
-    }
-
-    getLanes() {
-        return this.lanes;
-    }
-
-    setLanes(lanes: TurfFeature<TurfLineString>[]) {
-        this.lanes = lanes;
     }
 
     getState() {

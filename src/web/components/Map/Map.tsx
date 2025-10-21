@@ -131,6 +131,9 @@ export default function Map() {
                 map.addInteraction(gridLayer.createDrawInteraction());
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
+            case GridPlanningStates.ACCEPTING_TASK:
+                // State change comes from survey panel not a map interaction
+                nextState = GridPlanningStates.ACCEPTING_TASK;
         }
         jaiaDispatch({
             type: JaiaActions.CHANGE_GRID_PLANNING_STATE,

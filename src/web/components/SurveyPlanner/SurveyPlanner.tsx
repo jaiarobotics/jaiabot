@@ -1,5 +1,6 @@
 import { ChangeEvent, useContext, useState } from "react";
-import { JaiaContext } from "../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput } from "../../utils/input";
@@ -7,6 +8,7 @@ import "./SurveyPlanner.less";
 
 interface Props {
     gridPlanDetails: GridPlanDetails;
+    handleSetTaskClick?: () => void;
 }
 
 enum GridInputs {
@@ -17,6 +19,14 @@ enum GridInputs {
 
 export default function SurveyPlanner(props: Props) {
     const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    const handleSetTaskClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_GRID_PLANNING_STATE,
+            gridPlanningState: GridPlanningStates.ACCEPTING_TASK,
+        });
+    };
 
     switch (jaiaContext.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
@@ -24,7 +34,12 @@ export default function SurveyPlanner(props: Props) {
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
             return <RequestEndMissionLocation />;
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
-            return <GridConfigs gridPlanDetails={props.gridPlanDetails} />;
+            return (
+                <GridConfigs
+                    gridPlanDetails={props.gridPlanDetails}
+                    handleSetTaskClick={handleSetTaskClick}
+                />
+            );
         case GridPlanningStates.APPROVED:
             return;
     }
@@ -58,8 +73,8 @@ function GridConfigs(props: Props) {
     const handleInputChange = (value: string, inputType: GridInputs) => {
         let input = Number(value);
 
-        if (isNaN(input) || input === 0) {
-            input = 1;
+        if (isNaN(input) || input < 0) {
+            input = 0;
         }
 
         switch (inputType) {
@@ -73,6 +88,11 @@ function GridConfigs(props: Props) {
                 break;
             case GridInputs.POINT_SPACING:
                 setPointSpacing(input);
+                // Point spacing of 0 breaks turf along algorithm but is needed for input box
+                // (i.e. it allows users to type multiples of ten)
+                if (input === 0) {
+                    input = 1;
+                }
                 gridPlan.setPointSpacing(input);
                 break;
         }
@@ -118,8 +138,7 @@ function GridConfigs(props: Props) {
                 </div>
             </div>
             <div className="button-row">
-                <button>Clear Grid</button>
-                <button>Set Task</button>
+                <button onClick={() => props.handleSetTaskClick()}>Set Task</button>
             </div>
         </div>
     );
