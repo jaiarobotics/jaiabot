@@ -63,3 +63,8 @@ arduino_config {
 
 minimum_thrust: 1  #  normalized 0-100
 pitch_at_rest: 85  #  degrees
+
+gps_noise {
+    lateral_r95: 5
+    lateral_phi: 0.999
+}
