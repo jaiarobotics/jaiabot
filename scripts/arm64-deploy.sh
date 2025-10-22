@@ -19,7 +19,7 @@ fi
 
 echo "🟢 Creating python virtual environment (venv)"
 pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
-    /usr/bin/python3 -m venv venv/
+    /usr/bin/python3 -m venv venv/ --system-site-packages
     source venv/bin/activate
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
     python3 -m pip -q install wheel
@@ -54,8 +54,6 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
          ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
 
-        sudo cp ${HOME}/jaiabot/src/web/jcc.conf /etc/apache2/sites-available
-        sudo cp -r ${HOME}/jaiabot/${build_dir}/share/jaiabot/* /usr/share/jaiabot
         sudo a2ensite jcc
     fi
 
