@@ -30,7 +30,7 @@
 
 #include <goby/zeromq/application/single_thread.h>
 
-#include "config.pb.h"
+#include "bin/fusion/config.pb.h"
 #include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
@@ -46,11 +46,14 @@
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
+#include "TPVFilter.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 using goby::glog;
 using namespace std;
+using goby::middleware::protobuf::gpsd::TimePositionVelocity;
+using goby::middleware::protobuf::gpsd::SkyView;
 
 namespace si = boost::units::si;
 using boost::units::degree::degrees;
@@ -111,6 +114,9 @@ class Fusion : public ApplicationBase
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
+
+    // Filter for TPV messages
+    TPVFilter tpv_filter_;
 
     enum class DataType
     {
@@ -325,16 +331,33 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             latest_bot_status_.set_calibration_state(imu_data.calibration_state());
         }
     });
+
+    // Incoming GPS TimePositionVelocity messages
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            glog.is_debug1() && glog << "Received TimePositionVelocity update: "
-                                     << tpv.ShortDebugString() << std::endl;
+        [this](const TimePositionVelocity& incoming_tpv) {
+            glog.is_warn() && glog << "Received TimePositionVelocity update: "
+                                     << incoming_tpv.ShortDebugString() << std::endl;
+
+            tpv_filter_.push_tpv(incoming_tpv);
+
+            const TPVState* best_state = tpv_filter_.best_tpv_state();
+            if (best_state == nullptr) {
+                glog.is_warn() && glog << "No valid TPV states available after filtering." << std::endl;
+                return;
+            }
+
+            const auto skyview = best_state->sky;
+            const auto tpv = best_state->tpv;
+
+            // Set our hdop and pdop from the latest skyview
+            latest_bot_status_.set_hdop(skyview.hdop());
+            latest_bot_status_.set_pdop(skyview.pdop());
 
             auto now = goby::time::SteadyClock::now();
 
             if (tpv.has_mode() &&
-                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
-                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
+                (tpv.mode() == TimePositionVelocity::Mode2D ||
+                 tpv.mode() == TimePositionVelocity::Mode3D))
             {
                 last_data_time_[DataType::GPS_FIX] = now;
             }
@@ -570,15 +593,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
-        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
-            if (sky.has_hdop())
-            {
-                latest_bot_status_.set_hdop(sky.hdop());
-            }
-            if (sky.has_pdop())
-            {
-                latest_bot_status_.set_pdop(sky.pdop());
-            }
+        [this](const SkyView& sky) {
+            tpv_filter_.push_skyview(sky);
         });
  
     // subscribe for commands from mission manager
@@ -710,6 +726,11 @@ void jaiabot::apps::Fusion::loop()
                 intervehicle().publish<jaiabot::groups::bot_status>(
                     latest_bot_status_,
                     intervehicle::default_publisher<decltype(latest_bot_status_)>);
+                
+                // Clear HDOP and PDOP after sending bot status
+                latest_bot_status_.clear_hdop();
+                latest_bot_status_.clear_pdop();
+
                 last_bot_status_report_time_ = now;
 
                 // If the rf is disabled and operator enables rf
