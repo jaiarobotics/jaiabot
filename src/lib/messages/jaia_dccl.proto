@@ -339,6 +339,8 @@ message BotStatus
 
     optional double pdop = 57 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
+    optional double lateral_r95 = 60 [ (dccl.field) = { units { derived_dimensions: "length" }, min: 0 max: 1000 precision: 0 } ];
+
     optional int32 wifi_link_quality_percentage = 58 [
         (dccl.field) = { min: 0 max: 100 precision: 0 },
         (jaia.field).rest_api.presence = GUARANTEED

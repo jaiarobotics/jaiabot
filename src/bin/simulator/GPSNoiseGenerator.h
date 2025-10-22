@@ -19,7 +19,7 @@ struct GPSNoiseGenerator {
     std::pair<double, double> generate() {
 
         // We're using an AR(1) process to model temporally correlated GPS noise
-        const double lateral_stdev = config.lateral_r95() / 2.4477;  // R95 to 1 sigma
+        const double lateral_stdev = config.lateral_r95() / 1.96;  // R95 to 1 sigma
         const double lateral_phi = config.lateral_phi();
         // Calculate the standard deviation of the epsilon term
         const double sigma_epsilon =

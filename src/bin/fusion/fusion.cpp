@@ -351,6 +351,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
             // Set our hdop and pdop from the latest skyview
             latest_bot_status_.set_hdop(skyview.hdop());
+            latest_bot_status_.set_lateral_r95(skyview.hdop() * 1.96 * 5 / sqrt(2)); // approx conversion factor
             latest_bot_status_.set_pdop(skyview.pdop());
 
             auto now = goby::time::SteadyClock::now();
