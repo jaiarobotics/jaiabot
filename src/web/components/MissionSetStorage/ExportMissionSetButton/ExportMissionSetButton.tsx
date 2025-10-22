@@ -3,6 +3,7 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../types/context-types";
 import { DisabledCodes } from "./export-messages";
 import { ExportMissionSetDialog } from "./ExportMissionSetDialog";
+import { exportMissionToFile } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
@@ -39,10 +40,6 @@ export default function ExportMissionSetButton(props: Props) {
         }
     };
 
-    const exportMissionSet = () => {
-        missionSet.setName(props.saveName);
-    };
-
     /**
      * Closes the dialog box then acts based on the button clicked
      *
@@ -53,8 +50,8 @@ export default function ExportMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            exportMissionSet();
             console.log("Export Mission Set Action");
+            exportMissionToFile(props.saveName);
         }
     };
 

@@ -82,3 +82,31 @@ export function listSavedMissionSets() {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     return Object.keys(allMissionSets).sort((a, b) => a.localeCompare(b));
 }
+
+export function exportMissionToFile(name: string) {
+    missionSet.setName(name);
+    const missionsArray = Array.from(missionSet.getMissions().entries());
+
+    const CurrentMissionSet = {
+        missions: missionsArray,
+        nextMissionID: missionSet.getNextMissionID(),
+        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+        missionSpeeds: missionSet.getMissionSpeeds(),
+        name: missionSet.getName(),
+    };
+
+    const data = JSON.stringify(CurrentMissionSet);
+    const fileName = `${name}.json`;
+    const blob = new Blob([data], { type: "application/json" });
+
+    // Create a temporary download link
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+
+    // Append, trigger download, and clean up
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
