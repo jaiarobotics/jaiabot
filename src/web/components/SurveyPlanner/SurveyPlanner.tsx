@@ -1,4 +1,4 @@
-import { FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
+import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from "@mui/material";
 import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
@@ -10,11 +10,13 @@ import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, formatTaskMenuItem } from "../../utils/input";
 import { TaskType } from "../../types/protobuf-types";
+import { selectTheme } from "../../utils/style";
 import "./SurveyPlanner.less";
 
 interface Props {
-    gridPlanDetails: GridPlanDetails;
+    gridPlanDetails?: GridPlanDetails;
     handleSetTaskClick?: () => void;
+    handleSaveSurveyTaskClick?: () => void;
 }
 
 enum GridInputs {
@@ -35,6 +37,13 @@ export default function SurveyPlanner(props: Props) {
         });
     };
 
+    const handleSaveSurveyTaskClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+            gridPlanningState: GridPlanningStates.APPROVED,
+        });
+    };
+
     switch (jaiaContext.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
@@ -48,7 +57,7 @@ export default function SurveyPlanner(props: Props) {
                 />
             );
         case GridPlanningStates.ACCEPTING_TASK:
-            return <TaskConfigs />;
+            return <TaskConfigs handleSaveSurveyTaskClick={handleSaveSurveyTaskClick} />;
         case GridPlanningStates.APPROVED:
             return;
     }
@@ -153,7 +162,7 @@ function GridConfigs(props: Props) {
     );
 }
 
-function TaskConfigs() {
+function TaskConfigs(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
@@ -167,20 +176,34 @@ function TaskConfigs() {
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
-            <div>Survey Task:</div>
-            <FormControl sx={{ minWidth: 120 }} size="small">
-                <Select
-                    value={gridPlan.getSurveyTask().getType()}
-                    onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
-                >
-                    <MenuItem value={TaskType.NONE}>{formatTaskMenuItem(TaskType.NONE)}</MenuItem>
-                    <MenuItem value={TaskType.DIVE}>{formatTaskMenuItem(TaskType.DIVE)}</MenuItem>
-                    <MenuItem value={TaskType.SURFACE_DRIFT}>
-                        {formatTaskMenuItem(TaskType.SURFACE_DRIFT)}
-                    </MenuItem>
-                </Select>
-            </FormControl>
-            <TaskParameters task={gridPlan.getSurveyTask()} isDisabled={false} />
+            <div className="progress-line"></div>
+            <div className="task-selection-container">
+                <div>Survey Task:</div>
+                <ThemeProvider theme={selectTheme}>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select
+                            value={gridPlan.getSurveyTask().getType()}
+                            onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
+                        >
+                            <MenuItem value={TaskType.NONE}>
+                                {formatTaskMenuItem(TaskType.NONE)}
+                            </MenuItem>
+                            <MenuItem value={TaskType.DIVE}>
+                                {formatTaskMenuItem(TaskType.DIVE)}
+                            </MenuItem>
+                            <MenuItem value={TaskType.SURFACE_DRIFT}>
+                                {formatTaskMenuItem(TaskType.SURFACE_DRIFT)}
+                            </MenuItem>
+                        </Select>
+                    </FormControl>
+                </ThemeProvider>
+            </div>
+            <div className="task-parameters-container">
+                <TaskParameters task={gridPlan.getSurveyTask()} isDisabled={false} />
+            </div>
+            <div className="button-row">
+                <button onClick={() => props.handleSaveSurveyTaskClick()}>Save</button>
+            </div>
         </div>
     );
 }

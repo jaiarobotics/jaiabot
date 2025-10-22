@@ -1,4 +1,5 @@
-import { createTheme, MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
+import { MenuItem, Select, SelectChangeEvent, ThemeProvider } from "@mui/material";
+import { selectTheme } from "../../../utils/style";
 
 interface SelectMenuProps {
     controlType: ControlTypes;
@@ -12,34 +13,12 @@ export enum ControlTypes {
     DIVE = "DIVE",
 }
 
-// Style MUI select menu
-const theme = createTheme({
-    components: {
-        MuiOutlinedInput: {
-            styleOverrides: {
-                root: {
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "white",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "white",
-                    },
-                },
-                notchedOutline: {
-                    borderColor: "white",
-                    padding: "0px",
-                },
-            },
-        },
-    },
-});
-
 /**
  * Allows the operator to switch between single and dual analog sticks
  */
 export function SelectMenu(props: SelectMenuProps) {
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={selectTheme}>
             <div className="rc-select-menu">
                 <div className="label">Control:</div>
                 <Select
