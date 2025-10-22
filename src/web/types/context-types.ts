@@ -22,6 +22,7 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
+    gridMissions: Map<number, Mission>;
     taskPackets: TaskPacket[];
     stateHistory: HistoryBuffer<JaiaHistoryType>;
 

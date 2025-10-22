@@ -1,5 +1,6 @@
 import Task from "../tasks/task";
 import { GeographicCoordinate } from "../../types/protobuf-types";
+import { MissionSet } from "../mission_set/mission-set";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -25,6 +26,7 @@ export class GridPlan {
     private pointSpacing: number;
     private surveyTask: Task;
     private state: GridPlanningStates;
+    private missionSet: MissionSet;
 
     constructor() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
@@ -32,6 +34,7 @@ export class GridPlan {
         this.laneSpacing = 10;
         this.pointSpacing = 10;
         this.surveyTask = new Task();
+        this.missionSet = new MissionSet();
     }
 
     getGridPlanDetails() {
@@ -99,6 +102,10 @@ export class GridPlan {
 
     setState(state: GridPlanningStates) {
         this.state = state;
+    }
+
+    getMissionSet() {
+        return this.missionSet;
     }
 }
 

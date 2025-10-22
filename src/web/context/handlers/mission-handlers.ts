@@ -162,6 +162,14 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
         gridLayer.finalizeGrid();
     }
 
+    if (action.gridPlanningState === GridPlanningStates.APPROVED) {
+        for (const [missionID, mission] of gridPlan.getMissionSet().getMissions()) {
+            for (const waypoint of mission.getWaypoints()) {
+                waypoint.setTask(cloneDeep(gridPlan.getSurveyTask()));
+            }
+        }
+    }
+
     return mutableState;
 }
 

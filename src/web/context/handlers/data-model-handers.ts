@@ -10,7 +10,7 @@ import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
-import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
@@ -56,6 +56,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
+    mutableState.gridMissions = gridPlan.getMissionSet().getMissions();
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();

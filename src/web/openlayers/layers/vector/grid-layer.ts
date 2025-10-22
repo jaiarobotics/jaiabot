@@ -157,27 +157,21 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource.clear();
         this.createGridEndPoints();
 
-        const surveyMissionSet = new MissionSet();
-
         for (let i = 0; i < lanes.length; i++) {
             const points = this.createGridPoints(lanes[i], i + 1);
             const startPoint = points[0];
             const endPoint = points[points.length - 1];
             const laneStart: GeographicCoordinate = { lat: startPoint[1], lon: startPoint[0] };
             const laneEnd: GeographicCoordinate = { lat: endPoint[1], lon: endPoint[0] };
-            const startLine = generateSurveyLane(gridPlan.getMissionStart(), laneStart);
-            const endLine = generateSurveyLane(gridPlan.getMissionEnd(), laneEnd);
             const surveyLane = generateSurveyLane(laneStart, laneEnd);
             this.layerSource.addFeature(surveyLane);
-            // this.layerSource.addFeature(startLine);
-            // this.layerSource.addFeature(endLine);
             const mission = new Mission();
             mission.addWaypoint(gridPlan.getMissionStart());
             for (const point of points) {
                 mission.addWaypoint({ lat: point[1], lon: point[0] });
             }
             mission.addWaypoint(gridPlan.getMissionEnd());
-            surveyMissionSet.addMission(mission);
+            gridPlan.getMissionSet().addMission(mission);
         }
     }
 
