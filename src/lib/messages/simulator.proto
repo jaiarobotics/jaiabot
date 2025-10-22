@@ -31,16 +31,11 @@ message GPSNoise
         unit_system: "si"
     };
 
-    required double lateral_r95 = 1
-        [(dccl.field) = { units { derived_dimensions: "length" } }];
+    optional double lateral_r95 = 1
+        [(dccl.field) = { units { derived_dimensions: "length" } }, default = 5.0];
     
     // phi for AR(1) process modeling temporal correlation
-    required double lateral_phi = 4;
-
-    // These are optional, and default to the standard GPS values corresponding to the lateral_r95 if not set
-    // i.e. hdop = lateral_r95 / 5.0, pdop = 3.0
-    optional double hdop = 2;
-    optional double pdop = 3;
+    optional double lateral_phi = 4 [default = 0.999];
 }
 
 message SimulatorCommand
