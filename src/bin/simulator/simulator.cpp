@@ -220,6 +220,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         goby().interprocess().subscribe<groups::simulator_command>(
             [this](const jaiabot::protobuf::SimulatorCommand& command)
             {
+
+                glog.is_warn() && glog << "Received simulator command: " << command.ShortDebugString()
+                                       << std::endl;
+
                 switch (command.command_case())
                 {
                     case jaiabot::protobuf::SimulatorCommand::kGpsDropout:
@@ -235,6 +239,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                             goby::time::SteadyClock::now() +
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
                                 command.stop_forward_progress().duration_with_units());
+                        break;
+
+                    case jaiabot::protobuf::SimulatorCommand::kGpsNoise:
+                        gps_noise_generator_.set_noise_params(command.gps_noise());
                         break;
 
                     case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:

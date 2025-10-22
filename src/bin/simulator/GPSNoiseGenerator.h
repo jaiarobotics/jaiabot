@@ -6,7 +6,12 @@ using jaiabot::protobuf::GPSNoise;
 
 
 struct GPSNoiseGenerator {
-    GPSNoiseGenerator(const GPSNoise& gps_noise): config(gps_noise) {
+    GPSNoiseGenerator(const GPSNoise& gps_noise) {
+        set_noise_params(gps_noise);
+    }
+
+    void set_noise_params(const GPSNoise& gps_noise) {
+        config = gps_noise;
         last_noise_x_ = 0.0;
         last_noise_y_ = 0.0;
     }
@@ -34,7 +39,7 @@ struct GPSNoiseGenerator {
     }
 
   public:
-    const GPSNoise config;
+    GPSNoise config;
     double hdop, pdop;
 
   private:
