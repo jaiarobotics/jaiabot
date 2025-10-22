@@ -2,6 +2,14 @@ import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
+interface MissionSetSnapshot {
+    missions: [number, Mission][];
+    nextMissionID: number;
+    missionIDInEditMode: number | null;
+    missionSpeeds: any; // adjust to your actual type if known
+    name: string;
+}
+
 /**
  * Saves all the current missions as a mission set to local storage
  *
@@ -10,19 +18,11 @@ import { UNASSIGNED_ID } from "../../utils/constants";
  */
 export function saveToLocalStorage(name: string) {
     missionSet.setName(name);
-    // Read the saved mission sets from localStorage (or start fresh)
+    // Read the saved mission sets from  local storage (or start fresh)
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    // Convert missions map to an array before using stringify
-    const missionsArray = Array.from(missionSet.getMissions().entries());
-
-    missionSets[name] = {
-        missions: missionsArray,
-        nextMissionID: missionSet.getNextMissionID(),
-        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-        missionSpeeds: missionSet.getMissionSpeeds(),
-        name: missionSet.getName(),
-    };
-
+    // Add the new missionSet
+    missionSets[name] = missionSetSnapshot();
+    // Write back to local storage
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
@@ -83,19 +83,14 @@ export function listSavedMissionSets() {
     return Object.keys(allMissionSets).sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Exports the current mission set to a JSON file
+ * @param {string} name Name to use for mission set and file
+ * @returns {void}
+ */
 export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
-    const missionsArray = Array.from(missionSet.getMissions().entries());
-
-    const CurrentMissionSet = {
-        missions: missionsArray,
-        nextMissionID: missionSet.getNextMissionID(),
-        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-        missionSpeeds: missionSet.getMissionSpeeds(),
-        name: missionSet.getName(),
-    };
-
-    const data = JSON.stringify(CurrentMissionSet);
+    const data = JSON.stringify(missionSetSnapshot());
     const fileName = `${name}.json`;
     const blob = new Blob([data], { type: "application/json" });
 
@@ -109,4 +104,19 @@ export function exportMissionSetToFile(name: string) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
+}
+
+/**
+ * Captures a snapshot of the current missionSet
+ * @returns {object} snapshot of current missionSet data
+ */
+function missionSetSnapshot() {
+    const currentMissionSet = {
+        missions: Array.from(missionSet.getMissions().entries()),
+        nextMissionID: missionSet.getNextMissionID(),
+        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+        missionSpeeds: missionSet.getMissionSpeeds(),
+        name: missionSet.getName(),
+    };
+    return currentMissionSet;
 }
