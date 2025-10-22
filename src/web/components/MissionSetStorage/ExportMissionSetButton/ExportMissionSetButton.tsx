@@ -3,7 +3,7 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../types/context-types";
 import { DisabledCodes } from "./export-messages";
 import { ExportMissionSetDialog } from "./ExportMissionSetDialog";
-import { exportMissionToFile } from "../mission-set-storage";
+import { exportMissionSetToFile } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
@@ -51,7 +51,7 @@ export default function ExportMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             console.log("Export Mission Set Action");
-            exportMissionToFile(props.saveName);
+            exportMissionSetToFile(props.saveName);
         }
     };
 

@@ -83,7 +83,7 @@ export function listSavedMissionSets() {
     return Object.keys(allMissionSets).sort((a, b) => a.localeCompare(b));
 }
 
-export function exportMissionToFile(name: string) {
+export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
     const missionsArray = Array.from(missionSet.getMissions().entries());
 
