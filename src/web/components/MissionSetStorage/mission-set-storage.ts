@@ -2,14 +2,6 @@ import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
-interface MissionSetSnapshot {
-    missions: [number, Mission][];
-    nextMissionID: number;
-    missionIDInEditMode: number | null;
-    missionSpeeds: any; // adjust to your actual type if known
-    name: string;
-}
-
 /**
  * Saves all the current missions as a mission set to local storage
  *
@@ -105,6 +97,12 @@ export function exportMissionSetToFile(name: string) {
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
 }
+
+/**
+ * Imports a missions set from a file.
+ * @param {string} name
+ */
+export function importMissionSetFromFile(name: string) {}
 
 /**
  * Captures a snapshot of the current missionSet
