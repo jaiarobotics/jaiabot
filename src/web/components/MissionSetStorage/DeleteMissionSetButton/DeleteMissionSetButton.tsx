@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { missionSet } from "../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../types/context-types";
-import { listSavedMissionSets } from "../../../utils/local-storage";
+import { listSavedMissionSets } from "../mission-set-storage";
 import { DisabledCodes } from "./delete-messages";
 import { DeleteMissionSetDialog } from "./DeleteMissionSetDialog";
+import { deleteFromLocalStorage } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
@@ -46,7 +46,7 @@ export default function DeleteMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            missionSet.deleteFromLocalStorage(props.saveName);
+            deleteFromLocalStorage(props.saveName);
             props.clearSaveName();
         }
     };

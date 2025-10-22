@@ -39,6 +39,10 @@ export default function ExportMissionSetButton(props: Props) {
         }
     };
 
+    const exportMissionSet = () => {
+        missionSet.setName(props.saveName);
+    };
+
     /**
      * Closes the dialog box then acts based on the button clicked
      *
@@ -49,7 +53,7 @@ export default function ExportMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            //missionSet.saveToLocalStorage(props.saveName);
+            exportMissionSet();
             console.log("Export Mission Set Action");
         }
     };

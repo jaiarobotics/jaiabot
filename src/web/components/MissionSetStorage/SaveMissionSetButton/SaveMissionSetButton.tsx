@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../types/context-types";
-import { listSavedMissionSets } from "../../../utils/local-storage";
+import { listSavedMissionSets } from "../mission-set-storage";
 import { DisabledCodes } from "./save-messages";
 import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
+import { saveToLocalStorage } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
@@ -51,7 +52,7 @@ export default function SaveMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            missionSet.saveToLocalStorage(props.saveName);
+            saveToLocalStorage(props.saveName);
         }
     };
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { missionSet } from "../../data/mission_set/mission-set";
-import { listSavedMissionSets } from "../../utils/local-storage";
+import { listSavedMissionSets } from "./mission-set-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
