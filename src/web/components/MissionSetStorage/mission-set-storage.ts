@@ -156,22 +156,18 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                 resolve(null);
                 return;
             }
-
             try {
                 const targetSet = JSON.parse(await file.text());
-
                 if (!targetSet) {
                     resolve(null);
                     return;
                 }
-
                 const missionsArray = Array.isArray(targetSet.missions)
                     ? targetSet.missions.map(
                           ([id, missionJSON]: [number, any]) =>
                               [id, Mission.fromJSON(missionJSON)] as [number, Mission],
                       )
                     : [];
-
                 const snapshot: MissionSetSnapshot = {
                     missions: missionsArray,
                     nextMissionID: targetSet.nextMissionID ?? 0,
@@ -179,14 +175,12 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                     missionSpeeds: targetSet.missionSpeeds ?? {},
                     name: targetSet.name ?? "",
                 };
-
                 resolve(snapshot);
             } catch (error) {
                 console.error("Error reading or parsing mission set file:", error);
                 resolve(null);
             }
         };
-
         input.click();
     });
 }
