@@ -1,7 +1,8 @@
 fastapi
+pytesseract
 uvicorn
-langchain
-langchain-community
+langchain==0.3.27
+langchain-community==0.3.30
 chromadb
 pydantic
 watchdog

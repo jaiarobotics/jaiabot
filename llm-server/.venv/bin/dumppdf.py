@@ -1,4 +1,4 @@
-#!/home/dedelekan/llm-server/.venv/bin/python3
+#!/home/ubuntu/jaiabot/llm-server/.venv/bin/python3
 """Extract pdf structure in XML format"""
 
 import logging

@@ -3,7 +3,6 @@ from typing import List
 from fastapi import FastAPI
 from pydantic import BaseModel
 import ollama
-
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS

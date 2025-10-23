@@ -8,7 +8,7 @@ from watchdog.events import FileSystemEventHandler
 from langchain_community.document_loaders import DirectoryLoader, UnstructuredFileLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pdf2image import convert_from_path
 from langchain_core.documents import Document
 from PIL import Image
@@ -97,7 +97,7 @@ class SafeUnstructuredLoader(UnstructuredFileLoader):
 
 class Retriever:
     def __init__(self):
-        self.embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+        self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
         self.lock = threading.Lock()
         self.rebuilding = False
         self.loaded_files = set()  # enforce uniqueness

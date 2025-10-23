@@ -3,11 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <title>RAG Query Interface</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- ✅ Use FastAPI's static path for favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='favicon.png') }}">
+
+    <style>
+        :root {
+            --primary: #0a74da;
+            --accent: #1b9aaa;
+            --bg-light: #f9f9fb;
+            --bg-card: #ffffff;
+            --border-color: #dce1e7;
+            --text-dark: #222;
+            --text-muted: #666;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        /* Header Bar */
+        header {
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            box-shadow: var(--shadow);
+        }
+
+        header img {
+            width: 60px;
+            height: 60px;
+            vertical-align: middle;
+        }
+
+        header h2 {
+            display: inline-block;
+            margin-left: 12px;
+            color: var(--primary);
+        }
+
+        .header-controls button {
+            border: none;
+            background: none;
+            font-size: 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .header-controls button:hover {
+            transform: scale(1.1);
+        }
+
+        /* Main container */
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background-color: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .status {
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(10, 116, 218, 0.2);
+        }
+
+        button[type="submit"] {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #085cb5;
+        }
+
+        .result {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .result h2 {
+            margin-bottom: 6px;
+            color: var(--accent);
+        }
+
+        .result p {
+            background-color: #f4f6f8;
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 15px;
+        }
+
+        .result ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .result li {
+            background-color: #f9fafb;
+            padding: 8px 10px;
+            border-radius: var(--radius);
+            border: 1px solid #e1e6eb;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            form {
+                flex-direction: column;
+            }
+
+            header h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>RAG Query Interface</h1>
+    <header>
+        <div style="display:flex; align-items:center;">
+            <!-- ✅ Use static URL for the logo -->
+            <img src="{{ url_for('static', path='favicon.png') }}" alt="Logo">
+            <h2>RAG Query Interface</h2>
+        </div>
+        <div class="header-controls">
+            <button id="helpButton" title="Help">❓</button>
+            <button id="refreshButton" title="Refresh">🔄</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Ask Your Knowledge Base</h1>
 
         {% if rebuilding %}
         <div class="status">
@@ -24,16 +207,22 @@
         <div class="result">
             <h2>Query:</h2>
             <p>{{ query }}</p>
+
             <h2>Answer:</h2>
             <p>{{ answer }}</p>
+
             <h2>Sources:</h2>
             <ul>
-            {% for s in sources %}
+                {% for s in sources %}
                 <li>{{ s }}</li>
-            {% endfor %}
+                {% endfor %}
             </ul>
         </div>
         {% endif %}
-    </div>
+    </main>
+
+    <footer>
+        © 2025 JaiaBot Research | Built with ❤️ for Engineers
+    </footer>
 </body>
 </html>
