@@ -136,10 +136,60 @@ export function exportMissionSetToFile(name: string) {
 }
 
 /**
- * Imports a missions set from a file. TODO
- * @param {string} name
+ * Prompts user to open a file with a serialized mission set
+ * and returns a MissionSetSnapshot if suceesful
+ *
+ * @retruns {MissionSetSnapshot | null} If the selected file can be
+ * parsed correctly otherwise returns null
+ *
+ * @notes Called by UI code, snapshot is sent to the reducer/action handler
  */
-export function importMissionSetFromFile(name: string) {}
+export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null> {
+    return new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+
+        input.onchange = async (event: Event) => {
+            const file = (event.target as HTMLInputElement)?.files?.[0];
+            if (!file) {
+                resolve(null);
+                return;
+            }
+
+            try {
+                const targetSet = JSON.parse(await file.text());
+
+                if (!targetSet) {
+                    resolve(null);
+                    return;
+                }
+
+                const missionsArray = Array.isArray(targetSet.missions)
+                    ? targetSet.missions.map(
+                          ([id, missionJSON]: [number, any]) =>
+                              [id, Mission.fromJSON(missionJSON)] as [number, Mission],
+                      )
+                    : [];
+
+                const snapshot: MissionSetSnapshot = {
+                    missions: missionsArray,
+                    nextMissionID: targetSet.nextMissionID ?? 0,
+                    missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+                    missionSpeeds: targetSet.missionSpeeds ?? {},
+                    name: targetSet.name ?? "",
+                };
+
+                resolve(snapshot);
+            } catch (error) {
+                console.error("Error reading or parsing mission set file:", error);
+                resolve(null);
+            }
+        };
+
+        input.click();
+    });
+}
 
 /**
  * Rebuilds a mission set snapshot from a serialized JSON string
@@ -148,7 +198,7 @@ export function importMissionSetFromFile(name: string) {}
  * @returns {MissionSetSnapshot} Snapshot of the mission set
  * @notes Returns an empty snapshot if the data is invalid.
  */
-export function parseSerializedMissionSet(serializedMissionSet: string) {
+function parseSerializedMissionSet(serializedMissionSet: string) {
     const targetMissionSet = JSON.parse(serializedMissionSet || "{}");
 
     if (!Array.isArray(targetMissionSet.missions)) {

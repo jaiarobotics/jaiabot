@@ -2,11 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { DialogActions } from "../../../types/context-types";
-import {
-    listSavedMissionSets,
-    parseSerializedMissionSet,
-    loadSnapshotFromLocalStorage,
-} from "../mission-set-storage";
+import { listSavedMissionSets, loadSnapshotFromLocalStorage } from "../mission-set-storage";
 import { DisabledCodes } from "./load-messages";
 import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
 
@@ -43,7 +39,7 @@ export default function LoadMissionSetButton(props: Props) {
     };
 
     /**
-     * Closes the dialog and dispatches an event based on the button clicked
+     * Closes the dialog and dispatches an event with the mission set snapshot
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}

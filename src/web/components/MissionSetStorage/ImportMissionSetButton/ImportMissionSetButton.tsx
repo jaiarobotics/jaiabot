@@ -3,6 +3,7 @@ import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { DialogActions } from "../../../types/context-types";
 import { ImportMissionSetDialog } from "./ImportMissionSetDialog";
+import { loadSnapshotFromFile } from "../mission-set-storage";
 
 interface Props {
     onClose: () => void;
@@ -26,16 +27,24 @@ export default function ImportMissionSetButton(props: Props) {
     };
 
     /**
-     * Closes the dialog and dispatches an event based on the button clicked
+     * Closes the dialog and dispatches an event with the mission set snapshot
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            //jaiaDispatch({ type: JaiaActions.LOAD_MISSION_SET, missionSetName: props.saveName });
-            console.log("Import Missions Set Action");
+            const missionSetSnapshot = await loadSnapshotFromFile();
+            if (missionSetSnapshot) {
+                jaiaDispatch({
+                    type: JaiaActions.LOAD_MISSION_SET,
+                    missionSetSnapshot: missionSetSnapshot,
+                });
+            } else {
+                console.warn("No valid mission set file selected");
+            }
+
             props.onClose();
         }
     };
