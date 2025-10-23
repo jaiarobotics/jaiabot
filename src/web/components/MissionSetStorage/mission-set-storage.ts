@@ -192,28 +192,6 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
 }
 
 /**
- * Rebuilds a mission set snapshot from a serialized JSON string
- *
- * @param {string} serializedMissionSet JSON string representing a mission set
- * @returns {MissionSetSnapshot} Snapshot of the mission set
- * @notes Returns an empty snapshot if the data is invalid.
- */
-function parseSerializedMissionSet(serializedMissionSet: string) {
-    const targetMissionSet = JSON.parse(serializedMissionSet || "{}");
-
-    if (!Array.isArray(targetMissionSet.missions)) {
-        targetMissionSet.missions = [];
-    } else {
-        targetMissionSet.missions = targetMissionSet.missions.map(
-            ([id, missionJSON]: [number, string]) =>
-                [id, Mission.fromJSON(missionJSON)] as [number, Mission],
-        );
-    }
-
-    return targetMissionSet as MissionSetSnapshot;
-}
-
-/**
  * Captures a snapshot of the current missionSet
  * @returns {object} snapshot of current missionSet data
  */
