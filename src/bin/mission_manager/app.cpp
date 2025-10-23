@@ -38,6 +38,8 @@ using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
+using namespace jaiabot::protobuf;
+
 
 #define earthRadiusKm 6371.0
 
@@ -351,6 +353,18 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
             }
+        });
+
+    // Subscribe to bot_status
+    interprocess().subscribe<jaiabot::groups::bot_status>(
+        [this](const BotStatus& bot_status)
+        {
+            glog.is_debug2() && glog << "Received BotStatus " << bot_status.ShortDebugString()
+                                     << std::endl;
+
+            statechart::EvBotStatusReceived ev;
+            ev.status = bot_status;
+            machine_->process_event(ev);
         });
 
     // subscribe for engineering commands

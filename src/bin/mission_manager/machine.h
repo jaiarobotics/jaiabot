@@ -30,8 +30,7 @@
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
-using jaiabot::protobuf::EchoCommand;
-using jaiabot::protobuf::IMUCommand;
+using namespace jaiabot::protobuf;
 
 namespace jaiabot
 {
@@ -74,6 +73,12 @@ struct EvRCOverrideFailed : boost::statechart::event<EvRCOverrideFailed>
 STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
 STATECHART_EVENT(EvWaypointReached)
+
+struct EvBotStatusReceived : boost::statechart::event<EvBotStatusReceived>
+{
+    BotStatus status;
+};
+
 
 struct EvPerformTask : boost::statechart::event<EvPerformTask>
 {
@@ -1100,11 +1105,19 @@ struct IvPSensorPauseCommon : boost::statechart::state<Derived, Parent>,
         }
     }
 
+    void bot_status_received(const EvBotStatusReceived& ev)
+    {
+        goby::glog.is_warn() && goby::glog << "Bot status received in IvPSensorPauseCommon." << std::endl;
+    }
+
     using common_reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, IvPSensorPauseCommon,
                                                               &IvPSensorPauseCommon::gps>,
                          boost::statechart::transition<EvGPSNoFix, pause::ReacquireGPS>,
-                         boost::statechart::transition<EvIMURestart, pause::IMURestart>>;
+                         boost::statechart::transition<EvIMURestart, pause::IMURestart>,
+                         boost::statechart::in_state_reaction<EvBotStatusReceived, 
+                                                              IvPSensorPauseCommon,
+                                                              &IvPSensorPauseCommon::bot_status_received>>;
 
   private:
     int gps_degraded_fix_check_incr_{0};
