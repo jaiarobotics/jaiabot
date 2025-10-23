@@ -8,7 +8,7 @@ import os
 import argparse
 from jaiabot.messages.camera_driver_pb2 import *
 import logging
-import datetime
+from datetime import datetime
 from typing import *
 from jaia_serial import JaiaSerial
 import subprocess
@@ -31,7 +31,7 @@ def parse_args():
 
 
 def now_string():
-    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
 
 class MockCamera:
@@ -55,13 +55,12 @@ class Camera:
         self.image_capture_interval = None
         self.last_image_capture = 0.0
         self.rpicam_proc = None
-        self.ffmpeg_proc = None
         self.directory = '/var/log/jaiabot/camera/'
 
 
     @property
     def output_dir(self):
-        dir = self.directory + datetime.datetime.now().strftime('%Y-%m-%d')
+        dir = self.directory + datetime.now().strftime('%Y-%m-%d')
         os.makedirs(dir, exist_ok=True)
         return dir
 
@@ -69,8 +68,12 @@ class Camera:
     def do_command(self, command: CameraCommand):
         log.info(f'Doing command: {command}')
 
-        if hasattr(command, "datetime"):
-            os.system(f'sudo date --set "{command.datetime}"')
+        if command.datetime != "" and command.type != CameraCommand.CameraCommandType.STOP_VIDEO:            
+            try:
+                os.system(f'date --set "{command.datetime}"')
+                log.info(f"Set date to {command.datetime}")
+            except Exception as e:
+                log.warning(f"Failed to set date to {command.datetime}: {e}")
 
         if command.type == CameraCommand.CameraCommandType.START_IMAGES:
             self.image_capture_interval = command.image_capture_interval
@@ -88,11 +91,12 @@ class Camera:
                 "--timeout", "0",
                 "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
-            self.rpicam_proc = subprocess.Popen(video_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            self.rpicam_proc = subprocess.Popen(video_cmd)
 
         elif command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
             # Check if we have an rpicam-vid process running before we try to kill it, otherwise we end up corrupting video files
             if self.rpicam_proc and self.rpicam_proc.poll() is None:
+                log.info("Stop video")
                 self.rpicam_proc.send_signal(signal.SIGINT)
                 try:
                     self.rpicam_proc.wait(timeout=5)
