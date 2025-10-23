@@ -1,6 +1,15 @@
 import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../utils/constants";
+
+export interface MissionSetSnapshot {
+    missions: [number, Mission][];
+    nextMissionID: number;
+    missionIDInEditMode: number | null;
+    missionSpeeds: any; // adjust to your actual type
+    name: string;
+}
 
 /**
  * Saves all the current missions as a mission set to local storage
@@ -13,43 +22,39 @@ export function saveToLocalStorage(name: string) {
     // Read the saved mission sets from  local storage (or start fresh)
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     // Add the new missionSet
-    missionSets[name] = missionSetSnapshot();
+    missionSets[name] = getMissionSetSnapshot();
     // Write back to local storage
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
 /**
- * Replaces the current mission set with those from a saved set
+ * Replaces the current mission set with those from a saved snapshot
  *
- * @param {string} name Identifies the mission set to retrieve
- * @returns {boolean} False if the mission set was not found
+ * @param {MissionSetSnapshot} missionSetSnapshot snapshot of mission set
+ * @returns {void} False if the mission set was not found
  */
-export function loadFromLocalStorage(name: string) {
-    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    const targetMissionSet = allMissionSets[name];
-
-    if (!targetMissionSet) return false;
-
-    // Clear current mission set and reset state
+export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
+    // Clear current mission set and reset mission assignments
     missionSet.deleteAllMissions();
+    missionsManager.unassignAll();
 
-    // Rebuild mission set from saved entries
-    if (Array.isArray(targetMissionSet.missions)) {
-        targetMissionSet.missions.forEach(([id, missionJSON]: [number, string]) => {
-            const mission = Mission.fromJSON(missionJSON);
+    // Rebuild mission set from snapshot
+    if (Array.isArray(missionSetSnapshot.missions)) {
+        missionSetSnapshot.missions.forEach(([id, mission]) => {
             missionSet.addMission(mission);
         });
     }
-    missionSet.setName(targetMissionSet.name);
+
+    missionSet.setName(missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    missionSet.setMissionSpeeds(targetMissionSet.missionSpeeds);
-    return true;
+    missionSet.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
 }
 
 /**
  * Deletes a saved mission set from localStorage
  *
  * @param {string} name Identifies the mission set to delete
+ *
  * @returns {boolean} False if the mission set was not found
  */
 export function deleteFromLocalStorage(name: string) {
@@ -82,7 +87,7 @@ export function listSavedMissionSets() {
  */
 export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
-    const data = JSON.stringify(missionSetSnapshot());
+    const data = JSON.stringify(getMissionSetSnapshot());
     const fileName = `${name}.json`;
     const blob = new Blob([data], { type: "application/json" });
 
@@ -99,16 +104,64 @@ export function exportMissionSetToFile(name: string) {
 }
 
 /**
- * Imports a missions set from a file.
+ * Imports a missions set from a file. TODO
  * @param {string} name
  */
 export function importMissionSetFromFile(name: string) {}
 
 /**
+ * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
+ *
+ * @param {string} saveName The key of the mission set to retrieve
+ *
+ * @returns {MissionSetSnapshot} Snapshot of mission set
+ */
+export function loadSnapshotFromLocalStorage(saveName: string) {
+    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
+    const targetSet = allMissionSets[saveName] || {};
+    const missionsArray = Array.isArray(targetSet.missions)
+        ? targetSet.missions.map(
+              ([id, missionJSON]: [number, string]) =>
+                  [id, Mission.fromJSON(missionJSON)] as [number, Mission],
+          )
+        : [];
+
+    return {
+        missions: missionsArray,
+        nextMissionID: targetSet.nextMissionID ?? 0,
+        missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+        missionSpeeds: targetSet.missionSpeeds ?? {},
+        name: targetSet.name ?? "",
+    } as MissionSetSnapshot;
+}
+
+/**
+ * Rebuilds a mission set snapshot from a serialized JSON string
+ *
+ * @param {string} serializedMissionSet JSON string representing a mission set
+ * @returns {MissionSetSnapshot} Snapshot of the mission set
+ * @notes Returns an empty snapshot if the data is invalid.
+ */
+export function parseSerializedMissionSet(serializedMissionSet: string) {
+    const targetMissionSet = JSON.parse(serializedMissionSet || "{}");
+
+    if (!Array.isArray(targetMissionSet.missions)) {
+        targetMissionSet.missions = [];
+    } else {
+        targetMissionSet.missions = targetMissionSet.missions.map(
+            ([id, missionJSON]: [number, string]) =>
+                [id, Mission.fromJSON(missionJSON)] as [number, Mission],
+        );
+    }
+
+    return targetMissionSet as MissionSetSnapshot;
+}
+
+/**
  * Captures a snapshot of the current missionSet
  * @returns {object} snapshot of current missionSet data
  */
-function missionSetSnapshot() {
+function getMissionSetSnapshot() {
     const currentMissionSet = {
         missions: Array.from(missionSet.getMissions().entries()),
         nextMissionID: missionSet.getNextMissionID(),

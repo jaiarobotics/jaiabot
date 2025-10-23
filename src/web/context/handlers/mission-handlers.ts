@@ -8,7 +8,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { loadFromLocalStorage } from "../../components/MissionSetStorage/mission-set-storage";
+import { updateMissionSetFromSnapshot } from "../../components/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
 /**
@@ -136,12 +136,11 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * Loads a mission set from local storage
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionSetName
+ * @param {JaiaAction} action including missionSetSnapshot
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    loadFromLocalStorage(action.missionSetName);
-    missionsManager.unassignAll();
+    updateMissionSetFromSnapshot(action.missionSetSnapshot);
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates = Object.fromEntries(
         Array.from(mutableState.missions.keys(), (key) => [key, false]),
@@ -159,8 +158,6 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleExportMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    loadFromLocalStorage(action.missionSetName);
-    missionsManager.unassignAll();
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates = Object.fromEntries(
         Array.from(mutableState.missions.keys(), (key) => [key, false]),
