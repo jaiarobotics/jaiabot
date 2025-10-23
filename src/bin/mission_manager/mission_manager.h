@@ -7,7 +7,7 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/zeromq/application/multi_thread.h>
 
-#include "config.pb.h"
+#include "bin/mission_manager/config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/comms.pb.h"
