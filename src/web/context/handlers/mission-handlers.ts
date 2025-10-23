@@ -151,7 +151,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 }
 
 /**
- * Imports a mission set from a file
+ * Exports a mission set from a file
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action including missionSetName

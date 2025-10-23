@@ -2,17 +2,18 @@ import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { Speeds } from "../../types/protobuf-types";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
     nextMissionID: number;
     missionIDInEditMode: number | null;
-    missionSpeeds: any; // adjust to your actual type
+    missionSpeeds: Speeds;
     name: string;
 }
 
 /**
- * Saves all the current missions as a mission set to local storage
+ * Saves the current mission set to local storage
  *
  * @param {string} name Name to use for storing the mission set
  * @returns {void}
@@ -28,10 +29,40 @@ export function saveToLocalStorage(name: string) {
 }
 
 /**
+ * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
+ *
+ * @param {string} saveName The key of the mission set to retrieve
+ *
+ * @returns {MissionSetSnapshot} Snapshot of mission set
+ *
+ * @notes Called by UI code, snapshot is sent to the reducer/action handler
+ */
+export function loadSnapshotFromLocalStorage(saveName: string) {
+    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
+    const targetSet = allMissionSets[saveName] || {};
+    const missionsArray = Array.isArray(targetSet.missions)
+        ? targetSet.missions.map(
+              ([id, missionJSON]: [number, string]) =>
+                  [id, Mission.fromJSON(missionJSON)] as [number, Mission],
+          )
+        : [];
+
+    return {
+        missions: missionsArray,
+        nextMissionID: targetSet.nextMissionID ?? 0,
+        missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+        missionSpeeds: targetSet.missionSpeeds ?? {},
+        name: targetSet.name ?? "",
+    } as MissionSetSnapshot;
+}
+
+/**
  * Replaces the current mission set with those from a saved snapshot
  *
  * @param {MissionSetSnapshot} missionSetSnapshot snapshot of mission set
  * @returns {void} False if the mission set was not found
+ *
+ * @notes This is called by the reducer/action handler
  */
 export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
     // Clear current mission set and reset mission assignments
@@ -83,6 +114,7 @@ export function listSavedMissionSets() {
 /**
  * Exports the current mission set to a JSON file
  * @param {string} name Name to use for mission set and file
+ *
  * @returns {void}
  */
 export function exportMissionSetToFile(name: string) {
@@ -108,32 +140,6 @@ export function exportMissionSetToFile(name: string) {
  * @param {string} name
  */
 export function importMissionSetFromFile(name: string) {}
-
-/**
- * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
- *
- * @param {string} saveName The key of the mission set to retrieve
- *
- * @returns {MissionSetSnapshot} Snapshot of mission set
- */
-export function loadSnapshotFromLocalStorage(saveName: string) {
-    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    const targetSet = allMissionSets[saveName] || {};
-    const missionsArray = Array.isArray(targetSet.missions)
-        ? targetSet.missions.map(
-              ([id, missionJSON]: [number, string]) =>
-                  [id, Mission.fromJSON(missionJSON)] as [number, Mission],
-          )
-        : [];
-
-    return {
-        missions: missionsArray,
-        nextMissionID: targetSet.nextMissionID ?? 0,
-        missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
-        missionSpeeds: targetSet.missionSpeeds ?? {},
-        name: targetSet.name ?? "",
-    } as MissionSetSnapshot;
-}
 
 /**
  * Rebuilds a mission set snapshot from a serialized JSON string
