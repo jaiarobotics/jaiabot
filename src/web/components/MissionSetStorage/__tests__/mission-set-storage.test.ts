@@ -141,8 +141,11 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         // Try to retrieve a mission set that is not saved
         missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
-        updateMissionSetFromSnapshot(missionSetSnapshot);
-
-        //expect(updateMissionSetFromSnapshot("Test-Mission-Set-C")).toEqual(false);
+        // Verify defaults
+        expect(missionSetSnapshot.missions).toEqual([]);
+        expect(missionSetSnapshot.nextMissionID).toBe(0);
+        expect(missionSetSnapshot.missionIDInEditMode).toBeNull();
+        expect(missionSetSnapshot.missionSpeeds).toEqual({});
+        expect(missionSetSnapshot.name).toBe("");
     });
 });

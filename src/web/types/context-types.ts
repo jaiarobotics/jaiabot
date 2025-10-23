@@ -3,6 +3,7 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
+import { MissionSetSnapshot } from "../components/MissionSetStorage/mission-set-storage";
 import HistoryBuffer from "../utils/history-buffer";
 
 import {
@@ -66,6 +67,7 @@ export interface JaiaAction {
     command?: Command;
     missionSpeeds?: Speeds;
     missionSetName?: string;
+    missionSetSnapshot?: MissionSetSnapshot;
 }
 
 // Snapshot of app state for storing history
