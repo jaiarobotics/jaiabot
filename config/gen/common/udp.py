@@ -3,14 +3,22 @@ from common import comms
 
 # Dictionary of base ports for each type
 simulation_base_ports = {
-    "wifi_udp": 31000, #we add the hub_id if it's a hub, else we add number_of_hubs_max + node_id
-    "hub2hub_udp": 32000,#we add the hub_id
-    "bar30_cpp": 20100,#we add the node_id
-    "bar30_py": 20000,#we add the node_id
-    "atlas_ezo_cpp": 20200,#we add the node_id
-    "atlas_ezo_py": 20300,#we add the node_id
-    "imu": 20400,#we add the node_id
-    "contact_gpsd": 33000,#we add the contact_id
+    # We add the hub_id if it's a hub, else we add number_of_hubs_max + node_id
+    "wifi_udp": 31000,
+    # We add the hub_id
+    "hub2hub_udp": 32000,
+    # We add the node_id
+    "bar30_cpp": 20100,
+    #we add the node_id
+    "bar30_py": 20000,
+    # We add the node_id
+    "atlas_ezo_cpp": 20200,
+    # We add the node_id
+    "atlas_ezo_py": 20300,
+    # We add the node_id
+    "imu": 20400,
+    # We add the contact_id
+    "contact_gpsd": 33000,
 }
 
 runtime_static_ports = {
