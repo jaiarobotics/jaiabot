@@ -114,8 +114,9 @@ STATECHART_EVENT(EvBottomDepthAbort)
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {
-    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d) : depth(d) {}
-    boost::units::quantity<boost::units::si::length> depth;
+    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d, boost::units::quantity<boost::units::si::length> s) : depth(d), stern_depth(s) {}
+    boost::units::quantity<boost::units::si::length> depth; // Depth of the pressure sensor
+    boost::units::quantity<boost::units::si::length> stern_depth; // Depth of the stern of the vehicle
 };
 
 struct EvMeasurement : boost::statechart::event<EvMeasurement>
@@ -372,25 +373,29 @@ struct MissionManagerStateMachine
 
         pa.set_pressure_adjusted(pressure_adjusted);
 
-        // Calculate Depth From Pressure Adjusted
-        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat());
-        post_event(statechart::EvVehicleDepth(depth));
+        // Calculate Depth From Pressure Adjusted (current pressure - start of dive pressure), then add the depth of the pressure sensor at the start of 
+        // the dive (calculated using vehicle pitch and estimated waterline), and the distance from the pressure sensor to the tail.
+        auto sensor_depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters);
+        auto stern_depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters) + (cfg().pressure_sensor_to_tail() * boost::units::si::meters);
+        post_event(statechart::EvVehicleDepth(sensor_depth, stern_depth));
 
-        pa.set_calculated_depth_with_units(depth);
+        pa.set_sensor_depth_with_units(sensor_depth);
+        pa.set_stern_depth_with_units(stern_depth);
 
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
 
-    void calculate_start_of_dive_pressure(const boost::units::quantity<boost::units::degree::plane_angle>& pitch)
+    void set_start_of_dive_pressure(const double& start_of_dive_pressure)
     {
-        constexpr double pa_to_bar = 1.0/100000.0; // Pa to bar conversion
-        constexpr double density = 1025; // kg/m^3
-        constexpr double gravity = 9.81; // m/s^2
-        double depth = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180.0); // m
-
-        start_of_dive_pressure_ = density * gravity * depth * pa_to_bar;
+        start_of_dive_pressure_ = start_of_dive_pressure;
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
+
+    void calculate_start_of_dive_depth(const boost::units::quantity<boost::units::degree::plane_angle>& pitch)
+    {
+        start_of_dive_depth_ = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180.0); // m
+    }    
+    const double& start_of_dive_depth() { return start_of_dive_depth_; }
 
     void set_current_pressure(const double& current_pressure)
     {
@@ -560,6 +565,7 @@ struct MissionManagerStateMachine
     uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
     double start_of_dive_pressure_{0};
+    double start_of_dive_depth_{0};
     double current_pressure_{0};
     // if we don't get latitude information, we'll compute depth based on mid-latitude
     // (45 degrees), which will introduce up to 0.27% error at 500 meters depth

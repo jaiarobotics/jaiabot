@@ -604,8 +604,9 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
 {
     // This makes sure we capture the pressure before the dive begins
     // Then we can adjust pressure accordingly
-    this->machine().calculate_start_of_dive_pressure(this->machine().latest_pitch());
-    
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+    this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
+
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
@@ -755,10 +756,10 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
         if ((now - last_depth_change_time_) >
             static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
         {
-            context<Dive>().set_seafloor_reached(ev.depth);
+            context<Dive>().set_seafloor_reached(ev.stern_depth);
 
             // Set depth achieved if we had a bottoming timeout
-            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.stern_depth);
 
             // Set the max_acceration
             context<Dive>().dive_packet().set_max_acceleration_with_units(

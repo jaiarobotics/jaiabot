@@ -200,7 +200,17 @@ message BotStatus
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional double depth = 11 [
+    optional double sensor_depth = 11 [
+        (dccl.field) = {
+            min: -1
+            max: 100
+            precision: 1
+            units: { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional double stern_depth = 12 [
         (dccl.field) = {
             min: -1
             max: 100
