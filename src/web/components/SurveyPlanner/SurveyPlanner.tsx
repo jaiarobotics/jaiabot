@@ -93,7 +93,7 @@ function RequestStartMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Set mission start on map</div>
+            <div className="survey-location-page">Tap map for start location</div>
         </div>
     );
 }
@@ -103,7 +103,7 @@ function RequestEndMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Set mission end on map</div>
+            <div className="survey-location-page">Tap map for end location</div>
         </div>
     );
 }
