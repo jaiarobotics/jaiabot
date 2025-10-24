@@ -8,11 +8,11 @@ import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 // Jaia
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
 
 interface Props {
     missionID: number;

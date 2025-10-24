@@ -1,5 +1,5 @@
 import { DisabledCodes, messages } from "./load-messages";
-import { DialogActions } from "../../../types/context-types";
+import { DialogActions } from "../../../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;

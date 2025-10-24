@@ -1,9 +1,9 @@
 import { useContext } from "react";
 
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
 
-import { MIN_SPEED, MAX_SPEED } from "../../utils/constants";
+import { MIN_SPEED, MAX_SPEED } from "../../../utils/constants";
 
 import Slider from "@mui/material/Slider";
 import { amber } from "@mui/material/colors";

@@ -1,5 +1,5 @@
-import { DisabledCodes, messages } from "./delete-messages";
-import { DialogActions } from "../../../types/context-types";
+import { DisabledCodes, messages } from "./save-messages";
+import { DialogActions } from "../../../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -18,10 +18,10 @@ interface ButtonRowProps {
 }
 
 /**
- * Produces the dialog box that appears when clicking on the delete mission set button.
- * This dialog will be an alert
+ * Produces the dialog box that appears when clicking on the save mission set button.
+ * This dialog will be an alert if the mission set cannot be saved
  */
-export function DeleteMissionSetDialog(props: DialogProps) {
+export function SaveMissionSetDialog(props: DialogProps) {
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -38,7 +38,7 @@ export function DeleteMissionSetDialog(props: DialogProps) {
      * @returns {string} The text to be displayed in the dialog
      */
     const getDialogMessage = () => {
-        if (props.disabledCode !== DisabledCodes.NONE) {
+        if (props.disabledCode === DisabledCodes.OVERWRITE) {
             return messages.get(props.disabledCode) + props.saveName;
         }
         return messages.get(props.disabledCode);
@@ -59,10 +59,10 @@ export function DeleteMissionSetDialog(props: DialogProps) {
 
 /**
  * Produces the title for the dialog box. If there are no error conditions the
- *  title will be Confirm, otherwise it will be Alert.
+ * title will be Confirm, otherwise it will be Alert.
  */
 function Title(props: TitleProps) {
-    if (props.disabledCode === DisabledCodes.NONE) {
+    if (props.disabledCode === DisabledCodes.OVERWRITE) {
         return <h1>Confirm</h1>;
     }
 
@@ -70,13 +70,14 @@ function Title(props: TitleProps) {
 }
 
 /**
- * Produces the buttons for the dialog box.
- * For a confirmation dialog, the buttons will be Cancel and Delete.
+ * Produces the buttons for the dialox box.
+ * For a confirmation dialog, the buttons will be Cancel and Save.
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
     switch (props.disabledCode) {
-        case DisabledCodes.NONE: {
+        case DisabledCodes.NONE:
+        case DisabledCodes.OVERWRITE: {
             return (
                 <div className="dialog-button-row">
                     <button
@@ -89,12 +90,13 @@ function ButtonRow(props: ButtonRowProps) {
                         className="dialog-button"
                         onClick={() => props.onClose(DialogActions.CONFIRMED)}
                     >
-                        Delete
+                        Save
                     </button>
                 </div>
             );
         }
-        case DisabledCodes.FILE_NOT_FOUND: {
+        case DisabledCodes.NO_MISSIONS:
+        case DisabledCodes.NO_NAME: {
             return (
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
                     Close

@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import MissionSpeedSliders from "../MissionSpeedSliders";
-import { JaiaContextProvider } from "../../../context/JaiaContext";
+import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
-import { missionSet } from "../../../data/mission_set/mission-set";
+import { missionSet } from "../../../../data/mission_set/mission-set";
 
 // MUI ThemeProvider contains undefined values that add console output in the test environment
 beforeEach(() => jest.spyOn(console, "error").mockImplementation(jest.fn()));
