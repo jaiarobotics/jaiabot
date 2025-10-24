@@ -69,13 +69,13 @@ class GridLayer extends JaiaVectorLayer {
         this.draw.on("drawstart", (event: DrawEvent) => {
             const feature = event.feature as Feature<LineString>;
 
-            if (!touches.getFingers().includes(2)) {
+            if (!touches.getIsPanning()) {
                 const startLocation3857 = feature.getGeometry().getFirstCoordinate();
                 this.startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
             }
 
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
-                if (touches.getFingers().includes(2)) {
+                if (touches.getIsPanning()) {
                     return;
                 }
 

@@ -1,20 +1,20 @@
 class Touches {
-    private fingers: number[];
-    private index: number;
-    private readonly LENGTH = 8;
+    private isPanning: boolean;
 
     constructor() {
-        this.fingers = [];
-        this.index = 0;
+        this.isPanning = false;
     }
 
-    getFingers() {
-        return this.fingers;
+    getIsPanning() {
+        return this.isPanning;
     }
 
     updateFingers(numOfFingers: number) {
-        this.fingers[this.index] = numOfFingers;
-        this.index = (this.index + 1) % this.LENGTH;
+        if (numOfFingers === 2) {
+            this.isPanning = true;
+        } else if (numOfFingers === 0) {
+            this.isPanning = false;
+        }
     }
 }
 
