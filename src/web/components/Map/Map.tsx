@@ -128,9 +128,6 @@ export default function Map() {
                     .getVectorLayer()
                     .getSource()
                     .addFeature(generateSurveyEndpoint(location, false));
-                // Insert behind pinchzoom + pinchrotate to prevent drag from capturing actions
-                map.getInteractions().insertAt(3, gridLayer.createDrawInteraction());
-                map.getInteractions().insertAt(4, gridLayer.createDragPanInteraction());
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
             case GridPlanningStates.ACCEPTING_GRID_DRAWING:

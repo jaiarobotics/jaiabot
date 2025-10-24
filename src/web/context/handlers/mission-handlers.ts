@@ -158,41 +158,38 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
     gridPlan.setState(action.gridPlanningState);
     mutableState.gridPlanningState = action.gridPlanningState;
 
-    if (action.gridPlanningState === GridPlanningStates.ACCEPTING_TASK) {
-        map.removeInteraction(gridLayer.getDraw());
-        map.removeInteraction(gridLayer.getDragPan());
-        gridLayer.finalizeGrid(true);
-    }
+    switch (action.gridPlanningState) {
+        case GridPlanningStates.ACCEPTING_GRID_DRAWING:
+            // Insert behind pinchzoom + pinchrotate to prevent drag from capturing actions
+            map.getInteractions().insertAt(3, gridLayer.createDrawInteraction());
+            map.getInteractions().insertAt(4, gridLayer.createDragPanInteraction());
+            break;
 
-    if (action.gridPlanningState === GridPlanningStates.APPROVED) {
-        for (const [missionID, mission] of gridPlan.getMissions()) {
-            const waypoints = mission.getWaypoints();
-            for (let i = 0; i < waypoints.length; i++) {
-                if (i === 0 || i === waypoints.length - 1) {
-                    continue;
+        case GridPlanningStates.ACCEPTING_TASK:
+            map.removeInteraction(gridLayer.getDraw());
+            map.removeInteraction(gridLayer.getDragPan());
+            gridLayer.finalizeGrid(true);
+            break;
+
+        case GridPlanningStates.APPROVED:
+            for (const [missionID, mission] of gridPlan.getMissions()) {
+                const waypoints = mission.getWaypoints();
+                for (let i = 0; i < waypoints.length; i++) {
+                    if (i === 0 || i === waypoints.length - 1) {
+                        continue;
+                    }
+                    waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
                 }
-                waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
             }
-        }
+            missionSet.setMissions(gridPlan.getMissions());
+            missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+            missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
 
-        missionSet.setMissions(gridPlan.getMissions());
-        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
-
-        handleMapModeChange(MapModes.DEFAULT);
-        gridLayer.getVectorLayer().getSource().clear();
-        missionLayer.updateFeatures();
-
-        mutableState.mapMode = MapModes.DEFAULT;
-        mutableState.visiblePanel = ButtonNames.NONE;
+            handleMapModeChange(MapModes.DEFAULT);
+            mutableState.mapMode = MapModes.DEFAULT;
+            mutableState.visiblePanel = ButtonNames.NONE;
+            missionLayer.updateFeatures();
+            break;
     }
-
     return mutableState;
-}
-
-export function resetGridPlan(mutableState: JaiaContextType) {
-    gridPlan.setState(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
-    gridPlan.setMissions(new Map<number, Mission>());
-    gridLayer.resetGrid();
-    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
 }

@@ -10,8 +10,7 @@ import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../typ
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
 import { resetSelectedWaypoint } from "./waypoint-handlers";
-import { resetGridPlan } from "./mission-handlers";
-import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 /**
  * Handles click events for the Bot and Hub icons on the map and in the NodeList component
@@ -103,7 +102,8 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
     }
 
     if (mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
-        resetGridPlan(mutableState);
+        gridPlan.reset();
+        mutableState.gridPlanningState = gridPlan.getState();
     }
 
     handleMapModeChange(mapMode);

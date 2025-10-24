@@ -37,6 +37,12 @@ export class GridPlan {
         this.missions = new Map<number, Mission>();
     }
 
+    reset() {
+        this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
+        this.surveyTask = new Task();
+        this.missions = new Map<number, Mission>();
+    }
+
     getGridPlanDetails() {
         const gridPlanDetails: GridPlanDetails = {
             numOfLanes: this.numOfLanes,

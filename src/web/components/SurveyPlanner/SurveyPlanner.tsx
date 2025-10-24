@@ -31,6 +31,7 @@ export default function SurveyPlanner(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const handleSetTaskClick = () => {
+        // Wait for grid to be drawn
         if (!gridLayer.getCenterLine()) {
             return;
         }

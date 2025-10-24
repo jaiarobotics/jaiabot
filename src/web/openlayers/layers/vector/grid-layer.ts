@@ -215,7 +215,7 @@ class GridLayer extends JaiaVectorLayer {
         }
     }
 
-    resetGrid() {
+    reset() {
         this.getVectorLayer().getSource().clear();
         this.centerLine = undefined;
         this.startLocation4326 = undefined;
