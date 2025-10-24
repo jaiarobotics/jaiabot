@@ -1662,11 +1662,19 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
 
     const bool has_bot_performed_a_hold() { return bot_performed_hold_; }
 
+    void set_bot_performed_powered_ascent_after_bottom(const bool& bot_performed_powered_ascent_after_bottom)
+    {
+        bot_performed_powered_ascent_after_bottom_ = bot_performed_powered_ascent_after_bottom;
+    }
+
+    const bool has_bot_performed_powered_ascent_after_bottom() { return bot_performed_powered_ascent_after_bottom_; }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
     boost::units::quantity<boost::units::si::length> current_depth_{0};
     bool bot_performed_hold_{false};
+    bool bot_performed_powered_ascent_after_bottom_{false};
 };
 namespace dive
 {

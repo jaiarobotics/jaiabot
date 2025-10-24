@@ -498,6 +498,30 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
+    //This logic sets the bottom type based on whether a powered ascent happens, the default is hard as set in jaia_dccl.proto
+    if (dive_packet().has_bottom_dive())
+    {
+        if (context<Dive>().has_bot_performed_powered_ascent_after_bottom())
+        {
+            glog.is_debug1() && glog << "PoweredAscent::depth Setting bottom type to SOFT"
+                                     << "\n"
+                                     << std::endl;
+            // Set the bottom_type Soft
+            dive_packet().set_bottom_type(
+                protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+        }
+        else
+        {
+            glog.is_debug1() && glog << "Dive::~Dive Setting bottom type to HARD" << "\n"
+                                     << std::endl;
+            // Set the bottom_type Hard
+            dive_packet().set_bottom_type(
+                protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+        }
+        
+    }
+    
+
     // Is echo recording?
     bool stop_echo_sensor = context<InMission>().is_echo_recording();
 
@@ -740,20 +764,21 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
             context<Dive>().dive_packet().set_max_acceleration_with_units(
                 this->machine().latest_max_acceleration());
 
-            // Determine Hard/Soft
-            if (this->machine().latest_max_acceleration().value() >=
-                cfg().hard_bottom_type_acceleration())
-            {
-                // Set the bottom_type Hard
-                context<Dive>().dive_packet().set_bottom_type(
-                    protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
-            }
-            else
-            {
-                // Set the bottom_type Soft
-                context<Dive>().dive_packet().set_bottom_type(
-                    protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
-            }
+            //Commenting out max acceperation hard/soft determination for bottom type to switch to ascent-based logic
+            // // Determine Hard/Soft
+            // if (this->machine().latest_max_acceleration().value() >=
+            //     cfg().hard_bottom_type_acceleration())
+            // {
+            //     // Set the bottom_type Hard
+            //     context<Dive>().dive_packet().set_bottom_type(
+            //         protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            // }
+            // else
+            // {
+            //     // Set the bottom_type Soft
+            //     context<Dive>().dive_packet().set_bottom_type(
+            //         protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+            // }
 
             // used to correct dive rate calculation
             duration_correction_ = (now - last_depth_change_time_);
@@ -1066,6 +1091,7 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAsc
 
     context<Dive>().dive_packet().set_powered_rise_rate_with_units(rise_rate *
                                                                    boost::units::si::velocity());
+    if( !context<Dive>().has_bot_performed_powered_ascent_after_bottom()) context<Dive>().set_bot_performed_powered_ascent_after_bottom(true);
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
