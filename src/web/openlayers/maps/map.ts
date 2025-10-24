@@ -4,7 +4,7 @@ import { Coordinate } from "ol/coordinate";
 
 // Jaia
 import { layers } from "../layers/layers";
-import { gridLayer } from "../layers/vector/grid-layer";
+import { gridLayer } from "../layers/vector/survey/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
 import { touches } from "../controls/touches";
 import { controls } from "../controls/controls";

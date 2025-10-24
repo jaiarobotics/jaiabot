@@ -11,7 +11,7 @@ import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
-import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes } from "../../types/jaia-system-types";

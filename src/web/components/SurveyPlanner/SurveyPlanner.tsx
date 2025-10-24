@@ -6,7 +6,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 import TaskParameters from "../TaskParameters/TaskParameters";
 
 import Task from "../../data/tasks/task";
-import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, formatTaskMenuItem } from "../../utils/input";
 import { TaskType } from "../../types/protobuf-types";

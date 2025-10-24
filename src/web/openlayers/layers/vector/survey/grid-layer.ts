@@ -11,15 +11,15 @@ import { LineString } from "ol/geom";
 import { toLonLat } from "ol/proj";
 import { Stroke, Style } from "ol/style";
 
-import JaiaVectorLayer from "./jaia-vector-layer";
-import Mission from "../../../data/mission_set/mission";
-import { touches } from "../../controls/touches";
-import { gridPlan } from "../../../data/survey_planner/grid-plan";
-import { LayerTitles } from "../../../types/openlayers-types";
-import { layersZIndexes } from "../zindex";
-import { generateSurveyLane, generateSurveyPoint } from "../../features/survey/survey-lane";
-import { generateSurveyEndpoint } from "../../features/survey/survey-endpoints";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
+import JaiaVectorLayer from "../jaia-vector-layer";
+import Mission from "../../../../data/mission_set/mission";
+import { touches } from "../../../controls/touches";
+import { gridPlan } from "../../../../data/survey_planner/grid-plan";
+import { LayerTitles } from "../../../../types/openlayers-types";
+import { layersZIndexes } from "../../zindex";
+import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
+import { generateSurveyEndpoint } from "../../../features/survey/survey-endpoints";
+import { GeographicCoordinate } from "../../../../types/protobuf-types";
 import { Coordinate } from "ol/coordinate";
 
 const units: Units = "meters";

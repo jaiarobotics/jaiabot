@@ -7,7 +7,7 @@ import { noaaENCLayer } from "./tile/noaa-enc-layer";
 import { botLayer } from "./vector/bot-layer";
 import { hubLayer } from "./vector/hub-layer";
 import { missionLayer } from "./vector/mission-layer";
-import { gridLayer } from "./vector/grid-layer";
+import { gridLayer } from "./vector/survey/grid-layer";
 import { rallyLayer } from "./vector/rally-layer";
 import { diveLayer } from "./vector/dive-layer";
 import { driftLayer } from "./vector/drift-layer";

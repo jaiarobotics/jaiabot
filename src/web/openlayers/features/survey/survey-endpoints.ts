@@ -2,7 +2,7 @@ import { Point } from "ol/geom";
 import { Feature } from "ol";
 import { fromLonLat } from "ol/proj";
 import { Coordinate } from "ol/coordinate";
-import { Fill, Icon, Style, Stroke, Text } from "ol/style";
+import { Icon, Style } from "ol/style";
 import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 
