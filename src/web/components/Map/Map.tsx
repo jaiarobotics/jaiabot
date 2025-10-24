@@ -12,6 +12,7 @@ import { toLonLat } from "ol/proj";
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
@@ -22,7 +23,6 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 import "./Map.less";
-import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -128,12 +128,19 @@ export default function Map() {
                     .getVectorLayer()
                     .getSource()
                     .addFeature(generateSurveyEndpoint(location, false));
-                map.addInteraction(gridLayer.createDrawInteraction());
+                // Insert behind pinchzoom + pinchrotate to prevent drag from capturing actions
+                map.getInteractions().insertAt(3, gridLayer.createDrawInteraction());
+                map.getInteractions().insertAt(4, gridLayer.createDragPanInteraction());
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                break;
+            case GridPlanningStates.ACCEPTING_GRID_DRAWING:
+                // No state change on accidental clicks
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
             case GridPlanningStates.ACCEPTING_TASK:
                 // State change comes from survey panel not a map interaction
                 nextState = GridPlanningStates.ACCEPTING_TASK;
+                break;
         }
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,

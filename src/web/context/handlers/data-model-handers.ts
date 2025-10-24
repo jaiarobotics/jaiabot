@@ -56,7 +56,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
-    mutableState.gridMissions = gridPlan.getMissionSet().getMissions();
+    mutableState.gridMissions = gridPlan.getMissions();
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();

@@ -6,6 +6,7 @@ import { Coordinate } from "ol/coordinate";
 import { layers } from "../layers/layers";
 import { gridLayer } from "../layers/vector/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
+import { touches } from "../controls/touches";
 import { controls } from "../controls/controls";
 import { view } from "../views/view";
 import { Cursors } from "../../utils/style";
@@ -69,7 +70,7 @@ export function handleMapModeChange(mapMode: MapModes) {
 
     if (mapMode !== MapModes.SURVEY_PLANNING) {
         map.removeInteraction(gridLayer.getDraw());
-        gridLayer.resetGrid();
+        // gridLayer.resetGrid();
     }
 
     jaiaGlobal.setMapMode(mapMode);
@@ -128,4 +129,19 @@ map.getView().on("change:resolution", () => {
 map.getView().on("change:rotation", () => {
     mapSettings.rotation = map.getView().getRotation();
     saveSettings();
+});
+
+// Track touch events for drag conditions
+const viewport = map.getViewport();
+viewport.addEventListener("touchstart", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchmove", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchend", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchcancel", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
 });

@@ -4,7 +4,7 @@ import { Position, Feature as TurfFeature, LineString as TurfLineString } from "
 
 import BaseEvent from "ol/events/Event";
 import VectorSource from "ol/source/Vector";
-import { Draw } from "ol/interaction";
+import { DragPan, Draw } from "ol/interaction";
 import { DrawEvent } from "ol/interaction/Draw";
 import { Feature } from "ol";
 import { LineString } from "ol/geom";
@@ -13,22 +13,25 @@ import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
+import { touches } from "../../controls/touches";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
-import { MissionSet } from "../../../data/mission_set/mission-set";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../features/survey/survey-lane";
 import { generateSurveyEndpoint } from "../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { Coordinate } from "ol/coordinate";
 
 const units: Units = "meters";
 const options = { units: units };
 
 class GridLayer extends JaiaVectorLayer {
     private draw: Draw;
+    private dragPan: DragPan;
     private drawSource: VectorSource;
     private layerSource: VectorSource;
     private centerLine: TurfFeature<TurfLineString>;
+    private startLocation4326: Coordinate;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
@@ -40,6 +43,14 @@ class GridLayer extends JaiaVectorLayer {
 
     getDraw() {
         return this.draw;
+    }
+
+    getDragPan() {
+        return this.dragPan;
+    }
+
+    getCenterLine() {
+        return this.centerLine;
     }
 
     createDrawInteraction() {
@@ -57,24 +68,52 @@ class GridLayer extends JaiaVectorLayer {
 
         this.draw.on("drawstart", (event: DrawEvent) => {
             const feature = event.feature as Feature<LineString>;
-            const startLocation3857 = feature.getGeometry().getFirstCoordinate();
-            const startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
+
+            if (!touches.getFingers().includes(2)) {
+                const startLocation3857 = feature.getGeometry().getFirstCoordinate();
+                this.startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
+            }
+
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
+                if (touches.getFingers().includes(2)) {
+                    return;
+                }
+
+                // No start location results from drawstarts that included two fingers
+                if (!this.startLocation4326) {
+                    const startLocation3857 = feature.getGeometry().getLastCoordinate();
+                    this.startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
+                }
+
                 const currentLocation3857 = feature.getGeometry().getLastCoordinate();
                 const currentLocation4326 = toLonLat([
                     currentLocation3857[0],
                     currentLocation3857[1],
                 ]);
-                this.centerLine = turf.lineString([startLocation4326, currentLocation4326]);
+                this.centerLine = turf.lineString([this.startLocation4326, currentLocation4326]);
                 this.createGrid();
             });
         });
 
         this.draw.on("drawend", (event: DrawEvent) => {
             this.drawSource.clear();
+            this.startLocation4326 = undefined;
         });
 
         return this.draw;
+    }
+
+    createDragPanInteraction() {
+        this.dragPan = new DragPan({
+            condition: (evt) => {
+                if (evt.activePointers.length === 2 || evt.originalEvent.ctrlKey) {
+                    evt.stopPropagation();
+                    return true;
+                }
+                return false;
+            },
+        });
+        return this.dragPan;
     }
 
     createGrid(saveLanes?: boolean) {
@@ -93,14 +132,11 @@ class GridLayer extends JaiaVectorLayer {
 
         for (let i = 0; i < gridPlan.getNumOfLanes(); i++) {
             const offsetLine = turf.lineOffset(this.centerLine, distFromCenter, options);
-
             const coordinates = offsetLine.geometry.coordinates;
             const startLocation = { lat: coordinates[0][1], lon: coordinates[0][0] };
             const endLocation = { lat: coordinates[1][1], lon: coordinates[1][0] };
-
             const laneFeature = generateSurveyLane(startLocation, endLocation);
             this.layerSource.addFeature(laneFeature);
-
             this.createGridPoints(offsetLine, i + 1);
 
             // For grids with even number of lanes, increase distance every two lanes
@@ -152,7 +188,7 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
     }
 
-    finalizeGrid() {
+    finalizeGrid(modifyDataModel?: boolean) {
         const lanes = this.createGrid(true);
         this.layerSource.clear();
         this.createGridEndPoints();
@@ -165,19 +201,24 @@ class GridLayer extends JaiaVectorLayer {
             const laneEnd: GeographicCoordinate = { lat: endPoint[1], lon: endPoint[0] };
             const surveyLane = generateSurveyLane(laneStart, laneEnd);
             this.layerSource.addFeature(surveyLane);
-            const mission = new Mission();
-            mission.addWaypoint(gridPlan.getMissionStart());
-            for (const point of points) {
-                mission.addWaypoint({ lat: point[1], lon: point[0] });
+
+            if (modifyDataModel) {
+                const mission = new Mission();
+                mission.setMissionID(i + 1);
+                mission.addWaypoint(gridPlan.getMissionStart());
+                for (const point of points) {
+                    mission.addWaypoint({ lat: point[1], lon: point[0] });
+                }
+                mission.addWaypoint(gridPlan.getMissionEnd());
+                gridPlan.getMissions().set(mission.getMissionID(), mission);
             }
-            mission.addWaypoint(gridPlan.getMissionEnd());
-            gridPlan.getMissionSet().addMission(mission);
         }
     }
 
     resetGrid() {
         this.getVectorLayer().getSource().clear();
         this.centerLine = undefined;
+        this.startLocation4326 = undefined;
     }
 }
 

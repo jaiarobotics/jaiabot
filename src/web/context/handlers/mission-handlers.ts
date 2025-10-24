@@ -4,14 +4,15 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { map } from "../../openlayers/maps/map";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { JaiaAction, JaiaContextType } from "../../types/context-types";
+import { MapModes } from "../../types/openlayers-types";
+import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
-import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -159,15 +160,31 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
     if (action.gridPlanningState === GridPlanningStates.ACCEPTING_TASK) {
         map.removeInteraction(gridLayer.getDraw());
-        gridLayer.finalizeGrid();
+        map.removeInteraction(gridLayer.getDragPan());
+        gridLayer.finalizeGrid(true);
     }
 
     if (action.gridPlanningState === GridPlanningStates.APPROVED) {
-        for (const [missionID, mission] of gridPlan.getMissionSet().getMissions()) {
-            for (const waypoint of mission.getWaypoints()) {
-                waypoint.setTask(cloneDeep(gridPlan.getSurveyTask()));
+        for (const [missionID, mission] of gridPlan.getMissions()) {
+            const waypoints = mission.getWaypoints();
+            for (let i = 0; i < waypoints.length; i++) {
+                if (i === 0 || i === waypoints.length - 1) {
+                    continue;
+                }
+                waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
             }
         }
+
+        missionSet.setMissions(gridPlan.getMissions());
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+        missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
+
+        handleMapModeChange(MapModes.DEFAULT);
+        gridLayer.getVectorLayer().getSource().clear();
+        missionLayer.updateFeatures();
+
+        mutableState.mapMode = MapModes.DEFAULT;
+        mutableState.visiblePanel = ButtonNames.NONE;
     }
 
     return mutableState;
@@ -175,5 +192,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
 export function resetGridPlan(mutableState: JaiaContextType) {
     gridPlan.setState(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
+    gridPlan.setMissions(new Map<number, Mission>());
+    gridLayer.resetGrid();
     mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
 }

@@ -3,10 +3,17 @@ import { Coordinate } from "ol/coordinate";
 import { fromLonLat } from "ol/proj";
 import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
+
 import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { TaskType } from "../../../types/protobuf-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
+import { gridPlan } from "../../../data/survey_planner/grid-plan";
+
 import waypointIcon from "../../../style/icons/waypoint.svg";
+import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
+import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
+import { MapFeatureTypes } from "../../../types/openlayers-types";
 
 export function generateSurveyLane(
     startLocation: GeographicCoordinate,
@@ -41,8 +48,11 @@ export function generateSurveyPoint(
     const feature = new Feature({
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
-    feature.setStyle(generateSurveyPointStyle(waypointNum, laneNum));
 
+    feature.set("type", MapFeatureTypes.WAYPOINT);
+    feature.set("waypointNum", waypointNum);
+    feature.set("missionID", laneNum);
+    feature.setStyle(generateSurveyPointStyle(waypointNum, laneNum));
     return feature;
 }
 
@@ -67,9 +77,23 @@ function generateSurveyLaneStyle() {
 }
 
 function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
+    const mission = gridPlan.getMissions().get(laneNum);
+
+    let imageSrc = waypointIcon;
+    if (mission && mission.getWaypoint(waypointNum)) {
+        switch (mission.getWaypoint(waypointNum).getTask().getType()) {
+            case TaskType.DIVE:
+                imageSrc = waypointDiveIcon;
+                break;
+            case TaskType.SURFACE_DRIFT:
+                imageSrc = waypointDriftIcon;
+                break;
+        }
+    }
+
     return new Style({
         image: new Icon({
-            src: waypointIcon,
+            src: imageSrc,
             anchor: [0.5, 1],
             color: OpenLayersColors.EDIT,
         }),
@@ -85,6 +109,8 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
             }),
             offsetY: -15,
         }),
+        // Multiplying by lane number allows waypoints to stack when
+        // lanes converge due to zoom level changes
         zIndex: waypointNum + 100 * laneNum,
     });
 }
