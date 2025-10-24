@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import TaskParameters from "../TaskParameters";
-import Task from "../../../data/tasks/task";
-import { TaskType } from "../../../types/protobuf-types";
-import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
-import { TaskParameterKeys } from "../../../types/jaia-system-types";
+import Task from "../../../../data/tasks/task";
+import { TaskType } from "../../../../types/protobuf-types";
+import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
+import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 
 const mockTask: Task = new Task();
 

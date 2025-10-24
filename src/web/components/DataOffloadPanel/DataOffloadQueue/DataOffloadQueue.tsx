@@ -1,7 +1,7 @@
 import CircularProgress from "@mui/joy/CircularProgress";
 import { useContext } from "react";
-import { JaiaContext } from "../../context/JaiaContext";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
+import { JaiaContext } from "../../../context/JaiaContext";
+import { DEFAULT_HUB_ID } from "../../../utils/constants";
 import "./DataOffloadQueue.less";
 
 interface Props {

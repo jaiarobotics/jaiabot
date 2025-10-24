@@ -2,9 +2,9 @@ import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import LayerSwitcherMenu from "../LayerSwitcherMenu";
-import { JaiaContextProvider } from "../../../context/JaiaContext";
-import { LayerTitles } from "../../../types/openlayers-types";
-import { layers } from "../../../openlayers/layers/layers";
+import { JaiaContextProvider } from "../../../../context/JaiaContext";
+import { LayerTitles } from "../../../../types/openlayers-types";
+import { layers } from "../../../../openlayers/layers/layers";
 
 const MISSION_LAYERS = [LayerTitles.BOT_LAYER, LayerTitles.HUB_LAYER, LayerTitles.MISSION_LAYER];
 

@@ -1,11 +1,11 @@
 import { useContext, useState } from "react";
 
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
-import { layers } from "../../openlayers/layers/layers";
-import { LayerTitles } from "../../types/openlayers-types";
-import { MapLayerAccordionNames } from "../../types/context-types";
-import { accordionTheme } from "../../utils/style";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
+import { layers } from "../../../openlayers/layers/layers";
+import { LayerTitles } from "../../../types/openlayers-types";
+import { MapLayerAccordionNames } from "../../../types/context-types";
+import { accordionTheme } from "../../../utils/style";
 
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";

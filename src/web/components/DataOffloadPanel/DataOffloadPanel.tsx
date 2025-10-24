@@ -1,4 +1,4 @@
-import DataOffloadQueue from "../DataOffloadQueue/DataOffloadQueue";
+import DataOffloadQueue from "./DataOffloadQueue/DataOffloadQueue";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 

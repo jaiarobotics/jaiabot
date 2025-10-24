@@ -1,14 +1,14 @@
 import React, { useContext } from "react";
 
-import JaiaToggle from "../JaiaToggle/JaiaToggle";
-import { JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
+import JaiaToggle from "../../JaiaToggle/JaiaToggle";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
 
-import Task from "../../data/tasks/task";
+import Task from "../../../data/tasks/task";
 
-import { TaskParameterKeys } from "../../types/jaia-system-types";
-import { TaskType } from "../../types/protobuf-types";
-import { formatNumericalInput } from "../../utils/input";
+import { TaskParameterKeys } from "../../../types/jaia-system-types";
+import { TaskType } from "../../../types/protobuf-types";
+import { formatNumericalInput } from "../../../utils/input";
 
 import "./TaskParameters.less";
 

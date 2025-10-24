@@ -5,14 +5,14 @@ import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/
 import { ThemeProvider } from "@emotion/react";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
-import ScanForBot from "../ScanForBot/ScanForBot";
-import QueryBotStatus from "../QueryBotStatus/QueryBotStatus";
-import LayerSwitcherMenu from "../LayerSwitcherMenu/LayerSwitcherMenu";
+import ScanForBot from "./ScanForBot/ScanForBot";
+import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
+import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
-import Engineering from "../Engineering/Engineering";
+import Engineering from "./Engineering/Engineering";
 
 /**
  * Contains general configurations for the JCC and Jaia System

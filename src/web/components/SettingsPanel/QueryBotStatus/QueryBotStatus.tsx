@@ -1,16 +1,15 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
-import { JaiaContext } from "../../context/JaiaContext";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
-import { sendHubCommand } from "../../utils/commands";
-import { CommandForHub, HubCommandType } from "../../types/protobuf-types";
-import { success } from "../../utils/notifications";
-import "../../style/stylesheets/engineering.less";
+import { JaiaContext } from "../../../context/JaiaContext";
+import { Engineering } from "../../../types/protobuf-types";
+import { success } from "../../../utils/notifications";
+import { sendEngineeringCommand } from "../../../utils/commands";
+import "../../../style/stylesheets/engineering.less";
 
 /**
- * Allows operators to manually send a subscription command to Bots
+ * Allows operators to manually request a status message from a Bot
  */
-export default function ScanForBot() {
+export default function QueryBotStatus() {
     const jaiaContext = useContext(JaiaContext);
     const [selectedBotID, setSelectedBotID] = useState("");
 
@@ -25,34 +24,30 @@ export default function ScanForBot() {
     };
 
     /**
-     * Forms the scan for Bot command to be issued by the Hub
+     * Forms the query Bot status command to be issued by the Hub
      *
-     * @param {number} botID Which Bot to scan for
      * @returns {void}
      */
-    const sendScanForBot = async (botID: number) => {
-        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
-
-        if (!hub || botID === 0) {
+    const sendQueryBotStatusCommand = async () => {
+        if (selectedBotID === "") {
             return;
         }
 
-        const command: CommandForHub = {
-            hub_id: hub.getHubID(),
-            type: HubCommandType.SCAN_FOR_BOTS,
-            scan_for_bot_id: botID,
+        const command: Engineering = {
+            bot_id: Number(selectedBotID),
+            query_bot_status: true,
         };
 
-        const res = await sendHubCommand(command);
+        const res = await sendEngineeringCommand(command);
         if (res && res.status === "ok") {
-            success(`Scanning for Bot ${botID}`);
+            success(`Querying status for Bot ${selectedBotID}`);
         }
     };
 
     /**
      * Loops through the connected Bots and creates dropdown options
      *
-     * @returns {<MenuItem />[]} Array of dropdown option for the select menu
+     * @returns {<MenuItem />[]} Array of dropdown options for the select menu
      */
     const generateBotMenuItems = () => {
         return Array.from(jaiaContext.bots.values()).map((bot) => {
@@ -67,7 +62,7 @@ export default function ScanForBot() {
 
     return (
         <div className="engineering-container">
-            <div className="heading">Scan For Bot</div>
+            <div className="heading">Query Bot Status</div>
             <div className="bot-select-container">
                 <div>Bot:</div>
                 <FormControl size="small">
@@ -79,11 +74,8 @@ export default function ScanForBot() {
                     </Select>
                 </FormControl>
             </div>
-            <button
-                className="engineering-button"
-                onClick={() => sendScanForBot(Number(selectedBotID))}
-            >
-                Scan For Bot
+            <button className="engineering-button" onClick={() => sendQueryBotStatusCommand()}>
+                Query Bot Status
             </button>
         </div>
     );

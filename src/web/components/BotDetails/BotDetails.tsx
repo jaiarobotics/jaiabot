@@ -1,7 +1,7 @@
 import React, { useContext, useEffect } from "react";
 
 // Jaia Imports
-import HealthRow from "../../components/HealthRow/HealthRow";
+import HealthRow from "./HealthRow/HealthRow";
 import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";

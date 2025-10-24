@@ -1,10 +1,10 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
-import { JaiaContext } from "../../context/JaiaContext";
-import { jaiaAPI } from "../../utils/jaia-api";
-import { success } from "../../utils/notifications";
-import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../types/protobuf-types";
-import "../../style/stylesheets/engineering.less";
+import { JaiaContext } from "../../../context/JaiaContext";
+import { jaiaAPI } from "../../../utils/jaia-api";
+import { success } from "../../../utils/notifications";
+import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../../types/protobuf-types";
+import "../../../style/stylesheets/engineering.less";
 
 interface Props {
     engineering: Engineering;

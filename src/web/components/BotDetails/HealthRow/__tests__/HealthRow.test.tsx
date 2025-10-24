@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 
 import HealthRow from "../HealthRow";
-import { JaiaContextProvider } from "../../../context/JaiaContext";
+import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
-import { bots } from "../../../data/bots/bots";
-import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
+import { bots } from "../../../../data/bots/bots";
+import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 
-import { Error, HealthState, Warning } from "../../../types/protobuf-types";
-import { NodeTypes } from "../../../types/jaia-system-types";
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { Error, HealthState, Warning } from "../../../../types/protobuf-types";
+import { NodeTypes } from "../../../../types/jaia-system-types";
+import { PortalBotStatus } from "../../../../shared/PortalStatus";
 
 const botStatusMock1: PortalBotStatus = {
     bot_id: 1,
