@@ -89,6 +89,8 @@ class Camera:
                 "--codec", "libav",
                 "--libav-format", "mp4",
                 "--timeout", "0",
+                "--width", "1920",
+                "--height", "1080",
                 "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
             self.rpicam_proc = subprocess.Popen(video_cmd)
