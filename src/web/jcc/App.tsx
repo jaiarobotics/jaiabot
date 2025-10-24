@@ -5,10 +5,10 @@ import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
 import Map from "../components/Map/Map";
-import NodeList from "../containers/NodeList/NodeList";
+import NodeList from "../components/NodeList/NodeList";
 import JaiaAbout from "../components/JaiaAbout/JaiaAbout";
-import HubDetails from "../containers/HubDetails/HubDetails";
-import BotDetails from "../containers/BotDetails/BotDetails";
+import HubDetails from "../components/HubDetails/HubDetails";
+import BotDetails from "../components/BotDetails/BotDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
