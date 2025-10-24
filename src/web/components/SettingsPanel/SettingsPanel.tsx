@@ -7,7 +7,7 @@ import { ThemeProvider } from "@emotion/react";
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import ScanForBot from "../ScanForBot/ScanForBot";
 import QueryBotStatus from "../QueryBotStatus/QueryBotStatus";
-import LayerSwitcherMenu from "../../containers/LayerSwitcherMenu/LayerSwitcherMenu";
+import LayerSwitcherMenu from "../LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 

@@ -13,7 +13,7 @@ import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
-import MissionsPanel from "../containers/MissionsPanel/MissionsPanel";
+import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
