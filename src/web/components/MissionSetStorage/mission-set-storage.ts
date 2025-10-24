@@ -59,8 +59,8 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
 /**
  * Replaces the current mission set with those from a saved snapshot
  *
- * @param {MissionSetSnapshot} missionSetSnapshot snapshot of mission set
- * @returns {void} False if the mission set was not found
+ * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
+ * @returns {void}
  *
  * @notes This is called by the reducer/action handler
  */
@@ -137,12 +137,13 @@ export function exportMissionSetToFile(name: string) {
 
 /**
  * Prompts user to open a file with a serialized mission set
- * and returns a MissionSetSnapshot if suceesful
+ * and returns a MissionSetSnapshot if succesful
  *
- * @retruns {MissionSetSnapshot | null} If the selected file can be
- * parsed correctly otherwise returns null
+ * @retruns {MissionSetSnapshot | null} Snapshot of mission set if the selected
+ * file can be parsed correctly otherwise returns null
  *
  * @notes Called by UI code, snapshot is sent to the reducer/action handler
+ *        Function is asynchronous
  */
 export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null> {
     return new Promise((resolve) => {

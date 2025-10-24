@@ -149,20 +149,3 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     missionLayer.updateFeatures();
     return mutableState;
 }
-
-/**
- * Exports a mission set from a file
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionSetName
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleExportMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    mutableState.missionAccordionStates = Object.fromEntries(
-        Array.from(mutableState.missions.keys(), (key) => [key, false]),
-    );
-
-    missionLayer.updateFeatures();
-    return mutableState;
-}
