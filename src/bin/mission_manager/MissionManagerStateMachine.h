@@ -1,3 +1,6 @@
+#ifndef JAIABOT_MISSION_MANAGER_MISSIONMANAGERSTATEMACHINE_H
+#define JAIABOT_MISSION_MANAGER_MISSIONMANAGERSTATEMACHINE_H
+
 #include <boost/mpl/list.hpp>
 #include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/deep_history.hpp>
@@ -347,3 +350,5 @@ struct MissionManagerStateMachine
 
 } // namespace statechart
 } // namespace jaiabot
+
+#endif // JAIABOT_MISSION_MANAGER_MISSIONMANAGERSTATEMACHINE_H

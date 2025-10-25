@@ -9,8 +9,11 @@
 
 #include "bin/mission_manager/config.pb.h"
 #include "jaiabot/groups.h"
+#include "groups.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/comms.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 #include "machine_common.h"
 #include <bits/stdc++.h>
@@ -18,10 +21,27 @@
 #include <math.h>
 #include <queue>
 
+
 namespace jaiabot
 {
 namespace apps
 {
+
+class MissionManagerConfigurator
+    : public goby::middleware::ProtobufConfigurator<config::MissionManager>
+{
+  public:
+    MissionManagerConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<config::MissionManager>(argc, argv)
+    {
+        auto& cfg = mutable_cfg();
+
+        // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
+        groups::hub_command_this_bot.reset(new goby::middleware::DynamicGroup(
+            jaiabot::intervehicle::hub_command_group(cfg.bot_id())));
+    }
+};
+
 class MissionManager : public goby::zeromq::MultiThreadApplication<config::MissionManager>
 {
   public:

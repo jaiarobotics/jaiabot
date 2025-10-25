@@ -33,16 +33,13 @@
 
 #include "events.h"
 #include "states.h"
+#include "groups.h"
 #include "MissionManagerStateMachine.h"
 
 using namespace jaiabot::protobuf;
 
 namespace jaiabot
 {
-namespace groups
-{
-constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
-} // namespace groups
 
 namespace apps
 {

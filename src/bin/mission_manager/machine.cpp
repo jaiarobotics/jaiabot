@@ -4,7 +4,7 @@
 #include <goby/middleware/protobuf/logger.pb.h>
 
 #include "machine.h"
-#include "mission_manager.h"
+#include "MissionManager.h"
 
 using goby::glog;
 namespace si = boost::units::si;
