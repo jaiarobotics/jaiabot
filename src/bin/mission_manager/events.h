@@ -1,3 +1,6 @@
+#ifndef JAIABOT_SRC_BIN_MISSION_MANAGER_EVENTS_H
+#define JAIABOT_SRC_BIN_MISSION_MANAGER_EVENTS_H
+
 #include <boost/statechart/event.hpp>
 #include <boost/optional.hpp>
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -117,3 +120,5 @@ STATECHART_EVENT(EvForwardProgressResolved)
 
 }
 }
+
+#endif // JAIABOT_SRC_BIN_MISSION_MANAGER_EVENTS_H
