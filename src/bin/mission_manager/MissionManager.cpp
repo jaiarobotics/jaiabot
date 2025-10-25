@@ -6,7 +6,7 @@ using namespace boost::units;
 #include <goby/util/debug_logger.h>
 #include "MissionManager.h"
 #include "MissionManagerStateMachine.h"
-#include "machine.h"
+#include "states.h"
 
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/health/health.h"

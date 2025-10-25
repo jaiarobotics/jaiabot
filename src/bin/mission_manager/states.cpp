@@ -3,7 +3,7 @@
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
 
-#include "machine.h"
+#include "states.h"
 #include "MissionManager.h"
 
 using goby::glog;
