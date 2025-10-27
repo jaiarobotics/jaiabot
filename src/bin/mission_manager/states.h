@@ -483,48 +483,64 @@ struct InMission
         const auto& current_goal_ = current_goal().get();
 
         const auto lateral_r95 = ev.status.lateral_r95();
-        if (lateral_r95 <= cfg().ok_lateral_r95())
+        if (lateral_r95 > cfg().ok_lateral_r95())
         {
-            goby::glog.is_debug2() && goby::glog << group("goal") << "Lateral uncertainty "
-                                                 << goal_index_ << " is " << lateral_r95
-                                                 << " meters, which is within OK limits."
-                                                 << std::endl;
-            return;
+            const auto bot_xy = this->machine().geodesy().convert({ev.status.location().lat_with_units(), ev.status.location().lon_with_units()});
+            const auto goal_xy = this->machine().geodesy().convert({current_goal_.location().lat_with_units(), current_goal_.location().lon_with_units()});
+            const auto dx = (goal_xy.x - bot_xy.x).value();
+            const auto dy = (goal_xy.y - bot_xy.y).value();
+            const auto distance_to_goal = std::sqrt(dx * dx + dy * dy);
+
+            double heading_uncertainty_radians;
+            if (lateral_r95 >= distance_to_goal)
+            {
+                heading_uncertainty_radians = M_PI; // 180 degrees
+            }
+            else {
+                heading_uncertainty_radians = std::asin(lateral_r95 / distance_to_goal);
+            }
+
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Distance to goal index " << goal_index_
+            //                    << " is " << distance_to_goal
+            //                    << " meters." << std::endl;
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Lateral uncertainty " << goal_index_
+            //                    << " is " << lateral_r95
+            //                    << " meters." << std::endl;
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index " << goal_index_
+            //                    << " is " << heading_uncertainty_radians / DEGREES
+            //                    << " degrees." << std::endl;
+
+            if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty() * DEGREES)
+            {
+                goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty = " 
+                                << heading_uncertainty_radians / DEGREES << "deg > "
+                                << cfg().max_allowed_heading_uncertainty() << " deg."
+                                << std::endl;
+
+                this->post_event(EvHeadingUncertaintyExceeded());
+                last_bad_heading_uncertainty = goby::time::SteadyClock::now();
+                return;
+            }
         }
+        
+        // We've been good for some time
+        if (last_bad_heading_uncertainty == goby::time::SteadyClock::time_point::min())
+            return;
 
-        const auto bot_xy = this->machine().geodesy().convert({ev.status.location().lat_with_units(), ev.status.location().lon_with_units()});
-        const auto goal_xy = this->machine().geodesy().convert({current_goal_.location().lat_with_units(), current_goal_.location().lon_with_units()});
-        const auto dx = (goal_xy.x - bot_xy.x).value();
-        const auto dy = (goal_xy.y - bot_xy.y).value();
-        const auto distance_to_goal = std::sqrt(dx * dx + dy * dy);
+        // lateral uncertainty is ok
+        const auto& heading_uncertainty_recovery_time = goby::time::convert_duration<goby::time::SteadyClock::duration>(cfg().heading_uncertainty_recovery_time_with_units());
+        const auto& elapsed_time = goby::time::SteadyClock::now() - last_bad_heading_uncertainty;
 
-        double heading_uncertainty_radians;
-        if (lateral_r95 >= distance_to_goal)
-        {
-            heading_uncertainty_radians = M_PI; // 180 degrees
+        if (elapsed_time > heading_uncertainty_recovery_time) {
+
+            goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index "
+                            << goal_index_ << " has recovered." << std::endl;
+
+            this->post_event(EvHeadingUncertaintyResolved());
+            last_bad_heading_uncertainty = goby::time::SteadyClock::time_point::min();
         }
         else {
-            heading_uncertainty_radians = std::asin(lateral_r95 / distance_to_goal);
-        }
-
-        goby::glog.is_warn() && goby::glog << group("goal") << "Distance to goal index " << goal_index_
-                           << " is " << distance_to_goal
-                           << " meters." << std::endl;
-        goby::glog.is_warn() && goby::glog << group("goal") << "Lateral uncertainty " << goal_index_
-                           << " is " << lateral_r95
-                           << " meters." << std::endl;
-        goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index " << goal_index_
-                           << " is " << heading_uncertainty_radians / DEGREES
-                           << " degrees." << std::endl;
-
-        if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty() * DEGREES)
-        {
-            goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index "
-                               << goal_index_ << " is above limit of "
-                               << cfg().max_allowed_heading_uncertainty() << " degrees. Pausing mission."
-                               << std::endl;
-
-            // this->post_event(EvHeadingUncertaintyExceeded());
+            goby::glog.is_warn() && goby::glog << group("goal") << "Insufficient recovery time: " << elapsed_time.count() / 1e6 << " sec" << std::endl;
         }
     }
 
@@ -541,6 +557,7 @@ struct InMission
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};
     bool is_echo_recording_{false};
+    goby::time::SteadyClock::time_point last_bad_heading_uncertainty = goby::time::SteadyClock::time_point::min();
 };
 
 namespace inmission
@@ -571,47 +588,10 @@ struct ReacquireGPS
     ReacquireGPS(typename StateBase::my_context c);
     ~ReacquireGPS(){};
 
-    void gps(const EvVehicleGPS& ev)
-    {
-        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
-            (ev.pdop <= this->machine().transit_pdop_req()))
-        {
-            // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < (this->machine().transit_gps_fix_checks() - 1))
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a good fix, but has not "
-                                  "reached threshold for total checks"
-                                  " "
-                               << gps_fix_check_incr_ << " < "
-                               << (this->machine().transit_gps_fix_checks() - 1) << std::endl;
-                // Increment until we reach total gps fix checks
-                gps_fix_check_incr_++;
-            }
-            else
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->machine().transit_hdop_req() << ", pdop is "
-                               << ev.pdop << " <= " << this->machine().transit_pdop_req()
-                               << " Reset incr for gps degraded fix" << std::endl;
-
-                // Post Event for gps fix
-                this->post_event(statechart::EvGPSFix());
-            }
-        }
-        else
-        {
-            // Reset gps fix incrementor
-            gps_fix_check_incr_ = 0;
-        }
-    }
-
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvGPSFix,
+        boost::statechart::transition<EvHeadingUncertaintyResolved,
                                       boost::statechart::deep_history<underway::Abort // default
-                                                                      >>,
-        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>>;
+                                                                      >> >;
 
   private:
     int gps_fix_check_incr_{0};
@@ -727,50 +707,9 @@ struct IvPSensorPauseCommon : boost::statechart::state<Derived, Parent>,
 
     ~IvPSensorPauseCommon(){};
 
-    void gps(const EvVehicleGPS& ev)
-    {
-        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
-            (ev.pdop <= this->machine().transit_pdop_req()))
-        {
-            // Reset Counter For Degraded Checks
-            gps_degraded_fix_check_incr_ = 0;
-        }
-        else
-        {
-            // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ <
-                (this->machine().transit_gps_degraded_fix_checks() - 1))
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a degraded fix, but has not "
-                                  "reached threshold for total checks: "
-                                  " "
-                               << gps_degraded_fix_check_incr_ << " < "
-                               << (this->machine().transit_gps_degraded_fix_checks() - 1)
-                               << std::endl;
-
-                // Increment until we reach total gps degraded fix checks
-                gps_degraded_fix_check_incr_++;
-            }
-            else
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
-                               << " > " << this->machine().transit_hdop_req() << ", pdop is "
-                               << ev.pdop << " > " << this->machine().transit_pdop_req()
-                               << " Reset incr for gps fix" << std::endl;
-
-                // Post Event for no gps fix
-                this->post_event(statechart::EvGPSNoFix());
-            }
-        }
-    }
-
     using common_reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, IvPSensorPauseCommon,
-                                                              &IvPSensorPauseCommon::gps>,
-                         boost::statechart::transition<EvGPSNoFix, pause::ReacquireGPS>,
-                         boost::statechart::transition<EvIMURestart, pause::IMURestart>>;
+        boost::mpl::list<boost::statechart::transition<EvIMURestart, pause::IMURestart>,
+                         boost::statechart::transition<EvHeadingUncertaintyExceeded, pause::ReacquireGPS>>;
 
   private:
     int gps_degraded_fix_check_incr_{0};

@@ -246,4 +246,5 @@ message MissionManager
 
     optional double max_allowed_heading_uncertainty = 92 [default = 20.0, (dccl.field).units = { derived_dimensions: "plane_angle" system: "angle::degree" }]; // Max heading uncertainty before we consider GPS degraded
     optional double ok_lateral_r95 = 93 [default = 10.0, (dccl.field).units = { base_dimensions: "L" }]; // Precision is always good enough if R95 is less than this value
+    optional double heading_uncertainty_recovery_time = 94 [default = 30.0, (dccl.field).units = { base_dimensions: "T" }]; // Time the lateral precision must be good before we consider the heading uncertainty resolved
 }
