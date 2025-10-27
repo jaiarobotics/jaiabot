@@ -3,7 +3,7 @@ import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import TaskParameters from "../TaskParameters/TaskParameters";
+import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 
 import Task from "../../data/tasks/task";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
