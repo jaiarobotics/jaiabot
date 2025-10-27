@@ -136,6 +136,14 @@ export default function Map() {
                     .addFeature(generateSurveyEndpoint(location, false));
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
+            case GridPlanningStates.ACCEPTING_GRID_DRAWING:
+                // No state change on accidental clicks
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                break;
+            case GridPlanningStates.ACCEPTING_TASK:
+                // State change comes from survey panel not a map interaction
+                nextState = GridPlanningStates.ACCEPTING_TASK;
+                break;
         }
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
