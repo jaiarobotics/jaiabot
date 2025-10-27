@@ -48,6 +48,8 @@ set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
   COMMAND npx webpack
   ARGS --mode production --env OUTPUT_DIR=${web_out_dir} --stats errors-only
+  COMMAND touch
+  ARGS ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
   WORKING_DIRECTORY ${intermediate_web_dir}/
   COMMENT "Building jcc and jed"
   DEPENDS npm_dependencies ${jcc_src_files} ${jed_src_files} ${shared_src_files}
