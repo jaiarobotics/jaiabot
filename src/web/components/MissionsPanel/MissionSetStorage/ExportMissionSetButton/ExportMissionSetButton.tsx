@@ -22,8 +22,8 @@ export default function ExportMissionSetButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Mission Set conditions
      */
     const getDisabledCode = () => {
-        if (missionSet.getMissions().size == 0) return DisabledCodes.NO_MISSIONS;
-        if (props.saveName == "") return DisabledCodes.NO_NAME;
+        if (missionSet.getMissions().size === 0) return DisabledCodes.NO_MISSIONS;
+        if (props.saveName === "") return DisabledCodes.NO_NAME;
         return DisabledCodes.NONE;
     };
 
@@ -45,12 +45,10 @@ export default function ExportMissionSetButton(props: Props) {
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
-     *
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            console.log("Export Mission Set Action");
             exportMissionSetToFile(props.saveName);
         }
     };

@@ -11,7 +11,7 @@ interface ButtonRowProps {
 
 /**
  * Produces the dialog box that appears when clicking on the import mission set button.
- * This dialog will be an alert
+ * This dialog will be an alert.
  */
 export function ImportMissionSetDialog(props: DialogProps) {
     if (!props.isVisible) {

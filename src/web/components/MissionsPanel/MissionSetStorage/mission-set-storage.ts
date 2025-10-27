@@ -22,9 +22,7 @@ export function saveToLocalStorage(name: string) {
     missionSet.setName(name);
     // Read the saved mission sets from  local storage (or start fresh)
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    // Add the new missionSet
     missionSets[name] = getMissionSetSnapshot();
-    // Write back to local storage
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
@@ -32,10 +30,10 @@ export function saveToLocalStorage(name: string) {
  * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
  *
  * @param {string} saveName The key of the mission set to retrieve
- *
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
- * @notes Called by UI code, snapshot is sent to the reducer/action handler
+ * @notes
+ * Called by UI code, snapshot is sent to the reducer/action handler
  */
 export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
@@ -62,7 +60,8 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
  * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
  * @returns {void}
  *
- * @notes This is called by the reducer/action handler
+ * @notes
+ * This is called by the reducer/action handler
  */
 export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
     // Clear current mission set and reset mission assignments
@@ -85,7 +84,6 @@ export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnaps
  * Deletes a saved mission set from localStorage
  *
  * @param {string} name Identifies the mission set to delete
- *
  * @returns {boolean} False if the mission set was not found
  */
 export function deleteFromLocalStorage(name: string) {
@@ -113,8 +111,8 @@ export function listSavedMissionSets() {
 
 /**
  * Exports the current mission set to a JSON file
- * @param {string} name Name to use for mission set and file
  *
+ * @param {string} name Name to use for mission set and file
  * @returns {void}
  */
 export function exportMissionSetToFile(name: string) {
@@ -142,8 +140,8 @@ export function exportMissionSetToFile(name: string) {
  * @retruns {MissionSetSnapshot | null} Snapshot of mission set if the selected
  * file can be parsed correctly otherwise returns null
  *
- * @notes Called by UI code, snapshot is sent to the reducer/action handler
- *        Function is asynchronous
+ * @notes
+ * Called by UI code, snapshot is sent to the reducer/action handler
  */
 export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null> {
     return new Promise((resolve) => {
@@ -188,6 +186,7 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
 
 /**
  * Captures a snapshot of the current missionSet
+ *
  * @returns {object} snapshot of current missionSet data
  */
 function getMissionSetSnapshot() {
