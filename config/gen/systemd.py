@@ -681,7 +681,7 @@ if 'none' not in camera_positions_in_use:
         'description': 'JaiaBot Driver Camera',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
-        'runs_on': Type.BOT,
+        'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
     ]
