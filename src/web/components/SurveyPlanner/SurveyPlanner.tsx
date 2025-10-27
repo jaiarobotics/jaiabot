@@ -26,22 +26,36 @@ enum GridInputs {
     POINT_SPACING = 3,
 }
 
+/**
+ * Renders the series of panels involved in developing a survey mission set
+ */
 export default function SurveyPlanner(props: Props) {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Dispatches the survey state change when the operator clicks
+     * to add a task to the survey
+     *
+     * @returns {void}
+     */
     const handleSetTaskClick = () => {
         // Wait for grid to be drawn
         if (!gridLayer.getCenterLine()) {
             return;
         }
-        gridPlan.setSurveyTask(new Task());
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: GridPlanningStates.ACCEPTING_TASK,
         });
     };
 
+    /**
+     * Changes the survey task based on the operator's selection
+     *
+     * @param {SelectChangeEvent} evt Contains which task is selected
+     * @returns {void}
+     */
     const handleTaskSelection = (evt: SelectChangeEvent) => {
         jaiaDispatch({
             type: JaiaActions.SURVEY_SELECT_TASK,
@@ -57,6 +71,11 @@ export default function SurveyPlanner(props: Props) {
         gridLayer.finalizeGrid();
     };
 
+    /**
+     * Dispatches action to finalize survey planning
+     *
+     * @returns {void}
+     */
     const handleSaveSurveyTaskClick = () => {
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
@@ -88,6 +107,9 @@ export default function SurveyPlanner(props: Props) {
     }
 }
 
+/**
+ * Renders the first panel in the series of building a grid-survey mission set
+ */
 function RequestStartMissionLocation() {
     return (
         <div className="jaia-panel survey">
@@ -98,6 +120,9 @@ function RequestStartMissionLocation() {
     );
 }
 
+/**
+ * Renders the second panel in the series of building a grid-survey mission set
+ */
 function RequestEndMissionLocation() {
     return (
         <div className="jaia-panel survey">
@@ -108,11 +133,21 @@ function RequestEndMissionLocation() {
     );
 }
 
+/**
+ * Renders the third panel in the series of building a grid-survey mission set
+ */
 function GridConfigs(props: Props) {
     const [numOfLanes, setNumOfLanes] = useState(props.gridPlanDetails.numOfLanes);
     const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 
+    /**
+     * Updates the grid planning parameters on the UI and in the data model
+     *
+     * @param {string} value The new value of the input field
+     * @param {GridInputs} inputType Name of the input field changed
+     * @returns {void}
+     */
     const handleInputChange = (value: string, inputType: GridInputs) => {
         let input = Number(value);
 
@@ -187,6 +222,9 @@ function GridConfigs(props: Props) {
     );
 }
 
+/**
+ * Renders the fourth panel in the series of building a grid-survey mission set
+ */
 function TaskConfigs(props: Props) {
     return (
         <div className="jaia-panel survey">

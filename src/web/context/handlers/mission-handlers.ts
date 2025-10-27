@@ -1,5 +1,6 @@
 import { cloneDeep } from "lodash";
 
+import Task from "../../data/tasks/task";
 import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
@@ -168,6 +169,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
         case GridPlanningStates.ACCEPTING_TASK:
             map.removeInteraction(gridLayer.getDraw());
             map.removeInteraction(gridLayer.getDragPan());
+            gridPlan.setSurveyTask(new Task());
             gridLayer.finalizeGrid(true);
             break;
 
