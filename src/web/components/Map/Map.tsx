@@ -108,6 +108,12 @@ export default function Map() {
         });
     };
 
+    /**
+     * Adds start and end survey locations to map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleSurveyPlanningClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
@@ -129,14 +135,6 @@ export default function Map() {
                     .getSource()
                     .addFeature(generateSurveyEndpoint(location, false));
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
-                break;
-            case GridPlanningStates.ACCEPTING_GRID_DRAWING:
-                // No state change on accidental clicks
-                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
-                break;
-            case GridPlanningStates.ACCEPTING_TASK:
-                // State change comes from survey panel not a map interaction
-                nextState = GridPlanningStates.ACCEPTING_TASK;
                 break;
         }
         jaiaDispatch({
