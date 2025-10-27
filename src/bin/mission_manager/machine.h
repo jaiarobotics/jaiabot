@@ -114,9 +114,9 @@ STATECHART_EVENT(EvBottomDepthAbort)
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {
-    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d, boost::units::quantity<boost::units::si::length> s) : depth(d), stern_depth(s) {}
-    boost::units::quantity<boost::units::si::length> depth; // Depth of the pressure sensor
-    boost::units::quantity<boost::units::si::length> stern_depth; // Depth of the stern of the vehicle
+    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d, boost::units::quantity<boost::units::si::length> s) : sensor_depth(d), depth(s) {}
+    boost::units::quantity<boost::units::si::length> sensor_depth; // Depth of the pressure sensor
+    boost::units::quantity<boost::units::si::length> depth; // Depth of the stern of the vehicle
 };
 
 struct EvMeasurement : boost::statechart::event<EvMeasurement>
@@ -376,11 +376,11 @@ struct MissionManagerStateMachine
         // Calculate Depth From Pressure Adjusted (current pressure - start of dive pressure), then add the depth of the pressure sensor at the start of 
         // the dive (calculated using vehicle pitch and estimated waterline), and the distance from the pressure sensor to the tail.
         auto sensor_depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters);
-        auto stern_depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters) + (cfg().pressure_sensor_to_tail() * boost::units::si::meters);
-        post_event(statechart::EvVehicleDepth(sensor_depth, stern_depth));
+        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters) + (cfg().pressure_sensor_to_tail() * boost::units::si::meters);
+        post_event(statechart::EvVehicleDepth(sensor_depth, depth));
 
         pa.set_sensor_depth_with_units(sensor_depth);
-        pa.set_stern_depth_with_units(stern_depth);
+        pa.set_depth_with_units(depth);
 
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }

@@ -432,7 +432,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_node_status_.mutable_local_fix()->set_z_with_units(
                     -latest_node_status_.global_fix().depth_with_units());
                 latest_bot_status_.set_sensor_depth_with_units(pa.sensor_depth_with_units());
-                latest_bot_status_.set_stern_depth_with_units(pa.stern_depth_with_units());
+                latest_bot_status_.set_depth_with_units(pa.depth_with_units());
 
                 // Check to see if we are in dive states so we publish node status at the
                 // same rate we are receiving depth values

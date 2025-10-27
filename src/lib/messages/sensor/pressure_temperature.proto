@@ -41,7 +41,7 @@ message PressureAdjustedData
         precision: 1
         units: { derived_dimensions: "length" }
     }];
-    optional double stern_depth = 12 [(dccl.field) = {
+    optional double depth = 12 [(dccl.field) = {
         min: -1
         max: 100
         precision: 1

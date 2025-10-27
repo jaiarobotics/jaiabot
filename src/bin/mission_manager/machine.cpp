@@ -756,10 +756,10 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
         if ((now - last_depth_change_time_) >
             static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
         {
-            context<Dive>().set_seafloor_reached(ev.stern_depth);
+            context<Dive>().set_seafloor_reached(ev.depth);
 
             // Set depth achieved if we had a bottoming timeout
-            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.stern_depth);
+            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
 
             // Set the max_acceration
             context<Dive>().dive_packet().set_max_acceleration_with_units(

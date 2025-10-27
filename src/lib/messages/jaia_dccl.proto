@@ -210,7 +210,7 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double stern_depth = 12 [
+    optional double depth = 12 [
         (dccl.field) = {
             min: -1
             max: 100
