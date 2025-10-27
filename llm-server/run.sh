@@ -13,8 +13,8 @@ fi
 # Ensure model is pulled
 #ollama pull gemma3:27b-it-qat
 ollama pull gemma3:12b-it-qat
-ollama pull nomic-embed-text
-#ollama pull mxbai-embed-large
+#ollama pull nomic-embed-text
+ollama pull mxbai-embed-large
 
 
 # Start FastAPI server

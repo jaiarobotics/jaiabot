@@ -18,7 +18,7 @@ def load_vectorstore():
     if os.path.exists(DB_PATH):
         return FAISS.load_local(
             DB_PATH,
-            OllamaEmbeddings(model="nomic-embed-text"),
+            OllamaEmbeddings(model="mxbai-embed-large"),
             allow_dangerous_deserialization=True
         )
 
@@ -31,7 +31,7 @@ def load_vectorstore():
     chunks = splitter.split_documents(documents)
 
     # Build embeddings
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    embeddings = OllamaEmbeddings(model="mxbai-embed-larget")
 
     # Store in FAISS
     vectordb = FAISS.from_documents(chunks, embeddings)
@@ -47,7 +47,7 @@ app = FastAPI(title="RAG with Ollama", version="1.0")
 
 class QueryRequest(BaseModel):
     question: str
-    k: int = 3
+    k: int = 10
 
 class QueryResponse(BaseModel):
     answer: str
