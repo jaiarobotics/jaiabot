@@ -483,13 +483,29 @@ struct InMission
         const auto& current_goal_ = current_goal().get();
 
         const auto lateral_r95 = ev.status.lateral_r95();
+        if (lateral_r95 <= cfg().ok_lateral_r95_meters())
+        {
+            goby::glog.is_debug2() && goby::glog << group("goal") << "Lateral uncertainty "
+                                                 << goal_index_ << " is " << lateral_r95
+                                                 << " meters, which is within OK limits."
+                                                 << std::endl;
+            return;
+        }
+
         const auto bot_xy = this->machine().geodesy().convert({ev.status.location().lat_with_units(), ev.status.location().lon_with_units()});
         const auto goal_xy = this->machine().geodesy().convert({current_goal_.location().lat_with_units(), current_goal_.location().lon_with_units()});
         const auto dx = (goal_xy.x - bot_xy.x).value();
         const auto dy = (goal_xy.y - bot_xy.y).value();
         const auto distance_to_goal = std::sqrt(dx * dx + dy * dy);
 
-        const auto heading_uncertainty = std::asin(lateral_r95 / distance_to_goal);
+        double heading_uncertainty_radians;
+        if (lateral_r95 >= distance_to_goal)
+        {
+            heading_uncertainty_radians = M_PI; // 180 degrees
+        }
+        else {
+            heading_uncertainty_radians = std::asin(lateral_r95 / distance_to_goal);
+        }
 
         goby::glog.is_warn() && goby::glog << group("goal") << "Distance to goal index " << goal_index_
                            << " is " << distance_to_goal
@@ -498,8 +514,18 @@ struct InMission
                            << " is " << lateral_r95
                            << " meters." << std::endl;
         goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index " << goal_index_
-                           << " is " << heading_uncertainty / DEGREES
+                           << " is " << heading_uncertainty_radians / DEGREES
                            << " degrees." << std::endl;
+
+        if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty_degrees() * DEGREES)
+        {
+            goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index "
+                               << goal_index_ << " is above limit of "
+                               << cfg().max_allowed_heading_uncertainty_degrees() << " degrees. Pausing mission."
+                               << std::endl;
+
+            // this->post_event(EvHeadingUncertaintyExceeded());
+        }
     }
 
     using reactions = boost::mpl::list<
