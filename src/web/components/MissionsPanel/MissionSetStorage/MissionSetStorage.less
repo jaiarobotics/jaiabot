@@ -1,0 +1,95 @@
+@import "../../../style/stylesheets/vars.less";
+
+.jaia-dialog.mission-set-storage {
+    align-items: center;
+    gap: 24px;
+    position: relative;
+}
+.mission-set-storage .input-container,
+.mission-sets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 80%;
+}
+
+.mission-set-storage .input-container label,
+.mission-sets-container label {
+    color: #4b5563;
+}
+
+.mission-set-storage input {
+    all: unset;
+    box-sizing: border-box;
+    padding: 6px;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    background-color: #f3f4f6;
+}
+
+.mission-set-storage .button-row {
+    display: flex;
+    gap: 15px;
+}
+
+.mission-set-storage .button-row button {
+    all: unset;
+    box-sizing: border-box;
+    width: 75px;
+    padding: 9px;
+    border: 1px solid #1f2937;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.mission-set-storage button {
+    all: unset;
+    padding: 6px 15px;
+    cursor: pointer;
+}
+
+.mission-set-names {
+    display: flex;
+    flex-direction: column;
+    min-height: 75px;
+    max-height: 150px;
+    overflow-y: auto;
+
+    padding: 6px;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    background-color: #f3f4f6;
+    cursor: pointer;
+}
+
+.mission-set-row {
+    padding: 6px 3px;
+}
+
+.mission-set-row.selected {
+    background-color: @selected-color;
+}
+
+.mission-set-storage .secondary-dialog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #9ca3af;
+    background-color: #f3f4f6;
+}
+
+.mission-set-storage .line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
+}

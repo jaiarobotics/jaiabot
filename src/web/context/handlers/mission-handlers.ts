@@ -8,7 +8,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { updateMissionSetFromSnapshot } from "../../components/MissionSetStorage/mission-set-storage";
+import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
 /**

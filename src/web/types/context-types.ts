@@ -3,7 +3,7 @@ import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
-import { MissionSetSnapshot } from "../components/MissionSetStorage/mission-set-storage";
+import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import HistoryBuffer from "../utils/history-buffer";
 
 import {

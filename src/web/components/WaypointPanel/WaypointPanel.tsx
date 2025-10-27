@@ -1,7 +1,7 @@
 import { ChangeEvent, useContext, useEffect, useState } from "react";
 import cloneDeep from "lodash/cloneDeep";
 
-import TaskParameters from "../TaskParameters/TaskParameters";
+import TaskParameters from "./TaskParameters/TaskParameters";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
