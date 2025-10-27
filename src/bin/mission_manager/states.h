@@ -483,7 +483,7 @@ struct InMission
         const auto& current_goal_ = current_goal().get();
 
         const auto lateral_r95 = ev.status.lateral_r95();
-        if (lateral_r95 <= cfg().ok_lateral_r95_meters())
+        if (lateral_r95 <= cfg().ok_lateral_r95())
         {
             goby::glog.is_debug2() && goby::glog << group("goal") << "Lateral uncertainty "
                                                  << goal_index_ << " is " << lateral_r95
@@ -517,11 +517,11 @@ struct InMission
                            << " is " << heading_uncertainty_radians / DEGREES
                            << " degrees." << std::endl;
 
-        if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty_degrees() * DEGREES)
+        if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty() * DEGREES)
         {
             goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index "
                                << goal_index_ << " is above limit of "
-                               << cfg().max_allowed_heading_uncertainty_degrees() << " degrees. Pausing mission."
+                               << cfg().max_allowed_heading_uncertainty() << " degrees. Pausing mission."
                                << std::endl;
 
             // this->post_event(EvHeadingUncertaintyExceeded());
